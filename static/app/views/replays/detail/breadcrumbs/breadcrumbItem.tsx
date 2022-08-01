@@ -15,8 +15,8 @@ interface Props {
   crumb: Crumb;
   isHovered: boolean;
   isSelected: boolean;
-  onClick: MouseCallback;
-  startTimestamp: number;
+  onClick: null | MouseCallback;
+  startTimestampMs: number;
   onMouseEnter?: MouseCallback;
   onMouseLeave?: MouseCallback;
 }
@@ -25,7 +25,7 @@ function BreadcrumbItem({
   crumb,
   isHovered,
   isSelected,
-  startTimestamp,
+  startTimestampMs,
   onMouseEnter,
   onMouseLeave,
   onClick,
@@ -41,13 +41,13 @@ function BreadcrumbItem({
     [onMouseLeave, crumb]
   );
   const handleClick = useCallback(
-    (e: React.MouseEvent<HTMLElement>) => onClick(crumb, e),
+    (e: React.MouseEvent<HTMLElement>) => onClick?.(crumb, e),
     [onClick, crumb]
   );
 
   return (
     <CrumbItem
-      as="button"
+      as={onClick ? 'button' : 'span'}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={handleClick}
@@ -61,7 +61,10 @@ function BreadcrumbItem({
       <CrumbDetails>
         <TitleContainer>
           <Title>{title}</Title>
-          <PlayerRelativeTime relativeTime={startTimestamp} timestamp={crumb.timestamp} />
+          <PlayerRelativeTime
+            relativeTimeMs={startTimestampMs}
+            timestamp={crumb.timestamp}
+          />
         </TitleContainer>
 
         <Description title={description}>{description}</Description>
