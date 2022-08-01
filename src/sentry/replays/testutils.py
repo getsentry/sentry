@@ -1,5 +1,4 @@
 import datetime
-import logging
 import typing
 
 from sentry.utils import json
@@ -9,13 +8,11 @@ def assert_expected_response(
     response: typing.Dict[str, typing.Any], expected_response: typing.Dict[str, typing.Any]
 ) -> None:
     """Assert a received response matches what was expected."""
-    logging.debug(json.dumps(response, indent=2))
-    logging.debug(json.dumps(expected_response, indent=2))
     # Compare the response structure and values to the expected response.
     for key, value in expected_response.items():
-        logging.debug(key)
-        assert key in response
-        assert response.pop(key) == value
+        assert key in response, key
+        response_value = response.pop(key)
+        assert response_value == value, f'"{response_value}" "{value}"'
 
     # Ensure no lingering unexpected keys exist.
     assert list(response.keys()) == []
@@ -31,7 +28,7 @@ def mock_expected_response(
     urls = kwargs.pop("urls", [""])
     return {
         "replay_id": replay_id,
-        "title": kwargs.pop("title", ""),
+        "title": kwargs.pop("title", "Title"),
         "project_id": project_id,
         "urls": urls,
         "trace_ids": kwargs.pop("trace_ids", []),
@@ -43,8 +40,8 @@ def mock_expected_response(
         "count_urls": len(urls),
         "longest_transaction": kwargs.pop("longest_transaction", 0),
         "platform": kwargs.pop("platform", "javascript"),
-        "environment": kwargs.pop("environment", ""),
-        "release": kwargs.pop("release", ""),
+        "environment": kwargs.pop("environment", "production"),
+        "release": kwargs.pop("release", "version@1.3"),
         "dist": kwargs.pop("dist", "abc123"),
         "user": {
             "id": kwargs.pop("user_id", "123"),
@@ -54,7 +51,7 @@ def mock_expected_response(
         },
         "sdk_name": kwargs.pop("sdk_name", "sentry.javascript.react"),
         "sdk_version": kwargs.pop("sdk_version", "6.18.1"),
-        "tags": {"isReplayRoot": "yes", "skippedNormalization": "True", "transaction": "/"},
+        "tags": {"customtag": "is_set"},
     }
 
 
@@ -77,9 +74,12 @@ def mock_replay(
                         "type": "replay_event",
                         "replay_id": replay_id,
                         "segment_id": kwargs.pop("segment_id", 0),
-                        "tags": {"customtag": "is_set", "transaction": kwargs.pop("title", "test")},
+                        "tags": {
+                            "customtag": "is_set",
+                            "transaction": kwargs.pop("title", "Title"),
+                        },
                         "trace_ids": kwargs.pop("trace_ids", []),
-                        "dist": kwargs.pop("dist", "hello"),
+                        "dist": kwargs.pop("dist", "abc123"),
                         "platform": kwargs.pop("platform", "javascript"),
                         "timestamp": kwargs.pop("timestamp", int(timestamp.timestamp())),
                         "environment": kwargs.pop("environment", "production"),
