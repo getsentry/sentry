@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import MutableMapping, Optional, Sequence, Tuple
+from typing import Any, MutableMapping, Optional, Sequence, Tuple
 
 from sentry import options
 from sentry.ratelimits.sliding_windows import (
@@ -102,7 +102,7 @@ class RateLimitState:
         return self
 
     @metrics.wraps("sentry_metrics.indexer.writes_limiter.exit")
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
         """
         Consumes the rate limits returned by `check_write_limits`.
         """
