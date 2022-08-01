@@ -1,7 +1,5 @@
 from typing import Any, Dict, List, Optional
 
-REPLAYS_RECORDING_SEQUENCE_KEY = "p:{project_id}:r:{replay_id}:seq:{sequence_id}"
-
 
 def process_raw_response(response: List[Dict[str, Any]], fields: List[str]) -> Dict[str, Any]:
     """Process the response further into the expected output."""

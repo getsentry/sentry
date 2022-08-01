@@ -19,7 +19,7 @@ def store_replay(replay):
     assert response.status_code == 200
 
 
-def create_recording_segment(replay_id, project_id, filename, sequence_id):
+def create_recording_segment(replay_id, project_id, filename, segment_id):
     with open(filename, "rb") as f:
         file = File.objects.create(name=filename, type="application/octet-stream")
         file.putfile(f)
@@ -27,7 +27,7 @@ def create_recording_segment(replay_id, project_id, filename, sequence_id):
     ReplayRecordingSegment.objects.create(
         replay_id=replay_id.replace("-", ""),
         project_id=project_id,
-        sequence_id=sequence_id,
+        segment_id=segment_id,
         file_id=file.id,
     )
 
@@ -61,8 +61,8 @@ def main():
     seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
 
     print("Creating Clickhouse entries...")  # NOQA
-    store_replay(mock_replay(seq1_timestamp, project.id, replay_id, sequence_id=0))
-    store_replay(mock_replay(seq2_timestamp, project.id, replay_id, sequence_id=1))
+    store_replay(mock_replay(seq1_timestamp, project.id, replay_id, segment_id=0))
+    store_replay(mock_replay(seq2_timestamp, project.id, replay_id, segment_id=1))
 
     print("Creating Postgres entries...")  # NOQA
     create_recording_segment(replay_id, project.id, make_filename("rrweb-1658770770892.json"), 0)

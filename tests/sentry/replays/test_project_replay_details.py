@@ -86,13 +86,13 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                 seq2_timestamp,
                 self.project.id,
                 replay1_id,
-                sequence_id=1,
+                segment_id=1,
                 trace_ids=["2a0dcb0e-a1fb-4350-b266-47ae1aa57dfb"],
             )
         )
         self.store_replays(
             mock_replay(
-                seq3_timestamp, self.project.id, replay1_id, sequence_id=2, sdk_version="16.8.2"
+                seq3_timestamp, self.project.id, replay1_id, segment_id=2, sdk_version="16.8.2"
             )
         )
 

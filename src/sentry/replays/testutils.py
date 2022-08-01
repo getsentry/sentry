@@ -70,7 +70,7 @@ def mock_replay(
         "project_id": project_id,
         "replay_id": replay_id,
         "retention_days": 20,
-        "sequence_id": kwargs.pop("sequence_id", 0),
+        "segment_id": kwargs.pop("segment_id", 0),
         "trace_ids": kwargs.pop("trace_ids", []),
         "data": {
             "timestamp": int(timestamp.timestamp()),
