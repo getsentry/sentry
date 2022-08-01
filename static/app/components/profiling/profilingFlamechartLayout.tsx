@@ -10,6 +10,9 @@ import {
   UseResizableDrawerOptions,
 } from 'sentry/utils/profiling/hooks/useResizableDrawer';
 
+// 664px is approximately the width where we start to scroll inside
+// 30px is the min height to where the drawer can still be resized
+const MIN_FRAMESTACK_DIMENSIONS: [number, number] = [664, 30];
 interface ProfilingFlamechartLayoutProps {
   flamechart: React.ReactElement;
   frameStack: React.ReactElement;
@@ -28,10 +31,6 @@ export function ProfilingFlamechartLayout(props: ProfilingFlamechartLayoutProps)
       (flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET + 2) *
         flamegraphTheme.SIZES.BAR_HEIGHT,
     ];
-
-    // 664 is approximately the width where we start to scroll inside
-    // 30 is the min height to where the drawer can still be resized
-    const min: [number, number] = [664, 30];
 
     const onResize = (newDimensions: [number, number]) => {
       if (!frameStackRef.current) {
@@ -56,7 +55,7 @@ export function ProfilingFlamechartLayout(props: ProfilingFlamechartLayoutProps)
           : layout === 'table_right'
           ? 'horizontal-rtl'
           : 'vertical',
-      min,
+      min: MIN_FRAMESTACK_DIMENSIONS,
     };
   }, [
     flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
@@ -145,6 +144,7 @@ const FrameStackContainer = styled('div')<{layout: FlamegraphPreferences['layout
   grid-area: frame-stack;
   position: relative;
   overflow: auto;
+  min-width: ${MIN_FRAMESTACK_DIMENSIONS[0]}px;
 
   > div {
     position: absolute;
