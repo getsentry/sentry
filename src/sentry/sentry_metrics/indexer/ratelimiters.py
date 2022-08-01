@@ -141,31 +141,33 @@ class WritesLimiter:
         org_ids, requests = _construct_quota_requests(use_case_id, keys)
         timestamp, grants = self._get_rate_limiter(use_case_id).check_within_quotas(requests)
 
-        granted_key_collection = dict(keys.mapping)
+        granted_key_collection = {}
         dropped_strings = []
 
         for org_id, request, grant in zip(org_ids, requests, grants):
-            allowed_strings = granted_key_collection[org_id]
-            if len(allowed_strings) > grant.granted:
-                allowed_strings = set(allowed_strings)
-
-                while len(allowed_strings) > grant.granted:
-                    dropped_strings.append(
-                        DroppedString(
-                            key_result=KeyResult(
-                                org_id=org_id, string=allowed_strings.pop(), id=None
-                            ),
-                            fetch_type=FetchType.RATE_LIMITED,
-                            fetch_type_ext=FetchTypeExt(
-                                is_global=any(
-                                    quota.prefix_override is not None
-                                    for quota in grant.reached_quotas
+            original_strings = keys.mapping[org_id]
+            if len(original_strings) <= grant.granted:
+                granted_key_collection[org_id] = original_strings
+            else:
+                allowed_strings = set()
+                for string in original_strings:
+                    if len(allowed_strings) < grant.granted:
+                        allowed_strings.add(string)
+                    else:
+                        dropped_strings.append(
+                            DroppedString(
+                                key_result=KeyResult(org_id=org_id, string=string, id=None),
+                                fetch_type=FetchType.RATE_LIMITED,
+                                fetch_type_ext=FetchTypeExt(
+                                    is_global=any(
+                                        quota.prefix_override is not None
+                                        for quota in grant.reached_quotas
+                                    ),
                                 ),
-                            ),
+                            )
                         )
-                    )
 
-            granted_key_collection[org_id] = allowed_strings
+                granted_key_collection[org_id] = allowed_strings
 
         state = RateLimitState(
             _writes_limiter=self,
