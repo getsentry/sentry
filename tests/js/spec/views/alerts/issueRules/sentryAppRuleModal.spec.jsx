@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
 
@@ -15,11 +15,6 @@ describe('SentryAppRuleModal', function () {
     sentryApp = TestStubs.SentryApp();
     sentryAppInstallation = TestStubs.SentryAppInstallation({sentryApp});
   });
-
-  function openSelectMenu(text) {
-    const placeholder = screen.getByText(text);
-    userEvent.type(placeholder, '{keyDown}');
-  }
 
   const _submit = () => {
     userEvent.click(screen.getByText('Save Changes'));
@@ -66,6 +61,33 @@ describe('SentryAppRuleModal', function () {
         label: 'Extra Details',
         name: 'extra',
       },
+      {
+        type: 'select',
+        label: 'Assignee',
+        name: 'assignee',
+        uri: '/link/assignee/',
+        skip_load_on_open: 'true',
+      },
+      {
+        type: 'select',
+        label: 'Workspace',
+        name: 'workspace',
+        uri: '/link/workspace/',
+      },
+    ],
+  };
+
+  const resetValues = {
+    settings: [
+      {
+        name: 'extra',
+        value: 'saved details from last edit',
+      },
+      {
+        name: 'assignee',
+        value: 'edna-mode',
+        label: 'Edna Mode',
+      },
     ],
   };
 
@@ -78,6 +100,7 @@ describe('SentryAppRuleModal', function () {
         config={defaultConfig}
         action="create"
         onSubmitSuccess={() => {}}
+        resetValues={resetValues}
         {...props}
       />
     );
@@ -99,14 +122,44 @@ describe('SentryAppRuleModal', function () {
       submitErrors(3);
     });
 
-    it('should submit when "Save Changes" is clicked with valid data', function () {
+    it('should submit when "Save Changes" is clicked with valid data', async function () {
       createWrapper();
+
       const titleInput = screen.getByTestId('title');
+      userEvent.type(titleInput, 'some title');
+
       const descriptionInput = screen.getByTestId('description');
-      userEvent.type(titleInput, 'v');
-      userEvent.type(descriptionInput, 'v');
-      openSelectMenu('Type to search');
+      userEvent.type(descriptionInput, 'some description');
+
+      const channelInput = screen.getAllByText('Type to search')[0];
+      userEvent.type(channelInput, '{keyDown}');
       userEvent.click(screen.getByText('valor'));
+
+      // Ensure text fields are persisted on edit
+      const savedExtraDetailsInput = screen.getByDisplayValue(
+        resetValues.settings[0].value
+      );
+      expect(savedExtraDetailsInput).toBeInTheDocument();
+      // Ensure select fields are persisted with labels on edit
+      const savedAssigneeInput = screen.getByText(resetValues.settings[1].label);
+      expect(savedAssigneeInput).toBeInTheDocument();
+
+      // Ensure async select fields filter correctly
+      const workspaceChoices = [
+        ['WS0', 'Primary Workspace'],
+        ['WS1', 'Secondary Workspace'],
+      ];
+      const workspaceResponse = MockApiClient.addMockResponse({
+        url: `/sentry-app-installations/${sentryAppInstallation.uuid}/external-requests/`,
+        body: {choices: workspaceChoices},
+      });
+      const workspaceInput = screen.getByText('Type to search');
+      // Search by value
+      userEvent.type(workspaceInput, workspaceChoices[1][0]);
+      await waitFor(() => expect(workspaceResponse).toHaveBeenCalled());
+      // Select by label
+      userEvent.click(screen.getByText(workspaceChoices[1][1]));
+
       submitSuccess();
     });
   });
