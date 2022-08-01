@@ -9,6 +9,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {t, tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
 
@@ -65,13 +66,15 @@ export function SpecifyClientRateModal({
         <h4>{t('Specify current client(SDK) sample rate')}</h4>
       </Header>
       <Body>
-        <StyledNumberField
-          label={tct(
+        <TextBlock>
+          {tct(
             'Find the [textHighlight:tracesSampleRate] option in your SDK config, and copy it’s value into the field below.',
             {
               textHighlight: <TextHighlight />,
             }
           )}
+        </TextBlock>
+        <StyledNumberField
           type="number"
           name="current-client-sampling"
           placeholder="0.1"

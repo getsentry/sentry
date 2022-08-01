@@ -109,6 +109,7 @@ function UniformRateModal({
     const clientDiscard = projectStats30d?.groups.some(
       g => g.by.outcome === Outcome.CLIENT_DISCARD
     );
+
     setActiveStep(
       clientDiscard ? Step.SET_UNIFORM_SAMPLE_RATE : Step.SET_CURRENT_CLIENT_SAMPLE_RATE
     );
