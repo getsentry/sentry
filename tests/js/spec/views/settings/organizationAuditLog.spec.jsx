@@ -53,7 +53,6 @@ describe('OrganizationAuditLog', () => {
     const {router, routerContext, organization} = initializeOrg({
       projects: [],
       router: {
-        location: {query: {version: '2'}},
         params: {orgId: 'org-slug'},
       },
     });

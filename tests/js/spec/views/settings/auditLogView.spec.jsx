@@ -8,7 +8,6 @@ describe('OrganizationAuditLog', () => {
   const {routerContext, org} = initializeOrg({
     projects: [],
     router: {
-      location: {query: {version: '2'}},
       params: {orgId: 'org-slug'},
     },
   });
@@ -23,15 +22,9 @@ describe('OrganizationAuditLog', () => {
   });
 
   it('renders', async () => {
-    render(
-      <OrganizationAuditLog
-        location={{query: {version: '2'}}}
-        params={{orgId: org.slug}}
-      />,
-      {
-        context: routerContext,
-      }
-    );
+    render(<OrganizationAuditLog params={{orgId: org.slug}} />, {
+      context: routerContext,
+    });
 
     expect(await screen.findByRole('heading')).toHaveTextContent('Audit Log');
     expect(screen.getByRole('textbox')).toBeInTheDocument();
@@ -50,29 +43,17 @@ describe('OrganizationAuditLog', () => {
       body: {rows: [], options: TestStubs.AuditLogsApiEventNames()},
     });
 
-    render(
-      <OrganizationAuditLog
-        location={{query: {version: '2'}}}
-        params={{orgId: org.slug}}
-      />,
-      {
-        context: routerContext,
-      }
-    );
+    render(<OrganizationAuditLog params={{orgId: org.slug}} />, {
+      context: routerContext,
+    });
 
     expect(await screen.findByText('No audit entries available')).toBeInTheDocument();
   });
 
   it('displays whether an action was done by a superuser', async () => {
-    render(
-      <OrganizationAuditLog
-        location={{query: {version: '2'}}}
-        params={{orgId: org.slug}}
-      />,
-      {
-        context: routerContext,
-      }
-    );
+    render(<OrganizationAuditLog params={{orgId: org.slug}} />, {
+      context: routerContext,
+    });
 
     expect(await screen.findByText('Sentry Staff')).toBeInTheDocument();
     expect(screen.getAllByText('Foo Bar')).toHaveLength(2);
