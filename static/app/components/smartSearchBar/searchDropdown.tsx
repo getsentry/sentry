@@ -16,7 +16,10 @@ import Tag from '../tag';
 
 import {ItemType, SearchGroup, SearchItem, Shortcut} from './types';
 
-const getDropdownItemKey = (item: SearchItem) => item.value || item.desc || item.title;
+const getDropdownItemKey = (item: SearchItem) =>
+  `${item.value || item.desc || item.title}-${
+    item.children && item.children.length > 0 ? getDropdownItemKey(item.children[0]) : ''
+  }`;
 
 type Props = {
   items: SearchGroup[];
@@ -324,7 +327,10 @@ const DropdownItem = ({
       <Fragment>
         <ItemTitle item={item} isChild={isChild} searchSubstring={searchSubstring} />
         {item.desc && <Value hasDocs={!!item.documentation}>{item.desc}</Value>}
-        <Documentation>{item.documentation}</Documentation>
+        <DropdownDocumentation
+          documentation={item.documentation}
+          searchSubstring={searchSubstring}
+        />
         <TagWrapper>
           {item.kind && !isChild && (
             <KindTag kind={item.kind} deprecated={item.deprecated} />
@@ -360,6 +366,35 @@ const DropdownItem = ({
         ))}
     </Fragment>
   );
+};
+
+type DropdownDocumentationProps = {
+  searchSubstring: string;
+  documentation?: React.ReactNode;
+};
+
+const DropdownDocumentation = ({
+  documentation,
+  searchSubstring,
+}: DropdownDocumentationProps) => {
+  if (documentation && typeof documentation === 'string') {
+    const startIndex =
+      documentation.toLocaleLowerCase().indexOf(searchSubstring.toLocaleLowerCase()) ??
+      -1;
+    if (startIndex !== -1) {
+      const endIndex = startIndex + searchSubstring.length;
+
+      return (
+        <Documentation>
+          {documentation.slice(0, startIndex)}
+          <strong>{documentation.slice(startIndex, endIndex)}</strong>
+          {documentation.slice(endIndex)}
+        </Documentation>
+      );
+    }
+  }
+
+  return <Documentation>{documentation}</Documentation>;
 };
 
 type QueryItemProps = {item: SearchItem};
@@ -528,6 +563,8 @@ const Documentation = styled('span')`
   display: flex;
   flex: 2;
   padding: 0 ${space(1)};
+
+  white-space: pre;
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: none;
