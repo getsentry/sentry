@@ -177,7 +177,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
         params = {
             "external_id": tenant_id,
-            "external_name": tenant_id,
+            "external_name": f"{tenant_id} (Microsoft Tenant)",
             "installation_type": "tenant",
         }
 
