@@ -1,9 +1,8 @@
 import React from 'react';
 
+import ScoreBar from 'sentry/components/scoreBar';
 import CHART_PALETTE from 'sentry/constants/chartPalette';
 import {ReplayDurationAndErrors} from 'sentry/views/replays/types';
-
-import ScoreBar from '../scoreBar';
 
 interface Props {
   data: ReplayDurationAndErrors | undefined;
