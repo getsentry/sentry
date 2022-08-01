@@ -40,6 +40,7 @@ function isColorCoding(
     'by system / application',
     'by library',
     'by recursion',
+    'by inlining',
   ];
 
   return values.includes(value as any);
