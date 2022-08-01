@@ -76,14 +76,20 @@ export type DashboardListItem = {
   dateCreated?: string;
 };
 
+export enum DashboardFilterKeys {
+  RELEASE = 'release',
+}
+
+export type DashboardFilters = {
+  [DashboardFilterKeys.RELEASE]?: string[];
+};
+
 /**
  * Saved dashboard with widgets
  */
 export type DashboardDetails = {
   dateCreated: string;
-  filters: {
-    releases?: string[];
-  };
+  filters: DashboardFilters;
   id: string;
   projects: number[];
   title: string;
@@ -93,6 +99,7 @@ export type DashboardDetails = {
   environment?: string[];
   period?: string;
   start?: string;
+  utc?: boolean;
 };
 
 export enum DashboardState {

@@ -30,6 +30,7 @@ inputs:
   python-version:
     description: 'python version to install'
     required: false
+    default: '3.8.13'
   pg-version:
     description: 'PostgreSQL version to use'
     default: '9.6'
@@ -100,7 +101,7 @@ runs:
         [ "$GITHUB_REF" = "refs/heads/master" ] && echo "PYTEST_SENTRY_ALWAYS_REPORT=1" >> $GITHUB_ENV || true
 
     - name: Setup python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@c4e89fac7e8767b327bbad6cb4d859eda999cf08  # v4
       with:
         python-version: ${{ inputs.python-version }}
         cache: pip

@@ -14,7 +14,6 @@ import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Confirm from 'sentry/components/confirm';
-import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
@@ -68,7 +67,6 @@ type State = {
   error: string;
   errorCode: number;
   eventView: EventView;
-  incompatibleAlertNotice: React.ReactNode;
   needConfirmation: boolean;
   showTags: boolean;
   totalValues: null | number;
@@ -117,7 +115,6 @@ class Results extends Component<Props, State> {
     showTags: readShowTagsState(),
     needConfirmation: false,
     confirmedQuery: false,
-    incompatibleAlertNotice: null,
   };
 
   componentDidMount() {
@@ -439,28 +436,6 @@ class Results extends Component<Props, State> {
     return url;
   };
 
-  handleIncompatibleQuery: React.ComponentProps<
-    typeof CreateAlertFromViewButton
-  >['onIncompatibleQuery'] = (incompatibleAlertNoticeFn, errors) => {
-    const {organization} = this.props;
-    const {eventView} = this.state;
-    trackAnalyticsEvent({
-      eventKey: 'discover_v2.create_alert_clicked',
-      eventName: 'Discoverv2: Create alert clicked',
-      status: 'error',
-      query: eventView.query,
-      errors,
-      organization_id: organization.id,
-      url: window.location.href,
-    });
-
-    const incompatibleAlertNotice = incompatibleAlertNoticeFn(() =>
-      this.setState({incompatibleAlertNotice: null})
-    );
-
-    this.setState({incompatibleAlertNotice});
-  };
-
   renderError(error: string) {
     if (!error) {
       return null;
@@ -497,7 +472,6 @@ class Results extends Component<Props, State> {
       errorCode,
       totalValues,
       showTags,
-      incompatibleAlertNotice,
       confirmedQuery,
       savedQuery,
     } = this.state;
@@ -517,12 +491,10 @@ class Results extends Component<Props, State> {
               organization={organization}
               location={location}
               eventView={eventView}
-              onIncompatibleAlertQuery={this.handleIncompatibleQuery}
               yAxis={yAxisArray}
               router={router}
             />
             <Layout.Body>
-              {incompatibleAlertNotice && <Top fullWidth>{incompatibleAlertNotice}</Top>}
               <Top fullWidth>
                 {this.renderMetricsFallbackBanner()}
                 {this.renderError(error)}

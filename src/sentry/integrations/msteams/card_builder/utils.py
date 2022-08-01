@@ -74,3 +74,44 @@ class InstallationMessages:
     )
     PERSONAL_INSTALLATION_CONFIRMATION_BUTTON = "Notification Settings"
     NOTIFICATION_SETTINGS_URL = "/settings/account/notifications/"
+
+
+class IssueConstants:
+    # NOTE: DATE and TIME are formatting functions in Adaptive Cards.
+    # The syntax is `{{DATE(<some_date>, SHORT)}}` or `{{TIME(<some_date>)}}`
+    # https://docs.microsoft.com/en-us/adaptive-cards/authoring-cards/text-features
+    # Since `{` and `}` are special characters in format strings, we need to use
+    # double `{{` and `}}` to get the actual character in. Hence the `{{{{` and `}}}}`.
+    DATE_FORMAT = "{{{{DATE({date}, SHORT)}}}} at {{{{TIME({date})}}}}"
+
+    ASSIGNEE_NOTE = "**Assigned to {assignee}**"
+
+    RESOLVE = "Resolve"
+    RESOLVE_INPUT_ID = "resolveInput"
+    RESOLVE_INPUT_CHOICES = [
+        ("Immediately", "resolved"),
+        ("In the current release", "resolved:inCurrentRelease"),
+        ("In the next release", "resolved:inNextRelease"),
+    ]
+
+    UNRESOLVE = "Unresolve"
+
+    IGNORE = "Ignore"
+    IGNORE_INPUT_TITLE = "Ignore until this happens again..."
+    IGNORE_INPUT_ID = "ignoreInput"
+    IGNORE_INPUT_CHOICES = [
+        ("Ignore indefinitely", -1),
+        ("1 time", 1),
+        ("10 times", 10),
+        ("100 times", 100),
+        ("1,000 times", 1000),
+        ("10,000 times", 10000),
+    ]
+
+    STOP_IGNORING = "Stop Ignoring"
+
+    ASSIGN = "Assign"
+    ASSIGN_INPUT_TITLE = "Assign to..."
+    ASSIGN_INPUT_ID = "assignInput"
+
+    UNASSIGN = "Unassign"

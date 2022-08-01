@@ -5,6 +5,7 @@ import type {TooltipComponentFormatterCallback, TooltipComponentOption} from 'ec
 import moment from 'moment';
 
 import BaseChart from 'sentry/components/charts/baseChart';
+import {DataPoint} from 'sentry/types/echarts';
 import {getFormattedDate, getTimeFormat} from 'sentry/utils/dates';
 
 import {truncationFormatter} from '../utils';
@@ -89,6 +90,12 @@ type TooltipFormatters =
   | 'nameFormatter'
   | 'markerFormatter';
 
+export type TooltipSubLabel = {
+  data: DataPoint[];
+  label: string;
+  parentLabel: string;
+};
+
 type FormatterOptions = Pick<NonNullable<ChartProps['tooltip']>, TooltipFormatters> &
   Pick<ChartProps, NeededChartProps> & {
     /**
@@ -96,9 +103,9 @@ type FormatterOptions = Pick<NonNullable<ChartProps['tooltip']>, TooltipFormatte
      */
     addSecondsToTimeFormat?: boolean;
     /**
-     * Array containing seriesNames that need to be indented
+     * Array containing data that is used to display indented sublabels.
      */
-    indentLabels?: string[];
+    subLabels?: TooltipSubLabel[];
   };
 
 function getFormatter({
@@ -112,9 +119,9 @@ function getFormatter({
   valueFormatter = defaultValueFormatter,
   nameFormatter = defaultNameFormatter,
   markerFormatter = defaultMarkerFormatter,
-  indentLabels = [],
+  subLabels = [],
   addSecondsToTimeFormat = false,
-}: FormatterOptions) {
+}: FormatterOptions): TooltipComponentFormatterCallback<any> {
   const getFilter = (seriesParam: any) => {
     // Series do not necessarily have `data` defined, e.g. releases don't have `data`, but rather
     // has a series using strictly `markLine`s.
@@ -128,7 +135,7 @@ function getFormatter({
     return true;
   };
 
-  const formatter: TooltipComponentFormatterCallback<any> = seriesParamsOrParam => {
+  return seriesParamsOrParam => {
     // If this is a tooltip for the axis, it will include all series for that axis item.
     // In this case seriesParamsOrParam will be of type `Object[]`
     //
@@ -163,14 +170,10 @@ function getFormatter({
         seriesParamsOrParam.name
       );
 
-      const className = indentLabels.includes(seriesParamsOrParam.name ?? '')
-        ? 'tooltip-label tooltip-label-indent'
-        : 'tooltip-label';
-
       return [
         '<div class="tooltip-series">',
         `<div>
-          <span class="${className}"><strong>${seriesParamsOrParam.name}</strong></span>
+          <span class="tooltip-label"><strong>${seriesParamsOrParam.name}</strong></span>
           ${truncatedName}: ${formattedValue}
         </div>`,
         '</div>',
@@ -214,11 +217,29 @@ function getFormatter({
 
           const marker = markerFormatter(s.marker ?? '', s.seriesName);
 
-          const className = indentLabels.includes(formattedLabel)
-            ? 'tooltip-label tooltip-label-indent'
-            : 'tooltip-label';
+          const filteredSubLabels = subLabels.filter(
+            subLabel => subLabel.parentLabel === s.seriesName
+          );
 
-          return `<div><span class="${className}">${marker} <strong>${formattedLabel}</strong></span> ${value}</div>`;
+          if (!!filteredSubLabels.length) {
+            const labelWithSubLabels = [
+              `<div><span class="tooltip-label">${marker} <strong>${formattedLabel}</strong></span> ${value}</div>`,
+            ];
+
+            for (const subLabel of filteredSubLabels) {
+              labelWithSubLabels.push(
+                `<div><span class="tooltip-label tooltip-label-indent"><strong>${
+                  subLabel.label
+                }</strong></span> ${valueFormatter(
+                  subLabel.data[s.dataIndex].value
+                )}</div>`
+              );
+            }
+
+            return labelWithSubLabels.join('');
+          }
+
+          return `<div><span class="tooltip-label">${marker} <strong>${formattedLabel}</strong></span> ${value}</div>`;
         })
         .join(''),
       '</div>',
@@ -226,8 +247,6 @@ function getFormatter({
       '<div class="tooltip-arrow"></div>',
     ].join('');
   };
-
-  return formatter;
 }
 
 type Props = ChartProps['tooltip'] &
@@ -248,7 +267,7 @@ export default function Tooltip({
   nameFormatter,
   markerFormatter,
   hideDelay,
-  indentLabels,
+  subLabels,
   ...props
 }: Props = {}): TooltipComponentOption {
   const theme = useTheme();
@@ -267,7 +286,7 @@ export default function Tooltip({
       valueFormatter,
       nameFormatter,
       markerFormatter,
-      indentLabels,
+      subLabels,
     });
 
   return {

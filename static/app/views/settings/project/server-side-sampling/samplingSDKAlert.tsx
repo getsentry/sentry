@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -8,6 +9,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {RecommendedSdkUpgrade, SamplingRule} from 'sentry/types/sampling';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 import {
   RecommendedStepsModal,
@@ -19,7 +21,6 @@ type Props = Pick<RecommendedStepsModalProps, 'projectId' | 'onReadDocs'> & {
   organization: Organization;
   recommendedSdkUpgrades: RecommendedSdkUpgrade[];
   rules: SamplingRule[];
-
   showLinkToTheModal?: boolean;
 };
 
@@ -31,6 +32,17 @@ export function SamplingSDKAlert({
   onReadDocs,
   showLinkToTheModal = true,
 }: Props) {
+  useEffect(() => {
+    if (recommendedSdkUpgrades.length === 0) {
+      return;
+    }
+
+    trackAdvancedAnalyticsEvent('sampling.sdk.updgrades.alert', {
+      organization,
+      project_id: projectId,
+    });
+  }, [recommendedSdkUpgrades.length, organization, projectId]);
+
   if (recommendedSdkUpgrades.length === 0) {
     return null;
   }
@@ -47,29 +59,24 @@ export function SamplingSDKAlert({
     ));
   }
 
-  const atLeastOneRuleActive = rules.some(rule => rule.active);
   const uniformRule = rules.find(isUniformRule);
 
   return (
     <Alert
       data-test-id="recommended-sdk-upgrades-alert"
-      type={atLeastOneRuleActive ? 'error' : 'info'}
+      type="info"
       showIcon
       trailingItems={
         showLinkToTheModal && uniformRule ? (
           <Button onClick={handleOpenRecommendedSteps} priority="link" borderless>
-            {atLeastOneRuleActive ? t('Resolve Now') : t('Learn More')}
+            {t('Learn More')}
           </Button>
         ) : undefined
       }
     >
-      {atLeastOneRuleActive
-        ? t(
-            'Server-side sampling rules are in effect without the following SDK’s being updated to their latest version.'
-          )
-        : t(
-            'To keep a consistent amount of transactions across your applications multiple services, we recommend you update the SDK versions for the following projects:'
-          )}
+      {t(
+        'To activate server-side sampling rules, it’s a requirement to update the following project SDK(s):'
+      )}
       <Projects>
         {recommendedSdkUpgrades.map(recommendedSdkUpgrade => (
           <ProjectBadge

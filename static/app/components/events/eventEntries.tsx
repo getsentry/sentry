@@ -17,13 +17,13 @@ import EventCauseEmpty from 'sentry/components/events/eventCauseEmpty';
 import EventDataSection from 'sentry/components/events/eventDataSection';
 import EventExtraData from 'sentry/components/events/eventExtraData/eventExtraData';
 import EventSdk from 'sentry/components/events/eventSdk';
-import EventTags from 'sentry/components/events/eventTags/eventTags';
+import {EventTags} from 'sentry/components/events/eventTags';
 import EventGroupingInfo from 'sentry/components/events/groupingInfo';
 import EventPackageData from 'sentry/components/events/packageData';
 import RRWebIntegration from 'sentry/components/events/rrwebIntegration';
 import EventSdkUpdates from 'sentry/components/events/sdkUpdates';
-import {DataSection} from 'sentry/components/events/styles';
 import EventUserFeedback from 'sentry/components/events/userFeedback';
+import LazyLoad from 'sentry/components/lazyLoad';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -100,6 +100,7 @@ const EventEntries = memo(
     const orgFeatures = organization?.features ?? [];
 
     const hasEventAttachmentsFeature = orgFeatures.includes('event-attachments');
+    const replayId = event?.tags?.find(({key}) => key === 'replayId')?.value;
 
     useEffect(() => {
       checkProGuardError();
@@ -351,7 +352,7 @@ const EventEntries = memo(
     const hasErrors = !objectIsEmpty(event.errors) || !!proGuardErrors.length;
 
     return (
-      <div className={className} data-test-id={`event-entries-loading-${isLoading}`}>
+      <Wrap className={className} data-test-id={`event-entries-loading-${isLoading}`}>
         {hasErrors && !isLoading && (
           <EventErrors
             event={event}
@@ -431,7 +432,7 @@ const EventEntries = memo(
             showGroupingConfig={orgFeatures.includes('set-grouping-config')}
           />
         )}
-        {!isShare && hasEventAttachmentsFeature && (
+        {!isShare && !replayId && hasEventAttachmentsFeature && (
           <RRWebIntegration
             event={event}
             orgId={orgSlug}
@@ -443,10 +444,27 @@ const EventEntries = memo(
             )}
           />
         )}
-      </div>
+        {!isShare && replayId && orgFeatures.includes('session-replay') && (
+          <LazyLoad
+            component={() => import('./eventReplay')}
+            replayId={replayId}
+            orgSlug={orgSlug}
+            projectSlug={projectSlug}
+          />
+        )}
+      </Wrap>
     );
   }
 );
+
+const Wrap = styled('div')`
+  /* Padding aligns with Layout.Body */
+  padding: 0 ${space(4)};
+
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    padding: 0 ${space(2)};
+  }
+`;
 
 const StyledEventDataSection = styled(EventDataSection)`
   /* Hiding the top border because of the event section appears at this breakpoint */
@@ -461,28 +479,16 @@ const LatestEventNotAvailable = styled('div')`
   padding: ${space(2)} ${space(4)};
 `;
 
-const ErrorContainer = styled('div')`
-  /*
-  Remove border on adjacent context summary box.
-  Once that component uses emotion this will be harder.
-  */
-  & + .context-summary {
+const BorderlessEventEntries = styled(EventEntries)`
+  padding: 0;
+
+  & > div:first-child {
+    padding-top: 0;
     border-top: none;
   }
-`;
 
-const BorderlessEventEntries = styled(EventEntries)`
-  & ${/* sc-selector */ DataSection} {
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    padding: ${space(3)} 0 0 0;
-  }
-  & ${/* sc-selector */ DataSection}:first-child {
-    padding-top: 0;
-    border-top: 0;
-  }
-  & ${/* sc-selector */ ErrorContainer} {
-    margin-bottom: ${space(2)};
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    padding: 0;
   }
 `;
 

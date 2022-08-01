@@ -45,7 +45,6 @@ import {UniformRateModal} from './modals/uniformRateModal';
 import useProjectStats from './utils/useProjectStats';
 import {useRecommendedSdkUpgrades} from './utils/useRecommendedSdkUpgrades';
 import {DraggableRuleList, DraggableRuleListUpdateItemsProps} from './draggableRuleList';
-import {Promo} from './promo';
 import {
   ActiveColumn,
   Column,
@@ -55,6 +54,8 @@ import {
   RateColumn,
   Rule,
 } from './rule';
+import {SamplingBreakdown} from './samplingBreakdown';
+import {SamplingPromo} from './samplingPromo';
 import {SamplingSDKAlert} from './samplingSDKAlert';
 import {isUniformRule, SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
 
@@ -74,10 +75,10 @@ export function ServerSideSampling({project}: Props) {
 
   useEffect(() => {
     trackAdvancedAnalyticsEvent('sampling.settings.view', {
-      organization: organization.slug,
+      organization,
       project_id: project.id,
     });
-  }, [project.id, organization.slug]);
+  }, [project.id, organization]);
 
   useEffect(() => {
     if (!isEqual(previousRules, currentRules)) {
@@ -113,9 +114,10 @@ export function ServerSideSampling({project}: Props) {
     statsPeriod: '48h',
   });
 
-  const {recommendedSdkUpgrades} = useRecommendedSdkUpgrades({
-    orgSlug: organization.slug,
-  });
+  const {recommendedSdkUpgrades, fetching: fetchingRecommendedSdkUpgrades} =
+    useRecommendedSdkUpgrades({
+      orgSlug: organization.slug,
+    });
 
   async function handleActivateToggle(rule: SamplingRule) {
     const newRules = rules.map(r => {
@@ -152,7 +154,7 @@ export function ServerSideSampling({project}: Props) {
           ? 'sampling.settings.rule.uniform_deactivate'
           : 'sampling.settings.rule.uniform_activate',
         {
-          organization: organization.slug,
+          organization,
           project_id: project.id,
           sampling_rate: rule.sampleRate,
         }
@@ -166,7 +168,7 @@ export function ServerSideSampling({project}: Props) {
           ? 'sampling.settings.rule.specific_deactivate'
           : 'sampling.settings.rule.specific_activate',
         {
-          organization: organization.slug,
+          organization,
           project_id: project.id,
           sampling_rate: rule.sampleRate,
           conditions: analyticsConditions,
@@ -178,7 +180,7 @@ export function ServerSideSampling({project}: Props) {
 
   function handleGetStarted() {
     trackAdvancedAnalyticsEvent('sampling.settings.view_get_started', {
-      organization: organization.slug,
+      organization,
       project_id: project.id,
     });
 
@@ -307,7 +309,7 @@ export function ServerSideSampling({project}: Props) {
 
   function handleReadDocs() {
     trackAdvancedAnalyticsEvent('sampling.settings.view_read_docs', {
-      organization: organization.slug,
+      organization,
       project_id: project.id,
     });
   }
@@ -336,7 +338,7 @@ export function ServerSideSampling({project}: Props) {
         ? 'sampling.settings.modal.uniform.rate_done'
         : 'sampling.settings.modal.recommended.next.steps_done',
       {
-        organization: organization.slug,
+        organization,
         project_id: project.id,
       }
     );
@@ -346,12 +348,19 @@ export function ServerSideSampling({project}: Props) {
         ? 'sampling.settings.rule.uniform_update'
         : 'sampling.settings.rule.uniform_create',
       {
-        organization: organization.slug,
+        organization,
         project_id: project.id,
         sampling_rate: newRule.sampleRate,
         old_sampling_rate: rule ? rule.sampleRate : null,
       }
     );
+
+    trackAdvancedAnalyticsEvent('sampling.settings.rule.uniform_save', {
+      organization,
+      project_id: project.id,
+      sampling_rate: newRule.sampleRate,
+      old_sampling_rate: rule ? rule.sampleRate : null,
+    });
 
     const newRules = rule
       ? rules.map(existingRule => (existingRule.id === rule.id ? newRule : existingRule))
@@ -368,7 +377,7 @@ export function ServerSideSampling({project}: Props) {
           ? t('Successfully edited sampling rule')
           : t('Successfully added sampling rule')
       );
-      onSuccess?.();
+      onSuccess?.(response.dynamicSampling?.rules ?? []);
     } catch (error) {
       addErrorMessage(
         typeof error === 'string'
@@ -389,12 +398,12 @@ export function ServerSideSampling({project}: Props) {
   const uniformRule = rules.find(isUniformRule);
 
   return (
-    <SentryDocumentTitle title={t('Server-side Sampling')}>
+    <SentryDocumentTitle title={t('Server-Side Sampling')}>
       <Fragment>
-        <SettingsPageHeader title={t('Server-side Sampling')} />
+        <SettingsPageHeader title={t('Server-Side Sampling')} />
         <TextBlock>
           {t(
-            'Server-side sampling provides an additional dial for dropping transactions. This comes in handy when your server-side sampling rules target the transactions you want to keep, but you need more of those transactions being sent by the SDK.'
+            'Enhance the performance monitoring experience by targeting which transactions are most valuable to your organization without the need for re-deployment.'
           )}
         </TextBlock>
         <PermissionAlert
@@ -403,7 +412,7 @@ export function ServerSideSampling({project}: Props) {
             'These settings can only be edited by users with the organization owner, manager, or admin role.'
           )}
         />
-        {!!rules.length && (
+        {!!rules.length && !fetchingRecommendedSdkUpgrades && (
           <SamplingSDKAlert
             organization={organization}
             projectId={project.id}
@@ -412,127 +421,125 @@ export function ServerSideSampling({project}: Props) {
             onReadDocs={handleReadDocs}
           />
         )}
-        <RulesPanel>
-          <RulesPanelHeader lightText>
-            <RulesPanelLayout>
-              <GrabColumn />
-              <OperatorColumn>{t('Operator')}</OperatorColumn>
-              <ConditionColumn>{t('Condition')}</ConditionColumn>
-              <RateColumn>{t('Rate')}</RateColumn>
-              <ActiveColumn>{t('Active')}</ActiveColumn>
-              <Column />
-            </RulesPanelLayout>
-          </RulesPanelHeader>
-          {!rules.length && (
-            <Promo
-              onGetStarted={handleGetStarted}
-              onReadDocs={handleReadDocs}
-              hasAccess={hasAccess}
-            />
-          )}
-          {!!rules.length && (
-            <Fragment>
-              <DraggableRuleList
-                disabled={!hasAccess}
-                items={items}
-                onUpdateItems={handleSortRules}
-                wrapperStyle={({isDragging, isSorting, index}) => {
-                  if (isDragging) {
-                    return {
-                      cursor: 'grabbing',
-                    };
-                  }
-                  if (isSorting) {
-                    return {};
-                  }
+        <SamplingBreakdown orgSlug={organization.slug} />
+        {!rules.length ? (
+          <SamplingPromo
+            onGetStarted={handleGetStarted}
+            onReadDocs={handleReadDocs}
+            hasAccess={hasAccess}
+          />
+        ) : (
+          <RulesPanel>
+            <RulesPanelHeader lightText>
+              <RulesPanelLayout>
+                <GrabColumn />
+                <OperatorColumn>{t('Operator')}</OperatorColumn>
+                <ConditionColumn>{t('Condition')}</ConditionColumn>
+                <RateColumn>{t('Rate')}</RateColumn>
+                <ActiveColumn>{t('Active')}</ActiveColumn>
+                <Column />
+              </RulesPanelLayout>
+            </RulesPanelHeader>
+            <DraggableRuleList
+              disabled={!hasAccess}
+              items={items}
+              onUpdateItems={handleSortRules}
+              wrapperStyle={({isDragging, isSorting, index}) => {
+                if (isDragging) {
                   return {
-                    transform: 'none',
-                    transformOrigin: '0',
-                    '--box-shadow': 'none',
-                    '--box-shadow-picked-up': 'none',
-                    overflow: 'visible',
-                    position: 'relative',
-                    zIndex: rules.length - index,
-                    cursor: 'default',
+                    cursor: 'grabbing',
                   };
-                }}
-                renderItem={({value, listeners, attributes, dragging, sorting}) => {
-                  const itemsRuleIndex = items.findIndex(item => item.id === value);
+                }
+                if (isSorting) {
+                  return {};
+                }
+                return {
+                  transform: 'none',
+                  transformOrigin: '0',
+                  '--box-shadow': 'none',
+                  '--box-shadow-picked-up': 'none',
+                  overflow: 'visible',
+                  position: 'relative',
+                  zIndex: rules.length - index,
+                  cursor: 'default',
+                };
+              }}
+              renderItem={({value, listeners, attributes, dragging, sorting}) => {
+                const itemsRuleIndex = items.findIndex(item => item.id === value);
 
-                  if (itemsRuleIndex === -1) {
-                    return null;
-                  }
+                if (itemsRuleIndex === -1) {
+                  return null;
+                }
 
-                  const itemsRule = items[itemsRuleIndex];
+                const itemsRule = items[itemsRuleIndex];
 
-                  const currentRule = {
-                    active: itemsRule.active,
-                    condition: itemsRule.condition,
-                    sampleRate: itemsRule.sampleRate,
-                    type: itemsRule.type,
-                    id: Number(itemsRule.id),
-                  };
+                const currentRule = {
+                  active: itemsRule.active,
+                  condition: itemsRule.condition,
+                  sampleRate: itemsRule.sampleRate,
+                  type: itemsRule.type,
+                  id: Number(itemsRule.id),
+                };
 
-                  return (
-                    <RulesPanelLayout isContent>
-                      <Rule
-                        operator={
-                          itemsRule.id === items[0].id
-                            ? SamplingRuleOperator.IF
-                            : isUniformRule(currentRule)
-                            ? SamplingRuleOperator.ELSE
-                            : SamplingRuleOperator.ELSE_IF
-                        }
-                        hideGrabButton={items.length === 1}
-                        rule={currentRule}
-                        onEditRule={() => handleEditRule(currentRule)}
-                        onDeleteRule={() => handleDeleteRule(currentRule)}
-                        onActivate={() => handleActivateToggle(currentRule)}
-                        noPermission={!hasAccess}
-                        upgradeSdkForProjects={recommendedSdkUpgrades.map(
-                          recommendedSdkUpgrade => recommendedSdkUpgrade.project.slug
-                        )}
-                        listeners={listeners}
-                        grabAttributes={attributes}
-                        dragging={dragging}
-                        sorting={sorting}
-                      />
-                    </RulesPanelLayout>
-                  );
-                }}
-              />
-              <RulesPanelFooter>
-                <ButtonBar gap={1}>
-                  <Button
-                    href={SERVER_SIDE_SAMPLING_DOC_LINK}
-                    onClick={handleReadDocs}
-                    external
-                  >
-                    {t('Read Docs')}
-                  </Button>
-                  <GuideAnchor
-                    target="add_conditional_rule"
-                    disabled={!uniformRule?.active || !hasAccess || rules.length !== 1}
-                  >
-                    <AddRuleButton
-                      disabled={!hasAccess}
-                      title={
-                        !hasAccess
-                          ? t("You don't have permission to add a rule")
-                          : undefined
+                return (
+                  <RulesPanelLayout isContent>
+                    <Rule
+                      operator={
+                        itemsRule.id === items[0].id
+                          ? SamplingRuleOperator.IF
+                          : isUniformRule(currentRule)
+                          ? SamplingRuleOperator.ELSE
+                          : SamplingRuleOperator.ELSE_IF
                       }
-                      priority="primary"
-                      onClick={handleAddRule}
-                      icon={<IconAdd isCircled />}
-                    >
-                      {t('Add Rule')}
-                    </AddRuleButton>
-                  </GuideAnchor>
-                </ButtonBar>
-              </RulesPanelFooter>
-            </Fragment>
-          )}
-        </RulesPanel>
+                      hideGrabButton={items.length === 1}
+                      rule={currentRule}
+                      onEditRule={() => handleEditRule(currentRule)}
+                      onDeleteRule={() => handleDeleteRule(currentRule)}
+                      onActivate={() => handleActivateToggle(currentRule)}
+                      noPermission={!hasAccess}
+                      upgradeSdkForProjects={recommendedSdkUpgrades.map(
+                        recommendedSdkUpgrade => recommendedSdkUpgrade.project.slug
+                      )}
+                      listeners={listeners}
+                      grabAttributes={attributes}
+                      dragging={dragging}
+                      sorting={sorting}
+                    />
+                  </RulesPanelLayout>
+                );
+              }}
+            />
+            <RulesPanelFooter>
+              <ButtonBar gap={1}>
+                <Button
+                  href={SERVER_SIDE_SAMPLING_DOC_LINK}
+                  onClick={handleReadDocs}
+                  external
+                >
+                  {t('Read Docs')}
+                </Button>
+                <GuideAnchor
+                  target="add_conditional_rule"
+                  disabled={!uniformRule?.active || !hasAccess || rules.length !== 1}
+                >
+                  <AddRuleButton
+                    disabled={!hasAccess}
+                    title={
+                      !hasAccess
+                        ? t("You don't have permission to add a rule")
+                        : undefined
+                    }
+                    priority="primary"
+                    onClick={handleAddRule}
+                    icon={<IconAdd isCircled />}
+                  >
+                    {t('Add Rule')}
+                  </AddRuleButton>
+                </GuideAnchor>
+              </ButtonBar>
+            </RulesPanelFooter>
+          </RulesPanel>
+        )}
       </Fragment>
     </SentryDocumentTitle>
   );

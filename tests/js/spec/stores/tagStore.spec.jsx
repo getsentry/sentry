@@ -19,7 +19,7 @@ describe('TagStore', function () {
         {key: 'other', name: 'Other'},
       ]);
 
-      const tags = TagStore.getAllTags();
+      const tags = TagStore.getStateTags();
       expect(tags.mytag).toEqual({
         key: 'mytag',
         name: 'My Custom Tag',
@@ -71,14 +71,28 @@ describe('TagStore', function () {
     });
   });
 
-  describe('getBuiltInTags()', function () {
-    it('should be a map of built in properties', () => {
-      const tags = TagStore.getBuiltInTags();
-      expect(tags.location).toEqual({
-        key: 'location',
-        name: 'location',
-      });
-      expect(tags.id).toBeUndefined();
+  describe('getIssueTags()', function () {
+    it('should have built in, state, and issue attribute tags', () => {
+      TagStore.loadTagsSuccess([
+        {
+          key: 'mytag',
+          name: 'My Custom Tag',
+        },
+      ]);
+
+      const tags = TagStore.getIssueTags();
+
+      // state
+      expect(tags.mytag).toBeTruthy();
+      expect(tags.mytag.key).toBe('mytag');
+
+      // attribute
+      expect(tags.has).toBeTruthy();
+      expect(tags.has.key).toBe('has');
+
+      // built in
+      expect(tags['device.family']).toBeTruthy();
+      expect(tags['device.family'].key).toBe('device.family');
     });
   });
 });

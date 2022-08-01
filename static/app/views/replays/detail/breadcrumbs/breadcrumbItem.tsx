@@ -15,17 +15,17 @@ interface Props {
   crumb: Crumb;
   isHovered: boolean;
   isSelected: boolean;
-  onClick: MouseCallback;
-  onMouseEnter: MouseCallback;
-  onMouseLeave: MouseCallback;
-  startTimestamp: number;
+  onClick: null | MouseCallback;
+  startTimestampMs: number;
+  onMouseEnter?: MouseCallback;
+  onMouseLeave?: MouseCallback;
 }
 
 function BreadcrumbItem({
   crumb,
   isHovered,
   isSelected,
-  startTimestamp,
+  startTimestampMs,
   onMouseEnter,
   onMouseLeave,
   onClick,
@@ -33,21 +33,21 @@ function BreadcrumbItem({
   const {title, description} = getDetails(crumb);
 
   const handleMouseEnter = useCallback(
-    (e: React.MouseEvent<HTMLElement>) => onMouseEnter(crumb, e),
+    (e: React.MouseEvent<HTMLElement>) => onMouseEnter && onMouseEnter(crumb, e),
     [onMouseEnter, crumb]
   );
   const handleMouseLeave = useCallback(
-    (e: React.MouseEvent<HTMLElement>) => onMouseLeave(crumb, e),
+    (e: React.MouseEvent<HTMLElement>) => onMouseLeave && onMouseLeave(crumb, e),
     [onMouseLeave, crumb]
   );
   const handleClick = useCallback(
-    (e: React.MouseEvent<HTMLElement>) => onClick(crumb, e),
+    (e: React.MouseEvent<HTMLElement>) => onClick?.(crumb, e),
     [onClick, crumb]
   );
 
   return (
     <CrumbItem
-      as="button"
+      as={onClick ? 'button' : 'span'}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={handleClick}
@@ -61,7 +61,10 @@ function BreadcrumbItem({
       <CrumbDetails>
         <TitleContainer>
           <Title>{title}</Title>
-          <PlayerRelativeTime relativeTime={startTimestamp} timestamp={crumb.timestamp} />
+          <PlayerRelativeTime
+            relativeTimeMs={startTimestampMs}
+            timestamp={crumb.timestamp}
+          />
         </TitleContainer>
 
         <Description title={description}>{description}</Description>
@@ -138,6 +141,10 @@ const CrumbItem = styled(PanelItem)<CrumbItemProps>`
   &:last-of-type::after {
     top: 0;
     height: ${space(1)};
+  }
+
+  &:only-of-type::after {
+    height: 0;
   }
 `;
 

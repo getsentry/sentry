@@ -3,8 +3,7 @@ import time
 from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Dict, List, MutableMapping, Sequence, Union
-from unittest import mock
-from unittest.mock import Mock, call, patch
+from unittest.mock import Mock, call
 
 import pytest
 from arroyo.backends.kafka import KafkaPayload
@@ -12,22 +11,22 @@ from arroyo.processing.strategies import MessageRejected
 from arroyo.types import Message, Partition, Topic
 
 from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
+from sentry.sentry_metrics.consumers.indexer.batch import invalid_metric_tags, valid_metric_name
 from sentry.sentry_metrics.consumers.indexer.common import (
     BatchMessages,
     DuplicateMessage,
     MetricsBatchBuilder,
 )
 from sentry.sentry_metrics.consumers.indexer.multiprocess import TransformStep
-from sentry.sentry_metrics.consumers.indexer.processing import (
-    invalid_metric_tags,
-    process_messages,
-    valid_metric_name,
-)
+from sentry.sentry_metrics.consumers.indexer.processing import process_messages
 from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
+
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 def compare_messages_ignoring_mapping_metadata(actual: Message, expected: Message) -> None:
@@ -54,6 +53,7 @@ def compare_messages_ignoring_mapping_metadata(actual: Message, expected: Messag
 def compare_message_batches_ignoring_metadata(
     actual: Sequence[Message], expected: Sequence[Message]
 ) -> None:
+    assert len(actual) == len(expected)
     for (a, e) in zip(actual, expected):
         compare_messages_ignoring_mapping_metadata(a, e)
 
@@ -260,8 +260,7 @@ def __translated_payload(
     return payload
 
 
-@patch("sentry.sentry_metrics.consumers.indexer.processing.get_indexer", return_value=MockIndexer())
-def test_process_messages(mock_indexer) -> None:
+def test_process_messages() -> None:
     message_payloads = [counter_payload, distribution_payload, set_payload]
     message_batch = [
         Message(
@@ -293,8 +292,7 @@ def test_process_messages(mock_indexer) -> None:
     compare_message_batches_ignoring_metadata(new_batch, expected_new_batch)
 
 
-@patch("sentry.sentry_metrics.consumers.indexer.processing.get_indexer", return_value=MockIndexer())
-def test_transform_step(mock_indexer) -> None:
+def test_transform_step() -> None:
     config = get_ingest_config(UseCaseKey.RELEASE_HEALTH)
 
     message_payloads = [counter_payload, distribution_payload, set_payload]
@@ -416,10 +414,7 @@ def test_process_messages_invalid_messages(
     last = message_batch[-1]
     outer_message = Message(last.partition, last.offset, message_batch, last.timestamp)
 
-    with caplog.at_level(logging.ERROR), mock.patch(
-        "sentry.sentry_metrics.consumers.indexer.processing.get_indexer",
-        return_value=MockIndexer(),
-    ):
+    with caplog.at_level(logging.ERROR):
         new_batch = process_messages(
             use_case_id=UseCaseKey.RELEASE_HEALTH, outer_message=outer_message
         )

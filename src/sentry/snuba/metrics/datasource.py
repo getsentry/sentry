@@ -19,10 +19,15 @@ from snuba_sdk import Column, Condition, Function, Op, Query, Request
 from snuba_sdk.conditions import ConditionGroup
 
 from sentry.api.utils import InvalidParams
-from sentry.models import Organization, Project
+from sentry.models import Project
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.utils import resolve_tag_key, reverse_resolve
+from sentry.sentry_metrics.utils import (
+    MetricIndexNotFound,
+    resolve_tag_key,
+    reverse_resolve,
+    reverse_resolve_tag_value,
+)
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.fields import run_metrics_query
 from sentry.snuba.metrics.fields.base import get_derived_metrics, org_id_from_projects
@@ -58,7 +63,7 @@ logger = logging.getLogger(__name__)
 
 def _get_metrics_for_entity(
     entity_key: EntityKey,
-    projects: Sequence[Project],
+    project_ids: Sequence[int],
     org_id: int,
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
@@ -69,7 +74,7 @@ def _get_metrics_for_entity(
         groupby=[Column("metric_id")],
         where=[],
         referrer="snuba.metrics.get_metrics_names_for_entity",
-        projects=projects,
+        project_ids=project_ids,
         org_id=org_id,
         start=start,
         end=end,
@@ -137,7 +142,7 @@ def get_metrics(projects: Sequence[Project], use_case_id: UseCaseKey) -> Sequenc
         metric_ids_in_entities.setdefault(metric_type, set())
         for row in _get_metrics_for_entity(
             entity_key=METRIC_TYPE_TO_ENTITY[metric_type],
-            projects=projects,
+            project_ids=[project.id for project in projects],
             org_id=projects[0].organization_id,
         ):
             try:
@@ -186,20 +191,20 @@ def get_metrics(projects: Sequence[Project], use_case_id: UseCaseKey) -> Sequenc
 
 
 def get_custom_measurements(
-    projects: Sequence[Project],
-    organization: Optional[Organization] = None,
+    project_ids: Sequence[int],
+    organization_id: int,
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
     use_case_id: UseCaseKey = UseCaseKey.PERFORMANCE,
 ) -> Sequence[MetricMeta]:
-    assert projects
+    assert project_ids
 
     metrics_meta = []
     for metric_type in CUSTOM_MEASUREMENT_DATASETS:
         for row in _get_metrics_for_entity(
             entity_key=METRIC_TYPE_TO_ENTITY[metric_type],
-            projects=projects,
-            org_id=projects[0].organization_id if organization is None else organization.id,
+            project_ids=project_ids,
+            org_id=organization_id,
             start=start,
             end=end,
         ):
@@ -338,15 +343,15 @@ def _fetch_tags_or_values_per_ids(
             where=where,
             groupby=[Column("metric_id"), Column(column)],
             referrer=referrer,
-            projects=projects,
+            project_ids=[p.id for p in projects],
             org_id=projects[0].organization_id,
         )
 
         for row in rows:
             metric_id = row["metric_id"]
-            if column.startswith("tags["):
+            if column.startswith(("tags[", "tags_raw[")):
                 value_id = row[column]
-                if value_id > 0:
+                if value_id not in (None, 0):
                     tag_or_value_ids_per_metric_id[metric_id].append(value_id)
             else:
                 tag_or_value_ids_per_metric_id[metric_id].extend(row[column])
@@ -388,12 +393,12 @@ def _fetch_tags_or_values_per_ids(
     else:
         tag_or_value_ids = {tag_id for ids in tag_or_value_id_lists for tag_id in ids}
 
-    if column.startswith("tags["):
-        tag_id = column.split("tags[")[1].split("]")[0]
+    if column.startswith(("tags[", "tags_raw[")):
+        tag_id = column.split("[")[1].split("]")[0]
         tags_or_values = [
             {
                 "key": reverse_resolve(use_case_id, int(tag_id)),
-                "value": reverse_resolve(use_case_id, value_id),
+                "value": reverse_resolve_tag_value(use_case_id, value_id),
             }
             for value_id in tag_or_value_ids
         ]
@@ -477,18 +482,19 @@ def get_tag_values(
     assert projects
 
     org_id = org_id_from_projects(projects)
-    tag_id = indexer.resolve(org_id, tag_name, use_case_id=use_case_id)
 
     if tag_name in UNALLOWED_TAGS:
         raise InvalidParams(f"Tag name {tag_name} is an unallowed tag")
 
-    if tag_id is None:
+    try:
+        tag_id = resolve_tag_key(use_case_id, org_id, tag_name)
+    except MetricIndexNotFound:
         raise InvalidParams(f"Tag {tag_name} is not available in the indexer")
 
     try:
         tags, _ = _fetch_tags_or_values_per_ids(
             projects=projects,
-            column=f"tags[{tag_id}]",
+            column=tag_id,
             metric_names=metric_names,
             referrer="snuba.metrics.meta.get_tag_values",
             use_case_id=use_case_id,

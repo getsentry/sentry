@@ -1,11 +1,15 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import isEqual from 'lodash/isEqual';
 
+import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {NumberField} from 'sentry/components/forms';
+import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import Radio from 'sentry/components/radio';
 import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -26,6 +30,7 @@ import {
   rateToPercentage,
   SERVER_SIDE_SAMPLING_DOC_LINK,
 } from '../utils';
+import {hasFirstBucketsEmpty} from '../utils/hasFirstBucketsEmpty';
 import {projectStatsToPredictedSeries} from '../utils/projectStatsToPredictedSeries';
 import {projectStatsToSampleRates} from '../utils/projectStatsToSampleRates';
 import {projectStatsToSeries} from '../utils/projectStatsToSeries';
@@ -34,6 +39,8 @@ import {useRecommendedSdkUpgrades} from '../utils/useRecommendedSdkUpgrades';
 
 import {RecommendedStepsModal, RecommendedStepsModalProps} from './recommendedStepsModal';
 import {UniformRateChart} from './uniformRateChart';
+
+const CONSERVATIVE_SAMPLE_RATE = 0.1;
 
 enum Strategy {
   CURRENT = 'current',
@@ -64,11 +71,12 @@ function UniformRateModal({
   projectStats,
   project,
   uniformRule,
-  rules,
   onSubmit,
   onReadDocs,
   ...props
 }: Props) {
+  const [rules, setRules] = useState(props.rules);
+
   const modalStore = useLegacyStore(ModalStore);
 
   const {projectStats: projectStats30d, loading: loading30d} = useProjectStats({
@@ -78,27 +86,35 @@ function UniformRateModal({
     statsPeriod: '30d',
   });
 
-  const {recommendedSdkUpgrades} = useRecommendedSdkUpgrades({
-    orgSlug: organization.slug,
-  });
+  const {recommendedSdkUpgrades, fetching: fetchingRecommendedSdkUpgrades} =
+    useRecommendedSdkUpgrades({
+      orgSlug: organization.slug,
+    });
 
-  const loading = loading30d || !projectStats;
+  const loading = loading30d || !projectStats || fetchingRecommendedSdkUpgrades;
 
   const [activeStep, setActiveStep] = useState<Step>(Step.SET_UNIFORM_SAMPLE_RATE);
 
+  const shouldUseConservativeSampleRate =
+    recommendedSdkUpgrades.length === 0 &&
+    hasFirstBucketsEmpty(projectStats30d, 27) &&
+    hasFirstBucketsEmpty(projectStats, 3);
+
   useEffect(() => {
-    if (modalStore.renderer === null) {
+    // updated or created rules will always have a new id,
+    // therefore the isEqual will always work in this case
+    if (modalStore.renderer === null && isEqual(rules, props.rules)) {
       trackAdvancedAnalyticsEvent(
         activeStep === Step.RECOMMENDED_STEPS
           ? 'sampling.settings.modal.recommended.next.steps_cancel'
           : 'sampling.settings.modal.uniform.rate_cancel',
         {
-          organization: organization.slug,
+          organization,
           project_id: project.id,
         }
       );
     }
-  }, [activeStep, modalStore.renderer, organization.slug, project.id]);
+  }, [activeStep, modalStore.renderer, organization, project.id, rules, props.rules]);
 
   const uniformSampleRate = uniformRule?.sampleRate;
 
@@ -114,7 +130,9 @@ function UniformRateModal({
     defined(maxSafeSampleRate) && !isNaN(maxSafeSampleRate)
       ? maxSafeSampleRate
       : undefined;
-  const recommendedServerSampling = currentClientSampling;
+  const recommendedServerSampling = shouldUseConservativeSampleRate
+    ? CONSERVATIVE_SAMPLE_RATE
+    : Math.min(currentClientSampling ?? 1, recommendedClientSampling ?? 1);
 
   const [selectedStrategy, setSelectedStrategy] = useState<Strategy>(Strategy.CURRENT);
   const [clientInput, setClientInput] = useState(
@@ -144,11 +162,11 @@ function UniformRateModal({
         ? 'sampling.settings.modal.uniform.rate_switch_recommended'
         : 'sampling.settings.modal.uniform.rate_switch_current',
       {
-        organization: organization.slug,
+        organization,
         project_id: project.id,
       }
     );
-  }, [selectedStrategy, organization.slug, project.id]);
+  }, [selectedStrategy, organization, project.id]);
 
   const isEdited =
     client !== recommendedClientSampling || server !== recommendedServerSampling;
@@ -164,7 +182,7 @@ function UniformRateModal({
 
     if (shouldHaveNextStep) {
       trackAdvancedAnalyticsEvent('sampling.settings.modal.uniform.rate_next', {
-        organization: organization.slug,
+        organization,
         project_id: project.id,
       });
 
@@ -179,8 +197,9 @@ function UniformRateModal({
       uniformRateModalOrigin: true,
       sampleRate: server!,
       rule: uniformRule,
-      onSuccess: () => {
+      onSuccess: newRules => {
         setSaving(false);
+        setRules(newRules);
         closeModal();
       },
       onError: () => {
@@ -191,7 +210,7 @@ function UniformRateModal({
 
   function handleReadDocs() {
     trackAdvancedAnalyticsEvent('sampling.settings.modal.uniform.rate_read_docs', {
-      organization: organization.slug,
+      organization,
       project_id: project.id,
     });
 
@@ -216,6 +235,7 @@ function UniformRateModal({
         uniformRule={uniformRule}
         projectId={project.id}
         recommendedSampleRate={!isEdited}
+        onSetRules={setRules}
       />
     );
   }
@@ -223,17 +243,15 @@ function UniformRateModal({
   return (
     <Fragment>
       <Header closeButton>
-        <h4>{t('Set a uniform sample rate for Transactions')}</h4>
+        <h4>{t('Set a global sample rate')}</h4>
       </Header>
       <Body>
         <TextBlock>
+          {/* TODO(sampling): replace docs link */}
           {tct(
-            'Similarly to how you would configure a [transactionSampleRate: Transaction Sample Rate] from within your client’s [sentryInit: Sentry.init()], we ask you to [uniformRate: set a uniform sample rate] which provides an even cross-section of transactions from [allProjects: all projects].',
+            'Set a server-side sample rate for all transactions using our suggestion as a starting point. To accurately monitor overall performance, we also suggest changing your client(SDK) sample rate to allow more metrics to be processed. [learnMoreLink: Learn more about quota management].',
             {
-              transactionSampleRate: <strong />,
-              sentryInit: <strong />,
-              uniformRate: <strong />,
-              allProjects: <strong />,
+              learnMoreLink: <ExternalLink href={SERVER_SIDE_SAMPLING_DOC_LINK} />,
             }
           )}
         </TextBlock>
@@ -291,15 +309,23 @@ function UniformRateModal({
                       setSelectedStrategy(Strategy.RECOMMENDED);
                     }}
                   />
-                  {isEdited ? t('New') : t('Recommended')}
+                  {isEdited ? t('New') : t('Suggested')}
+                  {!isEdited && (
+                    <QuestionTooltip
+                      title={t(
+                        'Optimal sample rates based on your organization’s usage and quota.'
+                      )}
+                      size="sm"
+                    />
+                  )}
                 </Label>
                 <RightAligned>
                   <StyledNumberField
                     name="recommended-client-sampling"
                     placeholder="%"
-                    value={clientInput}
+                    value={clientInput ?? null}
                     onChange={value => {
-                      setClientInput(value);
+                      setClientInput(value === '' ? undefined : value);
                     }}
                     onFocus={() => setSelectedStrategy(Strategy.RECOMMENDED)}
                     stacked
@@ -311,9 +337,9 @@ function UniformRateModal({
                   <StyledNumberField
                     name="recommended-server-sampling"
                     placeholder="%"
-                    value={serverInput}
+                    value={serverInput ?? null}
                     onChange={value => {
-                      setServerInput(value);
+                      setServerInput(value === '' ? undefined : value);
                     }}
                     onFocus={() => setSelectedStrategy(Strategy.RECOMMENDED)}
                     stacked
@@ -325,7 +351,7 @@ function UniformRateModal({
                   {isEdited && (
                     <Button
                       icon={<IconRefresh size="sm" />}
-                      aria-label={t('Reset to recommended values')}
+                      aria-label={t('Reset to suggested values')}
                       onClick={() => {
                         setClientInput(rateToPercentage(recommendedClientSampling));
                         setServerInput(rateToPercentage(recommendedServerSampling));
@@ -346,6 +372,14 @@ function UniformRateModal({
               showLinkToTheModal={false}
               onReadDocs={onReadDocs}
             />
+
+            {shouldUseConservativeSampleRate && (
+              <Alert type="info" showIcon>
+                {t(
+                  "For accurate suggestions, we need at least 48hrs to ingest transactions. Meanwhile, here's a conservative server-side sampling rate which can be changed later on."
+                )}
+              </Alert>
+            )}
           </Fragment>
         )}
       </Body>

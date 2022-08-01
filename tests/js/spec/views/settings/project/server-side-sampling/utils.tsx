@@ -5,6 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import GlobalModal from 'sentry/components/globalModal';
 import {Organization, Project} from 'sentry/types';
 import {
+  RecommendedSdkUpgrade,
   SamplingConditionOperator,
   SamplingDistribution,
   SamplingInnerOperator,
@@ -92,6 +93,14 @@ export const mockedSamplingSdkVersions: SamplingSdkVersion[] = [
   },
 ];
 
+export const recommendedSdkUpgrades: RecommendedSdkUpgrade[] = [
+  {
+    project: mockedProjects[1],
+    latestSDKName: mockedSamplingSdkVersions[1].latestSDKName,
+    latestSDKVersion: mockedSamplingSdkVersions[1].latestSDKVersion,
+  },
+];
+
 export const mockedSamplingDistribution: SamplingDistribution = {
   project_breakdown: [
     {
@@ -144,6 +153,7 @@ useRecommendedSdkUpgrades.mockImplementation(() => ({
       latestSDKVersion: mockedSamplingSdkVersions[1].latestSDKVersion,
     },
   ],
+  fetching: false,
 }));
 
 export function getMockData({

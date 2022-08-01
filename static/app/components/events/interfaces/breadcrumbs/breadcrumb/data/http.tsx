@@ -1,7 +1,6 @@
 import omit from 'lodash/omit';
 
 import AnnotatedText from 'sentry/components/events/meta/annotatedText';
-import {getMeta} from 'sentry/components/events/meta/metaProxy';
 import Highlight from 'sentry/components/highlight';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';
@@ -14,9 +13,10 @@ type Props = {
   breadcrumb: BreadcrumbTypeHTTP;
   searchTerm: string;
   linkedEvent?: React.ReactElement;
+  meta?: Record<any, any>;
 };
 
-function Http({breadcrumb, searchTerm, linkedEvent}: Props) {
+export function Http({breadcrumb, searchTerm, meta, linkedEvent}: Props) {
   const {data} = breadcrumb;
 
   const renderUrl = (url: any) => {
@@ -38,37 +38,36 @@ function Http({breadcrumb, searchTerm, linkedEvent}: Props) {
     }
   };
 
-  const statusCode = data?.status_code;
-
   return (
-    <Summary kvData={omit(data, ['method', 'url', 'status_code'])}>
+    <Summary
+      kvData={!data ? data : omit(data, ['method', 'url', 'status_code'])}
+      meta={meta}
+    >
       {linkedEvent}
-      {data?.method && (
-        <AnnotatedText
-          value={
-            <strong>
-              <Highlight text={searchTerm}>{`${data.method} `}</Highlight>
-            </strong>
-          }
-          meta={getMeta(data, 'method')}
-        />
+      {meta?.data?.method?.[''] ? (
+        <AnnotatedText value={data?.method} meta={meta?.data?.method?.['']} />
+      ) : (
+        defined(data?.method) && (
+          <strong>
+            <Highlight text={searchTerm}>{`${data?.method} `}</Highlight>
+          </strong>
+        )
       )}
-      {data?.url && (
-        <AnnotatedText value={renderUrl(data.url)} meta={getMeta(data, 'url')} />
+      {meta?.data?.url?.[''] ? (
+        <AnnotatedText value={data?.url} meta={meta?.data?.url?.['']} />
+      ) : (
+        defined(data?.url) && renderUrl(data?.url)
       )}
-      {defined(statusCode) && (
-        <AnnotatedText
-          value={
-            <Highlight
-              data-test-id="http-renderer-status-code"
-              text={searchTerm}
-            >{` [${statusCode}]`}</Highlight>
-          }
-          meta={getMeta(data, 'status_code')}
-        />
+      {meta?.data?.status_code?.[''] ? (
+        <AnnotatedText value={data?.status_code} meta={meta?.data?.status_code?.['']} />
+      ) : (
+        defined(data?.status_code) && (
+          <Highlight
+            data-test-id="http-renderer-status-code"
+            text={searchTerm}
+          >{` [${data?.status_code}]`}</Highlight>
+        )
       )}
     </Summary>
   );
 }
-
-export default Http;

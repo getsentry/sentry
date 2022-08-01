@@ -52,6 +52,17 @@ class OrganizationTest(TestCase):
         org = Organization.objects.create(name="---foo_bar---")
         assert org.slug == "foo-bar"
 
+    def test_slugify_long_org_names(self):
+        # Org name is longer than allowed org slug, and should be trimmed when slugified.
+        org = Organization.objects.create(name="Stove, Electrical, and Catering Stuff")
+        assert org.slug == "stove-electrical-and-catering"
+
+        # Ensure org slugs are unique
+        org2 = Organization.objects.create(name="Stove, Electrical, and Catering Stuff")
+        assert org2.slug.startswith("stove-electrical-and-cateri-")
+        assert len(org2.slug) > len("stove-electrical-and-cateri-")
+        assert org.slug != org2.slug
+
     def test_merge_to(self):
         from_owner = self.create_user("foo@example.com")
         from_org = self.create_organization(owner=from_owner)

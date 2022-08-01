@@ -16,7 +16,6 @@ from sentry.utils.audit import create_audit_entry
 from sentry.utils.signing import sign
 from sentry.web.decorators import transaction_start
 
-from .card_builder import AdaptiveCard, build_group_card
 from .card_builder.help import (
     build_help_command_card,
     build_mentioned_card,
@@ -28,10 +27,8 @@ from .card_builder.identity import (
     build_linking_card,
     build_unlink_identity_card,
 )
-from .card_builder.installation import (
-    build_personal_installation_message,
-    build_team_installation_message,
-)
+from .card_builder.installation import build_personal_installation_message, build_welcome_card
+from .card_builder.issues import MSTeamsIssueMessageBuilder
 from .client import CLOCK_SKEW, MsTeamsClient, MsTeamsJwtClient
 from .link_identity import build_linking_url
 from .unlink_identity import build_unlinking_url
@@ -421,7 +418,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
         # refresh issue and update card
         group.refresh_from_db()
-        card = build_group_card(group, event, rules, integration)
+        card = MSTeamsIssueMessageBuilder(group, event, rules, integration).build_group_card()
         client.update_card(conversation_id, activity_id, card)
 
         return issue_change_response

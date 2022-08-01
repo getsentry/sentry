@@ -56,7 +56,7 @@ class RelayStoreHelper:
             json=data,
         )
 
-        assert resp.ok
+        assert resp.ok, resp.json()
         resp_body = resp.json()
         event_id = resp_body["id"]
 

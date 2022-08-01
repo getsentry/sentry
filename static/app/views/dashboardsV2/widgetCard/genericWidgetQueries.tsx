@@ -1,4 +1,5 @@
 import {Component} from 'react';
+import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 
 import {Client, ResponseMeta} from 'sentry/api';
@@ -9,7 +10,13 @@ import {Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 
 import {DatasetConfig} from '../datasetConfig/base';
-import {DEFAULT_TABLE_LIMIT, DisplayType, Widget, WidgetQuery} from '../types';
+import {
+  DashboardFilters,
+  DEFAULT_TABLE_LIMIT,
+  DisplayType,
+  Widget,
+  WidgetQuery,
+} from '../types';
 
 function getReferrer(displayType: DisplayType) {
   let referrer: string = '';
@@ -40,6 +47,7 @@ export type GenericWidgetQueriesChildrenProps = {
   pageLinks?: string;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
+  timeseriesResultsType?: string;
   totalCount?: string;
 };
 
@@ -60,6 +68,7 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     prevProps: GenericWidgetQueriesProps<SeriesResponse, TableResponse>,
     nextProps: GenericWidgetQueriesProps<SeriesResponse, TableResponse>
   ) => boolean;
+  dashboardFilters?: DashboardFilters;
   limit?: number;
   loading?: boolean;
   onDataFetched?: ({
@@ -78,6 +87,7 @@ type State<SeriesResponse> = {
   rawResults?: SeriesResponse[];
   tableResults?: GenericWidgetQueriesChildrenProps['tableResults'];
   timeseriesResults?: GenericWidgetQueriesChildrenProps['timeseriesResults'];
+  timeseriesResultsType?: string;
 };
 
 class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
@@ -92,6 +102,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     rawResults: undefined,
     tableResults: undefined,
     pageLinks: undefined,
+    timeseriesResultsType: undefined,
   };
 
   componentDidMount() {
@@ -148,6 +159,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
           !isEqual(widget.displayType, prevProps.widget.displayType) ||
           !isEqual(widget.interval, prevProps.widget.interval) ||
           !isEqual(widgetQueries, prevWidgetQueries) ||
+          !isEqual(this.props.dashboardFilters, prevProps.dashboardFilters) ||
           !isSelectionEqual(selection, prevProps.selection) ||
           cursor !== prevProps.cursor
     ) {
@@ -181,9 +193,32 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
   private _isMounted: boolean = false;
 
+  applyDashboardFilters(widget: Widget): Widget {
+    const {dashboardFilters} = this.props;
+
+    let dashboardFilterConditions = '';
+    if (dashboardFilters) {
+      for (const [key, activeFilters] of Object.entries(dashboardFilters)) {
+        if (activeFilters.length === 1) {
+          dashboardFilterConditions += `${key}:${activeFilters[0]} `;
+        } else if (activeFilters.length > 1) {
+          dashboardFilterConditions += `${key}:[${activeFilters.join(',')}] `;
+        }
+      }
+    }
+
+    widget.queries.forEach(query => {
+      query.conditions =
+        query.conditions +
+        (dashboardFilterConditions === '' ? '' : ` ${dashboardFilterConditions}`);
+    });
+
+    return widget;
+  }
+
   async fetchTableData(queryFetchID: symbol) {
     const {
-      widget,
+      widget: originalWidget,
       limit,
       config,
       api,
@@ -193,6 +228,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       afterFetchTableData,
       onDataFetched,
     } = this.props;
+    const widget = this.applyDashboardFilters(cloneDeep(originalWidget));
     const responses = await Promise.all(
       widget.queries.map(query => {
         let requestLimit: number | undefined = limit ?? DEFAULT_TABLE_LIMIT;
@@ -257,7 +293,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
   async fetchSeriesData(queryFetchID: symbol) {
     const {
-      widget,
+      widget: originalWidget,
       config,
       api,
       organization,
@@ -265,6 +301,8 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       afterFetchSeriesData,
       onDataFetched,
     } = this.props;
+    const widget = this.applyDashboardFilters(cloneDeep(originalWidget));
+
     const responses = await Promise.all(
       widget.queries.map((_query, index) => {
         return config.getSeriesRequest!(
@@ -277,9 +315,11 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
         );
       })
     );
+    const rawResultsClone = cloneDeep(this.state.rawResults) ?? [];
     const transformedTimeseriesResults: Series[] = [];
     responses.forEach(([data], requestIndex) => {
       afterFetchSeriesData?.(data);
+      rawResultsClone[requestIndex] = data;
       const transformedResult = config.transformSeries!(
         data,
         widget.queries[requestIndex],
@@ -297,9 +337,20 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       });
     });
 
+    // Get series result type
+    // Only used by custom measurements in errorsAndTransactions at the moment
+    const timeseriesResultsType = config.getSeriesResultType?.(
+      responses[0][0],
+      widget.queries[0]
+    );
+
     if (this._isMounted && this.state.queryFetchID === queryFetchID) {
       onDataFetched?.({timeseriesResults: transformedTimeseriesResults});
-      this.setState({timeseriesResults: transformedTimeseriesResults});
+      this.setState({
+        timeseriesResults: transformedTimeseriesResults,
+        rawResults: rawResultsClone,
+        timeseriesResultsType,
+      });
     }
   }
 
@@ -341,10 +392,23 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
   render() {
     const {children} = this.props;
-    const {loading, tableResults, timeseriesResults, errorMessage, pageLinks} =
-      this.state;
+    const {
+      loading,
+      tableResults,
+      timeseriesResults,
+      errorMessage,
+      pageLinks,
+      timeseriesResultsType,
+    } = this.state;
 
-    return children({loading, tableResults, timeseriesResults, errorMessage, pageLinks});
+    return children({
+      loading,
+      tableResults,
+      timeseriesResults,
+      errorMessage,
+      pageLinks,
+      timeseriesResultsType,
+    });
   }
 }
 

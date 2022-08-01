@@ -1,28 +1,23 @@
-import {Fragment} from 'react';
+import {ComponentProps, Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import FeatureBadge from 'sentry/components/featureBadge';
+import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {Event} from 'sentry/types/event';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
-  eventSlug: string;
   orgId: string;
-  event?: Event;
+  replayRecord: ReplayRecord | undefined;
 };
 
-function getUsernameFromEvent({eventSlug, event}: Pick<Props, 'event' | 'eventSlug'>) {
-  const user = event?.user;
-
-  if (!user) {
-    return eventSlug;
-  }
-
-  return user.name || user.email || user.username || user.ip_address;
-}
-
-function DetailsPageBreadcrumbs({orgId, event, eventSlug}: Props) {
-  const username = getUsernameFromEvent({event, eventSlug});
+function DetailsPageBreadcrumbs({orgId, replayRecord}: Props) {
+  const labelTitle =
+    replayRecord?.user.name ||
+    replayRecord?.user.email ||
+    replayRecord?.user.ip ||
+    replayRecord?.user.id;
 
   return (
     <Breadcrumbs
@@ -32,16 +27,23 @@ function DetailsPageBreadcrumbs({orgId, event, eventSlug}: Props) {
           label: t('Replays'),
         },
         {
-          label: (
+          label: labelTitle ? (
             <Fragment>
-              {username}
-              <FeatureBadge type="alpha" />
+              {labelTitle} <FeatureBadge type="alpha" />
             </Fragment>
+          ) : (
+            <HeaderPlaceholder width="500px" height="24px" />
           ),
         },
       ]}
     />
   );
 }
+
+const HeaderPlaceholder = styled((props: ComponentProps<typeof Placeholder>) => (
+  <Placeholder width="100%" height="19px" {...props} />
+))`
+  background-color: ${p => p.theme.background};
+`;
 
 export default DetailsPageBreadcrumbs;

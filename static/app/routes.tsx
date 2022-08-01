@@ -464,7 +464,7 @@ function buildRoutes() {
       </Route>
       <Route
         path="server-side-sampling/"
-        name={t('Server-side Sampling')}
+        name={t('Server-Side Sampling')}
         component={make(
           () => import('sentry/views/settings/project/server-side-sampling')
         )}
@@ -808,6 +808,28 @@ function buildRoutes() {
               )
           )}
         />
+        <Route path="sentry-functions/" name={t('Sentry Functions')}>
+          <Route
+            path="new/"
+            name={t('Create Sentry Function')}
+            component={make(
+              () =>
+                import(
+                  'sentry/views/settings/organizationDeveloperSettings/sentryFunctionDetails'
+                )
+            )}
+          />
+          <Route
+            path=":functionSlug/"
+            name={t('Edit Sentry Function')}
+            component={make(
+              () =>
+                import(
+                  'sentry/views/settings/organizationDeveloperSettings/sentryFunctionDetails'
+                )
+            )}
+          />
+        </Route>
       </Route>
     </Route>
   );
@@ -1032,10 +1054,6 @@ function buildRoutes() {
         path=":eventSlug/"
         component={make(() => import('sentry/views/replays/details'))}
       />
-      <Route
-        path=":eventSlug/v2/"
-        component={make(() => import('sentry/views/replays/details_v2'))}
-      />
     </Route>
   );
 
@@ -1146,6 +1164,12 @@ function buildRoutes() {
           component={make(
             () =>
               import('sentry/views/performance/transactionSummary/transactionOverview')
+          )}
+        />
+        <Route
+          path="replays/"
+          component={make(
+            () => import('sentry/views/performance/transactionSummary/transactionReplays')
           )}
         />
         <Route
@@ -1680,7 +1704,7 @@ function buildRoutes() {
       <IndexRoute component={make(() => import('sentry/views/profiling/content'))} />
       <Route
         path="onboarding/"
-        component={make(() => import('sentry/views/profiling/onboarding'))}
+        component={make(() => import('sentry/views/profiling/legacyOnboarding'))}
       />
       <Route
         path="summary/:projectId/"

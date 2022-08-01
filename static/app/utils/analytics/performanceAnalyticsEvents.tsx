@@ -24,6 +24,9 @@ export type PerformanceEventParameters = {
     operation: string;
   };
   'performance_views.event_details.search_query': {};
+  'performance_views.filter_dropdown.selection': {
+    action: string;
+  };
   'performance_views.landingv2.transactions.sort': {
     direction?: string;
     field?: string;
@@ -71,6 +74,9 @@ export type PerformanceEventParameters = {
   'performance_views.spans.change_sort': {
     sort_column?: string;
   };
+  'performance_views.tags.change_aggregate_column': {
+    value: string;
+  };
   'performance_views.tags.change_tag': {
     from_tag: string;
     is_other_tag: boolean;
@@ -96,6 +102,7 @@ export type PerformanceEventParameters = {
   'performance_views.transaction_summary.status_breakdown_click': {
     status: string;
   };
+  'performance_views.transaction_summary.view': {};
   'performance_views.trends.change_duration': {
     value: string;
     widget_type: string;
@@ -106,6 +113,11 @@ export type PerformanceEventParameters = {
   'performance_views.trends.widget_pagination': {
     direction: string;
     widget_type: string;
+  };
+  'performance_views.vital_detail.comparison_viewed': {
+    count: number;
+    p75: number;
+    vital: string;
   };
   'performance_views.vital_detail.switch_vital': {
     from_vital: string;
@@ -158,6 +170,8 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
     'Performance Views: Transaction Summary status breakdown option clicked',
   'performance_views.all_events.open_in_discover':
     'Performance Views: All Events page open in Discover button clicked',
+  'performance_views.tags.change_aggregate_column':
+    'Performance Views: Tags page changed aggregate column',
   'performance_views.tags.change_tag':
     'Performance Views: Tags Page changed selected tag',
   'performance_views.tags.jump_to_release':
@@ -180,4 +194,9 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
     'Performance Views: Event Details span anchored',
   'performance_views.event_details.json_button_click':
     'Performance Views: Event Details JSON button clicked',
+  'performance_views.transaction_summary.view':
+    'Performance Views: Transaction Summary View',
+  'performance_views.filter_dropdown.selection': 'Performance Views: Filter Dropdown',
+  'performance_views.vital_detail.comparison_viewed':
+    'Performance Views: Vital Detail Comparison Viewed',
 };

@@ -302,6 +302,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
     start = serializers.DateTimeField(required=False, allow_null=True)
     end = serializers.DateTimeField(required=False, allow_null=True)
     filters = serializers.DictField(required=False)
+    utc = serializers.BooleanField(required=False)
 
     validate_id = validate_id
 
@@ -320,8 +321,8 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         return data
 
     def update_dashboard_filters(self, instance, validated_data):
-        page_filter_keys = ["environment", "period", "start", "end"]
-        dashboard_filter_keys = ["releases"]
+        page_filter_keys = ["environment", "period", "start", "end", "utc"]
+        dashboard_filter_keys = ["release"]
 
         if "projects" in validated_data:
             instance.projects.set(validated_data["projects"])

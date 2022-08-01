@@ -6,10 +6,6 @@ import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import commonTheme from 'sentry/utils/theme';
 import {Outcome} from 'sentry/views/organizationStats/types';
-import {
-  COLOR_DROPPED,
-  COLOR_TRANSACTIONS,
-} from 'sentry/views/organizationStats/usageChart';
 
 import {quantityField} from '.';
 
@@ -87,20 +83,20 @@ export function projectStatsToPredictedSeries(
 
   return [
     {
-      seriesName: t('Accepted'),
-      color: COLOR_TRANSACTIONS,
+      seriesName: t('Indexed and Processed'),
+      color: commonTheme.green300,
       ...commonSeriesConfig,
       data: seriesData.accepted,
     },
     {
-      seriesName: t('Dropped (Server)'),
-      color: COLOR_DROPPED,
+      seriesName: t('Processed'),
+      color: commonTheme.yellow300,
       data: seriesData.droppedServer,
       ...commonSeriesConfig,
     },
     {
-      seriesName: t('Dropped (Client)'),
-      color: commonTheme.yellow300,
+      seriesName: t('Discarded'),
+      color: commonTheme.red300,
       data: seriesData.droppedClient,
       ...commonSeriesConfig,
     },

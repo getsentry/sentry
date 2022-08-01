@@ -2,18 +2,21 @@ import time
 from datetime import timedelta
 from unittest import mock
 
+import pytest
 from django.utils.datastructures import MultiValueDict
 
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics.datasource import get_custom_measurements, get_series
 from sentry.snuba.metrics.query_builder import QueryDefinition
-from sentry.testutils import SessionMetricsReleaseHealthTestCase, TestCase
+from sentry.testutils import BaseMetricsTestCase, TestCase
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now
 
+pytestmark = pytest.mark.sentry_metrics
 
-class DataSourceTestCase(TestCase, SessionMetricsReleaseHealthTestCase):
+
+class DataSourceTestCase(TestCase, BaseMetricsTestCase):
     def test_valid_filter_include_meta(self):
         self.create_release(version="foo", project=self.project)
         self.store_session(
@@ -115,7 +118,7 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
 
     def test_simple(self):
         something_custom_metric = "d:transactions/measurements.something_custom@millisecond"
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             metric="measurements.something_custom",
             internal_metric=something_custom_metric,
@@ -123,8 +126,8 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
             timestamp=self.day_ago + timedelta(hours=1, minutes=0),
         )
         result = get_custom_measurements(
-            projects=[self.project],
-            organization=self.organization,
+            project_ids=[self.project.id],
+            organization_id=self.organization.id,
             start=self.day_ago,
             use_case_id=UseCaseKey.PERFORMANCE,
         )
@@ -154,7 +157,7 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
     def test_metric_outside_query_daterange(self):
         something_custom_metric = "d:transactions/measurements.something_custom@millisecond"
         something_else_metric = "d:transactions/measurements.something_else@byte"
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             metric="measurements.something_custom",
             internal_metric=something_custom_metric,
@@ -162,7 +165,7 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
             timestamp=self.day_ago + timedelta(hours=1, minutes=0),
         )
         # Shouldn't show up
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             metric="measurements.something_else",
             internal_metric=something_else_metric,
@@ -170,8 +173,8 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
             timestamp=self.day_ago - timedelta(days=1, minutes=0),
         )
         result = get_custom_measurements(
-            projects=[self.project],
-            organization=self.organization,
+            project_ids=[self.project.id],
+            organization_id=self.organization.id,
             start=self.day_ago,
             use_case_id=UseCaseKey.PERFORMANCE,
         )
@@ -202,7 +205,7 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
     @mock.patch("sentry.snuba.metrics.datasource.parse_mri")
     def test_broken_custom_metric(self, mock):
         # Store valid metric
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             metric="measurements.something_custom",
             internal_metric="d:transactions/measurements.something_custom@millisecond",
@@ -213,6 +216,6 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
         # mock mri failing to parse the metric
         mock.return_value = None
         result = get_custom_measurements(
-            projects=[self.project], organization=self.organization, start=self.day_ago
+            project_ids=[self.project.id], organization_id=self.organization.id, start=self.day_ago
         )
         assert result == []

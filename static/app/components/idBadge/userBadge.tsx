@@ -7,7 +7,7 @@ import {AvatarUser} from 'sentry/types';
 type Props = {
   avatarSize?: UserAvatar['props']['size'];
   className?: string;
-  displayEmail?: string;
+  displayEmail?: React.ReactNode | string;
   displayName?: React.ReactNode;
   hideEmail?: boolean;
   user?: AvatarUser;
@@ -31,6 +31,7 @@ const UserBadge = ({
         // Because this can be used to render EventUser models, or User *interface*
         // objects from serialized Event models. we try both ipAddress and ip_address.
         user.ip_address ||
+        user.ip ||
         user.id));
 
   return (

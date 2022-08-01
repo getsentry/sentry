@@ -14,8 +14,6 @@ export function getInnerNameLabel(name: SamplingInnerName | string) {
       return t('Environment');
     case SamplingInnerName.TRACE_RELEASE:
       return t('Release');
-    case SamplingInnerName.TRACE_USER_SEGMENT:
-      return t('User Segment');
     default:
       return '';
   }
@@ -36,7 +34,7 @@ export function isValidSampleRate(sampleRate: number | undefined) {
     return false;
   }
 
-  return !isNaN(sampleRate) && sampleRate <= 100 && sampleRate >= 0;
+  return !isNaN(sampleRate) && sampleRate <= 1 && sampleRate >= 0;
 }
 
 export function rateToPercentage(rate: number | undefined, decimalPlaces: number = 2) {
