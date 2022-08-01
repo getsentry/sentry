@@ -65,53 +65,53 @@ def mock_replay(
     **kwargs: typing.Dict[str, typing.Any],
 ) -> typing.Dict[str, typing.Any]:
     return {
-        "datetime": int(timestamp.timestamp()),
-        "platform": "javascript",
-        "project_id": project_id,
+        "type": "replay_event",
+        "start_time": kwargs.pop("timestamp", int(timestamp.timestamp())),
         "replay_id": replay_id,
-        "retention_days": 20,
-        "segment_id": kwargs.pop("segment_id", 0),
-        "trace_ids": kwargs.pop("trace_ids", []),
-        "data": {
-            "timestamp": int(timestamp.timestamp()),
-            "replay_id": replay_id,
-            "environment": kwargs.pop("environment", "production"),
-            "project_id": project_id,
-            "release": kwargs.pop("release", "version@1.3"),
-            "dist": kwargs.pop("dist", "abc123"),
-            "sdk": {
-                "name": kwargs.pop("sdk_name", "sentry.javascript.react"),
-                "version": kwargs.pop("sdk_version", "6.18.1"),
-                "integrations": [
-                    "InboundFilters",
-                    "FunctionToString",
-                    "TryCatch",
-                    "Breadcrumbs",
-                    "GlobalHandlers",
-                    "LinkedErrors",
-                    "Dedupe",
-                    "UserAgent",
-                    "Replay",
-                    "BrowserTracing",
-                ],
-                "packages": [{"name": "npm:@sentry/react", "version": "6.18.1"}],
-            },
-            "platform": kwargs.pop("platform", "javascript"),
-            "version": "6.18.1",
-            "type": "replay_event",
-            "datetime": int(timestamp.timestamp()),
-            "tags": [
-                ["isReplayRoot", "yes"],
-                ["skippedNormalization", "True"],
-                ["transaction", "/"],
-            ],
-            "user": {
-                "username": kwargs.pop("username", "username"),
-                "ip_address": kwargs.pop("ip_address", "127.0.0.1"),
-                "id": kwargs.pop("id", "123"),
-                "email": kwargs.pop("email", "username@example.com"),
-                "hash": kwargs.pop("hash", 123),
-            },
-            "title": kwargs.pop("title", "test"),
-        },
+        "project_id": project_id,
+        "retention_days": 30,
+        "payload": list(
+            bytes(
+                json.dumps(
+                    {
+                        "type": "replay_event",
+                        "replay_id": replay_id,
+                        "segment_id": kwargs.pop("segment_id", 0),
+                        "tags": {"customtag": "is_set", "transaction": kwargs.pop("title", "test")},
+                        "trace_ids": kwargs.pop("trace_ids", []),
+                        "dist": kwargs.pop("dist", "hello"),
+                        "platform": kwargs.pop("platform", "javascript"),
+                        "timestamp": kwargs.pop("timestamp", int(timestamp.timestamp())),
+                        "environment": kwargs.pop("environment", "production"),
+                        "release": kwargs.pop("release", "version@1.3"),
+                        "user": {
+                            "id": kwargs.pop("user_id", "123"),
+                            "username": kwargs.pop("user_name", "username"),
+                            "email": kwargs.pop("user_email", "username@example.com"),
+                            "ip_address": kwargs.pop("ipv4", "127.0.0.1"),
+                        },
+                        "sdk": {
+                            "name": kwargs.pop("sdk_name", "sentry.javascript.react"),
+                            "version": kwargs.pop("sdk_version", "6.18.1"),
+                        },
+                        "contexts": {
+                            "trace": {
+                                "op": "pageload",
+                                "span_id": "affa5649681a1eeb",
+                                "trace_id": kwargs.pop(
+                                    "trace_id", "23eda6cd4b174ef8a51f0096df3bfdd1"
+                                ),
+                            }
+                        },
+                        "request": {
+                            "url": kwargs.pop("url", "http://localhost:3000/"),
+                            "headers": {
+                                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
+                            },
+                        },
+                        "extra": {},
+                    }
+                ).encode()
+            )
+        ),
     }
