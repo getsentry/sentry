@@ -5,6 +5,7 @@ import {SmartSearchBar} from 'sentry/components/smartSearchBar';
 import {ShortcutType} from 'sentry/components/smartSearchBar/types';
 import {shortcuts} from 'sentry/components/smartSearchBar/utils';
 import TagStore from 'sentry/stores/tagStore';
+import * as Fields from 'sentry/utils/fields';
 
 describe('SmartSearchBar', function () {
   let location, options, organization, supportedTags;
@@ -981,6 +982,108 @@ describe('SmartSearchBar', function () {
       expect(cursorSearchTerm.searchTerm).toEqual('123');
       expect(cursorSearchTerm.start).toBe(11);
       expect(cursorSearchTerm.end).toBe(14);
+    });
+  });
+
+  describe('getTagKeys()', function () {
+    const supportedTagsMock = {
+      has: {
+        key: 'has',
+      },
+      aa: {
+        key: 'aa',
+      },
+      bb: {
+        key: 'bb',
+      },
+    };
+
+    let spy;
+    beforeAll(() => {
+      spy = jest.spyOn(Fields, 'getFieldDefinition').mockImplementation(key => {
+        const map = {
+          has: {
+            desc: 'Has lol',
+          },
+          aa: {
+            desc: 'this has the word in it',
+          },
+          bb: {
+            desc: 'this does not have the word in it',
+          },
+        };
+
+        return map[key];
+      });
+    });
+
+    afterAll(() => {
+      spy?.mockRestore();
+    });
+
+    it('filters both keys and descriptions', async function () {
+      jest.useRealTimers();
+
+      const props = {
+        query: 'has',
+        organization,
+        location,
+        supportedTags: supportedTagsMock,
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+
+      mockCursorPosition(searchBar, 3);
+      searchBar.updateAutoCompleteItems();
+
+      await tick();
+
+      expect(searchBar.state.flatSearchItems).toHaveLength(2);
+      expect(searchBar.state.flatSearchItems[0].title).toBe('has');
+      expect(searchBar.state.flatSearchItems[1].title).toBe('aa');
+    });
+
+    it('filters only keys', async function () {
+      jest.useRealTimers();
+
+      const props = {
+        query: 'aa',
+        organization,
+        location,
+        supportedTags: supportedTagsMock,
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+
+      mockCursorPosition(searchBar, 2);
+      searchBar.updateAutoCompleteItems();
+
+      await tick();
+
+      expect(searchBar.state.flatSearchItems).toHaveLength(1);
+      expect(searchBar.state.flatSearchItems[0].title).toBe('aa');
+    });
+
+    it('filters only descriptions', async function () {
+      jest.useRealTimers();
+
+      const props = {
+        query: 'word',
+        organization,
+        location,
+        supportedTags: supportedTagsMock,
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+
+      mockCursorPosition(searchBar, 4);
+      searchBar.updateAutoCompleteItems();
+
+      await tick();
+
+      expect(searchBar.state.flatSearchItems).toHaveLength(2);
+      expect(searchBar.state.flatSearchItems[0].title).toBe('aa');
+      expect(searchBar.state.flatSearchItems[1].title).toBe('bb');
     });
   });
 
