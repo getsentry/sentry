@@ -2,6 +2,8 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import space from 'sentry/styles/space';
 import {Event, EventTransaction, Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
@@ -46,20 +48,32 @@ export function EmbeddedSpanTree(props: Props) {
         <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
           {results => {
             if (results.isLoading) {
-              return null;
+              return <LoadingIndicator />;
+            }
+
+            if (!results.currentEvent) {
+              return (
+                <LoadingError message="Error loading the span tree because the root transaction is missing." />
+              );
             }
 
             return (
               <GenericDiscoverQuery
                 eventView={eventView}
                 orgSlug={organization.slug}
-                route={`events/${projectSlug}:${results.currentEvent?.event_id}/`}
+                route={`events/${projectSlug}:${results.currentEvent?.event_id}`}
                 api={api}
                 location={location}
               >
                 {_results => {
                   if (_results.isLoading) {
-                    return null;
+                    return <LoadingIndicator />;
+                  }
+
+                  if (!_results.tableData) {
+                    return (
+                      <LoadingError message="Error loading the span tree because the root transaction is missing." />
+                    );
                   }
 
                   return (
@@ -93,9 +107,9 @@ export const Wrapper = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   margin: 0;
   /* Padding aligns with Layout.Body */
-  padding: ${space(3)} ${space(2)} ${space(2)};
+  padding: ${space(3)} 0 ${space(2)};
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${space(3)} ${space(4)} ${space(3)};
+    padding: ${space(3)} 0 ${space(3)};
   }
   & h3,
   & h3 a {
