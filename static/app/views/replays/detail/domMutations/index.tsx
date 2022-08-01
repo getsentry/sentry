@@ -18,7 +18,7 @@ type Props = {
 function DomMutations({replay}: Props) {
   const {isLoading, actions} = useExtractedCrumbHtml({replay});
 
-  const startTimestamp = replay.getEvent().startTimestamp;
+  const startTimestampMs = replay.getReplay().started_at.getTime();
 
   if (isLoading) {
     return null;
@@ -36,7 +36,7 @@ function DomMutations({replay}: Props) {
                   <BreadcrumbIcon type={mutation.crumb.type} />
                 </IconWrapper>
                 <PlayerRelativeTime
-                  relativeTime={startTimestamp}
+                  relativeTimeMs={startTimestampMs}
                   timestamp={mutation.crumb.timestamp}
                 />
               </MutationMetadata>
