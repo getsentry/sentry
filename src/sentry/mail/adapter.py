@@ -15,7 +15,6 @@ from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.notifications.user_report import UserReportNotification
 from sentry.notifications.types import ActionTargetType
 from sentry.plugins.base.structs import Notification
-from sentry.rules import EventState
 from sentry.tasks.digests import deliver_digest
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
@@ -87,7 +86,7 @@ class MailAdapter:
 
         logger.info("mail.adapter.notification.%s" % log_event, extra=extra)
 
-    def active_release_notify(self, event: Event, state: EventState) -> None:
+    def active_release_notify(self, event: Event, state) -> None:
         metrics.incr("mail_adapter.active_release_notify")
         self.notify_active_release(Notification(event=event, rules=None), state)
         logger.info(
