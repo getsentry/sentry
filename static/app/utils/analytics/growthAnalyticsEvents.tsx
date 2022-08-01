@@ -95,6 +95,15 @@ export type GrowthEventParameters = {
   'growth.onboarding_take_to_error': {};
   'growth.onboarding_view_full_docs': {};
   'growth.onboarding_view_sample_event': SampleEventParam;
+  'growth.onboarding_wizard_clicked_more_details': {
+    platform?: string;
+    project_id?: string;
+  };
+  'growth.onboarding_wizard_interacted': {
+    wizard_instructions: boolean;
+    platform?: string;
+    project_id?: string;
+  };
   'growth.platformpicker_category': PlatformCategory;
   'growth.platformpicker_search': PlatformSearchParam;
   'growth.sample_error_onboarding_link_clicked': {
@@ -204,4 +213,7 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'vitals_alert.dismissed': 'Vitals Alert: Dismissed',
   'vitals_alert.clicked_docs': 'Vitals Alert: Clicked Docs',
   'vitals_alert.displayed': 'Vitals Alert: Displayed',
+  'growth.onboarding_wizard_clicked_more_details':
+    'Onboarding Wizard: Clicked More Details',
+  'growth.onboarding_wizard_interacted': 'Onboarding Wizard: Interacted',
 };

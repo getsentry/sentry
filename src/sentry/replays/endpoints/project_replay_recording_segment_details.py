@@ -23,7 +23,7 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
             segment = ReplayRecordingSegment.objects.filter(
                 project_id=project.id,
                 replay_id=replay_id.replace("-", ""),
-                sequence_id=segment_id,
+                segment_id=segment_id,
             ).get()
         except ReplayRecordingSegment.DoesNotExist:
             return self.respond({"detail": "Replay recording segment not found."}, status=404)
@@ -37,7 +37,7 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
 
     def download(self, recording_segment: ReplayRecordingSegment) -> StreamingHttpResponse:
         file = File.objects.get(id=recording_segment.file_id)
-        filename = f"{recording_segment.replay_id}-{recording_segment.sequence_id}"
+        filename = f"{recording_segment.replay_id}-{recording_segment.segment_id}"
 
         blob = file.getfile()
 

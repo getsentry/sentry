@@ -3,6 +3,7 @@
 
 # Migrations
 /src/sentry/migrations/  @getsentry/owners-migrations
+/src/sentry/*/migrations/  @getsentry/owners-migrations
 
 # API Owners for unowned endpoints / serializers
 /src/**/endpoints/              @getsentry/owners-api
