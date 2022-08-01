@@ -4,6 +4,7 @@ from typing import Any, Iterable, Mapping
 
 from sentry.models import Team, User
 from sentry.notifications.notifications.base import BaseNotification
+from sentry.types.integrations import ExternalProviders
 
 
 class DummyNotification(BaseNotification):
@@ -23,13 +24,15 @@ class DummyNotification(BaseNotification):
     def get_title_link(self, *args):
         return None
 
-    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
+    def get_notification_title(
+        self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
+    ) -> str:
         return "Notification Title"
 
     def record_notification_sent(self, *args):
         pass
 
-    def build_notification_footer(self, *args):
+    def build_notification_footer(self, *args) -> str:
         return ""
 
     def get_participants(self):

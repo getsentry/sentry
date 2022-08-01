@@ -133,7 +133,9 @@ class ReleaseActivityNotification(ActivityNotification):
     def title(self) -> str:
         return self.get_subject()
 
-    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
+    def get_notification_title(
+        self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
+    ) -> str:
         projects_text = ""
         if len(self.projects) == 1:
             projects_text = " for this project"
@@ -141,7 +143,9 @@ class ReleaseActivityNotification(ActivityNotification):
             projects_text = " for these projects"
         return f"Release {self.version_parsed} was deployed to {self.environment}{projects_text}"
 
-    def get_message_actions(self, recipient: Team | User) -> Sequence[MessageAction]:
+    def get_message_actions(
+        self, recipient: Team | User, provider: ExternalProviders
+    ) -> Sequence[MessageAction]:
         if self.release:
             release = get_release(self.activity, self.project.organization)
             if release:
@@ -162,16 +166,17 @@ class ReleaseActivityNotification(ActivityNotification):
     def get_title_link(self, recipient: Team | User) -> str | None:
         return None
 
-    def build_notification_footer(self, recipient: Team | User) -> str:
-        # notification footer only used for Slack for now
-        settings_url = self.get_settings_url(recipient, ExternalProviders.SLACK)
+    def build_notification_footer(self, recipient: Team | User, provider: ExternalProviders) -> str:
+        settings_url = self.get_settings_url(recipient, provider)
 
         # no environment related to a deploy
         footer = ""
         if self.release:
             footer += f"{self.release.projects.all()[0].slug} | "
 
-        footer += f"{self.format_url(text='Notification Settings', url=settings_url)}"
+        footer += (
+            f"{self.format_url(text='Notification Settings', url=settings_url, provider=provider)}"
+        )
 
         return footer
 

@@ -2,12 +2,10 @@ from urllib.parse import quote
 
 from django.core import mail
 
-from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT
 from sentry.models import Activity, Environment, Repository
 from sentry.notifications.notifications.activity.release_summary import (
     ReleaseSummaryActivityNotification,
 )
-from sentry.notifications.notifications.base import create_notification_with_properties
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.testutils.cases import ActivityTestCase
 from sentry.types.activity import ActivityType
@@ -54,9 +52,6 @@ class ReleaseSummaryTestCase(ActivityTestCase):
                     data={"version": self.release.version, "deploy_id": self.deploy.id},
                 )
             )
-            release_summary = create_notification_with_properties(
-                release_summary, url_format=SLACK_URL_FORMAT
-            )
 
         # user1 is included because they committed
         participants = release_summary.get_participants_with_group_subscription_reason()[
@@ -91,7 +86,7 @@ class ReleaseSummaryTestCase(ActivityTestCase):
             f"/organizations/{self.org.slug}/issues/?query={quote(f'firstRelease:{self.release.version}')}&project={self.project.id}&referrer=release_summary"
         )
 
-        slack_message = release_summary.get_notification_title()
+        slack_message = release_summary.get_notification_title(ExternalProviders.SLACK)
         assert (
             slack_message
             == f"Release <{release_link}|aaaaaaaaaaaa> has been deployed to production for an hour with <{issues_link}|0 issues> associated with it"
