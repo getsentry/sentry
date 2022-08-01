@@ -5,7 +5,7 @@ import {SmartSearchBar} from 'sentry/components/smartSearchBar';
 import {ShortcutType} from 'sentry/components/smartSearchBar/types';
 import {shortcuts} from 'sentry/components/smartSearchBar/utils';
 import TagStore from 'sentry/stores/tagStore';
-import * as Fields from 'sentry/utils/fields';
+import {FieldKey} from 'sentry/utils/fields';
 
 describe('SmartSearchBar', function () {
   let location, options, organization, supportedTags;
@@ -986,49 +986,24 @@ describe('SmartSearchBar', function () {
   });
 
   describe('getTagKeys()', function () {
-    const supportedTagsMock = {
-      has: {
-        key: 'has',
-      },
-      aa: {
-        key: 'aa',
-      },
-      bb: {
-        key: 'bb',
-      },
-    };
-
-    let spy;
-    beforeAll(() => {
-      spy = jest.spyOn(Fields, 'getFieldDefinition').mockImplementation(key => {
-        const map = {
-          has: {
-            desc: 'Has lol',
-          },
-          aa: {
-            desc: 'this has the word in it',
-          },
-          bb: {
-            desc: 'this does not have the word in it',
-          },
-        };
-
-        return map[key];
-      });
-    });
-
-    afterAll(() => {
-      spy?.mockRestore();
-    });
-
     it('filters both keys and descriptions', async function () {
       jest.useRealTimers();
 
       const props = {
-        query: 'has',
+        query: 'event',
         organization,
         location,
-        supportedTags: supportedTagsMock,
+        supportedTags: {
+          [FieldKey.DEVICE_CHARGING]: {
+            key: FieldKey.DEVICE_CHARGING,
+          },
+          [FieldKey.EVENT_TYPE]: {
+            key: FieldKey.EVENT_TYPE,
+          },
+          [FieldKey.DEVICE_ARCH]: {
+            key: FieldKey.DEVICE_ARCH,
+          },
+        },
       };
       const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
       const searchBar = smartSearchBar.instance();
@@ -1039,18 +1014,28 @@ describe('SmartSearchBar', function () {
       await tick();
 
       expect(searchBar.state.flatSearchItems).toHaveLength(2);
-      expect(searchBar.state.flatSearchItems[0].title).toBe('has');
-      expect(searchBar.state.flatSearchItems[1].title).toBe('aa');
+      expect(searchBar.state.flatSearchItems[0].title).toBe(FieldKey.EVENT_TYPE);
+      expect(searchBar.state.flatSearchItems[1].title).toBe(FieldKey.DEVICE_CHARGING);
     });
 
     it('filters only keys', async function () {
       jest.useRealTimers();
 
       const props = {
-        query: 'aa',
+        query: 'device',
         organization,
         location,
-        supportedTags: supportedTagsMock,
+        supportedTags: {
+          [FieldKey.DEVICE_CHARGING]: {
+            key: FieldKey.DEVICE_CHARGING,
+          },
+          [FieldKey.EVENT_TYPE]: {
+            key: FieldKey.EVENT_TYPE,
+          },
+          [FieldKey.DEVICE_ARCH]: {
+            key: FieldKey.DEVICE_ARCH,
+          },
+        },
       };
       const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
       const searchBar = smartSearchBar.instance();
@@ -1060,18 +1045,29 @@ describe('SmartSearchBar', function () {
 
       await tick();
 
-      expect(searchBar.state.flatSearchItems).toHaveLength(1);
-      expect(searchBar.state.flatSearchItems[0].title).toBe('aa');
+      expect(searchBar.state.flatSearchItems).toHaveLength(2);
+      expect(searchBar.state.flatSearchItems[0].title).toBe(FieldKey.DEVICE_ARCH);
+      expect(searchBar.state.flatSearchItems[1].title).toBe(FieldKey.DEVICE_CHARGING);
     });
 
     it('filters only descriptions', async function () {
       jest.useRealTimers();
 
       const props = {
-        query: 'word',
+        query: 'time',
         organization,
         location,
-        supportedTags: supportedTagsMock,
+        supportedTags: {
+          [FieldKey.DEVICE_CHARGING]: {
+            key: FieldKey.DEVICE_CHARGING,
+          },
+          [FieldKey.EVENT_TYPE]: {
+            key: FieldKey.EVENT_TYPE,
+          },
+          [FieldKey.DEVICE_ARCH]: {
+            key: FieldKey.DEVICE_ARCH,
+          },
+        },
       };
       const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
       const searchBar = smartSearchBar.instance();
@@ -1081,9 +1077,8 @@ describe('SmartSearchBar', function () {
 
       await tick();
 
-      expect(searchBar.state.flatSearchItems).toHaveLength(2);
-      expect(searchBar.state.flatSearchItems[0].title).toBe('aa');
-      expect(searchBar.state.flatSearchItems[1].title).toBe('bb');
+      expect(searchBar.state.flatSearchItems).toHaveLength(1);
+      expect(searchBar.state.flatSearchItems[0].title).toBe(FieldKey.DEVICE_CHARGING);
     });
   });
 

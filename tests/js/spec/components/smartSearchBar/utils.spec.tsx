@@ -6,7 +6,7 @@ import {
   getTagItemsFromKeys,
   removeSpace,
 } from 'sentry/components/smartSearchBar/utils';
-import * as Fields from 'sentry/utils/fields';
+import {FieldKey, FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 
 describe('addSpace()', function () {
   it('should add a space when there is no trailing space', function () {
@@ -66,17 +66,17 @@ describe('getTagItemsFromKeys()', function () {
   it('gets items from tags', () => {
     const supportedTags = {
       browser: {
-        kind: Fields.FieldKind.FIELD,
+        kind: FieldKind.FIELD,
         key: 'browser',
         name: 'Browser',
       },
       device: {
-        kind: Fields.FieldKind.FIELD,
+        kind: FieldKind.FIELD,
         key: 'device',
         name: 'Device',
       },
       someTag: {
-        kind: Fields.FieldKind.TAG,
+        kind: FieldKind.TAG,
         key: 'someTag',
         name: 'someTag',
       },
@@ -89,19 +89,19 @@ describe('getTagItemsFromKeys()', function () {
       {
         title: 'browser',
         value: 'browser:',
-        kind: Fields.FieldKind.FIELD,
+        kind: FieldKind.FIELD,
         documentation: '-',
       },
       {
         title: 'device',
         value: 'device:',
-        kind: Fields.FieldKind.FIELD,
+        kind: FieldKind.FIELD,
         documentation: '-',
       },
       {
         title: 'someTag',
         value: 'someTag:',
-        kind: Fields.FieldKind.TAG,
+        kind: FieldKind.TAG,
         documentation: '-',
       },
     ]);
@@ -112,17 +112,17 @@ describe('getTagItemsFromKeys()', function () {
       'tag1.arch': {
         key: 'tag1.arch',
         name: 'Tag1 Arch',
-        kind: Fields.FieldKind.FIELD,
+        kind: FieldKind.FIELD,
       },
       'tag1.family': {
         key: 'tag1.family',
         name: 'Tag1 Family',
-        kind: Fields.FieldKind.FIELD,
+        kind: FieldKind.FIELD,
       },
       test: {
         key: 'test',
         name: 'Test',
-        kind: Fields.FieldKind.TAG,
+        kind: FieldKind.TAG,
       },
     };
     const tagKeys = Object.keys(supportedTags);
@@ -133,19 +133,19 @@ describe('getTagItemsFromKeys()', function () {
       {
         title: 'tag1',
         value: null,
-        kind: Fields.FieldKind.FIELD,
+        kind: FieldKind.FIELD,
         documentation: '-',
         children: [
           {
             title: 'tag1.arch',
             value: 'tag1.arch:',
-            kind: Fields.FieldKind.FIELD,
+            kind: FieldKind.FIELD,
             documentation: '-',
           },
           {
             title: 'tag1.family',
             value: 'tag1.family:',
-            kind: Fields.FieldKind.FIELD,
+            kind: FieldKind.FIELD,
             documentation: '-',
           },
         ],
@@ -153,7 +153,7 @@ describe('getTagItemsFromKeys()', function () {
       {
         title: 'test',
         value: 'test:',
-        kind: Fields.FieldKind.TAG,
+        kind: FieldKind.TAG,
         documentation: '-',
       },
     ]);
@@ -162,17 +162,17 @@ describe('getTagItemsFromKeys()', function () {
   it('groups tags with single word parent', () => {
     const supportedTags = {
       tag1: {
-        kind: Fields.FieldKind.FIELD,
+        kind: FieldKind.FIELD,
         key: 'tag1',
         name: 'Tag1',
       },
       'tag1.family': {
-        kind: Fields.FieldKind.FIELD,
+        kind: FieldKind.FIELD,
         key: 'tag1.family',
         name: 'Tag1 Family',
       },
       test: {
-        kind: Fields.FieldKind.TAG,
+        kind: FieldKind.TAG,
         key: 'test',
         name: 'Test',
       },
@@ -185,13 +185,13 @@ describe('getTagItemsFromKeys()', function () {
       {
         title: 'tag1',
         value: 'tag1:',
-        kind: Fields.FieldKind.FIELD,
+        kind: FieldKind.FIELD,
         documentation: '-',
         children: [
           {
             title: 'tag1.family',
             value: 'tag1.family:',
-            kind: Fields.FieldKind.FIELD,
+            kind: FieldKind.FIELD,
             documentation: '-',
           },
         ],
@@ -199,7 +199,7 @@ describe('getTagItemsFromKeys()', function () {
       {
         title: 'test',
         value: 'test:',
-        kind: Fields.FieldKind.TAG,
+        kind: FieldKind.TAG,
         documentation: '-',
       },
     ]);
@@ -224,56 +224,53 @@ describe('getTagItemsFromKeys()', function () {
       {
         title: 'device.family',
         value: 'device.family:',
-        kind: Fields.getFieldDefinition('device.family')?.kind,
-        documentation: Fields.getFieldDefinition('device.family')?.desc,
+        kind: getFieldDefinition('device.family')?.kind,
+        documentation: getFieldDefinition('device.family')?.desc,
       },
       {
         title: 'has',
         value: 'has:',
-        kind: Fields.getFieldDefinition('has')?.kind,
-        documentation: Fields.getFieldDefinition('has')?.desc,
+        kind: getFieldDefinition('has')?.kind,
+        documentation: getFieldDefinition('has')?.desc,
       },
     ]);
   });
 });
 
 describe('filterKeysFromQuery', () => {
-  let spy: jest.SpyInstance | undefined;
-  beforeAll(() => {
-    spy = jest.spyOn(Fields, 'getFieldDefinition').mockImplementation((key: string) => {
-      const map = {
-        has: {
-          desc: 'Has lol',
-        },
-        aa: {
-          desc: 'this has the word in it',
-        },
-        bb: {
-          desc: 'this does not have the word in it',
-          keywords: ['cc'],
-        },
-      };
-
-      return map[key];
-    });
-  });
-
-  afterAll(() => {
-    spy?.mockRestore();
-  });
-
   it('filters', () => {
-    expect(filterKeysFromQuery(['has', 'aa', 'bb'], 'has')).toMatchObject(['has', 'aa']);
+    expect(
+      filterKeysFromQuery(
+        [FieldKey.DEVICE_ARCH, FieldKey.DEVICE_CHARGING, FieldKey.EVENT_TYPE],
+        'event'
+      )
+    ).toMatchObject([FieldKey.EVENT_TYPE, FieldKey.DEVICE_CHARGING]);
   });
 
   it('filters via description only', () => {
-    expect(filterKeysFromQuery(['has', 'aa', 'bb'], 'word')).toMatchObject(['aa', 'bb']);
+    expect(
+      filterKeysFromQuery(
+        [FieldKey.DEVICE_ARCH, FieldKey.DEVICE_CHARGING, FieldKey.EVENT_TYPE],
+        'time'
+      )
+    ).toMatchObject([FieldKey.DEVICE_CHARGING]);
   });
 
   it('filters via key only', () => {
-    expect(filterKeysFromQuery(['has', 'aa', 'bb'], 'aa')).toMatchObject(['aa']);
+    expect(
+      filterKeysFromQuery(
+        [FieldKey.DEVICE_ARCH, FieldKey.DEVICE_CHARGING, FieldKey.EVENT_TYPE],
+        'device'
+      )
+    ).toMatchObject([FieldKey.DEVICE_ARCH, FieldKey.DEVICE_CHARGING]);
   });
+
   it('filters via keywords', () => {
-    expect(filterKeysFromQuery(['has', 'aa', 'bb'], 'cc')).toMatchObject(['bb']);
+    expect(
+      filterKeysFromQuery(
+        [FieldKey.IS, FieldKey.DEVICE_CHARGING, FieldKey.EVENT_TYPE],
+        'unresolved'
+      )
+    ).toMatchObject([FieldKey.IS]);
   });
 });
