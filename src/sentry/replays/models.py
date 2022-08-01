@@ -16,20 +16,19 @@ class ReplayRecordingSegment(Model):
     project_id = BoundedBigIntegerField()
     replay_id = models.CharField(max_length=32, db_index=True)
     file_id = BoundedBigIntegerField(db_index=True)
-    # recordings have multiple segments, ordered by their sequence_id
-    sequence_id = BoundedIntegerField()
+    segment_id = BoundedIntegerField(db_column="sequence_id")
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
         app_label = "replays"
         db_table = "replays_replayrecordingsegment"
-        index_together = (("replay_id", "sequence_id"),)
+        index_together = (("replay_id", "segment_id"),)
         unique_together = (
             ("project_id", "replay_id", "file_id"),
-            ("project_id", "replay_id", "sequence_id"),
+            ("project_id", "replay_id", "segment_id"),
         )
 
-    __repr__ = sane_repr("replay_id", "sequence_id", "file_id")
+    __repr__ = sane_repr("replay_id", "segment_id", "file_id")
 
     @cached_property
     def mimetype(self):

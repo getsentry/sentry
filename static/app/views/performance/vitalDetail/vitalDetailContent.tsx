@@ -28,7 +28,7 @@ import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
-import {WebVital} from 'sentry/utils/discover/fields';
+import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
 import {decodeScalar} from 'sentry/utils/queryString';
 import Teams from 'sentry/utils/teams';
@@ -97,7 +97,6 @@ function VitalDetailContent(props: Props) {
         eventView={eventView}
         organization={organization}
         projects={projects}
-        useAlertWizardV3={organization.features.includes('alert-wizard-v3')}
         aria-label={t('Create Alert')}
         alertType={vitalAlertTypes[vitalName]}
         referrer="performance"

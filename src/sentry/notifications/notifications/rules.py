@@ -110,14 +110,18 @@ class AlertRuleNotification(ProjectNotification):
 
         return context
 
-    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
+    def get_notification_title(
+        self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
+    ) -> str:
         from sentry.integrations.message_builder import build_rule_url
 
         title_str = "Alert triggered"
 
         if self.rules:
             rule_url = build_rule_url(self.rules[0], self.group, self.project)
-            title_str += f" <{rule_url}|{self.rules[0].label}>"
+            title_str += (
+                f" {self.format_url(text=self.rules[0].label, url=rule_url, provider=provider)}"
+            )
 
             if len(self.rules) > 1:
                 title_str += f" (+{len(self.rules) - 1} other)"
@@ -246,14 +250,18 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
             else ActiveReleaseEventCondition.latest_release(notification.event)
         )
 
-    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
+    def get_notification_title(
+        self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
+    ) -> str:
         from sentry.integrations.message_builder import build_rule_url
 
         title_str = "Active Release alert triggered"
 
         if self.rules:
             rule_url = build_rule_url(self.rules[0], self.group, self.project)
-            title_str += f" <{rule_url}|{self.rules[0].label}>"
+            title_str += (
+                f" {self.format_url(text=self.rules[0].label, url=rule_url, provider=provider)}"
+            )
 
             if len(self.rules) > 1:
                 title_str += f" (+{len(self.rules) - 1} other)"
