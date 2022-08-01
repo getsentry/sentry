@@ -197,7 +197,7 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     await waitForElementToBeRemoved(() => screen.queryByLabelText('Done'));
   });
 
-  it.only('cancel flow', async function () {
+  it('cancel flow', async function () {
     const {organization, project} = getMockData();
 
     render(<GlobalModal />);
