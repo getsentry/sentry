@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import functools
 from contextlib import contextmanager
-from dataclasses import dataclass
-from typing import Any, Callable, FrozenSet, Generator, Iterable, Tuple
+from typing import Any, Callable, Generator, Iterable, Tuple
 from unittest import TestCase
 
 from django.test import override_settings
@@ -61,26 +60,30 @@ class ServerModeTest:
         """
 
         self.modes = tuple(modes)
-        self.inclusion_condition = self.InclusionCondition(
-            include_names=frozenset(include_names or ()),
-            exclude_names=frozenset(exclude_names or ()),
-            include_if=include_if or (lambda _: include_names is None),
-        )
+        self.inclusion_condition = self.InclusionCondition(include_names, exclude_names, include_if)
 
-    @dataclass
     class InclusionCondition:
         """Designate which methods on a test class to run in other modes."""
 
-        include_names: FrozenSet[str]
-        exclude_names: FrozenSet[str]
-        include_if: TestMethodPredicate
+        def __init__(
+            self,
+            include_names: Iterable[str] | None = None,
+            exclude_names: Iterable[str] | None = None,
+            include_if: TestMethodPredicate | None = None,
+        ) -> None:
+            self.include_by_default = include_names is None
+            self.include_names = frozenset(include_names or ())
+            self.exclude_names = frozenset(exclude_names or ())
+            self.include_if = include_if
 
         def __call__(self, test_case_method: TestMethod) -> bool:
             if test_case_method.__name__ in self.include_names:
                 return True
             if test_case_method.__name__ in self.exclude_names:
                 return False
-            return self.include_if(test_case_method)
+            if self.include_if is not None:
+                return self.include_if(test_case_method)
+            return self.include_by_default
 
     @staticmethod
     def _find_all_test_methods(test_class: type) -> Iterable[Tuple[str, TestMethod]]:
