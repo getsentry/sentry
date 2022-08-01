@@ -48,11 +48,7 @@ function EventTagsAndScreenshots({
   const showTags = !!tags.length || hasContext;
 
   return (
-    <Wrapper
-      showScreenshot={showScreenshot}
-      showTags={showTags}
-      hasContext={hasEventContext}
-    >
+    <Wrapper showScreenshot={showScreenshot} showTags={showTags}>
       {showScreenshot && (
         <ScreenshotWrapper>
           <Screenshot
@@ -98,7 +94,6 @@ export default EventTagsAndScreenshots;
  * - tags
  */
 const Wrapper = styled(DataSection)<{
-  hasContext: boolean;
   showScreenshot: boolean;
   showTags: boolean;
 }>`
