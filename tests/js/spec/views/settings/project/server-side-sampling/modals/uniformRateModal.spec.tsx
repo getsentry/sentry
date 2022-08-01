@@ -6,7 +6,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {openModal} from 'sentry/actionCreators/modal';
+import {closeModal, openModal} from 'sentry/actionCreators/modal';
 import GlobalModal from 'sentry/components/globalModal';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {UniformRateModal} from 'sentry/views/settings/project/server-side-sampling/modals/uniformRateModal';
@@ -197,7 +197,7 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     await waitForElementToBeRemoved(() => screen.queryByLabelText('Done'));
   });
 
-  it('cancel flow', async function () {
+  it.only('cancel flow', async function () {
     const {organization, project} = getMockData();
 
     render(<GlobalModal />);
@@ -214,8 +214,10 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
       />
     ));
 
+    await screen.findByRole('heading', {name: 'Set a global sample rate'});
+
     // Cancel
-    userEvent.click(await screen.findByRole('button', {name: 'Cancel'}));
+    userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
     await waitForElementToBeRemoved(() => screen.queryByLabelText('Cancel'));
 
     expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
