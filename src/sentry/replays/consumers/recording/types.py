@@ -7,7 +7,7 @@ class ReplayRecordingSegment(TypedDict):
 
 
 class RecordingSegmentHeaders(TypedDict):
-    sequence_id: int
+    segment_id: int
 
 
 class RecordingSegmentChunkMessage(TypedDict):

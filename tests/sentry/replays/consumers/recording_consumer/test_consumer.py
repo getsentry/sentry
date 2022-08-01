@@ -24,10 +24,10 @@ class TestRecordingsConsumerEndToEnd(TestCase):
 
     def test_basic_flow(self):
         processing_strategy = self.processing_factory().create_with_partitions(lambda x: None, None)
-        sequence_id = 0
+        segment_id = 0
         consumer_messages = [
             {
-                "payload": f'{{"sequence_id":{sequence_id}}}\ntest'.encode(),
+                "payload": f'{{"segment_id":{segment_id}}}\ntest'.encode(),
                 "replay_id": self.replay_id,
                 "project_id": self.project.id,
                 "id": self.replay_recording_id,
@@ -64,7 +64,7 @@ class TestRecordingsConsumerEndToEnd(TestCase):
         processing_strategy.poll()
         processing_strategy.join(1)
 
-        recording_file_name = f"rr:{self.replay_id}:{sequence_id}"
+        recording_file_name = f"rr:{self.replay_id}:{segment_id}"
         recording = File.objects.get(name=recording_file_name)
 
         assert recording

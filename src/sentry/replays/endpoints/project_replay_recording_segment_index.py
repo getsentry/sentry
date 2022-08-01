@@ -24,7 +24,7 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
                 project_id=project.id,
                 replay_id=replay_id.replace("-", ""),
             ),
-            order_by="sequence_id",
+            order_by="segment_id",
             on_results=lambda x: {
                 "data": serialize(x, request.user, ReplayRecordingSegmentSerializer())
             },
