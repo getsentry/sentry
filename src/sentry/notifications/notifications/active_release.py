@@ -56,7 +56,9 @@ class ActiveReleaseIssueNotification(AlertRuleNotification):
         )
         self.event_state = event_state
 
-    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
+    def get_notification_title(
+        self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
+    ) -> str:
         return "Active Release alert triggered"
 
     def send(self) -> None:
