@@ -174,26 +174,28 @@ def parse_datetime_range(value):
 
 
 DATE_FORMAT = "%Y-%m-%d"
-DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S"
-DATETIME_FORMAT_MICROSECONDS = "%Y-%m-%dT%H:%M:%S.%f"
 
 
 def parse_unix_timestamp(value):
     return datetime.utcfromtimestamp(float(value)).replace(tzinfo=timezone.utc)
 
 
-def parse_datetime_string(value):
-    # timezones are not supported and are assumed UTC
-    if value[-1:] == "Z":
-        value = value[:-1]
-    if len(value) >= 6 and value[-6] == "+":
-        value = value[:-6]
+def parse_iso_timestamp(value):
+    # fromisoformat does not support parsing 'Z'
+    date = datetime.fromisoformat(value.replace("Z", "+00:00"))
 
-    for format in [DATETIME_FORMAT_MICROSECONDS, DATETIME_FORMAT, DATE_FORMAT]:
-        try:
-            return datetime.strptime(value, format).replace(tzinfo=timezone.utc)
-        except ValueError:
-            pass
+    # values with no timezone info will default to UTC
+    if not date.tzinfo:
+        date.replace(tzinfo=timezone.utc)
+
+    return date
+
+
+def parse_datetime_string(value):
+    try:
+        return parse_iso_timestamp(value)
+    except ValueError:
+        pass
 
     try:
         return parse_unix_timestamp(value)
@@ -217,12 +219,6 @@ def parse_datetime_comparison(value):
 
 
 def parse_datetime_value(value):
-    # timezones are not supported and are assumed UTC
-    if value[-1:] == "Z":
-        value = value[:-1]
-    if len(value) >= 6 and value[-6] == "+":
-        value = value[:-6]
-
     result = None
 
     # A value that only specifies the date (without a time component) should be
@@ -235,14 +231,9 @@ def parse_datetime_value(value):
         return ((result, True), (result + timedelta(days=1), False))
 
     # A value that contains the time should converted to an interval.
-    for format in [DATETIME_FORMAT, DATETIME_FORMAT_MICROSECONDS]:
-        try:
-            result = datetime.strptime(value, format).replace(tzinfo=timezone.utc)
-        except ValueError:
-            pass
-        else:
-            break  # avoid entering the else clause below
-    else:
+    try:
+        result = parse_iso_timestamp(value)
+    except ValueError:
         try:
             result = parse_unix_timestamp(value)
         except ValueError:
