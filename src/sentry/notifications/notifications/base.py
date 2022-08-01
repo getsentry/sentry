@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import abc
-from copy import deepcopy
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Optional, Sequence
 from urllib.parse import urljoin
 
@@ -22,6 +21,10 @@ if TYPE_CHECKING:
 
 # TODO: add abstractmethod decorators
 class BaseNotification(abc.ABC):
+    provider_to_url_format = {
+        ExternalProviders.SLACK: "<{url}|{text}>",
+        ExternalProviders.MSTEAMS: "[{text}]({url})",
+    }
     message_builder = "SlackNotificationsMessageBuilder"
     # some notifications have no settings for it
     notification_setting_type: NotificationSettingTypes | None = None
@@ -61,29 +64,11 @@ class BaseNotification(abc.ABC):
         """
         raise NotImplementedError
 
-    @property
-    def url_format(self) -> str:
-        """
-        The URL format used when embedding links in text.
-        Slack notifications should set this to `<{url}|{text}>`.
-        Microsoft Teams notifications should set this to `[text](url)`.
-        """
-        if not getattr(self, "_url_format", None):
-            raise AttributeError(
-                f"'url_format' not set on {self.__class__.__name__}. Please set 'url_format' from the message builder."
-            )
-
-        return self._url_format
-
-    @url_format.setter
-    def url_format(self, url_format: str) -> None:
-        self._url_format = url_format
-
-    def format_url(self, text: str, url: str) -> str:
+    def format_url(self, text: str, url: str, provider: ExternalProviders) -> str:
         """
         Format URLs according to the provider options.
         """
-        return self.url_format.format(text=text, url=url)
+        return self.provider_to_url_format[provider].format(text=text, url=url)
 
     @property
     @abc.abstractmethod
@@ -105,20 +90,22 @@ class BaseNotification(abc.ABC):
         # Basically a noop.
         return {**extra_context}
 
-    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
+    def get_notification_title(
+        self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
+    ) -> str:
         """The subject line when sending this notifications as a chat notification."""
         raise NotImplementedError
 
-    def get_title_link(self, recipient: Team | User) -> str | None:
+    def get_title_link(self, recipient: Team | User, provider: ExternalProviders) -> str | None:
         raise NotImplementedError
 
     def build_attachment_title(self, recipient: Team | User) -> str:
         raise NotImplementedError
 
-    def build_notification_footer(self, recipient: Team | User) -> str:
+    def build_notification_footer(self, recipient: Team | User, provider: ExternalProviders) -> str:
         raise NotImplementedError
 
-    def get_message_description(self, recipient: Team | User) -> Any:
+    def get_message_description(self, recipient: Team | User, provider: ExternalProviders) -> Any:
         context = getattr(self, "context", None)
         return context["text_description"] if context else None
 
@@ -138,7 +125,9 @@ class BaseNotification(abc.ABC):
         """
         return self.get_log_params(recipient)
 
-    def get_message_actions(self, recipient: Team | User) -> Sequence[MessageAction]:
+    def get_message_actions(
+        self, recipient: Team | User, provider: ExternalProviders
+    ) -> Sequence[MessageAction]:
         return []
 
     def get_callback_data(self) -> Mapping[str, Any] | None:
@@ -200,8 +189,12 @@ class BaseNotification(abc.ABC):
                 fine_tuning_key = get_notification_setting_type_name(self.notification_setting_type)
                 if fine_tuning_key:
                     url_str += f"{fine_tuning_key}/"
+
         return str(
-            urljoin(absolute_uri(url_str), self.get_sentry_query_params(provider, recipient))
+            urljoin(
+                absolute_uri(url_str),
+                self.get_sentry_query_params(provider, recipient),
+            )
         )
 
     def determine_recipients(self) -> Iterable[Team | User]:
@@ -258,9 +251,8 @@ class ProjectNotification(BaseNotification, abc.ABC):
     def get_log_params(self, recipient: Team | User) -> Mapping[str, Any]:
         return {"project_id": self.project.id, **super().get_log_params(recipient)}
 
-    def build_notification_footer(self, recipient: Team | User) -> str:
-        # notification footer only used for Slack for now
-        settings_url = self.get_settings_url(recipient, ExternalProviders.SLACK)
+    def build_notification_footer(self, recipient: Team | User, provider: ExternalProviders) -> str:
+        settings_url = self.get_settings_url(recipient, provider)
 
         parent = getattr(self, "project", self.organization)
         footer: str = parent.slug
@@ -276,16 +268,6 @@ class ProjectNotification(BaseNotification, abc.ABC):
         if environment and getattr(environment, "name", None) != "":
             footer += f" | {environment.name}"
 
-        footer += f" | {self.format_url(text='Notification Settings', url=settings_url)}"
+        footer += f" | {self.format_url(text='Notification Settings', url=settings_url, provider=provider)}"
 
         return footer
-
-
-def create_notification_with_properties(
-    notification: BaseNotification, **kwargs: Any
-) -> BaseNotification:
-    notification_copy = deepcopy(notification)
-    for property in kwargs:
-        setattr(notification_copy, property, kwargs[property])
-
-    return notification_copy

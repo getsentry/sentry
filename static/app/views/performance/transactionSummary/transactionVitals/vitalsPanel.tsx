@@ -4,7 +4,7 @@ import {Location} from 'history';
 import {Panel} from 'sentry/components/panels';
 import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
-import {WebVital} from 'sentry/utils/discover/fields';
+import {WebVital} from 'sentry/utils/fields';
 import HistogramQuery from 'sentry/utils/performance/histogram/histogramQuery';
 import {DataFilter, HistogramData} from 'sentry/utils/performance/histogram/types';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';

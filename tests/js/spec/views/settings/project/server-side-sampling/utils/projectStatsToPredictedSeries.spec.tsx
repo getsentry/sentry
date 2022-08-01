@@ -4,8 +4,8 @@ describe('projectStatsToPredictedSeries', function () {
   it('returns correct series', function () {
     expect(projectStatsToPredictedSeries(TestStubs.Outcomes(), 0.3, 0.1)).toEqual([
       {
-        seriesName: 'Indexed',
-        color: 'hsl(340.79999999999995, 61%, 79.4%)',
+        seriesName: 'Indexed and Processed',
+        color: '#2BA185',
         barMinHeight: 1,
         type: 'bar',
         stack: 'predictedUsage',
@@ -62,7 +62,7 @@ describe('projectStatsToPredictedSeries', function () {
       },
       {
         seriesName: 'Processed',
-        color: '#F55459',
+        color: '#F5B000',
         data: [
           {name: 1656788400000, value: 58873},
           {name: 1656792000000, value: 56426},
@@ -118,8 +118,8 @@ describe('projectStatsToPredictedSeries', function () {
         stack: 'predictedUsage',
       },
       {
-        seriesName: 'Dropped',
-        color: '#F5B000',
+        seriesName: 'Discarded',
+        color: '#F55459',
         data: [
           {name: 1656788400000, value: 206057},
           {name: 1656792000000, value: 197491},

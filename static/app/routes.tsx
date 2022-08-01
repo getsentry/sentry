@@ -464,7 +464,7 @@ function buildRoutes() {
       </Route>
       <Route
         path="server-side-sampling/"
-        name={t('Server-side Sampling')}
+        name={t('Server-Side Sampling')}
         component={make(
           () => import('sentry/views/settings/project/server-side-sampling')
         )}
@@ -1167,6 +1167,12 @@ function buildRoutes() {
           )}
         />
         <Route
+          path="replays/"
+          component={make(
+            () => import('sentry/views/performance/transactionSummary/transactionReplays')
+          )}
+        />
+        <Route
           path="vitals/"
           component={make(
             () => import('sentry/views/performance/transactionSummary/transactionVitals')
@@ -1698,7 +1704,7 @@ function buildRoutes() {
       <IndexRoute component={make(() => import('sentry/views/profiling/content'))} />
       <Route
         path="onboarding/"
-        component={make(() => import('sentry/views/profiling/onboarding'))}
+        component={make(() => import('sentry/views/profiling/legacyOnboarding'))}
       />
       <Route
         path="summary/:projectId/"
