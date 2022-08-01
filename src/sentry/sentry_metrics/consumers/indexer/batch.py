@@ -54,7 +54,6 @@ class IndexerBatch:
     @metrics.wraps("process_messages.parse_outer_message")
     def extract_strings(self) -> Mapping[int, Set[str]]:
         org_strings = defaultdict(set)
-        strings: MutableSet[str] = set()
 
         self.skipped_offsets: Set[PartitionIdxOffset] = set()
         self.parsed_payloads_by_offset: MutableMapping[PartitionIdxOffset, json.JSONData] = {}
@@ -130,7 +129,6 @@ class IndexerBatch:
         for org_set in org_strings:
             string_count += len(org_strings[org_set])
         metrics.gauge("process_messages.lookups_per_batch", value=string_count)
-        metrics.incr("process_messages.total_strings_indexer_lookup", amount=len(strings))
 
         return org_strings
 

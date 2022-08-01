@@ -424,6 +424,19 @@ export function hasUnsavedFilterChanges(
   return !isEqual(savedFilters, currentFilters);
 }
 
+export function getSavedFiltersAsPageFilters(dashboard: DashboardDetails): PageFilters {
+  return {
+    datetime: {
+      end: dashboard.end || null,
+      period: dashboard.period || null,
+      start: dashboard.start || null,
+      utc: null,
+    },
+    environments: dashboard.environment || [],
+    projects: dashboard.projects || [],
+  };
+}
+
 export function getSavedPageFilters(dashboard: DashboardDetails) {
   return {
     project: dashboard.projects,

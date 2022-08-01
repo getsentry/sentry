@@ -132,7 +132,7 @@ function UniformRateModal({
       : undefined;
   const recommendedServerSampling = shouldUseConservativeSampleRate
     ? CONSERVATIVE_SAMPLE_RATE
-    : currentClientSampling;
+    : Math.min(currentClientSampling ?? 1, recommendedClientSampling ?? 1);
 
   const [selectedStrategy, setSelectedStrategy] = useState<Strategy>(Strategy.CURRENT);
   const [clientInput, setClientInput] = useState(
@@ -243,14 +243,15 @@ function UniformRateModal({
   return (
     <Fragment>
       <Header closeButton>
-        <h4>{t('Define a global sample rate')}</h4>
+        <h4>{t('Set a global sample rate')}</h4>
       </Header>
       <Body>
         <TextBlock>
+          {/* TODO(sampling): replace docs link */}
           {tct(
-            'Set a global sample rate for the percent of transactions you want to process (Client) and those you want to index (Server) for your project. Below are suggested rates based on your organization’s usage and quota. Once set, the number of transactions processed and indexed for this project come from your organization’s overall quota and might impact the amount of transactions retained for other projects. [learnMoreLink:Learn more about quota management.]',
+            'Set a server-side sample rate for all transactions using our suggestion as a starting point. To accurately monitor overall performance, we also suggest changing your client(SDK) sample rate to allow more metrics to be processed. [learnMoreLink: Learn more about quota management].',
             {
-              learnMoreLink: <ExternalLink href="" />,
+              learnMoreLink: <ExternalLink href={SERVER_SIDE_SAMPLING_DOC_LINK} />,
             }
           )}
         </TextBlock>
@@ -312,7 +313,7 @@ function UniformRateModal({
                   {!isEdited && (
                     <QuestionTooltip
                       title={t(
-                        'These are suggested sample rates you can set based on your organization’s overall usage and quota.'
+                        'Optimal sample rates based on your organization’s usage and quota.'
                       )}
                       size="sm"
                     />

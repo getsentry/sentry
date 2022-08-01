@@ -235,6 +235,7 @@ function getSpansEventView(eventView: EventView): EventView {
     {field: 'count_unique(id)'},
     {field: 'equation|count() / count_unique(id)'},
     {field: 'sumArray(spans_exclusive_time)'},
+    {field: 'percentileArray(spans_exclusive_time, 0.50)'},
     {field: 'percentileArray(spans_exclusive_time, 0.75)'},
     {field: 'percentileArray(spans_exclusive_time, 0.95)'},
     {field: 'percentileArray(spans_exclusive_time, 0.99)'},

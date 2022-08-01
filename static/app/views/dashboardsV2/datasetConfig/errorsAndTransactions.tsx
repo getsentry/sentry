@@ -24,6 +24,7 @@ import {
 } from 'sentry/utils/discover/fieldRenderers';
 import {
   errorsAndTransactionsAggregateFunctionOutputType,
+  getAggregateAlias,
   isEquation,
   isEquationAlias,
   isLegalYAxisType,
@@ -152,6 +153,7 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   transformTable: transformEventsResponseToTable,
   filterTableOptions,
   filterAggregateParams,
+  getSeriesResultType,
 };
 
 function getTableSortOptions(_organization: Organization, widgetQuery: WidgetQuery) {
@@ -359,7 +361,10 @@ function transformEventsResponseToSeries(
       seriesWithOrdering = Object.keys(data).map((seriesName: string) => {
         const prefixedName = queryAlias ? `${queryAlias} : ${seriesName}` : seriesName;
         const seriesData: EventsStats = data[seriesName];
-        return [seriesData.order || 0, transformSeries(seriesData, prefixedName)];
+        return [
+          seriesData.order || 0,
+          transformSeries(seriesData, prefixedName, seriesName),
+        ];
       });
     }
 
@@ -371,11 +376,24 @@ function transformEventsResponseToSeries(
   } else {
     const field = widgetQuery.aggregates[0];
     const prefixedName = queryAlias ? `${queryAlias} : ${field}` : field;
-    const transformed = transformSeries(data, prefixedName);
+    const transformed = transformSeries(data, prefixedName, field);
     output.push(transformed);
   }
 
   return output;
+}
+
+// Get the series result type from the EventsStats meta
+function getSeriesResultType(
+  data: EventsStats | MultiSeriesEventsStats,
+  widgetQuery: WidgetQuery
+) {
+  const field = widgetQuery.aggregates[0];
+  // Need to use getAggregateAlias since events-stats still uses aggregate alias format
+  if (isMultiSeriesStats(data)) {
+    return data[Object.keys(data)[0]].meta?.fields[getAggregateAlias(field)];
+  }
+  return data.meta?.fields[getAggregateAlias(field)];
 }
 
 function renderEventIdAsLinkable(data, {eventView, organization}: RenderFunctionBaggage) {

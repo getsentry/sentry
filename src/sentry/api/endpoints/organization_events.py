@@ -131,13 +131,8 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
             "organizations:performance-dry-run-mep", organization=organization, actor=request.user
         )
 
-        # This param will be deprecated in favour of dataset
-        if "metricsEnhanced" in request.GET:
-            metrics_enhanced = request.GET.get("metricsEnhanced") == "1" and use_metrics
-            dataset = discover if not metrics_enhanced else metrics_enhanced_performance
-        else:
-            dataset = self.get_dataset(request) if use_metrics else discover
-            metrics_enhanced = dataset != discover
+        dataset = self.get_dataset(request) if use_metrics else discover
+        metrics_enhanced = dataset != discover
 
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
@@ -285,22 +280,26 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             raise ParseError(err)
 
         referrer = request.GET.get("referrer")
-        use_metrics = features.has(
-            "organizations:performance-use-metrics", organization=organization, actor=request.user
-        ) or features.has(
-            "organizations:dashboards-mep", organization=organization, actor=request.user
+        use_metrics = (
+            features.has(
+                "organizations:mep-rollout-flag", organization=organization, actor=request.user
+            )
+            or features.has(
+                "organizations:performance-use-metrics",
+                organization=organization,
+                actor=request.user,
+            )
+            or features.has(
+                "organizations:dashboards-mep", organization=organization, actor=request.user
+            )
         )
+
         performance_dry_run_mep = features.has(
             "organizations:performance-dry-run-mep", organization=organization, actor=request.user
         )
 
-        # This param will be deprecated in favour of dataset
-        if "metricsEnhanced" in request.GET:
-            metrics_enhanced = request.GET.get("metricsEnhanced") == "1" and use_metrics
-            dataset = discover if not metrics_enhanced else metrics_enhanced_performance
-        else:
-            dataset = self.get_dataset(request) if use_metrics else discover
-            metrics_enhanced = dataset != discover
+        dataset = self.get_dataset(request) if use_metrics else discover
+        metrics_enhanced = dataset != discover
 
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"

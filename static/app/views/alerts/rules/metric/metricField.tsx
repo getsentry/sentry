@@ -8,9 +8,7 @@ import {Organization} from 'sentry/types';
 import {
   Aggregation,
   AGGREGATIONS,
-  ColumnType,
   explodeFieldString,
-  FIELDS,
   generateFieldAsString,
 } from 'sentry/utils/discover/fields';
 import {
@@ -72,22 +70,20 @@ export const getFieldOptionConfig = ({
     })
   );
 
-  const fields = Object.fromEntries<ColumnType>(
-    config.fields.map(key => {
-      // XXX(epurkhiser): Temporary hack while we handle the translation of user ->
-      // tags[sentry:user].
-      if (key === 'user') {
-        return ['tags[sentry:user]', 'string'];
-      }
+  const fieldKeys = config.fields.map(key => {
+    // XXX(epurkhiser): Temporary hack while we handle the translation of user ->
+    // tags[sentry:user].
+    if (key === 'user') {
+      return 'tags[sentry:user]';
+    }
 
-      return [key, FIELDS[key]];
-    })
-  );
+    return key;
+  });
 
   const {measurementKeys} = config;
 
   return {
-    fieldOptionsConfig: {aggregations, fields, measurementKeys},
+    fieldOptionsConfig: {aggregations, fieldKeys, measurementKeys},
     hidePrimarySelector,
     hideParameterSelector,
   };
