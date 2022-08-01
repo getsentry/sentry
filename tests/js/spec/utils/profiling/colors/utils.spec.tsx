@@ -3,6 +3,7 @@ import {
   makeColorBucketTheme,
   makeColorMap,
   makeColorMapByImage,
+  makeColorMapByInlineCalls,
   makeColorMapByRecursion,
   makeStackToColor,
 } from 'sentry/utils/profiling/colors/utils';
@@ -146,5 +147,21 @@ describe('makeColorMap', () => {
 
     expect(getDominantColor(map.get(1))).toBe('red');
     expect(map.get(3)).toBeUndefined();
+  });
+
+  it('colors by inline frames', () => {
+    // Reverse order to ensure we actually sort
+    const frames = [f(0, 'a'), f(1, 'a'), f(2, 'c'), f(3, 'b')];
+
+    frames[0].inline = true;
+    frames[1].inline = true;
+    frames[3].inline = true;
+
+    const map = makeColorMapByInlineCalls(frames, makeColorBucketTheme(LCH_LIGHT));
+
+    expect(getDominantColor(map.get(0))).toBe('red');
+    expect(map.get(0)).toEqual(map.get(1));
+    expect(map.get(2)).toBeUndefined();
+    expect(getDominantColor(map.get(3))).toBe('blue');
   });
 });

@@ -2,7 +2,8 @@ export type FlamegraphColorCodings = [
   'by symbol name',
   'by system / application',
   'by library',
-  'by recursion'
+  'by recursion',
+  'by inlining'
 ];
 
 export type FlamegraphSorting = ['left heavy', 'call order'];

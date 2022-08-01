@@ -5,6 +5,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 import {
   makeColorMapByImage,
+  makeColorMapByInlineCalls,
   makeColorMapByRecursion,
   makeColorMapBySystemVsApplication,
 } from '../colors/utils';
@@ -34,6 +35,9 @@ function FlamegraphThemeProvider(
     switch (flamegraphPreferences.colorCoding) {
       case 'by symbol name': {
         return base;
+      }
+      case 'by inlining': {
+        return {...base, COLORS: {...base.COLORS, COLOR_MAP: makeColorMapByInlineCalls}};
       }
       case 'by recursion': {
         return {...base, COLORS: {...base.COLORS, COLOR_MAP: makeColorMapByRecursion}};

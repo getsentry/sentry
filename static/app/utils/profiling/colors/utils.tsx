@@ -155,8 +155,8 @@ export const makeColorMapByRecursion = (
   const colors = new Map<FlamegraphFrame['frame']['key'], ColorChannels>();
 
   const sortedFrames = [...frames]
-    .sort((a, b) => a.frame.name.localeCompare(b.frame.name))
-    .filter(f => f.node.isRecursive());
+    .filter(f => f.node.isRecursive())
+    .sort((a, b) => a.frame.name.localeCompare(b.frame.name));
 
   const colorsByName = new Map<FlamegraphFrame['frame']['key'], ColorChannels>();
 
@@ -234,6 +234,37 @@ export const makeColorMapBySystemVsApplication = (
     }
 
     colors.set(frame.key, colorBucket(0.09, frame.frame));
+  }
+
+  return colors;
+};
+
+export const makeColorMapByInlineCalls = (
+  frames: ReadonlyArray<FlamegraphFrame>,
+  colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
+): Map<FlamegraphFrame['frame']['key'], ColorChannels> => {
+  const colors = new Map<FlamegraphFrame['frame']['key'], ColorChannels>();
+
+  const sortedFrames = [...frames]
+    .filter(f => f.inline)
+    .sort((a, b) => a.frame.name.localeCompare(b.frame.name));
+
+  const colorsByName = new Map<FlamegraphFrame['frame']['key'], ColorChannels>();
+
+  for (let i = 0; i < sortedFrames.length; i++) {
+    const frame = sortedFrames[i];
+    const nameKey = frame.frame.name + frame.frame.file ?? '';
+
+    if (!colorsByName.has(nameKey)) {
+      const color = colorBucket(
+        Math.floor((255 * i) / sortedFrames.length) / 256,
+        frame.frame
+      );
+
+      colorsByName.set(nameKey, color);
+    }
+
+    colors.set(frame.key, colorsByName.get(nameKey)!);
   }
 
   return colors;

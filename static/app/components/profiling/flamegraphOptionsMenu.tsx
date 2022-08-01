@@ -81,6 +81,7 @@ const COLOR_CODINGS: Record<FlamegraphPreferences['colorCoding'], string> = {
   'by library': t('By Library'),
   'by system / application': t('By System / Application'),
   'by recursion': t('By Recursion'),
+  'by inlining': t('By Inline Calls'),
 };
 
 export {FlamegraphOptionsMenu};
