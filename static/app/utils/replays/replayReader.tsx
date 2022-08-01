@@ -96,7 +96,7 @@ export default class ReplayReader {
       count_segments: 0,
       count_urls: urls.length,
       dist: this.event.dist,
-      duration: this.getDurationMs(),
+      duration: endTimestampMs - startTimestampMs,
       environment: null,
       finished_at: new Date(endTimestampMs),
       ip_address_v4: this.event.user?.ip_address,
@@ -140,9 +140,7 @@ export default class ReplayReader {
    * @returns Duration of Replay (milliseonds)
    */
   getDurationMs = () => {
-    const startTimestampMs = this.replayRecord.started_at.getTime();
-    const endTimestampMs = this.replayRecord.finished_at.getTime();
-    return endTimestampMs - startTimestampMs;
+    return this.replayRecord.duration;
   };
 
   getReplay = () => {
