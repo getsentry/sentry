@@ -161,6 +161,10 @@ export function TraceEventDataSection({
         isDisabled: !hasMinified,
         tooltip: !hasMinified ? t('Minified version not available') : undefined,
       },
+      {
+        label: displayOptions['raw-stack-trace'],
+        value: 'raw-stack-trace',
+      },
     ];
   }
 
