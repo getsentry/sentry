@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import DropdownMenu from 'sentry/components/dropdownMenu';
+import DropdownMenu from 'sentry/components/dropdownMenuDeprecated';
 import {IconEllipsis} from 'sentry/icons';
 
 const ContextMenu = ({children}) => (

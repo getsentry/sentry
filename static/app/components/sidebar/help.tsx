@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
-import DropdownMenu from 'sentry/components/dropdownMenu';
+import DropdownMenu from 'sentry/components/dropdownMenuDeprecated';
 import Hook from 'sentry/components/hook';
 import SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import {IconQuestion} from 'sentry/icons';

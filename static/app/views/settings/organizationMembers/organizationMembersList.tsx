@@ -7,7 +7,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {resendMemberInvite} from 'sentry/actionCreators/members';
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
 import Button from 'sentry/components/button';
-import DropdownMenu from 'sentry/components/dropdownMenu';
+import DropdownMenu from 'sentry/components/dropdownMenuDeprecated';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';

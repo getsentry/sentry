@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
-import DropdownMenu from 'sentry/components/dropdownMenu';
+import DropdownMenu from 'sentry/components/dropdownMenuDeprecated';
 import SidebarDropdownMenu from 'sentry/components/sidebar/sidebarDropdownMenu.styled';
 import SidebarMenuItem from 'sentry/components/sidebar/sidebarMenuItem';
 import SidebarOrgSummary from 'sentry/components/sidebar/sidebarOrgSummary';

@@ -2,7 +2,7 @@ import {lazy, Suspense} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
-import DropdownMenu from 'sentry/components/dropdownMenu';
+import DropdownMenu from 'sentry/components/dropdownMenuDeprecated';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {IconCalendar} from 'sentry/icons';

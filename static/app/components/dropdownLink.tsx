@@ -1,7 +1,7 @@
 import {css, useTheme} from '@emotion/react';
 import classNames from 'classnames';
 
-import DropdownMenu from 'sentry/components/dropdownMenu';
+import DropdownMenu from 'sentry/components/dropdownMenuDeprecated';
 import {IconChevron} from 'sentry/icons';
 import {Theme} from 'sentry/utils/theme';
 

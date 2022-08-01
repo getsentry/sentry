@@ -10,7 +10,7 @@ import {MenuTriggerProps} from '@react-types/menu';
 
 import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
-import Menu from 'sentry/components/dropdownMenuV2';
+import MenuList from 'sentry/components/dropdownMenuList';
 
 type TriggerProps = {
   props: Omit<React.HTMLAttributes<Element>, 'children'> & {
@@ -179,7 +179,7 @@ function MenuControl({
     }
 
     return (
-      <Menu
+      <MenuList
         {...props}
         {...menuProps}
         triggerRef={ref}
@@ -201,7 +201,7 @@ function MenuControl({
           }
           return <Item {...item}>{item.label}</Item>;
         }}
-      </Menu>
+      </MenuList>
     );
   }
 

@@ -111,6 +111,17 @@ type State = {
   isOpen: boolean;
 };
 
+/**
+ *
+ * Deprecated dropdown menu. Use these alternatives instead:
+ * - For a select menu: `CompactSelect`.
+ * - For an action menu: `DropdownMenuControl`.
+ * - For for other menus/overlays: a combination of `Overlay` and the
+ *   `useOverlay` hook. Storybook example:
+ *   https://storybook.sentry.dev/?path=/story/components-buttons-dropdowns-overlay--overlay
+ *
+ * @deprecated
+ */
 class DropdownMenu extends Component<Props, State> {
   static defaultProps: DefaultProps = {
     keepMenuOpen: false,

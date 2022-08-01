@@ -1,10 +1,10 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import DropdownMenu from 'sentry/components/dropdownMenu';
+import DropdownMenu from 'sentry/components/dropdownMenuDeprecated';
 
 jest.useFakeTimers();
 
-describe('DropdownMenu', function () {
+describe('dropdownMenuDeprecated', function () {
   let wrapper;
 
   beforeEach(function () {
