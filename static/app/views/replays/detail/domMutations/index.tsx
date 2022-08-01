@@ -1,14 +1,12 @@
-import {Fragment} from 'react';
+import React from 'react';
 import styled from '@emotion/styled';
 
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
 import HTMLCode from 'sentry/components/htmlCode';
-import {PanelTable} from 'sentry/components/panels';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import PlayerRelativeTime from 'sentry/components/replays/playerRelativeTime';
 import Truncate from 'sentry/components/truncate';
 import {SVGIconProps} from 'sentry/icons/svgIcon';
-import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import useExtractedCrumbHtml from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
@@ -22,60 +20,67 @@ function DomMutations({replay}: Props) {
 
   const startTimestamp = replay.getEvent().startTimestamp;
 
+  if (isLoading) {
+    return null;
+  }
+
   return (
-    <Fragment>
-      <StyledPanelTable
-        isEmpty={actions.length === 0}
-        emptyMessage={t('No DOM actions found.')}
-        isLoading={isLoading}
-        headers={[t('Action'), t('Selector'), t('HTML'), t('Timestamp')]}
-      >
-        {actions.map((mutation, i) => (
-          <Fragment key={i}>
-            <TitleContainer>
-              <IconWrapper color={mutation.crumb.color}>
-                <BreadcrumbIcon type={mutation.crumb.type} />
-              </IconWrapper>
-              <Title>{getDetails(mutation.crumb).title}</Title>
-            </TitleContainer>
-
-            <Column>
-              <Truncate
-                maxLength={30}
-                leftTrim={(mutation.crumb.message || '').includes('>')}
-                value={mutation.crumb.message || ''}
-              />
-            </Column>
-
-            <Column>
-              <CodeContainer>
-                <HTMLCode code={mutation.html} />
-              </CodeContainer>
-            </Column>
-
-            <Column>
-              <PlayerRelativeTime
-                relativeTime={startTimestamp}
-                timestamp={mutation.crumb.timestamp}
-              />
-              {}
-            </Column>
-          </Fragment>
-        ))}
-      </StyledPanelTable>
-    </Fragment>
+    <MutationList>
+      {actions.map((mutation, i) => (
+        <MutationListItem key={i}>
+          <StepConnector />
+          <MutationItemContainer>
+            <div>
+              <MutationMetadata>
+                <IconWrapper color={mutation.crumb.color}>
+                  <BreadcrumbIcon type={mutation.crumb.type} />
+                </IconWrapper>
+                <PlayerRelativeTime
+                  relativeTime={startTimestamp}
+                  timestamp={mutation.crumb.timestamp}
+                />
+              </MutationMetadata>
+              <MutationDetails>
+                <TitleContainer>
+                  <Title>{getDetails(mutation.crumb).title}</Title>
+                </TitleContainer>
+                <Truncate
+                  maxLength={30}
+                  leftTrim={(mutation.crumb.message || '').includes('>')}
+                  value={mutation.crumb.message || ''}
+                />
+              </MutationDetails>
+            </div>
+            <CodeContainer>
+              <HTMLCode code={mutation.html} />
+            </CodeContainer>
+          </MutationItemContainer>
+        </MutationListItem>
+      ))}
+    </MutationList>
   );
 }
 
-const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: max-content max-content 1fr max-content;
-  font-size: ${p => p.theme.fontSizeSmall};
+const MutationList = styled('ul')`
+  list-style: none;
+  position: relative;
 `;
 
-const Column = styled('div')`
+const MutationListItem = styled('li')`
   display: flex;
-  align-items: flex-start;
-  overflow: hidden;
+  align-items: start;
+  gap: ${space(4)};
+`;
+
+const MutationItemContainer = styled('div')`
+  display: grid;
+  grid-template-columns: 280px 1fr;
+`;
+
+const MutationMetadata = styled('div')`
+  display: flex;
+  align-items: start;
+  gap: ${space(1)};
 `;
 
 /**
@@ -91,6 +96,13 @@ const IconWrapper = styled('div')<Required<Pick<SVGIconProps, 'color'>>>`
   color: ${p => p.theme.white};
   background: ${p => p.theme[p.color] ?? p.color};
   box-shadow: ${p => p.theme.dropShadowLightest};
+  z-index: 1; // over the step connector
+`;
+
+const MutationDetails = styled('div')`
+  margin-left: 30px;
+  margin-top: ${space(0.5)};
+  margin-bottom: ${space(3)};
 `;
 
 const TitleContainer = styled('div')`
@@ -103,12 +115,23 @@ const Title = styled('span')`
   ${p => p.theme.overflowEllipsis};
   text-transform: capitalize;
   color: ${p => p.theme.gray400};
+  font-weight: bold;
   line-height: ${p => p.theme.text.lineHeightBody};
+  margin-bottom: ${space(0.5)};
 `;
 
 const CodeContainer = styled('div')`
   overflow: auto;
   max-height: 400px;
+  max-width: 100%;
+`;
+
+const StepConnector = styled('div')`
+  position: absolute;
+  height: 100%;
+  top: 28px;
+  left: 31px;
+  border-right: 1px ${p => p.theme.gray200} dashed;
 `;
 
 export default DomMutations;
