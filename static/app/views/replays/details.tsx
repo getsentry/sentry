@@ -43,7 +43,7 @@ function ReplayDetails() {
 
   if (!fetching && replay && replay.getRRWebEvents().length < 2) {
     return (
-      <Page orgId={orgId} event={replay.getEvent()}>
+      <Page orgId={orgId} replayRecord={replay.getReplay()}>
         <DetailedError
           onRetry={onRetry}
           hideSupportLinks
@@ -73,14 +73,14 @@ function ReplayDetails() {
 function LoadedDetails({orgId}: {orgId: string}) {
   const {getParamValue} = useUrlParam('l_page', 'topbar');
   const {replay} = useReplayContext();
-  const durationMS = replay?.getDurationMS();
+  const durationMs = replay?.getDurationMs();
 
   return (
     <Page
       orgId={orgId}
       crumbs={replay?.getRawCrumbs()}
-      durationMS={durationMS}
-      event={replay?.getEvent()}
+      durationMs={durationMs}
+      replayRecord={replay?.getReplay()}
     >
       <Layout
         layout={

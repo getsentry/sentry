@@ -7,21 +7,21 @@ import {showPlayerTime} from 'sentry/components/replays/utils';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {EventTransaction} from 'sentry/types';
 import theme from 'sentry/utils/theme';
 import {
   ISortConfig,
   NetworkSpan,
   sortNetwork,
 } from 'sentry/views/replays/detail/network/utils';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
-  event: EventTransaction;
   networkSpans: NetworkSpan[];
+  replayRecord: ReplayRecord;
 };
 
-function NetworkList({event, networkSpans}: Props) {
-  const {startTimestamp} = event;
+function NetworkList({replayRecord, networkSpans}: Props) {
+  const startTimestampMs = replayRecord.started_at.getTime();
   const [sortConfig, setSortConfig] = useState<ISortConfig>({
     by: 'startTimestamp',
     asc: true,
@@ -100,7 +100,7 @@ function NetworkList({event, networkSpans}: Props) {
         <Item numeric>
           {`${(networkEndTimestamp - networkStartTimestamp).toFixed(2)}ms`}
         </Item>
-        <Item numeric>{showPlayerTime(networkStartTimestamp, startTimestamp)}</Item>
+        <Item numeric>{showPlayerTime(networkStartTimestamp, startTimestampMs)}</Item>
       </Fragment>
     );
   };

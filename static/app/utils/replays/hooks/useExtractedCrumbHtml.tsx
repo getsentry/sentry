@@ -87,7 +87,7 @@ function useExtractedCrumbHtml({replay}: HookOpts) {
 
     try {
       // Run the replay to the end, we will capture data as it streams into the plugin
-      replayerRef.pause(replay.getEvent().endTimestamp);
+      replayerRef.pause(replay.getReplay().finished_at.getTime());
     } catch (error) {
       Sentry.captureException(error);
     }

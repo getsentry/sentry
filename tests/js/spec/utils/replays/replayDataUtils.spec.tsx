@@ -124,11 +124,11 @@ describe('rrwebEventListFactory', () => {
   });
 
   it('merges and sorts rrweb-events and span data', function () {
-    const startTimestampMS = 0;
-    const endTimestampMS = 10_000;
+    const startTimestampMs = 0;
+    const endTimestampMs = 10_000;
 
     expect(
-      rrwebEventListFactory(startTimestampMS, endTimestampMS, [
+      rrwebEventListFactory(startTimestampMs, endTimestampMs, [
         {type: 0, timestamp: 5_000, data: {}},
         {type: 1, timestamp: 1_000, data: {}},
         {type: 2, timestamp: 3_000, data: {}},

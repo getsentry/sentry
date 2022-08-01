@@ -35,13 +35,13 @@ function Gridlines({
 }
 
 type Props = {
-  durationMS: number;
+  durationMs: number;
   width: number;
   minWidth?: number;
 };
 
-export function MajorGridlines({durationMS, minWidth = 50, width}: Props) {
-  const {timespan, cols, remaining} = countColumns(durationMS, width, minWidth);
+export function MajorGridlines({durationMs, minWidth = 50, width}: Props) {
+  const {timespan, cols, remaining} = countColumns(durationMs, width, minWidth);
 
   return (
     <Gridlines cols={cols} lineStyle="solid" remaining={remaining}>
@@ -50,8 +50,8 @@ export function MajorGridlines({durationMS, minWidth = 50, width}: Props) {
   );
 }
 
-export function MinorGridlines({durationMS, minWidth = 20, width}: Props) {
-  const {cols, remaining} = countColumns(durationMS, width, minWidth);
+export function MinorGridlines({durationMs, minWidth = 20, width}: Props) {
+  const {cols, remaining} = countColumns(durationMs, width, minWidth);
 
   return <Gridlines cols={cols} lineStyle="dotted" remaining={remaining} />;
 }
