@@ -47,7 +47,6 @@ from sentry.notifications.utils.digest import get_digest_subject
 from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.plugins.base import Notification
-from sentry.rules import EventState
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.types.activity import ActivityType
@@ -82,20 +81,12 @@ class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
     @mock.patch("sentry.notifications.utils.participants.get_release_committers")
     def test_simple(self, mock_get_release_committers, record):
         new_user = self.create_user(email="test@example.com", username="foo")
-        new_team = self.create_team(name="Team Name", organization=self.organization)
-        new_project = self.create_project(organization=self.organization, teams=[new_team])
-        self.create_member(
-            user=new_user, organization=self.organization, role="owner", teams=[new_team]
-        )
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ACTIVE_RELEASE,
-            NotificationSettingOptionValues.ALWAYS,
-            user=new_user,
-            project=new_project,
+        mock_get_release_committers.return_value = [new_user]
+        self.team = self.create_team(
+            name="Team Name", organization=self.organization, members=[new_user]
         )
         event = self.store_event(
-            data={"message": "Hello world", "level": "error"}, project_id=new_project.id
+            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
         GroupOwner.objects.create(
             group_id=event.group.id,
@@ -106,7 +97,7 @@ class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
         )
         newRelease = Release.objects.create(
             organization_id=self.organization.id,
-            project_id=new_project.id,
+            project_id=self.project.id,
             version="2",
             date_added=timezone.now() - timedelta(days=1),
             date_released=None,
@@ -120,28 +111,21 @@ class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
             date_started=timezone.now() - timedelta(minutes=37),
             date_finished=timezone.now() - timedelta(minutes=20),
         )
-        newRelease.add_project(new_project)
+        newRelease.add_project(self.project)
 
         event.data["tags"] = (("sentry:release", newRelease.version),)
-        mock_get_release_committers.return_value = [new_user]
 
         mail.outbox = []
-        with self.tasks(), self.feature("organizations:active-release-monitor-alpha"):
-            self.adapter.notify_active_release(
-                Notification(event=event),
-                EventState(
-                    is_new=True,
-                    is_regression=False,
-                    is_new_group_environment=False,
-                    has_reappeared=False,
-                ),
-            )
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks(), self.feature(
+            "organizations:active-release-monitor-alpha"
+        ):
+            self.adapter.notify(Notification(event=event), ActionTargetType.RELEASE_MEMBERS, None)
 
         assert len(mail.outbox) == 1
         to_committer = mail.outbox[0]
-        assert to_committer.subject == "**ARM** [Sentry] {} - Hello world".format(
-            event.group.qualified_short_id
-        )
+
+        assert to_committer
+        assert to_committer.subject == "**ARM** [Sentry] BAR-1 - Hello world"
 
         notification_record = [
             r for r in record.call_args_list if r[0][0] == "active_release_notification.sent"
@@ -150,7 +134,7 @@ class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
             mock.call(
                 "active_release_notification.sent",
                 organization_id=self.organization.id,
-                project_id=new_project.id,
+                project_id=self.project.id,
                 group_id=event.group.id,
                 provider="email",
                 release_version="2",
@@ -158,7 +142,7 @@ class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
                 recipient_username="foo",
                 suspect_committer_ids=[f"user:{new_user.id}"],
                 code_owner_ids=[new_user.id],
-                team_ids=[new_team.id],
+                team_ids=[self.team.id],
             )
         ]
 

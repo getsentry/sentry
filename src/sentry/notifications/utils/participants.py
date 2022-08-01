@@ -296,10 +296,9 @@ def get_send_to(
     target_type: ActionTargetType,
     target_identifier: int | None = None,
     event: Event | None = None,
-    notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
 ) -> Mapping[ExternalProviders, set[Team | User]]:
     recipients = determine_eligible_recipients(project, target_type, target_identifier, event)
-    return get_recipients_by_provider(project, recipients, notification_type)
+    return get_recipients_by_provider(project, recipients)
 
 
 def get_user_from_identifier(project: Project, target_identifier: str | int | None) -> User | None:
@@ -374,17 +373,13 @@ def combine_recipients_by_provider(
 
 
 def get_recipients_by_provider(
-    project: Project,
-    recipients: Iterable[Team | User],
-    notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
+    project: Project, recipients: Iterable[Team | User]
 ) -> Mapping[ExternalProviders, set[Team | User]]:
     """Get the lists of recipients that should receive an Issue Alert by ExternalProvider."""
     teams, users = partition_recipients(recipients)
 
     # First evaluate the teams.
-    teams_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
-        project, teams, notification_type
-    )
+    teams_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(project, teams)
 
     # Teams cannot receive emails so omit EMAIL settings.
     teams_by_provider = {
@@ -397,8 +392,6 @@ def get_recipients_by_provider(
     users = set(users).union(get_users_from_team_fall_back(teams, teams_by_provider))
 
     # Repeat for users.
-    users_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
-        project, users, notification_type
-    )
+    users_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(project, users)
 
     return combine_recipients_by_provider(teams_by_provider, users_by_provider)
