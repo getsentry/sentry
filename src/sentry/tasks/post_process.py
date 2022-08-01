@@ -438,7 +438,7 @@ def post_process_group(
                     plugin_slug=plugin.slug, event=event, is_new=is_new, is_regresion=is_regression
                 )
 
-            from sentry.models.sentryfunction import SentryFunction
+            from sentry.models import SentryFunction
 
             for fn in SentryFunction.objects.filter(organization=event.organization).all():
                 if "error" not in fn.events:
@@ -456,11 +456,6 @@ def post_process_group(
                     google_pubsub_name,
                     json.dumps({"data": dict(event.data), "type": "error"}).encode(),
                 )
-                # print(
-                #     "-------------------------------------called--------error--------"
-                #     + fn.external_id
-                #     + "----------------------"
-                # )
 
             from sentry import similarity
 

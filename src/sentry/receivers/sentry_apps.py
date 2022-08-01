@@ -67,7 +67,6 @@ def send_comment_deleted_webhook(project, user, group, data, **kwargs):
 
 
 def send_comment_webhooks(organization, issue, user, event, data=None):
-    # print("send_comment_webhooks")
     data = data or {}
 
     for install in installations_to_notify(organization, event):
@@ -79,7 +78,7 @@ def send_comment_webhooks(organization, issue, user, event, data=None):
             data=data,
         )
 
-    from sentry.models.sentryfunction import SentryFunction
+    from sentry.models import SentryFunction
 
     data["user"] = serialize(User.objects.get(id=user.id), user, UserSerializer())
     data["issue"] = serialize(Group.objects.get(id=issue.id))
@@ -102,9 +101,6 @@ def send_comment_webhooks(organization, issue, user, event, data=None):
                 }
             ).encode(),
         )
-        # print(
-        #     f"--------------------------------called fn {fn.external_id} for comment: {issue.id}-------------------------"
-        # )
 
 
 def send_workflow_webhooks(
@@ -114,7 +110,6 @@ def send_workflow_webhooks(
     event: str,
     data: Mapping[str, Any] | None = None,
 ) -> None:
-    # print("send_workflow_webhooks")
     data = data or {}
 
     for install in installations_to_notify(organization, event):
@@ -126,7 +121,7 @@ def send_workflow_webhooks(
             data=data,
         )
 
-    from sentry.models.sentryfunction import SentryFunction
+    from sentry.models import SentryFunction
 
     data["user"] = serialize(User.objects.get(id=user.id), user, UserSerializer())
     data["issue"] = serialize(Group.objects.get(id=issue.id))
@@ -149,9 +144,6 @@ def send_workflow_webhooks(
                 }
             ).encode(),
         )
-        # print(
-        #     f"----------------------------------called fn {fn.external_id} for issue: {issue.id}----------------------------------"
-        # )
 
 
 def installations_to_notify(organization, event):

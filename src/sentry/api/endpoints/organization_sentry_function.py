@@ -40,7 +40,6 @@ class OrganizationSentryFunctionEndpoint(OrganizationEndpoint):
         data["external_id"] = data["slug"] + "-" + uuid4().hex
         create_function(data["code"], data["external_id"], data.get("overview", None))
         function = SentryFunction.objects.create(**data)
-        # print(data)
         return Response(serialize(function), status=201)
 
     # def get(self, request, organization):
