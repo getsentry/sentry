@@ -25,7 +25,7 @@ def mock_expected_response(
     finished_at: datetime.datetime,
     **kwargs: typing.Dict[str, typing.Any],
 ) -> typing.Dict[str, typing.Any]:
-    urls = kwargs.pop("urls", [""])
+    urls = kwargs.pop("urls", [""])  # TODO: Update when url consumer is merged
     return {
         "replay_id": replay_id,
         "title": kwargs.pop("title", "Title"),
