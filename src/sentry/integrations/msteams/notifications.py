@@ -76,7 +76,10 @@ def send_notification_as_msteams(
                     conversation_id = get_user_conversation_id(integration, channel)
 
                     client = MsTeamsClient(integration)
-                    client.send_card(conversation_id, card)
+                    try:
+                        client.send_card(conversation_id, card)
+                    except Exception as e:
+                        logger.error(f"Exception occured while trying to send the notification {e}")
 
     metrics.incr(
         f"{notification.metrics_key}.notifications.sent",
