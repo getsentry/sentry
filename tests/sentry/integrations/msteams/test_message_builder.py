@@ -32,10 +32,17 @@ from sentry.integrations.msteams.card_builder.installation import (
     build_welcome_card,
 )
 from sentry.integrations.msteams.card_builder.issues import MSTeamsIssueMessageBuilder
+from sentry.integrations.msteams.card_builder.notifications import (
+    MSTeamsNotificationsMessageBuilder,
+)
 from sentry.models import Integration, Organization, OrganizationIntegration, Rule
 from sentry.models.group import GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.notifications import (
+    DummyNotification,
+    DummyNotificationWithMoreFields,
+)
 from sentry.utils import json
 
 
@@ -360,3 +367,62 @@ class MSTeamsMessageBuilderTest(TestCase):
         assign_action = action_set["actions"][2]
         assert ActionType.SUBMIT == assign_action["type"]
         assert "Unassign" == assign_action["title"]
+
+
+class MSTeamsNotificationMessageBuilderTest(TestCase):
+    def setUp(self):
+        owner = self.create_user()
+        self.org = self.create_organization(owner=owner)
+
+        self.notification = DummyNotificationWithMoreFields(self.org)
+        self.project1 = self.create_project(organization=self.org)
+        self.group1 = self.create_group(project=self.project1)
+
+        self.notification.group = self.group1
+        self.context = {"some_field": "some_value"}
+        self.recipient = owner
+
+    def test_simple(self):
+        notification_card = MSTeamsNotificationsMessageBuilder(
+            self.notification,
+            self.context,
+            self.recipient,
+        ).build_notification_card()
+
+        body = notification_card["body"]
+        assert 4 == len(body)
+
+        title = body[0]
+        assert "Notification Title with some_value" == title["text"]
+
+        group_title = body[1]
+        assert "[My Title]" in group_title["text"]
+        assert TextSize.LARGE == group_title["size"]
+        assert TextWeight.BOLDER == group_title["weight"]
+
+        description = body[2]
+        assert "Message Description" in description["text"]
+        assert TextSize.MEDIUM == description["size"]
+
+        footer = body[3]
+        assert 2 == len(footer)
+
+        logo = footer["columns"][0]["items"][0]
+        assert "Image" == logo["type"]
+        assert "20px" == logo["height"]
+
+        footer_text = footer["columns"][1]["items"][0]
+        assert "Notification Footer" in footer_text["text"]
+        assert TextSize.SMALL == footer_text["size"]
+
+    def test_without_footer(self):
+        dummy_notification = DummyNotification(self.org)
+        dummy_notification.group = self.group1
+
+        notification_card = MSTeamsNotificationsMessageBuilder(
+            dummy_notification,
+            self.context,
+            self.recipient,
+        ).build_notification_card()
+
+        assert 3 == len(notification_card["body"])

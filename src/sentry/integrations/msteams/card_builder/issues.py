@@ -18,7 +18,6 @@ from sentry.integrations.msteams.card_builder import (
     Block,
     ColumnSetBlock,
     ContainerBlock,
-    ImageBlock,
     TextBlock,
 )
 from sentry.integrations.msteams.card_builder.utils import IssueConstants
@@ -30,13 +29,16 @@ from .block import (
     ActionType,
     TextSize,
     TextWeight,
+    VerticalContentAlignment,
     create_action_block,
     create_action_set_block,
     create_column_block,
     create_column_set_block,
     create_container_block,
+    create_footer_column_block,
+    create_footer_logo_block,
+    create_footer_text_block,
     create_input_choice_set_block,
-    create_logo_block,
     create_text_block,
 )
 
@@ -84,19 +86,6 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
 
         return None
 
-    @staticmethod
-    def create_footer_logo_block() -> ImageBlock:
-        return create_logo_block(height="20px")
-
-    @staticmethod
-    def create_footer_text_block(footer_text: str) -> TextBlock:
-        return create_text_block(
-            footer_text,
-            size=TextSize.SMALL,
-            weight=TextWeight.LIGHTER,
-            wrap=False,
-        )
-
     def get_timestamp(self) -> str:
         ts: datetime = self.group.last_seen
 
@@ -115,21 +104,22 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             size=TextSize.SMALL,
             weight=TextWeight.LIGHTER,
             horizontalAlignment="Center",
+            wrap=False,
         )
 
     def build_group_footer(self) -> ColumnSetBlock:
         project = Project.objects.get_from_cache(id=self.group.project_id)
 
-        # TODO: implement with event as well
-        image_column = self.create_footer_logo_block()
+        image_column = create_footer_logo_block()
 
         text = build_footer(self.group, project, self.rules, MSTEAMS_URL_FORMAT)
 
-        text_column = create_column_block(
-            self.create_footer_text_block(text), isSubtle=True, spacing="none"
-        )
+        text_column = create_footer_column_block(create_footer_text_block(text))
 
-        date_column = self.create_date_block()
+        date_column = create_column_block(
+            self.create_date_block(),
+            verticalContentAlignment=VerticalContentAlignment.CENTER,
+        )
 
         return create_column_set_block(
             image_column,
