@@ -8,6 +8,7 @@ from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
 from sentry.models import Team, User
 from sentry.notifications.notifications.activity.base import GroupActivityNotification
 from sentry.notifications.notifications.base import BaseNotification
+from sentry.types.integrations import ExternalProviders
 
 from .block import (
     TextSize,
@@ -29,7 +30,9 @@ class MSTeamsNotificationsMessageBuilder(MSTeamsMessageBuilder):
         self.recipient = recipient
 
     def create_footer_block(self) -> ColumnSetBlock | None:
-        footer_text = self.notification.build_notification_footer(self.recipient)
+        footer_text = self.notification.build_notification_footer(
+            self.recipient, ExternalProviders.MSTEAMS
+        )
 
         if footer_text:
             footer = create_footer_text_block(footer_text)
@@ -43,7 +46,7 @@ class MSTeamsNotificationsMessageBuilder(MSTeamsMessageBuilder):
 
     def create_attachment_title_block(self) -> TextBlock:
         title = self.notification.build_attachment_title(self.recipient)
-        title_link = self.notification.get_title_link(self.recipient)
+        title_link = self.notification.get_title_link(self.recipient, ExternalProviders.MSTEAMS)
 
         return create_text_block(
             MSTEAMS_URL_FORMAT.format(text=title, url=title_link),
@@ -53,7 +56,7 @@ class MSTeamsNotificationsMessageBuilder(MSTeamsMessageBuilder):
 
     def create_title_block(self) -> TextBlock:
         return create_text_block(
-            self.notification.get_notification_title(self.context),
+            self.notification.get_notification_title(ExternalProviders.MSTEAMS, self.context),
             size=TextSize.LARGE,
         )
 

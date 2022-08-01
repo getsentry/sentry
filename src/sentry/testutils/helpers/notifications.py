@@ -46,14 +46,16 @@ class AnotherDummyNotification(DummyNotification):
 
 
 class DummyNotificationWithMoreFields(DummyNotification):
-    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
+    def get_notification_title(
+        self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
+    ) -> str:
         some_value = context["some_field"]
         return f"Notification Title with {some_value}"
 
     def build_notification_footer(self, *args):
         return "Notification Footer"
 
-    def get_message_description(self, recipient: User | Team):
+    def get_message_description(self, recipient: User | Team, provider: ExternalProviders):
         return "Message Description"
 
     def get_title_link(self, *args):
