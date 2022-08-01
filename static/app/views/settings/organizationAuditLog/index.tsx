@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
+import {browserHistory} from 'react-router';
 import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -84,6 +85,10 @@ function OrganizationAuditLog({organization}: Props) {
       ...prevState,
       eventType: value,
     }));
+    browserHistory.push({
+      pathname: location.pathname,
+      search: `?event=${value}`,
+    });
   };
 
   return (
