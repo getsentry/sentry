@@ -52,7 +52,10 @@ import {
   TimePeriod,
 } from 'sentry/views/alerts/rules/metric/types';
 import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
-import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
+import {
+  AlertWizardAlertNames,
+  getMEPAlertsDataset,
+} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
 import {Incident} from '../../../types';
@@ -490,6 +493,12 @@ class MetricChart extends PureComponent<Props, State> {
       moment.utc(timePeriod.end).add(timeWindow, 'minutes')
     );
 
+    const queryExtras = {
+      ...(organization.features.includes('metrics-performance-alerts')
+        ? {dataset: getMEPAlertsDataset(dataset, false)}
+        : {}),
+    };
+
     return isCrashFreeAlert(dataset) ? (
       <SessionsRequest
         api={api}
@@ -526,6 +535,7 @@ class MetricChart extends PureComponent<Props, State> {
         includePrevious={false}
         currentSeriesNames={[aggregate]}
         partial={false}
+        queryExtras={queryExtras}
         referrer="api.alerts.alert-rule-chart"
       >
         {({loading, timeseriesData, comparisonTimeseriesData}) =>
