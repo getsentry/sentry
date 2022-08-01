@@ -92,3 +92,15 @@ export interface ReplayError {
   ['project.name']: string;
   timestamp: string;
 }
+
+/**
+ * Replay custom discover query
+ */
+export type ReplayDurationAndErrors = {
+  count_if_event_type_equals_error: number;
+  'equation[0]': number;
+  id: string;
+  max_timestamp: string;
+  min_timestamp: string;
+  replayId: string;
+};
