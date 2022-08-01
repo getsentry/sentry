@@ -160,6 +160,19 @@ class TestBackfill(TestMigrations):
                     if notification_type == NotificationSettingTypes.ISSUE_ALERTS
                     else NotificationSettingOptionValues.NEVER.value
                 )
+                print(
+                    "check",
+                    notification_type,
+                    item_with_actor,
+                    value,
+                    NotificationSetting.objects.filter(
+                        scope_type=scope_type.value,
+                        target_id=item_with_actor.actor_id,
+                        provider=ExternalProviders.SLACK.value,
+                        type=notification_type.value,
+                        scope_identifier=item_with_actor.id,
+                    ).first(),
+                )
                 assert NotificationSetting.objects.filter(
                     scope_type=scope_type.value,
                     target_id=item_with_actor.actor_id,

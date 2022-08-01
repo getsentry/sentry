@@ -95,7 +95,7 @@ SETTINGS_TO_BACKFILL = [
 
 
 # backfill all entities for a given actor that's either a team or a user
-def backfill_one(apps, notification_type, item_with_actor):
+def backfill_one(apps, item_with_actor):
     NotificationSetting = apps.get_model("sentry", "NotificationSetting")
     Team = apps.get_model("sentry", "Team")
     # backfill to the scope of the entity
@@ -104,33 +104,34 @@ def backfill_one(apps, notification_type, item_with_actor):
         if isinstance(item_with_actor, Team)
         else NotificationScopeType.USER
     )
-    # find the setting for that user/teams
-    settings = NotificationSetting.objects.filter(
-        scope_type=scope_type.value,
-        target_id=item_with_actor.actor_id,
-        provider=ExternalProviders.SLACK.value,
-        type=notification_type.value,
-        scope_identifier=item_with_actor.id,
-    )
-    setting = settings.first()
-    # if we have a setting that is not the default we can skip
-    if setting and setting.value != NotificationSettingOptionValues.DEFAULT.value:
-        return
-
-    # if we have a row it's set the default which we need to change
-    if setting:
-        setting.value = NotificationSettingOptionValues.NEVER.value
-        setting.save()
-    else:
-        # otherwise create the backfill
-        NotificationSetting.objects.create(
+    for notification_type in SETTINGS_TO_BACKFILL:
+        # find the setting for that user/teams
+        settings = NotificationSetting.objects.filter(
             scope_type=scope_type.value,
             target_id=item_with_actor.actor_id,
             provider=ExternalProviders.SLACK.value,
             type=notification_type.value,
             scope_identifier=item_with_actor.id,
-            value=NotificationSettingOptionValues.NEVER.value,
         )
+        setting = settings.first()
+        # if we have a setting that is not the default we can skip
+        if setting and setting.value != NotificationSettingOptionValues.DEFAULT.value:
+            continue
+
+        # if we have a row it's set the default which we need to change
+        if setting:
+            setting.value = NotificationSettingOptionValues.NEVER.value
+            setting.save()
+        else:
+            # otherwise create the backfill
+            NotificationSetting.objects.create(
+                scope_type=scope_type.value,
+                target_id=item_with_actor.actor_id,
+                provider=ExternalProviders.SLACK.value,
+                type=notification_type.value,
+                scope_identifier=item_with_actor.id,
+                value=NotificationSettingOptionValues.NEVER.value,
+            )
 
 
 # backfill all users who joined after START_DATE_DEFAULT_SLACK_NOTIFICAITON
@@ -147,8 +148,7 @@ def backfill_users(apps):
             if user.date_joined >= START_DATE_DEFAULT_SLACK_NOTIFICAITON:
                 continue
 
-            for notification_type in SETTINGS_TO_BACKFILL:
-                backfill_one(apps, notification_type, user)
+            backfill_one(apps, user)
 
 
 # backfill all teams regardless of start date
@@ -161,8 +161,7 @@ def backfill_teams(apps):
             continue
 
         team = Team.objects.get(actor_id=external_actor.actor_id)
-        for notification_type in SETTINGS_TO_BACKFILL:
-            backfill_one(apps, notification_type, team)
+        backfill_one(apps, team)
 
 
 def backfill_slack_settings(apps, schema_editor):
