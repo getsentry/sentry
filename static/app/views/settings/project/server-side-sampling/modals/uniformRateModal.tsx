@@ -246,7 +246,7 @@ function UniformRateModal({
     });
   }
 
-  if (activeStep === undefined) {
+  if (activeStep === undefined || loading) {
     return (
       <Fragment>
         <Header closeButton>
