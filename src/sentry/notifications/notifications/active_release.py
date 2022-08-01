@@ -37,7 +37,7 @@ class ActiveReleaseIssueNotification(AlertRuleNotification):
     notification_setting_type = NotificationSettingTypes.ACTIVE_RELEASE
     template_path = "sentry/emails/release_alert"
 
-    def __init__(
+    def __init__(  # type: ignore
         self,
         notification: Notification,
         event_state,
