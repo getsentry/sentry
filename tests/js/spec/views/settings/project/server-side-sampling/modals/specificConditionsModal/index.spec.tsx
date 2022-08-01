@@ -399,7 +399,9 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
     userEvent.click(screen.getByLabelText('Search or add a release'));
 
     // Release condition has no options
-    expect(screen.queryByTestId('multivalue')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByTestId('multivalue')).not.toBeInTheDocument();
+    });
 
     userEvent.click(screen.getAllByLabelText('Delete Condition')[0]);
 
