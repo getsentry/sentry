@@ -200,7 +200,7 @@ class BaseGroupSidebar extends Component<Props, State> {
         />
 
         <Feature organization={organization} features={['active-release-monitor-alpha']}>
-          <SuspectReleases organization={organization} project={project} group={group} />
+          <SuspectReleases group={group} />
         </Feature>
 
         {event && (
