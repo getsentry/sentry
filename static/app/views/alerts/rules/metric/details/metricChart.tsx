@@ -493,11 +493,9 @@ class MetricChart extends PureComponent<Props, State> {
       moment.utc(timePeriod.end).add(timeWindow, 'minutes')
     );
 
-    const queryExtras = {
-      ...(organization.features.includes('metrics-performance-alerts')
-        ? {dataset: getMEPAlertsDataset(dataset, false)}
-        : {}),
-    };
+    const queryExtras = organization.features.includes('metrics-performance-alerts')
+      ? {dataset: getMEPAlertsDataset(dataset, false)}
+      : {};
 
     return isCrashFreeAlert(dataset) ? (
       <SessionsRequest
