@@ -34,7 +34,22 @@ NOTIFICATION_SETTINGS_SLACK = {
     NotificationSettingTypes.QUOTA_WARNINGS: NotificationSettingOptionValues.ALWAYS,
 }
 
+NOTIFICATION_SETTINGS_MSTEAMS = {
+    NotificationSettingTypes.DEPLOY: NotificationSettingOptionValues.NEVER,
+    NotificationSettingTypes.ISSUE_ALERTS: NotificationSettingOptionValues.NEVER,
+    NotificationSettingTypes.ACTIVE_RELEASE: NotificationSettingOptionValues.NEVER,
+    NotificationSettingTypes.WORKFLOW: NotificationSettingOptionValues.NEVER,
+    NotificationSettingTypes.APPROVAL: NotificationSettingOptionValues.NEVER,
+    NotificationSettingTypes.QUOTA: NotificationSettingOptionValues.NEVER,
+    NotificationSettingTypes.QUOTA_ERRORS: NotificationSettingOptionValues.NEVER,
+    NotificationSettingTypes.QUOTA_TRANSACTIONS: NotificationSettingOptionValues.NEVER,
+    NotificationSettingTypes.QUOTA_ATTACHMENTS: NotificationSettingOptionValues.NEVER,
+    NotificationSettingTypes.QUOTA_WARNINGS: NotificationSettingOptionValues.NEVER,
+}
+
+
 NOTIFICATION_SETTING_DEFAULTS = {
     ExternalProviders.EMAIL: NOTIFICATION_SETTINGS_ALL_SOMETIMES,
     ExternalProviders.SLACK: NOTIFICATION_SETTINGS_SLACK,
+    ExternalProviders.MSTEAMS: NOTIFICATION_SETTINGS_MSTEAMS,
 }

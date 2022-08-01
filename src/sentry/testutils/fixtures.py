@@ -391,6 +391,11 @@ class Fixtures:
 
         return integration
 
+    def create_integration(
+        self, organization: Organization, external_id: str, **kwargs: Any
+    ) -> Integration:
+        return Factories.create_integration(organization, external_id, **kwargs)
+
     def create_identity(self, *args, **kwargs):
         return Factories.create_identity(*args, **kwargs)
 

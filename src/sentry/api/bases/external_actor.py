@@ -22,6 +22,7 @@ AVAILABLE_PROVIDERS = {
     ExternalProviders.GITHUB,
     ExternalProviders.GITLAB,
     ExternalProviders.SLACK,
+    ExternalProviders.MSTEAMS,
     ExternalProviders.CUSTOM,
 }
 
