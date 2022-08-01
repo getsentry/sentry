@@ -26,7 +26,7 @@ class SlackNotificationsMessageBuilder(SlackMessageBuilder):
         callback_id_raw = self.notification.get_callback_data()
         return self._build(
             title=self.notification.build_attachment_title(self.recipient),
-            title_link=self.notification.get_title_link(self.recipient),
+            title_link=self.notification.get_title_link(self.recipient, ExternalProviders.SLACK),
             text=self.notification.get_message_description(self.recipient, ExternalProviders.SLACK),
             footer=self.notification.build_notification_footer(
                 self.recipient, ExternalProviders.SLACK

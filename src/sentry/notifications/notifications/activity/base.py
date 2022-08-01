@@ -182,10 +182,10 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
 
         return mark_safe(description.format(**context))
 
-    def get_title_link(self, recipient: Team | User) -> str | None:
-        from sentry.integrations.slack.message_builder.issues import get_title_link
+    def get_title_link(self, recipient: Team | User, provider: ExternalProviders) -> str | None:
+        from sentry.integrations.message_builder import get_title_link
 
-        return get_title_link(self.group, None, False, True, self)
+        return get_title_link(self.group, None, False, True, self, provider)
 
     def build_attachment_title(self, recipient: Team | User) -> str:
         from sentry.integrations.message_builder import build_attachment_title
