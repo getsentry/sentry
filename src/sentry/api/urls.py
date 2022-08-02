@@ -280,7 +280,6 @@ from .endpoints.organization_events_trends import (
 from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
 from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from .endpoints.organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
-from .endpoints.organization_has_mobile_app_events import OrganizationHasMobileAppEvents
 from .endpoints.organization_index import OrganizationIndexEndpoint
 from .endpoints.organization_integration_repos import OrganizationIntegrationReposEndpoint
 from .endpoints.organization_integration_serverless_functions import (
@@ -1105,11 +1104,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/sdk-updates/$",
                     OrganizationSdkUpdatesEndpoint.as_view(),
                     name="sentry-api-0-organization-sdk-updates",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/has-mobile-app-events/$",
-                    OrganizationHasMobileAppEvents.as_view(),
-                    name="sentry-api-0-organization-has-mobile-events",
                 ),
                 # TODO add an alias for /organizations/:slug/events/ and deprecate eventsv2
                 url(
