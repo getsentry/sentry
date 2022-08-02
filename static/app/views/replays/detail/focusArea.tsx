@@ -9,13 +9,12 @@ import type {RawCrumb} from 'sentry/types/breadcrumbs';
 import {isBreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
 import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useOrganization from 'sentry/utils/useOrganization';
-
-import Console from './console';
-import DomMutations from './domMutations';
-import IssueList from './issueList';
-import MemoryChart from './memoryChart';
-import NetworkList from './network';
-import Trace from './trace';
+import Console from 'sentry/views/replays/detail/console';
+import DomMutations from 'sentry/views/replays/detail/domMutations';
+import IssueList from 'sentry/views/replays/detail/issueList';
+import MemoryChart from 'sentry/views/replays/detail/memoryChart';
+import NetworkList from 'sentry/views/replays/detail/network';
+import Trace from 'sentry/views/replays/detail/trace';
 
 type Props = {};
 
@@ -41,7 +40,8 @@ function FocusArea({}: Props) {
     return <Placeholder height="150px" />;
   }
 
-  const event = replay.getEvent();
+  const replayRecord = replay.getReplay();
+  const startTimestampMs = replayRecord.started_at.getTime();
 
   const getNetworkSpans = () => {
     return replay.getRawSpans().filter(replay.isNotMemorySpan);
@@ -56,11 +56,11 @@ function FocusArea({}: Props) {
       return (
         <Console
           breadcrumbs={consoleMessages ?? []}
-          startTimestamp={event?.startTimestamp}
+          startTimestampMs={replayRecord.started_at.getTime()}
         />
       );
     case 'network':
-      return <NetworkList event={event} networkSpans={getNetworkSpans()} />;
+      return <NetworkList replayRecord={replayRecord} networkSpans={getNetworkSpans()} />;
     case 'trace':
       const features = ['organizations:performance-view'];
 
@@ -79,11 +79,16 @@ function FocusArea({}: Props) {
           features={features}
           renderDisabled={renderDisabled}
         >
-          <Trace organization={organization} event={event} />
+          <Trace organization={organization} replayRecord={replayRecord} />
         </Feature>
       );
     case 'issues':
-      return <IssueList replayId={event.id} projectId={event.projectID} />;
+      return (
+        <IssueList
+          replayId={replayRecord.replay_id}
+          projectId={replayRecord.project_id}
+        />
+      );
     case 'dom':
       return <DomMutations replay={replay} />;
     case 'memory':
@@ -94,7 +99,7 @@ function FocusArea({}: Props) {
           memorySpans={memorySpans}
           setCurrentTime={setCurrentTime}
           setCurrentHoverTime={setCurrentHoverTime}
-          startTimestamp={event?.startTimestamp}
+          startTimestampMs={startTimestampMs}
         />
       );
     default:

@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import dataclasses
-from typing import MutableMapping, Optional, Sequence, Tuple
+from typing import Any, MutableMapping, Optional, Sequence, Tuple
 
 from sentry import options
 from sentry.ratelimits.sliding_windows import (
@@ -78,19 +80,36 @@ def _construct_quota_requests(
     return org_ids, requests
 
 
-@dataclasses.dataclass
-class RateLimitState:
-    use_case_id: UseCaseKey
-    requests: Sequence[RequestedQuota]
-    grants: Sequence[GrantedQuota]
-    timestamp: Timestamp
-
-
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class DroppedString:
     key_result: KeyResult
     fetch_type: FetchType
     fetch_type_ext: FetchTypeExt
+
+
+@dataclasses.dataclass(frozen=True)
+class RateLimitState:
+    _writes_limiter: WritesLimiter
+    _use_case_id: UseCaseKey
+    _requests: Sequence[RequestedQuota]
+    _grants: Sequence[GrantedQuota]
+    _timestamp: Timestamp
+
+    accepted_keys: KeyCollection
+    dropped_strings: Sequence[DroppedString]
+
+    def __enter__(self) -> RateLimitState:
+        return self
+
+    @metrics.wraps("sentry_metrics.indexer.writes_limiter.exit")
+    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
+        """
+        Consumes the rate limits returned by `check_write_limits`.
+        """
+        if exc_type is not None:
+            self._writes_limiter._get_rate_limiter(self._use_case_id).use_quotas(
+                self._requests, self._grants, self._timestamp
+            )
 
 
 class WritesLimiter:
@@ -105,21 +124,18 @@ class WritesLimiter:
         return self.rate_limiters[use_case_id]
 
     @metrics.wraps("sentry_metrics.indexer.check_write_limits")
-    def check_write_limits(
-        self, use_case_id: UseCaseKey, keys: KeyCollection
-    ) -> Tuple[RateLimitState, KeyCollection, Sequence[DroppedString]]:
+    def check_write_limits(self, use_case_id: UseCaseKey, keys: KeyCollection) -> RateLimitState:
         """
         Takes a KeyCollection and applies DB write limits as configured via sentry.options.
 
-        Returns a tuple of:
+        Returns a context manager that, upon entering, returns a tuple of:
 
-        1. `RateLimitState` that needs to be passed to `apply_write_limits` in order
-          to commit quotas upon successful DB write.
-
-        2. A key collection containing all unmapped keys that passed through the
+        1. A key collection containing all unmapped keys that passed through the
           rate limiter.
 
-        3. All unmapped keys that did not pass through the rate limiter.
+        2. All unmapped keys that did not pass through the rate limiter.
+
+        Upon (successful) exit, rate limits are consumed.
         """
 
         org_ids, requests = _construct_quota_requests(use_case_id, keys)
@@ -152,18 +168,15 @@ class WritesLimiter:
             granted_key_collection[org_id] = allowed_strings
 
         state = RateLimitState(
-            use_case_id=use_case_id, requests=requests, grants=grants, timestamp=timestamp
+            _writes_limiter=self,
+            _use_case_id=use_case_id,
+            _requests=requests,
+            _grants=grants,
+            _timestamp=timestamp,
+            accepted_keys=KeyCollection(granted_key_collection),
+            dropped_strings=dropped_strings,
         )
-        return state, KeyCollection(granted_key_collection), dropped_strings
-
-    @metrics.wraps("sentry_metrics.indexer.apply_write_limits")
-    def apply_write_limits(self, state: RateLimitState) -> None:
-        """
-        Consumes the rate limits returned by `check_write_limits`.
-        """
-        self._get_rate_limiter(state.use_case_id).use_quotas(
-            state.requests, state.grants, state.timestamp
-        )
+        return state
 
 
 writes_limiter = WritesLimiter()

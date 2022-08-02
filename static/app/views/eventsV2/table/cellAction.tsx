@@ -10,7 +10,6 @@ import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {
-  getAggregateAlias,
   isEquationAlias,
   isRelativeSpanOperationBreakdownField,
 } from 'sentry/utils/discover/fields';
@@ -138,9 +137,7 @@ function makeCellActions({
     return null;
   }
 
-  const fieldAlias = getAggregateAlias(column.name);
-
-  let value = dataRow[fieldAlias];
+  let value = dataRow[column.name];
 
   // error.handled is a strange field where null = true.
   if (

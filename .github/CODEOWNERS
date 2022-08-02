@@ -3,6 +3,7 @@
 
 # Migrations
 /src/sentry/migrations/  @getsentry/owners-migrations
+/src/sentry/*/migrations/  @getsentry/owners-migrations
 
 # API Owners for unowned endpoints / serializers
 /src/**/endpoints/              @getsentry/owners-api
@@ -202,6 +203,8 @@ yarn.lock           @getsentry/owners-js-deps
 /tests/js/spec/components/replays/ @getsentry/emerging-technology
 /tests/js/spec/utils/replays/      @getsentry/emerging-technology
 /tests/js/spec/views/replays/      @getsentry/emerging-technology
+/src/sentry/replays/               @getsentry/emerging-technology
+/tests/sentry/replays/             @getsentry/emerging-technology
 ###### End of Replays #######
 
 ### End of Emerging Tech ###

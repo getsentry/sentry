@@ -196,7 +196,7 @@ FUNCTION_ALIASES = {
 METRICS_MAP = {
     "measurements.app_start_cold": "d:transactions/measurements.app_start_cold@millisecond",
     "measurements.app_start_warm": "d:transactions/measurements.app_start_warm@millisecond",
-    "measurements.cls": "d:transactions/measurements.cls@millisecond",
+    "measurements.cls": "d:transactions/measurements.cls@none",
     "measurements.fcp": "d:transactions/measurements.fcp@millisecond",
     "measurements.fid": "d:transactions/measurements.fid@millisecond",
     "measurements.fp": "d:transactions/measurements.fp@millisecond",
@@ -209,10 +209,10 @@ METRICS_MAP = {
     "measurements.stall_stall_total_time": "d:transactions/measurements.stall_total_time@millisecond",
     "measurements.ttfb": "d:transactions/measurements.ttfb@millisecond",
     "measurements.ttfb.requesttime": "d:transactions/measurements.ttfb.requesttime@millisecond",
-    "spans.browser": "d:transactions/breakdowns.span_ops.browser@millisecond",
-    "spans.db": "d:transactions/breakdowns.span_ops.db@millisecond",
-    "spans.http": "d:transactions/breakdowns.span_ops.http@millisecond",
-    "spans.resource": "d:transactions/breakdowns.span_ops.resource@millisecond",
+    "spans.browser": "d:transactions/breakdowns.span_ops.ops.browser@millisecond",
+    "spans.db": "d:transactions/breakdowns.span_ops.ops.db@millisecond",
+    "spans.http": "d:transactions/breakdowns.span_ops.ops.http@millisecond",
+    "spans.resource": "d:transactions/breakdowns.span_ops.ops.resource@millisecond",
     "transaction.duration": "d:transactions/duration@millisecond",
     "user": "s:transactions/user@none",
 }

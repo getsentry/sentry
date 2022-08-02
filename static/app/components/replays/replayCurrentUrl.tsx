@@ -11,10 +11,10 @@ function ReplayCurrentUrl() {
     return <UrlCopyInput disabled>{''}</UrlCopyInput>;
   }
 
-  const event = replay.getEvent();
+  const replayRecord = replay.getReplay();
   const crumbs = replay.getRawCrumbs();
 
-  return <UrlCopyInput>{getCurrentUrl(event, crumbs, currentTime)}</UrlCopyInput>;
+  return <UrlCopyInput>{getCurrentUrl(replayRecord, crumbs, currentTime)}</UrlCopyInput>;
 }
 
 const UrlCopyInput = styled(TextCopyInput)`

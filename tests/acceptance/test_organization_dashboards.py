@@ -287,7 +287,8 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             button = self.browser.element(EDIT_WIDGET_BUTTON)
             button.click()
             title_input = self.browser.element(WIDGET_TITLE_FIELD)
-            title_input.send_keys(Keys.END, "UPDATED!!")
+            title_input.clear()
+            title_input.send_keys(Keys.END, "Existing WidgetUPDATED!!")
             button = self.browser.element('[data-test-id="add-widget"]')
             button.click()
 
@@ -304,7 +305,8 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             button = self.browser.element(f".react-grid-item:nth-of-type(2) {EDIT_WIDGET_BUTTON}")
             button.click()
             title_input = self.browser.element(WIDGET_TITLE_FIELD)
-            title_input.send_keys(Keys.END, "UPDATED!!")
+            title_input.clear()
+            title_input.send_keys(Keys.END, "New WidgetUPDATED!!")
             button = self.browser.element('[data-test-id="add-widget"]')
             button.click()
 

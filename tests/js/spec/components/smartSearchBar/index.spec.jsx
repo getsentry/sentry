@@ -5,6 +5,7 @@ import {SmartSearchBar} from 'sentry/components/smartSearchBar';
 import {ShortcutType} from 'sentry/components/smartSearchBar/types';
 import {shortcuts} from 'sentry/components/smartSearchBar/utils';
 import TagStore from 'sentry/stores/tagStore';
+import {FieldKey} from 'sentry/utils/fields';
 
 describe('SmartSearchBar', function () {
   let location, options, organization, supportedTags;
@@ -23,7 +24,7 @@ describe('SmartSearchBar', function () {
     TagStore.reset();
     TagStore.loadTagsSuccess(TestStubs.Tags());
     tagValuesMock.mockClear();
-    supportedTags = TagStore.getAllTags();
+    supportedTags = TagStore.getStateTags();
     supportedTags.firstRelease = {
       key: 'firstRelease',
       name: 'firstRelease',
@@ -981,6 +982,103 @@ describe('SmartSearchBar', function () {
       expect(cursorSearchTerm.searchTerm).toEqual('123');
       expect(cursorSearchTerm.start).toBe(11);
       expect(cursorSearchTerm.end).toBe(14);
+    });
+  });
+
+  describe('getTagKeys()', function () {
+    it('filters both keys and descriptions', async function () {
+      jest.useRealTimers();
+
+      const props = {
+        query: 'event',
+        organization,
+        location,
+        supportedTags: {
+          [FieldKey.DEVICE_CHARGING]: {
+            key: FieldKey.DEVICE_CHARGING,
+          },
+          [FieldKey.EVENT_TYPE]: {
+            key: FieldKey.EVENT_TYPE,
+          },
+          [FieldKey.DEVICE_ARCH]: {
+            key: FieldKey.DEVICE_ARCH,
+          },
+        },
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+
+      mockCursorPosition(searchBar, 3);
+      searchBar.updateAutoCompleteItems();
+
+      await tick();
+
+      expect(searchBar.state.flatSearchItems).toHaveLength(2);
+      expect(searchBar.state.flatSearchItems[0].title).toBe(FieldKey.EVENT_TYPE);
+      expect(searchBar.state.flatSearchItems[1].title).toBe(FieldKey.DEVICE_CHARGING);
+    });
+
+    it('filters only keys', async function () {
+      jest.useRealTimers();
+
+      const props = {
+        query: 'device',
+        organization,
+        location,
+        supportedTags: {
+          [FieldKey.DEVICE_CHARGING]: {
+            key: FieldKey.DEVICE_CHARGING,
+          },
+          [FieldKey.EVENT_TYPE]: {
+            key: FieldKey.EVENT_TYPE,
+          },
+          [FieldKey.DEVICE_ARCH]: {
+            key: FieldKey.DEVICE_ARCH,
+          },
+        },
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+
+      mockCursorPosition(searchBar, 2);
+      searchBar.updateAutoCompleteItems();
+
+      await tick();
+
+      expect(searchBar.state.flatSearchItems).toHaveLength(2);
+      expect(searchBar.state.flatSearchItems[0].title).toBe(FieldKey.DEVICE_ARCH);
+      expect(searchBar.state.flatSearchItems[1].title).toBe(FieldKey.DEVICE_CHARGING);
+    });
+
+    it('filters only descriptions', async function () {
+      jest.useRealTimers();
+
+      const props = {
+        query: 'time',
+        organization,
+        location,
+        supportedTags: {
+          [FieldKey.DEVICE_CHARGING]: {
+            key: FieldKey.DEVICE_CHARGING,
+          },
+          [FieldKey.EVENT_TYPE]: {
+            key: FieldKey.EVENT_TYPE,
+          },
+          [FieldKey.DEVICE_ARCH]: {
+            key: FieldKey.DEVICE_ARCH,
+          },
+        },
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+
+      mockCursorPosition(searchBar, 4);
+      searchBar.updateAutoCompleteItems();
+
+      await tick();
+
+      expect(searchBar.state.flatSearchItems).toHaveLength(1);
+      expect(searchBar.state.flatSearchItems[0].title).toBe(FieldKey.DEVICE_CHARGING);
     });
   });
 
