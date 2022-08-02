@@ -1945,7 +1945,8 @@ class MetricsQueryBuilder(QueryBuilder):
         values_set = set(value if isinstance(value, (list, tuple)) else [value])
         # sorted for consistency
         values = sorted(
-            self.config.resolve_value(f"{value}") if value else 0 for value in values_set
+            self.config.resolve_value(f"{value}") if self.config.resolve_value(f"{value}") else 0
+            for value in values_set
         )
         environment = self.column("environment")
         if len(values) == 1:

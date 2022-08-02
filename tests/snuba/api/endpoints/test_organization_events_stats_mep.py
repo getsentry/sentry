@@ -502,3 +502,30 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             [{"count": 123}],
             [{"count": 0}],
         ]
+
+    def test_multiple_environments_filter(self):
+        self.create_environment(self.project, name="prod")
+        self.create_environment(self.project, name="dev")
+        self.store_transaction_metric(
+            123,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.day_ago + timedelta(minutes=30),
+        )
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "yAxis": [
+                    "sum(transaction.duration)",
+                ],
+                "environment": ["prod", "dev"],
+                "dataset": "metricsEnhanced",
+            },
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert [attrs for time, attrs in data] == [
+            [{"count": 0}],
+            [{"count": 0}],
+        ]
