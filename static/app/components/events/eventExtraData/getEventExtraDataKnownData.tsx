@@ -13,7 +13,6 @@ export function getEventExtraDataKnownData(
 ): KeyValueListData {
   const knownData: KeyValueListData = [];
 
-  const dataKeys = Object.keys(data);
   for (const key of Object.keys(data)) {
     const {subject, value} = getEventExtraDataKnownDataDetails(
       data,
