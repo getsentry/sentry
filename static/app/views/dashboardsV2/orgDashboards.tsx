@@ -91,11 +91,25 @@ class OrgDashboards extends AsyncComponent<Props, State> {
     const {params, organization, location} = this.props;
 
     if (params.dashboardId || stateKey === 'selectedDashboard') {
+      const queryParamPageFilters = new Set([
+        'project',
+        'environment',
+        'statsPeriod',
+        'start',
+        'end',
+        'utc',
+      ]);
       if (
         organization.features.includes('dashboards-top-level-filter') &&
         stateKey === 'selectedDashboard' &&
+        // Only redirect if there are saved filters and none of the filters
+        // appear in the query params
         hasSavedPageFilters(data) &&
-        isEmpty(location.query)
+        isEmpty(
+          Object.keys(location.query).filter(unsavedQueryParam =>
+            queryParamPageFilters.has(unsavedQueryParam)
+          )
+        )
       ) {
         browserHistory.replace({
           ...location,
