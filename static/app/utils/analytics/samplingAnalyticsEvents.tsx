@@ -27,6 +27,15 @@ export type SamplingEventParameters = {
     conditions: SamplingInnerName[] | string[];
     project_id: string;
   };
+  'sampling.settings.modal.specify.client.rate_cancel': {
+    project_id: string;
+  };
+  'sampling.settings.modal.specify.client.rate_next': {
+    project_id: string;
+  };
+  'sampling.settings.modal.specify.client.rate_read_docs': {
+    project_id: string;
+  };
   'sampling.settings.modal.uniform.rate_cancel': {
     project_id: string;
   };
@@ -109,6 +118,11 @@ export const samplingEventMap: Record<SamplingAnalyticsKey, string> = {
   'sampling.settings.modal.uniform.rate_switch_recommended':
     'Switch to recommended next steps step',
   'sampling.settings.modal.specific.rule.condition_add': 'Add sampling condition',
+  'sampling.settings.modal.specify.client.rate_read_docs':
+    'Read docs at specify client rate step',
+  'sampling.settings.modal.specify.client.rate_cancel':
+    'Cancel at specify client rate step',
+  'sampling.settings.modal.specify.client.rate_next': 'Go to uniform rate step',
   'sampling.settings.rule.specific_create': 'Create specific sampling rule',
   'sampling.settings.rule.specific_delete': 'Delete specific sampling rule',
   'sampling.settings.rule.specific_save': 'Save specific sampling rule', // fired for both create and update

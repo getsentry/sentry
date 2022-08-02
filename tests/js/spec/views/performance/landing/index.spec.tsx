@@ -7,32 +7,32 @@ import {act} from 'sentry-test/reactTestingLibrary';
 import ModalStore from 'sentry/stores/modalStore';
 import TeamStore from 'sentry/stores/teamStore';
 import EventView from 'sentry/utils/discover/eventView';
-import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {PerformanceLanding} from 'sentry/views/performance/landing';
 import {REACT_NATIVE_COLUMN_TITLES} from 'sentry/views/performance/landing/data';
 import * as utils from 'sentry/views/performance/landing/utils';
 import {LandingDisplayField} from 'sentry/views/performance/landing/utils';
 
+import {addMetricsDataMock} from './metricsDataSwitcher.spec';
+
 const WrappedComponent = ({data, withStaticFilters = false}) => {
   const eventView = EventView.fromLocation(data.router.location);
 
   return (
     <OrganizationContext.Provider value={data.organization}>
-      <MEPSettingProvider>
-        <PerformanceLanding
-          organization={data.organization}
-          location={data.router.location}
-          eventView={eventView}
-          projects={data.projects}
-          selection={eventView.getPageFilters()}
-          onboardingProject={undefined}
-          handleSearch={() => {}}
-          handleTrendsClick={() => {}}
-          setError={() => {}}
-          withStaticFilters={withStaticFilters}
-        />
-      </MEPSettingProvider>
+      <PerformanceLanding
+        router={data.router}
+        organization={data.organization}
+        location={data.router.location}
+        eventView={eventView}
+        projects={data.projects}
+        selection={eventView.getPageFilters()}
+        onboardingProject={undefined}
+        handleSearch={() => {}}
+        handleTrendsClick={() => {}}
+        setError={() => {}}
+        withStaticFilters={withStaticFilters}
+      />
     </OrganizationContext.Provider>
   );
 };
@@ -317,7 +317,8 @@ describe('Performance > Landing > Index', function () {
   });
 
   describe('with transaction search feature', function () {
-    it('renders the search bar', function () {
+    it('renders the search bar', async function () {
+      addMetricsDataMock();
       const data = initializeData({
         features: ['performance-transaction-name-only-search'],
       });
@@ -326,6 +327,9 @@ describe('Performance > Landing > Index', function () {
         <WrappedComponent data={data} withStaticFilters />,
         data.routerContext
       );
+
+      await tick();
+      wrapper.update();
 
       expect(wrapper.find('div[data-test-id="transaction-search-bar"]').exists()).toBe(
         true
