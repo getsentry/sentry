@@ -12,6 +12,7 @@ from sentry.integrations.message_builder import (
     build_attachment_title,
     build_footer,
     format_actor_options,
+    get_title_link,
 )
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SLACK_URL_FORMAT, SlackBody
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
@@ -206,28 +207,6 @@ def build_actions(
     return [resolve_button, ignore_button, assign_button], text, color
 
 
-def get_title_link(
-    group: Group,
-    event: Event | None,
-    link_to_event: bool,
-    issue_details: bool,
-    notification: BaseNotification | None,
-) -> str:
-    if event and link_to_event:
-        url = group.get_absolute_url(params={"referrer": "slack"}, event_id=event.event_id)
-
-    elif issue_details and notification:
-        referrer = notification.get_referrer(ExternalProviders.SLACK)
-        url = group.get_absolute_url(params={"referrer": referrer})
-
-    else:
-        url = group.get_absolute_url(params={"referrer": "slack"})
-
-    # Explicitly typing to satisfy mypy.
-    url_str: str = url
-    return url_str
-
-
 def get_timestamp(group: Group, event: Event | None) -> float:
     ts = group.last_seen
     return to_timestamp(max(ts, event.datetime) if event else ts)
@@ -282,7 +261,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         color = get_color(event_for_tags, self.notification)
         fields = build_tag_fields(event_for_tags, self.tags)
         footer = (
-            self.notification.build_notification_footer(self.recipient)
+            self.notification.build_notification_footer(self.recipient, ExternalProviders.SLACK)
             if self.notification and self.recipient
             else build_footer(self.group, project, self.rules, SLACK_URL_FORMAT)
         )
@@ -303,7 +282,12 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
             text=text,
             title=build_attachment_title(obj),
             title_link=get_title_link(
-                self.group, self.event, self.link_to_event, self.issue_details, self.notification
+                self.group,
+                self.event,
+                self.link_to_event,
+                self.issue_details,
+                self.notification,
+                ExternalProviders.SLACK,
             ),
             ts=get_timestamp(self.group, self.event) if not self.issue_details else None,
         )
@@ -369,7 +353,7 @@ class SlackReleaseIssuesMessageBuilder(SlackMessageBuilder):
         color = get_color(event_for_tags, self.notification)
         fields = build_tag_fields(event_for_tags, self.tags)
         footer = (
-            self.notification.build_notification_footer(self.recipient)
+            self.notification.build_notification_footer(self.recipient, ExternalProviders.SLACK)
             if self.notification and self.recipient
             else build_footer(self.group, project, self.rules, SLACK_URL_FORMAT)
         )

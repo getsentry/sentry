@@ -16,7 +16,7 @@ import {getInnerNameLabel} from 'sentry/views/settings/project/server-side-sampl
 
 import {getMockData, specificRule, uniformRule} from '../../utils';
 
-describe('Server-side Sampling - Specific Conditions Modal', function () {
+describe('Server-Side Sampling - Specific Conditions Modal', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
   });
@@ -78,7 +78,7 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
     // Dialog Content
     expect(
       screen.getByText(
-        'Using a Trace ID, select all Transactions distributed across multiple projects/services which match your conditions.'
+        'Sample transactions under specific conditions. Multiple conditions are logically expressed as AND and OR for multiple values.'
       )
     ).toBeInTheDocument();
 
@@ -343,5 +343,72 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
         })
       );
     });
+  });
+
+  it('autocomplete force reload options', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/release/values/',
+      method: 'GET',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/environment/values/',
+      method: 'GET',
+      body: [{value: 'staging', count: 97}],
+    });
+
+    const {organization, project} = getMockData({
+      projects: [
+        TestStubs.Project({
+          dynamicSampling: {
+            rules: [uniformRule],
+          },
+        }),
+      ],
+    });
+
+    render(<GlobalModal />);
+
+    openModal(modalProps => (
+      <SpecificConditionsModal
+        {...modalProps}
+        organization={organization}
+        project={project}
+        rules={[uniformRule]}
+      />
+    ));
+
+    // Click on 'Add condition'
+    userEvent.click(screen.getByText('Add Condition'));
+
+    // Add conditions
+    userEvent.click(
+      screen.getByText(getInnerNameLabel(SamplingInnerName.TRACE_ENVIRONMENT))
+    );
+
+    userEvent.click(screen.getByText(getInnerNameLabel(SamplingInnerName.TRACE_RELEASE)));
+
+    // Click on the environment condition option
+    userEvent.paste(screen.getByLabelText('Search or add an environment'), 's');
+
+    // Environment condition has options
+    expect(await screen.findByText('staging')).toBeInTheDocument();
+
+    // Click on the release condition option
+    userEvent.click(screen.getByLabelText('Search or add a release'));
+
+    // Release condition has no options
+    await waitFor(() => {
+      expect(screen.queryByTestId('multivalue')).not.toBeInTheDocument();
+    });
+
+    userEvent.click(screen.getAllByLabelText('Delete Condition')[0]);
+
+    // Click on the release condition option
+    userEvent.click(screen.getByLabelText('Search or add a release'));
+
+    // Release condition has no environment options
+    expect(screen.queryByText('staging')).not.toBeInTheDocument();
   });
 });

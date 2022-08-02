@@ -698,6 +698,84 @@ class DiscoverDatasetConfig(DatasetConfig):
                     private=True,
                 ),
                 SnQLFunction(
+                    "spans_count_histogram",
+                    required_args=[
+                        SnQLStringArg("spans_op", True, True),
+                        # the bucket_size and start_offset should already be adjusted
+                        # using the multiplier before it is passed here
+                        NumberRange("bucket_size", 0, None),
+                        NumberRange("start_offset", 0, None),
+                        NumberRange("multiplier", 1, None),
+                    ],
+                    snql_column=lambda args, alias: Function(
+                        "plus",
+                        [
+                            Function(
+                                "multiply",
+                                [
+                                    Function(
+                                        "floor",
+                                        [
+                                            Function(
+                                                "divide",
+                                                [
+                                                    Function(
+                                                        "minus",
+                                                        [
+                                                            Function(
+                                                                "multiply",
+                                                                [
+                                                                    Function(
+                                                                        "length",
+                                                                        [
+                                                                            Function(
+                                                                                "arrayFilter",
+                                                                                [
+                                                                                    Lambda(
+                                                                                        [
+                                                                                            "x",
+                                                                                        ],
+                                                                                        Function(
+                                                                                            "equals",
+                                                                                            [
+                                                                                                Identifier(
+                                                                                                    "x"
+                                                                                                ),
+                                                                                                args[
+                                                                                                    "spans_op"
+                                                                                                ],
+                                                                                            ],
+                                                                                        ),
+                                                                                    ),
+                                                                                    Column(
+                                                                                        "spans.op"
+                                                                                    ),
+                                                                                ],
+                                                                            )
+                                                                        ],
+                                                                    ),
+                                                                    args["multiplier"],
+                                                                ],
+                                                            ),
+                                                            args["start_offset"],
+                                                        ],
+                                                    ),
+                                                    args["bucket_size"],
+                                                ],
+                                            ),
+                                        ],
+                                    ),
+                                    args["bucket_size"],
+                                ],
+                            ),
+                            args["start_offset"],
+                        ],
+                        alias,
+                    ),
+                    default_result_type="number",
+                    private=False,
+                ),
+                SnQLFunction(
                     "spans_histogram",
                     required_args=[
                         SnQLStringArg("spans_op", True, True),
@@ -799,6 +877,43 @@ class DiscoverDatasetConfig(DatasetConfig):
                     ),
                     default_result_type="number",
                     private=True,
+                ),
+                SnQLFunction(
+                    "fn_span_count",
+                    required_args=[
+                        SnQLStringArg("spans_op", True, True),
+                        SnQLStringArg("fn"),
+                    ],
+                    snql_column=lambda args, alias: Function(
+                        args["fn"],
+                        [
+                            Function(
+                                "length",
+                                [
+                                    Function(
+                                        "arrayFilter",
+                                        [
+                                            Lambda(
+                                                [
+                                                    "x",
+                                                ],
+                                                Function(
+                                                    "equals",
+                                                    [
+                                                        Identifier("x"),
+                                                        args["spans_op"],
+                                                    ],
+                                                ),
+                                            ),
+                                            Column("spans.op"),
+                                        ],
+                                    )
+                                ],
+                                "span_count",
+                            )
+                        ],
+                        alias,
+                    ),
                 ),
                 SnQLFunction(
                     "fn_span_exclusive_time",
