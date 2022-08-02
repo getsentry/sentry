@@ -29,6 +29,11 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     @cached_property
     def producer(self):
+        # TODO: The producer is currently hardcoded to KAFKA_EVENTS. This assumes that the transactions
+        # topic is either the same (or is on the same cluster) as the events topic. Since we are in the
+        # process of splitting the topic this will no longer be true. This should be fixed and we should
+        # drop this requirement when the KafkaEventStream is refactored to be agnostic of dataset specific
+        # details and the correct topic should be passed into here instead of hardcoding events.
         return kafka.producers.get(settings.KAFKA_EVENTS)
 
     def delivery_callback(self, error, message):
