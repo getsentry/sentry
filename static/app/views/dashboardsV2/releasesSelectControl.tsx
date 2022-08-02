@@ -48,7 +48,7 @@ function ReleasesSelectControl({
       menuTitle={t('Filter Releases')}
       className={className}
       onInputChange={debounce(val => {
-        void onSearch(val);
+        onSearch(val);
       }, DEFAULT_DEBOUNCE_DURATION)}
       options={
         releases.length
