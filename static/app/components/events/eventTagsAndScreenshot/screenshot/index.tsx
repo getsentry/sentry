@@ -193,7 +193,6 @@ const StyledPanelFooter = styled(PanelFooter)`
 
 const StyledLoadingIndicator = styled('div')`
   position: absolute;
-  min-height: 300px;
   display: flex;
   align-items: center;
   justify-content: center;
