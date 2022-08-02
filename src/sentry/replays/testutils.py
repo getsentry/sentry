@@ -78,6 +78,7 @@ def mock_replay(
                             "customtag": "is_set",
                             "transaction": kwargs.pop("title", "Title"),
                         },
+                        "error_ids": kwargs.pop("error_ids", []),
                         "trace_ids": kwargs.pop("trace_ids", []),
                         "dist": kwargs.pop("dist", "abc123"),
                         "platform": kwargs.pop("platform", "javascript"),

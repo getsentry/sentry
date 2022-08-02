@@ -1,4 +1,5 @@
 import datetime
+import uuid
 
 from django.urls import reverse
 
@@ -38,8 +39,22 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         replay1_id = "44c586f7-bd12-4c1b-b609-189344a19e92"
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
         seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
-        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
-        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
+        self.store_replays(
+            mock_replay(
+                seq1_timestamp,
+                project.id,
+                replay1_id,
+                error_ids=[uuid.uuid4().hex, replay1_id],  # duplicate error-id
+            )
+        )
+        self.store_replays(
+            mock_replay(
+                seq2_timestamp,
+                project.id,
+                replay1_id,
+                error_ids=[uuid.uuid4().hex, replay1_id],  # duplicate error-id
+            )
+        )
 
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(self.url)
@@ -57,6 +72,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 seq2_timestamp,
                 urls=[],
                 count_segments=2,
+                count_errors=3,
             )
             assert_expected_response(response_data["data"][0], expected_response)
 

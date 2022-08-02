@@ -41,17 +41,6 @@ def add_trace_id_computed_fields(payload: List[Dict[str, Any]]) -> None:
     for item in payload:
         trace_ids.extend(item["trace_ids"])
 
-    # Issue a single query to map the trace_id to the number of errors
-    # associated.
-    trace_error_count_map = _make_count_errors_object(trace_ids)
-
-    # Accumulate error counts and stash on the response payload.
-    for item in payload:
-        count_errors = 0
-        for trace_id in item["trace_ids"]:
-            count_errors += trace_error_count_map.get(trace_id, 0)
-        item["count_errors"] = count_errors
-
     # Issue a single query to map trace_id to the recorded transaction
     # length.
     trace_performance_metrics_map = _make_performance_metrics_object(trace_ids)
@@ -62,12 +51,6 @@ def add_trace_id_computed_fields(payload: List[Dict[str, Any]]) -> None:
         item["longest_transaction"] = max(m) if m else 0
 
     return None
-
-
-def _make_count_errors_object(trace_ids: List[str]) -> Dict[str, int]:
-    """Return a map of trace_id => error count."""
-    # TODO: How do we look up errors?
-    return {}
 
 
 def _make_performance_metrics_object(trace_ids: List[str]) -> Dict[str, int]:

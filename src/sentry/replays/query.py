@@ -174,6 +174,11 @@ def make_select_statement() -> List[Union[Column, Function]]:
         Function("groupArray", parameters=[Column("url")], alias="urls"),
         Function("count", parameters=[Column("url")], alias="count_urls"),
         Function("count", parameters=[Column("segment_id")], alias="count_segments"),
+        Function(
+            "uniqArray",
+            parameters=[Column("error_ids")],
+            alias="count_errors",
+        ),
     ]
 
 
