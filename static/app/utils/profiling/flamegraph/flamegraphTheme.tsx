@@ -1,3 +1,4 @@
+import {lightTheme} from '../../theme';
 import {FlamegraphFrame} from '../flamegraphFrame';
 
 import {makeColorBucketTheme, makeColorMap, makeStackToColor} from './../colors/utils';
@@ -7,7 +8,7 @@ const MONOSPACE_FONT = `ui-monospace, Menlo, Monaco, 'Cascadia Mono', 'Segoe UI 
 'Oxygen Mono', 'Ubuntu Monospace', 'Source Code Pro', 'Fira Mono', 'Droid Sans Mono',
 'Courier New', monospace`;
 
-const FRAME_FONT = `"Source Code Pro", Courier, monospace`;
+const FRAME_FONT = lightTheme.text.familyMono;
 
 // Luma chroma hue settings
 export interface LCH {
@@ -37,6 +38,7 @@ export interface FlamegraphTheme {
     FRAME_FALLBACK_COLOR: [number, number, number, number];
     GRID_FRAME_BACKGROUND_COLOR: string;
     GRID_LINE_COLOR: string;
+    HIGHLIGHTED_LABEL_COLOR: ColorChannels;
     HOVERED_FRAME_BORDER_COLOR: string;
     LABEL_FONT_COLOR: string;
     MINIMAP_POSITION_OVERLAY_BORDER_COLOR: string;
@@ -49,6 +51,7 @@ export interface FlamegraphTheme {
     REQUEST_TCP_TIME: string;
     // Nice color picker for GLSL colors - https://keiwando.com/color-picker/
     REQUEST_WAIT_TIME: string;
+    SAMPLE_TICK_COLOR: ColorChannels;
     SEARCH_RESULT_FRAME_COLOR: string;
     SELECTED_FRAME_BORDER_COLOR: string;
     SPAN_FRAME_BACKGROUND: string;
@@ -77,6 +80,7 @@ export interface FlamegraphTheme {
     FRAME_BORDER_WIDTH: number;
     GRID_LINE_WIDTH: number;
     HOVERED_FRAME_BORDER_WIDTH: number;
+    INTERNAL_SAMPLE_TICK_LINE_WIDTH: number;
     LABEL_FONT_PADDING: number;
     LABEL_FONT_SIZE: number;
     MINIMAP_HEIGHT: number;
@@ -118,7 +122,7 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
   },
   SIZES: {
     BAR_HEIGHT: 20,
-    BAR_FONT_SIZE: 12,
+    BAR_FONT_SIZE: 11,
     BAR_PADDING: 4,
     FLAMEGRAPH_DEPTH_OFFSET: 12,
     SPANS_DEPTH_OFFSET: 4,
@@ -135,6 +139,7 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
     LABEL_FONT_PADDING: 6,
     FRAME_BORDER_WIDTH: 2,
     HOVERED_FRAME_BORDER_WIDTH: 1,
+    INTERNAL_SAMPLE_TICK_LINE_WIDTH: 1,
     TOOLTIP_FONT_SIZE: 12,
     GRID_LINE_WIDTH: 2,
   },
@@ -145,12 +150,14 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
     GRID_FRAME_BACKGROUND_COLOR: 'rgba(255, 255, 255, 0.8)',
     SEARCH_RESULT_FRAME_COLOR: 'vec4(0.99, 0.70, 0.35, 1.0)',
     SELECTED_FRAME_BORDER_COLOR: '#005aff',
+    HIGHLIGHTED_LABEL_COLOR: [255, 255, 0],
     HOVERED_FRAME_BORDER_COLOR: 'rgba(0, 0, 0, 0.8)',
     CURSOR_CROSSHAIR: '#bbbbbb',
     SPAN_FRAME_BORDER: 'rgba(200, 200, 200, 1)',
     SPAN_FRAME_BACKGROUND: 'rgba(231, 231, 231, 0.5)',
     MINIMAP_POSITION_OVERLAY_COLOR: 'rgba(0,0,0,0.1)',
     MINIMAP_POSITION_OVERLAY_BORDER_COLOR: 'rgba(0,0,0, 0.2)',
+    SAMPLE_TICK_COLOR: [255, 0, 0, 0.5],
     REQUEST_WAIT_TIME: `rgba(253,252,224, 1)`,
     REQUEST_DNS_TIME: `rgba(57, 146, 152, 1)`,
     REQUEST_TCP_TIME: `rgba(242, 146,57,1)`,
@@ -176,7 +183,7 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
   },
   SIZES: {
     BAR_HEIGHT: 20,
-    BAR_FONT_SIZE: 12,
+    BAR_FONT_SIZE: 11,
     BAR_PADDING: 4,
     FLAMEGRAPH_DEPTH_OFFSET: 12,
     SPANS_DEPTH_OFFSET: 4,
@@ -192,6 +199,7 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
     LABEL_FONT_SIZE: 10,
     LABEL_FONT_PADDING: 6,
     FRAME_BORDER_WIDTH: 2,
+    INTERNAL_SAMPLE_TICK_LINE_WIDTH: 1,
     HOVERED_FRAME_BORDER_WIDTH: 1,
     TOOLTIP_FONT_SIZE: 12,
     GRID_LINE_WIDTH: 2,
@@ -203,10 +211,12 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
     GRID_FRAME_BACKGROUND_COLOR: 'rgba(0, 0, 0, 0.4)',
     SEARCH_RESULT_FRAME_COLOR: 'vec4(0.99, 0.70, 0.35, 0.7)',
     SELECTED_FRAME_BORDER_COLOR: '#3482ea',
+    HIGHLIGHTED_LABEL_COLOR: [255, 255, 0],
     HOVERED_FRAME_BORDER_COLOR: 'rgba(255, 255, 255, 0.8)',
     CURSOR_CROSSHAIR: '#828285',
     SPAN_FRAME_BORDER: '#57575b',
     SPAN_FRAME_BACKGROUND: 'rgba(232, 232, 232, 0.2)',
+    SAMPLE_TICK_COLOR: [255, 0, 0, 0.5],
     REQUEST_WAIT_TIME: `rgba(253,252,224, 1)`,
     REQUEST_DNS_TIME: `rgba(57, 146, 152, 1)`,
     REQUEST_TCP_TIME: `rgba(242, 146,57,1)`,

@@ -1,15 +1,26 @@
+from __future__ import annotations
+
+import collections
 import os
+import random
 from hashlib import md5
+from typing import TypeVar
 from unittest import mock
 
+import pytest
 from django.conf import settings
 from sentry_sdk import Hub
 
 from sentry.utils.warnings import UnsupportedBackend
 
+K = TypeVar("K")
+V = TypeVar("V")
+
 TEST_ROOT = os.path.normpath(
     os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir, os.pardir, "tests")
 )
+
+TEST_REDIS_DB = 9
 
 
 def pytest_configure(config):
@@ -34,7 +45,7 @@ def pytest_configure(config):
     # override docs which are typically synchronized from an upstream server
     # to ensure tests are consistent
     os.environ.setdefault(
-        "INTEGRATION_DOC_FOLDER", os.path.join(TEST_ROOT, "fixtures", "integration-docs")
+        "INTEGRATION_DOC_FOLDER", os.path.join(TEST_ROOT, os.pardir, "fixtures", "integration-docs")
     )
     from sentry.utils import integrationdocs
 
@@ -58,11 +69,14 @@ def pytest_configure(config):
         else:
             raise RuntimeError("oops, wrong database: %r" % test_db)
 
+    # silence (noisy) loggers by default when testing
+    settings.LOGGING["loggers"]["sentry"]["level"] = "ERROR"
+
     # Disable static compiling in tests
     settings.STATIC_BUNDLES = {}
 
     # override a few things with our test specifics
-    settings.INSTALLED_APPS = tuple(settings.INSTALLED_APPS) + ("tests",)
+    settings.INSTALLED_APPS = tuple(settings.INSTALLED_APPS) + ("fixtures",)
     # Need a predictable key for tests that involve checking signatures
     settings.SENTRY_PUBLIC = False
 
@@ -98,10 +112,16 @@ def pytest_configure(config):
     settings.BROKER_BACKEND = "memory"
     settings.BROKER_URL = "memory://"
     settings.CELERY_ALWAYS_EAGER = False
+    settings.CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = True
+    settings.PICKLED_OBJECT_FIELD_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = True
     settings.CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
 
     settings.DEBUG_VIEWS = True
     settings.SERVE_UPLOADED_FILES = True
+
+    # Disable internal error collection during tests.
+    settings.SENTRY_PROJECT = None
+    settings.SENTRY_PROJECT_KEY = None
 
     settings.SENTRY_ENCRYPTION_SCHEMES = ()
 
@@ -118,17 +138,18 @@ def pytest_configure(config):
         settings.SENTRY_TSDB = "sentry.tsdb.redissnuba.RedisSnubaTSDB"
         settings.SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
 
-    if os.environ.get("DISABLE_TEST_SDK", False):
-        settings.SENTRY_SDK_CONFIG = {}
-
     if not hasattr(settings, "SENTRY_OPTIONS"):
         settings.SENTRY_OPTIONS = {}
 
     settings.SENTRY_OPTIONS.update(
         {
-            "redis.clusters": {"default": {"hosts": {0: {"db": 9}}}},
+            "redis.clusters": {"default": {"hosts": {0: {"db": TEST_REDIS_DB}}}},
             "mail.backend": "django.core.mail.backends.locmem.EmailBackend",
             "system.url-prefix": "http://testserver",
+            "system.base-hostname": "testserver",
+            "system.organization-base-hostname": "{slug}.{region}.testserver",
+            "system.organization-url-template": "http://{hostname}",
+            "system.region": "us",
             "system.secret-key": "a" * 52,
             "slack.client-id": "slack-client-id",
             "slack.client-secret": "slack-client-secret",
@@ -156,13 +177,15 @@ def pytest_configure(config):
         }
     )
 
+    settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = False
+
     # Plugin-related settings
     settings.ASANA_CLIENT_ID = "abc"
     settings.ASANA_CLIENT_SECRET = "123"
     settings.BITBUCKET_CONSUMER_KEY = "abc"
     settings.BITBUCKET_CONSUMER_SECRET = "123"
-    settings.GITHUB_APP_ID = "abc"
-    settings.GITHUB_API_SECRET = "123"
+    settings.SENTRY_OPTIONS["github-login.client-id"] = "abc"
+    settings.SENTRY_OPTIONS["github-login.client-secret"] = "123"
     # this isn't the real secret
     settings.SENTRY_OPTIONS["github.integration-hook-secret"] = "b3002c3e321d4b7880360d397db2ccfd"
 
@@ -186,6 +209,7 @@ def pytest_configure(config):
     from sentry.runner.initializer import initialize_app
 
     initialize_app({"settings": settings, "options": None})
+    Hub.main.bind_client(None)
     register_extensions()
 
     from sentry.utils.redis import clusters
@@ -250,9 +274,19 @@ def pytest_runtest_teardown(item):
     with clusters.get("default").all() as client:
         client.flushdb()
 
-    from celery.task.control import discard_all
+    import celery
 
-    discard_all()
+    if celery.version_info >= (5, 2):
+        from celery.app.control import Control
+
+        from sentry.celery import app
+
+        celery_app_control = Control(app)
+        celery_app_control.discard_all()
+    else:
+        from celery.task.control import discard_all
+
+        discard_all()
 
     from sentry.models import OrganizationOption, ProjectOption, UserOption
 
@@ -260,6 +294,36 @@ def pytest_runtest_teardown(item):
         model.objects.clear_local_cache()
 
     Hub.main.bind_client(None)
+
+
+def _shuffle(items: list[pytest.Item]) -> None:
+    # goal: keep classes together, keep modules together but otherwise shuffle
+    # this prevents duplicate setup/teardown work
+    nodes: dict[str, dict[str, pytest.Item | dict[str, pytest.Item]]]
+    nodes = collections.defaultdict(dict)
+    for item in items:
+        parts = item.nodeid.split("::", maxsplit=2)
+        if len(parts) == 2:
+            nodes[parts[0]][parts[1]] = item
+        elif len(parts) == 3:
+            nodes[parts[0]].setdefault(parts[1], {})[parts[2]] = item
+        else:
+            raise AssertionError(f"unexpected nodeid: {item.nodeid}")
+
+    def _shuffle_d(dct: dict[K, V]) -> dict[K, V]:
+        return dict(random.sample(dct.items(), len(dct)))
+
+    new_items = []
+    for first_v in _shuffle_d(nodes).values():
+        for second_v in _shuffle_d(first_v).values():
+            if isinstance(second_v, dict):
+                for item in _shuffle_d(second_v).values():
+                    new_items.append(item)
+            else:
+                new_items.append(second_v)
+
+    assert len(new_items) == len(items)
+    items[:] = new_items
 
 
 def pytest_collection_modifyitems(config, items):
@@ -309,7 +373,11 @@ def pytest_collection_modifyitems(config, items):
         else:
             discard.append(item)
 
+    items[:] = keep
+
+    if os.environ.get("SENTRY_SHUFFLE_TESTS"):
+        _shuffle(items)
+
     # This only needs to be done if there are items to be de-selected
     if len(discard) > 0:
-        items[:] = keep
         config.hook.pytest_deselected(items=discard)

@@ -20,7 +20,6 @@ describe('GroupReleaseStats', function () {
 
   it('renders all environments', function () {
     createWrapper();
-    expect(screen.getByTestId('env-label')).toHaveTextContent('All Environments');
     expect(screen.getByText('Last 24 Hours')).toBeInTheDocument();
     expect(screen.getByText('Last 30 Days')).toBeInTheDocument();
     expect(screen.getByText('Last seen')).toBeInTheDocument();
@@ -32,9 +31,6 @@ describe('GroupReleaseStats', function () {
 
   it('renders specific environments', function () {
     createWrapper({environments: TestStubs.Environments()});
-    expect(screen.getByTestId('env-label')).toHaveTextContent(
-      'Production, Staging, STAGING'
-    );
     expect(screen.getByText('Last 24 Hours')).toBeInTheDocument();
     expect(screen.getByText('Last 30 Days')).toBeInTheDocument();
     expect(screen.getByText('Last seen')).toBeInTheDocument();

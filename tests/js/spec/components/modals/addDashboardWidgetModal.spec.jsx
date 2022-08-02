@@ -10,7 +10,7 @@ import {openDashboardWidgetLibraryModal} from 'sentry/actionCreators/modal';
 import AddDashboardWidgetModal from 'sentry/components/modals/addDashboardWidgetModal';
 import {t} from 'sentry/locale';
 import TagStore from 'sentry/stores/tagStore';
-import {SessionMetric} from 'sentry/utils/metrics/fields';
+import {SessionField} from 'sentry/types';
 import * as types from 'sentry/views/dashboardsV2/types';
 
 jest.mock('sentry/actionCreators/modal', () => ({
@@ -77,7 +77,7 @@ function mountModalWithRtl({initialData, onAddWidget, onUpdateWidget, widget, so
   );
 }
 
-async function clickSubmit(wrapper) {
+function clickSubmit(wrapper) {
   // Click on submit.
   const button = wrapper.find('Button[data-test-id="add-widget"] button');
   button.simulate('click');
@@ -165,7 +165,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     metricsDataMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/metrics/data/',
-      body: TestStubs.MetricsField({field: SessionMetric.USER}),
+      body: TestStubs.MetricsField({field: SessionField.USER}),
     });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/metrics/meta/`,
@@ -222,9 +222,9 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     openMenu(wrapper, {name: 'dashboard', control: true});
 
     const input = wrapper.find('SelectControl[name="dashboard"]');
-    expect(input.find('Option Option')).toHaveLength(2);
-    expect(input.find('Option Option').at(0).props().isDisabled).toBe(false);
-    expect(input.find('Option Option').at(1).props().isDisabled).toBe(true);
+    expect(input.find('Option')).toHaveLength(2);
+    expect(input.find('Option').at(0).props().isDisabled).toBe(false);
+    expect(input.find('Option').at(1).props().isDisabled).toBe(true);
 
     wrapper.unmount();
   });
@@ -654,7 +654,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
           fields: ['sdk.name', 'count()'],
           aggregates: ['count()'],
           columns: ['sdk.name'],
-          orderby: 'count',
+          orderby: 'count()',
         },
       ],
     };
@@ -685,7 +685,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(
       wrapper
-        .find('WidgetQueriesForm SelectControl[name="orderby"] SingleValue div')
+        .find('WidgetQueriesForm SelectControl[name="orderby"] SingleValue')
+        .first()
         .text()
     ).toEqual('count() asc');
 
@@ -1136,7 +1137,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     wrapper.unmount();
   });
 
-  it('renders the tab button bar from widget library', async function () {
+  it('renders the tab button bar from widget library', function () {
     const onAddLibraryWidgetMock = jest.fn();
     const wrapper = mountModal({
       initialData,
@@ -1239,7 +1240,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       await tick();
       userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
-      expect(screen.queryByText('Data Set')).not.toBeInTheDocument();
+      expect(screen.queryByText('Dataset')).not.toBeInTheDocument();
       wrapper.unmount();
     });
 
@@ -1254,14 +1255,14 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
       expect(metricsDataMock).not.toHaveBeenCalled();
 
-      expect(screen.getByText('Data Set')).toBeInTheDocument();
+      expect(screen.getByText('Dataset')).toBeInTheDocument();
       expect(
         screen.getByText('All Events (Errors and Transactions)')
       ).toBeInTheDocument();
       expect(
         screen.getByText('Issues (States, Assignment, Time, etc.)')
       ).toBeInTheDocument();
-      // Hide without the dashboards-metrics feature flag
+      // Hide without the dashboards-releases feature flag
       expect(screen.queryByText(/release/i)).not.toBeInTheDocument();
       wrapper.unmount();
     });
@@ -1296,12 +1297,14 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
   });
 
-  describe('Metrics Widgets', function () {
+  // Disabling since the modal is going to be removed soon
+  // eslint-disable-next-line jest/no-disabled-tests
+  describe.skip('Metrics Widgets', function () {
     it('renders the dataset selector', async function () {
       initialData.organization.features = [
         'performance-view',
         'discover-query',
-        'dashboards-metrics',
+        'dashboards-releases',
       ];
 
       mountModalWithRtl({
@@ -1311,7 +1314,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         source: types.DashboardWidgetSource.DASHBOARDS,
       });
 
-      expect(await screen.findByText('Data Set')).toBeInTheDocument();
+      expect(await screen.findByText('Dataset')).toBeInTheDocument();
 
       expect(
         screen.getByText('All Events (Errors and Transactions)')
@@ -1326,7 +1329,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       initialData.organization.features = [
         'performance-view',
         'discover-query',
-        'dashboards-metrics',
+        'dashboards-releases',
       ];
       mountModalWithRtl({
         initialData,
@@ -1352,7 +1355,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       initialData.organization.features = [
         'performance-view',
         'discover-query',
-        'dashboards-metrics',
+        'dashboards-releases',
       ];
 
       mountModalWithRtl({
@@ -1386,7 +1389,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       initialData.organization.features = [
         'performance-view',
         'discover-query',
-        'dashboards-metrics',
+        'dashboards-releases',
       ];
 
       mountModalWithRtl({
@@ -1419,7 +1422,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       initialData.organization.features = [
         'performance-view',
         'discover-query',
-        'dashboards-metrics',
+        'dashboards-releases',
       ];
 
       mountModalWithRtl({
@@ -1461,7 +1464,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       initialData.organization.features = [
         'performance-view',
         'discover-query',
-        'dashboards-metrics',
+        'dashboards-releases',
       ];
       const addWidgetMock = jest.fn();
 
@@ -1531,7 +1534,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       initialData.organization.features = [
         'performance-view',
         'discover-query',
-        'dashboards-metrics',
+        'dashboards-releases',
       ];
 
       mountModalWithRtl({
@@ -1545,7 +1548,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         await screen.findByRole('heading', {name: 'Add Widget'})
       ).toBeInTheDocument();
 
-      // change data set to metrics
+      // change dataset to metrics
       userEvent.click(screen.getByLabelText(/release/i));
 
       // open visualization select

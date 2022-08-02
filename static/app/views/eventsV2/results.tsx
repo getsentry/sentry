@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -14,12 +14,15 @@ import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Confirm from 'sentry/components/confirm';
-import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
+import DatePageFilter from 'sentry/components/datePageFilter';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
@@ -64,11 +67,11 @@ type State = {
   error: string;
   errorCode: number;
   eventView: EventView;
-  incompatibleAlertNotice: React.ReactNode;
   needConfirmation: boolean;
   showTags: boolean;
   totalValues: null | number;
   savedQuery?: SavedQuery;
+  showMetricsAlert?: boolean;
 };
 const SHOW_TAGS_STORAGE_KEY = 'discover2:show-tags';
 
@@ -78,14 +81,18 @@ function readShowTagsState() {
 }
 
 function getYAxis(location: Location, eventView: EventView, savedQuery?: SavedQuery) {
-  return location.query.yAxis
-    ? decodeList(location.query.yAxis)
-    : savedQuery?.yAxis && savedQuery.yAxis.length > 0
+  if (location.query.yAxis) {
+    return decodeList(location.query.yAxis);
+  }
+  if (location.query.yAxis === null) {
+    return [];
+  }
+  return savedQuery?.yAxis && savedQuery?.yAxis.length > 0
     ? decodeList(savedQuery?.yAxis)
     : [eventView.getYAxis()];
 }
 
-class Results extends React.Component<Props, State> {
+class Results extends Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     if (nextProps.savedQuery || !nextProps.loading) {
       const eventView = EventView.fromSavedQueryOrLocation(
@@ -108,11 +115,17 @@ class Results extends React.Component<Props, State> {
     showTags: readShowTagsState(),
     needConfirmation: false,
     confirmedQuery: false,
-    incompatibleAlertNotice: null,
   };
 
   componentDidMount() {
     const {organization, selection, location} = this.props;
+    if (location.query.fromMetric) {
+      this.setState({showMetricsAlert: true});
+      browserHistory.replace({
+        ...location,
+        query: {...location.query, fromMetric: undefined},
+      });
+    }
     loadOrganizationTags(this.tagsApi, organization.slug, selection);
     addRoutePerformanceContext(selection);
     this.checkEventView();
@@ -130,11 +143,7 @@ class Results extends React.Component<Props, State> {
     const currentQuery = eventView.getEventsAPIPayload(location);
     const prevQuery = prevState.eventView.getEventsAPIPayload(prevProps.location);
     const yAxisArray = getYAxis(location, eventView, savedQuery);
-    const prevYAxisArray = getYAxis(
-      prevProps.location,
-      prevState.eventView,
-      prevState.savedQuery
-    );
+    const prevYAxisArray = getYAxis(prevProps.location, eventView, prevState.savedQuery);
 
     if (
       !isAPIPayloadSimilar(currentQuery, prevQuery) ||
@@ -230,7 +239,7 @@ class Results extends React.Component<Props, State> {
     return null;
   };
 
-  handleConfirmed = async () => {
+  handleConfirmed = () => {
     this.setState({needConfirmation: false, confirmedQuery: true}, () => {
       this.setState({confirmedQuery: false});
     });
@@ -322,7 +331,7 @@ class Results extends React.Component<Props, State> {
 
     const newQuery = {
       ...location.query,
-      yAxis: value,
+      yAxis: value.length > 0 ? value : [null],
       // If using Multi Y-axis and not in a supported display, change to the default display mode
       display:
         value.length > 1 && !isDisplayMultiYAxisSupported
@@ -427,28 +436,6 @@ class Results extends React.Component<Props, State> {
     return url;
   };
 
-  handleIncompatibleQuery: React.ComponentProps<
-    typeof CreateAlertFromViewButton
-  >['onIncompatibleQuery'] = (incompatibleAlertNoticeFn, errors) => {
-    const {organization} = this.props;
-    const {eventView} = this.state;
-    trackAnalyticsEvent({
-      eventKey: 'discover_v2.create_alert_clicked',
-      eventName: 'Discoverv2: Create alert clicked',
-      status: 'error',
-      query: eventView.query,
-      errors,
-      organization_id: organization.id,
-      url: window.location.href,
-    });
-
-    const incompatibleAlertNotice = incompatibleAlertNoticeFn(() =>
-      this.setState({incompatibleAlertNotice: null})
-    );
-
-    this.setState({incompatibleAlertNotice});
-  };
-
   renderError(error: string) {
     if (!error) {
       return null;
@@ -464,6 +451,19 @@ class Results extends React.Component<Props, State> {
     this.setState({error, errorCode});
   };
 
+  renderMetricsFallbackBanner() {
+    if (this.state.showMetricsAlert) {
+      return (
+        <Alert type="info" showIcon>
+          {t(
+            "You've navigated to this page from a performance metric widget generated from processed events. The results here only show sampled events."
+          )}
+        </Alert>
+      );
+    }
+    return null;
+  }
+
   render() {
     const {organization, location, router} = this.props;
     const {
@@ -472,7 +472,6 @@ class Results extends React.Component<Props, State> {
       errorCode,
       totalValues,
       showTags,
-      incompatibleAlertNotice,
       confirmedQuery,
       savedQuery,
     } = this.state;
@@ -492,14 +491,18 @@ class Results extends React.Component<Props, State> {
               organization={organization}
               location={location}
               eventView={eventView}
-              onIncompatibleAlertQuery={this.handleIncompatibleQuery}
               yAxis={yAxisArray}
               router={router}
             />
             <Layout.Body>
-              {incompatibleAlertNotice && <Top fullWidth>{incompatibleAlertNotice}</Top>}
               <Top fullWidth>
+                {this.renderMetricsFallbackBanner()}
                 {this.renderError(error)}
+                <StyledPageFilterBar condensed>
+                  <ProjectPageFilter />
+                  <EnvironmentPageFilter />
+                  <DatePageFilter alignDropdown="left" />
+                </StyledPageFilterBar>
                 <StyledSearchBar
                   searchSource="eventsv2"
                   organization={organization}
@@ -571,6 +574,10 @@ const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;
 
+const StyledPageFilterBar = styled(PageFilterBar)`
+  margin-bottom: ${space(1)};
+`;
+
 const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(2)};
 `;
@@ -616,12 +623,16 @@ function ResultsContainer(props: Props) {
    *
    * Also, we skip loading last used projects if you have multiple projects feature as
    * you no longer need to enforce a project if it is empty. We assume an empty project is
-   * the desired behavior because saved queries can contain a project filter.
+   * the desired behavior because saved queries can contain a project filter. The only
+   * exception is if we are showing a prebuilt saved query in which case we want to
+   * respect pinned filters.
    */
 
   return (
     <PageFiltersContainer
-      skipLoadLastUsed={props.organization.features.includes('global-views')}
+      skipLoadLastUsed={
+        props.organization.features.includes('global-views') && !!props.savedQuery
+      }
     >
       <SavedQueryAPI {...props} />
     </PageFiltersContainer>

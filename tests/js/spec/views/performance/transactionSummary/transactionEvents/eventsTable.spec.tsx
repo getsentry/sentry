@@ -14,6 +14,48 @@ type Data = {
   features?: string[];
 };
 
+export const MOCK_EVENTS_TABLE_DATA = [
+  {
+    id: 'deadbeef',
+    'user.display': 'uhoh@example.com',
+    'transaction.duration': 400,
+    'project.id': 1,
+    timestamp: '2020-05-21T15:31:18+00:00',
+    trace: '1234',
+    'span_ops_breakdown.relative': '',
+    'spans.browser': 100,
+    'spans.db': 30,
+    'spans.http': 170,
+    'spans.resource': 100,
+    'spans.total.time': 400,
+  },
+  {
+    id: 'moredeadbeef',
+    'user.display': 'moreuhoh@example.com',
+    'transaction.duration': 600,
+    'project.id': 1,
+    timestamp: '2020-05-22T15:31:18+00:00',
+    trace: '4321',
+    'span_ops_breakdown.relative': '',
+    'spans.browser': 100,
+    'spans.db': 300,
+    'spans.http': 100,
+    'spans.resource': 100,
+    'spans.total.time': 600,
+  },
+];
+
+export const EVENTS_TABLE_RESPONSE_FIELDS = [
+  'id',
+  'user.display',
+  SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
+  'transaction.duration',
+  'trace',
+  'timestamp',
+  'spans.total.time',
+  ...SPAN_OP_BREAKDOWN_FIELDS,
+];
+
 function initializeData({features: additionalFeatures = []}: Data = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
   const organization = TestStubs.Organization({
@@ -41,14 +83,16 @@ function initializeData({features: additionalFeatures = []}: Data = {}) {
 
 describe('Performance GridEditable Table', function () {
   let transactionsListTitles;
+  let totalEventCount;
   let fields;
   let organization;
   let data;
   let transactionName;
   const query =
-    'transaction.duration:<15m event.type:transaction transaction:/api/0/organizations/{organization_slug}/eventsv2/';
+    'transaction.duration:<15m event.type:transaction transaction:/api/0/organizations/{organization_slug}/events/';
   beforeEach(function () {
     transactionName = 'transactionName';
+    totalEventCount = '100';
     transactionsListTitles = [
       t('event id'),
       t('user'),
@@ -57,16 +101,7 @@ describe('Performance GridEditable Table', function () {
       t('trace id'),
       t('timestamp'),
     ];
-    fields = [
-      'id',
-      'user.display',
-      SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
-      'transaction.duration',
-      'trace',
-      'timestamp',
-      'spans.total.time',
-      ...SPAN_OP_BREAKDOWN_FIELDS,
-    ];
+    fields = EVENTS_TABLE_RESPONSE_FIELDS;
     organization = TestStubs.Organization();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -80,51 +115,24 @@ describe('Performance GridEditable Table', function () {
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
     });
-    data = [
-      {
-        id: 'deadbeef',
-        'user.display': 'uhoh@example.com',
-        'transaction.duration': 400,
-        'project.id': 1,
-        timestamp: '2020-05-21T15:31:18+00:00',
-        trace: '1234',
-        'span_ops_breakdown.relative': '',
-        'spans.browser': 100,
-        'spans.db': 30,
-        'spans.http': 170,
-        'spans.resource': 100,
-        'spans.total.time': 400,
-      },
-      {
-        id: 'moredeadbeef',
-        'user.display': 'moreuhoh@example.com',
-        'transaction.duration': 600,
-        'project.id': 1,
-        timestamp: '2020-05-22T15:31:18+00:00',
-        trace: '4321',
-        'span_ops_breakdown.relative': '',
-        'spans.browser': 100,
-        'spans.db': 300,
-        'spans.http': 100,
-        'spans.resource': 100,
-        'spans.total.time': 600,
-      },
-    ];
+    data = MOCK_EVENTS_TABLE_DATA;
     // Transaction list response
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/eventsv2/',
+      url: '/organizations/org-slug/events/',
       headers: {
         Link:
-          '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",' +
-          '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"',
+          '<http://localhost/api/0/organizations/org-slug/events/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",' +
+          '<http://localhost/api/0/organizations/org-slug/events/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"',
       },
       body: {
         meta: {
-          id: 'string',
-          'user.display': 'string',
-          'transaction.duration': 'duration',
-          'project.id': 'integer',
-          timestamp: 'date',
+          fields: {
+            id: 'string',
+            'user.display': 'string',
+            'transaction.duration': 'duration',
+            'project.id': 'integer',
+            timestamp: 'date',
+          },
         },
         data,
       },
@@ -158,6 +166,7 @@ describe('Performance GridEditable Table', function () {
     );
     const wrapper = mountWithTheme(
       <EventsTable
+        totalEventCount={totalEventCount}
         eventView={eventView}
         organization={organization}
         location={initialData.router.location}
@@ -207,6 +216,7 @@ describe('Performance GridEditable Table', function () {
     );
     const wrapper = mountWithTheme(
       <EventsTable
+        totalEventCount={totalEventCount}
         eventView={eventView}
         organization={organization}
         location={initialData.router.location}

@@ -3,17 +3,10 @@ from collections.abc import Iterable
 from django.db import IntegrityError, transaction
 from rest_framework.serializers import ValidationError
 
-from sentry import analytics
+from sentry import analytics, audit_log
 from sentry.constants import SentryAppStatus
 from sentry.mediators import Mediator, Param
-from sentry.models import (
-    ApiApplication,
-    AuditLogEntryEvent,
-    IntegrationFeature,
-    SentryApp,
-    SentryAppComponent,
-    User,
-)
+from sentry.models import ApiApplication, IntegrationFeature, SentryApp, SentryAppComponent, User
 from sentry.models.integrations.integration_feature import IntegrationTypes
 from sentry.models.integrations.sentry_app import default_uuid, generate_slug
 
@@ -128,7 +121,7 @@ class Creator(Mediator, SentryAppMixin):
                 request=self.request,
                 organization=self.organization,
                 target_object=self.organization.id,
-                event=AuditLogEntryEvent.SENTRY_APP_ADD,
+                event=audit_log.get_event_id("SENTRY_APP_ADD"),
                 data={"sentry_app": self.sentry_app.name},
             )
 

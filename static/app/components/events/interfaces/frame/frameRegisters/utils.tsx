@@ -39,7 +39,7 @@ function getRegisterIndex(register: string, registerMap: Record<string, number>)
 }
 
 export function getSortedRegisters(
-  registers: Record<string, string>,
+  registers: Record<string, string | null>,
   deviceArch?: string
 ) {
   const entries = Object.entries(registers);

@@ -97,7 +97,7 @@ describe('Frame - Line', function () {
           isExpanded
         />
       );
-      expect(screen.getByText('registers')).toBeInTheDocument();
+      expect(screen.getByText('Registers')).toBeInTheDocument();
     });
 
     it('should not render empty registers', () => {
@@ -105,7 +105,7 @@ describe('Frame - Line', function () {
         <Line data={data} registers={{}} components={[]} event={event} isExpanded />
       );
 
-      expect(screen.queryByText('registers')).not.toBeInTheDocument();
+      expect(screen.queryByText('Registers')).not.toBeInTheDocument();
     });
 
     it('should render context vars', () => {

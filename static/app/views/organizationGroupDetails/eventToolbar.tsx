@@ -17,8 +17,8 @@ import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
-import {use24Hours} from 'sentry/utils/dates';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {shouldUse24Hours} from 'sentry/utils/dates';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
 import QuickTrace from './quickTrace';
@@ -57,12 +57,11 @@ class GroupEventToolbar extends Component<Props> {
     return this.props.event.id !== nextProps.event.id;
   }
 
-  handleTraceLink(organization: Organization) {
-    trackAnalyticsEvent({
-      eventKey: 'quick_trace.trace_id.clicked',
-      eventName: 'Quick Trace: Trace ID clicked',
-      organization_id: parseInt(organization.id, 10),
-      source: 'issues',
+  handleNavigationClick(button: string) {
+    trackAdvancedAnalyticsEvent('issue_details.event_navigation_clicked', {
+      organization: this.props.organization,
+      project_id: parseInt(this.props.project.id, 10),
+      button,
     });
   }
 
@@ -99,7 +98,7 @@ class GroupEventToolbar extends Component<Props> {
   }
 
   render() {
-    const is24Hours = use24Hours();
+    const is24Hours = shouldUse24Hours();
     const evt = this.props.event;
 
     const {group, organization, location, project} = this.props;
@@ -116,6 +115,8 @@ class GroupEventToolbar extends Component<Props> {
       evt.dateReceived &&
       Math.abs(+moment(evt.dateReceived) - +moment(evt.dateCreated)) > latencyThreshold;
 
+    const isPerformanceIssue = !!evt.contexts?.performance_issue;
+
     return (
       <StyledDataSection>
         <StyledNavigationButtonGroup
@@ -127,18 +128,30 @@ class GroupEventToolbar extends Component<Props> {
             {pathname: `${baseEventsPath}${evt.nextEventID}/`, query: location.query},
             {pathname: `${baseEventsPath}latest/`, query: location.query},
           ]}
-          size="small"
+          onOldestClick={() => this.handleNavigationClick('oldest')}
+          onOlderClick={() => this.handleNavigationClick('older')}
+          onNewerClick={() => this.handleNavigationClick('newer')}
+          onNewestClick={() => this.handleNavigationClick('newest')}
+          size="sm"
         />
         <Heading>
           {t('Event')}{' '}
           <EventIdLink to={`${baseEventsPath}${evt.id}/`}>{evt.eventID}</EventIdLink>
           <LinkContainer>
-            <ExternalLink href={jsonUrl}>
+            <ExternalLink
+              href={jsonUrl}
+              onClick={() =>
+                trackAdvancedAnalyticsEvent('issue_details.event_json_clicked', {
+                  organization,
+                  group_id: parseInt(`${evt.groupID}`, 10),
+                })
+              }
+            >
               {'JSON'} (<FileSize bytes={evt.size} />)
             </ExternalLink>
           </LinkContainer>
         </Heading>
-        <Tooltip title={this.getDateTooltip()} disableForVisualTest>
+        <Tooltip title={this.getDateTooltip()} showUnderline disableForVisualTest>
           <StyledDateTime
             format={is24Hours ? 'MMM D, YYYY HH:mm:ss zz' : 'll LTS z'}
             date={getDynamicText({
@@ -151,13 +164,13 @@ class GroupEventToolbar extends Component<Props> {
         <StyledGlobalAppStoreConnectUpdateAlert
           project={project}
           organization={organization}
-          isCompact
         />
         <QuickTrace
           event={evt}
           group={group}
           organization={organization}
           location={location}
+          isPerformanceIssue={isPerformanceIssue}
         />
       </StyledDataSection>
     );
@@ -172,7 +185,16 @@ const StyledDataSection = styled(DataSection)`
   /* Fixes tooltips in toolbar having lower z-index than .btn-group .btn.active */
   z-index: 3;
 
-  @media (max-width: 767px) {
+  /* Padding aligns with Layout.Body */
+  padding-left: ${space(4)};
+  padding-right: ${space(4)};
+
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    padding-left: ${space(2)};
+    padding-right: ${space(2)};
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: none;
   }
 `;
@@ -198,7 +220,6 @@ const StyledIconWarning = styled(IconWarning)`
 `;
 
 const StyledDateTime = styled(DateTime)`
-  border-bottom: 1px dotted #dfe3ea;
   color: ${p => p.theme.subText};
 `;
 

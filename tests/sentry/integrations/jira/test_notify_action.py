@@ -1,11 +1,11 @@
 import responses
 
-from sentry.integrations.jira.notify_action import JiraCreateTicketAction
+from fixtures.integrations.mock_service import StubService
+from sentry.integrations.jira import JiraCreateTicketAction
 from sentry.models import ExternalIssue, GroupLink, Integration, Rule
 from sentry.testutils.cases import RuleTestCase
 from sentry.types.rules import RuleFuture
 from sentry.utils import json
-from tests.fixtures.integrations.mock_service import StubService
 
 
 class JiraCreateTicketActionTest(RuleTestCase):
@@ -33,7 +33,6 @@ class JiraCreateTicketActionTest(RuleTestCase):
             "https://example.atlassian.net/rest/api/2/project",
             body=StubService.get_stub_json("jira", "project_list_response.json"),
             content_type="application/json",
-            match_querystring=False,
         )
 
         responses.add(
@@ -41,7 +40,6 @@ class JiraCreateTicketActionTest(RuleTestCase):
             "https://example.atlassian.net/rest/api/2/issue/createmeta",
             body=StubService.get_stub_json("jira", "createmeta_response.json"),
             content_type="json",
-            match_querystring=False,
         )
         jira_rule = self.get_rule(
             data={
@@ -76,7 +74,6 @@ class JiraCreateTicketActionTest(RuleTestCase):
             "https://example.atlassian.net/rest/api/2/issue/APP-123",
             body=StubService.get_stub_json("jira", "get_issue_response.json"),
             content_type="application/json",
-            match_querystring=False,
         )
 
         results = list(jira_rule.after(event=event, state=self.get_state()))

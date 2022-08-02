@@ -7,6 +7,7 @@ export const popularPlatformCategories = [
   'python-django',
   'python',
   'python-flask',
+  'python-fastapi',
   'ruby-rails',
   'node-express',
   'php-laravel',
@@ -26,6 +27,7 @@ export const popularPlatformCategories = [
   'apple-ios',
   'flutter',
   'dart-flutter',
+  'unity',
 ] as const;
 
 export const frontend = [
@@ -39,6 +41,8 @@ export const frontend = [
   'javascript-gatsby',
   'javascript-vue',
   'javascript-nextjs',
+  'javascript-remix',
+  'unity',
 ] as const;
 
 export const mobile = [
@@ -48,11 +52,14 @@ export const mobile = [
   'capacitor',
   'javascript-cordova',
   'javascript-capacitor',
+  'ionic',
   'react-native',
   'flutter',
   'dart-flutter',
   'unity',
+  'dotnet-maui',
   'dotnet-xamarin',
+  'unreal',
   // Old platforms
   'java-android',
   'cocoa-objc',
@@ -87,6 +94,8 @@ export const backend = [
   'python',
   'python-django',
   'python-flask',
+  'python-fastapi',
+  'python-starlette',
   'python-sanic',
   'python-celery',
   'python-bottle',
@@ -117,6 +126,7 @@ export const desktop = [
   'dotnet',
   'dotnet-winforms',
   'dotnet-wpf',
+  'dotnet-maui',
   'java',
   'electron',
   'javascript-electron',
@@ -129,6 +139,7 @@ export const desktop = [
   'unity',
   'flutter',
   'kotlin',
+  'unreal',
 ] as const;
 
 const categoryList = [
@@ -163,6 +174,8 @@ export const performance: PlatformKey[] = [
   'python',
   'python-django',
   'python-flask',
+  'python-fastapi',
+  'python-starlette',
   'python-sanic',
   'python-celery',
   'python-bottle',
@@ -176,6 +189,19 @@ export const performance: PlatformKey[] = [
   'node-connect',
 ];
 
+// List of platforms that have performance onboarding checklist content
+export const withPerformanceOnboarding: Set<PlatformKey> = new Set([
+  'javascript',
+  'javascript-react',
+]);
+
+// List of platforms that do not have performance support. We make use of this list in the product to not provide any Performance
+// views such as Performance onboarding checklist.
+export const withoutPerformanceSupport: Set<PlatformKey> = new Set([
+  'elixir',
+  'minidump',
+]);
+
 export const releaseHealth: PlatformKey[] = [
   // frontend
   'javascript',
@@ -187,6 +213,7 @@ export const releaseHealth: PlatformKey[] = [
   'javascript-gatsby',
   'javascript-vue',
   'javascript-nextjs',
+  'javascript-remix',
   // mobile
   'android',
   'apple-ios',
@@ -204,6 +231,8 @@ export const releaseHealth: PlatformKey[] = [
   'python',
   'python-django',
   'python-flask',
+  'python-fastapi',
+  'python-starlette',
   'python-sanic',
   'python-celery',
   'python-bottle',

@@ -1,6 +1,7 @@
 import base64
 from unittest import mock
 
+import pytest
 import responses
 
 from sentry.models import Integration, Repository
@@ -96,7 +97,7 @@ class GitHubAppsClientTest(TestCase):
 
         responses.add(method=responses.HEAD, url=url, status=404)
 
-        with self.assertRaises(ApiError):
+        with pytest.raises(ApiError):
             self.client.check_file(self.repo, path, version)
         assert responses.calls[1].response.status_code == 404
 

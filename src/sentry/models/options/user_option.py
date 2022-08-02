@@ -6,7 +6,7 @@ from django.conf import settings
 from django.db import models
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
-from sentry.db.models.fields import EncryptedPickledObjectField
+from sentry.db.models.fields import PickledObjectField
 from sentry.db.models.manager import OptionManager, Value
 
 if TYPE_CHECKING:
@@ -175,7 +175,7 @@ class UserOption(Model):  # type: ignore
     project = FlexibleForeignKey("sentry.Project", null=True)
     organization = FlexibleForeignKey("sentry.Organization", null=True)
     key = models.CharField(max_length=64)
-    value = EncryptedPickledObjectField()
+    value = PickledObjectField()
 
     objects = UserOptionManager()
 

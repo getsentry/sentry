@@ -1,8 +1,13 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
-import NoteInput from 'sentry/components/activity/note/input';
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -15,21 +20,23 @@ describe('GroupActivity', function () {
 
   beforeEach(function () {
     project = TestStubs.Project();
-    act(() => ProjectsStore.loadInitialData([project]));
-    jest.spyOn(ConfigStore, 'get').mockImplementation(key => {
-      if (key === 'user') {
-        return {
-          id: '123',
-        };
-      }
-      return {};
-    });
+    ProjectsStore.loadInitialData([project]);
+    ConfigStore.init();
+    ConfigStore.set('user', {id: '123'});
+    GroupStore.init();
+  });
+
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
+    ProjectsStore.teardown();
+    GroupStore.teardown();
   });
 
   function createWrapper({activity, organization: additionalOrg} = {}) {
     const group = TestStubs.Group({
       id: '1337',
-      activity: activity || [
+      activity: activity ?? [
         {type: 'note', id: 'note-1', data: {text: 'Test Note'}, user: TestStubs.User()},
       ],
       project,
@@ -38,38 +45,37 @@ describe('GroupActivity', function () {
       organization: additionalOrg,
       group,
     });
-    act(() => TeamStore.loadInitialData([TestStubs.Team({id: '999', slug: 'no-team'})]));
-    act(() => OrganizationStore.onUpdate(organization, {replace: true}));
-    return mountWithTheme(
+    GroupStore.add([group]);
+    TeamStore.loadInitialData([TestStubs.Team({id: '999', slug: 'no-team'})]);
+    OrganizationStore.onUpdate(organization, {replace: true});
+    return render(
       <GroupActivity
         api={new MockApiClient()}
         params={{orgId: 'org-slug'}}
         group={group}
         organization={organization}
       />,
-      routerContext
+      {context: routerContext}
     );
   }
 
   it('renders a NoteInput', function () {
-    const wrapper = createWrapper();
-    expect(wrapper.find(NoteInput)).toHaveLength(1);
+    createWrapper();
+    expect(screen.getByTestId('activity-note-body')).toBeInTheDocument();
   });
 
   it('renders a marked reviewed activity', function () {
-    const wrapper = createWrapper({
-      activity: [
-        {type: 'mark_reviewed', id: 'reviewed-1', data: {}, user: TestStubs.User()},
-      ],
+    const user = TestStubs.User({name: 'Samwise'});
+    createWrapper({
+      activity: [{type: 'mark_reviewed', id: 'reviewed-1', data: {}, user}],
     });
-    expect(wrapper.find('GroupActivityItem').text()).toContain(
-      'marked this issue as reviewed'
-    );
+    expect(screen.getByText('marked this issue as reviewed')).toBeInTheDocument();
+    expect(screen.getByText(user.name)).toBeInTheDocument();
   });
 
   it('renders a assigned to self activity', function () {
     const user = TestStubs.User({id: '301', name: 'Mark'});
-    const wrapper = createWrapper({
+    createWrapper({
       activity: [
         {
           data: {
@@ -84,8 +90,103 @@ describe('GroupActivity', function () {
         },
       ],
     });
-    expect(wrapper.find('GroupActivityItem').text()).toContain(
-      'assigned this issue to themselves'
+    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      /Mark assigned this issue to themselves/
+    );
+  });
+
+  it('resolved in commit with no releases', function () {
+    createWrapper({
+      activity: [
+        {
+          type: 'set_resolved_in_commit',
+          id: '123',
+          data: {
+            author: 'hello',
+            commit: {
+              id: 'komal-commit',
+              repository: {},
+              releases: [],
+            },
+          },
+          user: TestStubs.User(),
+        },
+      ],
+    });
+    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      'Foo Bar marked this issue as resolved in komal-commit'
+    );
+  });
+
+  it('resolved in commit with one release', function () {
+    createWrapper({
+      activity: [
+        {
+          type: 'set_resolved_in_commit',
+          id: '123',
+          data: {
+            author: 'hello',
+            commit: {
+              id: 'komal-commit',
+              repository: {},
+              releases: [
+                {
+                  dateCreated: '2022-05-01',
+                  dateReleased: '2022-05-02',
+                  version: 'random',
+                },
+              ],
+            },
+          },
+          user: TestStubs.User(),
+        },
+      ],
+    });
+    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      'Foo Bar marked this issue as resolved in komal-commit This commit was released in random'
+    );
+  });
+
+  it('resolved in commit with multiple releases', function () {
+    createWrapper({
+      activity: [
+        {
+          type: 'set_resolved_in_commit',
+          id: '123',
+          data: {
+            commit: {
+              id: 'komal-commit',
+              repository: {},
+              releases: [
+                {
+                  dateCreated: '2022-05-01',
+                  dateReleased: '2022-05-02',
+                  version: 'random',
+                },
+                {
+                  dateCreated: '2022-06-01',
+                  dateReleased: '2022-06-02',
+                  version: 'newest',
+                },
+                {
+                  dateCreated: '2021-08-03',
+                  dateReleased: '2021-08-03',
+                  version: 'oldest-release',
+                },
+                {
+                  dateCreated: '2022-04-21',
+                  dateReleased: '2022-04-21',
+                  version: 'randomTwo',
+                },
+              ],
+            },
+          },
+          user: TestStubs.User(),
+        },
+      ],
+    });
+    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      'Foo Bar marked this issue as resolved in komal-commit This commit was released in oldest-release and 3 others'
     );
   });
 
@@ -95,7 +196,7 @@ describe('GroupActivity', function () {
       url: `/organizations/org-slug/teams/`,
       body: [team],
     });
-    const wrapper = createWrapper({
+    createWrapper({
       activity: [
         {
           id: '123',
@@ -111,17 +212,14 @@ describe('GroupActivity', function () {
       ],
     });
 
-    await act(() => tick());
-    wrapper.update();
-
-    expect(teamRequest).toHaveBeenCalledTimes(1);
-    expect(wrapper.find('GroupActivityItem').text()).toContain(
-      'assigned this issue to #team-slug'
+    await waitFor(() => expect(teamRequest).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText(team.slug)).toBeInTheDocument();
+    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      /Sentry assigned this issue to #team-slug/
     );
   });
 
   describe('Delete', function () {
-    let wrapper;
     let deleteMock;
 
     beforeEach(function () {
@@ -129,24 +227,36 @@ describe('GroupActivity', function () {
         url: '/issues/1337/comments/note-1/',
         method: 'DELETE',
       });
-      wrapper = createWrapper();
+      ConfigStore.set('user', {id: '123', isSuperuser: true});
     });
 
     it('should do nothing if not present in GroupStore', function () {
-      jest.spyOn(GroupStore, 'removeActivity').mockImplementation(() => -1); // not found
+      createWrapper();
+      renderGlobalModal();
+      act(() => {
+        // Remove note from group activity
+        GroupStore.removeActivity('1337', 'note-1');
+      });
 
-      // Would rather call simulate on the actual component but it's in a styled component
-      // that is only visible on hover
-      wrapper.find('NoteHeader').prop('onDelete')();
+      userEvent.click(screen.getByText('Remove'));
+      expect(
+        screen.getByText('Are you sure you wish to delete this comment?')
+      ).toBeInTheDocument();
+      userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+
       expect(deleteMock).not.toHaveBeenCalled();
     });
 
     it('should remove remove the item from the GroupStore make a DELETE API request', function () {
-      jest.spyOn(GroupStore, 'removeActivity').mockImplementation(() => 1);
+      createWrapper();
+      renderGlobalModal();
 
-      // Would rather call simulate on the actual component but it's in a styled component
-      // that is only visible on hover
-      wrapper.find('NoteHeader').prop('onDelete')();
+      userEvent.click(screen.getByText('Remove'));
+      expect(
+        screen.getByText('Are you sure you wish to delete this comment?')
+      ).toBeInTheDocument();
+      userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+
       expect(deleteMock).toHaveBeenCalledTimes(1);
     });
   });

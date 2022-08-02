@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from django.urls import reverse
 
 from sentry.models import (
@@ -8,7 +10,9 @@ from sentry.models import (
     DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
+from sentry.models.project import Project
 from sentry.testutils import OrganizationDashboardWidgetTestCase
+from sentry.testutils.helpers.datetime import iso_format
 
 
 class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
@@ -132,6 +136,72 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200, response.content
         assert response.data["widgets"][0]["queries"][0]["fieldAliases"][0] == "Count Alias"
         assert response.data["widgets"][1]["queries"][0]["fieldAliases"] == []
+
+    def test_filters_is_empty_dict_in_response_if_not_applicable(self):
+        filters = {"environment": ["alpha"]}
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Filters",
+            created_by=self.user,
+            organization=self.organization,
+            filters=filters,
+        )
+
+        response = self.do_request("get", self.url(dashboard.id))
+        assert response.data["projects"] == []
+        assert response.data["environment"] == filters["environment"]
+        assert response.data["filters"] == {}
+        assert "period" not in response.data
+
+    def test_dashboard_filters_are_returned_in_response(self):
+        filters = {"environment": ["alpha"], "period": "24hr", "release": ["test-release"]}
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Filters",
+            created_by=self.user,
+            organization=self.organization,
+            filters=filters,
+        )
+        dashboard.projects.set([Project.objects.create(organization=self.organization)])
+
+        response = self.do_request("get", self.url(dashboard.id))
+        assert response.data["projects"] == list(dashboard.projects.values_list("id", flat=True))
+        assert response.data["environment"] == filters["environment"]
+        assert response.data["period"] == filters["period"]
+        assert response.data["filters"]["release"] == filters["release"]
+
+    def test_start_and_end_filters_are_returned_in_response(self):
+        start = iso_format(datetime.now() - timedelta(seconds=10))
+        end = iso_format(datetime.now())
+        filters = {"start": start, "end": end, "utc": False}
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Filters",
+            created_by=self.user,
+            organization=self.organization,
+            filters=filters,
+        )
+        dashboard.projects.set([Project.objects.create(organization=self.organization)])
+
+        response = self.do_request("get", self.url(dashboard.id))
+        assert iso_format(response.data["start"]) == start
+        assert iso_format(response.data["end"]) == end
+        assert not response.data["utc"]
+
+    def test_response_truncates_with_retention(self):
+        start = iso_format(datetime.now() - timedelta(days=3))
+        end = iso_format(datetime.now() - timedelta(days=2))
+        expected_adjusted_retention_start = iso_format(datetime.now() - timedelta(days=1))
+        filters = {"start": start, "end": end}
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Filters",
+            created_by=self.user,
+            organization=self.organization,
+            filters=filters,
+        )
+
+        with self.options({"system.event-retention-days": 1}):
+            response = self.do_request("get", self.url(dashboard.id))
+
+        assert response.data["expired"]
+        assert iso_format(response.data["start"]) == expected_adjusted_retention_start
 
 
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
@@ -267,7 +337,13 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "displayType": "world_map",
                     "interval": "5m",
                     "queries": [
-                        {"name": "Errors", "fields": ["count()"], "conditions": "event.type:error"}
+                        {
+                            "name": "Errors",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                        }
                     ],
                 },
                 {
@@ -278,6 +354,8 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                         {
                             "name": "Errors",
                             "fields": ["count()", "project"],
+                            "columns": ["project"],
+                            "aggregates": ["count()"],
                             "conditions": "event.type:error",
                         }
                     ],
@@ -335,10 +413,26 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         data = {
             "title": "First dashboard",
             "widgets": [
-                {"id": str(self.widget_1.id)},
-                {"id": str(self.widget_2.id)},
-                {"id": str(self.widget_3.id)},
-                {"id": str(self.widget_4.id)},
+                {
+                    "id": str(self.widget_1.id),
+                    "columns": [],
+                    "aggregates": [],
+                },
+                {
+                    "id": str(self.widget_2.id),
+                    "columns": [],
+                    "aggregates": [],
+                },
+                {
+                    "id": str(self.widget_3.id),
+                    "columns": [],
+                    "aggregates": [],
+                },
+                {
+                    "id": str(self.widget_4.id),
+                    "columns": [],
+                    "aggregates": [],
+                },
                 {
                     "title": "Error Counts by Country",
                     "displayType": "world_map",
@@ -347,6 +441,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                         {
                             "name": "Errors",
                             "fields": [],
+                            "columns": [],
                             "aggregates": ["count()"],
                             "conditions": "event.type:error",
                         }
@@ -389,7 +484,15 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 {
                     "displayType": "line",
                     "interval": "5m",
-                    "queries": [{"name": "", "fields": ["count()"], "conditions": ""}],
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
                 },
             ],
         }
@@ -406,7 +509,15 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "displayType": "line",
                     "interval": "5m",
                     "limit": None,
-                    "queries": [{"name": "", "fields": ["count()"], "conditions": ""}],
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
                 },
                 {
                     "title": "Duration Distribution",
@@ -417,6 +528,12 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                         {
                             "name": "",
                             "fields": [
+                                "p50(transaction.duration)",
+                                "p75(transaction.duration)",
+                                "p95(transaction.duration)",
+                            ],
+                            "columns": [],
+                            "aggregates": [
                                 "p50(transaction.duration)",
                                 "p75(transaction.duration)",
                                 "p95(transaction.duration)",
@@ -454,6 +571,12 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                                 "p75(transaction.duration)",
                                 "p95(transaction.duration)",
                             ],
+                            "columns": [],
+                            "aggregates": [
+                                "p50(transaction.duration)",
+                                "p75(transaction.duration)",
+                                "p95(transaction.duration)",
+                            ],
                             "conditions": "event.type:transaction",
                         }
                     ],
@@ -482,6 +605,12 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                                 "p75(transaction.duration)",
                                 "p95(transaction.duration)",
                             ],
+                            "columns": [],
+                            "aggregates": [
+                                "p50(transaction.duration)",
+                                "p75(transaction.duration)",
+                                "p95(transaction.duration)",
+                            ],
                             "conditions": "event.type:transaction",
                         }
                     ],
@@ -501,7 +630,15 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 {
                     "title": "Errors",
                     "interval": "5m",
-                    "queries": [{"name": "", "fields": ["count()"], "conditions": ""}],
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
                 },
             ],
         }
@@ -522,6 +659,8 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                         {
                             "name": "Errors",
                             "fields": ["p95(transaction.duration)"],
+                            "columns": [],
+                            "aggregates": ["p95(transaction.duration)"],
                             "conditions": "foo: bar:",
                         }
                     ],
@@ -541,7 +680,15 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "title": "Invalid fields",
                     "displayType": "line",
                     "interval": "5m",
-                    "queries": [{"name": "Errors", "fields": ["wrong()"], "conditions": ""}],
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["wrong()"],
+                            "columns": [],
+                            "aggregates": ["wrong()"],
+                            "conditions": "",
+                        }
+                    ],
                 },
             ],
         }
@@ -557,7 +704,15 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 {
                     "title": "Invalid fields",
                     "displayType": "line",
-                    "queries": [{"name": "Errors", "fields": ["p95(user)"], "conditions": ""}],
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["p95(user)"],
+                            "columns": [],
+                            "aggregates": ["p95(user)"],
+                            "conditions": "",
+                        }
+                    ],
                 },
             ],
         }
@@ -578,6 +733,8 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                         {
                             "name": "Durations",
                             "fields": ["p95(transaction.duration)"],
+                            "columns": [],
+                            "aggregates": ["p95(transaction.duration)"],
                             "conditions": "",
                         }
                     ],
@@ -612,10 +769,16 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "id": str(self.widget_1.id),
                     "title": "New title",
                     "queries": [
-                        {"id": str(self.widget_1_data_1.id)},
+                        {
+                            "id": str(self.widget_1_data_1.id),
+                            "columns": [],
+                            "aggregates": [],
+                        },
                         {
                             "name": "transactions",
                             "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
                             "conditions": "event.type:transaction",
                         },
                     ],
@@ -648,6 +811,8 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                             "id": str(self.widget_1_data_1.id),
                             "name": "transactions",
                             "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
                             "conditions": "event.type:transaction",
                         },
                     ],
@@ -674,8 +839,16 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "id": str(self.widget_1.id),
                     "title": "New title",
                     "queries": [
-                        {"id": str(self.widget_1_data_2.id)},
-                        {"id": str(self.widget_1_data_1.id)},
+                        {
+                            "id": str(self.widget_1_data_2.id),
+                            "columns": [],
+                            "aggregates": [],
+                        },
+                        {
+                            "id": str(self.widget_1_data_1.id),
+                            "columns": [],
+                            "aggregates": [],
+                        },
                     ],
                 },
                 {"id": str(self.widget_2.id)},
@@ -700,7 +873,13 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 {
                     "id": str(self.widget_1.id),
                     "title": "New title",
-                    "queries": [{"id": str(self.widget_2_data_1.id)}],
+                    "queries": [
+                        {
+                            "id": str(self.widget_2_data_1.id),
+                            "columns": [],
+                            "aggregates": [],
+                        }
+                    ],
                 },
             ],
         }
@@ -717,6 +896,8 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "queries": [
                         {
                             "fields": ["title", "count()"],
+                            "columns": ["title"],
+                            "aggregates": ["count()"],
                             "conditions": "",
                             "orderby": "message",
                         }
@@ -739,7 +920,13 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "title": "Errors over time",
                     "displayType": "line",
                     "queries": [
-                        {"name": "Errors", "fields": ["count()"], "conditions": "event.type:error"}
+                        {
+                            "name": "Errors",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                        }
                     ],
                 },
                 {"id": str(self.widget_4.id)},
@@ -764,7 +951,15 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "id": str(self.widget_1.id),
                     "title": "Invalid fields",
                     "displayType": "line",
-                    "queries": [{"name": "Errors", "fields": ["p95(user)"], "conditions": ""}],
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["p95(user)"],
+                            "columns": [],
+                            "aggregates": ["p95(user)"],
+                            "conditions": "",
+                        }
+                    ],
                 },
             ],
         }
@@ -780,7 +975,15 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "id": str(self.widget_1.id),
                     "title": "Invalid fields",
                     "displayType": "line",
-                    "queries": [{"name": "Errors", "fields": ["p95()"], "conditions": "foo: bar:"}],
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["p95()"],
+                            "columns": [],
+                            "aggregates": ["p95()"],
+                            "conditions": "foo: bar:",
+                        }
+                    ],
                 },
             ],
         }
@@ -926,6 +1129,8 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                         {
                             "name": "transactions",
                             "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
                             "conditions": "event.type:transaction",
                         },
                     ],
@@ -1009,7 +1214,15 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "displayType": "table",
                     "widgetType": "issue",
                     "interval": "5m",
-                    "queries": [{"name": "", "fields": ["count()"], "conditions": "is:unresolved"}],
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "is:unresolved",
+                        }
+                    ],
                 },
             ],
         }
@@ -1026,7 +1239,15 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "displayType": "table",
                     "widgetType": "issue",
                     "interval": "5m",
-                    "queries": [{"name": "", "fields": ["count()"], "conditions": "is:())"}],
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "is:())",
+                        }
+                    ],
                 },
             ],
         }
@@ -1044,7 +1265,15 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "displayType": "table",
                     "widgetType": "discover",
                     "interval": "5m",
-                    "queries": [{"name": "", "fields": ["count()"], "conditions": "is:unresolved"}],
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "is:unresolved",
+                        }
+                    ],
                 },
             ],
         }
@@ -1062,14 +1291,30 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "displayType": "table",
                     "widgetType": "issue",
                     "interval": "5m",
-                    "queries": [{"name": "", "fields": ["count()"], "conditions": "is:unresolved"}],
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "is:unresolved",
+                        }
+                    ],
                 },
                 {
                     "title": "Resolved Issues",
                     "displayType": "table",
                     "widgetType": "issue",
                     "interval": "5m",
-                    "queries": [{"name": "", "fields": ["count()"], "conditions": "is:resolved"}],
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "is:resolved",
+                        }
+                    ],
                 },
                 {
                     "title": "Transactions",
@@ -1077,7 +1322,13 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "widgetType": "discover",
                     "interval": "5m",
                     "queries": [
-                        {"name": "", "fields": ["count()"], "conditions": "event.type:transaction"}
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
                     ],
                 },
                 {
@@ -1086,13 +1337,47 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "widgetType": "discover",
                     "interval": "5m",
                     "queries": [
-                        {"name": "", "fields": ["count()"], "conditions": "event.type:error"}
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                        }
                     ],
                 },
             ],
         }
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 200, response.data
+
+    def test_update_dashboard_with_filters(self):
+        project1 = self.create_project(name="foo", organization=self.organization)
+        project2 = self.create_project(name="bar", organization=self.organization)
+        data = {
+            "title": "First dashboard",
+            "projects": [project1.id, project2.id],
+            "environment": ["alpha"],
+            "period": "7d",
+            "filters": {"release": ["v1"]},
+        }
+
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+        assert response.data["projects"] == [project1.id, project2.id]
+        assert response.data["environment"] == ["alpha"]
+        assert response.data["period"] == "7d"
+        assert response.data["filters"]["release"] == ["v1"]
+
+    def test_update_dashboard_with_invalid_project_filter(self):
+        other_project = self.create_project(name="other", organization=self.create_organization())
+        data = {
+            "title": "First dashboard",
+            "projects": [other_project.id],
+        }
+
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 403, response.data
 
 
 class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):

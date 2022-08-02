@@ -1,7 +1,6 @@
 import io
 import os
 import random
-import warnings
 from binascii import hexlify
 from datetime import datetime
 from hashlib import sha1
@@ -24,6 +23,7 @@ from sentry.incidents.logic import (
     create_alert_rule,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
+    query_datasets_to_type,
 )
 from sentry.incidents.models import (
     AlertRuleThresholdType,
@@ -41,6 +41,7 @@ from sentry.mediators import (
     sentry_app_installations,
     sentry_apps,
     service_hooks,
+    token_exchange,
 )
 from sentry.models import (
     Activity,
@@ -79,6 +80,7 @@ from sentry.models import (
     Repository,
     RepositoryProjectPathConfig,
     Rule,
+    SentryAppInstallation,
     Team,
     User,
     UserEmail,
@@ -88,21 +90,17 @@ from sentry.models import (
 from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
 from sentry.models.releasefile import update_artifact_index
 from sentry.signals import project_created
-from sentry.snuba.models import QueryDatasets
+from sentry.snuba.dataset import Dataset
+from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json, loremipsum
 
 
-def get_fixture_path(name):
-    return os.path.join(
-        os.path.dirname(__file__),  # src/sentry/testutils/
-        os.pardir,  # src/sentry/
-        os.pardir,  # src/
-        os.pardir,
-        "tests",
-        "fixtures",
-        name,
-    )
+def get_fixture_path(*parts: str) -> str:
+    path = os.path.realpath(__file__)
+    for _ in range(4):  # src/sentry/testutils/{__file__}
+        path = os.path.dirname(path)
+    return os.path.join(path, "fixtures", *parts)
 
 
 def make_sentence(words=None):
@@ -261,14 +259,14 @@ class Factories:
         return om
 
     @staticmethod
-    def create_team_membership(team, member=None, user=None):
+    def create_team_membership(team, member=None, user=None, role=None):
         if member is None:
             member, _ = OrganizationMember.objects.get_or_create(
                 user=user, organization=team.organization, defaults={"role": "member"}
             )
 
         return OrganizationMemberTeam.objects.create(
-            team=team, organizationmember=member, is_active=True
+            team=team, organizationmember=member, is_active=True, role=role
         )
 
     @staticmethod
@@ -413,7 +411,7 @@ class Factories:
                 )
 
         Activity.objects.create(
-            type=Activity.RELEASE,
+            type=ActivityType.RELEASE.value,
             project=project,
             ident=Activity.get_version_ident(version),
             user=user,
@@ -612,9 +610,7 @@ class Factories:
         return event
 
     @staticmethod
-    def create_group(project, checksum=None, **kwargs):
-        if checksum:
-            warnings.warn("Checksum passed to create_group", DeprecationWarning)
+    def create_group(project, **kwargs):
         kwargs.setdefault("message", "Hello world")
         kwargs.setdefault("data", {})
         if "type" not in kwargs["data"]:
@@ -748,7 +744,9 @@ class Factories:
         return _kwargs
 
     @staticmethod
-    def create_sentry_app_installation(organization=None, slug=None, user=None, status=None):
+    def create_sentry_app_installation(
+        organization=None, slug=None, user=None, status=None, prevent_token_exchange=False
+    ):
         if not organization:
             organization = Factories.create_organization()
 
@@ -759,8 +757,18 @@ class Factories:
             organization=organization,
             user=(user or Factories.create_user()),
         )
+
         install.status = SentryAppInstallationStatus.INSTALLED if status is None else status
         install.save()
+
+        if not prevent_token_exchange and (install.sentry_app.status != SentryAppStatus.INTERNAL):
+            token_exchange.GrantExchanger.run(
+                install=install,
+                code=install.api_grant.code,
+                client_id=install.sentry_app.application.client_id,
+                user=install.sentry_app.proxy_user,
+            )
+            install = SentryAppInstallation.objects.get(id=install.id)
         return install
 
     @staticmethod
@@ -1035,7 +1043,8 @@ class Factories:
         environment=None,
         excluded_projects=None,
         date_added=None,
-        dataset=QueryDatasets.EVENTS,
+        query_type=None,
+        dataset=Dataset.Events,
         threshold_type=AlertRuleThresholdType.ABOVE,
         resolve_threshold=None,
         user=None,
@@ -1044,6 +1053,9 @@ class Factories:
     ):
         if not name:
             name = petname.Generate(2, " ", letters=10).title()
+
+        if query_type is None:
+            query_type = query_datasets_to_type[dataset]
 
         alert_rule = create_alert_rule(
             organization,
@@ -1056,6 +1068,7 @@ class Factories:
             threshold_period,
             owner=owner,
             resolve_threshold=resolve_threshold,
+            query_type=query_type,
             dataset=dataset,
             environment=environment,
             include_all_projects=include_all_projects,
@@ -1145,6 +1158,15 @@ class Factories:
         return integration
 
     @staticmethod
+    def create_integration(
+        organization: Organization, external_id: str, **kwargs: Any
+    ) -> Integration:
+        integration = Integration.objects.create(external_id=external_id, **kwargs)
+        integration.add_organization(organization)
+
+        return integration
+
+    @staticmethod
     def create_identity_provider(integration: Integration, **kwargs: Any) -> IdentityProvider:
         return IdentityProvider.objects.create(
             type=integration.provider,
@@ -1196,5 +1218,9 @@ class Factories:
     def create_comment(issue, project, user, text="hello world"):
         data = {"text": text}
         return Activity.objects.create(
-            project=project, group=issue, type=Activity.NOTE, user=user, data=data
+            project=project,
+            group=issue,
+            type=ActivityType.NOTE.value,
+            user=user,
+            data=data,
         )

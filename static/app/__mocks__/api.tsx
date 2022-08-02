@@ -7,6 +7,7 @@ const RealApi: typeof ApiNamespace = jest.requireActual('sentry/api');
 export class Request {}
 
 export const initApiClientErrorHandling = RealApi.initApiClientErrorHandling;
+export const hasProjectBeenRenamed = RealApi.hasProjectBeenRenamed;
 
 const respond = (isAsync: boolean, fn?: Function, ...args: any[]): void => {
   if (!fn) {
@@ -109,6 +110,30 @@ class Client implements ApiNamespace.Client {
         ...response,
         headers: response.headers ?? {},
         getResponseHeader: (key: string) => response.headers?.[key] ?? null,
+        rawResponse: {
+          headers: new Headers(),
+          ok: true,
+          redirected: false,
+          status: 200,
+          statusText: 'OK',
+          url: 'http://localhost',
+          bodyUsed: false,
+          body: {
+            locked: false,
+            cancel: jest.fn(),
+            getReader: jest.fn(),
+            pipeThrough: jest.fn(),
+            pipeTo: jest.fn(),
+            tee: jest.fn(),
+          },
+          blob: jest.fn(),
+          arrayBuffer: jest.fn(),
+          json: jest.fn(),
+          text: jest.fn(),
+          formData: jest.fn(),
+          clone: jest.fn(),
+          type: 'basic',
+        },
       },
       mock,
     ]);

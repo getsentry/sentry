@@ -4,16 +4,14 @@ import ButtonBar from 'sentry/components/buttonBar';
 import Field from 'sentry/components/forms/field';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {
-  aggregateFunctionOutputType,
-  isLegalYAxisType,
-  QueryFieldValue,
-} from 'sentry/utils/discover/fields';
+import {TagCollection} from 'sentry/types';
+import {QueryFieldValue} from 'sentry/utils/discover/fields';
+import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import useOrganization from 'sentry/utils/useOrganization';
-import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
-import {FieldValueOption, QueryField} from 'sentry/views/eventsV2/table/queryField';
+import {getDatasetConfig} from 'sentry/views/dashboardsV2/datasetConfig/base';
+import {DisplayType, Widget} from 'sentry/views/dashboardsV2/types';
+import {QueryField} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
-import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
 import {AddButton} from './addButton';
 import {DeleteButton} from './deleteButton';
@@ -21,11 +19,11 @@ import {DeleteButton} from './deleteButton';
 interface Props {
   aggregates: QueryFieldValue[];
   displayType: DisplayType;
-  fieldOptions: ReturnType<typeof generateFieldOptions>;
   /**
    * Fired when aggregates are added/removed/modified/reordered.
    */
   onChange: (aggregates: QueryFieldValue[]) => void;
+  tags: TagCollection;
   widgetType: Widget['widgetType'];
   errors?: Record<string, any>;
   noFieldsMessage?: string;
@@ -35,13 +33,15 @@ export function YAxisSelector({
   displayType,
   widgetType,
   aggregates,
-  fieldOptions,
+  tags,
   onChange,
   errors,
   noFieldsMessage,
 }: Props) {
   const organization = useOrganization();
-  const isMetricWidget = widgetType === WidgetType.METRICS;
+  const datasetConfig = getDatasetConfig(widgetType);
+
+  const {customMeasurements} = useCustomMeasurements();
 
   function handleAddOverlay(event: React.MouseEvent) {
     event.preventDefault();
@@ -77,96 +77,7 @@ export function YAxisSelector({
     onChange(newAggregates);
   }
 
-  function handleTopNChangeField(value: QueryFieldValue) {
-    // Top N widgets can only ever change a single y-axis
-    onChange([value]);
-  }
-
-  // Any function/field choice for Big Number widgets is legal since the
-  // data source is from an endpoint that is not timeseries-based.
-  // The function/field choice for World Map widget will need to be numeric-like.
-  // Column builder for Table widget is already handled above.
-  const doNotValidateYAxis = displayType === DisplayType.BIG_NUMBER;
-
-  function filterPrimaryOptions(option: FieldValueOption) {
-    if (widgetType === WidgetType.METRICS) {
-      if (displayType === DisplayType.TABLE) {
-        return [FieldValueKind.FUNCTION, FieldValueKind.TAG].includes(option.value.kind);
-      }
-      if (displayType === DisplayType.TOP_N) {
-        return option.value.kind === FieldValueKind.TAG;
-      }
-    }
-
-    // Only validate function names for timeseries widgets and
-    // world map widgets.
-    if (!doNotValidateYAxis && option.value.kind === FieldValueKind.FUNCTION) {
-      const primaryOutput = aggregateFunctionOutputType(
-        option.value.meta.name,
-        undefined
-      );
-      if (primaryOutput) {
-        // If a function returns a specific type, then validate it.
-        return isLegalYAxisType(primaryOutput);
-      }
-    }
-
-    return option.value.kind === FieldValueKind.FUNCTION;
-  }
-
-  function filterAggregateParameters(fieldValue: QueryFieldValue) {
-    return (option: FieldValueOption) => {
-      // Only validate function parameters for timeseries widgets and
-      // world map widgets.
-      if (doNotValidateYAxis) {
-        return true;
-      }
-
-      if (fieldValue.kind !== FieldValueKind.FUNCTION) {
-        return true;
-      }
-
-      if (isMetricWidget || option.value.kind === FieldValueKind.METRICS) {
-        return true;
-      }
-
-      const functionName = fieldValue.function[0];
-      const primaryOutput = aggregateFunctionOutputType(
-        functionName as string,
-        option.value.meta.name
-      );
-      if (primaryOutput) {
-        return isLegalYAxisType(primaryOutput);
-      }
-
-      if (option.value.kind === FieldValueKind.FUNCTION) {
-        // Functions are not legal options as an aggregate/function parameter.
-        return false;
-      }
-
-      return isLegalYAxisType(option.value.meta.dataType);
-    };
-  }
-
   const fieldError = errors?.find(error => error?.aggregates)?.aggregates;
-
-  if (displayType === DisplayType.TOP_N) {
-    const fieldValue = aggregates[aggregates.length - 1];
-    return (
-      <Field inline={false} flexibleControlStateSize error={fieldError} stacked>
-        <QueryFieldWrapper>
-          <QueryField
-            fieldValue={fieldValue}
-            fieldOptions={generateFieldOptions({organization})}
-            onChange={handleTopNChangeField}
-            filterPrimaryOptions={filterPrimaryOptions}
-            filterAggregateParameters={filterAggregateParameters(fieldValue)}
-          />
-        </QueryFieldWrapper>
-      </Field>
-    );
-  }
-
   const canDelete = aggregates.length > 1;
 
   const hideAddYAxisButtons =
@@ -181,10 +92,17 @@ export function YAxisSelector({
         <QueryFieldWrapper key={`${fieldValue}:${i}`}>
           <QueryField
             fieldValue={fieldValue}
-            fieldOptions={fieldOptions}
+            fieldOptions={datasetConfig.getTableFieldOptions(
+              organization,
+              tags,
+              customMeasurements
+            )}
             onChange={value => handleChangeQueryField(value, i)}
-            filterPrimaryOptions={filterPrimaryOptions}
-            filterAggregateParameters={filterAggregateParameters(fieldValue)}
+            filterPrimaryOptions={datasetConfig.filterYAxisOptions?.(displayType)}
+            filterAggregateParameters={datasetConfig.filterYAxisAggregateParams?.(
+              fieldValue,
+              displayType
+            )}
             otherColumns={aggregates}
             noFieldsMessage={noFieldsMessage}
           />
@@ -197,7 +115,7 @@ export function YAxisSelector({
       {!hideAddYAxisButtons && (
         <Actions gap={1}>
           <AddButton title={t('Add Overlay')} onAdd={handleAddOverlay} />
-          {!isMetricWidget && (
+          {datasetConfig.enableEquations && (
             <AddButton title={t('Add an Equation')} onAdd={handleAddEquation} />
           )}
         </Actions>

@@ -21,7 +21,6 @@ describe('MemberBadge', function () {
     const wrapper = mountWithTheme(
       <MemberBadge member={member} useLink={false} orgId="orgId" />
     );
-
     expect(wrapper.find('StyledName Link')).toHaveLength(0);
   });
 

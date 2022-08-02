@@ -1,11 +1,10 @@
 import logging
-from distutils.version import LooseVersion
 
 from django.conf import settings
 from django.core.cache import cache
+from packaging.version import Version
 
 from sentry.tasks.release_registry import SDK_INDEX_CACHE_KEY
-from sentry.utils.compat import zip
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
@@ -102,7 +101,7 @@ class UpdateSDKSuggestion(Suggestion):
             new_sdk_version = ".".join(v for v in new_sdk_version.split(".")[:2])
 
         try:
-            has_newer_version = LooseVersion(old_state.sdk_version) < LooseVersion(new_sdk_version)
+            has_newer_version = Version(old_state.sdk_version) < Version(new_sdk_version)
         except Exception:
             has_newer_version = False
 
@@ -161,6 +160,24 @@ SDK_SUPPORTED_MODULES = [
         "module_version_min": "0.11.0",
         "suggestion": EnableIntegrationSuggestion(
             "flask", "https://docs.sentry.io/platforms/python/flask/"
+        ),
+    },
+    {
+        "sdk_name": "sentry.python",
+        "sdk_version_added": "1.8.0",
+        "module_name": "starlette",
+        "module_version_min": "0.19.1",
+        "suggestion": EnableIntegrationSuggestion(
+            "starlette", "https://docs.sentry.io/platforms/python/starlette/"
+        ),
+    },
+    {
+        "sdk_name": "sentry.python",
+        "sdk_version_added": "1.8.0",
+        "module_name": "fastapi",
+        "module_version_min": "0.79.0",
+        "suggestion": EnableIntegrationSuggestion(
+            "fastapi", "https://docs.sentry.io/platforms/python/fastapi/"
         ),
     },
     {
@@ -386,15 +403,13 @@ def _get_suggested_updates_step(setup_state, index_state, ignore_patch_version):
             continue
 
         try:
-            if LooseVersion(support_info["sdk_version_added"]) > LooseVersion(
-                setup_state.sdk_version
-            ):
+            if Version(support_info["sdk_version_added"]) > Version(setup_state.sdk_version):
                 continue
         except Exception:
             continue
 
         try:
-            if LooseVersion(support_info["module_version_min"]) > LooseVersion(
+            if Version(support_info["module_version_min"]) > Version(
                 setup_state.modules[support_info["module_name"]]
             ):
                 # TODO(markus): Maybe we want to suggest people to upgrade their module?

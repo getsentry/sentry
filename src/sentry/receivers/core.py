@@ -7,7 +7,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.db import connections, transaction
 from django.db.models.signals import post_migrate, post_save
 from django.db.utils import OperationalError, ProgrammingError
-from pkg_resources import parse_version as Version
+from packaging.version import parse as parse_version
 
 from sentry import options
 from sentry.models import Organization, OrganizationMember, Project, ProjectKey, Team, User
@@ -113,7 +113,7 @@ def set_sentry_version(latest=None, **kwargs):
     version = options.get("sentry:latest_version")
 
     for ver in (current, version):
-        if Version(ver) >= Version(latest):
+        if parse_version(ver) >= parse_version(latest):
             latest = ver
 
     if latest == version:

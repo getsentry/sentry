@@ -1,4 +1,3 @@
-import * as React from 'react';
 import DocumentTitle from 'react-document-title';
 
 type Props = {

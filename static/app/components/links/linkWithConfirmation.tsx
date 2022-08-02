@@ -1,13 +1,13 @@
-import * as React from 'react';
-import classNames from 'classnames';
-
 import {ButtonProps} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+
+import Anchor from './anchor';
 
 type Props = {
   message: React.ReactNode;
   onConfirm: () => void;
   title: string;
+  children?: React.ReactNode;
   className?: string;
   disabled?: boolean;
   priority?: ButtonProps['priority'];
@@ -16,17 +16,20 @@ type Props = {
 /**
  * <Confirm> is a more generic version of this component
  */
-class LinkWithConfirmation extends React.PureComponent<Props> {
-  render() {
-    const {className, disabled, title, children, ...otherProps} = this.props;
-    return (
-      <Confirm {...otherProps} disabled={disabled}>
-        <a href="#" className={classNames(className || '', {disabled})} title={title}>
-          {children}
-        </a>
-      </Confirm>
-    );
-  }
+function LinkWithConfirmation({
+  className,
+  disabled,
+  title,
+  children,
+  ...otherProps
+}: Props) {
+  return (
+    <Confirm {...otherProps} disabled={disabled}>
+      <Anchor href="#" className={className} disabled={disabled} title={title}>
+        {children}
+      </Anchor>
+    </Confirm>
+  );
 }
 
 export default LinkWithConfirmation;

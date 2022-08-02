@@ -7,7 +7,6 @@ import click
 import sentry_sdk
 
 import sentry
-from sentry.utils.compat import map
 from sentry.utils.imports import import_string
 
 # We need to run this here because of a concurrency bug in Python's locale
@@ -55,6 +54,7 @@ for cmd in map(
         "sentry.runner.commands.devserver.devserver",
         "sentry.runner.commands.django.django",
         "sentry.runner.commands.exec.exec_",
+        "sentry.runner.commands.sendmail.sendmail",
         "sentry.runner.commands.execfile.execfile",
         "sentry.runner.commands.files.files",
         "sentry.runner.commands.help.help",

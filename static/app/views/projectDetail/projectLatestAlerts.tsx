@@ -12,10 +12,8 @@ import TimeSince from 'sentry/components/timeSince';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconCheckmark, IconExclamation, IconFire, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {Theme} from 'sentry/utils/theme';
 
 import {Incident, IncidentStatus} from '../alerts/types';
 
@@ -163,7 +161,14 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
               ? tct('Resolved [date]', {
                   date: dateClosed ? <TimeSince date={dateClosed} /> : null,
                 })
-              : tct('Triggered [date]', {date: <TimeSince date={dateStarted} />})}
+              : tct('Triggered [date]', {
+                  date: (
+                    <TimeSince
+                      date={dateStarted}
+                      tooltipUnderlineColor={getStatusColor(statusProps)}
+                    />
+                  ),
+                })}
           </AlertDate>
         </AlertDetails>
       </AlertRowLink>
@@ -241,12 +246,8 @@ type StatusColorProps = {
   isWarning: boolean;
 };
 
-const getStatusColor = ({
-  theme,
-  isResolved,
-  isWarning,
-}: {theme: Theme} & StatusColorProps) =>
-  isResolved ? theme.green300 : isWarning ? theme.yellow300 : theme.red300;
+const getStatusColor = ({isResolved, isWarning}: StatusColorProps) =>
+  isResolved ? 'green300' : isWarning ? 'yellow300' : 'red300';
 
 const AlertBadgeWrapper = styled('div')<{icon: React.ReactNode} & StatusColorProps>`
   display: flex;
@@ -260,7 +261,7 @@ const AlertBadgeWrapper = styled('div')<{icon: React.ReactNode} & StatusColorPro
 const AlertDetails = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   margin-left: ${space(1.5)};
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
   line-height: 1.35;
 `;
 
@@ -271,7 +272,7 @@ const AlertTitle = styled('div')`
 `;
 
 const AlertDate = styled('span')<StatusColorProps>`
-  color: ${p => getStatusColor(p)};
+  color: ${p => p.theme[getStatusColor(p)]};
 `;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`

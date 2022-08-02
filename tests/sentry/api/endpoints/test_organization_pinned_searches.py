@@ -25,7 +25,7 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
         query = "test"
         search_type = SearchType.ISSUE.value
         sort = SortOptions.DATE
-        self.get_valid_response(type=search_type, query=query, sort=sort, status_code=201)
+        self.get_success_response(type=search_type, query=query, sort=sort, status_code=201)
         assert SavedSearch.objects.filter(
             organization=self.organization,
             name=PINNED_SEARCH_NAME,
@@ -36,7 +36,7 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
         ).exists()
 
         query = "test_2"
-        self.get_valid_response(type=search_type, query=query, sort=sort, status_code=201)
+        self.get_success_response(type=search_type, query=query, sort=sort, status_code=201)
         assert SavedSearch.objects.filter(
             organization=self.organization,
             name=PINNED_SEARCH_NAME,
@@ -46,7 +46,7 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
             sort=sort,
         ).exists()
 
-        self.get_valid_response(type=SearchType.EVENT.value, query=query, status_code=201)
+        self.get_success_response(type=SearchType.EVENT.value, query=query, status_code=201)
         assert SavedSearch.objects.filter(
             organization=self.organization,
             name=PINNED_SEARCH_NAME,
@@ -63,7 +63,7 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
         ).exists()
 
         self.login_as(self.user)
-        self.get_valid_response(type=search_type, query=query, status_code=201)
+        self.get_success_response(type=search_type, query=query, status_code=201)
         assert SavedSearch.objects.filter(
             organization=self.organization,
             name=PINNED_SEARCH_NAME,
@@ -84,7 +84,7 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
             organization=self.organization, name="foo", query="some test", date_added=timezone.now()
         )
         self.login_as(self.user)
-        resp = self.get_valid_response(
+        resp = self.get_success_response(
             type=org_search.type, query=org_search.query, status_code=201
         )
         assert resp.data["isPinned"]
@@ -95,7 +95,7 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
             name="Global Query", query="global query", is_global=True, date_added=timezone.now()
         )
         self.login_as(self.user)
-        resp = self.get_valid_response(
+        resp = self.get_success_response(
             type=global_search.type, query=global_search.query, status_code=201
         )
         assert resp.data["isPinned"]
@@ -110,7 +110,7 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
             query="wat",
         )
         self.login_as(self.user)
-        resp = self.get_valid_response(
+        resp = self.get_success_response(
             sort=SortOptions.DATE, type=saved_search.type, query=saved_search.query, status_code=201
         )
         assert resp.data["isPinned"]
@@ -151,13 +151,13 @@ class DeleteOrganizationPinnedSearchTest(APITestCase):
         )
 
         self.login_as(self.member)
-        self.get_valid_response(type=saved_search.type, status_code=204)
+        self.get_success_response(type=saved_search.type, status_code=204)
         assert not SavedSearch.objects.filter(id=saved_search.id).exists()
         assert SavedSearch.objects.filter(id=other_saved_search.id).exists()
 
         # Test calling multiple times works ok, doesn't cause other rows to
         # delete
-        self.get_valid_response(type=saved_search.type, status_code=204)
+        self.get_success_response(type=saved_search.type, status_code=204)
         assert SavedSearch.objects.filter(id=other_saved_search.id).exists()
 
     def test_invalid_type(self):

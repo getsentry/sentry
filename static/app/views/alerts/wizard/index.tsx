@@ -15,29 +15,34 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
+import {logExperiment} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import withProjects from 'sentry/utils/withProjects';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
-import {Dataset} from 'sentry/views/alerts/incidentRules/types';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleType} from 'sentry/views/alerts/types';
+
+import {PRESET_AGGREGATES} from '../rules/metric/presets';
 
 import {
   AlertType,
   AlertWizardAlertNames,
-  AlertWizardPanelContent,
   AlertWizardRuleTemplates,
   getAlertWizardCategories,
   WizardRuleTemplate,
 } from './options';
+import {AlertWizardPanelContent} from './panelContent';
 import RadioPanelGroup from './radioPanelGroup';
 
 type RouteParams = {
   orgId: string;
-  projectId: string;
+  projectId?: string;
 };
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
-  project: Project;
+  projectId: string;
+  projects: Project[];
 };
 
 type State = {
@@ -48,7 +53,10 @@ const DEFAULT_ALERT_OPTION = 'issues';
 
 class AlertWizard extends Component<Props, State> {
   state: State = {
-    alertOption: DEFAULT_ALERT_OPTION,
+    alertOption:
+      this.props.location.query.alert_option in AlertWizardAlertNames
+        ? this.props.location.query.alert_option
+        : DEFAULT_ALERT_OPTION,
   };
 
   componentDidMount() {
@@ -70,18 +78,14 @@ class AlertWizard extends Component<Props, State> {
   };
 
   renderCreateAlertButton() {
-    const {
-      organization,
-      location,
-      params: {projectId},
-    } = this.props;
+    const {organization, location, params, projectId: _projectId} = this.props;
     const {alertOption} = this.state;
+    const projectId = params.projectId ?? _projectId;
+    const project = this.props.projects.find(p => p.slug === projectId);
     let metricRuleTemplate: Readonly<WizardRuleTemplate> | undefined =
       AlertWizardRuleTemplates[alertOption];
     const isMetricAlert = !!metricRuleTemplate;
     const isTransactionDataset = metricRuleTemplate?.dataset === Dataset.TRANSACTIONS;
-
-    const hasAlertWizardV3 = organization.features.includes('alert-wizard-v3');
 
     if (
       organization.features.includes('alert-crash-free-metrics') &&
@@ -90,35 +94,27 @@ class AlertWizard extends Component<Props, State> {
       metricRuleTemplate = {...metricRuleTemplate, dataset: Dataset.METRICS};
     }
 
+    const supportedPreset = PRESET_AGGREGATES.filter(
+      agg => agg.alertType === alertOption
+    )[0];
     const to = {
-      pathname: hasAlertWizardV3
-        ? `/organizations/${organization.slug}/alerts/new/${
-            isMetricAlert ? AlertRuleType.METRIC : AlertRuleType.ISSUE
-          }/`
-        : `/organizations/${organization.slug}/alerts/${projectId}/new/`,
-      query: hasAlertWizardV3
-        ? {
-            ...(metricRuleTemplate ? metricRuleTemplate : {}),
-            project: projectId,
-            createFromV3: true,
-            referrer: location?.query?.referrer,
-          }
-        : {
-            ...(metricRuleTemplate ? metricRuleTemplate : {}),
-            createFromWizard: true,
-            referrer: location?.query?.referrer,
-          },
+      pathname: `/organizations/${organization.slug}/alerts/new/${
+        isMetricAlert ? AlertRuleType.METRIC : AlertRuleType.ISSUE
+      }/`,
+      query: {
+        ...(metricRuleTemplate ? metricRuleTemplate : {}),
+        project: projectId,
+        referrer: location?.query?.referrer,
+      },
     };
 
-    const noFeatureMessage = t('Requires incidents feature.');
     const renderNoAccess = p => (
       <Hovercard
         body={
           <FeatureDisabled
             features={p.features}
             hideHelpToggle
-            message={noFeatureMessage}
-            featureName={noFeatureMessage}
+            featureName={t('Metric Alerts')}
           />
         }
       >
@@ -126,13 +122,27 @@ class AlertWizard extends Component<Props, State> {
       </Hovercard>
     );
 
+    let showUseTemplateBtn: boolean =
+      !!project?.firstTransactionEvent &&
+      isMetricAlert &&
+      metricRuleTemplate?.dataset === Dataset.TRANSACTIONS &&
+      !!supportedPreset;
+    if (showUseTemplateBtn) {
+      logExperiment({
+        key: 'MetricAlertPresetExperiment',
+        organization,
+      });
+    }
+    showUseTemplateBtn =
+      showUseTemplateBtn && !!organization.experiments.MetricAlertPresetExperiment;
+
     return (
       <Feature
         features={
           isTransactionDataset
-            ? ['incidents', 'performance-view']
+            ? ['organizations:incidents', 'organizations:performance-view']
             : isMetricAlert
-            ? ['incidents']
+            ? ['organizations:incidents']
             : []
         }
         requireAll
@@ -149,6 +159,30 @@ class AlertWizard extends Component<Props, State> {
               })
             }
           >
+            {showUseTemplateBtn && (
+              <CreateAlertButton
+                organization={organization}
+                projectSlug={projectId}
+                disabled={!hasFeature}
+                priority="default"
+                to={{
+                  pathname: to.pathname,
+                  query: {
+                    ...to.query,
+                    preset: supportedPreset.id,
+                  },
+                }}
+                onEnter={() => {
+                  trackAdvancedAnalyticsEvent('growth.metric_alert_preset_use_template', {
+                    organization,
+                    preset: supportedPreset.id,
+                  });
+                }}
+                hideIcon
+              >
+                {t('Use Template')}
+              </CreateAlertButton>
+            )}
             <CreateAlertButton
               organization={organization}
               projectSlug={projectId}
@@ -166,13 +200,9 @@ class AlertWizard extends Component<Props, State> {
   }
 
   render() {
-    const {
-      organization,
-      params: {projectId},
-      routes,
-      location,
-    } = this.props;
+    const {organization, params, projectId: _projectId, routes, location} = this.props;
     const {alertOption} = this.state;
+    const projectId = params.projectId ?? _projectId;
     const title = t('Alert Creation Wizard');
     const panelContent = AlertWizardPanelContent[alertOption];
     return (
@@ -334,6 +364,9 @@ const WizardFooter = styled('div')`
 const WizardButtonContainer = styled('div')`
   display: flex;
   justify-content: flex-end;
+  a:not(:last-child) {
+    margin-right: ${space(1)};
+  }
 `;
 
-export default AlertWizard;
+export default withProjects(AlertWizard);

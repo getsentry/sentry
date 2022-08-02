@@ -1,20 +1,20 @@
 import base64
 import os
 import resource
+import socketserver
 import stat
 import sys
 import time
 import traceback
 from optparse import make_option
 
-import SocketServer
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.encoding import force_str
 
 from sentry.utils import json
 
 
-class ForkingUnixStreamServer(SocketServer.ForkingMixIn, SocketServer.UnixStreamServer):
+class ForkingUnixStreamServer(socketserver.ForkingMixIn, socketserver.UnixStreamServer):
     pass
 
 
@@ -119,7 +119,7 @@ class MetricCollector:
         return metrics
 
 
-class EventNormalizeHandler(SocketServer.BaseRequestHandler):
+class EventNormalizeHandler(socketserver.BaseRequestHandler):
     """
     The request handler class for our server.
     It is instantiated once per connection to the server, and must
@@ -213,23 +213,23 @@ class Command(BaseCommand):
             self._check_socket_path(socket_file)
             self.stdout.write(f"Binding to unix socket: {socket_file}\n")
             if threading:
-                server = SocketServer.ThreadingUnixStreamServer(socket_file, EventNormalizeHandler)
+                server = socketserver.ThreadingUnixStreamServer(socket_file, EventNormalizeHandler)
                 server.daemon_threads = True
             elif forking:
                 server = ForkingUnixStreamServer(socket_file, EventNormalizeHandler)
             else:
-                server = SocketServer.UnixStreamServer(socket_file, EventNormalizeHandler)
+                server = socketserver.UnixStreamServer(socket_file, EventNormalizeHandler)
         elif network_socket:
             host, port = network_socket.split(":")
             port = int(port)
             self.stdout.write(f"Binding to network socket: {host}:{port}\n")
             if threading:
-                server = SocketServer.ThreadingTCPServer((host, port), EventNormalizeHandler)
+                server = socketserver.ThreadingTCPServer((host, port), EventNormalizeHandler)
                 server.daemon_threads = True
             elif forking:
-                server = SocketServer.ForkingTCPServer((host, port), EventNormalizeHandler)
+                server = socketserver.ForkingTCPServer((host, port), EventNormalizeHandler)
             else:
-                server = SocketServer.TCPServer((host, port), EventNormalizeHandler)
+                server = socketserver.TCPServer((host, port), EventNormalizeHandler)
         else:
             raise CommandError("No connection option specified")
 

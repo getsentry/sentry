@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 
@@ -112,7 +113,6 @@ function DebugFileCustomRepository({
               <HookedAppStoreConnectMultiple organization={organization}>
                 <FeatureDisabled
                   features={features}
-                  message={t('This feature is not enabled on your Sentry installation.')}
                   featureName={t('App Store Connect Multiple')}
                   hideHelpToggle
                 />
@@ -182,7 +182,6 @@ function DebugFileCustomRepository({
             <HookedCustomSymbolSources organization={organization}>
               <FeatureDisabled
                 features={features}
-                message={t('This feature is not enabled on your Sentry installation.')}
                 featureName={t('Custom Symbol Sources')}
                 hideHelpToggle
               />

@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import {getDuration, getExactDuration} from 'sentry/utils/formatters';
 
 interface Props extends React.HTMLAttributes<HTMLSpanElement> {

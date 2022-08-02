@@ -1,11 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Mapping
-
-from typing_extensions import Literal
-
-from sentry.utils.types import Any, Sequence
+from typing import Any, Literal, Mapping, Sequence
 
 
 @dataclass

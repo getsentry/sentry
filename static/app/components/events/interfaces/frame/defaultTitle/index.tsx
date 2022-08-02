@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import AnnotatedText from 'sentry/components/events/meta/annotatedText';
@@ -201,7 +201,7 @@ const DefaultTitle = ({frame, platform, isHoverPreviewed, isUsedForGrouping}: Pr
     title.push(<StyledGroupingIndicator key="info-tooltip" />);
   }
 
-  return <React.Fragment>{title}</React.Fragment>;
+  return <Fragment>{title}</Fragment>;
 };
 
 export default DefaultTitle;

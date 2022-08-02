@@ -1,47 +1,108 @@
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from typing import Any, Dict, Optional
+from urllib.parse import urlencode, urlparse
 
-import google.auth.transport.requests
-import google.oauth2.id_token
+import urllib3
 from django.conf import settings
-from django.http import HttpResponse
-from parsimonious.exceptions import ParseError  # type: ignore
-from requests import Response
+from django.http import StreamingHttpResponse
+from parsimonious.exceptions import ParseError
+from urllib3.response import HTTPResponse
 
 from sentry.api.event_search import SearchFilter, parse_search_query
 from sentry.exceptions import InvalidSearchQuery
-from sentry.http import safe_urlopen
+from sentry.net.http import connection_from_url
+from sentry.utils import json, metrics
+
+
+class RetrySkipTimeout(urllib3.Retry):
+    """
+    urllib3 Retry class does not allow us to retry on read errors but to exclude
+    read timeout. Retrying after a timeout adds useless load to Snuba.
+    """
+
+    def increment(
+        self, method=None, url=None, response=None, error=None, _pool=None, _stacktrace=None
+    ):
+        """
+        Just rely on the parent class unless we have a read timeout. In that case
+        immediately give up
+        """
+        if error and isinstance(error, urllib3.exceptions.ReadTimeoutError):
+            raise error.with_traceback(_stacktrace)
+
+        metrics.incr(
+            "profiling.client.retry",
+            tags={"method": method, "path": urlparse(url).path if url else None},
+        )
+        return super().increment(
+            method=method,
+            url=url,
+            response=response,
+            error=error,
+            _pool=_pool,
+            _stacktrace=_stacktrace,
+        )
+
+
+_profiling_pool = connection_from_url(
+    settings.SENTRY_PROFILING_SERVICE_URL,
+    retries=RetrySkipTimeout(
+        total=3,
+        allowed_methods={"GET", "POST"},
+    ),
+    timeout=30,
+    maxsize=10,
+)
 
 
 def get_from_profiling_service(
-    method: str, path: str, params: Optional[Dict[Any, Any]] = None
-) -> Response:
-    kwargs: Dict[str, Any] = {"method": method}
+    method: str,
+    path: str,
+    params: Optional[Dict[Any, Any]] = None,
+    headers: Optional[Dict[Any, Any]] = None,
+    json_data: Any = None,
+) -> HTTPResponse:
+    kwargs: Dict[str, Any] = {"headers": {}, "preload_content": False}
     if params:
-        kwargs["params"] = params
-    if settings.ENVIRONMENT == "production":
-        id_token = fetch_id_token_for_service(settings.SENTRY_PROFILING_SERVICE_URL)
-        kwargs["headers"] = {"Authorization": f"Bearer {id_token}"}
-    return safe_urlopen(
-        f"{settings.SENTRY_PROFILING_SERVICE_URL}{path}",
+        params = {
+            key: value.isoformat() if isinstance(value, datetime) else value
+            for key, value in params.items()
+        }
+        path = f"{path}?{urlencode(params, doseq=True)}"
+    if headers:
+        kwargs["headers"].update(headers)
+    if json_data:
+        kwargs["headers"]["Content-Type"] = "application/json"
+        kwargs["body"] = json.dumps(json_data)
+    return _profiling_pool.urlopen(
+        method,
+        path,
         **kwargs,
     )
 
 
 def proxy_profiling_service(
-    method: str, path: str, params: Optional[Dict[Any, Any]] = None
-) -> HttpResponse:
-    profiling_response = get_from_profiling_service(method, path, params=params)
-    response = HttpResponse(
-        content=profiling_response.content, status=profiling_response.status_code
+    method: str,
+    path: str,
+    params: Optional[Dict[str, Any]] = None,
+    headers: Optional[Dict[str, str]] = None,
+) -> StreamingHttpResponse:
+    profiling_response = get_from_profiling_service(method, path, params=params, headers=headers)
+
+    def stream():
+        yield from profiling_response.stream(decode_content=False)
+
+    response = StreamingHttpResponse(
+        streaming_content=stream(),
+        status=profiling_response.status,
+        content_type=profiling_response.headers.get("Content_type", "application/json"),
     )
-    if "Content-Type" in profiling_response.headers:
-        response["Content-Type"] = profiling_response.headers["Content-Type"]
+
+    for h in ["Content-Encoding", "Vary"]:
+        if h in profiling_response.headers:
+            response[h] = profiling_response.headers[h]
+
     return response
-
-
-def fetch_id_token_for_service(service_url: str) -> str:
-    auth_req = google.auth.transport.requests.Request()
-    return google.oauth2.id_token.fetch_id_token(auth_req, service_url)
 
 
 PROFILE_FILTERS = {
@@ -59,7 +120,7 @@ PROFILE_FILTERS = {
 }
 
 
-def parse_profile_filters(query: str) -> Dict[str, List[str]]:
+def parse_profile_filters(query: str) -> Dict[str, str]:
     try:
         parsed_terms = parse_search_query(query)
     except ParseError as e:

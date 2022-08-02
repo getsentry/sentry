@@ -25,8 +25,6 @@ const doCallback = (
 type OrgSlug = {orgId: string};
 type OrgAndTeamSlug = OrgSlug & {teamId: string};
 
-type TeamData = {data: Team};
-
 /**
  * This is the actual internal id, not username or email
  */
@@ -73,28 +71,6 @@ export function fetchTeamDetails(
 
 export function updateTeamSuccess(teamId: OrgAndTeamSlug['teamId'], data: Team) {
   TeamActions.updateSuccess(teamId, data);
-}
-
-export function updateTeam(
-  api: Client,
-  params: OrgAndTeamSlug & TeamData,
-  options: CallbackOptions
-) {
-  const endpoint = `/teams/${params.orgId}/${params.teamId}/`;
-  TeamActions.update(params.teamId, params.data);
-
-  return api.request(endpoint, {
-    method: 'PUT',
-    data: params.data,
-    success: data => {
-      updateTeamSuccess(params.teamId, data);
-      doCallback(options, 'success', data);
-    },
-    error: error => {
-      TeamActions.updateError(params.teamId, error);
-      doCallback(options, 'error', error);
-    },
-  });
 }
 
 export function joinTeam(

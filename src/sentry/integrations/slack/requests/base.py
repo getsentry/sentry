@@ -124,7 +124,7 @@ class SlackRequest:
         try:
             idp = IdentityProvider.objects.get(type="slack", external_id=self.team_id)
         except IdentityProvider.DoesNotExist as e:
-            logger.error("slack.action.invalid-team-id", extra={"slack_team": self.team_id})
+            logger.info("slack.action.invalid-team-id", extra={"slack_team": self.team_id})
             raise e
 
         try:
@@ -172,7 +172,7 @@ class SlackRequest:
         try:
             self._integration = Integration.objects.get(provider="slack", external_id=self.team_id)
         except Integration.DoesNotExist:
-            self._error("slack.action.invalid-team-id")
+            self._info("slack.action.invalid-team-id")
             raise SlackRequestError(status=status_.HTTP_403_FORBIDDEN)
 
     def _log_request(self) -> None:

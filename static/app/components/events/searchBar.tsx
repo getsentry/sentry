@@ -1,16 +1,13 @@
-import * as React from 'react';
-import {ClassNames} from '@emotion/react';
+import {useEffect} from 'react';
 import assign from 'lodash/assign';
 import flatten from 'lodash/flatten';
-import isEqual from 'lodash/isEqual';
 import memoize from 'lodash/memoize';
 import omit from 'lodash/omit';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
-import {Client} from 'sentry/api';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
-import {Organization, SavedSearchType, TagCollection} from 'sentry/types';
+import {Organization, SavedSearchType, Tag, TagCollection} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {
   Field,
@@ -21,8 +18,9 @@ import {
   SEMVER_TAGS,
   TRACING_FIELDS,
 } from 'sentry/utils/discover/fields';
+import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import Measurements from 'sentry/utils/measurements/measurements';
-import withApi from 'sentry/utils/withApi';
+import useApi from 'sentry/utils/useApi';
 import withTags from 'sentry/utils/withTags';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
@@ -30,36 +28,93 @@ const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   'g'
 );
 
+const getFunctionTags = (fields: Readonly<Field[]>) =>
+  Object.fromEntries(
+    fields
+      .filter(
+        item => !Object.keys(FIELD_TAGS).includes(item.field) && !isEquation(item.field)
+      )
+      .map(item => [
+        item.field,
+        {key: item.field, name: item.field, kind: FieldKind.FUNCTION},
+      ])
+  );
+
+const getFieldTags = () =>
+  Object.fromEntries(
+    Object.keys(FIELD_TAGS).map(key => [
+      key,
+      {
+        ...FIELD_TAGS[key],
+        kind: FieldKind.FIELD,
+      },
+    ])
+  );
+
+const getMeasurementTags = (
+  measurements: Parameters<
+    React.ComponentProps<typeof Measurements>['children']
+  >[0]['measurements']
+) =>
+  Object.fromEntries(
+    Object.keys(measurements).map(key => [
+      key,
+      {
+        ...measurements[key],
+        kind: FieldKind.MEASUREMENT,
+      },
+    ])
+  );
+
+const getSemverTags = () =>
+  Object.fromEntries(
+    Object.keys(SEMVER_TAGS).map(key => [
+      key,
+      {
+        ...SEMVER_TAGS[key],
+        kind: FieldKind.FIELD,
+      },
+    ])
+  );
+
 export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, 'tags'> & {
-  api: Client;
   organization: Organization;
   tags: TagCollection;
   fields?: Readonly<Field[]>;
   includeSessionTagsValues?: boolean;
+  /**
+   * Used to define the max height of the menu in px.
+   */
+  maxMenuHeight?: number;
+  maxSearchItems?: React.ComponentProps<typeof SmartSearchBar>['maxSearchItems'];
   omitTags?: string[];
   projectIds?: number[] | Readonly<number[]>;
 };
 
-class SearchBar extends React.PureComponent<SearchBarProps> {
-  componentDidMount() {
+function SearchBar(props: SearchBarProps) {
+  const {
+    maxSearchItems,
+    organization,
+    tags,
+    omitTags,
+    fields,
+    projectIds,
+    includeSessionTagsValues,
+    maxMenuHeight,
+  } = props;
+
+  const api = useApi();
+
+  useEffect(() => {
     // Clear memoized data on mount to make tests more consistent.
-    this.getEventFieldValues.cache.clear?.();
-  }
+    getEventFieldValues.cache.clear?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectIds]);
 
-  componentDidUpdate(prevProps) {
-    if (!isEqual(this.props.projectIds, prevProps.projectIds)) {
-      // Clear memoized data when projects change.
-      this.getEventFieldValues.cache.clear?.();
-    }
-  }
-
-  /**
-   * Returns array of tag values that substring match `query`; invokes `callback`
-   * with data when ready
-   */
-  getEventFieldValues = memoize(
+  // Returns array of tag values that substring match `query`; invokes `callback`
+  // with data when ready
+  const getEventFieldValues = memoize(
     (tag, query, endpointParams): Promise<string[]> => {
-      const {api, organization, projectIds, includeSessionTagsValues} = this.props;
       const projectIdStrings = (projectIds as Readonly<number>[])?.map(String);
 
       if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
@@ -92,72 +147,70 @@ class SearchBar extends React.PureComponent<SearchBarProps> {
     ({key}, query) => `${key}-${query}`
   );
 
-  /**
-   * Prepare query string (e.g. strip special characters like negation operator)
-   */
-  prepareQuery = query => query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
-
-  getTagList(
+  const getTagList = (
     measurements: Parameters<
       React.ComponentProps<typeof Measurements>['children']
     >[0]['measurements']
-  ) {
-    const {fields, organization, tags, omitTags} = this.props;
+  ) => {
+    const functionTags = getFunctionTags(fields ?? []);
+    const fieldTags = getFieldTags();
+    const measurementsWithKind = getMeasurementTags(measurements);
+    const semverTags = getSemverTags();
 
-    const functionTags = fields
-      ? Object.fromEntries(
-          fields
-            .filter(
-              item =>
-                !Object.keys(FIELD_TAGS).includes(item.field) && !isEquation(item.field)
-            )
-            .map(item => [item.field, {key: item.field, name: item.field}])
-        )
-      : {};
+    const orgHasPerformanceView = organization.features.includes('performance-view');
 
-    const fieldTags = organization.features.includes('performance-view')
-      ? Object.assign({}, measurements, FIELD_TAGS, functionTags)
-      : omit(FIELD_TAGS, TRACING_FIELDS);
+    const combinedTags: Record<string, Tag> = orgHasPerformanceView
+      ? Object.assign({}, measurementsWithKind, fieldTags, functionTags)
+      : omit(fieldTags, TRACING_FIELDS);
 
-    const combined = assign({}, tags, fieldTags, SEMVER_TAGS);
-    combined.has = {
-      key: 'has',
+    const tagsWithKind = Object.fromEntries(
+      Object.keys(tags).map(key => [
+        key,
+        {
+          ...tags[key],
+          kind: FieldKind.TAG,
+        },
+      ])
+    );
+
+    assign(combinedTags, tagsWithKind, fieldTags, semverTags);
+
+    const sortedTagKeys = Object.keys(combinedTags);
+    sortedTagKeys.sort((a, b) => {
+      return a.toLowerCase().localeCompare(b.toLowerCase());
+    });
+
+    combinedTags.has = {
+      key: FieldKey.HAS,
       name: 'Has property',
-      values: Object.keys(combined),
+      values: sortedTagKeys,
       predefined: true,
+      kind: FieldKind.FIELD,
     };
 
-    return omit(combined, omitTags ?? []);
-  }
+    return omit(combinedTags, omitTags ?? []);
+  };
 
-  render() {
-    return (
-      <Measurements>
-        {({measurements}) => {
-          const tags = this.getTagList(measurements);
-          return (
-            <ClassNames>
-              {({css}) => (
-                <SmartSearchBar
-                  hasRecentSearches
-                  savedSearchType={SavedSearchType.EVENT}
-                  onGetTagValues={this.getEventFieldValues}
-                  supportedTags={tags}
-                  prepareQuery={this.prepareQuery}
-                  excludeEnvironment
-                  dropdownClassName={css`
-                    max-height: 300px;
-                    overflow-y: auto;
-                  `}
-                  {...this.props}
-                />
-              )}
-            </ClassNames>
-          );
-        }}
-      </Measurements>
-    );
-  }
+  return (
+    <Measurements>
+      {({measurements}) => (
+        <SmartSearchBar
+          hasRecentSearches
+          savedSearchType={SavedSearchType.EVENT}
+          onGetTagValues={getEventFieldValues}
+          supportedTags={getTagList(measurements)}
+          prepareQuery={query => {
+            // Prepare query string (e.g. strip special characters like negation operator)
+            return query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
+          }}
+          maxSearchItems={maxSearchItems}
+          excludeEnvironment
+          maxMenuHeight={maxMenuHeight ?? 300}
+          {...props}
+        />
+      )}
+    </Measurements>
+  );
 }
 
-export default withApi(withTags(SearchBar));
+export default withTags(SearchBar);

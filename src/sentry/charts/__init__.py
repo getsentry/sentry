@@ -2,7 +2,7 @@ from django.conf import settings
 
 from sentry.utils.services import LazyServiceWrapper
 
-from .base import ChartRenderer  # NOQA
+from .base import ChartRenderer
 
 # The charts module provides a service to interface with the external
 # Chartcuterie service, which produces charts as images.

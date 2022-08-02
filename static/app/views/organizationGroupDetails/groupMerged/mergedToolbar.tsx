@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
@@ -26,10 +26,11 @@ type State = {
   unmergeList: Map<any, any>;
 };
 
-class MergedToolbar extends React.Component<Props, State> {
+class MergedToolbar extends Component<Props, State> {
   state: State = this.getInitialState();
 
   getInitialState() {
+    // @ts-ignore GroupingStore types are not correct, store.init dinamically sets these
     const {unmergeList, unmergeLastCollapsed, unmergeDisabled, enableFingerprintCompare} =
       GroupingStore;
 
@@ -104,7 +105,7 @@ class MergedToolbar extends React.Component<Props, State> {
             )}
           >
             <Button
-              size="small"
+              size="sm"
               title={tct('Unmerging [unmergeCount] events', {unmergeCount})}
             >
               {t('Unmerge')} ({unmergeCount || 0})
@@ -112,14 +113,14 @@ class MergedToolbar extends React.Component<Props, State> {
           </Confirm>
 
           <CompareButton
-            size="small"
+            size="sm"
             disabled={!enableFingerprintCompare}
             onClick={this.handleShowDiff}
           >
             {t('Compare')}
           </CompareButton>
         </div>
-        <Button size="small" onClick={onToggleCollapse}>
+        <Button size="sm" onClick={onToggleCollapse}>
           {unmergeLastCollapsed ? t('Expand All') : t('Collapse All')}
         </Button>
       </PanelHeader>

@@ -11,13 +11,16 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
 )
+from sentry.models.user import User
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
-
 
 # XXX(dcramer): this is a compatibility layer to transition to pytest-based fixtures
 # all of the memoized fixtures are copypasta due to our inability to use pytest fixtures
 # on a per-class method basis
+from sentry.types.activity import ActivityType
+
+
 class Fixtures:
     @cached_property
     def session(self):
@@ -79,7 +82,11 @@ class Fixtures:
     @cached_property
     def activity(self):
         return Activity.objects.create(
-            group=self.group, project=self.project, type=Activity.NOTE, user=self.user, data={}
+            group=self.group,
+            project=self.project,
+            type=ActivityType.NOTE.value,
+            user=self.user,
+            data={},
         )
 
     @cached_property
@@ -369,15 +376,25 @@ class Fixtures:
         self,
         organization: "Organization",
         external_id: str = "TXXXXXXX1",
+        user: User = None,
+        identity_external_id: str = "UXXXXXXX1",
         **kwargs: Any,
     ):
+        if user is None:
+            user = organization.get_default_owner()
+
         integration = Factories.create_slack_integration(
             organization=organization, external_id=external_id, **kwargs
         )
         idp = Factories.create_identity_provider(integration=integration)
-        Factories.create_identity(organization.get_default_owner(), idp, "UXXXXXXX1")
+        Factories.create_identity(user, idp, identity_external_id)
 
         return integration
+
+    def create_integration(
+        self, organization: Organization, external_id: str, **kwargs: Any
+    ) -> Integration:
+        return Factories.create_integration(organization, external_id, **kwargs)
 
     def create_identity(self, *args, **kwargs):
         return Factories.create_identity(*args, **kwargs)

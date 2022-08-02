@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor, Query} from 'history';
@@ -6,8 +6,7 @@ import {Location, LocationDescriptor, Query} from 'history';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import DiscoverButton from 'sentry/components/discoverButton';
-import DropdownButton from 'sentry/components/dropdownButton';
-import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import CompactSelect from 'sentry/components/forms/compactSelect';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -121,7 +120,7 @@ type Props = {
   trendView?: TrendView;
 };
 
-class TransactionsList extends React.Component<Props> {
+class _TransactionsList extends Component<Props> {
   static defaultProps = {
     cursorName: 'transactionCursor',
     limit: DEFAULT_TRANSACTION_LIMIT,
@@ -174,32 +173,14 @@ class TransactionsList extends React.Component<Props> {
     } = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <div>
-          <DropdownControl
-            button={({isOpen, getActorProps}) => (
-              <StyledDropdownButton
-                {...getActorProps()}
-                isOpen={isOpen}
-                prefix={t('Filter')}
-                size="xsmall"
-              >
-                {selected.label}
-              </StyledDropdownButton>
-            )}
-          >
-            {options.map(({value, label}) => (
-              <DropdownItem
-                data-test-id={`option-${value}`}
-                key={value}
-                onSelect={handleDropdownChange}
-                eventKey={value}
-                isActive={value === selected.value}
-              >
-                {label}
-              </DropdownItem>
-            ))}
-          </DropdownControl>
+          <CompactSelect
+            triggerProps={{prefix: t('Filter'), size: 'xs'}}
+            value={selected.value}
+            options={options}
+            onChange={opt => handleDropdownChange(opt.value)}
+          />
         </div>
         {!this.isTrend() &&
           (handleOpenAllEventsClick ? (
@@ -213,7 +194,7 @@ class TransactionsList extends React.Component<Props> {
                     breakdown,
                   }
                 )}
-                size="xsmall"
+                size="xs"
                 data-test-id="transaction-events-open"
               >
                 {t('View All Events')}
@@ -226,14 +207,14 @@ class TransactionsList extends React.Component<Props> {
                 to={this.generateDiscoverEventView().getResultsViewUrlTarget(
                   organization.slug
                 )}
-                size="xsmall"
+                size="xs"
                 data-test-id="discover-open"
               >
                 {t('Open in Discover')}
               </DiscoverButton>
             </GuideAnchor>
           ))}
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -248,19 +229,22 @@ class TransactionsList extends React.Component<Props> {
       generateLink,
       forceLoading,
     } = this.props;
+    const useEvents = organization.features.includes(
+      'performance-frontend-use-events-endpoint'
+    );
 
     const eventView = this.getEventView();
     const columnOrder = eventView.getColumns();
     const cursor = decodeScalar(location.query?.[cursorName]);
 
     const tableRenderer = ({isLoading, pageLinks, tableData}) => (
-      <React.Fragment>
+      <Fragment>
         <Header>
           {this.renderHeader()}
           <StyledPagination
             pageLinks={pageLinks}
             onCursor={this.handleCursor}
-            size="xsmall"
+            size="xs"
           />
         </Header>
         <TransactionsTable
@@ -273,8 +257,9 @@ class TransactionsList extends React.Component<Props> {
           titles={titles}
           generateLink={generateLink}
           handleCellAction={handleCellAction}
+          useAggregateAlias={!useEvents}
         />
-      </React.Fragment>
+      </Fragment>
     );
 
     if (forceLoading) {
@@ -293,6 +278,7 @@ class TransactionsList extends React.Component<Props> {
         limit={limit}
         cursor={cursor}
         referrer="api.discover.transactions-list"
+        useEvents={useEvents}
       >
         {tableRenderer}
       </DiscoverQuery>
@@ -322,13 +308,13 @@ class TransactionsList extends React.Component<Props> {
         limit={5}
       >
         {({isLoading, trendsData, pageLinks}) => (
-          <React.Fragment>
+          <Fragment>
             <Header>
               {this.renderHeader()}
               <StyledPagination
                 pageLinks={pageLinks}
                 onCursor={this.handleCursor}
-                size="small"
+                size="sm"
               />
             </Header>
             <TransactionsTable
@@ -344,8 +330,9 @@ class TransactionsList extends React.Component<Props> {
                 {field: 'trend_difference()'},
               ])}
               generateLink={generateLink}
+              useAggregateAlias
             />
-          </React.Fragment>
+          </Fragment>
         )}
       </TrendsEventsDiscoverQuery>
     );
@@ -358,9 +345,9 @@ class TransactionsList extends React.Component<Props> {
 
   render() {
     return (
-      <React.Fragment>
+      <Fragment>
         {this.isTrend() ? this.renderTrendsTable() : this.renderTransactionTable()}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
@@ -372,12 +359,17 @@ const Header = styled('div')`
   align-items: center;
 `;
 
-const StyledDropdownButton = styled(DropdownButton)`
-  min-width: 145px;
-`;
-
 const StyledPagination = styled(Pagination)`
   margin: 0 0 0 ${space(1)};
 `;
+
+const TransactionsList = (
+  props: Omit<Props, 'cursorName' | 'limit'> & {
+    cursorName?: Props['cursorName'];
+    limit?: Props['limit'];
+  }
+) => {
+  return <_TransactionsList {...props} />;
+};
 
 export default TransactionsList;

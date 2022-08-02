@@ -136,7 +136,7 @@ def _split_group(group: Group, hash: str, hierarchical_hashes: Optional[Sequence
 
 def _get_full_hierarchical_hashes(group: Group, hash: str) -> Optional[Sequence[str]]:
     query = (
-        Query("events", Entity("events"))
+        Query(Entity("events"))
         .set_select(
             [
                 Column("hierarchical_hashes"),
@@ -156,8 +156,10 @@ def _get_full_hierarchical_hashes(group: Group, hash: str) -> Optional[Sequence[
             ]
         )
     )
-
-    data = snuba.raw_snql_query(query, referrer="group_split.get_full_hierarchical_hashes")["data"]
+    request = Request(dataset="events", app_id="grouping", query=query)
+    data = snuba.raw_snql_query(request, referrer="group_split.get_full_hierarchical_hashes")[
+        "data"
+    ]
     if not data:
         return None
 
@@ -311,7 +313,7 @@ def _render_trees(group: Group, user):
     # the road.
 
     query = (
-        Query("events", Entity("events"))
+        Query(Entity("events"))
         .set_select(
             [
                 Function("count", [], "event_count"),
@@ -381,8 +383,10 @@ def _render_trees(group: Group, user):
     )
 
     rv = []
-
-    for row in snuba.raw_snql_query(query, referrer="api.group_split.render_grouping_tree")["data"]:
+    request = Request(dataset="events", app_id="grouping", query=query)
+    for row in snuba.raw_snql_query(request, referrer="api.group_split.render_grouping_tree")[
+        "data"
+    ]:
         if len(row["hash_slice"]) == 0:
             hash = row["primary_hash"]
             parent_hash = child_hash = None

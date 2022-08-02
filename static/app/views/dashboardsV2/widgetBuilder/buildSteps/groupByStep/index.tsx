@@ -1,13 +1,13 @@
 import {t} from 'sentry/locale';
 import {Organization, TagCollection} from 'sentry/types';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
-import Measurements from 'sentry/utils/measurements/measurements';
+import {getDatasetConfig} from 'sentry/views/dashboardsV2/datasetConfig/base';
 
-import {DataSet, getAmendedFieldOptions} from '../../utils';
+import {DataSet} from '../../utils';
+import {DATA_SET_TO_WIDGET_TYPE} from '../../widgetBuilder';
 import {BuildStep} from '../buildStep';
 
 import {GroupBySelector} from './groupBySelector';
-import {ReleaseGroupBySelector} from './releaseGroupBySelector';
 
 interface Props {
   columns: QueryFieldValue[];
@@ -24,26 +24,21 @@ export function GroupByStep({
   organization,
   tags,
 }: Props) {
+  const datasetConfig = getDatasetConfig(DATA_SET_TO_WIDGET_TYPE[dataSet]);
   return (
     <BuildStep
       title={t('Group your results')}
-      description={t(
-        'This is how you can group your data result by tag or field. For a full list, read the docs.'
-      )}
+      description={t('This is how you can group your data result by field or tag.')}
     >
-      {dataSet === DataSet.RELEASE ? (
-        <ReleaseGroupBySelector columns={columns} onChange={onGroupByChange} />
-      ) : (
-        <Measurements>
-          {({measurements}) => (
-            <GroupBySelector
-              columns={columns}
-              fieldOptions={getAmendedFieldOptions({measurements, tags, organization})}
-              onChange={onGroupByChange}
-            />
-          )}
-        </Measurements>
-      )}
+      <GroupBySelector
+        columns={columns}
+        fieldOptions={
+          datasetConfig.getGroupByFieldOptions
+            ? datasetConfig.getGroupByFieldOptions(organization, tags)
+            : {}
+        }
+        onChange={onGroupByChange}
+      />
     </BuildStep>
   );
 }

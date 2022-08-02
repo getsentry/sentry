@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
+import pytest
+
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.token_exchange import GrantExchanger
 from sentry.models import ApiApplication, ApiGrant, SentryApp, SentryAppInstallation
@@ -9,7 +11,7 @@ from sentry.testutils import TestCase
 
 class TestGrantExchanger(TestCase):
     def setUp(self):
-        self.install = self.create_sentry_app_installation()
+        self.install = self.create_sentry_app_installation(prevent_token_exchange=True)
         self.code = self.install.api_grant.code
         self.client_id = self.install.sentry_app.application.client_id
         self.user = self.install.sentry_app.proxy_user
@@ -34,38 +36,38 @@ class TestGrantExchanger(TestCase):
         )
 
     def test_grant_must_belong_to_installations(self):
-        other_install = self.create_sentry_app_installation()
+        other_install = self.create_sentry_app_installation(prevent_token_exchange=True)
         self.grant_exchanger.code = other_install.api_grant.code
 
-        with self.assertRaises(APIUnauthorized):
+        with pytest.raises(APIUnauthorized):
             self.grant_exchanger.call()
 
     def test_request_user_owns_api_grant(self):
         self.grant_exchanger.user = self.create_user()
 
-        with self.assertRaises(APIUnauthorized):
+        with pytest.raises(APIUnauthorized):
             self.grant_exchanger.call()
 
     def test_grant_must_be_active(self):
         self.install.api_grant.update(expires_at=(datetime.utcnow() - timedelta(hours=1)))
 
-        with self.assertRaises(APIUnauthorized):
+        with pytest.raises(APIUnauthorized):
             self.grant_exchanger.call()
 
     def test_grant_must_exist(self):
         self.grant_exchanger.code = "123"
 
-        with self.assertRaises(APIUnauthorized):
+        with pytest.raises(APIUnauthorized):
             self.grant_exchanger.call()
 
     @patch("sentry.models.ApiGrant.application", side_effect=ApiApplication.DoesNotExist)
     def test_application_must_exist(self, _):
-        with self.assertRaises(APIUnauthorized):
+        with pytest.raises(APIUnauthorized):
             self.grant_exchanger.call()
 
     @patch("sentry.models.ApiApplication.sentry_app", side_effect=SentryApp.DoesNotExist)
     def test_sentry_app_must_exist(self, _):
-        with self.assertRaises(APIUnauthorized):
+        with pytest.raises(APIUnauthorized):
             self.grant_exchanger.call()
 
     def test_deletes_grant_on_successful_exchange(self):

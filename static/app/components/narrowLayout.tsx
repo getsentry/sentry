@@ -6,10 +6,11 @@ import {IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import useApi from 'sentry/utils/useApi';
 
-type Props = React.PropsWithChildren<{
+type Props = {
+  children: React.ReactNode;
   maxWidth?: string;
   showLogout?: boolean;
-}>;
+};
 
 function NarrowLayout({maxWidth, showLogout, children}: Props) {
   const api = useApi();

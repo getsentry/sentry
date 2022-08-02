@@ -1,8 +1,8 @@
-from sentry.models import SentryAppInstallation
-from sentry.testutils import AcceptanceTestCase
-from tests.acceptance.page_objects.organization_integration_settings import (
+from fixtures.page_objects.organization_integration_settings import (
     OrganizationSentryAppDetailViewPage,
 )
+from sentry.models import SentryAppInstallation
+from sentry.testutils import AcceptanceTestCase
 
 
 class OrganizationSentryAppDetailedView(AcceptanceTestCase):
@@ -36,7 +36,10 @@ class OrganizationSentryAppDetailedView(AcceptanceTestCase):
 
     def test_uninstallation(self):
         self.installation = self.create_sentry_app_installation(
-            slug=self.sentry_app.slug, organization=self.organization, user=self.user
+            slug=self.sentry_app.slug,
+            organization=self.organization,
+            user=self.user,
+            prevent_token_exchange=True,
         )
 
         self.load_page(self.sentry_app.slug)

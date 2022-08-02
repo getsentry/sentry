@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import typing
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -22,15 +23,21 @@ from typing import (
     cast,
 )
 
-from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Query
+from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Query, Request
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.api.utils import InvalidParams
 from sentry.models import Project
+from sentry.search.events.constants import MISERY_ALPHA, MISERY_BETA
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import resolve_weak
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.fields.histogram import ClickhouseHistogram, rebucket_histogram
+from sentry.snuba.metrics.fields.histogram import (
+    ClickhouseHistogram,
+    rebucket_histogram,
+    zoom_histogram,
+)
 from sentry.snuba.metrics.fields.snql import (
     abnormal_sessions,
     abnormal_users,
@@ -39,6 +46,7 @@ from sentry.snuba.metrics.fields.snql import (
     all_transactions,
     all_users,
     apdex,
+    complement,
     crashed_sessions,
     crashed_users,
     division_float,
@@ -46,12 +54,11 @@ from sentry.snuba.metrics.fields.snql import (
     errored_preaggr_sessions,
     failure_count_transaction,
     miserable_users,
-    percentage,
     satisfaction_count_transaction,
     session_duration_filters,
-    sessions_errored_set,
     subtraction,
     tolerated_count_transaction,
+    uniq_aggregation_on_metric,
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_public_name_from_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
@@ -69,9 +76,13 @@ from sentry.snuba.metrics.utils import (
     MetricOperationType,
     MetricType,
     NotSupportedOverCompositeEntityException,
+    OrderByNotSupportedOverCompositeEntityException,
     combine_dictionary_of_list_values,
 )
 from sentry.utils.snuba import raw_snql_query
+
+if typing.TYPE_CHECKING:
+    from sentry.snuba.metrics.query import MetricsQuery
 
 __all__ = (
     "metric_object_factory",
@@ -82,13 +93,12 @@ __all__ = (
     "SingularEntityDerivedMetric",
     "DERIVED_METRICS",
     "generate_bottom_up_dependency_tree_for_metrics",
+    "get_derived_metrics",
+    "org_id_from_projects",
 )
 
 SnubaDataType = Dict[str, Any]
 PostQueryFuncReturnType = Optional[Union[Tuple[Any, ...], ClickhouseHistogram, int, float]]
-
-if TYPE_CHECKING:
-    from sentry.snuba.metrics.query_builder import QueryDefinition
 
 
 def run_metrics_query(
@@ -97,35 +107,65 @@ def run_metrics_query(
     select: List[Column],
     where: List[Condition],
     groupby: List[Column],
-    projects: Sequence[Project],
+    project_ids: Sequence[int],
     org_id: int,
     referrer: str,
+    start: Optional[datetime] = None,
+    end: Optional[datetime] = None,
 ) -> List[SnubaDataType]:
+    if end is None:
+        end = datetime.now()
+    if start is None:
+        start = end - timedelta(hours=24)
+
     # Round timestamp to minute to get cache efficiency:
-    now = datetime.now().replace(second=0, microsecond=0)
+    # Also floor start to match the daily granularity
+    end = end.replace(second=0, microsecond=0)
+    start = start.replace(hour=0, minute=0, second=0, microsecond=0)
 
     query = Query(
-        dataset=Dataset.Metrics.value,
         match=Entity(entity_key.value),
         select=select,
         groupby=groupby,
         where=[
             Condition(Column("org_id"), Op.EQ, org_id),
-            Condition(Column("project_id"), Op.IN, [p.id for p in projects]),
-            Condition(Column(TS_COL_QUERY), Op.GTE, now - timedelta(hours=24)),
-            Condition(Column(TS_COL_QUERY), Op.LT, now),
+            Condition(Column("project_id"), Op.IN, project_ids),
+            Condition(Column(TS_COL_QUERY), Op.GTE, start),
+            Condition(Column(TS_COL_QUERY), Op.LT, end),
         ]
         + where,
         granularity=Granularity(GRANULARITY),
     )
-    result = raw_snql_query(query, referrer, use_cache=True)
+    request = Request(dataset=Dataset.Metrics.value, app_id="metrics", query=query)
+    result = raw_snql_query(request, referrer, use_cache=True)
     return cast(List[SnubaDataType], result["data"])
 
 
-def _get_entity_of_metric_mri(projects: Sequence[Project], metric_mri: str) -> EntityKey:
+def _get_known_entity_of_metric_mri(metric_mri: str) -> Optional[EntityKey]:
+    for KnownMRI in (SessionMRI, TransactionMRI):
+        try:
+            KnownMRI(metric_mri)
+            entity_prefix = metric_mri.split(":")[0]
+            return {
+                "c": EntityKey.MetricsCounters,
+                "d": EntityKey.MetricsDistributions,
+                "s": EntityKey.MetricsSets,
+            }[entity_prefix]
+        except (ValueError, IndexError, KeyError):
+            pass
+    return None
+
+
+def _get_entity_of_metric_mri(
+    projects: Sequence[Project], metric_mri: str, use_case_id: UseCaseKey
+) -> EntityKey:
+    known_entity = _get_known_entity_of_metric_mri(metric_mri)
+    if known_entity is not None:
+        return known_entity
+
     assert projects
     org_id = org_id_from_projects(projects)
-    metric_id = indexer.resolve(org_id, metric_mri)
+    metric_id = indexer.resolve(org_id, metric_mri, use_case_id)
 
     if metric_id is None:
         raise InvalidParams
@@ -138,7 +178,7 @@ def _get_entity_of_metric_mri(projects: Sequence[Project], metric_mri: str) -> E
             where=[Condition(Column("metric_id"), Op.EQ, metric_id)],
             groupby=[Column("metric_id")],
             referrer="snuba.metrics.meta.get_entity_of_metric",
-            projects=projects,
+            project_ids=[p.id for p in projects],
             org_id=org_id,
         )
         if data:
@@ -170,11 +210,11 @@ class MetricObject(MetricObjectDefinition, ABC):
     """
 
     @abstractmethod
-    def generate_filter_snql_conditions(self, org_id: int) -> Function:
+    def generate_filter_snql_conditions(self, org_id: int, use_case_id: UseCaseKey) -> Function:
         raise NotImplementedError
 
     @abstractmethod
-    def generate_metric_ids(self, projects: Sequence[Project]) -> Set[int]:
+    def generate_metric_ids(self, projects: Sequence[Project], use_case_id: UseCaseKey) -> Set[int]:
         raise NotImplementedError
 
 
@@ -184,11 +224,14 @@ class RawMetric(MetricObject):
     metric
     """
 
-    def generate_metric_ids(self, projects: Sequence[Project]) -> Set[int]:
-        return {resolve_weak(org_id_from_projects(projects), self.metric_mri)}
+    def generate_metric_ids(self, projects: Sequence[Project], use_case_id: UseCaseKey) -> Set[int]:
+        return {resolve_weak(use_case_id, org_id_from_projects(projects), self.metric_mri)}
 
-    def generate_filter_snql_conditions(self, org_id: int) -> Function:
-        return Function("equals", [Column("metric_id"), resolve_weak(org_id, self.metric_mri)])
+    def generate_filter_snql_conditions(self, org_id: int, use_case_id: UseCaseKey) -> Function:
+        return Function(
+            "equals",
+            [Column("metric_id"), resolve_weak(use_case_id, org_id, self.metric_mri)],
+        )
 
 
 class AliasedDerivedMetric(AliasedDerivedMetricDefinition, MetricObject):
@@ -197,12 +240,18 @@ class AliasedDerivedMetric(AliasedDerivedMetricDefinition, MetricObject):
     for a raw metric name
     """
 
-    def generate_metric_ids(self, projects: Sequence[Project]) -> Set[int]:
-        return {resolve_weak(org_id_from_projects(projects), self.raw_metric_mri)}
+    def generate_metric_ids(self, projects: Sequence[Project], use_case_id: UseCaseKey) -> Set[int]:
+        return {resolve_weak(use_case_id, org_id_from_projects(projects), self.raw_metric_mri)}
 
-    def generate_filter_snql_conditions(self, org_id: int) -> Function:
+    def generate_filter_snql_conditions(self, org_id: int, use_case_id: UseCaseKey) -> Function:
         conditions = [
-            Function("equals", [Column("metric_id"), resolve_weak(org_id, self.raw_metric_mri)])
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    resolve_weak(use_case_id, org_id, self.raw_metric_mri),
+                ],
+            )
         ]
         if self.filters is not None:
             for filter_ in self.filters(org_id=org_id):
@@ -224,18 +273,25 @@ class MetricOperation(MetricOperationDefinition, ABC):
     def run_post_query_function(
         self,
         data: SnubaDataType,
-        query_definition: QueryDefinition,
+        metrics_query: MetricsQuery,
         metric_mri: str,
         idx: Optional[int] = None,
     ) -> SnubaDataType:
+        raise NotImplementedError
+
+    @abstractmethod
+    def generate_filter_snql_conditions(
+        self, org_id: int, metrics_query: MetricsQuery, use_case_id: UseCaseKey
+    ) -> Optional[Function]:
         raise NotImplementedError
 
 
 @dataclass
 class DerivedOpDefinition(MetricOperationDefinition):
     can_orderby: bool
-    query_definition_args: Optional[List[str]] = None
+    metrics_query_args: Optional[List[str]] = None
     post_query_func: Callable[..., PostQueryFuncReturnType] = lambda *args: args
+    filter_conditions_func: Callable[..., Optional[Function]] = lambda _: None
 
 
 class RawOp(MetricOperation):
@@ -245,11 +301,16 @@ class RawOp(MetricOperation):
     def run_post_query_function(
         self,
         data: SnubaDataType,
-        query_definition: QueryDefinition,
+        metrics_query: MetricsQuery,
         metric_mri: str,
         idx: Optional[int] = None,
     ) -> SnubaDataType:
         return data
+
+    def generate_filter_snql_conditions(
+        self, org_id: int, metrics_query: MetricsQuery, use_case_id: UseCaseKey
+    ) -> None:
+        return
 
 
 class DerivedOp(DerivedOpDefinition, MetricOperation):
@@ -262,7 +323,7 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
     def run_post_query_function(
         self,
         data: SnubaDataType,
-        query_definition: QueryDefinition,
+        metrics_query: MetricsQuery,
         metric_mri: str,
         idx: Optional[int] = None,
     ) -> SnubaDataType:
@@ -273,9 +334,9 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
             subdata = data[key][idx]
 
         compute_func_dict = {"data": subdata}
-        if self.query_definition_args is not None:
-            for field in self.query_definition_args:
-                compute_func_dict[field] = getattr(query_definition, field)
+        if self.metrics_query_args is not None:
+            for field in self.metrics_query_args:
+                compute_func_dict[field] = getattr(metrics_query, field)
 
         subdata = self.post_query_func(**compute_func_dict)
 
@@ -285,11 +346,21 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
             data[key][idx] = subdata
         return data
 
+    def generate_filter_snql_conditions(
+        self, org_id: int, metrics_query: MetricsQuery, use_case_id: UseCaseKey
+    ) -> Optional[Function]:
+        kwargs = {"org_id": org_id}
+        if self.metrics_query_args is not None:
+            for field in self.metrics_query_args:
+                kwargs[field] = getattr(metrics_query, field)
+
+        return self.filter_conditions_func(**kwargs)
+
 
 class MetricExpressionBase(ABC):
     @abstractmethod
     def get_entity(
-        self, projects: Sequence[Project]
+        self, projects: Sequence[Project], use_case_id: UseCaseKey
     ) -> Union[MetricEntity, Dict[MetricEntity, Sequence[str]]]:
         """
         Method that generates the entity of an instance of MetricsFieldBase.
@@ -299,7 +370,7 @@ class MetricExpressionBase(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def generate_metric_ids(self, projects: Sequence[Project]) -> Set[int]:
+    def generate_metric_ids(self, projects: Sequence[Project], use_case_id: UseCaseKey) -> Set[int]:
         """
         Method that generates all the metric ids required to query an instance of
         MetricsFieldBase
@@ -307,7 +378,9 @@ class MetricExpressionBase(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def generate_select_statements(self, projects: Sequence[Project]) -> List[Function]:
+    def generate_select_statements(
+        self, projects: Sequence[Project], metrics_query: MetricsQuery, use_case_id: UseCaseKey
+    ) -> List[Function]:
         """
         Method that generates a list of SnQL functions required to query an instance of
         MetricsFieldBase
@@ -319,6 +392,8 @@ class MetricExpressionBase(ABC):
         self,
         direction: Direction,
         projects: Sequence[Project],
+        metrics_query: MetricsQuery,
+        use_case_id: UseCaseKey,
     ) -> List[OrderBy]:
         """
         Method that generates a list of SnQL OrderBy clauses based on an instance of
@@ -342,7 +417,7 @@ class MetricExpressionBase(ABC):
 
     @abstractmethod
     def run_post_query_function(
-        self, data: SnubaDataType, query_definition: QueryDefinition, idx: Optional[int] = None
+        self, data: SnubaDataType, metrics_query: MetricsQuery, idx: Optional[int] = None
     ) -> Any:
         """
         Method that runs functions on the values returned from the query
@@ -408,22 +483,35 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
     conversions to SnQL away from the query builder.
     """
 
-    def get_entity(self, projects: Sequence[Project]) -> MetricEntity:
+    def get_entity(self, projects: Sequence[Project], use_case_id: UseCaseKey) -> MetricEntity:
         return OPERATIONS_TO_ENTITY[self.metric_operation.op]
 
-    def generate_select_statements(self, projects: Sequence[Project]) -> List[Function]:
+    def generate_select_statements(
+        self, projects: Sequence[Project], metrics_query: MetricsQuery, use_case_id: UseCaseKey
+    ) -> List[Function]:
         org_id = org_id_from_projects(projects)
         return [
-            self.build_conditional_aggregate_for_metric(org_id, entity=self.get_entity(projects))
+            self.build_conditional_aggregate_for_metric(
+                org_id,
+                entity=self.get_entity(projects, use_case_id),
+                metrics_query=metrics_query,
+                use_case_id=use_case_id,
+            )
         ]
 
     def generate_orderby_clause(
-        self, direction: Direction, projects: Sequence[Project]
+        self,
+        direction: Direction,
+        projects: Sequence[Project],
+        metrics_query: MetricsQuery,
+        use_case_id: UseCaseKey,
     ) -> List[OrderBy]:
         self.metric_operation.validate_can_orderby()
         return [
             OrderBy(
-                self.generate_select_statements(projects)[0],
+                self.generate_select_statements(
+                    projects, metrics_query=metrics_query, use_case_id=use_case_id
+                )[0],
                 direction,
             )
         ]
@@ -437,15 +525,15 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
             copy.copy(DEFAULT_AGGREGATES[self.metric_operation.op]),
         )
 
-    def generate_metric_ids(self, projects: Sequence[Project]) -> Set[int]:
-        return self.metric_object.generate_metric_ids(projects)
+    def generate_metric_ids(self, projects: Sequence[Project], use_case_id: UseCaseKey) -> Set[int]:
+        return self.metric_object.generate_metric_ids(projects, use_case_id)
 
     def run_post_query_function(
-        self, data: SnubaDataType, query_definition: QueryDefinition, idx: Optional[int] = None
+        self, data: SnubaDataType, metrics_query: MetricsQuery, idx: Optional[int] = None
     ) -> Any:
         key = f"{self.metric_operation.op}({self.metric_object.metric_mri})"
         data = self.metric_operation.run_post_query_function(
-            data, query_definition, self.metric_object.metric_mri, idx
+            data, metrics_query, self.metric_object.metric_mri, idx
         )
         return data[key][idx] if idx is not None else data[key]
 
@@ -454,11 +542,27 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
     ) -> Iterable[Tuple[MetricOperationType, str]]:
         return [(self.metric_operation.op, self.metric_object.metric_mri)]
 
-    def build_conditional_aggregate_for_metric(self, org_id: int, entity: MetricEntity) -> Function:
+    def build_conditional_aggregate_for_metric(
+        self,
+        org_id: int,
+        entity: MetricEntity,
+        metrics_query: MetricsQuery,
+        use_case_id: UseCaseKey,
+    ) -> Function:
         snuba_function = OP_TO_SNUBA_FUNCTION[entity][self.metric_operation.op]
+        conditions = self.metric_object.generate_filter_snql_conditions(
+            org_id=org_id, use_case_id=use_case_id
+        )
+
+        operation_based_filter = self.metric_operation.generate_filter_snql_conditions(
+            org_id=org_id, metrics_query=metrics_query, use_case_id=use_case_id
+        )
+        if operation_based_filter is not None:
+            conditions = Function("and", [conditions, operation_based_filter])
+
         return Function(
             snuba_function,
-            [Column("value"), self.metric_object.generate_filter_snql_conditions(org_id=org_id)],
+            [Column("value"), conditions],
             alias=f"{self.metric_operation.op}({self.metric_object.metric_mri})",
         )
 
@@ -471,6 +575,10 @@ class DerivedMetricExpressionDefinition:
     op: Optional[str] = None
     result_type: Optional[MetricType] = None
     # TODO: better typing
+    # snql attribute is a function that takes optional args that map to strings that are MRIs for
+    # the derived metric, org_id, metric_ids required to generate the snql and a string alias,
+    # and in return, return snql that snuba can understand and represents how to query for the
+    # derived metric
     snql: Optional[Callable[..., Function]] = None
     post_query_func: Any = lambda *args: args
     is_private: bool = False
@@ -502,7 +610,7 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
 
     @classmethod
     def __recursively_get_all_entities_in_derived_metric_dependency_tree(
-        cls, derived_metric_mri: str, projects: Sequence[Project]
+        cls, derived_metric_mri: str, projects: Sequence[Project], use_case_id: UseCaseKey
     ) -> Set[MetricEntity]:
         """
         Method that gets the entity of a derived metric by traversing down its dependency tree
@@ -510,23 +618,23 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
         entity/entities these raw constituent metrics belong to.
         """
         if derived_metric_mri not in DERIVED_METRICS:
-            return {_get_entity_of_metric_mri(projects, derived_metric_mri).value}
+            return {_get_entity_of_metric_mri(projects, derived_metric_mri, use_case_id).value}
 
         entities = set()
         derived_metric = DERIVED_METRICS[derived_metric_mri]
 
         for metric_mri in derived_metric.metrics:
             entities |= cls.__recursively_get_all_entities_in_derived_metric_dependency_tree(
-                metric_mri, projects
+                metric_mri, projects, use_case_id
             )
         return entities
 
-    def get_entity(self, projects: Sequence[Project]) -> MetricEntity:
+    def get_entity(self, projects: Sequence[Project], use_case_id: UseCaseKey) -> MetricEntity:
         if not projects:
             self._raise_entity_validation_exception("get_entity")
         try:
             entities = self.__recursively_get_all_entities_in_derived_metric_dependency_tree(
-                derived_metric_mri=self.metric_mri, projects=projects
+                derived_metric_mri=self.metric_mri, projects=projects, use_case_id=use_case_id
             )
         except InvalidParams:
             raise MetricDoesNotExistException()
@@ -539,7 +647,9 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
         return entities.pop()
 
     @classmethod
-    def __recursively_generate_metric_ids(cls, org_id: int, derived_metric_mri: str) -> Set[int]:
+    def __recursively_generate_metric_ids(
+        cls, org_id: int, derived_metric_mri: str, use_case_id: UseCaseKey
+    ) -> Set[int]:
         """
         Method that traverses a derived metric dependency tree to return a set of the metric ids
         of its constituent metrics
@@ -550,18 +660,20 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
         ids = set()
         for metric_mri in derived_metric.metrics:
             if metric_mri not in DERIVED_METRICS:
-                ids.add(resolve_weak(org_id, metric_mri))
+                ids.add(resolve_weak(use_case_id, org_id, metric_mri))
             else:
-                ids |= cls.__recursively_generate_metric_ids(org_id, metric_mri)
+                ids |= cls.__recursively_generate_metric_ids(org_id, metric_mri, use_case_id)
         return ids
 
-    def generate_metric_ids(self, projects: Sequence[Project]) -> Set[int]:
+    def generate_metric_ids(self, projects: Sequence[Project], use_case_id: UseCaseKey) -> Set[int]:
         org_id = org_id_from_projects(projects)
-        return self.__recursively_generate_metric_ids(org_id, derived_metric_mri=self.metric_mri)
+        return self.__recursively_generate_metric_ids(
+            org_id, derived_metric_mri=self.metric_mri, use_case_id=use_case_id
+        )
 
     @classmethod
     def __recursively_generate_select_snql(
-        cls, org_id: int, derived_metric_mri: str
+        cls, org_id: int, derived_metric_mri: str, use_case_id: UseCaseKey
     ) -> List[Function]:
         """
         Method that generates the SnQL representation for the derived metric
@@ -571,36 +683,48 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
         derived_metric = DERIVED_METRICS[derived_metric_mri]
         arg_snql = []
         for arg in derived_metric.metrics:
-            arg_snql += cls.__recursively_generate_select_snql(org_id, arg)
+            arg_snql += cls.__recursively_generate_select_snql(org_id, arg, use_case_id)
         assert derived_metric.snql is not None
         return [
             derived_metric.snql(
                 *arg_snql,
                 org_id=org_id,
-                metric_ids=cls.__recursively_generate_metric_ids(org_id, derived_metric_mri),
+                metric_ids=cls.__recursively_generate_metric_ids(
+                    org_id, derived_metric_mri, use_case_id
+                ),
                 alias=derived_metric_mri,
             )
         ]
 
-    def generate_select_statements(self, projects: Sequence[Project]) -> List[Function]:
+    def generate_select_statements(
+        self, projects: Sequence[Project], metrics_query: MetricsQuery, use_case_id: UseCaseKey
+    ) -> List[Function]:
         # Before, we are able to generate the relevant SnQL for a derived metric, we need to
         # validate that this instance of SingularEntityDerivedMetric is built from constituent
         # metrics that span a single entity
         if not projects:
             self._raise_entity_validation_exception("generate_select_statements")
-        self.get_entity(projects=projects)
+        self.get_entity(projects=projects, use_case_id=use_case_id)
         org_id = org_id_from_projects(projects)
-        return self.__recursively_generate_select_snql(org_id, derived_metric_mri=self.metric_mri)
+        return self.__recursively_generate_select_snql(
+            org_id, derived_metric_mri=self.metric_mri, use_case_id=use_case_id
+        )
 
     def generate_orderby_clause(
-        self, direction: Direction, projects: Sequence[Project]
+        self,
+        direction: Direction,
+        projects: Sequence[Project],
+        metrics_query: MetricsQuery,
+        use_case_id: UseCaseKey,
     ) -> List[OrderBy]:
         if not projects:
             self._raise_entity_validation_exception("generate_orderby_clause")
-        self.get_entity(projects=projects)
+        self.get_entity(projects=projects, use_case_id=use_case_id)
         return [
             OrderBy(
-                self.generate_select_statements(projects=projects)[0],
+                self.generate_select_statements(
+                    projects=projects, metrics_query=metrics_query, use_case_id=use_case_id
+                )[0],
                 direction,
             )
         ]
@@ -617,9 +741,14 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
         return []
 
     def run_post_query_function(
-        self, data: SnubaDataType, query_definition: QueryDefinition, idx: Optional[int] = None
+        self, data: SnubaDataType, metrics_query: MetricsQuery, idx: Optional[int] = None
     ) -> Any:
-        compute_func_args = [data[self.metric_mri] if idx is None else data[self.metric_mri][idx]]
+        try:
+            compute_func_args = [
+                data[self.metric_mri] if idx is None else data[self.metric_mri][idx]
+            ]
+        except KeyError:
+            compute_func_args = [self.generate_default_null_values()]
         result = self.post_query_func(*compute_func_args)
         if isinstance(result, tuple) and len(result) == 1:
             result = result[0]
@@ -636,18 +765,22 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
         super().__init__(*args, **kwargs)
         self.result_type = "numeric"
 
-    def generate_metric_ids(self, projects: Sequence[Project]) -> Set[Any]:
+    def generate_metric_ids(self, projects: Sequence[Project], use_case_id: UseCaseKey) -> Set[Any]:
         raise NotSupportedOverCompositeEntityException()
 
-    def generate_select_statements(self, projects: Sequence[Project]) -> List[Function]:
+    def generate_select_statements(
+        self, projects: Sequence[Project], metrics_query: MetricsQuery, use_case_id: UseCaseKey
+    ) -> List[Function]:
         raise NotSupportedOverCompositeEntityException()
 
     def generate_orderby_clause(
         self,
         direction: Direction,
         projects: Sequence[Project],
+        metrics_query: MetricsQuery,
+        use_case_id: UseCaseKey,
     ) -> List[OrderBy]:
-        raise NotSupportedOverCompositeEntityException(
+        raise OrderByNotSupportedOverCompositeEntityException(
             f"It is not possible to orderBy field "
             f"{get_public_name_from_mri(self.metric_mri)} as it does not "
             f"have a direct mapping to a query alias"
@@ -661,11 +794,13 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
             pass
         return default_null_value
 
-    def get_entity(self, projects: Sequence[Project]) -> Dict[MetricEntity, List[str]]:
+    def get_entity(
+        self, projects: Sequence[Project], use_case_id: UseCaseKey
+    ) -> Dict[MetricEntity, List[str]]:
         if not projects:
             self._raise_entity_validation_exception("get_entity")
         return self.__recursively_generate_singular_entity_constituents(
-            projects=projects, derived_metric_obj=self
+            projects=projects, derived_metric_obj=self, use_case_id=use_case_id
         )
 
     def generate_available_operations(self) -> Collection[MetricOperation]:
@@ -676,6 +811,7 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
         cls,
         projects: Optional[Sequence[Project]],
         derived_metric_obj: DerivedMetricExpression,
+        use_case_id: UseCaseKey,
         is_naive: bool = False,
     ) -> Dict[MetricEntity, List[str]]:
         entities_and_metric_mris: Dict[MetricEntity, List[str]] = {}
@@ -688,17 +824,22 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
                     entity = None
                 else:
                     assert projects is not None
-                    entity = constituent_metric_obj.get_entity(projects=projects)
+                    entity = constituent_metric_obj.get_entity(
+                        projects=projects, use_case_id=use_case_id
+                    )
 
                 entities_and_metric_mris.setdefault(entity, []).append(
                     constituent_metric_obj.metric_mri
                 )
+                # We do not care about the components of a SingularEntityDerivedMetric
+                continue
+
             # This is necessary because we don't want to override entity lists but rather append
             # to them
             entities_and_metric_mris = combine_dictionary_of_list_values(
                 entities_and_metric_mris,
                 cls.__recursively_generate_singular_entity_constituents(
-                    projects, constituent_metric_obj, is_naive
+                    projects, constituent_metric_obj, use_case_id, is_naive
                 ),
             )
 
@@ -720,23 +861,28 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
             node = metric_nodes.popleft()
             if node.metric_mri in DERIVED_METRICS:
                 results.append((None, node.metric_mri))
+                # We do not really care about getting the components of an instance of
+                # SingularEntityDerivedMetric because there is a direct mapping to the response
+                # returned by the dataset anyways
+                if isinstance(node, SingularEntityDerivedMetric):
+                    continue
             for metric in node.metrics:
                 if metric in DERIVED_METRICS:
                     metric_nodes.append(DERIVED_METRICS[metric])
         return reversed(results)
 
-    def naively_generate_singular_entity_constituents(self) -> Set[str]:
+    def naively_generate_singular_entity_constituents(self, use_case_id: UseCaseKey) -> Set[str]:
         single_entity_constituents = set(
             list(
                 self.__recursively_generate_singular_entity_constituents(
-                    projects=None, derived_metric_obj=self, is_naive=True
+                    projects=None, derived_metric_obj=self, use_case_id=use_case_id, is_naive=True
                 ).values()
             ).pop()
         )
         return single_entity_constituents
 
     def run_post_query_function(
-        self, data: SnubaDataType, query_definition: QueryDefinition, idx: Optional[int] = None
+        self, data: SnubaDataType, metrics_query: MetricsQuery, idx: Optional[int] = None
     ) -> Any:
         compute_func_args = [
             data[constituent_metric_mri] if idx is None else data[constituent_metric_mri][idx]
@@ -799,19 +945,31 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             ),
         ),
         SingularEntityDerivedMetric(
-            metric_mri=SessionMRI.CRASH_FREE_RATE.value,
+            metric_mri=SessionMRI.CRASH_RATE.value,
             metrics=[SessionMRI.CRASHED.value, SessionMRI.ALL.value],
             unit="percentage",
-            snql=lambda *args, org_id, metric_ids, alias=None: percentage(*args, alias=alias),
+            snql=lambda *args, org_id, metric_ids, alias=None: division_float(*args, alias=alias),
         ),
         SingularEntityDerivedMetric(
-            metric_mri=SessionMRI.CRASH_FREE_USER_RATE.value,
+            metric_mri=SessionMRI.CRASH_USER_RATE.value,
             metrics=[
                 SessionMRI.CRASHED_USER.value,
                 SessionMRI.ALL_USER.value,
             ],
             unit="percentage",
-            snql=lambda *args, org_id, metric_ids, alias=None: percentage(*args, alias=alias),
+            snql=lambda *args, org_id, metric_ids, alias=None: division_float(*args, alias=alias),
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=SessionMRI.CRASH_FREE_RATE.value,
+            metrics=[SessionMRI.CRASH_RATE.value],
+            unit="percentage",
+            snql=lambda *args, org_id, metric_ids, alias=None: complement(*args, alias=alias),
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=SessionMRI.CRASH_FREE_USER_RATE.value,
+            metrics=[SessionMRI.CRASH_USER_RATE.value],
+            unit="percentage",
+            snql=lambda *args, org_id, metric_ids, alias=None: complement(*args, alias=alias),
         ),
         SingularEntityDerivedMetric(
             metric_mri=SessionMRI.ERRORED_PREAGGREGATED.value,
@@ -826,19 +984,41 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             metric_mri=SessionMRI.ERRORED_SET.value,
             metrics=[SessionMRI.ERROR.value],
             unit="sessions",
-            snql=lambda *_, org_id, metric_ids, alias=None: sessions_errored_set(
+            snql=lambda *_, org_id, metric_ids, alias=None: uniq_aggregation_on_metric(
                 metric_ids, alias=alias
             ),
             is_private=True,
         ),
+        SingularEntityDerivedMetric(
+            metric_mri=SessionMRI.CRASHED_AND_ABNORMAL.value,
+            metrics=[
+                SessionMRI.CRASHED.value,
+                SessionMRI.ABNORMAL.value,
+            ],
+            unit="sessions",
+            snql=lambda *args, org_id, metric_ids, alias=None: addition(*args, alias=alias),
+            is_private=True,
+        ),
         CompositeEntityDerivedMetric(
-            metric_mri=SessionMRI.ERRORED.value,
+            metric_mri=SessionMRI.ERRORED_ALL.value,
             metrics=[
                 SessionMRI.ERRORED_PREAGGREGATED.value,
                 SessionMRI.ERRORED_SET.value,
             ],
             unit="sessions",
             post_query_func=lambda *args: sum([*args]),
+            is_private=True,
+        ),
+        CompositeEntityDerivedMetric(
+            metric_mri=SessionMRI.ERRORED.value,
+            metrics=[
+                SessionMRI.ERRORED_ALL.value,
+                SessionMRI.CRASHED_AND_ABNORMAL.value,
+            ],
+            unit="sessions",
+            post_query_func=lambda errored_all, crashed_abnormal: max(
+                0, errored_all - crashed_abnormal
+            ),
         ),
         SingularEntityDerivedMetric(
             metric_mri=SessionMRI.ERRORED_USER_ALL.value,
@@ -873,7 +1053,7 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             metric_mri=SessionMRI.HEALTHY.value,
             metrics=[
                 SessionMRI.ALL.value,
-                SessionMRI.ERRORED.value,
+                SessionMRI.ERRORED_ALL.value,
             ],
             unit="sessions",
             post_query_func=lambda init, errored: max(0, init - errored),
@@ -895,6 +1075,7 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             snql=lambda *_, org_id, metric_ids, alias=None: all_transactions(
                 org_id, metric_ids=metric_ids, alias=alias
             ),
+            is_private=True,
         ),
         SingularEntityDerivedMetric(
             metric_mri=TransactionMRI.FAILURE_COUNT.value,
@@ -903,6 +1084,7 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             snql=lambda *_, org_id, metric_ids, alias=None: failure_count_transaction(
                 org_id, metric_ids=metric_ids, alias=alias
             ),
+            is_private=True,
         ),
         SingularEntityDerivedMetric(
             metric_mri=TransactionMRI.FAILURE_RATE.value,
@@ -922,6 +1104,7 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             snql=lambda *_, org_id, metric_ids, alias=None: satisfaction_count_transaction(
                 org_id=org_id, metric_ids=metric_ids, alias=alias
             ),
+            is_private=True,
         ),
         SingularEntityDerivedMetric(
             metric_mri=TransactionMRI.TOLERATED.value,
@@ -930,6 +1113,7 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             snql=lambda *_, org_id, metric_ids, alias=None: tolerated_count_transaction(
                 org_id=org_id, metric_ids=metric_ids, alias=alias
             ),
+            is_private=True,
         ),
         SingularEntityDerivedMetric(
             metric_mri=TransactionMRI.APDEX.value,
@@ -953,18 +1137,38 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
                 org_id=org_id, metric_ids=metric_ids, alias=alias
             ),
         ),
+        SingularEntityDerivedMetric(
+            metric_mri=TransactionMRI.ALL_USER.value,
+            metrics=[TransactionMRI.USER.value],
+            unit="percentage",
+            snql=lambda *_, org_id, metric_ids, alias=None: uniq_aggregation_on_metric(
+                metric_ids, alias=alias
+            ),
+            is_private=True,
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=TransactionMRI.USER_MISERY.value,
+            metrics=[TransactionMRI.MISERABLE_USER.value, TransactionMRI.ALL_USER.value],
+            unit="percentage",
+            snql=lambda miserable_user, user, org_id, metric_ids, alias=None: division_float(
+                addition(miserable_user, MISERY_ALPHA),
+                addition(user, MISERY_ALPHA + MISERY_BETA),
+                alias,
+            ),
+        ),
     ]
 }
 
 
-DERIVED_OPS: Mapping[str, DerivedOp] = {
+DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
     derived_op.op: derived_op
     for derived_op in [
         DerivedOp(
             op="histogram",
             can_orderby=False,
-            query_definition_args=["histogram_from", "histogram_to", "histogram_buckets"],
+            metrics_query_args=["histogram_from", "histogram_to", "histogram_buckets"],
             post_query_func=rebucket_histogram,
+            filter_conditions_func=zoom_histogram,
         )
     ]
 }
@@ -982,7 +1186,9 @@ DERIVED_ALIASES: Mapping[str, AliasedDerivedMetric] = {
 }
 
 
-def metric_object_factory(op: Optional[str], metric_mri: str) -> MetricExpressionBase:
+def metric_object_factory(
+    op: Optional[MetricOperationType], metric_mri: str
+) -> MetricExpressionBase:
     """Returns an appropriate instance of MetricsFieldBase object"""
     if op in DERIVED_OPS and metric_mri in DERIVED_METRICS:
         raise InvalidParams("derived ops cannot be used on derived metrics")
@@ -1007,14 +1213,14 @@ def metric_object_factory(op: Optional[str], metric_mri: str) -> MetricExpressio
 
 
 def generate_bottom_up_dependency_tree_for_metrics(
-    query_definition_fields_set: Set[Tuple[Optional[MetricOperationType], str]]
+    metrics_query_fields_set: Set[Tuple[Optional[MetricOperationType], str]]
 ) -> List[Tuple[Optional[MetricOperationType], str]]:
     """
     This function basically generates a dependency list for all instances of
     `CompositeEntityDerivedMetric` in a query definition fields set
     """
     dependency_list: List[Tuple[Optional[MetricOperation], str]] = []
-    for op, metric_mri in query_definition_fields_set:
+    for op, metric_mri in metrics_query_fields_set:
         dependency_list.extend(
             metric_object_factory(op, metric_mri).generate_bottom_up_derived_metrics_dependencies()
         )
@@ -1022,6 +1228,8 @@ def generate_bottom_up_dependency_tree_for_metrics(
 
 
 def get_derived_metrics(exclude_private: bool = True) -> Mapping[str, DerivedMetricExpression]:
+    # ToDo(ahmed): Modify the behaviour here to determine whether a metric is private or not
+    #  based on whether it is added to the public naming layer or not
     return (
         {key: value for (key, value) in DERIVED_METRICS.items() if not value.is_private}
         if exclude_private

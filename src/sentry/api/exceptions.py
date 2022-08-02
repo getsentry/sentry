@@ -4,6 +4,8 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.exceptions import APIException
 
+from sentry.utils.auth import make_login_link_with_redirect
+
 
 class ResourceDoesNotExist(APIException):
     status_code = status.HTTP_404_NOT_FOUND
@@ -52,8 +54,13 @@ class SsoRequired(SentryAPIException):
     code = "sso-required"
     message = "Must login via SSO"
 
-    def __init__(self, organization):
-        super().__init__(loginUrl=reverse("sentry-auth-organization", args=[organization.slug]))
+    def __init__(self, organization, after_login_redirect=None):
+        login_url = reverse("sentry-auth-organization", args=[organization.slug])
+
+        if after_login_redirect:
+            login_url = make_login_link_with_redirect(login_url, after_login_redirect)
+
+        super().__init__(loginUrl=login_url)
 
 
 class MemberDisabledOverLimit(SentryAPIException):

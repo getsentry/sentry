@@ -1,13 +1,10 @@
-import * as React from 'react';
-
 import Breadcrumbs from 'sentry/components/events/interfaces/breadcrumbs';
 import Csp from 'sentry/components/events/interfaces/csp';
 import DebugMeta from 'sentry/components/events/interfaces/debugMeta';
-import DebugMetaV2 from 'sentry/components/events/interfaces/debugMeta-v2';
 import Exception from 'sentry/components/events/interfaces/exception';
 import ExceptionV2 from 'sentry/components/events/interfaces/exceptionV2';
-import Generic from 'sentry/components/events/interfaces/generic';
-import Message from 'sentry/components/events/interfaces/message';
+import {Generic} from 'sentry/components/events/interfaces/generic';
+import {Message} from 'sentry/components/events/interfaces/message';
 import Request from 'sentry/components/events/interfaces/request';
 import Spans from 'sentry/components/events/interfaces/spans';
 import StackTrace from 'sentry/components/events/interfaces/stackTrace';
@@ -17,6 +14,9 @@ import Threads from 'sentry/components/events/interfaces/threads';
 import ThreadsV2 from 'sentry/components/events/interfaces/threadsV2';
 import {Group, Organization, Project, SharedViewOrganization} from 'sentry/types';
 import {Entry, EntryType, Event, EventTransaction} from 'sentry/types/event';
+
+import {EmbeddedSpanTree} from './interfaces/spans/embeddedSpanTree';
+import {FocusedSpanIDMap} from './interfaces/spans/types';
 
 type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> & {
   entry: Entry;
@@ -70,7 +70,7 @@ function EventEntry({
     }
     case EntryType.MESSAGE: {
       const {data} = entry;
-      return <Message data={data} />;
+      return <Message data={data} event={event} />;
     }
     case EntryType.REQUEST: {
       const {data, type} = entry;
@@ -110,7 +110,7 @@ function EventEntry({
     case EntryType.EXPECTSTAPLE:
     case EntryType.HPKP: {
       const {data, type} = entry;
-      return <Generic type={type} data={data} />;
+      return <Generic type={type} data={data} meta={event._meta?.hpkp ?? {}} />;
     }
     case EntryType.BREADCRUMBS: {
       const {data, type} = entry;
@@ -149,35 +149,42 @@ function EventEntry({
     }
     case EntryType.DEBUGMETA:
       const {data} = entry;
-      const hasImagesLoadedV2Feature =
-        !!organization.features?.includes('images-loaded-v2');
-
-      if (hasImagesLoadedV2Feature) {
-        return (
-          <DebugMetaV2
-            event={event}
-            projectId={projectSlug}
-            groupId={group?.id}
-            organization={organization as Organization}
-            data={data as React.ComponentProps<typeof DebugMetaV2>['data']}
-          />
-        );
-      }
 
       return (
         <DebugMeta
           event={event}
           projectId={projectSlug}
+          groupId={group?.id}
           organization={organization as Organization}
           data={data}
         />
       );
-
     case EntryType.SPANS:
       return (
         <Spans
           event={event as EventTransaction}
           organization={organization as Organization}
+        />
+      );
+    case EntryType.SPANTREE:
+      if (!organization.features?.includes('performance-extraneous-spans-poc')) {
+        return null;
+      }
+
+      const {focusedSpanIds: _focusedSpanIds} = entry.data;
+
+      const focusedSpanIds: FocusedSpanIDMap = {};
+      _focusedSpanIds.forEach(spanId => (focusedSpanIds[spanId] = new Set()));
+
+      // TODO: Need to dynamically determine the project slug for this issue
+      const INTERNAL_PROJECT = 'sentry';
+
+      return (
+        <EmbeddedSpanTree
+          event={event}
+          organization={organization as Organization}
+          projectSlug={INTERNAL_PROJECT}
+          focusedSpanIds={focusedSpanIds}
         />
       );
     default:

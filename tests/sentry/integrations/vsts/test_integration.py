@@ -3,8 +3,8 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 import responses
-from exam import mock
 
+from fixtures.vsts import CREATE_SUBSCRIPTION, VstsIntegrationTestCase
 from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider
 from sentry.models import (
     Integration,
@@ -13,8 +13,6 @@ from sentry.models import (
     Repository,
 )
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
-
-from .testutils import CREATE_SUBSCRIPTION, VstsIntegrationTestCase
 
 FULL_SCOPES = ["vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_write"]
 LIMITED_SCOPES = ["vso.graph", "vso.serviceendpoint_manage", "vso.work_write"]
@@ -328,7 +326,7 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
 
         # test validation
         data = {"sync_status_forward": {1: {"on_resolve": "", "on_unresolve": "UnresolvedStatus1"}}}
-        with self.assertRaises(IntegrationError):
+        with pytest.raises(IntegrationError):
             integration.update_organization_config(data)
 
         data = {
@@ -450,7 +448,7 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
         integration = Integration.objects.get(provider="vsts")
         installation = integration.get_installation(self.organization.id)
 
-        group_note = mock.Mock()
+        group_note = Mock()
         comment = "hello world\nThis is a comment.\n\n\n    I've changed it"
         group_note.data = {"text": comment, "external_id": "123"}
 

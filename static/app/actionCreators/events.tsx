@@ -1,7 +1,7 @@
 import {LocationDescriptor} from 'history';
 import pick from 'lodash/pick';
 
-import {Client} from 'sentry/api';
+import {Client, ResponseMeta} from 'sentry/api';
 import {canIncludePreviousPeriod} from 'sentry/components/charts/utils';
 import {
   DateString,
@@ -20,6 +20,7 @@ type Options = {
   comparisonDelta?: number;
   end?: DateString;
   environment?: Readonly<string[]>;
+  excludeOther?: boolean;
   field?: string[];
   generatePathname?: (org: OrganizationSummary) => string;
   includePrevious?: boolean;
@@ -47,6 +48,7 @@ type Options = {
  * @param {Object} options.organization Organization object
  * @param {Number[]} options.project List of project ids
  * @param {String[]} options.environment List of environments to query for
+ * @param {Boolean} options.excludeOther Exclude the "Other" series when making a topEvents query
  * @param {String[]} options.team List of teams to query for
  * @param {String} options.period Time period to query for, in the format: <integer><units> where units are "d" or "h"
  * @param {String} options.interval Time interval to group results in, in the format: <integer><units> where units are "d", "h", "m", "s"
@@ -58,7 +60,7 @@ type Options = {
  * @param {Record<string, string>} options.queryExtras A list of extra query parameters
  * @param {(org: OrganizationSummary) => string} options.generatePathname A function that returns an override for the pathname
  */
-export const doEventsRequest = (
+export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
   api: Client,
   {
     organization,
@@ -82,8 +84,18 @@ export const doEventsRequest = (
     queryBatching,
     generatePathname,
     queryExtras,
-  }: Options
-): Promise<EventsStats | MultiSeriesEventsStats> => {
+    excludeOther,
+    includeAllArgs,
+  }: {includeAllArgs?: IncludeAllArgsType} & Options
+): IncludeAllArgsType extends true
+  ? Promise<
+      [EventsStats | MultiSeriesEventsStats, string | undefined, ResponseMeta | undefined]
+    >
+  : Promise<EventsStats | MultiSeriesEventsStats> => {
+  const pathname =
+    generatePathname?.(organization) ??
+    `/organizations/${organization.slug}/events-stats/`;
+
   const shouldDoublePeriod = canIncludePreviousPeriod(includePrevious, period);
   const urlQuery = Object.fromEntries(
     Object.entries({
@@ -100,6 +112,7 @@ export const doEventsRequest = (
       partial: partial ? '1' : undefined,
       withoutZerofill: withoutZerofill ? '1' : undefined,
       referrer: referrer ? referrer : 'api.organization-event-stats',
+      excludeOther: excludeOther ? '1' : undefined,
     }).filter(([, value]) => typeof value !== 'undefined')
   );
 
@@ -109,6 +122,7 @@ export const doEventsRequest = (
   const periodObj = getPeriod({period, start, end}, {shouldDoublePeriod});
 
   const queryObject = {
+    includeAllArgs,
     query: {
       ...urlQuery,
       ...periodObj,
@@ -116,15 +130,11 @@ export const doEventsRequest = (
     },
   };
 
-  const pathname =
-    generatePathname?.(organization) ??
-    `/organizations/${organization.slug}/events-stats/`;
-
   if (queryBatching?.batchRequest) {
     return queryBatching.batchRequest(api, pathname, queryObject);
   }
 
-  return api.requestPromise(pathname, queryObject);
+  return api.requestPromise<IncludeAllArgsType>(pathname, queryObject);
 };
 
 export type EventQuery = {
@@ -157,7 +167,7 @@ export type Tag = {
 /**
  * Fetches tag facets for a query
  */
-export async function fetchTagFacets(
+export function fetchTagFacets(
   api: Client,
   orgSlug: string,
   query: EventQuery
@@ -174,7 +184,7 @@ export async function fetchTagFacets(
 /**
  * Fetches total count of events for a given query
  */
-export async function fetchTotalCount(
+export function fetchTotalCount(
   api: Client,
   orgSlug: String,
   query: EventQuery & LocationQuery

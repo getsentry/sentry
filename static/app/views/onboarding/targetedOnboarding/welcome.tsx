@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import {motion, MotionProps} from 'framer-motion';
 
@@ -13,9 +13,10 @@ import space from 'sentry/styles/space';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import testableTransition from 'sentry/utils/testableTransition';
 import FallingError from 'sentry/views/onboarding/components/fallingError';
+import WelcomeBackground from 'sentry/views/onboarding/components/welcomeBackground';
 
-import WelcomeBackground from './components/welcomeBackground';
 import {StepProps} from './types';
+import {usePersistedOnboardingState} from './utils';
 
 const fadeAway: MotionProps = {
   variants: {
@@ -35,20 +36,21 @@ type TextWrapperProps = {
 
 function InnerAction({title, subText, cta, src}: TextWrapperProps) {
   return (
-    <React.Fragment>
+    <Fragment>
       <ActionImage src={src} />
       <TextWrapper>
         <ActionTitle>{title}</ActionTitle>
         <SubText>{subText}</SubText>
       </TextWrapper>
       <ButtonWrapper>{cta}</ButtonWrapper>
-    </React.Fragment>
+    </Fragment>
   );
 }
 
 function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
   const source = 'targeted_onboarding';
-  React.useEffect(() => {
+  const [clientState, setClientState] = usePersistedOnboardingState();
+  useEffect(() => {
     trackAdvancedAnalyticsEvent('growth.onboarding_start_onboarding', {
       organization,
       source,
@@ -60,6 +62,13 @@ function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
       organization,
       source,
     });
+    if (clientState) {
+      setClientState({
+        ...clientState,
+        url: 'select-platform/',
+        state: 'started',
+      });
+    }
 
     props.onComplete();
   };
@@ -80,11 +89,11 @@ function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
             <InnerAction
               title={t('Install Sentry')}
               subText={t(
-                'Select your lanaguages or frameworks and install the SDKs to start tracking issues'
+                'Select your languages or frameworks and install the SDKs to start tracking issues'
               )}
               src={OnboardingInstall}
               cta={
-                <React.Fragment>
+                <Fragment>
                   <ButtonWithFill
                     onClick={() => {
                       // triggerFall();
@@ -97,13 +106,13 @@ function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
                   {(fallCount === 0 || isFalling) && (
                     <PositionedFallingError>{fallingError}</PositionedFallingError>
                   )}
-                </React.Fragment>
+                </Fragment>
               }
             />
           </ActionItem>
           <ActionItem {...fadeAway}>
             <InnerAction
-              title={t('Setup my team')}
+              title={t('Set up my team')}
               subText={tct(
                 'Invite [friends] coworkers. You shouldn’t have to fix what you didn’t break',
                 {friends: <Strike>{t('friends')}</Strike>}
@@ -125,12 +134,18 @@ function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
             {t("Gee, I've used Sentry before.")}
             <br />
             <Link
-              onClick={() =>
+              onClick={() => {
                 trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
                   organization,
                   source,
-                })
-              }
+                });
+                if (clientState) {
+                  setClientState({
+                    ...clientState,
+                    state: 'skipped',
+                  });
+                }
+              }}
               to={`/organizations/${organization.slug}/issues/`}
             >
               {t('Skip onboarding.')}
@@ -152,6 +167,9 @@ const PositionedFallingError = styled('span')`
 `;
 
 const Wrapper = styled(motion.div)`
+  position: relative;
+  margin-top: auto;
+  margin-bottom: auto;
   max-width: 400px;
   display: flex;
   flex-direction: column;
@@ -172,13 +190,13 @@ const ActionItem = styled(motion.div)`
   margin-bottom: ${space(2)};
   justify-content: space-around;
   border: 1px solid ${p => p.theme.gray200};
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     display: grid;
     grid-template-columns: 125px auto 125px;
     width: 680px;
     align-items: center;
   }
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: flex;
     flex-direction: column;
   }
@@ -188,7 +206,7 @@ const TextWrapper = styled('div')`
   text-align: left;
   margin: auto ${space(3)};
   min-height: 70px;
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     text-align: center;
     margin: ${space(1)} ${space(1)};
     margin-top: ${space(3)};

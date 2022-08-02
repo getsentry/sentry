@@ -1,11 +1,11 @@
-import * as React from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 import moment from 'moment';
 
 import Button from 'sentry/components/button';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
-import {getMeta} from 'sentry/components/events/meta/metaProxy';
+import AnnotatedText from 'sentry/components/events/meta/annotatedText';
 import ListItem from 'sentry/components/list/listItem';
 import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
 import {t, tct} from 'sentry/locale';
@@ -33,32 +33,16 @@ const keyMapping = {
   image_path: 'File Path',
 };
 
-type Props = {
+export type ErrorItemProps = {
   error: Error;
+  meta?: Record<any, any>;
 };
 
-type State = {
-  isOpen: boolean;
-};
+export function ErrorItem({error, meta}: ErrorItemProps) {
+  const [expanded, setExpanded] = useState(false);
 
-class ErrorItem extends React.Component<Props, State> {
-  state: State = {
-    isOpen: false,
-  };
-
-  shouldComponentUpdate(_nextProps: Props, nextState: State) {
-    return this.state.isOpen !== nextState.isOpen;
-  }
-
-  handleToggle = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    this.setState({isOpen: !this.state.isOpen});
-  };
-
-  cleanedData(errorData: NonNullable<Error['data']>) {
-    const data = {...errorData};
-
+  const cleanedData = useMemo(() => {
+    const data = {...(error.data ?? {})};
     // The name is rendered as path in front of the message
     if (typeof data.name === 'string') {
       delete data.name;
@@ -86,82 +70,72 @@ class ErrorItem extends React.Component<Props, State> {
       );
     }
 
-    return Object.entries(data).map(([key, value]) => ({
-      key,
-      value,
-      subject: keyMapping[key] || startCase(key),
-      meta: getMeta(data, key),
-    }));
-  }
+    return Object.entries(data)
+      .map(([key, value]) => ({
+        key,
+        value,
+        subject: keyMapping[key] || startCase(key),
+        meta: key === 'image_name' ? meta?.image_path?.[''] : meta?.[key]?.[''],
+      }))
+      .filter(d => {
+        if (!d.value && !!d.meta) {
+          return true;
+        }
+        return !!d.value;
+      });
+  }, [error.data, meta]);
 
-  renderPath(data: NonNullable<Error['data']>) {
-    const {name} = data;
-
-    if (!name || typeof name !== 'string') {
-      return null;
-    }
-
-    return (
-      <React.Fragment>
-        <strong>{name}</strong>
-        {': '}
-      </React.Fragment>
-    );
-  }
-
-  renderTroubleshootingLink(error: Error) {
-    if (
-      Object.values(JavascriptProcessingErrors).includes(
-        error.type as JavascriptProcessingErrors
-      )
-    ) {
-      return (
-        <React.Fragment>
-          {' '}
-          (
-          {tct('see [docsLink]', {
-            docsLink: (
-              <StyledExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/">
-                {t('Troubleshooting for JavaScript')}
-              </StyledExternalLink>
-            ),
-          })}
-          )
-        </React.Fragment>
-      );
-    }
-
-    return null;
-  }
-
-  render() {
-    const {error} = this.props;
-    const {isOpen} = this.state;
-
-    const data = error?.data ?? {};
-    const cleanedData = this.cleanedData(data);
-
-    return (
-      <StyledListItem>
-        <OverallInfo>
-          <div>
-            {this.renderPath(data)}
-            {error.message}
-            {this.renderTroubleshootingLink(error)}
-          </div>
-          {!!cleanedData.length && (
-            <ToggleButton onClick={this.handleToggle} priority="link" size="zero">
-              {isOpen ? t('Collapse') : t('Expand')}
-            </ToggleButton>
+  return (
+    <StyledListItem>
+      <OverallInfo>
+        <div>
+          {meta?.data?.name?.[''] ? (
+            <AnnotatedText value={error.message} meta={meta?.data?.name?.['']} />
+          ) : !error.data?.name || typeof error.data?.name !== 'string' ? null : (
+            <Fragment>
+              <strong>{error.data?.name}</strong>
+              {': '}
+            </Fragment>
           )}
-        </OverallInfo>
-        {isOpen && <KeyValueList data={cleanedData} isContextData />}
-      </StyledListItem>
-    );
-  }
+          {meta?.message?.[''] ? (
+            <AnnotatedText value={error.message} meta={meta?.message?.['']} />
+          ) : (
+            error.message
+          )}
+          {Object.values(JavascriptProcessingErrors).includes(
+            error.type as JavascriptProcessingErrors
+          ) && (
+            <Fragment>
+              {' '}
+              (
+              {tct('see [docsLink]', {
+                docsLink: (
+                  <StyledExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/">
+                    {t('Troubleshooting for JavaScript')}
+                  </StyledExternalLink>
+                ),
+              })}
+              )
+            </Fragment>
+          )}
+        </div>
+        {!!cleanedData.length && (
+          <ToggleButton
+            onClick={event => {
+              event.stopPropagation();
+              setExpanded(!expanded);
+            }}
+            priority="link"
+            size="zero"
+          >
+            {expanded ? t('Collapse') : t('Expand')}
+          </ToggleButton>
+        )}
+      </OverallInfo>
+      {expanded && <KeyValueList data={cleanedData} isContextData />}
+    </StyledListItem>
+  );
 }
-
-export default ErrorItem;
 
 const ToggleButton = styled(Button)`
   margin-left: ${space(1.5)};

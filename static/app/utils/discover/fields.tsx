@@ -3,8 +3,21 @@ import isEqual from 'lodash/isEqual';
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
 import {MetricsType, Organization, SelectValue} from 'sentry/types';
 import {assert} from 'sentry/types/utils';
+import {
+  SESSIONS_FIELDS,
+  SESSIONS_OPERATIONS,
+} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
 
-import {METRIC_TO_COLUMN_TYPE} from '../metrics/fields';
+import {
+  AGGREGATION_FIELDS,
+  AggregationKey,
+  DISCOVER_FIELDS,
+  FieldKey,
+  FIELDS,
+  FieldValueType,
+  MEASUREMENT_FIELDS,
+  WebVital,
+} from '../fields';
 
 export type Sort = {
   field: string;
@@ -20,16 +33,10 @@ export type Field = {
   width?: number;
 };
 
-export type ColumnType =
-  | 'boolean'
-  | 'date'
-  | 'duration'
-  | 'integer'
-  | 'number'
-  | 'percentage'
-  | 'string';
+// ColumnType is kept as a string literal union instead of an enum due to the countless uses of it and refactoring would take huge effort.
+export type ColumnType = `${Exclude<FieldValueType, FieldValueType.NEVER>}`;
 
-export type ColumnValueType = ColumnType | 'never'; // Matches to nothing
+export type ColumnValueType = ColumnType | `${FieldValueType.NEVER}`;
 
 export type ParsedFunction = {
   arguments: string[];
@@ -90,7 +97,12 @@ export type QueryFieldValue =
       alias?: string;
     }
   | {
-      function: [AggregationKey, string, AggregationRefinement, AggregationRefinement];
+      function: [
+        AggregationKeyWithAlias,
+        string,
+        AggregationRefinement,
+        AggregationRefinement
+      ];
       kind: 'function';
       alias?: string;
     };
@@ -127,16 +139,43 @@ const CONDITIONS_ARGUMENTS: SelectValue<string>[] = [
   },
 ];
 
+const WEB_VITALS_QUALITY: SelectValue<string>[] = [
+  {
+    label: 'good',
+    value: 'good',
+  },
+  {
+    label: 'meh',
+    value: 'meh',
+  },
+  {
+    label: 'poor',
+    value: 'poor',
+  },
+  {
+    label: 'any',
+    value: 'any',
+  },
+];
+
+const getDocsAndOutputType = (key: AggregationKey) => {
+  return {
+    documentation: AGGREGATION_FIELDS[key].desc,
+    outputType: AGGREGATION_FIELDS[key].valueType as AggregationOutputType,
+  };
+};
+
 // Refer to src/sentry/search/events/fields.py
 // Try to keep functions logically sorted, ie. all the count functions are grouped together
 export const AGGREGATIONS = {
-  count: {
+  [AggregationKey.Count]: {
+    ...getDocsAndOutputType(AggregationKey.Count),
     parameters: [],
-    outputType: 'number',
     isSortable: true,
     multiPlotType: 'area',
   },
-  count_unique: {
+  [AggregationKey.CountUnique]: {
+    ...getDocsAndOutputType(AggregationKey.CountUnique),
     parameters: [
       {
         kind: 'column',
@@ -145,11 +184,11 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    outputType: 'number',
     isSortable: true,
     multiPlotType: 'line',
   },
-  count_miserable: {
+  [AggregationKey.CountMiserable]: {
+    ...getDocsAndOutputType(AggregationKey.CountMiserable),
     getFieldOverrides({parameter}: DefaultValueInputs) {
       if (parameter.kind === 'column') {
         return {defaultValue: 'user'};
@@ -172,16 +211,16 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    outputType: 'number',
     isSortable: true,
     multiPlotType: 'area',
   },
-  count_if: {
+  [AggregationKey.CountIf]: {
+    ...getDocsAndOutputType(AggregationKey.CountIf),
     parameters: [
       {
         kind: 'column',
         columnTypes: validateDenyListColumns(
-          ['string', 'duration'],
+          ['string', 'duration', 'number'],
           ['id', 'issue', 'user.display']
         ),
         defaultValue: 'transaction.duration',
@@ -201,29 +240,55 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    outputType: 'number',
     isSortable: true,
     multiPlotType: 'area',
   },
-  eps: {
-    parameters: [],
-    outputType: 'number',
+  [AggregationKey.CountWebVitals]: {
+    ...getDocsAndOutputType(AggregationKey.CountWebVitals),
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: validateAllowedColumns([
+          WebVital.LCP,
+          WebVital.FP,
+          WebVital.FCP,
+          WebVital.FID,
+          WebVital.CLS,
+        ]),
+        defaultValue: WebVital.LCP,
+        required: true,
+      },
+      {
+        kind: 'dropdown',
+        options: WEB_VITALS_QUALITY,
+        dataType: 'string',
+        defaultValue: WEB_VITALS_QUALITY[0].value,
+        required: true,
+      },
+    ],
     isSortable: true,
     multiPlotType: 'area',
   },
-  epm: {
+  [AggregationKey.Eps]: {
+    ...getDocsAndOutputType(AggregationKey.Eps),
     parameters: [],
-    outputType: 'number',
     isSortable: true,
     multiPlotType: 'area',
   },
-  failure_count: {
+  [AggregationKey.Epm]: {
+    ...getDocsAndOutputType(AggregationKey.Epm),
     parameters: [],
-    outputType: 'number',
+    isSortable: true,
+    multiPlotType: 'area',
+  },
+  [AggregationKey.FailureCount]: {
+    ...getDocsAndOutputType(AggregationKey.FailureCount),
+    parameters: [],
     isSortable: true,
     multiPlotType: 'line',
   },
-  min: {
+  [AggregationKey.Min]: {
+    ...getDocsAndOutputType(AggregationKey.Min),
     parameters: [
       {
         kind: 'column',
@@ -238,11 +303,11 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    outputType: null,
     isSortable: true,
     multiPlotType: 'line',
   },
-  max: {
+  [AggregationKey.Max]: {
+    ...getDocsAndOutputType(AggregationKey.Max),
     parameters: [
       {
         kind: 'column',
@@ -257,11 +322,11 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    outputType: null,
     isSortable: true,
     multiPlotType: 'line',
   },
-  sum: {
+  [AggregationKey.Sum]: {
+    ...getDocsAndOutputType(AggregationKey.Sum),
     parameters: [
       {
         kind: 'column',
@@ -270,11 +335,11 @@ export const AGGREGATIONS = {
         defaultValue: 'transaction.duration',
       },
     ],
-    outputType: null,
     isSortable: true,
     multiPlotType: 'area',
   },
-  any: {
+  [AggregationKey.Any]: {
+    ...getDocsAndOutputType(AggregationKey.Any),
     parameters: [
       {
         kind: 'column',
@@ -283,10 +348,10 @@ export const AGGREGATIONS = {
         defaultValue: 'transaction.duration',
       },
     ],
-    outputType: null,
     isSortable: true,
   },
-  p50: {
+  [AggregationKey.P50]: {
+    ...getDocsAndOutputType(AggregationKey.P50),
     parameters: [
       {
         kind: 'column',
@@ -295,24 +360,11 @@ export const AGGREGATIONS = {
         required: false,
       },
     ],
-    outputType: null,
-    isSortable: true,
-    multiPlotType: 'line',
-  },
-  p75: {
-    parameters: [
-      {
-        kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
-        defaultValue: 'transaction.duration',
-        required: false,
-      },
-    ],
-    outputType: null,
     isSortable: true,
     multiPlotType: 'line',
   },
-  p95: {
+  [AggregationKey.P75]: {
+    ...getDocsAndOutputType(AggregationKey.P75),
     parameters: [
       {
         kind: 'column',
@@ -321,12 +373,25 @@ export const AGGREGATIONS = {
         required: false,
       },
     ],
-    outputType: null,
+    isSortable: true,
+    multiPlotType: 'line',
+  },
+  [AggregationKey.P95]: {
+    ...getDocsAndOutputType(AggregationKey.P95),
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
+        defaultValue: 'transaction.duration',
+        required: false,
+      },
+    ],
     type: [],
     isSortable: true,
     multiPlotType: 'line',
   },
-  p99: {
+  [AggregationKey.P99]: {
+    ...getDocsAndOutputType(AggregationKey.P99),
     parameters: [
       {
         kind: 'column',
@@ -335,11 +400,11 @@ export const AGGREGATIONS = {
         required: false,
       },
     ],
-    outputType: null,
     isSortable: true,
     multiPlotType: 'line',
   },
-  p100: {
+  [AggregationKey.P100]: {
+    ...getDocsAndOutputType(AggregationKey.P100),
     parameters: [
       {
         kind: 'column',
@@ -348,11 +413,11 @@ export const AGGREGATIONS = {
         required: false,
       },
     ],
-    outputType: null,
     isSortable: true,
     multiPlotType: 'line',
   },
-  percentile: {
+  [AggregationKey.Percentile]: {
+    ...getDocsAndOutputType(AggregationKey.Percentile),
     parameters: [
       {
         kind: 'column',
@@ -367,11 +432,11 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    outputType: null,
     isSortable: true,
     multiPlotType: 'line',
   },
-  avg: {
+  [AggregationKey.Avg]: {
+    ...getDocsAndOutputType(AggregationKey.Avg),
     parameters: [
       {
         kind: 'column',
@@ -380,11 +445,11 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    outputType: null,
     isSortable: true,
     multiPlotType: 'line',
   },
-  apdex: {
+  [AggregationKey.Apdex]: {
+    ...getDocsAndOutputType(AggregationKey.Apdex),
     parameters: [
       {
         kind: 'value',
@@ -393,11 +458,11 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    outputType: 'number',
     isSortable: true,
     multiPlotType: 'line',
   },
-  user_misery: {
+  [AggregationKey.UserMisery]: {
+    ...getDocsAndOutputType(AggregationKey.UserMisery),
     parameters: [
       {
         kind: 'value',
@@ -406,32 +471,31 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    outputType: 'number',
     isSortable: true,
     multiPlotType: 'line',
   },
-  failure_rate: {
+  [AggregationKey.FailureRate]: {
+    ...getDocsAndOutputType(AggregationKey.FailureRate),
     parameters: [],
-    outputType: 'percentage',
     isSortable: true,
     multiPlotType: 'line',
   },
-  last_seen: {
+  [AggregationKey.LastSeen]: {
+    ...getDocsAndOutputType(AggregationKey.LastSeen),
     parameters: [],
-    outputType: 'date',
     isSortable: true,
   },
 } as const;
 
 // TPM and TPS are aliases that are only used in Performance
 export const ALIASES = {
-  tpm: 'epm',
-  tps: 'eps',
+  tpm: AggregationKey.Epm,
+  tps: AggregationKey.Eps,
 };
 
-assert(AGGREGATIONS as Readonly<{[key in keyof typeof AGGREGATIONS]: Aggregation}>);
+assert(AGGREGATIONS as Readonly<{[key in AggregationKey]: Aggregation}>);
 
-export type AggregationKey = keyof typeof AGGREGATIONS | keyof typeof ALIASES | '';
+export type AggregationKeyWithAlias = `${AggregationKey}` | keyof typeof ALIASES | '';
 
 export type AggregationOutputType = Extract<
   ColumnType,
@@ -467,150 +531,6 @@ export type Aggregation = {
   multiPlotType?: PlotType;
 };
 
-enum FieldKey {
-  CULPRIT = 'culprit',
-  DEVICE_ARCH = 'device.arch',
-  DEVICE_BATTERY_LEVEL = 'device.battery_level',
-  DEVICE_BRAND = 'device.brand',
-  DEVICE_CHARGING = 'device.charging',
-  DEVICE_LOCALE = 'device.locale',
-  DEVICE_NAME = 'device.name',
-  DEVICE_ONLINE = 'device.online',
-  DEVICE_ORIENTATION = 'device.orientation',
-  DEVICE_SIMULATOR = 'device.simulator',
-  DEVICE_UUID = 'device.uuid',
-  DIST = 'dist',
-  ENVIRONMENT = 'environment',
-  ERROR_HANDLED = 'error.handled',
-  ERROR_UNHANDLED = 'error.unhandled',
-  ERROR_MECHANISM = 'error.mechanism',
-  ERROR_TYPE = 'error.type',
-  ERROR_VALUE = 'error.value',
-  EVENT_TYPE = 'event.type',
-  GEO_CITY = 'geo.city',
-  GEO_COUNTRY_CODE = 'geo.country_code',
-  GEO_REGION = 'geo.region',
-  HTTP_METHOD = 'http.method',
-  HTTP_REFERER = 'http.referer',
-  HTTP_URL = 'http.url',
-  ID = 'id',
-  ISSUE = 'issue',
-  LOCATION = 'location',
-  MESSAGE = 'message',
-  OS_BUILD = 'os.build',
-  OS_KERNEL_VERSION = 'os.kernel_version',
-  PLATFORM_NAME = 'platform.name',
-  PROJECT = 'project',
-  RELEASE = 'release',
-  SDK_NAME = 'sdk.name',
-  SDK_VERSION = 'sdk.version',
-  STACK_ABS_PATH = 'stack.abs_path',
-  STACK_COLNO = 'stack.colno',
-  STACK_FILENAME = 'stack.filename',
-  STACK_FUNCTION = 'stack.function',
-  STACK_IN_APP = 'stack.in_app',
-  STACK_LINENO = 'stack.lineno',
-  STACK_MODULE = 'stack.module',
-  STACK_PACKAGE = 'stack.package',
-  STACK_STACK_LEVEL = 'stack.stack_level',
-  TIMESTAMP = 'timestamp',
-  TIMESTAMP_TO_HOUR = 'timestamp.to_hour',
-  TIMESTAMP_TO_DAY = 'timestamp.to_day',
-  TITLE = 'title',
-  TRACE = 'trace',
-  TRACE_PARENT_SPAN = 'trace.parent_span',
-  TRACE_SPAN = 'trace.span',
-  TRANSACTION = 'transaction',
-  TRANSACTION_DURATION = 'transaction.duration',
-  TRANSACTION_OP = 'transaction.op',
-  TRANSACTION_STATUS = 'transaction.status',
-  USER_EMAIL = 'user.email',
-  USER_ID = 'user.id',
-  USER_IP = 'user.ip',
-  USER_USERNAME = 'user.username',
-  USER_DISPLAY = 'user.display',
-}
-
-/**
- * Refer to src/sentry/snuba/events.py, search for Columns
- */
-export const FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
-  [FieldKey.ID]: 'string',
-  // issue.id and project.id are omitted on purpose.
-  // Customers should use `issue` and `project` instead.
-  [FieldKey.TIMESTAMP]: 'date',
-  // time is omitted on purpose.
-  // Customers should use `timestamp` or `timestamp.to_hour`.
-  [FieldKey.TIMESTAMP_TO_HOUR]: 'date',
-  [FieldKey.TIMESTAMP_TO_DAY]: 'date',
-
-  [FieldKey.CULPRIT]: 'string',
-  [FieldKey.LOCATION]: 'string',
-  [FieldKey.MESSAGE]: 'string',
-  [FieldKey.PLATFORM_NAME]: 'string',
-  [FieldKey.ENVIRONMENT]: 'string',
-  [FieldKey.RELEASE]: 'string',
-  [FieldKey.DIST]: 'string',
-  [FieldKey.TITLE]: 'string',
-  [FieldKey.EVENT_TYPE]: 'string',
-  // tags.key and tags.value are omitted on purpose as well.
-
-  [FieldKey.TRANSACTION]: 'string',
-  [FieldKey.USER_ID]: 'string',
-  [FieldKey.USER_EMAIL]: 'string',
-  [FieldKey.USER_USERNAME]: 'string',
-  [FieldKey.USER_IP]: 'string',
-  [FieldKey.SDK_NAME]: 'string',
-  [FieldKey.SDK_VERSION]: 'string',
-  [FieldKey.HTTP_METHOD]: 'string',
-  [FieldKey.HTTP_REFERER]: 'string',
-  [FieldKey.HTTP_URL]: 'string',
-  [FieldKey.OS_BUILD]: 'string',
-  [FieldKey.OS_KERNEL_VERSION]: 'string',
-  [FieldKey.DEVICE_NAME]: 'string',
-  [FieldKey.DEVICE_BRAND]: 'string',
-  [FieldKey.DEVICE_LOCALE]: 'string',
-  [FieldKey.DEVICE_UUID]: 'string',
-  [FieldKey.DEVICE_ARCH]: 'string',
-  [FieldKey.DEVICE_BATTERY_LEVEL]: 'number',
-  [FieldKey.DEVICE_ORIENTATION]: 'string',
-  [FieldKey.DEVICE_SIMULATOR]: 'boolean',
-  [FieldKey.DEVICE_ONLINE]: 'boolean',
-  [FieldKey.DEVICE_CHARGING]: 'boolean',
-  [FieldKey.GEO_COUNTRY_CODE]: 'string',
-  [FieldKey.GEO_REGION]: 'string',
-  [FieldKey.GEO_CITY]: 'string',
-  [FieldKey.ERROR_TYPE]: 'string',
-  [FieldKey.ERROR_VALUE]: 'string',
-  [FieldKey.ERROR_MECHANISM]: 'string',
-  [FieldKey.ERROR_HANDLED]: 'boolean',
-  [FieldKey.ERROR_UNHANDLED]: 'boolean',
-  [FieldKey.STACK_ABS_PATH]: 'string',
-  [FieldKey.STACK_FILENAME]: 'string',
-  [FieldKey.STACK_PACKAGE]: 'string',
-  [FieldKey.STACK_MODULE]: 'string',
-  [FieldKey.STACK_FUNCTION]: 'string',
-  [FieldKey.STACK_IN_APP]: 'boolean',
-  [FieldKey.STACK_COLNO]: 'number',
-  [FieldKey.STACK_LINENO]: 'number',
-  [FieldKey.STACK_STACK_LEVEL]: 'number',
-  // contexts.key and contexts.value omitted on purpose.
-
-  // Transaction event fields.
-  [FieldKey.TRANSACTION_DURATION]: 'duration',
-  [FieldKey.TRANSACTION_OP]: 'string',
-  [FieldKey.TRANSACTION_STATUS]: 'string',
-
-  [FieldKey.TRACE]: 'string',
-  [FieldKey.TRACE_SPAN]: 'string',
-  [FieldKey.TRACE_PARENT_SPAN]: 'string',
-
-  // Field alises defined in src/sentry/api/event_search.py
-  [FieldKey.PROJECT]: 'string',
-  [FieldKey.ISSUE]: 'string',
-  [FieldKey.USER_DISPLAY]: 'string',
-};
-
 export const DEPRECATED_FIELDS: string[] = [FieldKey.CULPRIT];
 
 export type FieldTag = {
@@ -619,25 +539,25 @@ export type FieldTag = {
 };
 
 export const FIELD_TAGS = Object.freeze(
-  Object.fromEntries(Object.keys(FIELDS).map(item => [item, {key: item, name: item}]))
+  Object.fromEntries(DISCOVER_FIELDS.map(item => [item, {key: item, name: item}]))
 );
 
 export const SEMVER_TAGS = {
-  'release.version': {
-    key: 'release.version',
-    name: 'release.version',
+  [FieldKey.RELEASE_VERSION]: {
+    key: FieldKey.RELEASE_VERSION,
+    name: FieldKey.RELEASE_VERSION,
   },
-  'release.build': {
-    key: 'release.build',
-    name: 'release.build',
+  [FieldKey.RELEASE_BUILD]: {
+    key: FieldKey.RELEASE_BUILD,
+    name: FieldKey.RELEASE_BUILD,
   },
-  'release.package': {
-    key: 'release.package',
-    name: 'release.package',
+  [FieldKey.RELEASE_PACKAGE]: {
+    key: FieldKey.RELEASE_PACKAGE,
+    name: FieldKey.RELEASE_PACKAGE,
   },
-  'release.stage': {
-    key: 'release.stage',
-    name: 'release.stage',
+  [FieldKey.RELEASE_STAGE]: {
+    key: FieldKey.RELEASE_STAGE,
+    name: FieldKey.RELEASE_STAGE,
     predefined: true,
     values: RELEASE_ADOPTION_STAGES,
   },
@@ -662,50 +582,11 @@ export function formatTagKey(key: string): string {
 // Allows for a less strict field key definition in cases we are returning custom strings as fields
 export type LooseFieldKey = FieldKey | string | '';
 
-export enum WebVital {
-  FP = 'measurements.fp',
-  FCP = 'measurements.fcp',
-  LCP = 'measurements.lcp',
-  FID = 'measurements.fid',
-  CLS = 'measurements.cls',
-  TTFB = 'measurements.ttfb',
-  RequestTime = 'measurements.ttfb.requesttime',
-}
-
-export enum MobileVital {
-  AppStartCold = 'measurements.app_start_cold',
-  AppStartWarm = 'measurements.app_start_warm',
-  FramesTotal = 'measurements.frames_total',
-  FramesSlow = 'measurements.frames_slow',
-  FramesFrozen = 'measurements.frames_frozen',
-  FramesSlowRate = 'measurements.frames_slow_rate',
-  FramesFrozenRate = 'measurements.frames_frozen_rate',
-  StallCount = 'measurements.stall_count',
-  StallTotalTime = 'measurements.stall_total_time',
-  StallLongestTime = 'measurements.stall_longest_time',
-  StallPercentage = 'measurements.stall_percentage',
-}
-
-const MEASUREMENTS: Readonly<Record<WebVital | MobileVital, ColumnType>> = {
-  [WebVital.FP]: 'duration',
-  [WebVital.FCP]: 'duration',
-  [WebVital.LCP]: 'duration',
-  [WebVital.FID]: 'duration',
-  [WebVital.CLS]: 'number',
-  [WebVital.TTFB]: 'duration',
-  [WebVital.RequestTime]: 'duration',
-  [MobileVital.AppStartCold]: 'duration',
-  [MobileVital.AppStartWarm]: 'duration',
-  [MobileVital.FramesTotal]: 'integer',
-  [MobileVital.FramesSlow]: 'integer',
-  [MobileVital.FramesFrozen]: 'integer',
-  [MobileVital.FramesSlowRate]: 'percentage',
-  [MobileVital.FramesFrozenRate]: 'percentage',
-  [MobileVital.StallCount]: 'integer',
-  [MobileVital.StallTotalTime]: 'duration',
-  [MobileVital.StallLongestTime]: 'duration',
-  [MobileVital.StallPercentage]: 'percentage',
-};
+export type MeasurementType =
+  | FieldValueType.DURATION
+  | FieldValueType.NUMBER
+  | FieldValueType.INTEGER
+  | FieldValueType.PERCENTAGE;
 
 export function isSpanOperationBreakdownField(field: string) {
   return field.startsWith('spans.');
@@ -722,29 +603,30 @@ export const SPAN_OP_BREAKDOWN_FIELDS = [
   'spans.db',
   'spans.browser',
   'spans.resource',
+  'spans.ui',
 ];
 
 // This list contains fields/functions that are available with performance-view feature.
 export const TRACING_FIELDS = [
-  'avg',
-  'sum',
-  'transaction.duration',
-  'transaction.op',
-  'transaction.status',
-  'p50',
-  'p75',
-  'p95',
-  'p99',
-  'p100',
-  'percentile',
-  'failure_rate',
-  'apdex',
-  'count_miserable',
-  'user_misery',
-  'eps',
-  'epm',
+  AggregationKey.Avg,
+  AggregationKey.Sum,
+  FieldKey.TRANSACTION_DURATION,
+  FieldKey.TRANSACTION_OP,
+  FieldKey.TRANSACTION_STATUS,
+  AggregationKey.P50,
+  AggregationKey.P75,
+  AggregationKey.P95,
+  AggregationKey.P99,
+  AggregationKey.P100,
+  AggregationKey.Percentile,
+  AggregationKey.FailureRate,
+  AggregationKey.Apdex,
+  AggregationKey.CountMiserable,
+  AggregationKey.UserMisery,
+  AggregationKey.Eps,
+  AggregationKey.Epm,
   'team_key_transaction',
-  ...Object.keys(MEASUREMENTS),
+  ...Object.keys(MEASUREMENT_FIELDS),
   ...SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 ];
@@ -757,11 +639,12 @@ export function isMeasurement(field: string): boolean {
   return !!results;
 }
 
-export function measurementType(field: string) {
-  if (MEASUREMENTS.hasOwnProperty(field)) {
-    return MEASUREMENTS[field];
+export function measurementType(field: string): MeasurementType {
+  if (MEASUREMENT_FIELDS.hasOwnProperty(field)) {
+    return MEASUREMENT_FIELDS[field].valueType as MeasurementType;
   }
-  return 'number';
+
+  return FieldValueType.NUMBER;
 }
 
 export function getMeasurementSlug(field: string): string | null {
@@ -862,7 +745,7 @@ export function parseArguments(functionText: string, columnText: string): string
 }
 
 // `|` is an invalid field character, so it is used to determine whether a field is an equation or not
-const EQUATION_PREFIX = 'equation|';
+export const EQUATION_PREFIX = 'equation|';
 const EQUATION_ALIAS_PATTERN = /^equation\[(\d+)\]$/;
 export const CALCULATED_FIELD_PREFIX = 'calculated|';
 
@@ -906,6 +789,7 @@ export function isLegalEquationColumn(column: Column): boolean {
   if (column.kind === 'function' && column.function[0] === 'any') {
     return false;
   }
+
   const columnType = getColumnType(column);
   return columnType === 'number' || columnType === 'integer' || columnType === 'duration';
 }
@@ -955,7 +839,7 @@ export function explodeFieldString(field: string, alias?: string): Column {
   }
 
   if (isDerivedMetric(field)) {
-    return {kind: 'calculatedField', field: stripDerivedMetricsPrefix(field)};
+    return {kind: 'calculatedField', field: stripDerivedMetricsPrefix(field), alias};
   }
 
   const results = parseFunction(field);
@@ -1118,6 +1002,47 @@ export function aggregateFunctionOutputType(
   funcName: string,
   firstArg: string | undefined
 ): AggregationOutputType | null {
+  const aggregate =
+    AGGREGATIONS[ALIASES[funcName] || funcName] ?? SESSIONS_OPERATIONS[funcName];
+
+  // Attempt to use the function's outputType.
+  if (aggregate?.outputType) {
+    return aggregate.outputType;
+  }
+
+  // If the first argument is undefined and it is not required,
+  // then we attempt to get the default value.
+  if (!firstArg && aggregate?.parameters?.[0]) {
+    if (aggregate.parameters[0].required === false) {
+      firstArg = aggregate.parameters[0].defaultValue;
+    }
+  }
+
+  if (firstArg && SESSIONS_FIELDS.hasOwnProperty(firstArg)) {
+    return SESSIONS_FIELDS[firstArg].type as AggregationOutputType;
+  }
+
+  // If the function is an inherit type it will have a field as
+  // the first parameter and we can use that to get the type.
+  if (firstArg && FIELDS.hasOwnProperty(firstArg)) {
+    return FIELDS[firstArg].valueType as AggregationOutputType;
+  }
+
+  if (firstArg && isMeasurement(firstArg)) {
+    return measurementType(firstArg);
+  }
+
+  if (firstArg && isSpanOperationBreakdownField(firstArg)) {
+    return 'duration';
+  }
+
+  return null;
+}
+
+export function errorsAndTransactionsAggregateFunctionOutputType(
+  funcName: string,
+  firstArg: string | undefined
+): AggregationOutputType | null {
   const aggregate = AGGREGATIONS[ALIASES[funcName] || funcName];
 
   // Attempt to use the function's outputType.
@@ -1133,14 +1058,10 @@ export function aggregateFunctionOutputType(
     }
   }
 
-  if (firstArg && METRIC_TO_COLUMN_TYPE.hasOwnProperty(firstArg)) {
-    return METRIC_TO_COLUMN_TYPE[firstArg];
-  }
-
   // If the function is an inherit type it will have a field as
   // the first parameter and we can use that to get the type.
   if (firstArg && FIELDS.hasOwnProperty(firstArg)) {
-    return FIELDS[firstArg];
+    return FIELDS[firstArg].valueType as AggregationOutputType;
   }
 
   if (firstArg && isMeasurement(firstArg)) {
@@ -1149,6 +1070,32 @@ export function aggregateFunctionOutputType(
 
   if (firstArg && isSpanOperationBreakdownField(firstArg)) {
     return 'duration';
+  }
+
+  return null;
+}
+
+export function sessionsAggregateFunctionOutputType(
+  funcName: string,
+  firstArg: string | undefined
+): AggregationOutputType | null {
+  const aggregate = SESSIONS_OPERATIONS[funcName];
+
+  // Attempt to use the function's outputType.
+  if (aggregate?.outputType) {
+    return aggregate.outputType;
+  }
+
+  // If the first argument is undefined and it is not required,
+  // then we attempt to get the default value.
+  if (!firstArg && aggregate?.parameters?.[0]) {
+    if (aggregate.parameters[0].required === false) {
+      firstArg = aggregate.parameters[0].defaultValue;
+    }
+  }
+
+  if (firstArg && SESSIONS_FIELDS.hasOwnProperty(firstArg)) {
+    return SESSIONS_FIELDS[firstArg].type as AggregationOutputType;
   }
 
   return null;
@@ -1255,7 +1202,7 @@ export function getColumnType(column: Column): ColumnType {
     }
   } else if (column.kind === 'field') {
     if (FIELDS.hasOwnProperty(column.field)) {
-      return FIELDS[column.field];
+      return FIELDS[column.field].valueType as ColumnType;
     }
     if (isMeasurement(column.field)) {
       return measurementType(column.field);

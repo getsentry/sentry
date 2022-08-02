@@ -30,7 +30,7 @@ export function getRepositories(api: Client, params: ParamsGet) {
     .catch(err => {
       RepositoryActions.loadRepositoriesError(err);
       Sentry.withScope(scope => {
-        scope.setLevel(Sentry.Severity.Warning);
+        scope.setLevel('warning');
         scope.setFingerprint(['getRepositories-action-creator']);
         Sentry.captureException(err);
       });

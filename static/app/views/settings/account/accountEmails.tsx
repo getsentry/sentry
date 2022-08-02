@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -47,7 +47,7 @@ class AccountEmails extends AsyncView<Props, State> {
 
   renderBody() {
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader title={t('Email Addresses')} />
         <EmailAddresses />
         <Form
@@ -63,7 +63,7 @@ class AccountEmails extends AsyncView<Props, State> {
         <AlertLink to="/settings/account/notifications" icon={<IconStack />}>
           {t('Want to change how many emails you get? Use the notifications panel.')}
         </AlertLink>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
@@ -175,12 +175,12 @@ const EmailRow = ({
     </EmailTags>
     <ButtonBar gap={1}>
       {!isPrimary && isVerified && (
-        <Button size="small" onClick={e => onSetPrimary?.(email, e)}>
+        <Button size="sm" onClick={e => onSetPrimary?.(email, e)}>
           {t('Set as primary')}
         </Button>
       )}
       {!isVerified && (
-        <Button size="small" onClick={e => onVerify(email, e)}>
+        <Button size="sm" onClick={e => onVerify(email, e)}>
           {t('Resend verification')}
         </Button>
       )}
@@ -189,7 +189,7 @@ const EmailRow = ({
           aria-label={t('Remove email')}
           data-test-id="remove"
           priority="danger"
-          size="small"
+          size="sm"
           icon={<IconDelete />}
           onClick={e => onRemove(email, e)}
         />

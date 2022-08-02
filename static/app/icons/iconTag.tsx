@@ -1,8 +1,8 @@
-import * as React from 'react';
+import {forwardRef} from 'react';
 
-import SvgIcon, {SVGIconProps} from './svgIcon';
+import {SvgIcon, SVGIconProps} from './svgIcon';
 
-const IconTag = React.forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+const IconTag = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
   return (
     <SvgIcon {...props} ref={ref}>
       <path d="M3.87,5.7A1.81,1.81,0,1,1,5.69,3.89,1.82,1.82,0,0,1,3.87,5.7Zm0-2.12a.31.31,0,1,0,.32.31A.31.31,0,0,0,3.87,3.58Z" />

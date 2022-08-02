@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {useCallback, useLayoutEffect, useState} from 'react';
 
 /**
  * Hook to retrieve dpr value of the device and monitor for changes
@@ -6,15 +6,15 @@ import * as React from 'react';
  * @returns dpr of the device
  */
 function useDevicePixelRatio(): number {
-  const [devicePixelRatio, setDevicePixelRatio] = React.useState<number>(
+  const [devicePixelRatio, setDevicePixelRatio] = useState<number>(
     window.devicePixelRatio
   );
 
-  const updateDevicePixelRatio = React.useCallback(() => {
+  const updateDevicePixelRatio = useCallback(() => {
     setDevicePixelRatio(window.devicePixelRatio);
   }, []);
 
-  React.useLayoutEffect(() => {
+  useLayoutEffect(() => {
     window
       .matchMedia(`(resolution: ${devicePixelRatio}dppx)`)
       .addEventListener('change', updateDevicePixelRatio, {once: true});

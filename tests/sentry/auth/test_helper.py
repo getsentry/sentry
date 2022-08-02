@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.contrib.auth.models import AnonymousUser
 from django.test import Client, RequestFactory
 
+from sentry import audit_log
 from sentry.auth.helper import (
     OK_LINK_IDENTITY,
     AuthHelper,
@@ -14,7 +15,6 @@ from sentry.auth.helper import (
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.models import (
     AuditLogEntry,
-    AuditLogEntryEvent,
     AuthIdentity,
     AuthProvider,
     InviteStatus,
@@ -220,7 +220,7 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest):
         assert AuditLogEntry.objects.filter(
             organization=self.organization,
             target_object=auth_identity.id,
-            event=AuditLogEntryEvent.SSO_IDENTITY_LINK,
+            event=audit_log.get_event_id("SSO_IDENTITY_LINK"),
             data=auth_identity.get_audit_log_data(),
         ).exists()
 

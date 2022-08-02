@@ -1,3 +1,4 @@
+import {ChromeTraceProfile} from 'sentry/utils/profiling/profile/chromeTraceProfile';
 import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
 import {
   importDroppedProfile,
@@ -12,6 +13,7 @@ describe('importProfile', () => {
       name: 'profile',
       startValue: 0,
       endValue: 1000,
+      threadID: 0,
       unit: 'milliseconds',
       type: 'evented',
       events: [],
@@ -19,12 +21,17 @@ describe('importProfile', () => {
 
     const imported = importProfile(
       {
-        name: 'profile',
         activeProfileIndex: 0,
+        durationNS: 0,
+        platform: 'android',
+        profileID: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         profiles: [eventedProfile],
+        projectID: 1,
         shared: {
           frames: [],
         },
+        transactionName: 'profile',
+        version: '1.1.0 (build 2)',
       },
       ''
     );
@@ -36,6 +43,7 @@ describe('importProfile', () => {
       name: 'profile',
       startValue: 0,
       endValue: 1000,
+      threadID: 0,
       unit: 'milliseconds',
       type: 'sampled',
       weights: [],
@@ -44,17 +52,48 @@ describe('importProfile', () => {
 
     const imported = importProfile(
       {
-        name: 'profile',
         activeProfileIndex: 0,
+        durationNS: 0,
+        platform: 'cocoa',
+        profileID: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         profiles: [sampledProfile],
+        projectID: 1,
         shared: {
           frames: [],
         },
+        transactionName: 'profile',
+        version: '7.14.0 (build 1)',
       },
       ''
     );
 
     expect(imported.profiles[0]).toBeInstanceOf(SampledProfile);
+  });
+
+  it('imports typescript profile', () => {
+    const typescriptProfile: ChromeTrace.ArrayFormat = [
+      {
+        ph: 'B',
+        ts: 1000,
+        cat: 'program',
+        pid: 0,
+        tid: 0,
+        name: 'createProgram',
+        args: {configFilePath: '/Users/jonasbadalic/Work/sentry/tsconfig.json'},
+      },
+      {
+        ph: 'E',
+        ts: 2000,
+        cat: 'program',
+        pid: 0,
+        tid: 0,
+        name: 'createProgram',
+        args: {configFilePath: '/Users/jonasbadalic/Work/sentry/tsconfig.json'},
+      },
+    ];
+
+    const imported = importProfile(typescriptProfile, '');
+    expect(imported.profiles[0]).toBeInstanceOf(ChromeTraceProfile);
   });
   it('imports JS self profile from schema', () => {
     const jsSelfProfile: JSSelfProfiling.Trace = {
@@ -78,12 +117,17 @@ describe('importProfile', () => {
 
     const imported = importProfile(
       {
-        name: 'profile',
         activeProfileIndex: 0,
+        durationNS: 0,
+        platform: 'typescript',
+        profileID: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         profiles: [jsSelfProfile],
+        projectID: 1,
         shared: {
           frames: [],
         },
+        transactionName: 'profile',
+        version: '7.14.0 (build 1)',
       },
       ''
     );
@@ -175,24 +219,30 @@ describe('importDroppedProfile', () => {
     await expect(importDroppedProfile(file)).rejects.toBeInstanceOf(Error);
   });
 
-  it('imports schema file', async () => {
+  it('imports dropped schema file', async () => {
     const schema: Profiling.Schema = {
-      name: 'profile',
       activeProfileIndex: 0,
+      durationNS: 0,
+      platform: 'cocoa',
+      profileID: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       profiles: [
         {
           name: 'profile',
           startValue: 0,
           endValue: 1000,
+          threadID: 0,
           unit: 'milliseconds',
           type: 'sampled',
           weights: [],
           samples: [],
         },
       ],
+      projectID: 1,
       shared: {
         frames: [],
       },
+      transactionName: 'profile',
+      version: '7.14.0 (build 1)',
     };
     const file = new File([JSON.stringify(schema)], 'test.tsx');
     const imported = await importDroppedProfile(file);
@@ -200,7 +250,35 @@ describe('importDroppedProfile', () => {
     expect(imported.profiles[0]).toBeInstanceOf(SampledProfile);
   });
 
-  it('imports JS self profile', async () => {
+  it('imports dropped typescript profile', async () => {
+    const typescriptProfile: ChromeTrace.ArrayFormat = [
+      {
+        ph: 'B',
+        ts: 1000,
+        cat: 'program',
+        pid: 0,
+        tid: 0,
+        name: 'createProgram',
+        args: {configFilePath: '/Users/jonasbadalic/Work/sentry/tsconfig.json'},
+      },
+      {
+        ph: 'E',
+        ts: 2000,
+        cat: 'program',
+        pid: 0,
+        tid: 0,
+        name: 'createProgram',
+        args: {configFilePath: '/Users/jonasbadalic/Work/sentry/tsconfig.json'},
+      },
+    ];
+
+    const file = new File([JSON.stringify(typescriptProfile)], 'test.tsx');
+    const imported = await importDroppedProfile(file);
+
+    expect(imported.profiles[0]).toBeInstanceOf(ChromeTraceProfile);
+  });
+
+  it('imports dropped JS self profile', async () => {
     const jsSelfProfile: JSSelfProfiling.Trace = {
       resources: ['app.js', 'vendor.js'],
       frames: [{name: 'ReactDOM.render', line: 1, column: 1, resourceId: 0}],

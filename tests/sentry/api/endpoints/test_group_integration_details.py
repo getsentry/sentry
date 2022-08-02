@@ -7,6 +7,7 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.types.activity import ActivityType
 from sentry.utils.http import absolute_uri
 
 
@@ -189,7 +190,7 @@ class GroupIntegrationDetailsTest(APITestCase):
                 linked_id=external_issue.id,
             ).exists()
 
-            activity = Activity.objects.filter(type=Activity.CREATE_ISSUE)[0]
+            activity = Activity.objects.filter(type=ActivityType.CREATE_ISSUE.value)[0]
             assert activity.project_id == group.project_id
             assert activity.group_id == group.id
             assert activity.ident is None
@@ -249,7 +250,7 @@ class GroupIntegrationDetailsTest(APITestCase):
                 linked_id=external_issue.id,
             ).exists()
 
-            activity = Activity.objects.filter(type=Activity.CREATE_ISSUE)[0]
+            activity = Activity.objects.filter(type=ActivityType.CREATE_ISSUE.value)[0]
             assert activity.project_id == group.project_id
             assert activity.group_id == group.id
             assert activity.ident is None
@@ -351,9 +352,8 @@ class GroupIntegrationDetailsTest(APITestCase):
             for field in fields:
                 if field["name"] == "project":
                     project_field = field
+                    assert project_field == expected_project_field
                     break
-
-            assert project_field == expected_project_field
 
         self.login_as(user=self.user)
         org = self.organization

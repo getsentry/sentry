@@ -1,4 +1,8 @@
+import Fuse from 'fuse.js';
 import {mat3, vec2} from 'gl-matrix';
+
+import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
 import {clamp} from '../colors/utils';
 
@@ -161,6 +165,7 @@ export const Transform = {
   betweenRect(from: Rect, to: Rect): Rect {
     return new Rect(to.x, to.y, to.width / from.width, to.height / from.height);
   },
+
   transformMatrixBetweenRect(from: Rect, to: Rect): mat3 {
     return mat3.fromValues(
       to.width / from.width,
@@ -169,8 +174,8 @@ export const Transform = {
       0,
       to.height / from.height,
       0,
-      -((from.x * to.width) / from.width),
-      -((from.y * to.height) / from.height),
+      to.x - from.x * (to.width / from.width),
+      to.y - from.y * (to.height / from.height),
       1
     );
   },
@@ -183,6 +188,10 @@ export class Rect {
   constructor(x: number, y: number, width: number, height: number) {
     this.origin = vec2.fromValues(x, y);
     this.size = vec2.fromValues(width, height);
+  }
+
+  clone(): Rect {
+    return Rect.From(this);
   }
 
   isValid(): boolean {
@@ -226,6 +235,40 @@ export class Rect {
     return this.top + this.height;
   }
 
+  static decode(query: string | ReadonlyArray<string> | null | undefined): Rect | null {
+    let maybeEncodedRect = query;
+
+    if (typeof query === 'string') {
+      maybeEncodedRect = query.split(',');
+    }
+
+    if (!Array.isArray(maybeEncodedRect)) {
+      return null;
+    }
+
+    if (maybeEncodedRect.length !== 4) {
+      return null;
+    }
+
+    const rect = new Rect(
+      ...(maybeEncodedRect.map(p => parseFloat(p)) as [number, number, number, number])
+    );
+
+    if (rect.isValid()) {
+      return rect;
+    }
+
+    return null;
+  }
+
+  static encode(rect: Rect): string {
+    return rect.toString();
+  }
+
+  toString() {
+    return [this.x, this.y, this.width, this.height].map(n => Math.round(n)).join(',');
+  }
+
   toMatrix(): mat3 {
     const {width: w, height: h, x, y} = this;
     // it's easier to display a matrix as a 3x3 array. WebGl matrices are row first and not column first
@@ -266,7 +309,24 @@ export class Rect {
   }
 
   containsRect(rect: Rect): boolean {
-    return this.left <= rect.left && rect.right <= this.right;
+    return (
+      // left bound
+      this.left <= rect.left &&
+      // right bound
+      rect.right <= this.right &&
+      // top bound
+      this.top <= rect.top &&
+      // bottom bound
+      rect.bottom <= this.bottom
+    );
+  }
+
+  leftOverlapsWith(rect: Rect): boolean {
+    return rect.left <= this.left && rect.right >= this.left;
+  }
+
+  rightOverlapsWith(rect: Rect): boolean {
+    return this.right >= rect.left && this.right <= rect.right;
   }
 
   overlapsX(other: Rect): boolean {
@@ -281,36 +341,26 @@ export class Rect {
     return this.overlapsX(other) && this.overlapsY(other);
   }
 
-  // When we transform rectangles with a 3x3 matrix, we scale width with m00 and height with m11, then translate
-  // the origin of the rect separately with m02 and m12.
   transformRect(transform: mat3): Rect {
-    const configSpaceOrigin = vec2.fromValues(this.x, this.y);
-    const configSpaceSize = vec2.fromValues(this.width, this.height);
-
-    // prettier-ignore
-    const [
-      m00, m01, _m02,
-      m10, m11, _m12,
-      m20, m21, _m22
-    ] = transform
-
-    // prettier-ignore
-    const newConfigSpaceSize = [
-      configSpaceSize[0] * m00 + configSpaceSize[1] * m01, // X
-      configSpaceSize[0] * m10 + configSpaceSize[1] * m11  // Y
-    ]
-    // prettier-ignore
-    const newConfigSpaceOrigin = [
-      configSpaceOrigin[0] * m00 + configSpaceOrigin[1] * m01 + m20, // X
-      configSpaceOrigin[0] * m10 + configSpaceOrigin[1] * m11 + m21  // Y
-    ]
+    const x = this.x * transform[0] + this.y * transform[3] + transform[6];
+    const y = this.x * transform[1] + this.y * transform[4] + transform[7];
+    const width = this.width * transform[0] + this.height * transform[3];
+    const height = this.width * transform[1] + this.height * transform[4];
 
     return new Rect(
-      newConfigSpaceOrigin[0],
-      newConfigSpaceOrigin[1],
-      newConfigSpaceSize[0],
-      newConfigSpaceSize[1]
+      x + (width < 0 ? width : 0),
+      y + (height < 0 ? height : 0),
+      Math.abs(width),
+      Math.abs(height)
     );
+  }
+
+  /**
+   * Returns a transform that inverts the y axis within the rect.
+   * This causes the bottom of the rect to be the top of the rect and vice versa.
+   */
+  invertYTransform(): mat3 {
+    return mat3.fromValues(1, 0, 0, 0, -1, 0, 0, this.y * 2 + this.height, 1);
   }
 
   withHeight(height: number): Rect {
@@ -319,6 +369,14 @@ export class Rect {
 
   withWidth(width: number): Rect {
     return new Rect(this.x, this.y, width, this.height);
+  }
+
+  withX(x: number): Rect {
+    return new Rect(x, this.y, this.width, this.height);
+  }
+
+  withY(y: number) {
+    return new Rect(this.x, y, this.width, this.height);
   }
 
   toBounds(): [number, number, number, number] {
@@ -427,11 +485,6 @@ export function findRangeBinarySearch(
   target: number,
   precision = 1
 ): [number, number] {
-  if (target < low || target > high) {
-    throw new Error(
-      `Target has to be in range of low <= target <= high, got ${low} <= ${target} <= ${high}`
-    );
-  }
   // eslint-disable-next-line
   while (true) {
     if (high - low <= precision) {
@@ -447,26 +500,57 @@ export function findRangeBinarySearch(
   }
 }
 
+export function formatColorForFrame(
+  frame: FlamegraphFrame,
+  renderer: FlamegraphRenderer
+): string {
+  const color = renderer.getColorForFrame(frame);
+  if (color.length === 4) {
+    return `rgba(${color
+      .slice(0, 3)
+      .map(n => n * 255)
+      .join(',')}, ${color[3]})`;
+  }
+
+  return `rgba(${color.map(n => n * 255).join(',')}, 1.0)`;
+}
+
 export const ELLIPSIS = '\u2026';
-export function trimTextCenter(text: string, low: number) {
+type TrimTextCenter = {
+  end: number;
+  length: number;
+  start: number;
+  text: string;
+};
+export function trimTextCenter(text: string, low: number): TrimTextCenter {
   if (low >= text.length) {
-    return text;
+    return {
+      text,
+      start: 0,
+      end: 0,
+      length: 0,
+    };
   }
   const prefixLength = Math.floor(low / 2);
-  // Use 1 character less than the low value to account for ellipsis
-  // and favor displaying the prefix
+  // Use 1 character less than the low value to account for ellipsis and favor displaying the prefix
   const postfixLength = low - prefixLength - 1;
 
-  return `${text.substring(0, prefixLength)}${ELLIPSIS}${text.substring(
-    text.length - postfixLength + ELLIPSIS.length
-  )}`;
+  const start = prefixLength;
+  const end = Math.floor(text.length - postfixLength + ELLIPSIS.length);
+
+  const trimText = `${text.substring(0, start)}${ELLIPSIS}${text.substring(end)}`;
+
+  return {
+    text: trimText,
+    start,
+    end,
+    length: end - start,
+  };
 }
 
 export function computeClampedConfigView(
   newConfigView: Rect,
-  width: {max: number; min: number},
-  height: {max: number; min: number},
-  inverted: boolean
+  {width, height}: {height: {max: number; min: number}; width: {max: number; min: number}}
 ) {
   if (!newConfigView.isValid()) {
     throw new Error(newConfigView.toString());
@@ -475,13 +559,117 @@ export function computeClampedConfigView(
   const clampedHeight = clamp(newConfigView.height, height.min, height.max);
 
   const maxX = width.max - clampedWidth;
-  const maxY =
-    clampedHeight >= height.max + (inverted ? 1 : 0)
-      ? 0
-      : height.max - clampedHeight + (inverted ? 1 : 0);
+  const maxY = clampedHeight >= height.max ? 0 : height.max - clampedHeight;
 
   const clampedX = clamp(newConfigView.x, 0, maxX);
   const clampedY = clamp(newConfigView.y, 0, maxY);
 
   return new Rect(clampedX, clampedY, clampedWidth, clampedHeight);
+}
+
+/**
+ * computeHighlightedBounds determines if a supplied boundary should be reduced in size
+ * or shifted based on the results of a trim operation
+ */
+export function computeHighlightedBounds(
+  bounds: Fuse.RangeTuple,
+  trim: TrimTextCenter
+): Fuse.RangeTuple {
+  if (!trim.length) {
+    return bounds;
+  }
+
+  const isStartBetweenTrim = bounds[0] >= trim.start && bounds[0] <= trim.end;
+  const isEndBetweenTrim = bounds[1] >= trim.start && bounds[1] <= trim.end;
+  const isFullyTruncated = isStartBetweenTrim && isEndBetweenTrim;
+
+  // example:
+  // -[UIScrollView _smoothScrollDisplayLink:]
+
+  // "smooth" in "-[UIScrollView _…ScrollDisplayLink:]"
+  //                              ^^
+  if (isFullyTruncated) {
+    return [trim.start, trim.start + 1];
+  }
+
+  if (bounds[0] < trim.start) {
+    // "ScrollView" in '-[UIScrollView _sm…rollDisplayLink:]'
+    //                      ^--------^
+    if (bounds[1] < trim.start) {
+      return [bounds[0], bounds[1]];
+    }
+
+    // "smoothScroll" in -[UIScrollView _smooth…DisplayLink:]'
+    //                                   ^-----^
+    if (isEndBetweenTrim) {
+      return [bounds[0], trim.start + 1];
+    }
+
+    // "smoothScroll" in -[UIScrollView _sm…llDisplayLink:]'
+    //                                   ^---^
+    if (bounds[1] > trim.end) {
+      return [bounds[0], bounds[1] - trim.length + 1];
+    }
+  }
+
+  // "smoothScroll" in -[UIScrollView _…scrollDisplayLink:]'
+  //                                   ^-----^
+  if (isStartBetweenTrim && bounds[1] > trim.end) {
+    return [trim.start, bounds[1] - trim.length + 1];
+  }
+
+  // "display" in -[UIScrollView _…scrollDisplayLink:]'
+  //                                     ^-----^
+  if (bounds[0] > trim.end) {
+    return [bounds[0] - trim.length + 1, bounds[1] - trim.length + 1];
+  }
+
+  throw new Error(`Unhandled case: ${JSON.stringify(bounds)} ${trim}`);
+}
+
+export function computeConfigViewWithStategy(
+  strategy: 'min' | 'exact',
+  view: Rect,
+  frame: Rect
+): Rect {
+  if (strategy === 'exact') {
+    return frame.withHeight(view.height);
+  }
+
+  if (strategy === 'min') {
+    if (view.width <= frame.width) {
+      // If view width <= frame width, we need to zoom out, so the behavior is the
+      // same as if we were using 'exact'
+      return frame.withHeight(view.height);
+    }
+
+    if (view.containsRect(frame)) {
+      // If frame is in view, do nothing
+      return view;
+    }
+
+    let offset = view.clone();
+    if (frame.left < view.left) {
+      // If frame is to the left of the view, translate it left
+      // to frame.x so that start of the frame is in the view
+      offset = offset.withX(frame.x);
+    } else if (frame.right > view.right) {
+      // If the right boundary of a frame is outside of the view, translate the view
+      // by the difference between the right edge of the frame and the right edge of the view
+      offset = view.withX(offset.x + frame.right - offset.right);
+    }
+
+    if (frame.bottom < view.top) {
+      // If frame is above the view, translate view to top of frame
+      offset = offset.withY(frame.top);
+    } else if (frame.bottom > view.bottom) {
+      // If frame is below the view, translate view by the difference
+      // of the bottom edge of the frame and the view
+      offset = offset.translateY(offset.y + frame.bottom - offset.bottom);
+    }
+
+    return offset;
+  }
+
+  return frame.withHeight(view.height);
 }

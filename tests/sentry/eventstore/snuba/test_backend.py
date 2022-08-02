@@ -149,6 +149,24 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         assert event.project_id == self.project2.id
         assert event.group_id == event.group.id
 
+    def test_get_event_beyond_retention(self):
+        event = self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group2"],
+                "timestamp": iso_format(before_now(days=14)),
+                "tags": {"foo": "1"},
+            },
+            project_id=self.project2.id,
+        )
+
+        with mock.patch("sentry.quotas.get_event_retention") as get_event_retention:
+            get_event_retention.return_value = 7
+            event = self.eventstore.get_event_by_id(self.project2.id, "d" * 32)
+            assert event is None
+
     def test_get_next_prev_event_id(self):
         event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)
 
@@ -166,6 +184,55 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         # Returns None if no event
         assert self.eventstore.get_prev_event_id(None, filter=_filter) is None
         assert self.eventstore.get_next_event_id(None, filter=_filter) is None
+
+    def test_next_prev_event_id_same_timestamp(self):
+        project = self.create_project()
+
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group"],
+                "timestamp": self.min_ago,
+            },
+            project_id=project.id,
+        )
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group"],
+                "timestamp": self.min_ago,
+            },
+            project_id=project.id,
+        )
+
+        # the 2 events should be in the same group
+        assert event1.group_id == event2.group_id
+        # the 2 events should have the same timestamp
+        assert event1.datetime == event2.datetime
+
+        _filter = Filter(
+            project_ids=[project.id],
+            conditions=[["event.type", "!=", "transaction"]],
+            group_ids=[event1.group_id],
+        )
+
+        event = self.eventstore.get_event_by_id(project.id, "a" * 32)
+
+        prev_event = self.eventstore.get_prev_event_id(event, filter=_filter)
+        next_event = self.eventstore.get_next_event_id(event, filter=_filter)
+        assert prev_event is None
+        assert next_event == (str(project.id), "b" * 32)
+
+        event = self.eventstore.get_event_by_id(project.id, "b" * 32)
+
+        prev_event = self.eventstore.get_prev_event_id(event, filter=_filter)
+        next_event = self.eventstore.get_next_event_id(event, filter=_filter)
+        assert prev_event == (str(project.id), "a" * 32)
+        assert next_event is None
 
     def test_get_latest_or_oldest_event_id(self):
         # Returns a latest/oldest event

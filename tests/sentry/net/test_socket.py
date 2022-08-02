@@ -1,15 +1,8 @@
 from unittest.mock import patch
 
-import pytest
-from django.core.exceptions import SuspiciousOperation
 from django.test import override_settings
 
-from sentry.net.socket import (
-    ensure_fqdn,
-    is_ipaddress_allowed,
-    is_safe_hostname,
-    safe_socket_connect,
-)
+from sentry.net.socket import ensure_fqdn, is_ipaddress_allowed, is_safe_hostname
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_blacklist
 
@@ -31,11 +24,6 @@ class SocketTest(TestCase):
         assert is_safe_hostname("example.com") is True
         mock_getaddrinfo.return_value = [(2, 1, 6, "", ("127.0.0.1", 0))]
         assert is_safe_hostname("example.com") is False
-
-    @override_blacklist("127.0.0.1")
-    def test_safe_socket_connect(self):
-        with pytest.raises(SuspiciousOperation):
-            safe_socket_connect(("127.0.0.1", 80))
 
     @override_settings(SENTRY_ENSURE_FQDN=True)
     def test_ensure_fqdn(self):

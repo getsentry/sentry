@@ -1,15 +1,15 @@
-import styled from '@emotion/styled';
+import {Fragment} from 'react';
 
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphPreferences';
 
 interface FlamegraphViewSelectMenuProps {
   onSortingChange: (sorting: FlamegraphViewSelectMenuProps['sorting']) => void;
   onViewChange: (view: FlamegraphViewSelectMenuProps['view']) => void;
-  sorting: 'call order' | 'left heavy';
-  view: 'top down' | 'bottom up';
+  sorting: FlamegraphPreferences['sorting'];
+  view: FlamegraphPreferences['view'];
 }
 
 function FlamegraphViewSelectMenu({
@@ -19,40 +19,33 @@ function FlamegraphViewSelectMenu({
   onSortingChange,
 }: FlamegraphViewSelectMenuProps): React.ReactElement {
   return (
-    <SelectMenuContainer>
+    <Fragment>
       <ButtonBar merged active={sorting}>
         <Button
           barId="call order"
-          size="xsmall"
+          size="xs"
           onClick={() => onSortingChange('call order')}
         >
           {t('Call Order')}
         </Button>
         <Button
           barId="left heavy"
-          size="xsmall"
+          size="xs"
           onClick={() => onSortingChange('left heavy')}
         >
           {t('Left Heavy')}
         </Button>
       </ButtonBar>
       <ButtonBar merged active={view}>
-        <Button barId="bottom up" size="xsmall" onClick={() => onViewChange('bottom up')}>
+        <Button barId="bottom up" size="xs" onClick={() => onViewChange('bottom up')}>
           {t('Bottom Up')}
         </Button>
-        <Button barId="top down" size="xsmall" onClick={() => onViewChange('top down')}>
+        <Button barId="top down" size="xs" onClick={() => onViewChange('top down')}>
           {t('Top Down')}
         </Button>
       </ButtonBar>
-    </SelectMenuContainer>
+    </Fragment>
   );
 }
-
-const SelectMenuContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(0.5)};
-  justify-content: flex-start;
-`;
 
 export {FlamegraphViewSelectMenu};

@@ -18,6 +18,7 @@ import {AccessRequest, Organization} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import useTeams from 'sentry/utils/useTeams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {RoleOverwritePanelAlert} from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
 
 import AllTeamsList from './allTeamsList';
 import OrganizationAccessRequests from './organizationAccessRequests';
@@ -39,6 +40,10 @@ function OrganizationTeams({
   requestList,
   onRemoveAccessRequest,
 }: Props) {
+  const [teamQuery, setTeamQuery] = useState('');
+  const {initiallyLoaded} = useTeams({provideUserTeams: true});
+  const {teams, onSearch, loadMore, hasMore, fetching} = useTeams();
+
   if (!organization) {
     return null;
   }
@@ -47,7 +52,7 @@ function OrganizationTeams({
   const action = (
     <Button
       priority="primary"
-      size="small"
+      size="sm"
       disabled={!canCreateTeams}
       title={
         !canCreateTeams ? t('You do not have permission to create teams') : undefined
@@ -70,16 +75,13 @@ function OrganizationTeams({
 
   const title = t('Teams');
 
-  const [teamQuery, setTeamQuery] = useState('');
-  const {initiallyLoaded} = useTeams({provideUserTeams: true});
-  const {teams, onSearch, loadMore, hasMore, fetching} = useTeams();
-
   const debouncedSearch = debounce(onSearch, DEFAULT_DEBOUNCE_DURATION);
   function handleSearch(query: string) {
     setTeamQuery(query);
     debouncedSearch(query);
   }
 
+  const {slug: orgSlug, orgRole, orgRoleList, teamRoleList} = organization;
   const filteredTeams = teams.filter(team =>
     `#${team.slug}`.toLowerCase().includes(teamQuery.toLowerCase())
   );
@@ -87,7 +89,7 @@ function OrganizationTeams({
 
   return (
     <div data-test-id="team-list">
-      <SentryDocumentTitle title={title} orgSlug={organization.slug} />
+      <SentryDocumentTitle title={title} orgSlug={orgSlug} />
       <SettingsPageHeader title={title} action={action} />
 
       <OrganizationAccessRequests
@@ -103,6 +105,14 @@ function OrganizationTeams({
       <Panel>
         <PanelHeader>{t('Your Teams')}</PanelHeader>
         <PanelBody>
+          {features.has('team-roles') && (
+            <RoleOverwritePanelAlert
+              orgRole={orgRole}
+              orgRoleList={orgRoleList}
+              teamRoleList={teamRoleList}
+              isSelf
+            />
+          )}
           {initiallyLoaded ? (
             <AllTeamsList
               urlPrefix={urlPrefix}

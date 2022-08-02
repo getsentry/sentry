@@ -391,16 +391,12 @@ def frame(
         # special case empty functions not to have a hint
         if not func:
             function_component.update(contributes=False)
-        elif (
-            func
-            in (
-                "?",
-                "<anonymous function>",
-                "<anonymous>",
-                "Anonymous function",
-            )
-            or func.endswith("/<")
-        ):
+        elif func in (
+            "?",
+            "<anonymous function>",
+            "<anonymous>",
+            "Anonymous function",
+        ) or func.endswith("/<"):
             function_component.update(contributes=False, hint="ignored unknown function name")
         if (func == "eval") or frame.abs_path in (
             "[native code]",

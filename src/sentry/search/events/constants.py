@@ -39,6 +39,11 @@ class ThresholdDict(TypedDict):
     meh: float
 
 
+QUERY_TIPS: Dict[str, str] = {
+    "CHAINED_OR": "Did you know you can replace chained or conditions like `field:a OR field:b OR field:c` with `field:[a,b,c]`"
+}
+
+
 VITAL_THRESHOLDS: Dict[str, ThresholdDict] = {
     "lcp": {
         "poor": 4000,
@@ -73,14 +78,40 @@ ALIAS_REGEX = r"(\w+)?(?!\d+)\w+"
 MISERY_ALPHA = 5.8875
 MISERY_BETA = 111.8625
 
-ALIAS_PATTERN = re.compile(fr"{ALIAS_REGEX}$")
+ALIAS_PATTERN = re.compile(rf"{ALIAS_REGEX}$")
 FUNCTION_PATTERN = re.compile(
-    fr"^(?P<function>[^\(]+)\((?P<columns>.*)\)( (as|AS) (?P<alias>{ALIAS_REGEX}))?$"
+    rf"^(?P<function>[^\(]+)\((?P<columns>.*)\)( (as|AS) (?P<alias>{ALIAS_REGEX}))?$"
 )
 
 DURATION_PATTERN = re.compile(r"(\d+\.?\d?)(\D{1,3})")
 
 RESULT_TYPES = {"duration", "string", "number", "integer", "percentage", "date"}
+# event_search normalizes to bytes
+SIZE_UNITS = {
+    "bit": 8,
+    "byte": 1,
+    "kibibyte": 1 / 1024,
+    "mebibyte": 1 / 1024**2,
+    "gibibyte": 1 / 1024**3,
+    "tebibyte": 1 / 1024**4,
+    "pebibyte": 1 / 1024**5,
+    "exbibyte": 1 / 1024**6,
+}
+# event_search normalizes to seconds
+DURATION_UNITS = {
+    "nanosecond": 1000**2,
+    "microsecond": 1000,
+    "millisecond": 1,
+    "second": 1 / 1000,
+    "minute": 1 / (1000 * 60),
+    "hour": 1 / (1000 * 60 * 60),
+    "day": 1 / (1000 * 60 * 60 * 24),
+    "week": 1 / (1000 * 60 * 60 * 24 * 7),
+}
+RESULT_TYPES = RESULT_TYPES.union(SIZE_UNITS.keys())
+RESULT_TYPES = RESULT_TYPES.union(DURATION_UNITS.keys())
+PERCENT_UNITS = {"ratio", "percent"}
+
 NO_CONVERSION_FIELDS = {"start", "end"}
 EQUALITY_OPERATORS = frozenset(["=", "IN"])
 INEQUALITY_OPERATORS = frozenset(["!=", "NOT IN"])
@@ -163,41 +194,49 @@ FUNCTION_ALIASES = {
 
 # Mapping of public aliases back to the metrics identifier
 METRICS_MAP = {
-    "measurements.fp": "d:transactions/measurements.fp@millisecond",
+    "measurements.app_start_cold": "d:transactions/measurements.app_start_cold@millisecond",
+    "measurements.app_start_warm": "d:transactions/measurements.app_start_warm@millisecond",
+    "measurements.cls": "d:transactions/measurements.cls@none",
     "measurements.fcp": "d:transactions/measurements.fcp@millisecond",
-    "measurements.lcp": "d:transactions/measurements.lcp@millisecond",
     "measurements.fid": "d:transactions/measurements.fid@millisecond",
-    "measurements.cls": "d:transactions/measurements.cls@millisecond",
+    "measurements.fp": "d:transactions/measurements.fp@millisecond",
+    "measurements.frames_frozen": "d:transactions/measurements.frames_frozen@none",
+    "measurements.frames_slow": "d:transactions/measurements.frames_slow@none",
+    "measurements.frames_total": "d:transactions/measurements.frames_total@none",
+    "measurements.lcp": "d:transactions/measurements.lcp@millisecond",
+    "measurements.stall_count": "d:transactions/measurements.stall_count@none",
+    "measurements.stall_stall_longest_time": "d:transactions/measurements.stall_longest_time@millisecond",
+    "measurements.stall_stall_total_time": "d:transactions/measurements.stall_total_time@millisecond",
     "measurements.ttfb": "d:transactions/measurements.ttfb@millisecond",
     "measurements.ttfb.requesttime": "d:transactions/measurements.ttfb.requesttime@millisecond",
+    "spans.browser": "d:transactions/breakdowns.span_ops.ops.browser@millisecond",
+    "spans.db": "d:transactions/breakdowns.span_ops.ops.db@millisecond",
+    "spans.http": "d:transactions/breakdowns.span_ops.ops.http@millisecond",
+    "spans.resource": "d:transactions/breakdowns.span_ops.ops.resource@millisecond",
     "transaction.duration": "d:transactions/duration@millisecond",
     "user": "s:transactions/user@none",
 }
 # 50 to match the size of tables in the UI + 1 for pagination reasons
 METRICS_MAX_LIMIT = 101
-METRICS_GRANULARITIES = [86400, 3600, 60, 10]
-METRIC_TOLERATED_TAG_KEY = "is_tolerated"
-METRIC_SATISFIED_TAG_KEY = "is_satisfied"
-METRIC_MISERABLE_TAG_KEY = "is_user_miserable"
-METRIC_TRUE_TAG_VALUE = "true"
-METRIC_FALSE_TAG_VALUE = "false"
-METRIC_DURATION_COLUMNS = [
-    "measurements.fp",
-    "measurements.fcp",
-    "measurements.lcp",
-    "measurements.fid",
-    "measurements.cls",
-    "measurements.ttfb",
-    "measurements.ttfb.requesttime",
-    "transaction.duration",
-]
+
+METRICS_GRANULARITIES = [86400, 3600, 60]
+METRIC_TOLERATED_TAG_VALUE = "tolerated"
+METRIC_SATISFIED_TAG_VALUE = "satisfied"
+METRIC_FRUSTRATED_TAG_VALUE = "frustrated"
+METRIC_SATISFACTION_TAG_KEY = "satisfaction"
+
+# Only the metrics that are on the distributions & are in milliseconds
+METRIC_DURATION_COLUMNS = {
+    key
+    for key, value in METRICS_MAP.items()
+    if value.endswith("@millisecond") and value.startswith("d:")
+}
 # So we can dry run some queries to see how often they'd be compatible
 DRY_RUN_COLUMNS = {
-    METRIC_TOLERATED_TAG_KEY,
-    METRIC_SATISFIED_TAG_KEY,
-    METRIC_MISERABLE_TAG_KEY,
-    METRIC_TRUE_TAG_VALUE,
-    METRIC_FALSE_TAG_VALUE,
+    METRIC_TOLERATED_TAG_VALUE,
+    METRIC_SATISFIED_TAG_VALUE,
+    METRIC_FRUSTRATED_TAG_VALUE,
+    METRIC_SATISFACTION_TAG_KEY,
     "environment",
     "http.method",
     "measurement_rating",
@@ -211,10 +250,35 @@ DRY_RUN_COLUMNS = {
     "transaction.status",
 }
 METRIC_PERCENTILES = {
+    0.25,
     0.5,
     0.75,
     0.9,
     0.95,
     0.99,
     1,
+}
+
+CUSTOM_MEASUREMENT_PATTERN = re.compile(r"^measurements\..+$")
+METRIC_FUNCTION_LIST_BY_TYPE = {
+    "generic_distribution": [
+        "apdex",
+        "avg",
+        "p50",
+        "p75",
+        "p90",
+        "p95",
+        "p99",
+        "p100",
+        "max",
+        "min",
+        "sum",
+        "percentile",
+    ],
+    "generic_set": [
+        "count_miserable",
+        "user_misery",
+        "count_unique",
+    ],
+    "generic_counter": [],
 }

@@ -1,4 +1,3 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import {motion} from 'framer-motion';
@@ -104,14 +103,13 @@ const Message = styled('div')`
 
 const Undo = styled('div')`
   display: inline-block;
-  color: ${p => p.theme.inverted.subText};
-  padding-left: ${space(2)};
-  margin-left: ${space(2)};
-  border-left: 1px solid ${p => p.theme.inverted.innerBorder};
+  color: ${p => p.theme.linkColor};
+  padding-left: ${space(1)};
+  margin-left: ${space(1)};
   cursor: pointer;
 
   &:hover {
-    color: ${p => p.theme.inverted.textColor};
+    color: ${p => p.theme.linkHoverColor};
   }
 `;
 

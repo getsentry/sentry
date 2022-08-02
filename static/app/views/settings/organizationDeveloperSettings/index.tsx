@@ -1,17 +1,24 @@
+import React from 'react';
 import {RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
 
 import {removeSentryApp} from 'sentry/actionCreators/sentryApps';
-import Access from 'sentry/components/acl/access';
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
+import NavTabs from 'sentry/components/navTabs';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
-import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {Organization, SentryApp} from 'sentry/types';
+import {
+  platformEventLinkMap,
+  PlatformEvents,
+} from 'sentry/utils/analytics/integrations/platformAnalyticsEvents';
+import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
+import CreateIntegrationButton from 'sentry/views/organizationIntegrations/createIntegrationButton';
+import ExampleIntegrationButton from 'sentry/views/organizationIntegrations/exampleIntegrationButton';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import SentryApplicationRow from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationRow';
@@ -20,11 +27,32 @@ type Props = Omit<AsyncView['props'], 'params'> & {
   organization: Organization;
 } & RouteComponentProps<{orgId: string}, {}>;
 
+type Tab = 'public' | 'internal';
 type State = AsyncView['state'] & {
   applications: SentryApp[];
+  tab: Tab;
 };
 
 class OrganizationDeveloperSettings extends AsyncView<Props, State> {
+  analyticsView = 'developer_settings' as const;
+
+  getDefaultState(): State {
+    const {location} = this.props;
+    const value =
+      (['public', 'internal'] as const).find(tab => tab === location?.query?.type) ||
+      'internal';
+
+    return {
+      ...super.getDefaultState(),
+      applications: [],
+      tab: value,
+    };
+  }
+
+  get tab() {
+    return this.state.tab;
+  }
+
   getTitle() {
     const {orgId} = this.props.params;
     return routeTitleGen(t('Developer Settings'), orgId, false);
@@ -46,6 +74,10 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
     );
   };
 
+  onTabChange = (value: Tab) => {
+    this.setState({tab: value});
+  };
+
   renderApplicationRow = (app: SentryApp) => {
     const {organization} = this.props;
     return (
@@ -59,40 +91,14 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
   };
 
   renderInternalIntegrations() {
-    const {orgId} = this.props.params;
-    const {organization} = this.props;
     const integrations = this.state.applications.filter(
       (app: SentryApp) => app.status === 'internal'
     );
     const isEmpty = integrations.length === 0;
 
-    const permissionTooltipText = t(
-      'Manager or Owner permissions required to add an internal integration.'
-    );
-
-    const action = (
-      <Access organization={organization} access={['org:write']}>
-        {({hasAccess}) => (
-          <Button
-            priority="primary"
-            disabled={!hasAccess}
-            title={!hasAccess ? permissionTooltipText : undefined}
-            size="xsmall"
-            to={`/settings/${orgId}/developer-settings/new-internal/`}
-            icon={<IconAdd size="xs" isCircled />}
-          >
-            {t('New Internal Integration')}
-          </Button>
-        )}
-      </Access>
-    );
-
     return (
       <Panel>
-        <PanelHeader hasButtons>
-          {t('Internal Integrations')}
-          {action}
-        </PanelHeader>
+        <PanelHeader>{t('Internal Integrations')}</PanelHeader>
         <PanelBody>
           {!isEmpty ? (
             integrations.map(this.renderApplicationRow)
@@ -106,39 +112,13 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
     );
   }
 
-  renderExternalIntegrations() {
-    const {orgId} = this.props.params;
-    const {organization} = this.props;
+  renderPublicIntegrations() {
     const integrations = this.state.applications.filter(app => app.status !== 'internal');
     const isEmpty = integrations.length === 0;
 
-    const permissionTooltipText = t(
-      'Manager or Owner permissions required to add a public integration.'
-    );
-
-    const action = (
-      <Access organization={organization} access={['org:write']}>
-        {({hasAccess}) => (
-          <Button
-            priority="primary"
-            disabled={!hasAccess}
-            title={!hasAccess ? permissionTooltipText : undefined}
-            size="xsmall"
-            to={`/settings/${orgId}/developer-settings/new-public/`}
-            icon={<IconAdd size="xs" isCircled />}
-          >
-            {t('New Public Integration')}
-          </Button>
-        )}
-      </Access>
-    );
-
     return (
       <Panel>
-        <PanelHeader hasButtons>
-          {t('Public Integrations')}
-          {action}
-        </PanelHeader>
+        <PanelHeader>{t('Public Integrations')}</PanelHeader>
         <PanelBody>
           {!isEmpty ? (
             integrations.map(this.renderApplicationRow)
@@ -152,39 +132,76 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
     );
   }
 
+  renderTabContent(tab: Tab) {
+    switch (tab) {
+      case 'internal':
+        return this.renderInternalIntegrations();
+      case 'public':
+      default:
+        return this.renderPublicIntegrations();
+    }
+  }
   renderBody() {
+    const {organization} = this.props;
+    const tabs = [
+      ['internal', t('Internal Integration')],
+      ['public', t('Public Integration')],
+    ] as [id: Tab, label: string][];
+
     return (
       <div>
         <SettingsPageHeader
           title={t('Developer Settings')}
-          body={t(
-            `Create integrations that interact with Sentry using the REST API and webhooks.`
-          )}
+          body={
+            <React.Fragment>
+              {t(
+                'Create integrations that interact with Sentry using the REST API and webhooks. '
+              )}
+              <br />
+              {tct('For more information [link: see our docs].', {
+                link: (
+                  <ExternalLink
+                    href={platformEventLinkMap[PlatformEvents.DOCS]}
+                    onClick={() => {
+                      trackIntegrationAnalytics(PlatformEvents.DOCS, {
+                        organization,
+                        view: this.analyticsView,
+                      });
+                    }}
+                  />
+                ),
+              })}
+            </React.Fragment>
+          }
           action={
-            <Button
-              size="small"
-              external
-              href="https://docs.sentry.io/product/integrations/integration-platform/"
-            >
-              {t('View Docs')}
-            </Button>
+            <ActionContainer>
+              <ExampleIntegrationButton
+                analyticsView={this.analyticsView}
+                style={{marginRight: space(1)}}
+              />
+              <CreateIntegrationButton analyticsView={this.analyticsView} />
+            </ActionContainer>
           }
         />
-        <Alert type="info">
-          {tct(
-            'Integrations can now detect when a comment on an issue is added or changes.  [link:Learn more].',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/webhooks/#comments" />
-              ),
-            }
-          )}
-        </Alert>
-        {this.renderExternalIntegrations()}
-        {this.renderInternalIntegrations()}
+        <NavTabs underlined>
+          {tabs.map(([type, label]) => (
+            <li
+              key={type}
+              className={this.tab === type ? 'active' : ''}
+              onClick={() => this.onTabChange(type)}
+            >
+              <a>{label}</a>
+            </li>
+          ))}
+        </NavTabs>
+        {this.renderTabContent(this.tab)}
       </div>
     );
   }
 }
+
+const ActionContainer = styled('div')`
+  display: flex;
+`;
 
 export default withOrganization(OrganizationDeveloperSettings);

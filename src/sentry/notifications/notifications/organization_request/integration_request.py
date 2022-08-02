@@ -8,6 +8,7 @@ from sentry.notifications.notifications.strategies.owner_recipient_strategy impo
     OwnerRecipientStrategy,
 )
 from sentry.notifications.utils.actions import MessageAction
+from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
@@ -38,7 +39,8 @@ def get_url(organization: Organization, provider_type: str, provider_slug: str) 
 class IntegrationRequestNotification(OrganizationRequestNotification):
     # TODO: switch to a strategy based on the integration write scope
     RoleBasedRecipientStrategyClass = OwnerRecipientStrategy
-    referrer_base = "integration-request"
+    metrics_key = "integration_request"
+    template_path = "sentry/emails/requests/organization-integration"
 
     def __init__(
         self,
@@ -68,31 +70,26 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
             "message": self.message,
         }
 
-    def get_filename(self) -> str:
-        return "requests/organization-integration"
-
-    def get_category(self) -> str:
-        return "integration_request"
-
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return f"Your team member requested the {self.provider_name} integration on Sentry"
 
-    def get_notification_title(self) -> str:
+    def get_notification_title(
+        self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
+    ) -> str:
         return self.get_subject()
-
-    def get_type(self) -> str:
-        return "organization.integration.request"
 
     def build_attachment_title(self, recipient: Team | User) -> str:
         return "Request to Install"
 
-    def get_message_description(self, recipient: Team | User) -> str:
+    def get_message_description(self, recipient: Team | User, provider: ExternalProviders) -> str:
         requester_name = self.requester.get_display_name()
         optional_message = (
             f" They've included this message `{self.message}`" if self.message else ""
         )
         return f"{requester_name} is requesting to install the {self.provider_name} integration into {self.organization.name}.{optional_message}"
 
-    def get_message_actions(self, recipient: Team | User) -> Sequence[MessageAction]:
+    def get_message_actions(
+        self, recipient: Team | User, provider: ExternalProviders
+    ) -> Sequence[MessageAction]:
         # TODO: update referrer
         return [MessageAction(name="Check it out", url=self.integration_link)]

@@ -1,5 +1,4 @@
-import * as React from 'react';
-import {withRouter, WithRouterProps} from 'react-router';
+import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import moment from 'moment';
@@ -14,8 +13,9 @@ import {IconCheckmark, IconClose, IconLock, IconSync} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {AvatarUser, OnboardingTask, OnboardingTaskKey, Organization} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import testableTransition from 'sentry/utils/testableTransition';
+import {useRouteContext} from 'sentry/utils/useRouteContext';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import SkipConfirm from './skipConfirm';
@@ -26,16 +26,14 @@ const recordAnalytics = (
   organization: Organization,
   action: string
 ) =>
-  trackAnalyticsEvent({
-    eventKey: 'onboarding.wizard_clicked',
-    eventName: 'Onboarding Wizard Clicked',
-    organization_id: organization.id,
+  trackAdvancedAnalyticsEvent('onboarding.wizard_clicked', {
+    organization,
     todo_id: task.task,
     todo_title: task.title,
     action,
   });
 
-type Props = WithRouterProps & {
+type Props = {
   forwardedRef: React.Ref<HTMLDivElement>;
   /**
    * Fired when a task is completed. This will typically happen if there is a
@@ -54,7 +52,10 @@ type Props = WithRouterProps & {
   task: OnboardingTask;
 };
 
-function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}: Props) {
+function Task(props: Props) {
+  const {task, onSkip, onMarkComplete, forwardedRef, organization} = props;
+  const routeContext = useRouteContext();
+  const {router} = routeContext;
   const handleSkip = () => {
     recordAnalytics(task, organization, 'skipped');
     onSkip(task.task);
@@ -69,11 +70,13 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
     }
 
     if (task.actionType === 'action') {
-      task.action();
+      task.action(routeContext);
     }
 
     if (task.actionType === 'app') {
-      navigateTo(`${task.location}?onboardingTask`, router);
+      const url = new URL(task.location, window.location.origin);
+      url.searchParams.append('referrer', 'onboarding_task');
+      navigateTo(url.toString(), router);
     }
   };
 
@@ -124,7 +127,15 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
 
   const skipAction = task.skippable && (
     <SkipConfirm onSkip={handleSkip}>
-      {({skip}) => <StyledIconClose size="xs" onClick={skip} />}
+      {({skip}) => (
+        <CloseButton
+          borderless
+          size="zero"
+          aria-label={t('Close')}
+          icon={<IconClose size="xs" />}
+          onClick={skip}
+        />
+      )}
     </SkipConfirm>
   );
 
@@ -147,7 +158,7 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
           {task.status === 'pending' ? (
             <InProgressIndicator user={task.user} />
           ) : (
-            <Button priority="primary" size="small">
+            <Button priority="primary" size="sm">
               {t('Start')}
             </Button>
           )}
@@ -214,7 +225,7 @@ const InProgressIndicator = styled(({user, ...props}: InProgressIndicatorProps) 
   gap: ${space(1)};
 `;
 
-const StyledIconClose = styled(IconClose)`
+const CloseButton = styled(Button)`
   position: absolute;
   right: ${space(1.5)};
   top: ${space(1.5)};
@@ -277,9 +288,9 @@ TaskBlankAvatar.defaultProps = {
   transition,
 };
 
-const WrappedTask = withOrganization(withRouter(Task));
+const WrappedTask = withOrganization(Task);
 
-export default React.forwardRef<
+export default forwardRef<
   HTMLDivElement,
   Omit<React.ComponentProps<typeof WrappedTask>, 'forwardedRef'>
 >((props, ref) => <WrappedTask forwardedRef={ref} {...props} />);

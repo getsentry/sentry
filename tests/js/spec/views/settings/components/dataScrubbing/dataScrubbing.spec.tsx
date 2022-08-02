@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import DataScrubbing from 'sentry/views/settings/components/dataScrubbing';
 import {ProjectId} from 'sentry/views/settings/components/dataScrubbing/types';
@@ -89,7 +89,7 @@ describe('Data Scrubbing', () => {
       // PanelAction
       const actionButtons = wrapper.find('PanelAction').find('Button');
       expect(actionButtons).toHaveLength(2);
-      expect(actionButtons.at(0).text()).toEqual('Read the docs');
+      expect(actionButtons.at(0).text()).toEqual('Read Docs');
       expect(actionButtons.at(1).text()).toEqual('Add Rule');
       expect(actionButtons.at(1).prop('disabled')).toEqual(false);
     });
@@ -151,7 +151,7 @@ describe('Data Scrubbing', () => {
       // PanelAction
       const actionButtons = wrapper.find('PanelAction').find('Button');
       expect(actionButtons).toHaveLength(2);
-      expect(actionButtons.at(0).text()).toEqual('Read the docs');
+      expect(actionButtons.at(0).text()).toEqual('Read Docs');
       expect(actionButtons.at(1).text()).toEqual('Add Rule');
       expect(actionButtons.at(1).prop('disabled')).toEqual(false);
     });
@@ -188,32 +188,23 @@ describe('Data Scrubbing', () => {
       expect(listItems.at(0).find('[role="button"]')).toHaveLength(0);
     });
 
-    it('Delete rule successfully', async () => {
-      const mockDelete = MockApiClient.addMockResponse({
-        url: endpoint,
-        method: 'PUT',
-        body: getOrganization(
-          JSON.stringify({...relayPiiConfig, rules: {0: relayPiiConfig.rules[0]}})
-        ),
-      });
+    it('Delete rule successfully', () => {
+      // TODO(test): Improve this test by checking if the confirmation dialog is opened
+      render(
+        <DataScrubbing
+          additionalContext={additionalContext}
+          endpoint={endpoint}
+          projectId={projectId}
+          relayPiiConfig={stringRelayPiiConfig}
+          disabled={false}
+          organization={getOrganization()}
+          onSubmitSuccess={handleUpdateOrganization}
+        />
+      );
 
-      const wrapper = renderComponent({
-        disabled: false,
-        projectId,
-        endpoint,
-      });
+      userEvent.click(screen.getAllByLabelText('Delete Rule')[0]);
 
-      const listItems = wrapper.find('ListItem');
-      const deleteButton = listItems.at(0).find('[aria-label="Delete Rule"]').hostNodes();
-
-      deleteButton.simulate('click');
-      expect(mockDelete).toHaveBeenCalled();
-
-      await tick();
-      wrapper.update();
-
-      expect(wrapper.find('ListItem')).toHaveLength(1);
-      expect(addSuccessMessage).toHaveBeenCalled();
+      expect(openModal).toHaveBeenCalled();
     });
 
     it('Open Add Rule Modal', () => {

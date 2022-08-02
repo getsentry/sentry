@@ -1,8 +1,7 @@
 import sys
+import types
 
 import click
-
-from sentry.utils.compat import new_module
 
 
 def install(name, config_path, default_settings, callback=None):
@@ -41,14 +40,12 @@ class Importer:
         try:
             mod = self._load_module(fullname)
         except Exception as e:
-            from sentry.utils.settings import reraise_as
-
             msg = str(e)
             if msg:
                 msg = f"{type(e).__name__}: {msg}"
             else:
                 msg = type(e).__name__
-            reraise_as(ConfigurationError(msg))
+            raise ConfigurationError(msg).with_traceback(e.__traceback__)
         else:
             # Install into sys.modules explicitly
             sys.modules[fullname] = mod
@@ -64,7 +61,7 @@ class Importer:
         else:
             default_settings_mod = None
 
-        settings_mod = new_module(self.name)
+        settings_mod = types.ModuleType(self.name)
 
         # Django doesn't play too nice without the config file living as a real
         # file, so let's fake it.
@@ -83,7 +80,7 @@ class Importer:
 
 def load_settings(mod_or_filename, settings, silent=False):
     if isinstance(mod_or_filename, str):
-        conf = new_module("temp_config")
+        conf = types.ModuleType("temp_config")
         conf.__file__ = mod_or_filename
 
         try:

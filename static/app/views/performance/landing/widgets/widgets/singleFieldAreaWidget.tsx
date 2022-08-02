@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
@@ -25,7 +26,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
   const {ContainerActions} = props;
   const globalSelection = props.eventView.getPageFilters();
   const pageError = usePageError();
-  const {isMEPEnabled} = useMEPSettingContext();
+  const mepSetting = useMEPSettingContext();
 
   if (props.fields.length !== 1) {
     throw new Error(`Single field area can only accept a single field (${props.fields})`);
@@ -58,14 +59,15 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
               )}
               hideError
               onError={pageError.setPageError}
-              queryExtras={getMEPQueryParams(isMEPEnabled)}
+              queryExtras={getMEPQueryParams(mepSetting)}
             />
           )}
         </QueryBatchNode>
       ),
       transform: transformEventsRequestToArea,
     }),
-    [props.chartSetting]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [props.chartSetting, mepSetting.memoizationKey]
   );
 
   const Queries = {

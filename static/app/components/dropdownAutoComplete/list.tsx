@@ -1,17 +1,22 @@
-import * as React from 'react';
-import {AutoSizer, List as ReactVirtualizedList, ListRowProps} from 'react-virtualized';
-import styled from '@emotion/styled';
+import {Fragment} from 'react';
+import {AutoSizer, List as ReactVirtualizedList} from 'react-virtualized';
 
 import Row from './row';
 import {ItemsAfterFilter} from './types';
 
 type RowProps = Pick<
   React.ComponentProps<typeof Row>,
-  'itemSize' | 'highlightedIndex' | 'inputValue' | 'getItemProps'
+  'itemSize' | 'inputValue' | 'getItemProps' | 'registerVisibleItem'
 >;
 
 type Props = {
-  // flat item array | grouped item array
+  /**
+   * The item index that is currently isActive
+   */
+  highlightedIndex: number;
+  /**
+   * Flat item array or grouped item array
+   */
   items: ItemsAfterFilter;
   /**
    * Max height of dropdown menu. Units are assumed as `px`
@@ -22,15 +27,17 @@ type Props = {
    */
   onScroll?: () => void;
   /**
-   * Supplying this height will force the dropdown menu to be a virtualized list.
-   * This is very useful (and probably required) if you have a large list. e.g. Project selector with many projects.
+   * Supplying this height will force the dropdown menu to be a virtualized
+   * list. This is very useful (and probably required) if you have a large list.
+   * e.g. Project selector with many projects.
    *
-   * Currently, our implementation of the virtualized list requires a fixed height.
+   * Currently, our implementation of the virtualized list requires a fixed
+   * height.
    */
   virtualizedHeight?: number;
-
   /**
-   * If you use grouping with virtualizedHeight, the labels will be that height unless specified here
+   * If you use grouping with virtualizedHeight, the labels will be that height
+   * unless specified here
    */
   virtualizedLabelHeight?: number;
 } & RowProps;
@@ -55,17 +62,16 @@ const List = ({
   virtualizedLabelHeight,
   onScroll,
   items,
-  itemSize,
   highlightedIndex,
-  inputValue,
-  getItemProps,
   maxHeight,
+  ...rowProps
 }: Props) => {
   if (virtualizedHeight) {
     return (
       <AutoSizer disableHeight>
         {({width}) => (
-          <StyledList
+          <ReactVirtualizedList
+            style={{outline: 'none'}}
             width={width}
             height={getHeight(
               items,
@@ -80,15 +86,13 @@ const List = ({
                 ? virtualizedLabelHeight
                 : virtualizedHeight
             }
-            rowRenderer={({key, index, style}: ListRowProps) => (
+            rowRenderer={({key, index, style}) => (
               <Row
                 key={key}
-                item={items[index]}
                 style={style}
-                itemSize={itemSize}
-                highlightedIndex={highlightedIndex}
-                inputValue={inputValue}
-                getItemProps={getItemProps}
+                item={items[index]}
+                isHighlighted={items[index].index === highlightedIndex}
+                {...rowProps}
               />
             )}
           />
@@ -98,28 +102,19 @@ const List = ({
   }
 
   return (
-    <React.Fragment>
+    <Fragment>
       {items.map((item, index) => (
         <Row
           // Using only the index of the row might not re-render properly,
           // because the items shift around the list
           key={`${item.value}-${index}`}
           item={item}
-          itemSize={itemSize}
-          highlightedIndex={highlightedIndex}
-          inputValue={inputValue}
-          getItemProps={getItemProps}
+          isHighlighted={item.index === highlightedIndex}
+          {...rowProps}
         />
       ))}
-    </React.Fragment>
+    </Fragment>
   );
 };
 
 export default List;
-
-// XXX(ts): Emotion11 has some trouble with List's defaultProps
-const StyledList = styled(ReactVirtualizedList as any)<
-  React.ComponentProps<typeof ReactVirtualizedList>
->`
-  outline: none;
-`;

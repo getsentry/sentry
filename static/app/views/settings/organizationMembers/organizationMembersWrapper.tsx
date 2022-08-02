@@ -150,7 +150,7 @@ function renderInviteMembersButton({
   const action = (
     <Button
       priority="primary"
-      size="small"
+      size="sm"
       onClick={onTriggerModal}
       data-test-id="email-invite"
       icon={<IconMail />}
@@ -164,7 +164,7 @@ function renderInviteMembersButton({
     <Hovercard
       body={
         <FeatureDisabled
-          featureName="Invite Members"
+          featureName={t('Invite Members')}
           features={['organizations:invite-members']}
           hideHelpToggle
         />

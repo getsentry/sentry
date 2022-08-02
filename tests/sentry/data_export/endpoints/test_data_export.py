@@ -45,17 +45,17 @@ class DataExportTest(APITestCase):
 
         # Without the discover-query feature, the endpoint should 404
         with self.feature({"organizations:discover-query": False}):
-            self.get_valid_response(self.org.slug, status_code=404, **payload)
+            self.get_error_response(self.org.slug, status_code=404, **payload)
 
         # With the right permissions, the endpoint should 201
         with self.feature("organizations:discover-query"):
-            self.get_valid_response(self.org.slug, status_code=201, **payload)
+            self.get_success_response(self.org.slug, status_code=201, **payload)
 
         modified_payload = self.make_payload("issue", {"project": -5}, overwrite=True)
 
         # Without project permissions, the endpoint should 403
         with self.feature("organizations:discover-query"):
-            self.get_valid_response(self.org.slug, status_code=403, **modified_payload)
+            self.get_error_response(self.org.slug, status_code=403, **modified_payload)
 
     def test_new_export(self):
         """
@@ -64,7 +64,7 @@ class DataExportTest(APITestCase):
         """
         payload = self.make_payload("issue")
         with self.feature("organizations:discover-query"):
-            response = self.get_valid_response(self.org.slug, status_code=201, **payload)
+            response = self.get_success_response(self.org.slug, status_code=201, **payload)
         data_export = ExportedData.objects.get(id=response.data["id"])
         assert response.data == {
             "id": data_export.id,
@@ -95,7 +95,7 @@ class DataExportTest(APITestCase):
             response1 = self.get_response(self.org.slug, **payload)
         data_export = ExportedData.objects.get(id=response1.data["id"])
         with self.feature("organizations:discover-query"):
-            response2 = self.get_valid_response(self.org.slug, **payload)
+            response2 = self.get_success_response(self.org.slug, **payload)
         assert response2.data == {
             "id": data_export.id,
             "user": {
@@ -122,7 +122,7 @@ class DataExportTest(APITestCase):
         """
         payload = self.make_payload("discover", {"field": "id"})
         with self.feature("organizations:discover-query"):
-            response = self.get_valid_response(self.org.slug, status_code=201, **payload)
+            response = self.get_success_response(self.org.slug, status_code=201, **payload)
         data_export = ExportedData.objects.get(id=response.data["id"])
         # because we passed a single string as the field, we should convert it into a list
         # this happens when the user selects only a single field and it results in a string
@@ -136,7 +136,7 @@ class DataExportTest(APITestCase):
         """
         payload = self.make_payload("discover", {"field": ["id"] * (MAX_FIELDS + 1)})
         with self.feature("organizations:discover-query"):
-            response = self.get_valid_response(self.org.slug, status_code=400, **payload)
+            response = self.get_error_response(self.org.slug, status_code=400, **payload)
         assert response.data == {
             "non_field_errors": [
                 "You can export up to 20 fields at a time. Please delete some and try again."
@@ -150,7 +150,7 @@ class DataExportTest(APITestCase):
         """
         payload = self.make_payload("discover", {"field": []})
         with self.feature("organizations:discover-query"):
-            response = self.get_valid_response(self.org.slug, status_code=400, **payload)
+            response = self.get_error_response(self.org.slug, status_code=400, **payload)
         assert response.data == {"non_field_errors": ["at least one field is required to export"]}
 
     def test_discover_without_query(self):
@@ -159,7 +159,7 @@ class DataExportTest(APITestCase):
         """
         payload = self.make_payload("discover", {"field": ["id"]}, overwrite=True)
         with self.feature("organizations:discover-query"):
-            response = self.get_valid_response(self.org.slug, status_code=400, **payload)
+            response = self.get_error_response(self.org.slug, status_code=400, **payload)
         assert response.data == {
             "non_field_errors": [
                 "query is a required to export, please pass an empty string if you don't want to set one"
@@ -173,18 +173,18 @@ class DataExportTest(APITestCase):
         """
         payload = self.make_payload("discover", {"field": ["min()"]})
         with self.feature("organizations:discover-query"):
-            response = self.get_valid_response(self.org.slug, status_code=400, **payload)
+            response = self.get_error_response(self.org.slug, status_code=400, **payload)
         assert response.data == {"non_field_errors": ["min: expected 1 argument(s)"]}
 
     @freeze_time("2020-02-27 12:07:37")
     def test_export_invalid_date_params(self):
         """
         Ensures that if an invalidate date parameter is specified, returns a 400 status code
-        with the corresponding error messgae.
+        with the corresponding error message.
         """
         payload = self.make_payload("discover", {"statsPeriod": "shrug"})
         with self.feature("organizations:discover-query"):
-            response = self.get_valid_response(self.org.slug, status_code=400, **payload)
+            response = self.get_error_response(self.org.slug, status_code=400, **payload)
         assert response.data == {"non_field_errors": ["Invalid statsPeriod: 'shrug'"]}
 
         payload = self.make_payload(
@@ -195,7 +195,7 @@ class DataExportTest(APITestCase):
             },
         )
         with self.feature("organizations:discover-query"):
-            response = self.get_valid_response(self.org.slug, status_code=400, **payload)
+            response = self.get_error_response(self.org.slug, status_code=400, **payload)
         assert response.data == {"non_field_errors": ["shrug is not a valid ISO8601 date query"]}
 
         payload = self.make_payload(
@@ -206,7 +206,7 @@ class DataExportTest(APITestCase):
             },
         )
         with self.feature("organizations:discover-query"):
-            response = self.get_valid_response(self.org.slug, status_code=400, **payload)
+            response = self.get_error_response(self.org.slug, status_code=400, **payload)
         assert response.data == {"non_field_errors": ["shrug is not a valid ISO8601 date query"]}
 
     @freeze_time("2020-05-19 14:00:00")
@@ -216,7 +216,7 @@ class DataExportTest(APITestCase):
         """
         payload = self.make_payload("discover", {"statsPeriod": "24h"})
         with self.feature("organizations:discover-query"):
-            response = self.get_valid_response(self.org.slug, status_code=201, **payload)
+            response = self.get_success_response(self.org.slug, status_code=201, **payload)
         data_export = ExportedData.objects.get(id=response.data["id"])
         query_info = data_export.query_info
         assert parse_datetime_string(query_info["start"]) == parse_datetime_string(
@@ -236,7 +236,7 @@ class DataExportTest(APITestCase):
         """
         payload = self.make_payload("discover", {"statsPeriodStart": "1w", "statsPeriodEnd": "5d"})
         with self.feature("organizations:discover-query"):
-            response = self.get_valid_response(self.org.slug, status_code=201, **payload)
+            response = self.get_success_response(self.org.slug, status_code=201, **payload)
         data_export = ExportedData.objects.get(id=response.data["id"])
         query_info = data_export.query_info
         assert parse_datetime_string(query_info["start"]) == parse_datetime_string(
@@ -257,7 +257,7 @@ class DataExportTest(APITestCase):
             "discover", {"start": "2020-05-18T14:00:00", "end": "2020-05-19T14:00:00"}
         )
         with self.feature("organizations:discover-query"):
-            response = self.get_valid_response(self.org.slug, status_code=201, **payload)
+            response = self.get_success_response(self.org.slug, status_code=201, **payload)
         data_export = ExportedData.objects.get(id=response.data["id"])
         query_info = data_export.query_info
         assert parse_datetime_string(query_info["start"]) == parse_datetime_string(
@@ -276,7 +276,7 @@ class DataExportTest(APITestCase):
         """
         payload = self.make_payload("discover", {"query": "foo:"})
         with self.feature("organizations:discover-query"):
-            response = self.get_valid_response(self.org.slug, status_code=400, **payload)
+            response = self.get_error_response(self.org.slug, status_code=400, **payload)
         assert response.data == {"non_field_errors": ["Empty string after 'foo:'"]}
 
     @freeze_time("2020-05-19 14:00:00")
@@ -290,13 +290,13 @@ class DataExportTest(APITestCase):
             {"project": [], "start": "2020-05-18T14:00:00", "end": "2020-05-19T14:00:00"},
         )
         with self.feature("organizations:discover-query"):
-            self.get_valid_response(self.org.slug, status_code=201, **payload)
+            self.get_success_response(self.org.slug, status_code=201, **payload)
 
         payload = self.make_payload(
             "issue", {"project": None, "start": "2020-05-18T14:00:00", "end": "2020-05-19T14:00:00"}
         )
         with self.feature("organizations:discover-query"):
-            self.get_valid_response(self.org.slug, status_code=201, **payload)
+            self.get_success_response(self.org.slug, status_code=201, **payload)
 
     def test_equations(self):
         """
@@ -304,7 +304,7 @@ class DataExportTest(APITestCase):
         """
         payload = self.make_payload("discover", {"field": ["equation|count() / 2", "count()"]})
         with self.feature(["organizations:discover-query"]):
-            response = self.get_valid_response(self.org.slug, status_code=201, **payload)
+            response = self.get_success_response(self.org.slug, status_code=201, **payload)
         data_export = ExportedData.objects.get(id=response.data["id"])
         query_info = data_export.query_info
         assert query_info["field"] == ["count()"]

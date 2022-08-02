@@ -1,4 +1,3 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -29,7 +28,7 @@ type ConfirmableActionProps = React.ComponentProps<typeof ConfirmableAction>;
 
 type CommonProps = Omit<
   ConfirmableActionProps,
-  'onConfirm' | 'confirmText' | 'children' | 'stopPropagation' | 'priority' | 'children'
+  'onConfirm' | 'confirmText' | 'children' | 'stopPropagation' | 'priority'
 > & {
   children: React.ReactChild;
   title: string;

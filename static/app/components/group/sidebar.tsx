@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import isObject from 'lodash/isObject';
@@ -6,7 +6,7 @@ import keyBy from 'lodash/keyBy';
 import pickBy from 'lodash/pickBy';
 
 import {Client} from 'sentry/api';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ExternalIssueList from 'sentry/components/group/externalIssuesList';
 import GroupParticipants from 'sentry/components/group/participants';
@@ -36,7 +36,6 @@ type Props = {
   group: Group;
   organization: Organization;
   project: Project;
-  className?: string;
   event?: Event;
 };
 
@@ -49,7 +48,7 @@ type State = {
   tagsWithTopValues?: Record<string, TagWithTopValues>;
 };
 
-class BaseGroupSidebar extends React.Component<Props, State> {
+class BaseGroupSidebar extends Component<Props, State> {
   state: State = {
     participants: [],
     environments: this.props.environments,
@@ -144,10 +143,10 @@ class BaseGroupSidebar extends React.Component<Props, State> {
       // # TODO(dcramer): remove plugin.title check in Sentry 8.22+
       if (issue) {
         issues.push(
-          <React.Fragment key={plugin.slug}>
+          <Fragment key={plugin.slug}>
             <span>{`${plugin.shortName || plugin.name || plugin.title}: `}</span>
             <a href={issue.url}>{isObject(issue.label) ? issue.label.id : issue.label}</a>
-          </React.Fragment>
+          </Fragment>
         );
       }
     });
@@ -178,12 +177,15 @@ class BaseGroupSidebar extends React.Component<Props, State> {
   }
 
   render() {
-    const {className, event, group, organization, project, environments} = this.props;
+    const {event, group, organization, project, environments} = this.props;
     const {allEnvironmentsGroupData, currentRelease, tagsWithTopValues} = this.state;
     const projectId = project.slug;
 
     return (
-      <div className={className}>
+      <Container>
+        <PageFiltersContainer>
+          <EnvironmentPageFilter alignDropdown="right" />
+        </PageFiltersContainer>
         {event && <SuggestedOwners project={project} group={group} event={event} />}
 
         <GroupReleaseStats
@@ -203,13 +205,7 @@ class BaseGroupSidebar extends React.Component<Props, State> {
 
         {this.renderPluginIssue()}
 
-        <SidebarSection
-          title={
-            <GuideAnchor target="tags" position="bottom">
-              {t('Tags')}
-            </GuideAnchor>
-          }
-        >
+        <SidebarSection title={t('Tags')}>
           {!tagsWithTopValues ? (
             <TagPlaceholders>
               <Placeholder height="40px" />
@@ -247,10 +243,18 @@ class BaseGroupSidebar extends React.Component<Props, State> {
         </SidebarSection>
 
         {this.renderParticipantData()}
-      </div>
+      </Container>
     );
   }
 }
+
+const PageFiltersContainer = styled('div')`
+  margin-bottom: ${space(2)};
+`;
+
+const Container = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
 
 const TagPlaceholders = styled('div')`
   display: grid;
@@ -264,8 +268,6 @@ const ExternalIssues = styled('div')`
   gap: ${space(2)};
 `;
 
-const GroupSidebar = styled(withApi(BaseGroupSidebar))`
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
+const GroupSidebar = withApi(BaseGroupSidebar);
 
 export default GroupSidebar;

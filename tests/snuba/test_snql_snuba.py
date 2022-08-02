@@ -2,8 +2,10 @@ import time
 import uuid
 from datetime import datetime, timedelta
 from typing import Optional
+from unittest import mock
 
 from django.utils import timezone
+from snuba_sdk import Request
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.entity import Entity
@@ -38,12 +40,13 @@ class SnQLTest(TestCase, SnubaTestCase):
         )
         return event_id
 
-    def test_basic(self) -> None:
+    @mock.patch("sentry.utils.metrics.incr")
+    def test_basic(self, mock_metrics_incr) -> None:
         now = datetime.now()
         self._insert_event_for_time(now)
 
         query = (
-            Query(dataset="events", match=Entity("events"))
+            Query(match=Entity("events"))
             .set_select([Function("count", [], "count")])
             .set_groupby([Column("project_id")])
             .set_where(
@@ -54,24 +57,30 @@ class SnQLTest(TestCase, SnubaTestCase):
                 ]
             )
         )
-
-        result = snuba.raw_snql_query(query)
+        request = Request(dataset="events", app_id="tests", query=query)
+        result = snuba.raw_snql_query(request, referrer="referrer_not_in_enum")
         assert len(result["data"]) == 1
         assert result["data"][0] == {"count": 1, "project_id": self.project.id}
+        mock_metrics_incr.assert_any_call(
+            "snql.sdk.api.new_referrers", tags={"referrer": "referrer_not_in_enum"}
+        )
 
     def test_cache(self):
         """Minimal test to verify if use_cache works"""
         results = snuba.raw_snql_query(
-            Query(
-                "events",
-                Entity("events"),
-                select=[Column("event_id")],
-                where=[
-                    Condition(Column("project_id"), Op.EQ, self.project.id),
-                    Condition(Column("timestamp"), Op.GTE, timezone.now() - timedelta(days=1)),
-                    Condition(Column("timestamp"), Op.LT, timezone.now()),
-                ],
-                limit=Limit(1),
+            Request(
+                dataset="events",
+                app_id="tests",
+                query=Query(
+                    Entity("events"),
+                    select=[Column("event_id")],
+                    where=[
+                        Condition(Column("project_id"), Op.EQ, self.project.id),
+                        Condition(Column("timestamp"), Op.GTE, timezone.now() - timedelta(days=1)),
+                        Condition(Column("timestamp"), Op.LT, timezone.now()),
+                    ],
+                    limit=Limit(1),
+                ),
             ),
             use_cache=True,
         )

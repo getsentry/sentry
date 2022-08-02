@@ -1,16 +1,17 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as modal from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
+import * as LineChart from 'sentry/components/charts/lineChart';
 import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
-import MetricsWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/metricsWidgetQueries';
+import ReleaseWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/releaseWidgetQueries';
 
 jest.mock('sentry/components/charts/simpleTableChart');
-jest.mock('sentry/views/dashboardsV2/widgetCard/metricsWidgetQueries');
+jest.mock('sentry/views/dashboardsV2/widgetCard/releaseWidgetQueries');
 
 describe('Dashboards > WidgetCard', function () {
   const {router, organization, routerContext} = initializeOrg({
@@ -57,21 +58,28 @@ describe('Dashboards > WidgetCard', function () {
   };
 
   const api = new Client();
-  let eventsMock;
+  let eventsv2Mock, eventsMock;
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: [],
+      body: {meta: {isMetricsData: false}},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-geo/',
-      body: [],
+      body: {meta: {isMetricsData: false}},
     });
-    eventsMock = MockApiClient.addMockResponse({
+    eventsv2Mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
       body: {
         meta: {title: 'string'},
+        data: [{title: 'title'}],
+      },
+    });
+    eventsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        meta: {fields: {title: 'string'}},
         data: [{title: 'title'}],
       },
     });
@@ -105,6 +113,7 @@ describe('Dashboards > WidgetCard', function () {
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
     userEvent.click(screen.getByText('Open in Discover'));
     expect(spy).toHaveBeenCalledWith({
+      isMetricsData: false,
       organization,
       widget: multipleQueryWidget,
     });
@@ -258,6 +267,43 @@ describe('Dashboards > WidgetCard', function () {
     );
   });
 
+  it('disables Open in Discover when the widget contains custom measurements', async function () {
+    render(
+      <WidgetCard
+        api={api}
+        organization={organization}
+        widget={{
+          ...multipleQueryWidget,
+          displayType: DisplayType.LINE,
+          queries: [
+            {
+              ...multipleQueryWidget.queries[0],
+              fields: [],
+              columns: [],
+              aggregates: ['p99(measurements.custom.measurement)'],
+            },
+          ],
+        }}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+        widgetLimitReached={false}
+      />,
+      {context: routerContext}
+    );
+
+    userEvent.click(await screen.findByLabelText('Widget actions'));
+    expect(screen.getByText('Open in Discover')).toBeInTheDocument();
+    userEvent.click(screen.getByText('Open in Discover'));
+    expect(router.push).not.toHaveBeenCalledWith();
+  });
+
   it('calls onDuplicate when Duplicate Widget is clicked', async function () {
     const mock = jest.fn();
     render(
@@ -409,7 +455,7 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
     await tick();
-    expect(eventsMock).toHaveBeenCalledWith(
+    expect(eventsv2Mock).toHaveBeenCalledWith(
       '/organizations/org-slug/eventsv2/',
       expect.objectContaining({
         query: expect.objectContaining({
@@ -443,7 +489,7 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
     await tick();
-    expect(eventsMock).toHaveBeenCalledWith(
+    expect(eventsv2Mock).toHaveBeenCalledWith(
       '/organizations/org-slug/eventsv2/',
       expect.objectContaining({
         query: expect.objectContaining({
@@ -488,19 +534,20 @@ describe('Dashboards > WidgetCard', function () {
         tableItemLimit={20}
       />
     );
-    await tick();
+    await waitFor(() => expect(eventsv2Mock).toHaveBeenCalled());
+
     expect(SimpleTableChart).toHaveBeenCalledWith(
       expect.objectContaining({stickyHeaders: true}),
       expect.anything()
     );
   });
 
-  it('calls metrics queries', function () {
+  it('calls release queries', function () {
     const widget: Widget = {
-      title: 'Metrics Widget',
+      title: 'Release Widget',
       interval: '5m',
       displayType: DisplayType.LINE,
-      widgetType: WidgetType.METRICS,
+      widgetType: WidgetType.RELEASE,
       queries: [],
     };
     render(
@@ -522,7 +569,7 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    expect(MetricsWidgetQueries).toHaveBeenCalledTimes(1);
+    expect(ReleaseWidgetQueries).toHaveBeenCalledTimes(1);
   });
 
   it('opens the widget viewer modal when a widget has no id', async () => {
@@ -559,5 +606,296 @@ describe('Dashboards > WidgetCard', function () {
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({pathname: '/mock-pathname/widget/10/'})
     );
+  });
+
+  it('renders stored data disclaimer', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      body: {
+        meta: {title: 'string', isMetricsData: false},
+        data: [{title: 'title'}],
+      },
+    });
+
+    render(
+      <WidgetCard
+        api={api}
+        organization={{
+          ...organization,
+          features: [...organization.features, 'dashboards-mep'],
+        }}
+        widget={{
+          ...multipleQueryWidget,
+          displayType: DisplayType.TABLE,
+          queries: [{...multipleQueryWidget.queries[0]}],
+        }}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+        widgetLimitReached={false}
+        showStoredAlert
+      />,
+      {context: routerContext}
+    );
+
+    await waitFor(() => {
+      // Badge in the widget header
+      expect(screen.getByText('Sampled')).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(
+        // Alert below the widget
+        screen.getByText(/we've automatically adjusted your results/i)
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe('using events endpoint', () => {
+    const organizationWithFlag = {
+      ...organization,
+      features: [...organization.features, 'discover-frontend-use-events-endpoint'],
+    };
+
+    it('calls eventsV2 with a limit of 20 items', async function () {
+      const mock = jest.fn();
+      render(
+        <WidgetCard
+          api={api}
+          organization={organizationWithFlag}
+          widget={{
+            ...multipleQueryWidget,
+            displayType: DisplayType.TABLE,
+            queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+          }}
+          selection={selection}
+          isEditing={false}
+          onDelete={mock}
+          onEdit={() => undefined}
+          onDuplicate={() => undefined}
+          renderErrorMessage={() => undefined}
+          isSorting={false}
+          currentWidgetDragging={false}
+          showContextMenu
+          widgetLimitReached={false}
+          tableItemLimit={20}
+        />
+      );
+      await tick();
+      expect(eventsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            per_page: 20,
+          }),
+        })
+      );
+    });
+
+    it('calls eventsV2 with a default limit of 5 items', async function () {
+      const mock = jest.fn();
+      render(
+        <WidgetCard
+          api={api}
+          organization={organizationWithFlag}
+          widget={{
+            ...multipleQueryWidget,
+            displayType: DisplayType.TABLE,
+            queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+          }}
+          selection={selection}
+          isEditing={false}
+          onDelete={mock}
+          onEdit={() => undefined}
+          onDuplicate={() => undefined}
+          renderErrorMessage={() => undefined}
+          isSorting={false}
+          currentWidgetDragging={false}
+          showContextMenu
+          widgetLimitReached={false}
+        />
+      );
+      await tick();
+      expect(eventsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            per_page: 5,
+          }),
+        })
+      );
+    });
+
+    it('has sticky table headers', async function () {
+      const tableWidget: Widget = {
+        title: 'Table Widget',
+        interval: '5m',
+        displayType: DisplayType.TABLE,
+        widgetType: WidgetType.DISCOVER,
+        queries: [
+          {
+            conditions: '',
+            fields: ['transaction', 'count()'],
+            columns: ['transaction'],
+            aggregates: ['count()'],
+            name: 'Table',
+            orderby: '',
+          },
+        ],
+      };
+      render(
+        <WidgetCard
+          api={api}
+          organization={organizationWithFlag}
+          widget={tableWidget}
+          selection={selection}
+          isEditing={false}
+          onDelete={() => undefined}
+          onEdit={() => undefined}
+          onDuplicate={() => undefined}
+          renderErrorMessage={() => undefined}
+          isSorting={false}
+          currentWidgetDragging={false}
+          showContextMenu
+          widgetLimitReached={false}
+          tableItemLimit={20}
+        />
+      );
+      await tick();
+      expect(SimpleTableChart).toHaveBeenCalledWith(
+        expect.objectContaining({stickyHeaders: true}),
+        expect.anything()
+      );
+    });
+
+    it('renders stored data disclaimer', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        body: {
+          meta: {fields: {title: 'string'}, isMetricsData: false},
+          data: [{title: 'title'}],
+        },
+      });
+
+      render(
+        <WidgetCard
+          api={api}
+          organization={{
+            ...organizationWithFlag,
+            features: [...organizationWithFlag.features, 'dashboards-mep'],
+          }}
+          widget={{
+            ...multipleQueryWidget,
+            displayType: DisplayType.TABLE,
+            queries: [{...multipleQueryWidget.queries[0]}],
+          }}
+          selection={selection}
+          isEditing={false}
+          onDelete={() => undefined}
+          onEdit={() => undefined}
+          onDuplicate={() => undefined}
+          renderErrorMessage={() => undefined}
+          isSorting={false}
+          currentWidgetDragging={false}
+          showContextMenu
+          widgetLimitReached={false}
+          showStoredAlert
+        />,
+        {context: routerContext}
+      );
+
+      await waitFor(() => {
+        // Badge in the widget header
+        expect(screen.getByText('Sampled')).toBeInTheDocument();
+      });
+
+      await waitFor(() => {
+        expect(
+          // Alert below the widget
+          screen.getByText(/we've automatically adjusted your results/i)
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('renders chart using axis and tooltip formatters from custom measurement meta', async function () {
+      const spy = jest.spyOn(LineChart, 'LineChart');
+      const eventsStatsMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-stats/',
+        body: {
+          data: [
+            [
+              1658262600,
+              [
+                {
+                  count: 24,
+                },
+              ],
+            ],
+          ],
+          meta: {
+            fields: {
+              time: 'date',
+              p95_measurements_custom: 'duration',
+            },
+            units: {
+              time: null,
+              p95_measurements_custom: 'minute',
+            },
+            isMetricsData: true,
+            tips: {},
+          },
+        },
+      });
+
+      render(
+        <WidgetCard
+          api={api}
+          organization={organization}
+          widget={{
+            title: '',
+            interval: '5m',
+            widgetType: WidgetType.DISCOVER,
+            displayType: DisplayType.LINE,
+            queries: [
+              {
+                conditions: '',
+                name: '',
+                fields: [],
+                columns: [],
+                aggregates: ['p95(measurements.custom)'],
+                orderby: '',
+              },
+            ],
+          }}
+          selection={selection}
+          isEditing={false}
+          onDelete={() => undefined}
+          onEdit={() => undefined}
+          onDuplicate={() => undefined}
+          renderErrorMessage={() => undefined}
+          isSorting={false}
+          currentWidgetDragging={false}
+          showContextMenu
+          widgetLimitReached={false}
+        />,
+        {context: routerContext}
+      );
+      await waitFor(function () {
+        expect(eventsStatsMock).toHaveBeenCalled();
+      });
+      const {tooltip, yAxis} = spy.mock.calls.pop()?.[0] ?? {};
+      expect(tooltip).toBeDefined();
+      expect(yAxis).toBeDefined();
+      // @ts-ignore
+      expect(tooltip.valueFormatter(24, 'duration')).toEqual('24.00ms');
+      // @ts-ignore
+      expect(yAxis.axisLabel.formatter(24, 'duration')).toEqual('24ms');
+    });
   });
 });

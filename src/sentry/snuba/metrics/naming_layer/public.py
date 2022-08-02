@@ -15,9 +15,17 @@ __all__ = (
     "TransactionTagsKey",
     "TransactionStatusTagValue",
     "TransactionSatisfactionTagValue",
+    "PUBLIC_EXPRESSION_REGEX",
+    "PUBLIC_NAME_REGEX",
 )
 
+import re
 from enum import Enum
+
+from sentry.snuba.metrics.utils import OP_REGEX
+
+PUBLIC_NAME_REGEX = r"([a-z_]+(?:\.[a-z_]+)*)"
+PUBLIC_EXPRESSION_REGEX = re.compile(rf"^{OP_REGEX}\({PUBLIC_NAME_REGEX}\)$")
 
 
 class SessionMetricKey(Enum):
@@ -32,12 +40,14 @@ class SessionMetricKey(Enum):
     CRASHED = "session.crashed"
     ERRORED = "session.errored"
     HEALTHY = "session.healthy"
+    CRASH_RATE = "session.crash_rate"
     CRASH_FREE_RATE = "session.crash_free_rate"
     ALL_USER = "session.all_user"
     ABNORMAL_USER = "session.abnormal_user"
     CRASHED_USER = "session.crashed_user"
     ERRORED_USER = "session.errored_user"
     HEALTHY_USER = "session.healthy_user"
+    CRASH_USER_RATE = "session.crash_user_rate"
     CRASH_FREE_USER_RATE = "session.crash_free_user_rate"
 
 
@@ -74,6 +84,8 @@ class TransactionMetricKey(Enum):
     FAILURE_RATE = "transaction.failure_rate"
     APDEX = "transaction.apdex"
     MISERABLE_USER = "transaction.miserable_user"
+    USER_MISERY = "transaction.user_misery"
+    FAILURE_COUNT = "transaction.failure_count"
 
 
 # TODO: these tag keys and values below probably don't belong here, and should

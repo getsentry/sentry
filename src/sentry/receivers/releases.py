@@ -1,8 +1,9 @@
 from django.db import IntegrityError, transaction
+from django.db.models import F
 from django.db.models.signals import post_save
 from django.utils import timezone
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.models import (
     Activity,
     Commit,
@@ -12,8 +13,11 @@ from sentry.models import (
     GroupLink,
     GroupStatus,
     GroupSubscription,
+    Project,
     PullRequest,
     Release,
+    ReleaseActivity,
+    ReleaseProject,
     Repository,
     UserOption,
     remove_group_from_inbox,
@@ -24,15 +28,17 @@ from sentry.models.grouphistory import (
     record_group_history_from_activity_type,
 )
 from sentry.notifications.types import GroupSubscriptionReason
-from sentry.signals import issue_resolved
+from sentry.signals import buffer_incr_complete, issue_resolved
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
+from sentry.types.activity import ActivityType
+from sentry.types.releaseactivity import ReleaseActivityType
 
 
 def resolve_group_resolutions(instance, created, **kwargs):
     if not created:
         return
 
-    clear_expired_resolutions.delay(release_id=instance.id)
+    transaction.on_commit(lambda: clear_expired_resolutions.delay(release_id=instance.id))
 
 
 def remove_resolved_link(link):
@@ -48,11 +54,11 @@ def remove_resolved_link(link):
             Activity.objects.create(
                 project_id=link.project_id,
                 group_id=link.group_id,
-                type=Activity.SET_UNRESOLVED,
+                type=ActivityType.SET_UNRESOLVED.value,
                 ident=link.group_id,
             )
             record_group_history_from_activity_type(
-                Group.objects.get(id=link.group_id), Activity.SET_UNRESOLVED
+                Group.objects.get(id=link.group_id), ActivityType.SET_UNRESOLVED.value
             )
 
 
@@ -117,7 +123,7 @@ def resolved_in_commit(instance, created, **kwargs):
                 Activity.objects.create(
                     project_id=group.project_id,
                     group=group,
-                    type=Activity.SET_RESOLVED_IN_COMMIT,
+                    type=ActivityType.SET_RESOLVED_IN_COMMIT.value,
                     ident=instance.id,
                     user=acting_user,
                     data={"commit": instance.id},
@@ -128,7 +134,7 @@ def resolved_in_commit(instance, created, **kwargs):
                 remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
                 record_group_history_from_activity_type(
                     group,
-                    Activity.SET_RESOLVED_IN_COMMIT,
+                    ActivityType.SET_RESOLVED_IN_COMMIT.value,
                     actor=acting_user if acting_user else None,
                 )
 
@@ -199,7 +205,7 @@ def resolved_in_pull_request(instance, created, **kwargs):
                 Activity.objects.create(
                     project_id=group.project_id,
                     group=group,
-                    type=Activity.SET_RESOLVED_IN_PULL_REQUEST,
+                    type=ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
                     ident=instance.id,
                     user=acting_user,
                     data={"pull_request": instance.id},
@@ -219,8 +225,22 @@ def resolved_in_pull_request(instance, created, **kwargs):
                 )
 
 
+def save_release_activity(instance: Release, created: bool, **kwargs):
+    if created:
+        if features.has("organizations:active-release-monitor-alpha", instance.organization):
+            ReleaseActivity.objects.create(
+                type=ReleaseActivityType.CREATED.value,
+                release=instance,
+                date_added=instance.date_added,
+            )
+
+
 post_save.connect(
     resolve_group_resolutions, sender=Release, dispatch_uid="resolve_group_resolutions", weak=False
+)
+
+post_save.connect(
+    save_release_activity, sender=Release, dispatch_uid="save_release_activity", weak=False
 )
 
 post_save.connect(resolved_in_commit, sender=Commit, dispatch_uid="resolved_in_commit", weak=False)
@@ -231,3 +251,17 @@ post_save.connect(
     dispatch_uid="resolved_in_pull_request",
     weak=False,
 )
+
+
+@buffer_incr_complete.connect(
+    sender=ReleaseProject, dispatch_uid="project_has_releases_receiver", weak=False
+)
+def project_has_releases_receiver(filters, **_):
+    try:
+        project = ReleaseProject.objects.select_related("project").get(**filters).project
+    except ReleaseProject.DoesNotExist:
+        return
+
+    if not project.flags.has_releases:
+        project.flags.has_releases = True
+        project.update(flags=F("flags").bitor(Project.flags.has_releases))

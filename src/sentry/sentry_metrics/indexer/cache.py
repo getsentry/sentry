@@ -3,16 +3,17 @@ import random
 from typing import Mapping, MutableMapping, Optional, Sequence
 
 from django.conf import settings
+from django.core.cache import caches
 
-from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
 logger = logging.getLogger(__name__)
 
 
 class StringIndexerCache:
-    def __init__(self, version: int):
+    def __init__(self, version: int, cache_name: str):
         self.version = version
+        self.cache = caches[cache_name]
 
     @property
     def randomized_ttl(self) -> int:
@@ -22,14 +23,12 @@ class StringIndexerCache:
         jitter = random.uniform(0, 0.25) * cache_ttl
         return int(cache_ttl + jitter)
 
-    def make_cache_key(self, key: str) -> str:
+    def make_cache_key(self, key: str, cache_namespace: str) -> str:
         hashed = md5_text(key).hexdigest()
-        return f"indexer:org:str:{hashed}"
+        return f"indexer:org:str:{cache_namespace}:{hashed}"
 
     def _format_results(
-        self,
-        keys: Sequence[str],
-        results: Mapping[str, Optional[int]],
+        self, keys: Sequence[str], results: Mapping[str, Optional[int]], cache_namespace: str
     ) -> MutableMapping[str, Optional[int]]:
         """
         Takes in keys formatted like "org_id:string", and results that have the
@@ -41,42 +40,48 @@ class StringIndexerCache:
         """
         formatted: MutableMapping[str, Optional[int]] = {}
         for key in keys:
-            cache_key = self.make_cache_key(key)
+            cache_key = self.make_cache_key(key, cache_namespace)
             formatted[key] = results.get(cache_key)
 
         return formatted
 
-    def get(self, key: str) -> int:
-        result: int = cache.get(self.make_cache_key(key), version=self.version)
+    def get(self, key: str, cache_namespace: str) -> int:
+        result: int = self.cache.get(
+            self.make_cache_key(key, cache_namespace), version=self.version
+        )
         return result
 
-    def set(self, key: str, value: int) -> None:
-        cache.set(
-            key=self.make_cache_key(key),
+    def set(self, key: str, value: int, cache_namespace: str) -> None:
+        self.cache.set(
+            key=self.make_cache_key(key, cache_namespace),
             value=value,
             timeout=self.randomized_ttl,
             version=self.version,
         )
 
-    def get_many(self, keys: Sequence[str]) -> MutableMapping[str, Optional[int]]:
-        cache_keys = {self.make_cache_key(key): key for key in keys}
-        results: Mapping[str, Optional[int]] = cache.get_many(
+    def get_many(
+        self, keys: Sequence[str], cache_namespace: str
+    ) -> MutableMapping[str, Optional[int]]:
+        cache_keys = {self.make_cache_key(key, cache_namespace): key for key in keys}
+        results: Mapping[str, Optional[int]] = self.cache.get_many(
             cache_keys.keys(), version=self.version
         )
-        return self._format_results(keys, results)
+        return self._format_results(keys, results, cache_namespace)
 
-    def set_many(self, key_values: Mapping[str, int]) -> None:
-        cache_key_values = {self.make_cache_key(k): v for k, v in key_values.items()}
-        cache.set_many(cache_key_values, timeout=self.randomized_ttl, version=self.version)
+    def set_many(self, key_values: Mapping[str, int], cache_namespace: str) -> None:
+        cache_key_values = {
+            self.make_cache_key(k, cache_namespace): v for k, v in key_values.items()
+        }
+        self.cache.set_many(cache_key_values, timeout=self.randomized_ttl, version=self.version)
 
-    def delete(self, key: str) -> None:
-        cache_key = self.make_cache_key(key)
-        cache.delete(cache_key, version=self.version)
+    def delete(self, key: str, cache_namespace: str) -> None:
+        cache_key = self.make_cache_key(key, cache_namespace)
+        self.cache.delete(cache_key, version=self.version)
 
-    def delete_many(self, keys: Sequence[str]) -> None:
-        cache_keys = [self.make_cache_key(key) for key in keys]
-        cache.delete_many(cache_keys, version=self.version)
+    def delete_many(self, keys: Sequence[str], cache_namespace: str) -> None:
+        cache_keys = [self.make_cache_key(key, cache_namespace) for key in keys]
+        self.cache.delete_many(cache_keys, version=self.version)
 
 
 # todo: dont hard code 1 as the version
-indexer_cache = StringIndexerCache(version=1)
+indexer_cache = StringIndexerCache(**settings.SENTRY_STRING_INDEXER_CACHE_OPTIONS)

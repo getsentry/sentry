@@ -16,17 +16,10 @@ import Button from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {
-  CodeOwner,
-  Integration,
-  Organization,
-  Project,
-  RepositoryProjectPathConfig,
-} from 'sentry/types';
+import {CodeOwner, IssueOwnership, Organization, Project} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
 import FeedbackAlert from 'sentry/views/settings/account/notifications/feedbackAlert';
@@ -42,16 +35,9 @@ type Props = {
 } & RouteComponentProps<{orgId: string; projectId: string}, {}>;
 
 type State = {
-  codeMappings: RepositoryProjectPathConfig[];
-  integrations: Integration[];
-  ownership: null | any;
   codeowners?: CodeOwner[];
+  ownership?: null | IssueOwnership;
 } & AsyncView['state'];
-
-const CodeOwnersHeader = HookOrDefault({
-  hookName: 'component:codeowners-header',
-  defaultComponent: () => <Fragment />,
-});
 
 class ProjectOwnership extends AsyncView<Props, State> {
   getTitle() {
@@ -63,16 +49,6 @@ class ProjectOwnership extends AsyncView<Props, State> {
     const {organization, project} = this.props;
     const endpoints: ReturnType<AsyncView['getEndpoints']> = [
       ['ownership', `/projects/${organization.slug}/${project.slug}/ownership/`],
-      [
-        'codeMappings',
-        `/organizations/${organization.slug}/code-mappings/`,
-        {query: {project: project.id}},
-      ],
-      [
-        'integrations',
-        `/organizations/${organization.slug}/integrations/`,
-        {query: {features: ['codeowners']}},
-      ],
     ];
     if (organization.features.includes('integrations-codeowners')) {
       endpoints.push([
@@ -85,14 +61,11 @@ class ProjectOwnership extends AsyncView<Props, State> {
   }
 
   handleAddCodeOwner = () => {
-    const {codeMappings, integrations} = this.state;
     openModal(modalProps => (
       <AddCodeOwnerModal
         {...modalProps}
         organization={this.props.organization}
         project={this.props.project}
-        codeMappings={codeMappings}
-        integrations={integrations}
         onSave={this.handleCodeOwnerAdded}
       />
     ));
@@ -101,6 +74,7 @@ class ProjectOwnership extends AsyncView<Props, State> {
   getPlaceholder() {
     return `#example usage
 path:src/example/pipeline/* person@sentry.io #infra
+module:com.module.name.example #sdks
 url:http://example.com/settings/* #product
 tags.sku_class:enterprise #enterprise`;
   }
@@ -118,10 +92,14 @@ tags.sku_class:enterprise #enterprise`;
 
   handleOwnershipSave = (text: string | null) => {
     this.setState(prevState => ({
-      ownership: {
-        ...prevState.ownership,
-        raw: text,
-      },
+      ...(prevState.ownership
+        ? {
+            ownership: {
+              ...prevState.ownership,
+              raw: text || '',
+            },
+          }
+        : {}),
     }));
   };
 
@@ -299,7 +277,7 @@ tags.sku_class:enterprise #enterprise`;
                   pathname: `/organizations/${organization.slug}/issues/`,
                   query: {project: project.id},
                 }}
-                size="small"
+                size="sm"
               >
                 {t('View Issues')}
               </Button>
@@ -309,7 +287,7 @@ tags.sku_class:enterprise #enterprise`;
                     hasAccess ? (
                       <CodeOwnerButton
                         onClick={this.handleAddCodeOwner}
-                        size="small"
+                        size="sm"
                         priority="primary"
                         data-test-id="add-codeowner-button"
                       >
@@ -318,7 +296,7 @@ tags.sku_class:enterprise #enterprise`;
                     ) : (
                       <CodeOwnerButton
                         onClick={this.handleAddCodeOwnerRequest}
-                        size="small"
+                        size="sm"
                         priority="primary"
                         data-test-id="add-codeowner-request-button"
                       >
@@ -332,38 +310,36 @@ tags.sku_class:enterprise #enterprise`;
           }
         />
         <IssueOwnerDetails>{this.getDetail()}</IssueOwnerDetails>
-        <CodeOwnersHeader
-          addCodeOwner={this.handleAddCodeOwner}
-          handleRequest={this.handleAddCodeOwnerRequest}
-        />
 
         <PermissionAlert />
         <FeedbackAlert />
         {this.renderCodeOwnerErrors()}
-        <RulesPanel
-          data-test-id="issueowners-panel"
-          type="issueowners"
-          raw={ownership.raw || ''}
-          dateUpdated={ownership.lastUpdated}
-          placeholder={this.getPlaceholder()}
-          controls={[
-            <Button
-              key="edit"
-              size="xsmall"
-              onClick={() =>
-                openEditOwnershipRules({
-                  organization,
-                  project,
-                  ownership,
-                  onSave: this.handleOwnershipSave,
-                })
-              }
-              disabled={disabled}
-            >
-              {t('Edit')}
-            </Button>,
-          ]}
-        />
+        {ownership && (
+          <RulesPanel
+            data-test-id="issueowners-panel"
+            type="issueowners"
+            raw={ownership.raw || ''}
+            dateUpdated={ownership.lastUpdated}
+            placeholder={this.getPlaceholder()}
+            controls={[
+              <Button
+                key="edit"
+                size="xs"
+                onClick={() =>
+                  openEditOwnershipRules({
+                    organization,
+                    project,
+                    ownership,
+                    onSave: this.handleOwnershipSave,
+                  })
+                }
+                disabled={disabled}
+              >
+                {t('Edit')}
+              </Button>,
+            ]}
+          />
+        )}
         <Feature features={['integrations-codeowners']}>
           <CodeOwnersPanel
             codeowners={codeowners || []}
@@ -373,68 +349,70 @@ tags.sku_class:enterprise #enterprise`;
             {...this.props}
           />
         </Feature>
-        <Form
-          apiEndpoint={`/projects/${organization.slug}/${project.slug}/ownership/`}
-          apiMethod="PUT"
-          saveOnBlur
-          initialData={{
-            fallthrough: ownership.fallthrough,
-            autoAssignment: ownership.autoAssignment,
-            codeownersAutoSync: ownership.codeownersAutoSync,
-          }}
-          hideFooter
-        >
-          <JsonForm
-            forms={[
-              {
-                title: t('Issue Owners'),
-                fields: [
-                  {
-                    name: 'autoAssignment',
-                    type: 'boolean',
-                    label: t('Automatically assign issues'),
-                    help: t('Assign issues when a new event matches the rules above.'),
-                    disabled,
-                  },
-                  {
-                    name: 'fallthrough',
-                    type: 'boolean',
-                    label: t(
-                      'Send alert to project members if there’s no assigned owner'
-                    ),
-                    help: t(
-                      'Alerts will be sent to all users who have access to this project.'
-                    ),
-                    disabled,
-                  },
-                  {
-                    name: 'codeownersAutoSync',
-                    type: 'boolean',
-                    label: tct(
-                      `Automatically sync changes from CODEOWNERS file to Code Owners [badge]`,
-                      {
-                        badge: (
-                          <FeatureBadge
-                            type="new"
-                            title={
-                              !(this.state.codeowners || []).length
-                                ? 'Setup Code Owners to use this feature.'
-                                : undefined
-                            }
-                          />
-                        ),
-                      }
-                    ),
-                    help: t(
-                      'Sentry will watch for CODEOWNERS file changes during a Release and then update Code Owners.'
-                    ),
-                    disabled: disabled || !(this.state.codeowners || []).length,
-                  },
-                ],
-              },
-            ]}
-          />
-        </Form>
+        {ownership && (
+          <Form
+            apiEndpoint={`/projects/${organization.slug}/${project.slug}/ownership/`}
+            apiMethod="PUT"
+            saveOnBlur
+            initialData={{
+              fallthrough: ownership.fallthrough,
+              autoAssignment: ownership.autoAssignment,
+              codeownersAutoSync: ownership.codeownersAutoSync,
+            }}
+            hideFooter
+          >
+            <JsonForm
+              forms={[
+                {
+                  title: t('Issue Owners'),
+                  fields: [
+                    {
+                      name: 'autoAssignment',
+                      type: 'boolean',
+                      label: t('Automatically assign issues'),
+                      help: t('Assign issues when a new event matches the rules above.'),
+                      disabled,
+                    },
+                    {
+                      name: 'fallthrough',
+                      type: 'boolean',
+                      label: t(
+                        'Send alert to project members if there’s no assigned owner'
+                      ),
+                      help: t(
+                        'Alerts will be sent to all users who have access to this project.'
+                      ),
+                      disabled,
+                    },
+                    {
+                      name: 'codeownersAutoSync',
+                      type: 'boolean',
+                      label: tct(
+                        `Automatically sync changes from CODEOWNERS file to Code Owners [badge]`,
+                        {
+                          badge: (
+                            <FeatureBadge
+                              type="new"
+                              title={
+                                !(this.state.codeowners || []).length
+                                  ? 'Setup Code Owners to use this feature.'
+                                  : undefined
+                              }
+                            />
+                          ),
+                        }
+                      ),
+                      help: t(
+                        'Sentry will watch for CODEOWNERS file changes during a Release and then update Code Owners.'
+                      ),
+                      disabled: disabled || !(this.state.codeowners || []).length,
+                    },
+                  ],
+                },
+              ]}
+            />
+          </Form>
+        )}
       </Fragment>
     );
   }

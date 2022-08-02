@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {cloneElement, Fragment, isValidElement} from 'react';
 import * as Sentry from '@sentry/react';
 import Jed from 'jed';
 import isObject from 'lodash/isObject';
@@ -105,8 +105,8 @@ function formatForReact(formatString: string, args: FormatArg[]): React.ReactNod
     }
 
     // this points to a react element!
-    if (React.isValidElement(arg)) {
-      nodes.push(React.cloneElement(arg, {key: idx}));
+    if (isValidElement(arg)) {
+      nodes.push(cloneElement(arg, {key: idx}));
     } else {
       // Not a react element, massage it so that sprintf.format can format it
       // for us.  We make sure match[2] is null so that we do not go down the
@@ -125,7 +125,7 @@ function formatForReact(formatString: string, args: FormatArg[]): React.ReactNod
  * Determine if any arguments include React elements.
  */
 function argsInvolveReact(args: FormatArg[]): boolean {
-  if (args.some(React.isValidElement)) {
+  if (args.some(isValidElement)) {
     return true;
   }
 
@@ -135,7 +135,7 @@ function argsInvolveReact(args: FormatArg[]): boolean {
 
   const componentMap = args[0] as ComponentMap;
 
-  return Object.keys(componentMap).some(key => React.isValidElement(componentMap[key]));
+  return Object.keys(componentMap).some(key => isValidElement(componentMap[key]));
 }
 
 /**
@@ -251,18 +251,18 @@ export function renderTemplate(
     // span so that stuff shows up at least.
     let reference = components[groupKey] ?? <span key={idx++} />;
 
-    if (!React.isValidElement(reference)) {
+    if (!isValidElement(reference)) {
       reference = <span key={idx++}>{reference}</span>;
     }
 
     const element = reference as React.ReactElement;
 
     return children.length === 0
-      ? React.cloneElement(element, {key: idx++})
-      : React.cloneElement(element, {key: idx++}, children);
+      ? cloneElement(element, {key: idx++})
+      : cloneElement(element, {key: idx++}, children);
   }
 
-  return <React.Fragment>{renderGroup('root')}</React.Fragment>;
+  return <Fragment>{renderGroup('root')}</Fragment>;
 }
 
 /**

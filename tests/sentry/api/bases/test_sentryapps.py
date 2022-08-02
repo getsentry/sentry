@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch
 
+import pytest
 from django.http import Http404
 
 from sentry.api.bases.sentryapps import (
@@ -30,7 +31,7 @@ class SentryAppPermissionTest(TestCase):
     def test_request_user_is_not_app_owner_fails(self):
         self.request.user = self.create_user()
 
-        with self.assertRaises(Http404):
+        with pytest.raises(Http404):
             self.permission.has_object_permission(self.request, None, self.sentry_app)
 
     def test_has_permission(self):
@@ -57,7 +58,7 @@ class SentryAppBaseEndpointTest(TestCase):
         assert kwargs["sentry_app"] == self.sentry_app
 
     def test_raises_when_sentry_app_not_found(self):
-        with self.assertRaises(Http404):
+        with pytest.raises(Http404):
             self.endpoint.convert_args(self.request, "notanapp")
 
 
@@ -88,7 +89,7 @@ class SentryAppInstallationPermissionTest(TestCase):
         assert self.permission.has_object_permission(self.request, None, self.installation)
 
     def test_request_user_not_in_organization(self):
-        with self.assertRaises(Http404):
+        with pytest.raises(Http404):
             self.permission.has_object_permission(self.request, None, self.installation)
 
 
@@ -112,7 +113,7 @@ class SentryAppInstallationBaseEndpointTest(TestCase):
         assert kwargs["installation"] == self.installation
 
     def test_raises_when_sentry_app_not_found(self):
-        with self.assertRaises(Http404):
+        with pytest.raises(Http404):
             self.endpoint.convert_args(self.request, "1234")
 
 

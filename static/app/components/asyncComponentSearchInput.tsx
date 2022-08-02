@@ -1,4 +1,5 @@
-import * as React from 'react';
+import {Component} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -59,7 +60,7 @@ type State = {
  *
  * It probably doesn't make too much sense outside of an AsyncComponent atm.
  */
-class AsyncComponentSearchInput extends React.Component<Props, State> {
+class AsyncComponentSearchInput extends Component<Props, State> {
   static defaultProps: DefaultProps = {
     placeholder: t('Search...'),
     debounceWait: 200,

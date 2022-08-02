@@ -33,18 +33,24 @@ urlpatterns = [
 ]
 
 
-@override_settings(ROOT_URLCONF="tests.sentry.ratelimits.utils.test_enforce_rate_limit")
+@override_settings(ROOT_URLCONF=__name__)
 class EnforceRateLimitTest(APITestCase):
+    endpoint = "enforced-endpoint"
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_enforced_rate_limit(self):
         """Endpoints with enforce_rate_limit enabled should result in 429s"""
-        self.endpoint = "enforced-endpoint"
         with freeze_time("2000-01-01"):
             self.get_success_response()
             self.get_error_response(status_code=status.HTTP_429_TOO_MANY_REQUESTS)
 
+
+@override_settings(ROOT_URLCONF=__name__)
+class UnEnforceRateLimitTest(APITestCase):
+    endpoint = "unenforced-endpoint"
+
     def test_unenforced_rate_limit(self):
         """Endpoints with enforce_rate_limit disabled shouldn't reject requests"""
-        self.endpoint = "unenforced-endpoint"
         with freeze_time("2000-01-01"):
             self.get_success_response()
             self.get_success_response()

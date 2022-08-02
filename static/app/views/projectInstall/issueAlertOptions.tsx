@@ -1,4 +1,5 @@
-import * as React from 'react';
+import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
@@ -6,12 +7,15 @@ import isEqual from 'lodash/isEqual';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Input from 'sentry/components/forms/controls/input';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import MultipleCheckboxField from 'sentry/components/forms/MultipleCheckboxField';
 import SelectControl from 'sentry/components/forms/selectControl';
 import PageHeading from 'sentry/components/pageHeading';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
+
+import {PRESET_AGGREGATES} from '../alerts/rules/metric/presets';
 
 enum MetricValues {
   ERRORS,
@@ -51,6 +55,8 @@ type State = AsyncComponent['state'] & {
   interval: string;
   intervalChoices: [string, string][] | undefined;
   metric: MetricValues;
+  metricAlertPresets: Set<string>;
+
   threshold: string;
 };
 
@@ -60,6 +66,7 @@ type RequestDataFragment = {
   conditions: {id: string; interval: string; value: string}[] | undefined;
   defaultRules: boolean;
   frequency: number;
+  metricAlertPresets: string[];
   name: string;
   shouldCreateCustomRule: boolean;
 };
@@ -111,6 +118,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
       metric: MetricValues.ERRORS,
       interval: '',
       threshold: '',
+      metricAlertPresets: new Set(),
     };
   }
 
@@ -224,6 +232,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
       actions: [{id: NOTIFY_EVENT_ACTION}],
       actionMatch: 'all',
       frequency: 5,
+      metricAlertPresets: Array.from(this.state.metricAlertPresets),
     };
   }
 
@@ -286,23 +295,62 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
     const issueAlertOptionsChoices = this.getIssueAlertsChoices(
       this.state.conditions?.length > 0
     );
+    const showMetricAlertSelections =
+      !!this.props.organization.experiments.MetricAlertOnProjectCreationExperiment;
     return (
-      <React.Fragment>
+      <Fragment>
         <PageHeadingWithTopMargins withMargins>
           {t('Set your default alert settings')}
         </PageHeadingWithTopMargins>
-        <RadioGroupWithPadding
-          choices={issueAlertOptionsChoices}
-          label={t('Options for creating an alert')}
-          onChange={alertSetting => this.setStateAndUpdateParents({alertSetting})}
-          value={this.state.alertSetting}
-        />
-      </React.Fragment>
+        <Content>
+          {showMetricAlertSelections && <Subheading>{t('Issue Alerts')}</Subheading>}
+          <RadioGroupWithPadding
+            choices={issueAlertOptionsChoices}
+            label={t('Options for creating an alert')}
+            onChange={alertSetting => this.setStateAndUpdateParents({alertSetting})}
+            value={this.state.alertSetting}
+          />
+          {showMetricAlertSelections && (
+            <Fragment>
+              <Subheading>{t('Performance Alerts')}</Subheading>
+              <MultipleCheckboxField
+                size="24px"
+                choices={PRESET_AGGREGATES.map(agg => ({
+                  title: agg.description,
+                  value: agg.id,
+                  checked: this.state.metricAlertPresets.has(agg.id),
+                }))}
+                css={CheckboxFieldStyles}
+                onClick={selectedItem => {
+                  const next = new Set(this.state.metricAlertPresets);
+                  if (next.has(selectedItem)) {
+                    next.delete(selectedItem);
+                  } else {
+                    next.add(selectedItem);
+                  }
+                  this.setStateAndUpdateParents({
+                    metricAlertPresets: next,
+                  });
+                }}
+              />
+            </Fragment>
+          )}
+        </Content>
+      </Fragment>
     );
   }
 }
 
 export default withOrganization(IssueAlertOptions);
+
+const CheckboxFieldStyles = css`
+  margin-top: ${space(1)};
+`;
+
+const Content = styled('div')`
+  padding-top: ${space(2)};
+  padding-bottom: ${space(4)};
+`;
 
 const CustomizeAlertsGrid = styled('div')`
   display: grid;
@@ -317,16 +365,20 @@ const InlineSelectControl = styled(SelectControl)`
   width: 160px;
 `;
 const RadioGroupWithPadding = styled(RadioGroup)`
-  padding: ${space(3)} 0;
-  margin-bottom: 50px;
-  box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.1);
+  margin-bottom: ${space(2)};
 `;
 const PageHeadingWithTopMargins = styled(PageHeading)`
   margin-top: 65px;
+  margin-bottom: 0;
+  padding-bottom: ${space(3)};
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 `;
 const RadioItemWrapper = styled('div')`
   min-height: 35px;
   display: flex;
   flex-direction: column;
   justify-content: center;
+`;
+const Subheading = styled('b')`
+  display: block;
 `;

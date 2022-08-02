@@ -16,8 +16,8 @@ class TeamIssueBreakdownTest(APITestCase):
     def test_status_format(self):
         project1 = self.create_project(teams=[self.team], slug="foo")
         project2 = self.create_project(teams=[self.team], slug="bar")
-        group1 = self.create_group(checksum="a" * 32, project=project1)
-        group2 = self.create_group(checksum="b" * 32, project=project2)
+        group1 = self.create_group(project=project1)
+        group2 = self.create_group(project=project2)
         GroupAssignee.objects.assign(group1, self.user)
         GroupAssignee.objects.assign(group2, self.user)
 
@@ -102,7 +102,7 @@ class TeamIssueBreakdownTest(APITestCase):
 
     def test_filter_by_environment(self):
         project1 = self.create_project(teams=[self.team], slug="foo")
-        group1 = self.create_group(checksum="a" * 32, project=project1)
+        group1 = self.create_group(project=project1)
         env1 = self.create_environment(name="prod", project=project1)
         self.create_environment(name="dev", project=project1)
         GroupAssignee.objects.assign(group1, self.user)
@@ -155,8 +155,8 @@ class TeamIssueBreakdownTest(APITestCase):
     def test_old_format(self):
         project1 = self.create_project(teams=[self.team], slug="foo")
         project2 = self.create_project(teams=[self.team], slug="bar")
-        group1 = self.create_group(checksum="a" * 32, project=project1, times_seen=10)
-        group2 = self.create_group(checksum="b" * 32, project=project2, times_seen=5)
+        group1 = self.create_group(project=project1, times_seen=10)
+        group2 = self.create_group(project=project2, times_seen=5)
         GroupAssignee.objects.assign(group1, self.user)
         GroupAssignee.objects.assign(group2, self.user)
 

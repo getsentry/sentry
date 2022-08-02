@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import {Location, Query} from 'history';
@@ -11,7 +12,9 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
+import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import useApi from 'sentry/utils/useApi';
+import {getMEPQueryParams} from 'sentry/views/performance/landing/widgets/utils';
 
 import {ViewProps} from '../../../types';
 import {
@@ -58,6 +61,7 @@ function DurationChart({
 }: Props) {
   const api = useApi();
   const theme = useTheme();
+  const mepContext = useMEPSettingContext();
 
   function handleLegendSelectChanged(legendChange: {
     name: string;
@@ -144,6 +148,7 @@ function DurationChart({
         partial
         withoutZerofill={withoutZerofill}
         referrer="api.performance.transaction-summary.duration-chart"
+        queryExtras={getMEPQueryParams(mepContext)}
       >
         {({results, errored, loading, reloading, timeframe: timeFrame}) => (
           <Content

@@ -1,7 +1,9 @@
 import {
+  isChromeTraceArrayFormat,
   isEventedProfile,
   isJSProfile,
   isSampledProfile,
+  isTypescriptChromeTraceArrayFormat,
 } from 'sentry/utils/profiling/guards/profile';
 
 const sampledProfile: Profiling.SampledProfile = {
@@ -10,6 +12,7 @@ const sampledProfile: Profiling.SampledProfile = {
   samples: [],
   name: 'profile',
   unit: 'milliseconds',
+  threadID: 0,
   endValue: 0,
   startValue: 100,
 };
@@ -19,6 +22,7 @@ const eventedProfile: Profiling.EventedProfile = {
   events: [],
   name: 'profile',
   unit: 'milliseconds',
+  threadID: 0,
   endValue: 0,
   startValue: 100,
 };
@@ -30,17 +34,45 @@ const jsProfile: JSSelfProfiling.Trace = {
   samples: [],
 };
 
+const typescriptTraceProfile: ChromeTrace.ArrayFormat = [
+  {
+    args: {},
+    cat: '',
+    name: 'thread_name',
+    ph: 'B',
+    pid: 579,
+    tid: 259,
+    ts: 0,
+  },
+  {
+    args: {},
+    cat: '',
+    name: 'thread_name',
+    ph: 'E',
+    pid: 579,
+    tid: 259,
+    ts: 0,
+  },
+];
+
+const chrometraceArrayFormat: ChromeTrace.ArrayFormat = [
+  {cat: '', ph: 'P', name: 'ProfileChunk', args: {}, pid: 579, tid: 259, ts: 0},
+];
+
 describe('profile', () => {
-  describe('sampled profile', () => {
-    it('is sampled', () => expect(isSampledProfile(sampledProfile)).toBe(true));
-    it('is not sampled', () => expect(isSampledProfile(eventedProfile)).toBe(false));
+  it('is sampled', () => expect(isSampledProfile(sampledProfile)).toBe(true));
+  it('is evented', () => expect(isEventedProfile(eventedProfile)).toBe(true));
+  it('is js self profile', () => expect(isJSProfile(jsProfile)).toBe(true));
+  it('is ts profile', () => {
+    // Since these are the same format, just different contents, we test both to make
+    // sure that one does not pass through the other.
+    expect(isTypescriptChromeTraceArrayFormat(typescriptTraceProfile)).toBe(true);
+    expect(isTypescriptChromeTraceArrayFormat(chrometraceArrayFormat)).toBe(false);
   });
-  describe('evented profile', () => {
-    it('is evented', () => expect(isEventedProfile(eventedProfile)).toBe(true));
-    it('is not evented', () => expect(isEventedProfile(sampledProfile)).toBe(false));
-  });
-  describe('js profile', () => {
-    it('is js', () => expect(isJSProfile(jsProfile)).toBe(true));
-    it('is not js', () => expect(isJSProfile(eventedProfile)).toBe(false));
+  it('is chrometrace format', () => {
+    // Since these are the same format, just different contents, we test both to make
+    // sure that one does not pass through the other.
+    expect(isChromeTraceArrayFormat(chrometraceArrayFormat)).toBe(true);
+    expect(isChromeTraceArrayFormat(typescriptTraceProfile)).toBe(false);
   });
 });

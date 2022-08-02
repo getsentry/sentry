@@ -141,7 +141,7 @@ class EventStorage(Service):
         orderby=None,
         limit=100,
         offset=0,
-        referrer="eventstore.get_events",  # NOQA
+        referrer="eventstore.get_events",
     ):
         """
         Fetches a list of events given a set of criteria.
@@ -164,7 +164,7 @@ class EventStorage(Service):
         orderby=None,
         limit=100,
         offset=0,
-        referrer="eventstore.get_unfetched_events",  # NOQA
+        referrer="eventstore.get_unfetched_events",
     ):
         """
         Same as get_events but returns events without their node datas loaded.
@@ -197,7 +197,7 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def get_next_event_id(self, event, snuba_filter):  # NOQA
+    def get_next_event_id(self, event, snuba_filter):
         """
         Gets the next event given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id)
@@ -208,7 +208,7 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def get_prev_event_id(self, event, snuba_filter):  # NOQA
+    def get_prev_event_id(self, event, snuba_filter):
         """
         Gets the previous event given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id)
@@ -219,7 +219,7 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def get_earliest_event_id(self, event, snuba_filter):  # NOQA
+    def get_earliest_event_id(self, event, snuba_filter):
         """
         Gets the earliest event given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id)
@@ -230,7 +230,7 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def get_latest_event_id(self, event, snuba_filter):  # NOQA
+    def get_latest_event_id(self, event, snuba_filter):
         """
         Gets the latest event given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id)

@@ -101,7 +101,10 @@
                                 "$ref": "../../components/schemas/scim/user.json#/definitions/schemas"
                             },
                             "Operations": {
-                                "type": "array"
+                                "type": "array",
+                                "items": {
+                                    "type": "object"
+                                }
                             }
 
                         }

@@ -3,10 +3,9 @@ from urllib.parse import parse_qs
 
 import responses
 
+from fixtures.vsts import VstsIntegrationTestCase
 from sentry.models import Identity, IdentityProvider, Integration
 from sentry.utils import json
-
-from .testutils import VstsIntegrationTestCase
 
 
 class VstsApiClientTest(VstsIntegrationTestCase):

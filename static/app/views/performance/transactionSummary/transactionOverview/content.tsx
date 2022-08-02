@@ -1,15 +1,18 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 
 import Feature from 'sentry/components/acl/feature';
+import DatePageFilter from 'sentry/components/datePageFilter';
 import TransactionsList, {
   DropdownOption,
 } from 'sentry/components/discover/transactionsList';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -26,6 +29,7 @@ import {
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
+import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withProjects from 'sentry/utils/withProjects';
 import {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
@@ -54,6 +58,7 @@ import {
 import TransactionSummaryCharts from './charts';
 import RelatedIssues from './relatedIssues';
 import SidebarCharts from './sidebarCharts';
+import SidebarMEPCharts from './sidebarMEPCharts';
 import StatusBreakdown from './statusBreakdown';
 import SuspectSpans from './suspectSpans';
 import {TagExplorer} from './tagExplorer';
@@ -86,6 +91,9 @@ function SummaryContent({
   transactionName,
   onChangeFilter,
 }: Props) {
+  const useAggregateAlias = !organization.features.includes(
+    'performance-frontend-use-events-endpoint'
+  );
   function handleSearch(query: string) {
     const queryParams = normalizeDateTimeParams({
       ...(location.query || {}),
@@ -149,7 +157,7 @@ function SummaryContent({
     transactionsListTitles: string[]
   ) {
     const {selected} = getTransactionsListSort(location, {
-      p95: totalValues?.p95 ?? 0,
+      p95: (useAggregateAlias ? totalValues?.p95 : totalValues?.['p95()']) ?? 0,
       spanOperationBreakdownFilter,
     });
     const sortedEventView = transactionsListEventView.withSorts([selected.sort]);
@@ -173,7 +181,12 @@ function SummaryContent({
   );
 
   const query = decodeScalar(location.query.query, '');
-  const totalCount = totalValues === null ? null : totalValues.count;
+  const totalCount =
+    totalValues === null
+      ? null
+      : useAggregateAlias
+      ? totalValues.count
+      : totalValues['count()'];
 
   // NOTE: This is not a robust check for whether or not a transaction is a front end
   // transaction, however it will suffice for now.
@@ -182,8 +195,11 @@ function SummaryContent({
     (totalValues !== null &&
       VITAL_GROUPS.some(group =>
         group.vitals.some(vital => {
-          const alias = getAggregateAlias(`percentile(${vital}, ${VITAL_PERCENTILE})`);
-          return Number.isFinite(totalValues[alias]);
+          const functionName = `percentile(${vital},${VITAL_PERCENTILE})`;
+          const field = useAggregateAlias
+            ? getAggregateAlias(functionName)
+            : functionName;
+          return Number.isFinite(totalValues[field]);
         })
       ));
 
@@ -259,27 +275,31 @@ function SummaryContent({
     handleOpenAllEventsClick: handleAllEventsViewClick,
   };
 
+  const isUsingMetrics = canUseMetricsData(organization);
+
   return (
-    <React.Fragment>
+    <Fragment>
       <Layout.Main>
-        <Search>
+        <FilterActions>
           <Filter
             organization={organization}
             currentFilter={spanOperationBreakdownFilter}
             onChangeFilter={onChangeFilter}
           />
-          <SearchBarContainer>
-            <SearchBar
-              searchSource="transaction_summary"
-              organization={organization}
-              projectIds={eventView.project}
-              query={query}
-              fields={eventView.fields}
-              onSearch={handleSearch}
-              maxQueryLength={MAX_QUERY_LENGTH}
-            />
-          </SearchBarContainer>
-        </Search>
+          <PageFilterBar condensed>
+            <EnvironmentPageFilter />
+            <DatePageFilter alignDropdown="left" />
+          </PageFilterBar>
+          <StyledSearchBar
+            searchSource="transaction_summary"
+            organization={organization}
+            projectIds={eventView.project}
+            query={query}
+            fields={eventView.fields}
+            onSearch={handleSearch}
+            maxQueryLength={MAX_QUERY_LENGTH}
+          />
+        </FilterActions>
         <TransactionSummaryCharts
           organization={organization}
           location={location}
@@ -308,7 +328,7 @@ function SummaryContent({
           }}
           handleCellAction={handleCellAction}
           {...getTransactionsListSort(location, {
-            p95: totalValues?.p95 ?? 0,
+            p95: (useAggregateAlias ? totalValues?.p95 : totalValues?.['p95()']) ?? 0,
             spanOperationBreakdownFilter,
           })}
           forceLoading={isLoading}
@@ -321,7 +341,11 @@ function SummaryContent({
             location={location}
             organization={organization}
             eventView={eventView}
-            totals={defined(totalValues?.count) ? {count: totalValues!.count} : null}
+            totals={
+              defined(totalValues?.['count()'])
+                ? {'count()': totalValues!['count()']}
+                : null
+            }
             projectId={projectId}
             transactionName={transactionName}
           />
@@ -344,6 +368,20 @@ function SummaryContent({
         />
       </Layout.Main>
       <Layout.Side>
+        {(isUsingMetrics ?? null) && (
+          <Fragment>
+            <SidebarMEPCharts
+              organization={organization}
+              isLoading={isLoading}
+              error={error}
+              totals={totalValues}
+              eventView={eventView}
+              transactionName={transactionName}
+              isShowingMetricsEventCount
+            />
+            <SidebarSpacer />
+          </Fragment>
+        )}
         <UserStats
           organization={organization}
           location={location}
@@ -362,14 +400,25 @@ function SummaryContent({
           />
         )}
         <SidebarSpacer />
-        <SidebarCharts
-          organization={organization}
-          isLoading={isLoading}
-          error={error}
-          totals={totalValues}
-          eventView={eventView}
-          transactionName={transactionName}
-        />
+        {isUsingMetrics ? (
+          <SidebarMEPCharts
+            organization={organization}
+            isLoading={isLoading}
+            error={error}
+            totals={totalValues}
+            eventView={eventView}
+            transactionName={transactionName}
+          />
+        ) : (
+          <SidebarCharts
+            organization={organization}
+            isLoading={isLoading}
+            error={error}
+            totals={totalValues}
+            eventView={eventView}
+            transactionName={transactionName}
+          />
+        )}
         <SidebarSpacer />
         <Tags
           generateUrl={generateTagUrl}
@@ -379,7 +428,7 @@ function SummaryContent({
           location={location}
         />
       </Layout.Side>
-    </React.Fragment>
+    </Fragment>
   );
 }
 
@@ -457,14 +506,30 @@ function getTransactionsListSort(
   return {selected: selectedSort, options: sortOptions};
 }
 
-const Search = styled('div')`
-  display: flex;
-  width: 100%;
-  margin-bottom: ${space(3)};
+const FilterActions = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+  margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: repeat(2, min-content);
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    grid-template-columns: auto auto 1fr;
+  }
 `;
 
-const SearchBarContainer = styled('div')`
-  flex-grow: 1;
+const StyledSearchBar = styled(SearchBar)`
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    order: 1;
+    grid-column: 1/4;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    order: initial;
+    grid-column: auto;
+  }
 `;
 
 export default withProjects(SummaryContent);

@@ -1,4 +1,3 @@
-import ipaddress
 import re
 import uuid
 
@@ -11,23 +10,6 @@ WILDCARD_NOT_ALLOWED = "Wildcard conditions are not permitted on `{}` field"
 INVALID_SPAN_ID = "{} must be a valid 16 character hex (containing only digits, or a-f characters)"
 
 HEXADECIMAL_16_DIGITS = re.compile("^[0-9a-fA-F]{16}$")
-
-
-def validate_ip(value, required=True):
-    if not required and not value:
-        return
-
-    # will raise a ValueError
-    ipaddress.ip_network(str(value), strict=False)
-    return value
-
-
-def is_float(var):
-    try:
-        float(var)
-    except (TypeError, ValueError):
-        return False
-    return True
 
 
 def normalize_event_id(value):

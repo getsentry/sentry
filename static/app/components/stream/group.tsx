@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
@@ -16,6 +16,7 @@ import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelec
 import {PanelItem} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import ProgressBar from 'sentry/components/progressBar';
+import {joinQuery, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import GroupChart from 'sentry/components/stream/groupChart';
 import GroupCheckBox from 'sentry/components/stream/groupCheckBox';
 import TimeSince from 'sentry/components/timeSince';
@@ -23,7 +24,6 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {
   Group,
@@ -38,10 +38,9 @@ import {defined, percent, valueIsEqual} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import EventView from 'sentry/utils/discover/eventView';
-import {queryToObj} from 'sentry/utils/stream';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import {TimePeriodType} from 'sentry/views/alerts/rules/details/constants';
+import {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {
   DISCOVER_EXCLUSION_FIELDS,
   getTabs,
@@ -81,7 +80,7 @@ type State = {
   reviewed: boolean;
 };
 
-class StreamGroup extends React.Component<Props, State> {
+class StreamGroup extends Component<Props, State> {
   static defaultProps = defaultProps;
 
   state: State = this.getInitialState();
@@ -226,27 +225,15 @@ class StreamGroup extends React.Component<Props, State> {
     // when there is no discover feature open events page
     const hasDiscoverQuery = organization.features.includes('discover-basic');
 
-    const queryTerms: string[] = [];
-
-    if (isFiltered && typeof query === 'string') {
-      const queryObj = queryToObj(query);
-      for (const queryTag in queryObj) {
-        if (!DISCOVER_EXCLUSION_FIELDS.includes(queryTag)) {
-          const queryVal = queryObj[queryTag].includes(' ')
-            ? `"${queryObj[queryTag]}"`
-            : queryObj[queryTag];
-          queryTerms.push(`${queryTag}:${queryVal}`);
-        }
-      }
-
-      if (queryObj.__text) {
-        queryTerms.push(queryObj.__text);
-      }
-    }
+    const parsedResult = parseSearch(
+      isFiltered && typeof query === 'string' ? query : ''
+    );
+    const filteredTerms = parsedResult?.filter(
+      p => !(p.type === Token.Filter && DISCOVER_EXCLUSION_FIELDS.includes(p.key.text))
+    );
+    const filteredQuery = joinQuery(filteredTerms, true);
 
     const commonQuery = {projects: [Number(data.project.id)]};
-
-    const searchQuery = (queryTerms.length ? ' ' : '') + queryTerms.join(' ');
 
     if (hasDiscoverQuery) {
       const {period, start, end, utc} = customStatsPeriod ?? (selection.datetime || {});
@@ -257,7 +244,7 @@ class StreamGroup extends React.Component<Props, State> {
         name: data.title || data.type,
         fields: ['title', 'release', 'environment', 'user', 'timestamp'],
         orderby: '-timestamp',
-        query: `issue.id:${data.id}${searchQuery}`,
+        query: `issue.id:${data.id}${filteredQuery}`,
         version: 2,
       };
 
@@ -279,7 +266,7 @@ class StreamGroup extends React.Component<Props, State> {
       pathname: `/organizations/${organization.slug}/issues/${data.id}/events/`,
       query: {
         ...commonQuery,
-        query: searchQuery,
+        query: filteredQuery,
       },
     };
   }
@@ -302,7 +289,7 @@ class StreamGroup extends React.Component<Props, State> {
     );
 
     return (
-      <React.Fragment>
+      <Fragment>
         <StartedColumn>
           <TimeSince date={dateCreated} />
         </StartedColumn>
@@ -310,17 +297,17 @@ class StreamGroup extends React.Component<Props, State> {
           {!defined(count) ? (
             <Placeholder height="17px" />
           ) : (
-            <React.Fragment>
+            <Fragment>
               <Count value={remainingEventsToReprocess} />
               {'/'}
               <Count value={totalEvents} />
-            </React.Fragment>
+            </Fragment>
           )}
         </EventsReprocessedColumn>
         <ProgressColumn>
           <ProgressBar value={remainingEventsToReprocessPercent} />
         </ProgressColumn>
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -367,6 +354,7 @@ class StreamGroup extends React.Component<Props, State> {
     return (
       <Wrapper
         data-test-id="group"
+        data-test-reviewed={reviewed}
         onClick={displayReprocessingLayout ? undefined : this.toggleSelect}
         reviewed={reviewed}
         unresolved={data.status === 'unresolved'}
@@ -410,7 +398,7 @@ class StreamGroup extends React.Component<Props, State> {
         {displayReprocessingLayout ? (
           this.renderReprocessingColumns()
         ) : (
-          <React.Fragment>
+          <Fragment>
             <EventUserWrapper>
               {!defined(primaryCount) ? (
                 <Placeholder height="18px" />
@@ -442,7 +430,7 @@ class StreamGroup extends React.Component<Props, State> {
                               {...getMenuProps({className: 'dropdown-menu inverted'})}
                             >
                               {data.filtered && (
-                                <React.Fragment>
+                                <Fragment>
                                   <StyledMenuItem to={this.getDiscoverUrl(true)}>
                                     <MenuItemText>
                                       {queryFilterDescription ??
@@ -451,7 +439,7 @@ class StreamGroup extends React.Component<Props, State> {
                                     <MenuItemCount value={data.filtered.count} />
                                   </StyledMenuItem>
                                   <MenuItem divider />
-                                </React.Fragment>
+                                </Fragment>
                               )}
 
                               <StyledMenuItem to={this.getDiscoverUrl()}>
@@ -460,13 +448,13 @@ class StreamGroup extends React.Component<Props, State> {
                               </StyledMenuItem>
 
                               {data.lifetime && (
-                                <React.Fragment>
+                                <Fragment>
                                   <MenuItem divider />
                                   <StyledMenuItem>
                                     <MenuItemText>{t('Since issue began')}</MenuItemText>
                                     <MenuItemCount value={data.lifetime.count} />
                                   </StyledMenuItem>
-                                </React.Fragment>
+                                </Fragment>
                               )}
                             </StyledDropdownList>
                           )}
@@ -507,7 +495,7 @@ class StreamGroup extends React.Component<Props, State> {
                             {...getMenuProps({className: 'dropdown-menu inverted'})}
                           >
                             {data.filtered && (
-                              <React.Fragment>
+                              <Fragment>
                                 <StyledMenuItem to={this.getDiscoverUrl(true)}>
                                   <MenuItemText>
                                     {queryFilterDescription ??
@@ -516,7 +504,7 @@ class StreamGroup extends React.Component<Props, State> {
                                   <MenuItemCount value={data.filtered.userCount} />
                                 </StyledMenuItem>
                                 <MenuItem divider />
-                              </React.Fragment>
+                              </Fragment>
                             )}
 
                             <StyledMenuItem to={this.getDiscoverUrl()}>
@@ -525,13 +513,13 @@ class StreamGroup extends React.Component<Props, State> {
                             </StyledMenuItem>
 
                             {data.lifetime && (
-                              <React.Fragment>
+                              <Fragment>
                                 <MenuItem divider />
                                 <StyledMenuItem>
                                   <MenuItemText>{t('Since issue began')}</MenuItemText>
                                   <MenuItemCount value={data.lifetime.userCount} />
                                 </StyledMenuItem>
-                              </React.Fragment>
+                              </Fragment>
                             )}
                           </StyledDropdownList>
                         )}
@@ -548,7 +536,7 @@ class StreamGroup extends React.Component<Props, State> {
                 onAssign={this.trackAssign}
               />
             </AssigneeWrapper>
-          </React.Fragment>
+          </Fragment>
         )}
       </Wrapper>
     );
@@ -612,7 +600,7 @@ const GroupSummary = styled('div')<{canSelect: boolean}>`
   flex: 1;
   width: 66.66%;
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     width: 50%;
   }
 `;
@@ -620,6 +608,9 @@ const GroupSummary = styled('div')<{canSelect: boolean}>`
 const GroupCheckBoxWrapper = styled('div')`
   margin-left: ${space(2)};
   align-self: flex-start;
+  height: 15px;
+  display: flex;
+  align-items: center;
 
   & input[type='checkbox'] {
     margin: 0;
@@ -717,7 +708,7 @@ const EventUserWrapper = styled('div')`
   width: 60px;
   margin: 0 ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     width: 80px;
   }
 `;
@@ -733,10 +724,10 @@ const StartedColumn = styled('div')`
   align-self: center;
   margin: 0 ${space(2)};
   color: ${p => p.theme.gray500};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   width: 85px;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     display: block;
     width: 140px;
   }
@@ -746,10 +737,10 @@ const EventsReprocessedColumn = styled('div')`
   align-self: center;
   margin: 0 ${space(2)};
   color: ${p => p.theme.gray500};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   width: 75px;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     width: 140px;
   }
 `;
@@ -759,7 +750,7 @@ const ProgressColumn = styled('div')`
   align-self: center;
   display: none;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     display: block;
     width: 160px;
   }

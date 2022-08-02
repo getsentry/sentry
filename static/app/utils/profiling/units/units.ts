@@ -37,3 +37,23 @@ export function makeFormatter(from: Unit | string): (value: number) => string {
     return format(duration / 1e-9, 'ns', 2);
   };
 }
+
+function pad(n: number, slots: number) {
+  return Math.floor(n).toString().padStart(slots, '0');
+}
+
+export function makeTimelineFormatter(from: Unit | string) {
+  const multiplier = durationMappings[from];
+
+  if (multiplier === undefined) {
+    throw new Error(`Cannot format from unit ${from}, duration mapping is not defined`);
+  }
+
+  return (value: number) => {
+    const s = value * multiplier;
+    const m = s / 60;
+    const ms = s * 1e3;
+
+    return `${pad(m, 2)}:${pad(s % 60, 2)}.${pad(ms % 1e3, 3)}`;
+  };
+}

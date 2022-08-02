@@ -1,4 +1,5 @@
-import * as React from 'react';
+import {Component} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import {
   Result as SearchResult,
@@ -21,7 +22,7 @@ type Props = WithRouterProps & {
   children: (props: ChildProps) => React.ReactNode;
   organization: Organization;
   /**
-   * Specific platforms to filter reults to
+   * Specific platforms to filter results to
    */
   platforms: string[];
   project: Project;
@@ -41,7 +42,7 @@ const MARK_TAGS = {
   highlightPostTag: '</mark>',
 };
 
-class HelpSource extends React.Component<Props, State> {
+class HelpSource extends Component<Props, State> {
   state: State = {
     loading: false,
     results: [],

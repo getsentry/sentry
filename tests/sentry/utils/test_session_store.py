@@ -1,5 +1,6 @@
 from unittest import TestCase
 
+import pytest
 from django.test import Client, RequestFactory
 
 from sentry.utils.session_store import RedisSessionStore, redis_property
@@ -26,7 +27,7 @@ class RedisSessionStoreTestCase(TestCase):
         assert store2.is_valid()
         assert store2.some_value == "test_value"
 
-        with self.assertRaises(AttributeError):
+        with pytest.raises(AttributeError):
             self.store.missing_key
 
         self.store.clear()
@@ -42,7 +43,7 @@ class RedisSessionStoreTestCase(TestCase):
         self.store.clear()
 
     def test_uninitialized_store(self):
-        assert not self.store.is_valid()
+        assert self.store.is_valid() is False
         assert self.store.get_state() is None
         assert self.store.some_value is None
 

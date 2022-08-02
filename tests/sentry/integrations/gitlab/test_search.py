@@ -3,9 +3,8 @@ from urllib.parse import parse_qs
 import responses
 from django.urls import reverse
 
+from fixtures.gitlab import GitLabTestCase
 from sentry.utils import json
-
-from .testutils import GitLabTestCase
 
 
 class GitlabSearchTest(GitLabTestCase):
@@ -108,7 +107,6 @@ class GitlabSearchTest(GitLabTestCase):
             responses.GET,
             "https://example.gitlab.com/api/v4/groups/1/projects",
             callback=request_callback,
-            match_querystring=False,
         )
         resp = self.client.get(self.url, data={"field": "project", "query": "GetSentry"})
 

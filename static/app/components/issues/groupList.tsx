@@ -1,4 +1,5 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
@@ -22,8 +23,8 @@ import {Group} from 'sentry/types';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import StreamManager from 'sentry/utils/streamManager';
 import withApi from 'sentry/utils/withApi';
-import {TimePeriodType} from 'sentry/views/alerts/rules/details/constants';
-import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/details/relatedIssuesNotAvailable';
+import {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
+import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
 
 import GroupListHeader from './groupListHeader';
 
@@ -66,7 +67,7 @@ type State = {
   memberList?: ReturnType<typeof indexMembersByProject>;
 };
 
-class GroupList extends React.Component<Props, State> {
+class GroupList extends Component<Props, State> {
   static defaultProps = defaultProps;
 
   state: State = {
@@ -272,7 +273,7 @@ class GroupList extends React.Component<Props, State> {
         : DEFAULT_STREAM_GROUP_STATS_PERIOD;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Panel>
           <GroupListHeader withChart={!!withChart} narrowGroups={narrowGroups} />
           <PanelBody>
@@ -302,7 +303,7 @@ class GroupList extends React.Component<Props, State> {
         {withPagination && (
           <Pagination pageLinks={pageLinks} onCursor={this.handleCursorChange} />
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

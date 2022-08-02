@@ -118,7 +118,7 @@ class SharedGroupDetails extends Component<Props, State> {
                   </Link>
                 )}
               </div>
-              <div className="content">
+              <div className="box-content">
                 <SharedGroupHeader group={group} />
                 <Container className="group-overview event-details-container">
                   <BorderlessEventEntries
@@ -145,7 +145,7 @@ class SharedGroupDetails extends Component<Props, State> {
 }
 
 const Container = styled('div')`
-  padding: 0 ${space(4)};
+  padding: ${space(4)};
 `;
 
 export {SharedGroupDetails};

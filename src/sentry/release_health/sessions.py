@@ -4,6 +4,8 @@ from typing import Mapping, Optional, Sequence, Set, Tuple, Union
 
 import sentry_sdk
 
+from sentry import features
+from sentry.models.organization import Organization
 from sentry.release_health.base import (
     CrashFreeBreakdown,
     CurrentAndPreviousCrashFreeRates,
@@ -21,6 +23,7 @@ from sentry.release_health.base import (
     ReleaseName,
     ReleasesAdoption,
     ReleaseSessionsTimeBounds,
+    SessionsQueryConfig,
     SessionsQueryResult,
     StatsPeriod,
 )
@@ -40,7 +43,12 @@ from sentry.snuba.sessions import (
     _get_release_sessions_time_bounds,
     get_current_and_previous_crash_free_rates,
 )
-from sentry.snuba.sessions_v2 import QueryDefinition, _run_sessions_query, massage_sessions_result
+from sentry.snuba.sessions_v2 import (
+    AllowedResolution,
+    QueryDefinition,
+    _run_sessions_query,
+    massage_sessions_result,
+)
 
 
 class SessionsReleaseHealthBackend(ReleaseHealthBackend):
@@ -74,6 +82,22 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
     ) -> ReleasesAdoption:
         return _get_release_adoption(  # type: ignore
             project_releases=project_releases, environments=environments, now=now
+        )
+
+    def sessions_query_config(
+        self, organization: Organization, start: datetime
+    ) -> SessionsQueryConfig:
+        if features.has(
+            "organizations:minute-resolution-sessions",
+            organization,
+        ):
+            allowed_resolution = AllowedResolution.one_minute
+        else:
+            allowed_resolution = AllowedResolution.one_hour
+        return SessionsQueryConfig(
+            allowed_resolution=allowed_resolution,
+            allow_session_status_query=False,
+            restrict_date_range=True,
         )
 
     def run_sessions_query(

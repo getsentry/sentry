@@ -205,21 +205,18 @@ def assigned_or_suggested_filter(
 
     if Team in types_to_owners:
         teams = types_to_owners[Team]
-        query |= (
-            Q(
-                **{
-                    f"{field_filter}__in": GroupOwner.objects.filter(
-                        Q(group__assignee_set__isnull=True),
-                        team__in=teams,
-                        project_id__in=project_ids,
-                        organization_id=organization_id,
-                    )
-                    .values_list("group_id", flat=True)
-                    .distinct()
-                }
-            )
-            | assigned_to_filter(teams, projects, field_filter=field_filter)
-        )
+        query |= Q(
+            **{
+                f"{field_filter}__in": GroupOwner.objects.filter(
+                    Q(group__assignee_set__isnull=True),
+                    team__in=teams,
+                    project_id__in=project_ids,
+                    organization_id=organization_id,
+                )
+                .values_list("group_id", flat=True)
+                .distinct()
+            }
+        ) | assigned_to_filter(teams, projects, field_filter=field_filter)
 
     if User in types_to_owners:
         users = types_to_owners[User]
@@ -360,7 +357,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         date_from: Optional[datetime] = None,
         date_to: Optional[datetime] = None,
         max_hits: Optional[int] = None,
-    ) -> CursorResult:
+    ) -> CursorResult[Group]:
         search_filters = search_filters if search_filters is not None else []
 
         # ensure projects are from same org

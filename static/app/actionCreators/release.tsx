@@ -46,7 +46,7 @@ export function getProjectRelease(api: Client, params: ParamsGet) {
 
       ReleaseActions.loadReleaseError(projectSlug, releaseVersion, err);
       Sentry.withScope(scope => {
-        scope.setLevel(Sentry.Severity.Warning);
+        scope.setLevel('warning');
         scope.setFingerprint(['getRelease-action-creator']);
         Sentry.captureException(err);
       });
@@ -80,7 +80,7 @@ export function getReleaseDeploys(api: Client, params: ParamsGet) {
 
       ReleaseActions.loadDeploysError(projectSlug, releaseVersion, err);
       Sentry.withScope(scope => {
-        scope.setLevel(Sentry.Severity.Warning);
+        scope.setLevel('warning');
         scope.setFingerprint(['getReleaseDeploys-action-creator']);
         Sentry.captureException(err);
       });

@@ -20,7 +20,6 @@ from sentry.lang.native.utils import (
 from sentry.models import EventError, Project
 from sentry.stacktraces.functions import trim_function_name
 from sentry.stacktraces.processing import find_stacktraces_in_data
-from sentry.utils.compat import zip
 from sentry.utils.in_app import is_known_third_party, is_optional_package
 from sentry.utils.safe import get_path, set_path, setdefault_path, trim
 
@@ -37,7 +36,9 @@ APPLECRASHREPORT_ATTACHMENT_TYPE = "event.applecrashreport"
 
 
 def _merge_frame(new_frame, symbolicated, platform="native"):
-    if symbolicated.get("function"):
+    # il2cpp events which have the "csharp" platform have good (C#) names
+    # coming from the SDK, we do not want to override those with bad (mangled) C++ names.
+    if platform != "csharp" and symbolicated.get("function"):
         raw_func = trim(symbolicated["function"], 256)
         func = trim(trim_function_name(symbolicated["function"], platform), 256)
 
@@ -62,7 +63,8 @@ def _merge_frame(new_frame, symbolicated, platform="native"):
         new_frame["lineno"] = symbolicated["lineno"]
     if symbolicated.get("colno"):
         new_frame["colno"] = symbolicated["colno"]
-    if symbolicated.get("package"):
+    # similarly as with `function` above, we do want to retain the original "package".
+    if platform != "csharp" and symbolicated.get("package"):
         new_frame["package"] = symbolicated["package"]
     if symbolicated.get("trust"):
         new_frame["trust"] = symbolicated["trust"]
@@ -221,8 +223,12 @@ def _merge_full_response(data, response):
     for complete_stacktrace in response["stacktraces"]:
         is_requesting = complete_stacktrace.get("is_requesting")
         thread_id = complete_stacktrace.get("thread_id")
+        thread_name = complete_stacktrace.get("thread_name")
 
         data_thread = {"id": thread_id}
+        if thread_name:
+            data_thread["name"] = thread_name
+
         if is_requesting:
             if response.get("crashed"):
                 data_thread["crashed"] = True
@@ -291,7 +297,7 @@ def _handles_frame(data, frame):
 
     # TODO: Consider ignoring platform
     platform = frame.get("platform") or data.get("platform")
-    return is_native_platform(platform) and "instruction_addr" in frame
+    return is_native_platform(platform) and frame.get("instruction_addr") is not None
 
 
 def get_frames_for_symbolication(frames, data, modules):

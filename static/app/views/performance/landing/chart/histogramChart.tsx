@@ -142,10 +142,11 @@ export function Chart(props: ChartProps) {
     disableChartPadding,
     colors,
   } = props;
+  const theme = useTheme();
+
   if (!chartData) {
     return null;
   }
-  const theme = useTheme();
 
   const series = {
     seriesName: t('Count'),
@@ -155,7 +156,6 @@ export function Chart(props: ChartProps) {
   const xAxis = {
     type: 'category' as const,
     truncate: true,
-    boundaryGap: false,
     axisTick: {
       alignWithLabel: true,
     },

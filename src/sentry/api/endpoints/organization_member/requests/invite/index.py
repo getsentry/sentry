@@ -3,13 +3,13 @@ from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import roles
+from sentry import audit_log, roles
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithTeamsSerializer
 from sentry.app import locks
-from sentry.models import AuditLogEntryEvent, InviteStatus, OrganizationMember
+from sentry.models import InviteStatus, OrganizationMember
 from sentry.notifications.notifications.organization_request import InviteRequestNotification
 from sentry.notifications.utils.tasks import async_send_notification
 from sentry.utils.retries import TimedRetryPolicy
@@ -82,7 +82,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
             )
 
             if result["teams"]:
-                lock = locks.get(f"org:member:{om.id}", duration=5)
+                lock = locks.get(f"org:member:{om.id}", duration=5, name="org_member_invite")
                 with TimedRetryPolicy(10)(lock.acquire):
                     save_team_assignments(om, result["teams"])
 
@@ -91,7 +91,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
                 organization_id=organization.id,
                 target_object=om.id,
                 data=om.get_audit_log_data(),
-                event=AuditLogEntryEvent.INVITE_REQUEST_ADD,
+                event=audit_log.get_event_id("INVITE_REQUEST_ADD"),
             )
 
         async_send_notification(InviteRequestNotification, om, request.user)

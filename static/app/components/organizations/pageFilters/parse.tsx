@@ -71,7 +71,7 @@ function getStatsPeriodValue(maybe: ParamValue) {
  *
  * [0]: https://gist.github.com/asafge/0b13c5066d06ae9a4446
  */
-function normalizeDateTimeString(input: Date | SingleParamValue) {
+export function normalizeDateTimeString(input: Date | SingleParamValue) {
   if (!input) {
     return undefined;
   }

@@ -1,4 +1,6 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {useEffect} from 'react';
+
+import {fireEvent, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import AutoComplete from 'sentry/components/autoComplete';
 
@@ -20,7 +22,6 @@ const items = [
  * "controlled" props where <AutoComplete> does not handle state
  */
 describe('AutoComplete', function () {
-  let wrapper;
   let input;
   let autoCompleteState = [];
   const mocks = {
@@ -29,389 +30,401 @@ describe('AutoComplete', function () {
     onOpen: jest.fn(),
   };
 
-  const createWrapper = props => {
+  afterEach(() => {
+    jest.resetAllMocks();
     autoCompleteState = [];
-    Object.keys(mocks).forEach(key => mocks[key].mockReset());
+  });
 
-    wrapper = mountWithTheme(
-      <AutoComplete {...mocks} itemToString={item => item.name} {...props}>
-        {injectedProps => {
-          const {
-            getRootProps,
-            getInputProps,
-            getMenuProps,
-            getItemProps,
-            inputValue,
-            highlightedIndex,
-            isOpen,
-          } = injectedProps;
+  const List = ({registerItemCount, itemCount, ...props}) => {
+    useEffect(() => void registerItemCount(itemCount), [itemCount, registerItemCount]);
+    return <ul {...props} />;
+  };
 
-          // This is purely for testing
-          autoCompleteState.push(injectedProps);
+  const Item = ({registerVisibleItem, item, index, ...props}) => {
+    useEffect(() => registerVisibleItem(index, item), [registerVisibleItem, index, item]);
+    return <li {...props} />;
+  };
 
-          return (
-            <div {...getRootProps({style: {position: 'relative'}})}>
-              <input {...getInputProps({})} />
+  const createComponent = props => (
+    <AutoComplete {...mocks} itemToString={item => item.name} {...props}>
+      {injectedProps => {
+        const {
+          getRootProps,
+          getInputProps,
+          getMenuProps,
+          getItemProps,
+          inputValue,
+          isOpen,
+          registerItemCount,
+          registerVisibleItem,
+          highlightedIndex,
+        } = injectedProps;
 
-              {isOpen && (
-                <div
-                  {...getMenuProps({
-                    style: {
-                      boxShadow:
-                        '0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)',
-                      position: 'absolute',
-                      backgroundColor: 'white',
-                      padding: '0',
-                    },
-                  })}
+        // This is purely for testing
+        autoCompleteState.push(injectedProps);
+
+        const filteredItems = items.filter(item =>
+          item.name.toLowerCase().includes(inputValue.toLowerCase())
+        );
+
+        return (
+          <div {...getRootProps()}>
+            <input placeholder="autocomplete" {...getInputProps()} />
+
+            {isOpen && (
+              <div {...getMenuProps()} data-test-id="test-autocomplete">
+                <List
+                  registerItemCount={registerItemCount}
+                  itemCount={filteredItems.length}
                 >
-                  <ul>
-                    {items
-                      .filter(
-                        item =>
-                          item.name.toLowerCase().indexOf(inputValue.toLowerCase()) > -1
-                      )
-                      .map((item, index) => (
-                        <li
-                          key={item.name}
-                          {...getItemProps({
-                            item,
-                            index,
-                            style: {
-                              cursor: 'pointer',
-                              padding: '6px 12px',
-                              backgroundColor:
-                                index === highlightedIndex
-                                  ? 'rgba(0, 0, 0, 0.02)'
-                                  : undefined,
-                            },
-                          })}
-                        >
-                          {item.name}
-                        </li>
-                      ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          );
-        }}
-      </AutoComplete>
-    );
+                  {filteredItems.map((item, index) => (
+                    <Item
+                      key={item.name}
+                      registerVisibleItem={registerVisibleItem}
+                      index={index}
+                      item={item}
+                      aria-selected={highlightedIndex === index}
+                      {...getItemProps({item, index})}
+                    >
+                      {item.name}
+                    </Item>
+                  ))}
+                </List>
+              </div>
+            )}
+          </div>
+        );
+      }}
+    </AutoComplete>
+  );
 
-    input = wrapper.find('input');
+  const createWrapper = props => {
+    const wrapper = render(createComponent(props));
+    input = screen.getByPlaceholderText('autocomplete');
     return wrapper;
   };
 
   describe('Uncontrolled', function () {
-    beforeEach(() => {
-      wrapper = createWrapper();
-    });
-
     it('shows dropdown menu when input has focus', function () {
-      input.simulate('focus');
-      expect(wrapper.state('isOpen')).toBe(true);
-      expect(wrapper.find('li')).toHaveLength(3);
+      createWrapper();
+      fireEvent.focus(input);
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
+      for (const item of items) {
+        expect(screen.getByText(item.name)).toBeInTheDocument();
+      }
     });
 
     it('only tries to close once if input is blurred and click outside occurs', async function () {
+      createWrapper();
       jest.useFakeTimers();
-      input.simulate('focus');
-      input.simulate('blur');
-      expect(wrapper.state('isOpen')).toBe(true);
-      expect(wrapper.find('li')).toHaveLength(3);
-      wrapper.find('DropdownMenu').prop('onClickOutside')();
+      fireEvent.focus(input);
+      fireEvent.blur(input);
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
+      // Click outside dropdown
+      fireEvent.click(document.body);
       jest.runAllTimers();
-      await Promise.resolve();
-      wrapper.update();
 
-      expect(mocks.onClose).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(mocks.onClose).toHaveBeenCalledTimes(1));
     });
 
     it('only calls onClose dropdown menu when input is blurred', function () {
+      createWrapper();
       jest.useFakeTimers();
-      input.simulate('focus');
-      input.simulate('blur');
-      expect(wrapper.state('isOpen')).toBe(true);
-      expect(wrapper.find('li')).toHaveLength(3);
+      fireEvent.focus(input);
+      fireEvent.blur(input);
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
       jest.runAllTimers();
-      wrapper.update();
 
-      expect(wrapper.state('isOpen')).toBe(false);
-      expect(wrapper.find('li')).toHaveLength(0);
+      expect(screen.queryByTestId('test-autocomplete')).not.toBeInTheDocument();
       expect(mocks.onClose).toHaveBeenCalledTimes(1);
     });
 
     it('can close dropdown menu when Escape is pressed', function () {
-      input.simulate('focus');
-      expect(wrapper.state('isOpen')).toBe(true);
+      createWrapper();
+      fireEvent.focus(input);
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
 
-      input.simulate('keyDown', {key: 'Escape'});
-      expect(wrapper.state('isOpen')).toBe(false);
+      fireEvent.keyDown(input, {key: 'Escape', charCode: 27});
+      expect(screen.queryByTestId('test-autocomplete')).not.toBeInTheDocument();
     });
 
     it('can open and close dropdown menu using injected actions', function () {
+      createWrapper();
       const [injectedProps] = autoCompleteState;
       injectedProps.actions.open();
-      expect(wrapper.state('isOpen')).toBe(true);
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
       expect(mocks.onOpen).toHaveBeenCalledTimes(1);
 
       injectedProps.actions.close();
-      expect(wrapper.state('isOpen')).toBe(false);
+      expect(screen.queryByTestId('test-autocomplete')).not.toBeInTheDocument();
       expect(mocks.onClose).toHaveBeenCalledTimes(1);
     });
 
     it('reopens dropdown menu after Escape is pressed and input is changed', function () {
-      input.simulate('focus');
-      expect(wrapper.state('isOpen')).toBe(true);
+      createWrapper();
+      fireEvent.focus(input);
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
 
-      input.simulate('keyDown', {key: 'Escape'});
-      expect(wrapper.state('isOpen')).toBe(false);
+      fireEvent.keyDown(input, {key: 'Escape', charCode: 27});
+      expect(screen.queryByTestId('test-autocomplete')).not.toBeInTheDocument();
 
-      input.simulate('change', {target: {value: 'a'}});
-      expect(wrapper.state('isOpen')).toBe(true);
-      expect(wrapper.instance().items.size).toBe(3);
+      fireEvent.change(input, {target: {value: 'a', charCode: 65}});
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
+      expect(screen.getAllByRole('option')).toHaveLength(3);
     });
 
     it('reopens dropdown menu after item is selected and then input is changed', function () {
-      input.simulate('focus');
-      expect(wrapper.state('isOpen')).toBe(true);
+      createWrapper();
+      fireEvent.focus(input);
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
 
-      input.simulate('change', {target: {value: 'eapp'}});
-      expect(wrapper.state('isOpen')).toBe(true);
-      expect(wrapper.instance().items.size).toBe(1);
-      input.simulate('keyDown', {key: 'Enter'});
-      expect(wrapper.state('isOpen')).toBe(false);
+      fireEvent.change(input, {target: {value: 'eapp'}});
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
 
-      input.simulate('change', {target: {value: 'app'}});
-      expect(wrapper.state('isOpen')).toBe(true);
-      expect(wrapper.instance().items.size).toBe(2);
+      expect(screen.getByRole('option')).toBeInTheDocument();
+      fireEvent.keyDown(input, {key: 'Enter', charCode: 13});
+      expect(screen.queryByTestId('test-autocomplete')).not.toBeInTheDocument();
+
+      fireEvent.change(input, {target: {value: 'app'}});
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
+
+      expect(screen.getAllByRole('option')).toHaveLength(2);
     });
 
     it('selects dropdown item by clicking and sets input to selected value', function () {
-      input.simulate('focus');
-      expect(wrapper.state('isOpen')).toBe(true);
-      expect(wrapper.instance().items.size).toBe(3);
+      createWrapper();
+      fireEvent.focus(input);
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
+      expect(screen.getAllByRole('option')).toHaveLength(3);
 
-      wrapper.find('li').at(1).simulate('click');
+      fireEvent.click(screen.getByText(items[1].name));
       expect(mocks.onSelect).toHaveBeenCalledWith(
         items[1],
         expect.objectContaining({inputValue: '', highlightedIndex: 0}),
         expect.anything()
       );
 
-      expect(wrapper.state('inputValue')).toBe('Pineapple');
-      expect(wrapper.instance().items.size).toBe(0);
+      expect(input).toHaveValue('Pineapple');
+      expect(screen.queryByRole('option')).not.toBeInTheDocument();
     });
 
     it('can navigate dropdown items with keyboard and select with "Enter" keypress', function () {
-      input.simulate('focus');
-      expect(wrapper.state('isOpen')).toBe(true);
-      expect(wrapper.state('highlightedIndex')).toBe(0);
+      createWrapper();
+      fireEvent.focus(input);
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
+      expect(screen.getByText('Apple')).toHaveAttribute('aria-selected', 'true');
 
-      input.simulate('keyDown', {key: 'ArrowDown'});
-      expect(wrapper.state('highlightedIndex')).toBe(1);
+      fireEvent.keyDown(input, {key: 'ArrowDown', charCode: 40});
+      expect(screen.getByText('Pineapple')).toHaveAttribute('aria-selected', 'true');
 
-      input.simulate('keyDown', {key: 'ArrowDown'});
-      expect(wrapper.state('highlightedIndex')).toBe(2);
+      fireEvent.keyDown(input, {key: 'ArrowDown', charCode: 40});
+      expect(screen.getByText('Orange')).toHaveAttribute('aria-selected', 'true');
 
-      expect(wrapper.instance().items.size).toBe(3);
-      input.simulate('keyDown', {key: 'Enter'});
+      expect(screen.getAllByRole('option')).toHaveLength(3);
+      fireEvent.keyDown(input, {key: 'Enter', charCode: 13});
 
       expect(mocks.onSelect).toHaveBeenCalledWith(
         items[2],
         expect.objectContaining({inputValue: '', highlightedIndex: 2}),
         expect.anything()
       );
-      expect(wrapper.instance().items.size).toBe(0);
-      expect(wrapper.state('inputValue')).toBe('Orange');
+      expect(screen.queryByRole('option')).not.toBeInTheDocument();
+      expect(input).toHaveValue('Orange');
     });
 
     it('respects list bounds when navigating filtered items with arrow keys', function () {
-      input.simulate('focus');
-      expect(wrapper.state('isOpen')).toBe(true);
-      expect(wrapper.state('highlightedIndex')).toBe(0);
+      createWrapper();
+      fireEvent.focus(input);
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
+      expect(screen.getByText('Apple')).toHaveAttribute('aria-selected', 'true');
 
-      input.simulate('keyDown', {key: 'ArrowUp'});
-      expect(wrapper.state('highlightedIndex')).toBe(0);
+      fireEvent.keyDown(input, {key: 'ArrowUp', charCode: 38});
+      expect(screen.getByText('Apple')).toHaveAttribute('aria-selected', 'true');
 
-      input.simulate('keyDown', {key: 'ArrowDown'});
-      expect(wrapper.state('highlightedIndex')).toBe(1);
+      fireEvent.keyDown(input, {key: 'ArrowDown', charCode: 40});
+      expect(screen.getByText('Pineapple')).toHaveAttribute('aria-selected', 'true');
 
-      input.simulate('keyDown', {key: 'ArrowDown'});
-      expect(wrapper.state('highlightedIndex')).toBe(2);
+      fireEvent.keyDown(input, {key: 'ArrowDown', charCode: 40});
+      expect(screen.getByText('Orange')).toHaveAttribute('aria-selected', 'true');
 
-      input.simulate('keyDown', {key: 'ArrowDown'});
-      expect(wrapper.state('highlightedIndex')).toBe(2);
+      fireEvent.keyDown(input, {key: 'ArrowDown', charCode: 40});
+      expect(screen.getByText('Orange')).toHaveAttribute('aria-selected', 'true');
 
-      input.simulate('keyDown', {key: 'ArrowUp'});
-      expect(wrapper.state('highlightedIndex')).toBe(1);
+      fireEvent.keyDown(input, {key: 'ArrowUp', charCode: 38});
+      expect(screen.getByText('Pineapple')).toHaveAttribute('aria-selected', 'true');
 
-      input.simulate('keyDown', {key: 'ArrowUp'});
-      expect(wrapper.state('highlightedIndex')).toBe(0);
+      fireEvent.keyDown(input, {key: 'ArrowUp', charCode: 38});
+      expect(screen.getByText('Apple')).toHaveAttribute('aria-selected', 'true');
 
-      input.simulate('keyDown', {key: 'ArrowUp'});
-      expect(wrapper.state('highlightedIndex')).toBe(0);
+      fireEvent.keyDown(input, {key: 'ArrowUp', charCode: 38});
+      expect(screen.getByText('Apple')).toHaveAttribute('aria-selected', 'true');
 
-      expect(wrapper.instance().items.size).toBe(3);
+      expect(screen.getAllByRole('option')).toHaveLength(3);
     });
 
     it('can filter items and then navigate with keyboard', function () {
-      input.simulate('focus');
-      expect(wrapper.state('isOpen')).toBe(true);
-      expect(wrapper.state('highlightedIndex')).toBe(0);
-      expect(wrapper.instance().items.size).toBe(3);
+      createWrapper();
+      fireEvent.focus(input);
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
+      expect(screen.getByText('Apple')).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getAllByRole('option')).toHaveLength(3);
 
-      input.simulate('change', {target: {value: 'a'}});
-      expect(wrapper.state('highlightedIndex')).toBe(0);
-      expect(wrapper.state('inputValue')).toBe('a');
+      fireEvent.keyDown(input, {target: {value: 'a', charCode: 65}});
+      expect(screen.getByText('Apple')).toHaveAttribute('aria-selected', 'true');
+      expect(input).toHaveValue('a');
       // Apple, pineapple, orange
-      expect(wrapper.instance().items.size).toBe(3);
+      expect(screen.getAllByRole('option')).toHaveLength(3);
 
-      input.simulate('change', {target: {value: 'ap'}});
-      expect(wrapper.state('highlightedIndex')).toBe(0);
-      expect(wrapper.state('inputValue')).toBe('ap');
+      fireEvent.change(input, {target: {value: 'ap'}});
+      expect(screen.getByText('Apple')).toHaveAttribute('aria-selected', 'true');
+      expect(input).toHaveValue('ap');
       expect(autoCompleteState[autoCompleteState.length - 1].inputValue).toBe('ap');
       // Apple, pineapple
-      expect(wrapper.instance().items.size).toBe(2);
+      expect(screen.getAllByRole('option')).toHaveLength(2);
 
-      input.simulate('keyDown', {key: 'ArrowDown'});
-      expect(wrapper.state('highlightedIndex')).toBe(1);
+      fireEvent.keyDown(input, {key: 'ArrowDown', charCode: 40});
+      expect(screen.getByText('Pineapple')).toHaveAttribute('aria-selected', 'true');
 
-      input.simulate('keyDown', {key: 'ArrowDown'});
-      expect(wrapper.state('highlightedIndex')).toBe(1);
-      expect(wrapper.instance().items.size).toBe(2);
+      fireEvent.keyDown(input, {key: 'ArrowDown', charCode: 40});
+      expect(screen.getByText('Pineapple')).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getAllByRole('option')).toHaveLength(2);
 
-      input.simulate('keyDown', {key: 'Enter'});
+      fireEvent.keyDown(input, {key: 'Enter', charCode: 13});
       expect(mocks.onSelect).toHaveBeenCalledWith(
         items[1],
         expect.objectContaining({inputValue: 'ap', highlightedIndex: 1}),
         expect.anything()
       );
-      expect(wrapper.instance().items.size).toBe(0);
-      expect(wrapper.state('inputValue')).toBe('Pineapple');
+      expect(screen.queryByRole('option')).not.toBeInTheDocument();
+      expect(input).toHaveValue('Pineapple');
     });
 
     it('can reset input when menu closes', function () {
+      const wrapper = createWrapper();
       jest.useFakeTimers();
-      wrapper.setProps({resetInputOnClose: true});
-      input.simulate('focus');
-      expect(wrapper.state('isOpen')).toBe(true);
+      wrapper.rerender(createComponent({resetInputOnClose: true}));
+      fireEvent.focus(input);
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
 
-      input.simulate('change', {target: {value: 'a'}});
-      expect(wrapper.state('inputValue')).toBe('a');
+      fireEvent.keyDown(input, {target: {value: 'a', charCode: 65}});
+      expect(input).toHaveValue('a');
 
-      input.simulate('blur');
+      fireEvent.blur(input);
       jest.runAllTimers();
-      expect(wrapper.state('isOpen')).toBe(false);
-      expect(wrapper.state('inputValue')).toBe('');
+      expect(screen.queryByTestId('test-autocomplete')).not.toBeInTheDocument();
+      expect(input).toHaveValue('');
     });
   });
 
-  describe('Controlled', function () {
-    beforeEach(function () {
-      wrapper = createWrapper({isOpen: true});
-    });
-
+  describe('isOpen controlled', function () {
     it('has dropdown menu initially open', function () {
-      expect(wrapper.state('isOpen')).toBe(true);
-      expect(wrapper.find('li')).toHaveLength(3);
+      createWrapper({isOpen: true});
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
+      expect(screen.getAllByRole('option')).toHaveLength(3);
     });
 
     it('closes when props change', function () {
-      wrapper.setProps({isOpen: false});
-      expect(wrapper.state('isOpen')).toBe(true);
-      wrapper.update();
+      const wrapper = createWrapper({isOpen: true});
+      wrapper.rerender(createComponent({isOpen: false}));
 
       // Menu should be closed
-      expect(wrapper.state('isOpen')).toBe(true);
-      expect(wrapper.find('li')).toHaveLength(0);
+      expect(screen.queryByTestId('test-autocomplete')).not.toBeInTheDocument();
+      expect(screen.queryByRole('option')).not.toBeInTheDocument();
     });
 
     it('remains closed when input is focused, but calls `onOpen`', function () {
-      wrapper = createWrapper({isOpen: false});
+      createWrapper({isOpen: false});
       jest.useFakeTimers();
 
-      expect(wrapper.state('isOpen')).toBe(false);
+      expect(screen.queryByTestId('test-autocomplete')).not.toBeInTheDocument();
 
-      input.simulate('focus');
+      fireEvent.focus(input);
       jest.runAllTimers();
-      wrapper.update();
-      expect(wrapper.state('isOpen')).toBe(false);
-      expect(wrapper.find('li')).toHaveLength(0);
+      expect(screen.queryByTestId('test-autocomplete')).not.toBeInTheDocument();
+      expect(screen.queryByRole('option')).not.toBeInTheDocument();
 
       expect(mocks.onOpen).toHaveBeenCalledTimes(1);
     });
 
     it('remains open when input focus/blur events occur, but calls `onClose`', function () {
+      createWrapper({isOpen: true});
       jest.useFakeTimers();
-      input.simulate('focus');
-      input.simulate('blur');
+      fireEvent.focus(input);
+      fireEvent.blur(input);
       jest.runAllTimers();
-      wrapper.update();
-      expect(wrapper.state('isOpen')).toBe(true);
-      expect(wrapper.find('li')).toHaveLength(3);
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
 
       // This still gets called even though menu is open
       expect(mocks.onClose).toHaveBeenCalledTimes(1);
     });
 
     it('calls onClose when Escape is pressed', function () {
-      expect(wrapper.state('isOpen')).toBe(true);
+      createWrapper({isOpen: true});
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
 
-      input.simulate('keyDown', {key: 'Escape'});
-      expect(wrapper.state('isOpen')).toBe(true);
+      fireEvent.keyDown(input, {key: 'Escape', charCode: 27});
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
+
       expect(mocks.onClose).toHaveBeenCalledTimes(1);
     });
 
     it('does not open and close dropdown menu using injected actions', function () {
+      createWrapper({isOpen: true});
       const [injectedProps] = autoCompleteState;
       injectedProps.actions.open();
-      expect(wrapper.state('isOpen')).toBe(true);
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
+
       expect(mocks.onOpen).toHaveBeenCalledTimes(1);
 
       injectedProps.actions.close();
-      expect(wrapper.state('isOpen')).toBe(true);
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
+
       expect(mocks.onClose).toHaveBeenCalledTimes(1);
     });
 
     it('onClose is called after item is selected', function () {
-      expect(wrapper.state('isOpen')).toBe(true);
+      createWrapper({isOpen: true});
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
 
-      input.simulate('change', {target: {value: 'eapp'}});
-      expect(wrapper.state('isOpen')).toBe(true);
-      expect(wrapper.instance().items.size).toBe(1);
-      input.simulate('keyDown', {key: 'Enter'});
-      expect(wrapper.state('isOpen')).toBe(true);
+      fireEvent.change(input, {target: {value: 'eapp'}});
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
+
+      expect(screen.getByRole('option')).toBeInTheDocument();
+      fireEvent.keyDown(input, {key: 'Enter', charCode: 13});
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
+
       expect(mocks.onClose).toHaveBeenCalledTimes(1);
     });
 
     it('selects dropdown item by clicking and sets input to selected value', function () {
-      expect(wrapper.instance().items.size).toBe(3);
+      createWrapper({isOpen: true});
+      expect(screen.getAllByRole('option')).toHaveLength(3);
 
-      wrapper.find('li').at(1).simulate('click');
+      fireEvent.click(screen.getByText(items[1].name));
       expect(mocks.onSelect).toHaveBeenCalledWith(
         items[1],
         expect.objectContaining({inputValue: '', highlightedIndex: 0}),
         expect.anything()
       );
 
-      expect(wrapper.state('inputValue')).toBe('Pineapple');
+      expect(input).toHaveValue('Pineapple');
       expect(mocks.onClose).toHaveBeenCalledTimes(1);
     });
 
     it('can navigate dropdown items with keyboard and select with "Enter" keypress', function () {
-      expect(wrapper.state('isOpen')).toBe(true);
-      expect(wrapper.state('highlightedIndex')).toBe(0);
+      createWrapper({isOpen: true});
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
 
-      input.simulate('keyDown', {key: 'ArrowDown'});
-      expect(wrapper.state('highlightedIndex')).toBe(1);
+      expect(screen.getByText('Apple')).toHaveAttribute('aria-selected', 'true');
 
-      input.simulate('keyDown', {key: 'ArrowDown'});
-      expect(wrapper.state('highlightedIndex')).toBe(2);
+      fireEvent.keyDown(input, {key: 'ArrowDown', charCode: 40});
+      expect(screen.getByText('Pineapple')).toHaveAttribute('aria-selected', 'true');
 
-      expect(wrapper.instance().items.size).toBe(3);
-      input.simulate('keyDown', {key: 'Enter'});
+      fireEvent.keyDown(input, {key: 'ArrowDown', charCode: 40});
+      expect(screen.getByText('Orange')).toHaveAttribute('aria-selected', 'true');
+
+      expect(screen.getAllByRole('option')).toHaveLength(3);
+      fireEvent.keyDown(input, {key: 'Enter', charCode: 13});
 
       expect(mocks.onSelect).toHaveBeenCalledWith(
         items[2],
@@ -419,133 +432,239 @@ describe('AutoComplete', function () {
         expect.anything()
       );
       expect(mocks.onClose).toHaveBeenCalledTimes(1);
-      expect(wrapper.state('inputValue')).toBe('Orange');
+      expect(input).toHaveValue('Orange');
     });
 
     it('respects list bounds when navigating filtered items with arrow keys', function () {
-      expect(wrapper.state('isOpen')).toBe(true);
-      expect(wrapper.state('highlightedIndex')).toBe(0);
+      createWrapper({isOpen: true});
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
 
-      input.simulate('keyDown', {key: 'ArrowUp'});
-      expect(wrapper.state('highlightedIndex')).toBe(0);
+      expect(screen.getByText('Apple')).toHaveAttribute('aria-selected', 'true');
 
-      input.simulate('keyDown', {key: 'ArrowDown'});
-      expect(wrapper.state('highlightedIndex')).toBe(1);
+      fireEvent.keyDown(input, {key: 'ArrowUp', charCode: 38});
+      expect(screen.getByText('Apple')).toHaveAttribute('aria-selected', 'true');
 
-      input.simulate('keyDown', {key: 'ArrowDown'});
-      expect(wrapper.state('highlightedIndex')).toBe(2);
+      fireEvent.keyDown(input, {key: 'ArrowDown', charCode: 40});
+      expect(screen.getByText('Pineapple')).toHaveAttribute('aria-selected', 'true');
 
-      input.simulate('keyDown', {key: 'ArrowDown'});
-      expect(wrapper.state('highlightedIndex')).toBe(2);
+      fireEvent.keyDown(input, {key: 'ArrowDown', charCode: 40});
+      expect(screen.getByText('Orange')).toHaveAttribute('aria-selected', 'true');
 
-      input.simulate('keyDown', {key: 'ArrowUp'});
-      expect(wrapper.state('highlightedIndex')).toBe(1);
+      fireEvent.keyDown(input, {key: 'ArrowDown', charCode: 40});
+      expect(screen.getByText('Orange')).toHaveAttribute('aria-selected', 'true');
 
-      input.simulate('keyDown', {key: 'ArrowUp'});
-      expect(wrapper.state('highlightedIndex')).toBe(0);
+      fireEvent.keyDown(input, {key: 'ArrowUp', charCode: 38});
+      expect(screen.getByText('Pineapple')).toHaveAttribute('aria-selected', 'true');
 
-      input.simulate('keyDown', {key: 'ArrowUp'});
-      expect(wrapper.state('highlightedIndex')).toBe(0);
+      fireEvent.keyDown(input, {key: 'ArrowUp', charCode: 38});
+      expect(screen.getByText('Apple')).toHaveAttribute('aria-selected', 'true');
 
-      expect(wrapper.instance().items.size).toBe(3);
+      fireEvent.keyDown(input, {key: 'ArrowUp', charCode: 38});
+      expect(screen.getByText('Apple')).toHaveAttribute('aria-selected', 'true');
+
+      expect(screen.getAllByRole('option')).toHaveLength(3);
     });
 
     it('can filter items and then navigate with keyboard', function () {
-      expect(wrapper.state('isOpen')).toBe(true);
-      expect(wrapper.state('highlightedIndex')).toBe(0);
-      expect(wrapper.instance().items.size).toBe(3);
+      createWrapper({isOpen: true});
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
 
-      input.simulate('change', {target: {value: 'a'}});
-      expect(wrapper.state('highlightedIndex')).toBe(0);
-      expect(wrapper.state('inputValue')).toBe('a');
+      expect(screen.getByText('Apple')).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getAllByRole('option')).toHaveLength(3);
+
+      fireEvent.keyDown(input, {target: {value: 'a', charCode: 65}});
+      expect(screen.getByText('Apple')).toHaveAttribute('aria-selected', 'true');
+      expect(input).toHaveValue('a');
       // Apple, pineapple, orange
-      expect(wrapper.instance().items.size).toBe(3);
+      expect(screen.getAllByRole('option')).toHaveLength(3);
 
-      input.simulate('change', {target: {value: 'ap'}});
-      expect(wrapper.state('highlightedIndex')).toBe(0);
-      expect(wrapper.state('inputValue')).toBe('ap');
+      fireEvent.change(input, {target: {value: 'ap'}});
+      expect(screen.getByText('Apple')).toHaveAttribute('aria-selected', 'true');
+      expect(input).toHaveValue('ap');
       expect(autoCompleteState[autoCompleteState.length - 1].inputValue).toBe('ap');
       // Apple, pineapple
-      expect(wrapper.instance().items.size).toBe(2);
+      expect(screen.getAllByRole('option')).toHaveLength(2);
 
-      input.simulate('keyDown', {key: 'ArrowDown'});
-      expect(wrapper.state('highlightedIndex')).toBe(1);
+      fireEvent.keyDown(input, {key: 'ArrowDown', charCode: 40});
+      expect(screen.getByText('Pineapple')).toHaveAttribute('aria-selected', 'true');
 
-      input.simulate('keyDown', {key: 'ArrowDown'});
-      expect(wrapper.state('highlightedIndex')).toBe(1);
-      expect(wrapper.instance().items.size).toBe(2);
+      fireEvent.keyDown(input, {key: 'ArrowDown', charCode: 40});
+      expect(screen.getByText('Pineapple')).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getAllByRole('option')).toHaveLength(2);
 
-      input.simulate('keyDown', {key: 'Enter'});
+      fireEvent.keyDown(input, {key: 'Enter', charCode: 13});
       expect(mocks.onSelect).toHaveBeenCalledWith(
         items[1],
         expect.objectContaining({inputValue: 'ap', highlightedIndex: 1}),
         expect.anything()
       );
       expect(mocks.onClose).toHaveBeenCalledTimes(1);
-      expect(wrapper.state('inputValue')).toBe('Pineapple');
+      expect(input).toHaveValue('Pineapple');
+    });
+
+    it('can reset input value when menu closes', function () {
+      const wrapper = createWrapper({isOpen: true});
+      jest.useFakeTimers();
+      wrapper.rerender(createComponent({resetInputOnClose: true}));
+      fireEvent.focus(input);
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
+
+      fireEvent.keyDown(input, {target: {value: 'a', charCode: 65}});
+      expect(input).toHaveValue('a');
+
+      fireEvent.blur(input);
+      jest.runAllTimers();
+      expect(input).toHaveValue('');
+    });
+  });
+
+  describe('inputValue controlled', () => {
+    it('follows the inputValue prop', () => {
+      const wrapper = createWrapper({inputValue: 'initial value'});
+      expect(input).toHaveValue('initial value');
+
+      wrapper.rerender(createComponent({inputValue: 'new value'}));
+
+      expect(input).toHaveValue('new value');
+    });
+
+    it('calls onInputValueChange on input', () => {
+      const wrapper = createWrapper({inputValue: 'initial value'});
+      const onInputValueChange = jest.fn();
+      wrapper.rerender(createComponent({onInputValueChange}));
+      fireEvent.focus(input);
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
+
+      fireEvent.change(input, {target: {value: 'a'}});
+
+      expect(onInputValueChange).toHaveBeenCalledWith('a');
+    });
+
+    it('input value does not change when typed into', () => {
+      createWrapper({inputValue: 'initial value'});
+      fireEvent.focus(input);
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
+
+      fireEvent.change(input, {target: {value: 'a'}});
+      expect(input).toHaveValue('initial value');
+    });
+
+    it('input value does not change when blurred', () => {
+      createWrapper({inputValue: 'initial value'});
+      fireEvent.focus(input);
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
+
+      fireEvent.blur(input);
+      expect(input).toHaveValue('initial value');
+    });
+
+    it('can search for and select an item without changing the input value', () => {
+      const wrapper = createWrapper({inputValue: 'initial value'});
+      fireEvent.focus(input);
+      wrapper.rerender(createComponent({inputValue: 'apple'}));
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
+
+      expect(screen.getAllByRole('option')).toHaveLength(2);
+
+      fireEvent.click(screen.getByText('Apple'));
+
+      expect(screen.queryByTestId('test-autocomplete')).not.toBeInTheDocument();
+      expect(input).toHaveValue('apple');
+      expect(mocks.onSelect).toHaveBeenCalledWith(
+        {name: 'Apple'},
+        expect.anything(),
+        expect.anything()
+      );
+    });
+
+    it('can filter and navigate dropdown items with keyboard and select with "Enter" keypress without changing input value', function () {
+      const wrapper = createWrapper({inputValue: 'initial value'});
+      wrapper.rerender(createComponent({inputValue: 'apple'}));
+      fireEvent.focus(input);
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
+
+      expect(screen.getByText('Apple')).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getAllByRole('option')).toHaveLength(2);
+
+      fireEvent.keyDown(input, {key: 'ArrowDown', charCode: 40});
+      fireEvent.keyDown(input, {key: 'ArrowDown', charCode: 40});
+      fireEvent.keyDown(input, {key: 'ArrowDown', charCode: 40});
+      expect(screen.getByText('Pineapple')).toHaveAttribute('aria-selected', 'true');
+
+      fireEvent.keyDown(input, {key: 'Enter', charCode: 13});
+
+      expect(mocks.onSelect).toHaveBeenCalledWith(
+        items[1],
+        expect.objectContaining({highlightedIndex: 1}),
+        expect.anything()
+      );
+      expect(mocks.onClose).toHaveBeenCalledTimes(1);
+      expect(input).toHaveValue('apple');
     });
   });
 
   it('selects using enter key', function () {
-    wrapper = createWrapper({isOpen: true, shouldSelectWithEnter: false});
-    input.simulate('change', {target: {value: 'pine'}});
-    input.simulate('keyDown', {key: 'Enter'});
+    const wrapper = createWrapper({isOpen: true, shouldSelectWithEnter: false});
+    fireEvent.change(input, {target: {value: 'pine'}});
+    fireEvent.keyDown(input, {key: 'Enter', charCode: 13});
     expect(mocks.onSelect).not.toHaveBeenCalled();
+    wrapper.unmount();
 
-    wrapper = createWrapper({isOpen: true, shouldSelectWithEnter: true});
-    input.simulate('change', {target: {value: 'pine'}});
-    input.simulate('keyDown', {key: 'Enter'});
+    createWrapper({isOpen: true, shouldSelectWithEnter: true});
+    fireEvent.change(input, {target: {value: 'pine'}});
+    fireEvent.keyDown(input, {key: 'Enter', charCode: 13});
     expect(mocks.onSelect).toHaveBeenCalledWith(
       items[1],
       expect.objectContaining({inputValue: 'pine', highlightedIndex: 0}),
       expect.anything()
     );
     expect(mocks.onClose).toHaveBeenCalledTimes(1);
-    expect(wrapper.state('inputValue')).toBe('Pineapple');
+    expect(input).toHaveValue('Pineapple');
   });
 
   it('selects using tab key', function () {
-    wrapper = createWrapper({isOpen: true, shouldSelectWithTab: false});
-    input.simulate('change', {target: {value: 'pine'}});
-    input.simulate('keyDown', {key: 'Tab'});
+    let wrapper = createWrapper({isOpen: true, shouldSelectWithTab: false});
+    fireEvent.change(input, {target: {value: 'pine'}});
+    fireEvent.keyDown(input, {key: 'Tab', charCode: 9});
     expect(mocks.onSelect).not.toHaveBeenCalled();
+    wrapper.unmount();
 
     wrapper = createWrapper({isOpen: true, shouldSelectWithTab: true});
-    input.simulate('change', {target: {value: 'pine'}});
-    input.simulate('keyDown', {key: 'Tab'});
+    fireEvent.change(input, {target: {value: 'pine'}});
+    fireEvent.keyDown(input, {key: 'Tab'});
     expect(mocks.onSelect).toHaveBeenCalledWith(
       items[1],
       expect.objectContaining({inputValue: 'pine', highlightedIndex: 0}),
       expect.anything()
     );
     expect(mocks.onClose).toHaveBeenCalledTimes(1);
-    expect(wrapper.state('inputValue')).toBe('Pineapple');
+    expect(input).toHaveValue('Pineapple');
   });
 
   it('does not reset highlight state if `closeOnSelect` is false and we select a new item', function () {
-    wrapper = createWrapper({closeOnSelect: false});
+    createWrapper({closeOnSelect: false});
     jest.useFakeTimers();
-    input.simulate('focus');
-    expect(wrapper.state('isOpen')).toBe(true);
+    fireEvent.focus(input);
+    expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
 
-    input.simulate('keyDown', {key: 'ArrowDown'});
-    expect(wrapper.state('highlightedIndex')).toBe(1);
-
-    // Select item
-    input.simulate('keyDown', {key: 'Enter'});
-
-    // Should still remain open with same highlightedIndex
-    expect(wrapper.state('highlightedIndex')).toBe(1);
-    expect(wrapper.state('isOpen')).toBe(true);
-
-    input.simulate('keyDown', {key: 'ArrowDown'});
-    expect(wrapper.state('highlightedIndex')).toBe(2);
+    fireEvent.keyDown(input, {key: 'ArrowDown', charCode: 40});
+    expect(screen.getByText('Pineapple')).toHaveAttribute('aria-selected', 'true');
 
     // Select item
-    input.simulate('keyDown', {key: 'Enter'});
+    fireEvent.keyDown(input, {key: 'Enter', charCode: 13});
 
     // Should still remain open with same highlightedIndex
-    expect(wrapper.state('highlightedIndex')).toBe(2);
-    expect(wrapper.state('isOpen')).toBe(true);
+    expect(screen.getByText('Pineapple')).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
+
+    fireEvent.keyDown(input, {key: 'ArrowDown', charCode: 40});
+    expect(screen.getByText('Orange')).toHaveAttribute('aria-selected', 'true');
+
+    // Select item
+    fireEvent.keyDown(input, {key: 'Enter', charCode: 13});
+
+    // Should still remain open with same highlightedIndex
+    expect(screen.getByText('Orange')).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
   });
 });

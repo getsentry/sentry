@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, forwardRef} from 'react';
 import ReactSelect from 'react-select';
 import debounce from 'lodash/debounce';
 
@@ -33,7 +33,7 @@ type State = {
 /**
  * Performs an API request to `url` to fetch the options
  */
-class SelectAsyncControl extends React.Component<SelectAsyncControlProps> {
+class SelectAsyncControl extends Component<SelectAsyncControlProps> {
   static defaultProps = {
     placeholder: '--',
     defaultOptions: true,
@@ -125,7 +125,7 @@ class SelectAsyncControl extends React.Component<SelectAsyncControlProps> {
   }
 }
 
-const forwardRef = (p, ref) => <SelectAsyncControl {...p} forwardedRef={ref} />;
-forwardRef.displayName = 'SelectAsyncControl';
+const RefForwarder = (p, ref) => <SelectAsyncControl {...p} forwardedRef={ref} />;
+RefForwarder.displayName = 'SelectAsyncControl';
 
-export default React.forwardRef(forwardRef);
+export default forwardRef(RefForwarder);

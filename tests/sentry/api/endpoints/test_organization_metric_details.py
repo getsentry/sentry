@@ -2,8 +2,13 @@ import copy
 import time
 from unittest.mock import patch
 
+import pytest
+
 from sentry.sentry_metrics import indexer
-from sentry.snuba.metrics import SingularEntityDerivedMetric, percentage, resolve_weak
+from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.utils import resolve_weak
+from sentry.snuba.metrics import SingularEntityDerivedMetric
+from sentry.snuba.metrics.fields.snql import complement, division_float
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.metrics.naming_layer.public import SessionMetricKey
@@ -20,12 +25,18 @@ MOCKED_DERIVED_METRICS_2.update(
             metric_mri="derived_metric.multiple_metrics",
             metrics=["metric_foo_doe", SessionMRI.ALL.value],
             unit="percentage",
-            snql=lambda *args, metric_ids, alias=None: percentage(
-                *args, alias=SessionMetricKey.CRASH_FREE_RATE.value
+            snql=lambda *args, metric_ids, alias=None: complement(
+                division_float(*args), alias=SessionMetricKey.CRASH_FREE_RATE.value
             ),
         )
     }
 )
+
+pytestmark = pytest.mark.sentry_metrics
+
+
+def _indexer_record(org_id: int, string: str) -> int:
+    return indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=string)
 
 
 class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegrationTestCase):
@@ -106,14 +117,14 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         mocked_mri_resolver(["foo.bar"], get_public_name_from_mri),
     )
     def test_metric_details_metric_does_not_have_data(self):
-        indexer.record(self.organization.id, "foo.bar")
+        _indexer_record(self.organization.id, "foo.bar")
         response = self.get_response(
             self.organization.slug,
             "foo.bar",
         )
         assert response.status_code == 404
 
-        indexer.record(self.organization.id, SessionMRI.SESSION.value)
+        _indexer_record(self.organization.id, SessionMRI.SESSION.value)
         response = self.get_response(
             self.organization.slug,
             SessionMetricKey.CRASH_FREE_RATE.value,
@@ -184,13 +195,12 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         ),
     )
     @patch("sentry.snuba.metrics.datasource.get_derived_metrics")
-    def test_same_entity_multiple_metric_ids(self, mocked_derived_metrics):
+    def test_same_entity_multiple_metric_ids_missing_data(self, mocked_derived_metrics):
         """
-        Test that ensures that if a derived metric is defined with constituent metrics that
-        belong to the same entity but have different ids, then we are able to correctly return
-        its detail info
+        Test when not requested metrics have data in the dataset
         """
         mocked_derived_metrics.return_value = MOCKED_DERIVED_METRICS_2
+        _indexer_record(self.organization.id, "metric_foo_doe")
         self.store_session(
             self.build_session(
                 project_id=self.project.id,
@@ -209,21 +219,53 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
             "Not all the requested metrics or the constituent metrics in "
             "['derived_metric.multiple_metrics'] have data in the dataset"
         )
-        org_id = self.organization.id
+
+    @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS_2)
+    @patch(
+        "sentry.snuba.metrics.datasource.get_mri",
+        mocked_mri_resolver(["metric_foo_doe", "derived_metric.multiple_metrics"], get_mri),
+    )
+    @patch(
+        "sentry.snuba.metrics.datasource.get_public_name_from_mri",
+        mocked_mri_resolver(
+            ["metric_foo_doe", "derived_metric.multiple_metrics"], get_public_name_from_mri
+        ),
+    )
+    @patch("sentry.snuba.metrics.datasource.get_derived_metrics")
+    def test_same_entity_multiple_metric_ids(self, mocked_derived_metrics):
+        """
+        Test that ensures that if a derived metric is defined with constituent metrics that
+        belong to the same entity but have different ids, then we are able to correctly return
+        its detail info
+        """
+        mocked_derived_metrics.return_value = MOCKED_DERIVED_METRICS_2
+        org_id = self.project.organization.id
+        use_key_id = UseCaseKey.RELEASE_HEALTH
+        metric_id = _indexer_record(org_id, "metric_foo_doe")
+
+        self.store_session(
+            self.build_session(
+                project_id=self.project.id,
+                started=(time.time() // 60) * 60,
+                status="ok",
+                release="foobar@2.0",
+                errors=2,
+            )
+        )
         self._send_buckets(
             [
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": indexer.record(org_id, "metric_foo_doe"),
-                    "timestamp": int(time.time()),
+                    "metric_id": metric_id,
+                    "timestamp": (time.time() // 60 - 2) * 60,
                     "tags": {
-                        resolve_weak(self.organization.id, "release"): indexer.record(
-                            org_id, "foo"
+                        resolve_weak(use_key_id, org_id, "release"): _indexer_record(
+                            org_id, "fooww"
                         ),
                     },
                     "type": "c",
-                    "value": 1,
+                    "value": 5,
                     "retention_days": 90,
                 },
             ],

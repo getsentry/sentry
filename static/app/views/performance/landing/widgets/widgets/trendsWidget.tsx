@@ -1,4 +1,5 @@
 import {Fragment, useMemo, useState} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter} from 'react-router';
 
 import Button from 'sentry/components/button';
@@ -6,9 +7,14 @@ import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useProjects from 'sentry/utils/useProjects';
 import withProjects from 'sentry/utils/withProjects';
 import {CompareDurations} from 'sentry/views/performance/trends/changedTransactions';
-import {handleTrendsClick, trendsTargetRoute} from 'sentry/views/performance/utils';
+import {
+  getSelectedProjectPlatforms,
+  handleTrendsClick,
+  trendsTargetRoute,
+} from 'sentry/views/performance/utils';
 
 import {Chart} from '../../../trends/chart';
 import {TrendChangeType, TrendFunctionField} from '../../../trends/types';
@@ -32,7 +38,15 @@ type DataType = {
 const fields = [{field: 'transaction'}, {field: 'project'}];
 
 export function TrendsWidget(props: PerformanceWidgetProps) {
-  const {eventView: _eventView, ContainerActions, location, organization} = props;
+  const {projects} = useProjects();
+
+  const {
+    eventView: _eventView,
+    ContainerActions,
+    location,
+    organization,
+    withStaticFilters,
+  } = props;
   const trendChangeType =
     props.chartSetting === PerformanceWidgetSetting.MOST_IMPROVED
       ? TrendChangeType.IMPROVED
@@ -72,6 +86,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
       ),
       transform: transformTrendsDiscover,
     }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [props.chartSetting, trendChangeType]
   );
 
@@ -88,8 +103,14 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
           <Fragment>
             <div>
               <Button
-                onClick={() => handleTrendsClick({location, organization})}
-                size="small"
+                onClick={() =>
+                  handleTrendsClick({
+                    location,
+                    organization,
+                    projectPlatforms: getSelectedProjectPlatforms(location, projects),
+                  })
+                }
+                size="sm"
                 data-test-id="view-all-button"
               >
                 {t('View All')}
@@ -150,10 +171,12 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
                     <RightAlignedCell>
                       <CompareDurations transaction={listItem} />
                     </RightAlignedCell>
-                    <ListClose
-                      setSelectListIndex={setSelectListIndex}
-                      onClick={() => excludeTransaction(listItem.transaction, props)}
-                    />
+                    {!withStaticFilters && (
+                      <ListClose
+                        setSelectListIndex={setSelectListIndex}
+                        onClick={() => excludeTransaction(listItem.transaction, props)}
+                      />
+                    )}
                   </Fragment>
                 );
               })}

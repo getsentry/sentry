@@ -6,7 +6,6 @@ from sentry.api.base import EnvironmentMixin, StatsMixin
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import Environment, Project, Team
-from sentry.utils.compat import map
 
 
 class OrganizationStatsEndpoint(OrganizationEndpoint, EnvironmentMixin, StatsMixin):

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
@@ -184,7 +184,7 @@ type Props = {
 type State = {
   widths: number[];
 };
-class _TagExplorer extends React.Component<Props> {
+export class TagExplorer extends Component<Props> {
   state: State = {
     widths: [],
   };
@@ -448,7 +448,7 @@ class _TagExplorer extends React.Component<Props> {
       >
         {({isLoading, tableData, pageLinks}) => {
           return (
-            <React.Fragment>
+            <Fragment>
               <GuideAnchor target="tag_explorer">
                 <TagsHeader
                   transactionName={transactionName}
@@ -473,7 +473,7 @@ class _TagExplorer extends React.Component<Props> {
                 }}
                 location={location}
               />
-            </React.Fragment>
+            </Fragment>
           );
         }}
       </SegmentExplorerQuery>
@@ -527,12 +527,12 @@ function TagsHeader(props: HeaderProps) {
       <Button
         onClick={handleViewAllTagsClick}
         to={viewAllTarget}
-        size="xsmall"
+        size="xs"
         data-test-id="tags-explorer-open-tags"
       >
         {t('View All Tags')}
       </Button>
-      <StyledPagination pageLinks={pageLinks} onCursor={handleCursor} size="xsmall" />
+      <StyledPagination pageLinks={pageLinks} onCursor={handleCursor} size="xs" />
     </Header>
   );
 }
@@ -553,5 +553,3 @@ const Header = styled('div')`
 const StyledPagination = styled(Pagination)`
   margin: 0 0 0 ${space(1)};
 `;
-
-export const TagExplorer = _TagExplorer;

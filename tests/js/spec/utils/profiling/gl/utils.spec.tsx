@@ -1,6 +1,9 @@
+import Fuse from 'fuse.js';
 import {mat3, vec2} from 'gl-matrix';
 
 import {
+  computeConfigViewWithStategy,
+  computeHighlightedBounds,
   createProgram,
   createShader,
   ELLIPSIS,
@@ -220,6 +223,15 @@ describe('Rect', () => {
     it('containsRect', () => {
       expect(new Rect(0, 0, 1, 1).containsRect(new Rect(0.1, 0.1, 0.1, 0.1))).toBe(true);
     });
+
+    it('overlapsLeft', () => {
+      expect(new Rect(0, 0, 1, 1).leftOverlapsWith(new Rect(-0.5, 0, 1, 1))).toBe(true);
+      expect(new Rect(0, 0, 1, 1).leftOverlapsWith(new Rect(1, 0, 1, 1))).toBe(false);
+    });
+    it('overlapsRight', () => {
+      expect(new Rect(0, 0, 1, 1).rightOverlapsWith(new Rect(0.5, 0, 1, 1))).toBe(true);
+      expect(new Rect(0, 0, 1, 1).rightOverlapsWith(new Rect(1.5, 0, 1, 1))).toBe(false);
+    });
     it('overlaps', () => {
       expect(new Rect(0, 0, 1, 1).overlaps(new Rect(-1, -1, 2, 2))).toBe(true);
       // we are exactly on the edge
@@ -309,12 +321,6 @@ describe('Rect', () => {
 });
 
 describe('findRangeBinarySearch', () => {
-  it('throws if target is out of range', () => {
-    expect(() =>
-      findRangeBinarySearch({low: 1, high: 2}, () => 0, 0, Number.MIN_SAFE_INTEGER)
-    ).toThrow('Target has to be in range of low <= target <= high, got 1 <= 0 <= 2');
-  });
-
   it('finds in single iteration', () => {
     const text = new Array(10)
       .fill(0)
@@ -359,12 +365,200 @@ describe('findRangeBinarySearch', () => {
 
 describe('trimTextCenter', () => {
   it('trims nothing if low > length', () => {
-    expect(trimTextCenter('abc', 4)).toBe('abc');
+    expect(trimTextCenter('abc', 4)).toMatchObject({
+      end: 0,
+      length: 0,
+      start: 0,
+      text: 'abc',
+    });
   });
   it('trims center perfectly', () => {
-    expect(trimTextCenter('abcdef', 5.5)).toBe(`ab${ELLIPSIS}ef`);
+    expect(trimTextCenter('abcdef', 5.5)).toMatchObject({
+      end: 4,
+      length: 2,
+      start: 2,
+      text: `ab${ELLIPSIS}ef`,
+    });
   });
   it('favors prefix length', () => {
-    expect(trimTextCenter('abcdef', 5)).toBe(`ab${ELLIPSIS}f`);
+    expect(trimTextCenter('abcdef', 5)).toMatchObject({
+      end: 5,
+      length: 3,
+      start: 2,
+      text: `ab${ELLIPSIS}f`,
+    });
+  });
+});
+
+describe('computeHighlightedBounds', () => {
+  const testTable = [
+    {
+      name: 'reduces bounds[1] if tail is truncated',
+      text: 'CA::Display::DisplayLink::dispatch_items(unsigned long long, unsigned long long, unsigned long long)',
+      args: {
+        bounds: [4, 11],
+        trim: {
+          // match tail truncated
+          text: 'CA::Dis…long)',
+          start: 7,
+          end: 95,
+          length: 88,
+        },
+      },
+      expected: [4, 8], // Dis...
+    },
+    {
+      name: 'shifts bounds if truncated before bounds',
+      text: '-[UIScrollView _smoothScrollDisplayLink:]',
+      args: {
+        bounds: [28, 35],
+        trim: {
+          text: '-[UIScrollView…playLink:]',
+          start: 14,
+          end: 31,
+          length: 17,
+        },
+      },
+      expected: [14, 19], // ...play
+    },
+    {
+      name: 'shifts bounds if truncated before bounds',
+      text: '-[UIScrollView _smoothScrollDisplayLink:]',
+      args: {
+        bounds: [28, 35],
+        trim: {
+          // match bounds are shifted after truncate
+          text: '-[UIScrollView _sm…rollDisplayLink:]',
+          start: 18,
+          end: 24,
+          length: 6,
+        },
+      },
+      expected: [23, 30], // Display
+    },
+    {
+      name: 'reduces bounds if fully truncated',
+      text: '-[UIScrollView _smoothScrollDisplayLink:]',
+      args: {
+        bounds: [28, 35],
+        trim: {
+          // matched text is within truncated ellipsis ,
+          text: '-[UIScr…Link:]',
+          start: 7,
+          end: 35,
+          length: 28,
+        },
+      },
+      expected: [7, 8], // …
+    },
+    {
+      name: 'matched bounds fall before and after truncate',
+      text: '-[UIScrollView _smoothScrollDisplayLink:]',
+      args: {
+        bounds: [16, 28],
+        trim: {
+          // match bounds are shifted after truncate
+          text: '-[UIScrollView _sm…rollDisplayLink:]',
+          start: 18,
+          end: 24,
+          length: 6,
+        },
+      },
+      expected: [16, 23], // smoothScroll
+    },
+    {
+      name: 'matched bounds fall before  truncate',
+      text: '-[UIScrollView _smoothScrollDisplayLink:]',
+      args: {
+        bounds: [4, 14],
+        trim: {
+          // match bounds are shifted after truncate
+          text: '-[UIScrollView _sm…rollDisplayLink:]',
+          start: 18,
+          end: 24,
+          length: 6,
+        },
+      },
+      expected: [4, 14], // smoothScroll
+    },
+  ];
+
+  it.each(testTable)(`$name`, ({args, expected}) => {
+    const value = computeHighlightedBounds(args.bounds as Fuse.RangeTuple, args.trim);
+    expect(value).toEqual(expected);
+  });
+});
+
+describe('computeConfigViewWithStategy', () => {
+  it('exact (preserves view height)', () => {
+    const view = new Rect(0, 0, 1, 1);
+    const frame = new Rect(0, 0, 0.5, 0.5);
+
+    expect(
+      computeConfigViewWithStategy('exact', view, frame).equals(new Rect(0, 0, 0.5, 1))
+    ).toBe(true);
+  });
+
+  it('min (when view is too small to fit frame)', () => {
+    const view = new Rect(0, 0, 1, 1);
+    const frame = new Rect(2, 2, 5, 1);
+
+    expect(
+      computeConfigViewWithStategy('min', view, frame).equals(new Rect(2, 2, 5, 1))
+    ).toBe(true);
+  });
+
+  it('min (frame is outside of view on the left)', () => {
+    const view = new Rect(5, 0, 10, 1);
+    const frame = new Rect(1, 0, 1, 1);
+
+    expect(
+      computeConfigViewWithStategy('min', view, frame).equals(new Rect(1, 0, 10, 1))
+    ).toBe(true);
+  });
+
+  it('min (frame overlaps with view on the left)', () => {
+    const view = new Rect(5, 0, 10, 1);
+    const frame = new Rect(4, 0, 2, 1);
+
+    expect(
+      computeConfigViewWithStategy('min', view, frame).equals(new Rect(4, 0, 10, 1))
+    ).toBe(true);
+  });
+
+  it('min (frame overlaps with view on the right)', () => {
+    const view = new Rect(0, 0, 10, 1);
+    const frame = new Rect(9, 0, 5, 1);
+
+    expect(
+      computeConfigViewWithStategy('min', view, frame).equals(new Rect(4, 0, 10, 1))
+    ).toBe(true);
+  });
+
+  it('min (frame is outside of view on the right)', () => {
+    const view = new Rect(0, 0, 10, 1);
+    const frame = new Rect(12, 0, 5, 1);
+
+    expect(
+      computeConfigViewWithStategy('min', view, frame).equals(new Rect(7, 0, 10, 1))
+    ).toBe(true);
+  });
+
+  it('min (frame is above the view)', () => {
+    const view = new Rect(0, 1, 10, 1);
+    const frame = new Rect(0, 0, 10, 1);
+
+    expect(
+      computeConfigViewWithStategy('min', view, frame).equals(new Rect(0, 0, 10, 1))
+    ).toBe(true);
+  });
+
+  it('min (frame is below the view)', () => {
+    const view = new Rect(0, 0, 10, 1);
+    const frame = new Rect(0, 2, 10, 1);
+
+    expect(
+      computeConfigViewWithStategy('min', view, frame).equals(new Rect(0, 2, 10, 1))
+    ).toBe(true);
   });
 });

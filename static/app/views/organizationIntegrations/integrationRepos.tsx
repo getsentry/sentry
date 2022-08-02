@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -14,7 +14,6 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import RepositoryRow from 'sentry/components/repositoryRow';
 import {IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Integration, Organization, Repository} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -143,7 +142,7 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
             'You must be an organization owner, manager or admin to add repositories'
           )}
           isOpen={false}
-          size="xsmall"
+          size="xs"
         >
           {t('Add Repository')}
         </DropdownButton>
@@ -182,7 +181,7 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
         alignMenu="right"
       >
         {({isOpen}) => (
-          <DropdownButton isOpen={isOpen} size="xsmall" busy={this.state.adding}>
+          <DropdownButton isOpen={isOpen} size="xs" busy={this.state.adding}>
             {t('Add Repository')}
           </DropdownButton>
         )}
@@ -219,7 +218,7 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
     );
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Panel>
           {header}
           <PanelBody>
@@ -239,10 +238,10 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
             )}
             {itemList.map(repo => (
               <RepositoryRow
+                api={this.api}
                 key={repo.id}
                 repository={repo}
                 orgId={orgId}
-                api={this.api}
                 onRepositoryChange={this.onRepositoryChange}
               />
             ))}
@@ -251,7 +250,7 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
         {itemListPageLinks && (
           <Pagination pageLinks={itemListPageLinks} {...this.props} />
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
@@ -284,5 +283,5 @@ const StyledListElement = styled('div')`
 const StyledName = styled('div')`
   flex-shrink: 1;
   min-width: 0;
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;

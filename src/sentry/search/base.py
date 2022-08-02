@@ -9,7 +9,7 @@ ANY = object()
 
 if TYPE_CHECKING:
     from sentry.api.event_search import SearchFilter
-    from sentry.models import Environment, Project
+    from sentry.models import Environment, Group, Project
     from sentry.utils.cursors import Cursor, CursorResult
 
 
@@ -34,5 +34,5 @@ class SearchBackend(Service):
         date_from: Optional[datetime] = None,
         date_to: Optional[datetime] = None,
         max_hits: Optional[int] = None,
-    ) -> CursorResult:
+    ) -> CursorResult[Group]:
         raise NotImplementedError

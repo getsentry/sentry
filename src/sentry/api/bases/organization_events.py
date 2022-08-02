@@ -1,6 +1,6 @@
 from contextlib import contextmanager
-from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, Generator, Optional, Sequence, Union, cast
+from datetime import timedelta
+from typing import Any, Callable, Dict, Generator, Optional, Sequence, Tuple, cast
 
 import sentry_sdk
 from django.utils import timezone
@@ -15,18 +15,25 @@ from sentry.api.bases import NoProjects, OrganizationEndpoint
 from sentry.api.helpers.teams import get_teams
 from sentry.api.serializers.snuba import BaseSnubaSerializer, SnubaTSResultSerializer
 from sentry.discover.arithmetic import ArithmeticError, is_equation, strip_equation
-from sentry.exceptions import InvalidSearchQuery
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models import Organization, Project, Team
 from sentry.models.group import Group
-from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
+from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS, TIMEOUT_ERROR_MESSAGE
 from sentry.search.events.fields import get_function_alias
-from sentry.search.events.filter import get_filter
-from sentry.snuba import discover
+from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
 from sentry.utils import snuba
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import get_interval_from_range, get_rollup_from_request, parse_stats_period
 from sentry.utils.http import absolute_uri
 from sentry.utils.snuba import MAX_FIELDS, SnubaTSResult
+
+# Doesn't map 1:1 with real datasets, but rather what we present to users
+# ie. metricsEnhanced is not a real dataset
+DATASET_OPTIONS = {
+    "discover": discover,
+    "metricsEnhanced": metrics_enhanced_performance,
+    "metrics": metrics_performance,
+}
 
 
 def resolve_axis_column(column: str, index: int = 0) -> str:
@@ -59,6 +66,12 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):  # type: ignore
             teams = Team.objects.get_for_user(organization, request.user)
 
         return [team.id for team in teams]
+
+    def get_dataset(self, request: Request) -> Any:
+        dataset_label = request.GET.get("dataset", "discover")
+        if dataset_label not in DATASET_OPTIONS:
+            raise ParseError(detail=f"dataset must be one of: {', '.join(DATASET_OPTIONS.keys())}")
+        return DATASET_OPTIONS[dataset_label]
 
     def get_snuba_params(
         self, request: Request, organization: Organization, check_global_views: bool = True
@@ -97,32 +110,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):  # type: ignore
         if orderby:
             return orderby
         return None
-
-    def get_snuba_query_args_legacy(
-        self, request: Request, organization: Organization
-    ) -> Dict[
-        str,
-        Union[
-            Optional[datetime],
-            Sequence[Sequence[Union[str, str, Any]]],
-            Optional[Dict[str, Sequence[int]]],
-        ],
-    ]:
-        params = self.get_filter_params(request, organization)
-        query = request.GET.get("query")
-        try:
-            _filter = get_filter(query, params)
-        except InvalidSearchQuery as e:
-            raise ParseError(detail=str(e))
-
-        snuba_args = {
-            "start": _filter.start,
-            "end": _filter.end,
-            "conditions": _filter.conditions,
-            "filter_keys": _filter.filter_keys,
-        }
-
-        return snuba_args
 
     def quantize_date_params(self, request: Request, params: Dict[str, Any]) -> Dict[str, Any]:
         # We only need to perform this rounding on relative date periods
@@ -164,6 +151,10 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):  # type: ignore
         except snuba.QueryIllegalTypeOfArgument:
             message = "Invalid query. Argument to function is wrong type."
             sentry_sdk.set_tag("query.error_reason", message)
+            raise ParseError(detail=message)
+        except IncompatibleMetricsQuery as error:
+            message = str(error)
+            sentry_sdk.set_tag("query.error_reason", f"Metric Error: {message}")
             raise ParseError(detail=message)
         except snuba.SnubaError as error:
             message = "Internal error. Please try again."
@@ -223,19 +214,46 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             has_results="true" if bool(cursor) else "false",
         )
 
+    def handle_unit_meta(
+        self, meta: Dict[str, str]
+    ) -> Tuple[Dict[str, str], Dict[str, Optional[str]]]:
+        units: Dict[str, Optional[str]] = {}
+        for key, value in meta.items():
+            if value in SIZE_UNITS:
+                units[key] = value
+                meta[key] = "size"
+            elif value in DURATION_UNITS:
+                units[key] = value
+                meta[key] = "duration"
+            elif value == "duration":
+                units[key] = "millisecond"
+            else:
+                units[key] = None
+        return meta, units
+
     def handle_results_with_meta(
         self,
         request: Request,
         organization: Organization,
         project_ids: Sequence[int],
         results: Dict[str, Any],
+        standard_meta: Optional[bool] = False,
     ) -> Dict[str, Any]:
         with sentry_sdk.start_span(op="discover.endpoint", description="base.handle_results"):
             data = self.handle_data(request, organization, project_ids, results.get("data"))
             meta = results.get("meta", {})
 
+            if standard_meta:
+                isMetricsData = meta.pop("isMetricsData", False)
+                fields, units = self.handle_unit_meta(meta)
+                meta = {
+                    "fields": fields,
+                    "units": units,
+                    "isMetricsData": isMetricsData,
+                    "tips": results.get("tips", {}),
+                }
             # TODO(wmak): Check if the performance facets histogram endpoint actually needs meta as a list
-            if isinstance(meta, dict) and "isMetricsData" not in meta:
+            elif isinstance(meta, dict) and "isMetricsData" not in meta:
                 meta["isMetricsData"] = False
 
             if not data:
@@ -367,8 +385,11 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 for key, event_result in result.items():
                     if is_multiple_axis:
                         results[key] = self.serialize_multiple_axis(
+                            request,
+                            organization,
                             serializer,
                             event_result,
+                            params,
                             columns,
                             query_columns,
                             allow_partial_buckets,
@@ -385,13 +406,18 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 serialized_result = results
             elif is_multiple_axis:
                 serialized_result = self.serialize_multiple_axis(
+                    request,
+                    organization,
                     serializer,
                     result,
+                    params,
                     columns,
                     query_columns,
                     allow_partial_buckets,
                     zerofill_results=zerofill_results,
                 )
+                if top_events > 0 and isinstance(result, SnubaTSResult):
+                    serialized_result = {"": serialized_result}
             else:
                 extra_columns = None
                 if comparison_delta:
@@ -403,13 +429,19 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     zerofill_results=zerofill_results,
                     extra_columns=extra_columns,
                 )
+                serialized_result["meta"] = self.handle_results_with_meta(
+                    request, organization, params.get("project_id", []), result.data, True
+                )["meta"]
 
             return serialized_result
 
     def serialize_multiple_axis(
         self,
+        request: Request,
+        organization: Organization,
         serializer: BaseSnubaSerializer,
         event_result: SnubaTSResult,
+        params: Dict[str, Any],
         columns: Sequence[str],
         query_columns: Sequence[str],
         allow_partial_buckets: bool,
@@ -418,6 +450,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         # Return with requested yAxis as the key
         result = {}
         equations = 0
+        meta = self.handle_results_with_meta(
+            request, organization, params.get("project_id", []), event_result.data, True
+        )["meta"]
         for index, query_column in enumerate(query_columns):
             result[columns[index]] = serializer.serialize(
                 event_result,
@@ -428,6 +463,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             )
             if is_equation(query_column):
                 equations += 1
+            result[columns[index]]["meta"] = meta
         # Set order if multi-axis + top events
         if "order" in event_result.data:
             result["order"] = event_result.data["order"]

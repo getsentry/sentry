@@ -1,71 +1,95 @@
 import {useEffect, useState} from 'react';
+import * as Sentry from '@sentry/react';
 
-import {Client, ResponseMeta} from 'sentry/api';
+import {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {Organization, PageFilters} from 'sentry/types';
+import {t} from 'sentry/locale';
+import {Organization, PageFilters, RequestState} from 'sentry/types';
 import {Trace} from 'sentry/types/profiling/core';
+import {defined} from 'sentry/utils';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-type RequestState = 'initial' | 'loading' | 'resolved' | 'errored';
+type ProfilesResult = {
+  pageLinks: string | null;
+  traces: Trace[];
+};
+
+interface UseProfilesOptions {
+  query: string;
+  cursor?: string;
+  limit?: number;
+  selection?: PageFilters;
+}
+
+function useProfiles({
+  cursor,
+  limit,
+  query,
+  selection,
+}: UseProfilesOptions): RequestState<ProfilesResult> {
+  const api = useApi();
+  const organization = useOrganization();
+
+  const [requestState, setRequestState] = useState<RequestState<ProfilesResult>>({
+    type: 'initial',
+  });
+
+  useEffect(() => {
+    if (!defined(selection)) {
+      return undefined;
+    }
+
+    setRequestState({type: 'loading'});
+
+    fetchTraces(api, organization, {cursor, limit, query, selection})
+      .then(([traces, , response]) => {
+        setRequestState({
+          type: 'resolved',
+          data: {
+            traces,
+            pageLinks: response?.getResponseHeader('Link') ?? null,
+          },
+        });
+      })
+      .catch(err => {
+        setRequestState({type: 'errored', error: t('Error: Unable to load profiles')});
+        Sentry.captureException(err);
+      });
+
+    return () => api.clear();
+  }, [api, organization, cursor, limit, query, selection]);
+
+  return requestState;
+}
 
 function fetchTraces(
   api: Client,
-  query: string | undefined,
-  cursor: string | undefined,
   organization: Organization,
-  selection: PageFilters
-): Promise<[Trace[], string | undefined, ResponseMeta | undefined]> {
+  {
+    cursor,
+    limit,
+    query,
+    selection,
+  }: {
+    cursor: string | undefined;
+    limit: number | undefined;
+    query: string;
+    selection: PageFilters;
+  }
+) {
   return api.requestPromise(`/organizations/${organization.slug}/profiling/profiles/`, {
     method: 'GET',
     includeAllArgs: true,
     query: {
       cursor,
       query,
+      per_page: limit,
       project: selection.projects,
       environment: selection.environments,
       ...normalizeDateTimeParams(selection.datetime),
     },
   });
-}
-
-interface UseProfilesOptions {
-  cursor: string | undefined;
-  query: string | undefined;
-  selection: PageFilters | undefined;
-}
-
-function useProfiles({
-  cursor,
-  query,
-  selection,
-}: UseProfilesOptions): [RequestState, Trace[], string | null] {
-  const api = useApi();
-  const organization = useOrganization();
-
-  const [requestState, setRequestState] = useState<RequestState>('initial');
-  const [traces, setTraces] = useState<Trace[]>([]);
-  const [pageLinks, setPageLinks] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (selection === undefined) {
-      return undefined;
-    }
-
-    setRequestState('loading');
-
-    fetchTraces(api, query, cursor, organization, selection)
-      .then(([_traces, , response]) => {
-        setTraces(_traces);
-        setPageLinks(response?.getResponseHeader('Link') ?? null);
-        setRequestState('resolved');
-      })
-      .catch(() => setRequestState('errored'));
-
-    return () => api.clear();
-  }, [api, query, cursor, organization, selection]);
-
-  return [requestState, traces, pageLinks];
 }
 
 export {useProfiles};

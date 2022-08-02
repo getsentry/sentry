@@ -1,10 +1,15 @@
 import {browserHistory} from 'react-router';
 
+import {initializeOrg} from 'sentry-test/initializeOrg';
+
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import EventView from 'sentry/utils/discover/eventView';
+import {DisplayType} from 'sentry/views/dashboardsV2/types';
 import {
   decodeColumnOrder,
   downloadAsCsv,
+  eventViewToWidgetQuery,
+  generateFieldOptions,
   getExpandedResults,
   pushEventViewToLocation,
 } from 'sentry/views/eventsV2/utils';
@@ -729,5 +734,78 @@ describe('downloadAsCsv', function () {
         'message,user\r\ntest 0,name:baz\r\ntest 1,id:123\r\ntest 2,email:test@example.com\r\ntest 3,ip:127.0.0.1'
       )
     );
+  });
+});
+
+describe('eventViewToWidgetQuery', function () {
+  const state = {
+    id: '1234',
+    name: 'best query',
+    fields: [{field: 'count()', width: 420}, {field: 'project.id'}],
+    sorts: [{field: 'count', kind: 'desc'}],
+    query: 'event.type:error',
+    project: [42],
+    start: '2019-10-01T00:00:00',
+    end: '2019-10-02T00:00:00',
+    statsPeriod: '14d',
+    environment: ['staging'],
+  };
+
+  it('updates orderby to function format for top N query', function () {
+    const view = new EventView(state);
+    const widgetQuery = eventViewToWidgetQuery({
+      eventView: view,
+      displayType: DisplayType.TOP_N,
+      yAxis: ['count()'],
+    });
+    expect(widgetQuery.orderby).toEqual('-count()');
+  });
+
+  it('updates orderby to function format for complex function', function () {
+    const view = new EventView({
+      ...state,
+      fields: [{field: 'count_unique(device.locale)', width: 420}, {field: 'project.id'}],
+      sorts: [{field: 'count_unique_device_locale', kind: 'desc'}],
+    });
+    const widgetQuery = eventViewToWidgetQuery({
+      eventView: view,
+      displayType: DisplayType.TABLE,
+    });
+    expect(widgetQuery.orderby).toEqual('-count_unique(device.locale)');
+  });
+
+  it('updates orderby to field', function () {
+    const view = new EventView({
+      ...state,
+      sorts: [{field: 'project.id', kind: 'desc'}],
+    });
+    const widgetQuery = eventViewToWidgetQuery({
+      eventView: view,
+      displayType: DisplayType.TABLE,
+    });
+    expect(widgetQuery.orderby).toEqual('-project.id');
+  });
+});
+
+describe('generateFieldOptions', function () {
+  it('generates custom measurement field options', function () {
+    expect(
+      generateFieldOptions({
+        organization: initializeOrg().organization,
+        customMeasurements: [
+          {functions: ['p99'], key: 'measurements.custom.measurement'},
+        ],
+      })['measurement:measurements.custom.measurement']
+    ).toEqual({
+      label: 'measurements.custom.measurement',
+      value: {
+        kind: 'custom_measurement',
+        meta: {
+          dataType: 'number',
+          functions: ['p99'],
+          name: 'measurements.custom.measurement',
+        },
+      },
+    });
   });
 });

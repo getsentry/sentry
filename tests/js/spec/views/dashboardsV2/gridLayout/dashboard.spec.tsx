@@ -18,6 +18,8 @@ describe('Dashboards > Dashboard', () => {
     id: '1',
     title: 'Test Dashboard',
     widgets: [],
+    projects: [],
+    filters: {},
   };
   const newWidget: Widget = {
     id: '1',
@@ -312,7 +314,6 @@ describe('Dashboards > Dashboard', () => {
             'dashboards-basic',
             'dashboards-edit',
             'dashboard-grid-layout',
-            'new-widget-builder-experience',
             'new-widget-builder-experience-design',
           ],
         },

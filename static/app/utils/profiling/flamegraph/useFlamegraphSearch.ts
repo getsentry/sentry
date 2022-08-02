@@ -22,7 +22,7 @@ export function useFlamegraphSearchValue(): FlamegraphStateContextValue[0]['sear
   const context = useContext(FlamegraphStateContext);
 
   if (context === null) {
-    throw new Error('useFlamegraphSearch called outside of FlamegraphStateProvider');
+    throw new Error('useFlamegraphSearchValue called outside of FlamegraphStateProvider');
   }
 
   return context[0].search;

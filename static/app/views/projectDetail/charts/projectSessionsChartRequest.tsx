@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {withTheme} from '@emotion/react';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
@@ -12,7 +12,7 @@ import {
   Organization,
   PageFilters,
   SessionApiResponse,
-  SessionField,
+  SessionFieldWithOperation,
   SessionStatus,
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
@@ -65,7 +65,7 @@ type State = {
   totalSessions: number | null;
 };
 
-class ProjectSessionsChartRequest extends React.Component<Props, State> {
+class ProjectSessionsChartRequest extends Component<Props, State> {
   state: State = {
     reloading: false,
     errored: false,
@@ -162,8 +162,8 @@ class ProjectSessionsChartRequest extends React.Component<Props, State> {
   get field() {
     const {displayMode} = this.props;
     return displayMode === DisplayModes.STABILITY_USERS
-      ? SessionField.USERS
-      : SessionField.SESSIONS;
+      ? SessionFieldWithOperation.USERS
+      : SessionFieldWithOperation.SESSIONS;
   }
 
   queryParams({shouldFetchWithPrevious = false}): Record<string, any> {
@@ -310,13 +310,16 @@ class ProjectSessionsChartRequest extends React.Component<Props, State> {
     const sessionsChart = initSessionsChart(theme);
     const {intervals, groups} = responseData;
 
-    const totalSessions = getCount(responseData.groups, SessionField.SESSIONS);
+    const totalSessions = getCount(
+      responseData.groups,
+      SessionFieldWithOperation.SESSIONS
+    );
 
     const chartData = [
       {
         ...sessionsChart[SessionStatus.HEALTHY],
         data: getCountSeries(
-          SessionField.SESSIONS,
+          SessionFieldWithOperation.SESSIONS,
           groups.find(g => g.by['session.status'] === SessionStatus.HEALTHY),
           intervals
         ),
@@ -324,7 +327,7 @@ class ProjectSessionsChartRequest extends React.Component<Props, State> {
       {
         ...sessionsChart[SessionStatus.ERRORED],
         data: getCountSeries(
-          SessionField.SESSIONS,
+          SessionFieldWithOperation.SESSIONS,
           groups.find(g => g.by['session.status'] === SessionStatus.ERRORED),
           intervals
         ),
@@ -332,7 +335,7 @@ class ProjectSessionsChartRequest extends React.Component<Props, State> {
       {
         ...sessionsChart[SessionStatus.ABNORMAL],
         data: getCountSeries(
-          SessionField.SESSIONS,
+          SessionFieldWithOperation.SESSIONS,
           groups.find(g => g.by['session.status'] === SessionStatus.ABNORMAL),
           intervals
         ),
@@ -340,7 +343,7 @@ class ProjectSessionsChartRequest extends React.Component<Props, State> {
       {
         ...sessionsChart[SessionStatus.CRASHED],
         data: getCountSeries(
-          SessionField.SESSIONS,
+          SessionFieldWithOperation.SESSIONS,
           groups.find(g => g.by['session.status'] === SessionStatus.CRASHED),
           intervals
         ),

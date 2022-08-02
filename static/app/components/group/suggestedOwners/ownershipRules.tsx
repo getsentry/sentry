@@ -7,7 +7,7 @@ import Access from 'sentry/components/acl/access';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import FeatureBadge from 'sentry/components/featureBadge';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import {Hovercard} from 'sentry/components/hovercard';
 import {Panel} from 'sentry/components/panels';
 import {IconClose, IconQuestion} from 'sentry/icons';
@@ -27,6 +27,26 @@ type Props = {
   project: Project;
 };
 
+const CodeOwnersCTA = HookOrDefault({
+  hookName: 'component:codeowners-cta',
+  defaultComponent: ({organization, project}) => (
+    <SetupButton
+      size="xs"
+      priority="primary"
+      to={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
+      onClick={() =>
+        trackIntegrationAnalytics('integrations.code_owners_cta_setup_clicked', {
+          view: 'stacktrace_issue_details',
+          project_id: project.id,
+          organization,
+        })
+      }
+    >
+      {t('Setup')}
+    </SetupButton>
+  ),
+});
+
 const OwnershipRules = ({
   project,
   organization,
@@ -43,10 +63,10 @@ const OwnershipRules = ({
   const createRuleButton = (
     <Access access={['project:write']}>
       {({hasAccess}) => (
-        <GuideAnchor target="owners" position="bottom" offset={space(3)}>
+        <GuideAnchor target="owners" position="bottom" offset={20}>
           <Button
             onClick={handleOpenCreateOwnershipRule}
-            size="small"
+            size="sm"
             disabled={!hasAccess}
             title={t("You don't have permission to create ownership rules.")}
             tooltipProps={{disabled: hasAccess}}
@@ -62,7 +82,6 @@ const OwnershipRules = ({
     <Container dashedBorder>
       <HeaderContainer>
         <Header>{t('Codeowners sync')}</Header>{' '}
-        <FeatureBadge style={{top: -3}} type="new" noTooltip />
         <DismissButton
           icon={<IconClose size="xs" />}
           priority="link"
@@ -76,22 +95,9 @@ const OwnershipRules = ({
         )}
       </Content>
       <ButtonBar gap={1}>
-        <SetupButton
-          size="xsmall"
-          priority="primary"
-          to={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
-          onClick={() =>
-            trackIntegrationAnalytics('integrations.code_owners_cta_setup_clicked', {
-              view: 'stacktrace_issue_details',
-              project_id: project.id,
-              organization,
-            })
-          }
-        >
-          {t('Setup')}
-        </SetupButton>
+        <CodeOwnersCTA organization={organization} project={project} />
         <Button
-          size="xsmall"
+          size="xs"
           external
           href="https://docs.sentry.io/product/issues/issue-owners/#code-owners"
           onClick={() =>

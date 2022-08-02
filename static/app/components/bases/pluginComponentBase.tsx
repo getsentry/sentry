@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import isFunction from 'lodash/isFunction';
 
 import {
@@ -24,7 +24,7 @@ type State = {state: GenericFieldProps['formState']};
 class PluginComponentBase<
   P extends Props = Props,
   S extends State = State
-> extends React.Component<P, S> {
+> extends Component<P, S> {
   constructor(props: P, context: any) {
     super(props, context);
 

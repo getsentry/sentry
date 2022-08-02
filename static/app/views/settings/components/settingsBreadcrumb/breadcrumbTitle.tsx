@@ -1,21 +1,19 @@
-import {Component} from 'react';
 import {PlainRoute} from 'react-router';
 
-import SettingsBreadcrumbStore from 'sentry/stores/settingsBreadcrumbStore';
+import {useBreadcrumbTitleEffect} from './context';
 
 type Props = {
   routes: Array<PlainRoute>;
   title: string;
 };
 
-class BreadcrumbTitle extends Component<Props> {
-  componentDidMount() {
-    SettingsBreadcrumbStore.updateRouteMap(this.props);
-  }
+/**
+ * Breadcrumb title sets the breadcrumb label for the provided route match
+ */
+function BreadcrumbTitle(props: Props) {
+  useBreadcrumbTitleEffect(props);
 
-  render() {
-    return null;
-  }
+  return null;
 }
 
 export default BreadcrumbTitle;

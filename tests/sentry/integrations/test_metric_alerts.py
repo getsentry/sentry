@@ -1,15 +1,18 @@
 from datetime import timedelta
 
+import pytest
 from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models import IncidentStatus, IncidentTrigger
 from sentry.integrations.metric_alerts import incident_attachment_info
-from sentry.snuba.models import QueryDatasets
+from sentry.snuba.dataset import Dataset
 from sentry.testutils import BaseIncidentsTest, SnubaTestCase, TestCase
-from sentry.testutils.cases import SessionMetricsTestCase
+from sentry.testutils.cases import BaseMetricsTestCase
 from sentry.utils.dates import to_timestamp
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
@@ -33,9 +36,12 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
 
         assert data["title"] == f"Resolved: {alert_rule.name}"
         assert data["status"] == "Resolved"
-        assert data["text"] == "123 events in the last 10 minutes\nFilter: level:error"
+        assert data["text"] == "123 events in the last 10 minutes"
         assert data["ts"] == date_started
-        assert data["title_link"] == "http://testserver/organizations/baz/alerts/1/"
+        assert (
+            data["title_link"]
+            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+        )
         assert (
             data["logo_url"]
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
@@ -77,9 +83,12 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
             alert_rule.name
         )  # Pulls from trigger, not incident
         assert data["status"] == "Critical"  # Should pull from the action/trigger.
-        assert data["text"] == "4 events in the last 10 minutes\nFilter: level:error"
+        assert data["text"] == "4 events in the last 10 minutes"
         assert data["ts"] == date_started
-        assert data["title_link"] == "http://testserver/organizations/baz/alerts/1/"
+        assert (
+            data["title_link"]
+            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+        )
         assert (
             data["logo_url"]
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
@@ -89,9 +98,12 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         data = incident_attachment_info(incident, IncidentStatus.CLOSED)
         assert data["title"] == f"Resolved: {alert_rule.name}"
         assert data["status"] == "Resolved"
-        assert data["text"] == "4 events in the last 10 minutes\nFilter: level:error"
+        assert data["text"] == "4 events in the last 10 minutes"
         assert data["ts"] == date_started
-        assert data["title_link"] == "http://testserver/organizations/baz/alerts/1/"
+        assert (
+            data["title_link"]
+            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+        )
         assert (
             data["logo_url"]
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
@@ -101,16 +113,22 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         data = incident_attachment_info(incident, IncidentStatus.CLOSED)
         assert data["title"] == f"Resolved: {alert_rule.name}"
         assert data["status"] == "Resolved"
-        assert data["text"] == "4 events in the last 10 minutes\nFilter: level:error"
+        assert data["text"] == "4 events in the last 10 minutes"
         assert data["ts"] == date_started
-        assert data["title_link"] == "http://testserver/organizations/baz/alerts/1/"
+        assert (
+            data["title_link"]
+            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+        )
         assert (
             data["logo_url"]
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
         )
 
 
-@freeze_time("2021-10-18 13:00:00+00:00")
+MOCK_NOW = timezone.now().replace(hour=13, minute=0, second=0, microsecond=0)
+
+
+@freeze_time(MOCK_NOW)
 class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -122,7 +140,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, SnubaTestCase):
         self.alert_rule = self.create_alert_rule(
             query="",
             aggregate=f"percentage({field}_crashed, {field}) AS _crash_rate_alert_aggregate",
-            dataset=QueryDatasets.SESSIONS,
+            dataset=Dataset.Sessions,
             time_window=60,
         )
         self.incident = self.create_incident(
@@ -193,7 +211,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, SnubaTestCase):
         alert_rule = self.create_alert_rule(
             query="",
             aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
-            dataset=QueryDatasets.SESSIONS,
+            dataset=Dataset.Sessions,
             time_window=60,
         )
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 95)
@@ -215,15 +233,15 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, SnubaTestCase):
         assert data["text"] == "No sessions crash free rate in the last 60 minutes"
 
 
-@freeze_time("2021-10-18 13:00:00+00:00")
+@freeze_time(MOCK_NOW)
 class IncidentAttachmentInfoTestForMetricsCrashRateAlerts(
-    IncidentAttachmentInfoTestForCrashRateAlerts, SessionMetricsTestCase
+    IncidentAttachmentInfoTestForCrashRateAlerts, BaseMetricsTestCase
 ):
     def create_incident_and_related_objects(self, field="sessions"):
         self.alert_rule = self.create_alert_rule(
             query="",
             aggregate=f"percentage({field}_crashed, {field}) AS _crash_rate_alert_aggregate",
-            dataset=QueryDatasets.METRICS,
+            dataset=Dataset.Metrics,
             time_window=60,
         )
         self.incident = self.create_incident(

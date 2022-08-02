@@ -1,14 +1,22 @@
 import {t} from 'sentry/locale';
 
-const VALUE_EXTRACT_PATTERN = /(\d+)$/;
+const AGGREGATE_ALIAS_VALUE_EXTRACT_PATTERN = /(\d+)$/;
+const FUNCTION_FIELD_VALUE_EXTRACT_PATTERN = /(\d+)\)$/;
 
 /**
  * Convert a discover response into a barchart compatible series
  */
-export function transformData(data: Record<string, number>[]) {
+export function transformData(
+  data: Record<string, number>[],
+  useAggregateAlias: boolean = true
+) {
   const extractedData = Object.keys(data[0])
     .map((key: string) => {
-      const nameMatch = VALUE_EXTRACT_PATTERN.exec(key);
+      const nameMatch = (
+        useAggregateAlias
+          ? AGGREGATE_ALIAS_VALUE_EXTRACT_PATTERN
+          : FUNCTION_FIELD_VALUE_EXTRACT_PATTERN
+      ).exec(key);
       if (!nameMatch) {
         return [-1, -1];
       }

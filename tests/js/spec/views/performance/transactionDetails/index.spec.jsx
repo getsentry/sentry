@@ -10,7 +10,7 @@ const alertText =
 describe('EventDetails', () => {
   afterEach(cleanup);
 
-  it('renders alert for sample transaction', async () => {
+  it('renders alert for sample transaction', () => {
     const project = TestStubs.Project();
     ProjectsStore.loadInitialData([project]);
     const organization = TestStubs.Organization({

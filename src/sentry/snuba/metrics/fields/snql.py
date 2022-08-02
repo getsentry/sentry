@@ -2,7 +2,8 @@ from typing import List
 
 from snuba_sdk import Column, Function
 
-from sentry.sentry_metrics.utils import resolve_weak
+from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value, resolve_tag_values
 from sentry.snuba.metrics.naming_layer.public import (
     TransactionSatisfactionTagValue,
     TransactionStatusTagValue,
@@ -22,8 +23,14 @@ def _aggregation_on_session_status_func_factory(aggregate):
                         Function(
                             "equals",
                             [
-                                Column(f"tags[{resolve_weak(org_id, 'session.status')}]"),
-                                resolve_weak(org_id, session_status),
+                                Column(
+                                    resolve_tag_key(
+                                        UseCaseKey.RELEASE_HEALTH, org_id, "session.status"
+                                    )
+                                ),
+                                resolve_tag_value(
+                                    UseCaseKey.RELEASE_HEALTH, org_id, session_status
+                                ),
                             ],
                         ),
                         Function("in", [Column("metric_id"), list(metric_ids)]),
@@ -60,9 +67,11 @@ def _aggregation_on_tx_status_func_factory(aggregate):
             return metric_match
 
         tx_col = Column(
-            f"tags[{resolve_weak(org_id, TransactionTagsKey.TRANSACTION_STATUS.value)}]"
+            resolve_tag_key(
+                UseCaseKey.PERFORMANCE, org_id, TransactionTagsKey.TRANSACTION_STATUS.value
+            )
         )
-        excluded_statuses = [resolve_weak(org_id, s) for s in exclude_tx_statuses]
+        excluded_statuses = resolve_tag_values(UseCaseKey.PERFORMANCE, org_id, exclude_tx_statuses)
         exclude_tx_statuses = Function(
             "notIn",
             [
@@ -110,9 +119,15 @@ def _aggregation_on_tx_satisfaction_func_factory(aggregate):
                             "equals",
                             [
                                 Column(
-                                    f"tags[{resolve_weak(org_id, TransactionTagsKey.TRANSACTION_SATISFACTION.value)}]"
+                                    resolve_tag_key(
+                                        UseCaseKey.PERFORMANCE,
+                                        org_id,
+                                        TransactionTagsKey.TRANSACTION_SATISFACTION.value,
+                                    )
                                 ),
-                                resolve_weak(org_id, satisfaction_value),
+                                resolve_tag_value(
+                                    UseCaseKey.PERFORMANCE, org_id, satisfaction_value
+                                ),
                             ],
                         ),
                         Function("in", [Column("metric_id"), list(metric_ids)]),
@@ -148,9 +163,7 @@ def all_sessions(org_id: int, metric_ids, alias=None):
 
 
 def all_users(org_id: int, metric_ids, alias=None):
-    return _set_uniq_aggregation_on_session_status_factory(
-        org_id, session_status="init", metric_ids=metric_ids, alias=alias
-    )
+    return uniq_aggregation_on_metric(metric_ids, alias)
 
 
 def crashed_sessions(org_id: int, metric_ids, alias=None):
@@ -189,7 +202,7 @@ def errored_all_users(org_id: int, metric_ids, alias=None):
     )
 
 
-def sessions_errored_set(metric_ids, alias=None):
+def uniq_aggregation_on_metric(metric_ids, alias=None):
     return Function(
         "uniqIf",
         [
@@ -241,9 +254,9 @@ def tolerated_count_transaction(org_id, metric_ids, alias=None):
     )
 
 
-def apdex(satifactory_snql, tolerable_snql, total_snql, alias=None):
+def apdex(satisfactory_snql, tolerable_snql, total_snql, alias=None):
     return division_float(
-        arg1_snql=addition(satifactory_snql, division_float(tolerable_snql, 2)),
+        arg1_snql=addition(satisfactory_snql, division_float(tolerable_snql, 2)),
         arg2_snql=total_snql,
         alias=alias,
     )
@@ -256,10 +269,6 @@ def miserable_users(org_id, metric_ids, alias=None):
         metric_ids=metric_ids,
         alias=alias,
     )
-
-
-def percentage(arg1_snql, arg2_snql, alias=None):
-    return Function("minus", [1, Function("divide", [arg1_snql, arg2_snql])], alias)
 
 
 def subtraction(arg1_snql, arg2_snql, alias=None):
@@ -280,13 +289,18 @@ def division_float(arg1_snql, arg2_snql, alias=None):
     )
 
 
+def complement(arg1_snql, alias=None):
+    """(x) -> (1 - x)"""
+    return Function("minus", [1.0, arg1_snql], alias=alias)
+
+
 def session_duration_filters(org_id):
     return [
         Function(
             "equals",
             (
-                Column(f"tags[{resolve_weak(org_id, 'session.status')}]"),
-                resolve_weak(org_id, "exited"),
+                Column(resolve_tag_key(UseCaseKey.RELEASE_HEALTH, org_id, "session.status")),
+                resolve_tag_value(UseCaseKey.RELEASE_HEALTH, org_id, "exited"),
             ),
         )
     ]

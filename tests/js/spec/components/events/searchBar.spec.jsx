@@ -88,8 +88,8 @@ describe('Events > SearchBar', function () {
     wrapper.update();
 
     expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('fcp');
-    expect(wrapper.find('SearchDropdown Description').first().text()).toEqual(
-      'measurements.fcp:'
+    expect(wrapper.find('SearchDropdown SearchItemTitleWrapper').first().text()).toEqual(
+      'measurements.fcp'
     );
   });
 
@@ -104,12 +104,15 @@ describe('Events > SearchBar', function () {
     wrapper.update();
 
     expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('release.');
-    expect(wrapper.find('SearchDropdown Description').first().text()).toEqual(
-      'release.version:'
+    expect(wrapper.find('SearchDropdown FirstWordWrapper').first().text()).toEqual(
+      'release'
+    );
+    expect(wrapper.find('SearchDropdown RestOfWordsContainer').first().text()).toEqual(
+      '.build'
     );
   });
 
-  it('autocompletes has suggestions correctly', async function () {
+  it('autocomplete has suggestions correctly', async function () {
     const wrapper = mountWithTheme(<SearchBar {...props} />, options);
     await tick();
     setQuery(wrapper, 'has:');
@@ -118,9 +121,16 @@ describe('Events > SearchBar', function () {
     wrapper.update();
 
     expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('');
-    expect(wrapper.find('SearchDropdown Description').at(2).text()).toEqual('gpu');
+    expect(wrapper.find('SearchDropdown Value').contains('gpu')).toBe(true);
 
-    selectNthAutocompleteItem(wrapper, 2);
+    const itemIndex = wrapper
+      .find('SearchListItem[data-test-id="search-autocomplete-item"]')
+      .map(node => node)
+      .findIndex(node => node.text() === 'gpu');
+
+    expect(itemIndex).not.toBe(-1);
+
+    selectNthAutocompleteItem(wrapper, itemIndex);
     wrapper.update();
     // the trailing space is important here as without it, autocomplete suggestions will
     // try to complete `has:gpu` thinking the token has not ended yet
@@ -143,9 +153,7 @@ describe('Events > SearchBar', function () {
     wrapper.update();
 
     expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('');
-    expect(wrapper.find('SearchDropdown Description').at(2).text()).toEqual(
-      '"Nvidia 1080ti"'
-    );
+    expect(wrapper.find('SearchDropdown Value').at(2).text()).toEqual('"Nvidia 1080ti"');
 
     selectNthAutocompleteItem(wrapper, 2);
     wrapper.update();
@@ -174,9 +182,7 @@ describe('Events > SearchBar', function () {
     );
 
     expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('');
-    expect(wrapper.find('SearchDropdown Description').at(2).text()).toEqual(
-      '"Nvidia 1080ti"'
-    );
+    expect(wrapper.find('SearchDropdown Value').contains('"Nvidia 1080ti"')).toBe(true);
     selectNthAutocompleteItem(wrapper, 2);
 
     wrapper.find('textarea').simulate('keydown', {key: 'Enter'});
@@ -184,35 +190,34 @@ describe('Events > SearchBar', function () {
     expect(onSearch).toHaveBeenCalledTimes(1);
   });
 
-  it('filters dropdown to accomodate for num characters left in query', async function () {
+  it('filters dropdown to accommodate for num characters left in query', async function () {
     const wrapper = mountWithTheme(<SearchBar {...props} maxQueryLength={5} />, options);
     await tick();
     wrapper.update();
-    wrapper.setState;
 
     setQuery(wrapper, 'g');
     await tick();
     wrapper.update();
 
     expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('g');
-    expect(wrapper.find('SearchDropdown Description')).toEqual({});
+    expect(wrapper.find('SearchDropdown SearchItemTitleWrapper')).toEqual({});
+
     expect(
       wrapper.find('SearchListItem[data-test-id="search-autocomplete-item"]')
-    ).toHaveLength(1);
+    ).toHaveLength(2);
   });
 
   it('returns zero dropdown suggestions if out of characters', async function () {
     const wrapper = mountWithTheme(<SearchBar {...props} maxQueryLength={2} />, options);
     await tick();
     wrapper.update();
-    wrapper.setState;
 
     setQuery(wrapper, 'g');
     await tick();
     wrapper.update();
 
     expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('g');
-    expect(wrapper.find('SearchDropdown Description')).toEqual({});
+    expect(wrapper.find('SearchDropdown SearchItemTitleWrapper')).toEqual({});
     expect(
       wrapper.find('SearchListItem[data-test-id="search-autocomplete-item"]')
     ).toHaveLength(0);
@@ -251,14 +256,14 @@ describe('Events > SearchBar', function () {
     await tick();
     wrapper.update();
 
-    expect(wrapper.find('Description strong').text()).toBe('gpu');
+    expect(wrapper.find('SearchItemTitleWrapper strong').text()).toBe('gpu');
 
     // Should have nothing highlighted
     setQuery(wrapper, '');
     await tick();
     wrapper.update();
 
-    expect(wrapper.find('Description strong')).toHaveLength(0);
+    expect(wrapper.find('SearchItemTitleWrapper strong')).toHaveLength(0);
   });
 
   it('ignores negation ("!") at the beginning of search term', async function () {
@@ -275,7 +280,7 @@ describe('Events > SearchBar', function () {
     ).toHaveLength(1);
     expect(
       wrapper.find('SearchListItem[data-test-id="search-autocomplete-item"]').text()
-    ).toBe('gpu:');
+    ).toMatch(/^gpu/);
   });
 
   it('ignores wildcard ("*") at the beginning of tag value query', async function () {

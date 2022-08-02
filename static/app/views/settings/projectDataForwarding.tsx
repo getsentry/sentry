@@ -163,7 +163,7 @@ class ProjectDataForwarding extends AsyncComponent<Props, State> {
 
               <Alert showIcon>
                 {tct(
-                  `Sentry forwards [em:all applicable events] to the provider, in
+                  `Sentry forwards [em:all applicable error events] to the provider, in
                 some cases this may be a significant volume of data.`,
                   {
                     em: <strong />,
@@ -174,7 +174,7 @@ class ProjectDataForwarding extends AsyncComponent<Props, State> {
               {!hasFeature && (
                 <FeatureDisabled
                   alert
-                  featureName="Data Forwarding"
+                  featureName={t('Data Forwarding')}
                   features={features}
                 />
               )}

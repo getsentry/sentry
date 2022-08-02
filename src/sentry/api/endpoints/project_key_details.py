@@ -3,13 +3,13 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import audit_log, features
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ProjectKeySerializer
 from sentry.loader.browsersdkversion import get_default_sdk_version_for_project
-from sentry.models import AuditLogEntryEvent, ProjectKey, ProjectKeyStatus
+from sentry.models import ProjectKey, ProjectKeyStatus
 
 
 class ProjectKeyDetailsEndpoint(ProjectEndpoint):
@@ -84,7 +84,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
                 request=request,
                 organization=project.organization,
                 target_object=key.id,
-                event=AuditLogEntryEvent.PROJECTKEY_EDIT,
+                event=audit_log.get_event_id("PROJECTKEY_EDIT"),
                 data=key.get_audit_log_data(),
             )
 
@@ -116,7 +116,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
             request=request,
             organization=project.organization,
             target_object=key.id,
-            event=AuditLogEntryEvent.PROJECTKEY_REMOVE,
+            event=audit_log.get_event_id("PROJECTKEY_REMOVE"),
             data=key.get_audit_log_data(),
         )
 

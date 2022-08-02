@@ -6,6 +6,7 @@ import Button from 'sentry/components/button';
 import {IconClose, IconMenu} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {fadeIn, slideInLeft} from 'sentry/styles/animations';
+import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 
 import SettingsBreadcrumb from './settingsBreadcrumb';
@@ -111,7 +112,7 @@ const NavMenuToggle = styled(Button)`
   &:active {
     color: ${p => p.theme.textColor};
   }
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: block;
   }
 `;
@@ -132,7 +133,7 @@ const SidebarWrapper = styled('div')<{isVisible: boolean; offsetTop: number}>`
   background: ${p => p.theme.background};
   border-right: 1px solid ${p => p.theme.border};
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: ${p => (p.isVisible ? 'block' : 'none')};
     position: fixed;
     top: ${p => p.offsetTop}px;
@@ -146,7 +147,7 @@ const SidebarWrapper = styled('div')<{isVisible: boolean; offsetTop: number}>`
 
 const NavMask = styled('div')<{isVisible: boolean}>`
   display: none;
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: ${p => (p.isVisible ? 'block' : 'none')};
     background: rgba(0, 0, 0, 0.35);
     height: 100%;
@@ -165,6 +166,14 @@ const Content = styled('div')`
   flex: 1;
   padding: ${space(4)};
   min-width: 0; /* keep children from stretching container */
+
+  /**
+   * PageContent is not normally used in settings but <PermissionDenied /> uses it under the hood.
+   * This prevents double padding.
+   */
+  ${PageContent} {
+    padding: 0;
+  }
 `;
 
 export default SettingsLayout;

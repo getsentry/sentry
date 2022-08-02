@@ -1,8 +1,10 @@
 import styled from '@emotion/styled';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
+import {navigateTo} from 'sentry/actionCreators/navigation';
 import {Client} from 'sentry/api';
 import {taskIsDone} from 'sentry/components/onboardingWizard/utils';
+import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
 import {sourceMaps} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
@@ -17,6 +19,9 @@ import {
 } from 'sentry/types';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import withApi from 'sentry/utils/withApi';
+import {OnboardingState} from 'sentry/views/onboarding/targetedOnboarding/types';
+
+import OnboardingProjectsCard from './onboardingCard';
 
 function hasPlatformWithSourceMaps(projects: Project[] | undefined) {
   return projects !== undefined
@@ -33,6 +38,8 @@ type Options = {
    * The organization to show onboarding tasks for
    */
   organization: Organization;
+  onboardingState?: OnboardingState;
+
   /**
    * A list of the organizations projects. This is used for some onboarding
    * tasks to show additional task details (such as for suggesting sourcemaps)
@@ -40,9 +47,32 @@ type Options = {
   projects?: Project[];
 };
 
+function getIssueAlertUrl({projects, organization}: Options) {
+  if (!projects || !projects.length) {
+    return `/organizations/${organization.slug}/alerts/rules/`;
+  }
+  // pick the first project with events if we have that, otherwise just pick the first project
+  const firstProjectWithEvents = projects.find(project => !!project.firstEvent);
+  const project = firstProjectWithEvents ?? projects[0];
+  return `/organizations/${organization.slug}/alerts/${project.slug}/wizard/`;
+}
+
+function getMetricAlertUrl({projects, organization}: Options) {
+  if (!projects || !projects.length) {
+    return `/organizations/${organization.slug}/alerts/rules/`;
+  }
+  // pick the first project with transaction events if we have that, otherwise just pick the first project
+  const firstProjectWithEvents = projects.find(
+    project => !!project.firstTransactionEvent
+  );
+  const project = firstProjectWithEvents ?? projects[0];
+  return `/organizations/${organization.slug}/alerts/${project.slug}/wizard/?alert_option=trans_duration`;
+}
+
 export function getOnboardingTasks({
   organization,
   projects,
+  onboardingState,
 }: Options): OnboardingTaskDescriptor[] {
   return [
     {
@@ -95,6 +125,18 @@ export function getOnboardingTasks({
       display: true,
     },
     {
+      task: OnboardingTaskKey.FIRST_INTEGRATION,
+      title: t('Install any of our 40+ integrations'),
+      description: t(
+        'Get alerted in Slack. Two-way sync issues between Sentry and Jira. Notify Sentry of releases from GitHub, Vercel, or Netlify.'
+      ),
+      skippable: true,
+      requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
+      actionType: 'app',
+      location: `/settings/${organization.slug}/integrations/`,
+      display: true,
+    },
+    {
       task: OnboardingTaskKey.SECOND_PLATFORM,
       title: t('Create another project'),
       description: t(
@@ -114,8 +156,44 @@ export function getOnboardingTasks({
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
-      actionType: 'external',
-      location: 'https://docs.sentry.io/product/performance/getting-started/',
+      actionType: 'action',
+      action: ({router}) => {
+        if (!organization.features?.includes('performance-onboarding-checklist')) {
+          window.open(
+            'https://docs.sentry.io/product/performance/getting-started/',
+            '_blank'
+          );
+          return;
+        }
+
+        // TODO: add analytics here for this specific action.
+
+        if (!projects) {
+          navigateTo(`/organizations/${organization.slug}/performance/`, router);
+          return;
+        }
+
+        const {projectsWithoutFirstTransactionEvent, projectsForOnboarding} =
+          filterProjects(projects);
+
+        if (projectsWithoutFirstTransactionEvent.length <= 0) {
+          navigateTo(`/organizations/${organization.slug}/performance/`, router);
+          return;
+        }
+
+        if (projectsForOnboarding.length) {
+          navigateTo(
+            `/organizations/${organization.slug}/performance/?project=${projectsForOnboarding[0].id}#performance-sidequest`,
+            router
+          );
+          return;
+        }
+
+        navigateTo(
+          `/organizations/${organization.slug}/performance/?project=${projectsWithoutFirstTransactionEvent[0].id}#performance-sidequest`,
+          router
+        );
+      },
       display: true,
       SupplementComponent: withApi(({api, task, onCompleteTask}: FirstEventWaiterProps) =>
         !!projects?.length && task.requisiteTasks.length === 0 && !task.completionSeen ? (
@@ -194,21 +272,44 @@ export function getOnboardingTasks({
     },
     {
       task: OnboardingTaskKey.ALERT_RULE,
-      title: t('Get smarter alerts'),
+      title: t('Configure an Issue Alert'),
       description: t(
-        "Customize alerting rules by issue or metric. You'll get the exact information you need precisely when you need it."
+        'We all have issues. Get real-time error notifications by setting up alerts for issues that match your set criteria.'
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
       actionType: 'app',
-      location: `/organizations/${organization.slug}/alerts/rules/`,
+      location: getIssueAlertUrl({projects, organization, onboardingState}),
       display: true,
+    },
+    {
+      task: OnboardingTaskKey.METRIC_ALERT,
+      title: t('Create a Performance Alert'),
+      description: t(
+        'See slow fast with performance alerts. Set up alerts for notifications about slow page load times, API latency, or when throughput significantly deviates from normal.'
+      ),
+      skippable: true,
+      requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_TRANSACTION],
+      actionType: 'app',
+      location: getMetricAlertUrl({projects, organization, onboardingState}),
+      display: organization.features?.includes('incidents'),
+    },
+    {
+      task: OnboardingTaskKey.USER_SELECTED_PROJECTS,
+      title: t('Projects to Setup'),
+      description: '',
+      skippable: true,
+      requisites: [],
+      actionType: 'action',
+      action: () => {},
+      display: true,
+      renderCard: OnboardingProjectsCard,
     },
   ];
 }
 
-export function getMergedTasks({organization, projects}: Options) {
-  const taskDescriptors = getOnboardingTasks({organization, projects});
+export function getMergedTasks({organization, projects, onboardingState}: Options) {
+  const taskDescriptors = getOnboardingTasks({organization, projects, onboardingState});
   const serverTasks = organization.onboardingTasks;
 
   // Map server task state (i.e. completed status) with tasks objects
@@ -216,7 +317,10 @@ export function getMergedTasks({organization, projects}: Options) {
     desc =>
       ({
         ...desc,
-        ...serverTasks.find(serverTask => serverTask.task === desc.task),
+        ...serverTasks.find(
+          serverTask =>
+            serverTask.task === desc.task || serverTask.task === desc.serverTask
+        ),
         requisiteTasks: [],
       } as OnboardingTask)
   );

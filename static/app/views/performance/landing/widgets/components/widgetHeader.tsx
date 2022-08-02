@@ -4,7 +4,7 @@ import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
 import space from 'sentry/styles/space';
-import {MEPTag} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceContext';
+import {MEPTag} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 
 import {
   GenericPerformanceWidgetProps,
@@ -47,10 +47,12 @@ const TitleContainer = styled('div')`
 const WidgetHeaderContainer = styled('div')`
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
   gap: ${space(1)};
 `;
 
 const HeaderActionsContainer = styled('div')`
   display: flex;
+  align-items: center;
   gap: ${space(1)};
 `;

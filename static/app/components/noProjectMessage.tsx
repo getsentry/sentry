@@ -13,10 +13,11 @@ import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import useProjects from 'sentry/utils/useProjects';
 
-type Props = React.PropsWithChildren<{
+type Props = {
   organization: Organization;
+  children?: React.ReactNode;
   superuserNeedsToBeProjectMember?: boolean;
-}>;
+};
 
 function NoProjectMessage({
   children,

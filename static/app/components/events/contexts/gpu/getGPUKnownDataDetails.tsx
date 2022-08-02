@@ -8,7 +8,12 @@ type Output = {
   value?: React.ReactNode;
 };
 
-function getGPUKnownDataDetails(data: GPUData, type: GPUKnownDataType): Output {
+type Props = {
+  data: GPUData;
+  type: GPUKnownDataType;
+};
+
+export function getGPUKnownDataDetails({data, type}: Props): Output | undefined {
   switch (type) {
     case GPUKnownDataType.NAME:
       return {
@@ -29,6 +34,11 @@ function getGPUKnownDataDetails(data: GPUData, type: GPUKnownDataType): Output {
       return {
         subject: t('NPOT Support'),
         value: data.npot_support,
+      };
+    case GPUKnownDataType.VENDOR_NAME:
+      return {
+        subject: t('Vendor Name'),
+        value: data.vendor_name,
       };
     case GPUKnownDataType.MULTI_THREAD_RENDERING:
       return {
@@ -51,11 +61,6 @@ function getGPUKnownDataDetails(data: GPUData, type: GPUKnownDataType): Output {
         value: data.id,
       };
     default:
-      return {
-        subject: type,
-        value: data[type],
-      };
+      return undefined;
   }
 }
-
-export default getGPUKnownDataDetails;

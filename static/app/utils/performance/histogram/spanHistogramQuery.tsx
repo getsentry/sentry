@@ -14,8 +14,8 @@ type HistogramProps = {
   span: SpanSlug;
   dataFilter?: DataFilter;
   didReceiveMultiAxis?: (axisCounts: Record<string, number>) => void;
-  max?: number;
-  min?: number;
+  max?: string;
+  min?: string;
   precision?: number;
 };
 

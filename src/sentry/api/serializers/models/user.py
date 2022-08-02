@@ -171,7 +171,7 @@ class UserSerializer(Serializer):  # type: ignore
 
             d["options"] = {
                 "theme": options.get("theme") or "light",
-                "language": options.get("language") or "en",
+                "language": options.get("language") or settings.SENTRY_DEFAULT_LANGUAGE,
                 "stacktraceOrder": stacktrace_order,
                 "timezone": options.get("timezone") or settings.SENTRY_DEFAULT_TIME_ZONE,
                 "clock24Hours": options.get("clock_24_hours") or False,
@@ -294,8 +294,9 @@ class DetailedSelfUserSerializer(UserSerializer):
         permissions = manytoone_to_dict(
             UserPermission.objects.filter(user__in=item_list), "user_id"
         )
-        # XXX(dcramer): theres def a way to write this query using djangos awkward orm magic to cache it using `UserRole`
-        # but at least someone can understand this direction of access/optimization
+        # XXX(dcramer): There is definitely a way to write this query using
+        #  Django's awkward ORM magic to cache it using `UserRole` but at least
+        #  someone can understand this direction of access/optimization.
         roles = {
             ur.user_id: ur.role.permissions
             for ur in UserRoleUser.objects.filter(user__in=item_list).select_related("role")

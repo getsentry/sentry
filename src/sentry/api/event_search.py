@@ -11,6 +11,7 @@ from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.nodes import Node
 
 from sentry.search.events.constants import (
+    DURATION_UNITS,
     OPERATOR_NEGATION_MAP,
     SEARCH_MAP,
     SEMVER_ALIAS,
@@ -27,8 +28,8 @@ from sentry.search.utils import (
     parse_duration,
     parse_numeric_value,
     parse_percentage,
+    parse_size,
 )
-from sentry.utils.compat import filter, map
 from sentry.utils.snuba import (
     Dataset,
     is_duration_measurement,
@@ -62,12 +63,14 @@ filter = date_filter
        / specific_date_filter
        / rel_date_filter
        / duration_filter
+       / size_filter
        / boolean_filter
        / numeric_in_filter
        / numeric_filter
        / aggregate_duration_filter
        / aggregate_percentage_filter
        / aggregate_numeric_filter
+       / aggregate_size_filter
        / aggregate_date_filter
        / aggregate_rel_date_filter
        / has_filter
@@ -87,6 +90,9 @@ rel_date_filter = search_key sep rel_date_format
 # filter for durations
 duration_filter = negation? search_key sep operator? duration_format
 
+# filter for size
+size_filter = negation? search_key sep operator? size_format
+
 # boolean comparison filter
 boolean_filter = negation? search_key sep boolean_value
 
@@ -98,6 +104,9 @@ numeric_filter = negation? search_key sep operator? numeric_value
 
 # aggregate duration filter
 aggregate_duration_filter = negation? aggregate_key sep operator? duration_format
+
+# aggregate size filter
+aggregate_size_filter = negation? aggregate_key sep operator? size_format
 
 # aggregate percentage filter
 aggregate_percentage_filter = negation? aggregate_key sep operator? percentage_format
@@ -157,6 +166,7 @@ tz_format   = ~r"[+-]\d{2}:\d{2}"
 iso_8601_date_format = date_format time_format? ("Z" / tz_format)? &end_value
 rel_date_format      = ~r"[+-][0-9]+[wdhm]" &end_value
 duration_format      = numeric ("ms"/"s"/"min"/"m"/"hr"/"h"/"day"/"d"/"wk"/"w") &end_value
+size_format          = numeric ("bit"/"nb"/"bytes"/"kb"/"mb"/"gb"/"tb"/"pb"/"eb"/"zb"/"yb") &end_value
 percentage_format    = numeric "%"
 
 # NOTE: the order in which these operators are listed matters because for
@@ -251,14 +261,14 @@ def remove_optional_nodes(children):
     def is_not_optional(child):
         return not (isinstance(child, Node) and isinstance(child.expr, Optional))
 
-    return filter(is_not_optional, children)
+    return list(filter(is_not_optional, children))
 
 
 def remove_space(children):
     def is_not_space(text):
         return not (isinstance(text, str) and text == " " * len(text))
 
-    return filter(is_not_space, children)
+    return list(filter(is_not_space, children))
 
 
 def process_list(first, remaining):
@@ -355,6 +365,8 @@ class SearchValue(NamedTuple):
 
         Empty strings are valid, so that it can be used for has:id queries
         """
+        if isinstance(self.raw_value, list):
+            return all(isinstance(value, str) and is_event_id(value) for value in self.raw_value)
         if not isinstance(self.raw_value, str):
             return False
         return is_event_id(self.raw_value) or self.raw_value == ""
@@ -375,7 +387,7 @@ class SearchFilter(NamedTuple):
     value: SearchValue
 
     def __str__(self):
-        return "".join(map(str, (self.key.name, self.operator, self.value.raw_value)))
+        return f"{self.key.name}{self.operator}{self.value.raw_value}"
 
     @property
     def is_negation(self) -> bool:
@@ -402,7 +414,7 @@ class AggregateFilter(NamedTuple):
     value: SearchValue
 
     def __str__(self):
-        return "".join(map(str, (self.key.name, self.operator, self.value.raw_value)))
+        return f"{self.key.name}{self.operator}{self.value.raw_value}"
 
 
 class AggregateKey(NamedTuple):
@@ -448,6 +460,9 @@ class SearchConfig:
     # Allows us to specify an allowlist of keys we will accept for this search.
     # If empty, allow all keys.
     allowed_keys: Set[str] = field(default_factory=set)
+
+    # Allows us to specify a list of keys we will not accept for this search.
+    blocked_keys: Set[str] = field(default_factory=set)
 
     # Which key we should return any free text under
     free_text_key = "message"
@@ -654,6 +669,26 @@ class SearchVisitor(NodeVisitor):
         operator = "!=" if is_negated(negation) else "="
         return self._handle_basic_filter(search_key, operator, SearchValue(search_value))
 
+    def visit_size_filter(self, node, children):
+        (negation, search_key, _, operator, search_value) = children
+        # The only size keys we have are custom measurements right now
+        if is_measurement(search_key.name):
+            operator = handle_negation(negation, operator)
+        else:
+            operator = get_operator_value(operator)
+
+        if is_measurement(search_key.name):
+            try:
+                search_value = parse_size(*search_value)
+            except InvalidQuery as exc:
+                raise InvalidSearchQuery(str(exc))
+            return SearchFilter(search_key, operator, SearchValue(search_value))
+
+        search_value = "".join(search_value)
+        search_value = operator + search_value if operator not in ("=", "!=") else search_value
+        operator = "!=" if is_negated(negation) else "="
+        return self._handle_basic_filter(search_key, operator, SearchValue(search_value))
+
     def visit_boolean_filter(self, node, children):
         (negation, search_key, sep, search_value) = children
         negated = is_negated(negation)
@@ -718,7 +753,7 @@ class SearchVisitor(NodeVisitor):
             # duration for certain columns
             result_type = self.builder.get_function_result_type(search_key.name)
 
-            if result_type == "duration":
+            if result_type == "duration" or result_type in DURATION_UNITS:
                 aggregate_value = parse_duration(*search_value)
             else:
                 # Duration overlaps with numeric values with `m` (million vs
@@ -728,6 +763,19 @@ class SearchVisitor(NodeVisitor):
                 # TODO(epurkhiser): Should we validate that the field is
                 # numeric and do some other fallback if it's not?
                 aggregate_value = parse_numeric_value(*search_value)
+        except ValueError:
+            raise InvalidSearchQuery(f"Invalid aggregate query condition: {search_key}")
+        except InvalidQuery as exc:
+            raise InvalidSearchQuery(str(exc))
+
+        return AggregateFilter(search_key, operator, SearchValue(aggregate_value))
+
+    def visit_aggregate_size_filter(self, node, children):
+        (negation, search_key, _, operator, search_value) = children
+        operator = handle_negation(negation, operator)
+
+        try:
+            aggregate_value = parse_size(*search_value)
         except ValueError:
             raise InvalidSearchQuery(f"Invalid aggregate query condition: {search_key}")
         except InvalidQuery as exc:
@@ -923,8 +971,12 @@ class SearchVisitor(NodeVisitor):
 
     def visit_search_key(self, node, children):
         key = children[0]
-        if self.config.allowed_keys and key not in self.config.allowed_keys:
-            raise InvalidSearchQuery("Invalid key for this search")
+        if (
+            self.config.allowed_keys
+            and key not in self.config.allowed_keys
+            or key in self.config.blocked_keys
+        ):
+            raise InvalidSearchQuery(f"Invalid key for this search: {key}")
         return SearchKey(self.key_mappings_lookup.get(key, key))
 
     def visit_text_key(self, node, children):
@@ -989,6 +1041,9 @@ class SearchVisitor(NodeVisitor):
         return node
 
     def visit_duration_format(self, node, children):
+        return [children[0], children[1][0].text]
+
+    def visit_size_format(self, node, children):
         return [children[0], children[1][0].text]
 
     def visit_percentage_format(self, node, children):
@@ -1066,7 +1121,9 @@ default_config = SearchConfig(
 )
 
 
-def parse_search_query(query, config=None, params=None, builder=None) -> Sequence[SearchFilter]:
+def parse_search_query(
+    query, config=None, params=None, builder=None, config_overrides=None
+) -> Sequence[SearchFilter]:
     if config is None:
         config = default_config
 
@@ -1082,4 +1139,7 @@ def parse_search_query(query, config=None, params=None, builder=None) -> Sequenc
                 "This is commonly caused by unmatched parentheses. Enclose any text in double quotes.",
             )
         )
+
+    if config_overrides:
+        config = SearchConfig.create_from(config, **config_overrides)
     return SearchVisitor(config, params=params, builder=builder).visit(tree)

@@ -30,6 +30,9 @@ from sentry.web.frontend.debug.debug_oauth_authorize import (
     DebugOAuthAuthorizeErrorView,
     DebugOAuthAuthorizeView,
 )
+from sentry.web.frontend.debug.debug_onboarding_continuation_email import (
+    DebugOrganizationOnboardingContinuationEmail,
+)
 from sentry.web.frontend.debug.debug_organization_invite_request import (
     DebugOrganizationInviteRequestEmailView,
 )
@@ -44,6 +47,7 @@ from sentry.web.frontend.debug.debug_regression_email import (
     DebugRegressionEmailView,
     DebugRegressionReleaseEmailView,
 )
+from sentry.web.frontend.debug.debug_release_summary_email import DebugReleaseSummaryEmailView
 from sentry.web.frontend.debug.debug_resolved_email import DebugResolvedEmailView
 from sentry.web.frontend.debug.debug_resolved_in_release_email import (
     DebugResolvedInReleaseEmailView,
@@ -68,6 +72,8 @@ urlpatterns = [
     url(r"^debug/mail/alert/$", sentry.web.frontend.debug.mail.alert),
     url(r"^debug/mail/note/$", DebugNoteEmailView.as_view()),
     url(r"^debug/mail/new-release/$", DebugNewReleaseEmailView.as_view()),
+    url(r"^debug/mail/release-summary/$", DebugReleaseSummaryEmailView.as_view()),
+    url(r"^debug/mail/release_alert/$", sentry.web.frontend.debug.mail.release_alert),
     url(r"^debug/mail/new-user-feedback/$", DebugNewUserFeedbackEmailView.as_view()),
     url(r"^debug/mail/assigned/$", DebugAssignedEmailView.as_view()),
     url(r"^debug/mail/assigned/self/$", DebugSelfAssignedEmailView.as_view()),
@@ -81,6 +87,10 @@ urlpatterns = [
     url(r"^debug/mail/regression/release/$", DebugRegressionReleaseEmailView.as_view()),
     url(r"^debug/mail/resolved/$", DebugResolvedEmailView.as_view()),
     url(r"^debug/mail/resolved-in-release/$", DebugResolvedInReleaseEmailView.as_view()),
+    url(
+        r"^debug/mail/onboarding-continuation-email/$",
+        DebugOrganizationOnboardingContinuationEmail.as_view(),
+    ),
     url(
         r"^debug/mail/resolved-in-release/upcoming/$",
         DebugResolvedInReleaseUpcomingEmailView.as_view(),

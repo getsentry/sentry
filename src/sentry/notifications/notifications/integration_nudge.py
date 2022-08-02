@@ -42,8 +42,8 @@ MESSAGE_LIBRARY = [
 
 
 class IntegrationNudgeNotification(BaseNotification):
-    category = "integration_nudge"
-    filename = "integration-nudge"
+    metrics_key = "integration_nudge"
+    template_path = "integration-nudge"
     type = "integration.nudge"
 
     def __init__(
@@ -72,10 +72,12 @@ class IntegrationNudgeNotification(BaseNotification):
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return ""
 
-    def get_message_description(self, recipient: Team | User) -> Any:
+    def get_message_description(self, recipient: Team | User, provider: ExternalProviders) -> Any:
         return MESSAGE_LIBRARY[self.seed].format(provider=self.provider.name.capitalize())
 
-    def get_message_actions(self, recipient: Team | User) -> Sequence[MessageAction]:
+    def get_message_actions(
+        self, recipient: Team | User, provider: ExternalProviders
+    ) -> Sequence[MessageAction]:
         return [
             MessageAction(
                 name="Turn on personal notifications",
@@ -87,25 +89,18 @@ class IntegrationNudgeNotification(BaseNotification):
     def get_context(self) -> MutableMapping[str, Any]:
         return {}
 
-    def get_notification_title(self) -> str:
+    def get_notification_title(
+        self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
+    ) -> str:
         return ""
 
-    def get_title_link(self, recipient: Team | User) -> str | None:
+    def get_title_link(self, recipient: Team | User, provider: ExternalProviders) -> str | None:
         return None
 
     def build_attachment_title(self, recipient: Team | User) -> str:
         return ""
 
-    def get_filename(self) -> str:
-        return ""
-
-    def get_category(self) -> str:
-        return ""
-
-    def get_type(self) -> str:
-        return ""
-
-    def build_notification_footer(self, recipient: Team | User) -> str:
+    def build_notification_footer(self, recipient: Team | User, provider: ExternalProviders) -> str:
         return ""
 
     def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:

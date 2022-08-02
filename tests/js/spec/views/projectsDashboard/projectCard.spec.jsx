@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectCard} from 'sentry/views/projectsDashboard/projectCard';
 
@@ -6,10 +6,8 @@ import {ProjectCard} from 'sentry/views/projectsDashboard/projectCard';
 jest.unmock('lodash/debounce');
 
 describe('ProjectCard', function () {
-  let wrapper;
-
-  beforeEach(function () {
-    wrapper = mountWithTheme(
+  const createWrapper = () =>
+    render(
       <ProjectCard
         organization={TestStubs.Organization()}
         project={TestStubs.Project({
@@ -26,14 +24,14 @@ describe('ProjectCard', function () {
         params={{orgId: 'org-slug'}}
       />
     );
-  });
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
   });
 
   it('renders', function () {
-    expect(wrapper).toSnapshot();
+    const {container} = createWrapper();
+    expect(container).toSnapshot();
   });
 
   it('renders latest 2 deploys', function () {
@@ -52,7 +50,7 @@ describe('ProjectCard', function () {
       },
     };
 
-    wrapper = mountWithTheme(
+    render(
       <ProjectCard
         organization={TestStubs.Organization()}
         project={TestStubs.Project({
@@ -67,25 +65,27 @@ describe('ProjectCard', function () {
       />
     );
 
-    expect(wrapper.find('Deploy')).toHaveLength(2);
-    expect(wrapper.find('NoDeploys')).toHaveLength(0);
-    expect(wrapper.find('Environment[children="beta"]')).toHaveLength(1);
-    expect(wrapper.find('Environment[children="production"]')).toHaveLength(1);
-    expect(wrapper.find('Environment[children="staging"]')).toHaveLength(0);
+    expect(screen.queryByRole('button', {name: 'Track Deploys'})).not.toBeInTheDocument();
+    expect(screen.getByText('beta')).toBeInTheDocument();
+    expect(screen.getByText('production')).toBeInTheDocument();
+    expect(screen.queryByText('staging')).not.toBeInTheDocument();
   });
 
   it('renders empty state if no deploys', function () {
-    expect(wrapper.find('NoDeploys')).toHaveLength(1);
+    createWrapper();
+
+    expect(screen.getByRole('button', {name: 'Track Deploys'})).toBeInTheDocument();
   });
 
   it('renders with platform', function () {
-    expect(wrapper.find('PlatformList')).toHaveLength(1);
-    const icons = wrapper.find('StyledPlatformIcon');
-    expect(icons.first().prop('platform')).toBe('javascript');
+    createWrapper();
+
+    expect(screen.getByRole('img')).toBeInTheDocument();
+    expect(screen.getByTestId('platform-icon-javascript')).toBeInTheDocument();
   });
 
   it('renders header link for errors', function () {
-    wrapper = mountWithTheme(
+    render(
       <ProjectCard
         organization={TestStubs.Organization()}
         project={TestStubs.Project({
@@ -99,17 +99,15 @@ describe('ProjectCard', function () {
       />
     );
 
-    const total = wrapper.find('a[data-test-id="project-errors"]');
-    expect(total).toHaveLength(1);
-    expect(total.text()).toContain('errors: 6');
+    expect(screen.getByTestId('project-errors')).toBeInTheDocument();
+    expect(screen.getByText('Errors: 6')).toBeInTheDocument();
 
     // No transacions as the feature isn't set.
-    const transactions = wrapper.find('a[data-test-id="project-transactions"]');
-    expect(transactions).toHaveLength(0);
+    expect(screen.queryByTestId('project-transactions')).not.toBeInTheDocument();
   });
 
   it('renders header link for transactions', function () {
-    wrapper = mountWithTheme(
+    render(
       <ProjectCard
         organization={TestStubs.Organization({features: ['performance-view']})}
         project={TestStubs.Project({
@@ -127,16 +125,13 @@ describe('ProjectCard', function () {
       />
     );
 
-    const total = wrapper.find('a[data-test-id="project-errors"]');
-    expect(total).toHaveLength(1);
-
-    const transactions = wrapper.find('a[data-test-id="project-transactions"]');
-    expect(transactions).toHaveLength(1);
-    expect(transactions.text()).toContain('transactions: 8');
+    expect(screen.getByTestId('project-errors')).toBeInTheDocument();
+    expect(screen.getByTestId('project-transactions')).toBeInTheDocument();
+    expect(screen.getByText('Transactions: 8')).toBeInTheDocument();
   });
 
   it('renders loading placeholder card if there are no stats', function () {
-    wrapper = mountWithTheme(
+    render(
       <ProjectCard
         organization={TestStubs.Organization()}
         project={TestStubs.Project()}
@@ -144,6 +139,7 @@ describe('ProjectCard', function () {
       />
     );
 
-    expect(wrapper.find('Placeholder')).toHaveLength(1);
+    const chartContainer = screen.getByTestId('chart-container');
+    expect(within(chartContainer).getByTestId('loading-placeholder')).toBeInTheDocument();
   });
 });

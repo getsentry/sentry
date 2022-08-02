@@ -4,6 +4,7 @@ from sentry.models import ProjectKey
 from sentry.models.transaction_threshold import TransactionMetric
 from sentry.relay.config import get_project_config
 from sentry.testutils.helpers import Feature
+from sentry.testutils.helpers.options import override_options
 from sentry.utils.safe import get_path
 
 PII_CONFIG = """
@@ -83,11 +84,11 @@ def test_project_config_uses_filters_and_sampling_feature(
 ):
     """
     Tests that dynamic sampling information is retrieved for both "full config" and "restricted config"
-    but only when the organization has "organizations:filters-and-sampling" feature enabled.
+    but only when the organization has "organizations:server-side-sampling" feature enabled.
     """
     default_project.update_option("sentry:dynamic_sampling", dyn_sampling_data())
 
-    with Feature({"organizations:filters-and-sampling": has_dyn_sampling}):
+    with Feature({"organizations:server-side-sampling": has_dyn_sampling}):
         cfg = get_project_config(default_project, full_config=full_config)
 
     cfg = cfg.to_dict()
@@ -97,6 +98,28 @@ def test_project_config_uses_filters_and_sampling_feature(
         assert dynamic_sampling == dyn_sampling_data()
     else:
         assert dynamic_sampling is None
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("active", [False, True])
+def test_project_config_filters_out_non_active_rules_in_dynamic_sampling(
+    default_project, dyn_sampling_data, active
+):
+    """
+    Tests that dynamic sampling information is retrieved only for "active" rules.
+    """
+    default_project.update_option("sentry:dynamic_sampling", dyn_sampling_data(active))
+
+    with Feature({"organizations:server-side-sampling": True}):
+        cfg = get_project_config(default_project)
+
+    cfg = cfg.to_dict()
+    dynamic_sampling = get_path(cfg, "config", "dynamicSampling")
+
+    if active:
+        assert dynamic_sampling == dyn_sampling_data(active)
+    else:
+        assert dynamic_sampling == {"rules": []}
 
 
 @pytest.mark.django_db
@@ -115,6 +138,7 @@ def test_project_config_with_breakdown(default_project, insta_snapshot, transact
         {
             "breakdownsV2": cfg["config"]["breakdownsV2"],
             "transactionMetrics": cfg["config"].get("transactionMetrics"),
+            "metricConditionalTagging": cfg["config"].get("metricConditionalTagging"),
         }
     )
 
@@ -155,7 +179,7 @@ def test_project_config_satisfaction_thresholds(
         cfg = get_project_config(default_project, full_config=True)
 
     cfg = cfg.to_dict()
-    insta_snapshot(cfg["config"]["transactionMetrics"]["satisfactionThresholds"])
+    insta_snapshot(cfg["config"]["metricConditionalTagging"])
 
 
 @pytest.mark.django_db
@@ -170,3 +194,56 @@ def test_project_config_with_span_attributes(default_project, insta_snapshot):
 
     cfg = cfg.to_dict()
     insta_snapshot(cfg["config"]["spanAttributes"])
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("feature_flag", (False, True), ids=("feature_disabled", "feature_enabled"))
+@pytest.mark.parametrize("org_sample", (0.0, 1.0), ids=("no_orgs", "all_orgs"))
+@pytest.mark.parametrize(
+    "killswitch", (False, True), ids=("killswitch_disabled", "killswitch_enabled")
+)
+def test_has_metric_extraction(default_project, feature_flag, org_sample, killswitch):
+    options = override_options(
+        {
+            "relay.drop-transaction-metrics": [{"project_id": default_project.id}]
+            if killswitch
+            else [],
+            "relay.transaction-metrics-org-sample-rate": org_sample,
+        }
+    )
+    feature = Feature(
+        {
+            "organizations:transaction-metrics-extraction": feature_flag,
+        }
+    )
+    with feature, options:
+        config = get_project_config(default_project)
+        if killswitch or (org_sample == 0.0 and not feature_flag):
+            assert "transactionMetrics" not in config.to_dict()["config"]
+        else:
+            config = config.to_dict()["config"]["transactionMetrics"]
+            assert config["extractMetrics"]
+            assert config["customMeasurements"]["limit"] > 0
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("org_sample", (0.0, 1.0), ids=("no_orgs", "all_orgs"))
+def test_accept_transaction_names(default_project, org_sample):
+    options = override_options(
+        {
+            "relay.transaction-names-client-based": org_sample,
+        }
+    )
+    feature = Feature(
+        {
+            "organizations:transaction-metrics-extraction": True,
+        }
+    )
+    with feature, options:
+        config = get_project_config(default_project).to_dict()["config"]
+        transaction_metrics_config = config["transactionMetrics"]
+        assert (
+            transaction_metrics_config["acceptTransactionNames"] == "clientBased"
+            if org_sample
+            else "strict"
+        )

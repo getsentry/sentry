@@ -27,18 +27,23 @@ describe('AddCodeOwnerModal', function () {
 
   beforeEach(function () {
     Client.clearMockResponses();
+    Client.addMockResponse({
+      url: `/organizations/${org.slug}/code-mappings/`,
+      method: 'GET',
+      query: {project: '2'},
+      body: [codeMapping],
+    });
+    Client.addMockResponse({
+      url: `/organizations/${org.slug}/integrations/`,
+      method: 'GET',
+      query: {features: ['codeowners']},
+      body: [integration],
+    });
   });
 
   it('renders', function () {
     const wrapper = mountWithTheme(
-      <AddCodeOwnerModal
-        {...modalProps}
-        api={new Client()}
-        organization={org}
-        project={project}
-        codeMappings={[codeMapping]}
-        onSave={() => {}}
-      />
+      <AddCodeOwnerModal {...modalProps} organization={org} project={project} />
     );
     expect(wrapper.find('Button').prop('disabled')).toBe(true);
   });
@@ -50,14 +55,7 @@ describe('AddCodeOwnerModal', function () {
       body: {html_url: 'blah', filepath: 'CODEOWNERS', raw: '* @MeredithAnya\n'},
     });
     const wrapper = mountWithTheme(
-      <AddCodeOwnerModal
-        {...modalProps}
-        api={new Client()}
-        organization={org}
-        project={project}
-        codeMappings={[codeMapping]}
-        onSave={() => {}}
-      />
+      <AddCodeOwnerModal {...modalProps} organization={org} project={project} />
     );
 
     selectByValue(wrapper, codeMapping.id, {name: 'codeMappingId'});
@@ -77,14 +75,7 @@ describe('AddCodeOwnerModal', function () {
       statusCode: 404,
     });
     const wrapper = mountWithTheme(
-      <AddCodeOwnerModal
-        {...modalProps}
-        api={new Client()}
-        organization={org}
-        project={project}
-        codeMappings={[codeMapping]}
-        onSave={() => {}}
-      />
+      <AddCodeOwnerModal {...modalProps} organization={org} project={project} />
     );
 
     selectByValue(wrapper, codeMapping.id, {name: 'codeMappingId'});
@@ -108,14 +99,7 @@ describe('AddCodeOwnerModal', function () {
       body: {},
     });
     const wrapper = mountWithTheme(
-      <AddCodeOwnerModal
-        {...modalProps}
-        api={new Client()}
-        organization={org}
-        project={project}
-        codeMappings={[codeMapping]}
-        onSave={() => {}}
-      />
+      <AddCodeOwnerModal {...modalProps} organization={org} project={project} />
     );
 
     selectByValue(wrapper, codeMapping.id, {name: 'codeMappingId'});

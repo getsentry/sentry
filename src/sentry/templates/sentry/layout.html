@@ -22,10 +22,13 @@
   <link rel="apple-touch-icon" sizes="76x76" href="{% absolute_asset_url "sentry" "images/logos/apple-touch-icon-76x76.png" %}">
   <link rel="apple-touch-icon" sizes="120x120" href="{% absolute_asset_url "sentry" "images/logos/apple-touch-icon-120x120.png" %}">
   <link rel="apple-touch-icon" sizes="152x152" href="{% absolute_asset_url "sentry" "images/logos/apple-touch-icon-152x152.png" %}">
+  {% for tag in meta_tags %}
+  <meta property="{{ tag.property }}" content="{{ tag.content }}" />
+  {% endfor %}
 
   <link rel="mask-icon" sizes="any" href="{% absolute_asset_url "sentry" "images/logos/logo-sentry.svg" %}" color="#FB4226">
 
-  <link href="{% frontend_app_asset_url "sentry" "entrypoints/sentry.css" cache_bust=True %}" rel="stylesheet"/>
+  <link href="{% frontend_app_asset_url "sentry" "entrypoints/sentry.css" %}" rel="stylesheet"/>
 
   {% block css %}{% endblock %}
 
@@ -54,7 +57,7 @@
 
   {% block scripts %}
   {% block scripts_main_entrypoint %}
-    {% frontend_app_asset_url "sentry" "entrypoints/app.js" cache_bust=True as asset_url %}
+    {% frontend_app_asset_url "sentry" "entrypoints/app.js" as asset_url %}
     {% script src=asset_url data-entry="true" %}{% endscript %}
   {% endblock %}
 

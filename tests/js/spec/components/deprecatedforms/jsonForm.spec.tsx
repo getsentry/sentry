@@ -104,7 +104,7 @@ describe('JsonForm', function () {
   });
 
   describe('fields prop', function () {
-    const jsonFormFields = [fields.slug, fields.platform];
+    const jsonFormFields = [fields.name, fields.platform];
 
     it('default', function () {
       const wrapper = mountWithTheme(<JsonForm fields={jsonFormFields} />);

@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 
 const Grid = styled('div')`
@@ -12,7 +11,7 @@ const Grid = styled('div')`
 `;
 
 const GridCell = styled('div')`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 export {Grid, GridCell};

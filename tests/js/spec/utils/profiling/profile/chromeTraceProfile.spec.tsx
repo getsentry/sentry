@@ -1,6 +1,7 @@
 import {
   ChromeTraceProfile,
-  parseChromeTraceArrayFormat,
+  collapseSamples,
+  parseTypescriptChromeTraceArrayFormat,
   splitEventsByProcessAndTraceId,
 } from 'sentry/utils/profiling/profile/chromeTraceProfile';
 
@@ -27,15 +28,15 @@ describe('splitEventsByProcessAndTraceId', () => {
       },
     ];
 
-    expect(splitEventsByProcessAndTraceId(trace)[0][0]).toEqual([trace[0]]);
-    expect(splitEventsByProcessAndTraceId(trace)[0][1]).toEqual([trace[1]]);
+    expect(splitEventsByProcessAndTraceId(trace).get(0)?.get(0)).toEqual([trace[0]]);
+    expect(splitEventsByProcessAndTraceId(trace).get(0)?.get(1)).toEqual([trace[1]]);
   });
 });
 
-describe('parseChromeTraceArrayFormat', () => {
-  it('returns chrometrace profile', () => {
+describe('parseTypescriptChromeTraceArrayFormat', () => {
+  it('returns typescript profile', () => {
     expect(
-      parseChromeTraceArrayFormat(
+      parseTypescriptChromeTraceArrayFormat(
         [
           {
             ph: 'M',
@@ -63,7 +64,7 @@ describe('parseChromeTraceArrayFormat', () => {
 
   it('marks process name', () => {
     expect(
-      parseChromeTraceArrayFormat(
+      parseTypescriptChromeTraceArrayFormat(
         [
           {
             ph: 'M',
@@ -91,7 +92,7 @@ describe('parseChromeTraceArrayFormat', () => {
 
   it('marks thread name', () => {
     expect(
-      parseChromeTraceArrayFormat(
+      parseTypescriptChromeTraceArrayFormat(
         [
           {
             ph: 'M',
@@ -118,11 +119,11 @@ describe('parseChromeTraceArrayFormat', () => {
   });
 
   it('imports a simple trace', () => {
-    const trace = parseChromeTraceArrayFormat(
+    const trace = parseTypescriptChromeTraceArrayFormat(
       [
         {
           ph: 'B',
-          ts: 0,
+          ts: 1000,
           cat: 'program',
           pid: 0,
           tid: 0,
@@ -131,7 +132,7 @@ describe('parseChromeTraceArrayFormat', () => {
         },
         {
           ph: 'E',
-          ts: 1000,
+          ts: 2000,
           cat: 'program',
           pid: 0,
           tid: 0,
@@ -142,12 +143,14 @@ describe('parseChromeTraceArrayFormat', () => {
       ''
     );
 
+    expect(trace.profiles[0].startedAt).toBe(1000);
+    expect(trace.profiles[0].endedAt).toBe(2000);
     expect(trace.profiles[0].duration).toBe(1000);
     expect(trace.profiles[0].appendOrderTree.children[0].totalWeight).toBe(1000);
   });
 
   it('closes unclosed events', () => {
-    const trace = parseChromeTraceArrayFormat(
+    const trace = parseTypescriptChromeTraceArrayFormat(
       [
         {
           ph: 'B',
@@ -189,7 +192,7 @@ describe('parseChromeTraceArrayFormat', () => {
   });
 
   it('handles out of order E events', () => {
-    const trace = parseChromeTraceArrayFormat(
+    const trace = parseTypescriptChromeTraceArrayFormat(
       [
         {
           ph: 'B',
@@ -245,7 +248,7 @@ describe('parseChromeTraceArrayFormat', () => {
   });
 
   it('handles out of order B events', () => {
-    const trace = parseChromeTraceArrayFormat(
+    const trace = parseTypescriptChromeTraceArrayFormat(
       [
         {
           ph: 'B',
@@ -301,7 +304,7 @@ describe('parseChromeTraceArrayFormat', () => {
   });
 
   it('handles X trace with tdur', () => {
-    const trace = parseChromeTraceArrayFormat(
+    const trace = parseTypescriptChromeTraceArrayFormat(
       [
         {
           ph: 'X',
@@ -321,7 +324,7 @@ describe('parseChromeTraceArrayFormat', () => {
   });
 
   it('handles X trace with dur', () => {
-    const trace = parseChromeTraceArrayFormat(
+    const trace = parseTypescriptChromeTraceArrayFormat(
       [
         {
           ph: 'X',
@@ -341,24 +344,68 @@ describe('parseChromeTraceArrayFormat', () => {
   });
 });
 
-// import trace from './samples/chrometrace/typescript/trace.json';
+describe('collapseSamples', () => {
+  it.each([
+    {
+      samples: [1, 1],
+      timeDeltas: [0, 1],
+      expectedSamples: [1, 1],
+      expectedTimeDeltas: [0, 1],
+    },
+    {
+      samples: [1, 1, 1],
+      timeDeltas: [0, 1, 1],
+      expectedSamples: [1, 1],
+      expectedTimeDeltas: [0, 2],
+    },
+    {
+      samples: [1, 2, 1],
+      timeDeltas: [0, 1, 2],
+      expectedSamples: [1, 2, 1],
+      expectedTimeDeltas: [0, 1, 3],
+    },
+    {
+      samples: [1, 2, 3, 4],
+      timeDeltas: [0, 1, 1, 1],
+      expectedSamples: [1, 2, 3, 4],
+      expectedTimeDeltas: [0, 1, 2, 3],
+    },
+  ])('collapses sample', test => {
+    const result = collapseSamples({
+      startTime: 0,
+      endTime: 100,
+      samples: test.samples,
+      timeDeltas: test.timeDeltas,
+      nodes: [],
+    });
 
-// // Keeping the benchmark around
-// // eslint-disable-next-line
-// describe.skip('Benchmark', () => {
-//   it('imports profile', () => {
-//     const measures: number[] = [];
-//     // eslint-disable-next-line
-//     const avg = (arr: number[]) => arr.reduce((a, b) => a + b) / arr.length;
+    expect(result.samples).toEqual(test.expectedSamples);
+    expect(result.sampleTimes).toEqual(test.expectedTimeDeltas);
+  });
 
-//     for (let i = 0; i < 10; i++) {
-//       const start = performance.now();
+  it('guards from negative samples', () => {
+    const result = collapseSamples({
+      startTime: 0,
+      endTime: 100,
+      samples: [1, 2, 3],
+      timeDeltas: [1, -1, 1],
+      nodes: [],
+    });
 
-//       importChromeTrace(trace as ChromeTrace.ProfileType);
-//       measures.push(performance.now() - start);
-//     }
+    expect(result.samples).toEqual([1, 2, 3]);
+    expect(result.sampleTimes).toEqual([1, 1, 2]);
+  });
 
-//     avg(measures);
-//     expect(true).toBe(true);
-//   });
-// });
+  it('guards from negative samples when they are being collapsed', () => {
+    const result = collapseSamples({
+      startTime: 0,
+      endTime: 100,
+      samples: [1, 1, 1],
+      timeDeltas: [1, -1, 2],
+      nodes: [],
+    });
+
+    expect(result.samples).toEqual([1, 1]);
+    expect(result.sampleTimes).toEqual([1, 3]);
+  });
+});

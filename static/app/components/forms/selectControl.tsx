@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {forwardRef, useCallback, useMemo} from 'react';
 import ReactSelect, {
   components as selectComponents,
   GroupedOptionsType,
@@ -11,6 +11,7 @@ import Async from 'react-select/async';
 import AsyncCreatable from 'react-select/async-creatable';
 import Creatable from 'react-select/creatable';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron, IconClose} from 'sentry/icons';
@@ -61,6 +62,31 @@ const SelectLoadingIndicator = () => (
   <LoadingIndicator mini size={20} style={{height: 20, width: 20}} />
 );
 
+const SingleValue = (
+  props: React.ComponentProps<typeof selectComponents.SingleValue>
+) => {
+  const {leadingItems, label} = props.data;
+  return (
+    <selectComponents.SingleValue {...props}>
+      <SingleValueWrap>
+        {leadingItems}
+        <SingleValueLabel>{label}</SingleValueLabel>
+      </SingleValueWrap>
+    </selectComponents.SingleValue>
+  );
+};
+
+const SingleValueWrap = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  gap: ${space(1)};
+  align-items: center;
+`;
+
+const SingleValueLabel = styled('div')`
+  ${p => p.theme.overflowEllipsis};
+`;
+
 export type ControlProps<OptionType = GeneralSelectValue> = Omit<
   ReactSelectProps<OptionType>,
   'onChange' | 'value'
@@ -73,6 +99,16 @@ export type ControlProps<OptionType = GeneralSelectValue> = Omit<
    * Set to true to prefix selected values with content
    */
   inFieldLabel?: string;
+  /**
+   * Whether this is used inside compactSelect. See
+   * components/compactSelect.tsx
+   */
+  isCompact?: boolean;
+  /**
+   * Maximum width of the menu component. Menu item labels that overflow the
+   * menu's boundaries will automatically be truncated.
+   */
+  maxMenuWidth?: number | string;
   /**
    * Used by MultiSelectControl.
    */
@@ -92,12 +128,6 @@ export type ControlProps<OptionType = GeneralSelectValue> = Omit<
    * can't have a good type here.
    */
   value?: any;
-  /**
-   * If false (default), checkmarks/checkboxes will be vertically centered
-   * wrt the first line of the label text. If true, they will be centered
-   * wrt the entire height of the option wrap.
-   */
-  verticallyCenterCheckWrap?: boolean;
 };
 
 /**
@@ -121,149 +151,229 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   props: WrappedControlProps<OptionType>
 ) {
   const theme = useTheme();
+  const {isCompact, isSearchable, maxMenuWidth, menuHeight} = props;
 
   // TODO(epurkhiser): The loading indicator should probably also be our loading
   // indicator.
 
   // Unfortunately we cannot use emotions `css` helper here, since react-select
   // *requires* object styles, which the css helper cannot produce.
-  const indicatorStyles = ({padding: _padding, ...provided}: React.CSSProperties) => ({
-    ...provided,
-    padding: '4px',
-    alignItems: 'center',
-    cursor: 'pointer',
-    color: theme.subText,
-  });
-
-  const defaultStyles: StylesConfig = {
-    control: (_, state: any) => ({
-      height: '100%',
-      lineHeight: theme.text.lineHeightBody,
-      display: 'flex',
-      // @ts-ignore Ignore merge errors as only defining the property once
-      // makes code harder to understand.
-      ...{
-        color: theme.formText,
-        background: theme.background,
-        border: `1px solid ${theme.border}`,
-        boxShadow: theme.dropShadowLight,
-      },
-      borderRadius: theme.borderRadius,
-      transition: 'border 0.1s, box-shadow 0.1s',
+  const indicatorStyles = useCallback(
+    ({padding: _padding, ...provided}: React.CSSProperties) => ({
+      ...provided,
+      padding: '4px',
       alignItems: 'center',
-      minHeight: '40px',
-      ...(state.isFocused && {
-        borderColor: theme.focusBorder,
-        boxShadow: `${theme.focusBorder} 0 0 0 1px`,
-      }),
-      ...(state.isDisabled && {
-        borderColor: theme.border,
-        background: theme.backgroundSecondary,
-        color: theme.disabled,
-        cursor: 'not-allowed',
-      }),
-      ...(!state.isSearchable && {
-        cursor: 'pointer',
-      }),
-    }),
-
-    menu: (provided: React.CSSProperties) => ({
-      ...provided,
-      zIndex: theme.zIndex.dropdown,
-      background: theme.backgroundElevated,
-      border: `1px solid ${theme.border}`,
-      borderRadius: theme.borderRadius,
-      boxShadow: theme.dropShadowHeavy,
-      width: 'auto',
-      minWidth: '100%',
-    }),
-    option: (provided: React.CSSProperties) => ({
-      ...provided,
-      fontSize: theme.fontSizeMedium,
       cursor: 'pointer',
-      color: theme.textColor,
-      background: 'transparent',
-      padding: `0 ${space(0.5)}`,
-      ':active': {
-        background: 'transparent',
-      },
-    }),
-    valueContainer: (provided: React.CSSProperties) => ({
-      ...provided,
-      alignItems: 'center',
-    }),
-    input: (provided: React.CSSProperties) => ({
-      ...provided,
-      color: theme.formText,
-    }),
-    singleValue: (provided: React.CSSProperties) => ({
-      ...provided,
-      color: theme.formText,
-    }),
-    placeholder: (provided: React.CSSProperties) => ({
-      ...provided,
-      color: theme.formPlaceholder,
-    }),
-    multiValue: (provided: React.CSSProperties) => ({
-      ...provided,
-      color: '#007eff',
-      backgroundColor: '#ebf5ff',
-      borderRadius: '2px',
-      border: '1px solid #c2e0ff',
-      display: 'flex',
-    }),
-    multiValueLabel: (provided: React.CSSProperties) => ({
-      ...provided,
-      color: '#007eff',
-      padding: '0',
-      paddingLeft: '6px',
-      lineHeight: '1.8',
-    }),
-    multiValueRemove: () => ({
-      cursor: 'pointer',
-      alignItems: 'center',
-      borderLeft: '1px solid #c2e0ff',
-      borderRadius: '0 2px 2px 0',
-      display: 'flex',
-      padding: '0 4px',
-      marginLeft: '4px',
-
-      '&:hover': {
-        color: '#6284b9',
-        background: '#cce5ff',
-      },
-    }),
-    indicatorsContainer: () => ({
-      display: 'grid',
-      gridAutoFlow: 'column',
-      gridGap: '2px',
-      marginRight: '6px',
-    }),
-    clearIndicator: indicatorStyles,
-    dropdownIndicator: indicatorStyles,
-    loadingIndicator: indicatorStyles,
-    groupHeading: (provided: React.CSSProperties) => ({
-      ...provided,
-      lineHeight: '1.5',
-      fontWeight: 600,
       color: theme.subText,
-      marginBottom: 0,
-      padding: `${space(0.5)} ${space(1.5)}`,
     }),
-    group: (provided: React.CSSProperties) => ({
-      ...provided,
-      paddingTop: 0,
-      ':last-of-type': {
-        paddingBottom: 0,
-      },
+    [theme]
+  );
+
+  const defaultStyles = useMemo<StylesConfig>(
+    () => ({
+      control: (_, state: any) => ({
+        height: '100%',
+        lineHeight: theme.text.lineHeightBody,
+        display: 'flex',
+        // @ts-ignore Ignore merge errors as only defining the property once
+        // makes code harder to understand.
+        ...{
+          color: theme.formText,
+          background: theme.background,
+          border: `1px solid ${theme.border}`,
+          boxShadow: theme.dropShadowLight,
+        },
+        borderRadius: theme.borderRadius,
+        transition: 'border 0.1s, box-shadow 0.1s',
+        alignItems: 'center',
+        minHeight: '40px',
+        ...(state.isFocused && {
+          borderColor: theme.focusBorder,
+          boxShadow: `${theme.focusBorder} 0 0 0 1px`,
+        }),
+        ...(state.isDisabled && {
+          borderColor: theme.border,
+          background: theme.backgroundSecondary,
+          color: theme.disabled,
+          cursor: 'not-allowed',
+        }),
+        ...(!state.isSearchable && {
+          cursor: 'pointer',
+        }),
+        ...(isCompact && {
+          padding: `${space(0.5)} ${space(0.5)}`,
+          borderRadius: 0,
+          border: 'none',
+          boxShadow: 'none',
+          cursor: 'initial',
+          minHeight: 'none',
+          ...(isSearchable
+            ? {marginTop: 1}
+            : {
+                height: 0,
+                padding: 0,
+                overflow: 'hidden',
+              }),
+        }),
+      }),
+
+      menu: (provided: React.CSSProperties) => ({
+        ...provided,
+        fontSize: theme.fontSizeMedium,
+        zIndex: theme.zIndex.dropdown,
+        background: theme.backgroundElevated,
+        border: `1px solid ${theme.border}`,
+        borderRadius: theme.borderRadius,
+        boxShadow: theme.dropShadowHeavy,
+        width: 'auto',
+        minWidth: '100%',
+        maxWidth: maxMenuWidth ?? 'auto',
+        ...(isCompact && {
+          position: 'relative',
+          margin: 0,
+          borderRadius: 0,
+          border: 'none',
+          boxShadow: 'none',
+          zIndex: 'initial',
+          ...(isSearchable && {paddingTop: 0}),
+        }),
+      }),
+
+      menuList: (provided: React.CSSProperties) => ({
+        ...provided,
+        ...(isCompact && {
+          ...(menuHeight && {
+            maxHeight: menuHeight,
+          }),
+          ...(isSearchable && {
+            paddingTop: 0,
+          }),
+        }),
+      }),
+
+      menuPortal: () => ({
+        maxWidth: maxMenuWidth ?? '24rem',
+        zIndex: theme.zIndex.dropdown,
+        width: '90%',
+        position: 'fixed',
+        left: '50%',
+        top: '50%',
+        transform: 'translate(-50%, -50%)',
+        background: theme.backgroundElevated,
+        border: `1px solid ${theme.border}`,
+        borderRadius: theme.borderRadius,
+        boxShadow: theme.dropShadowHeavy,
+        overflow: 'hidden',
+      }),
+
+      option: (provided: React.CSSProperties) => ({
+        ...provided,
+        cursor: 'pointer',
+        color: theme.textColor,
+        background: 'transparent',
+        padding: 0,
+        ':active': {
+          background: 'transparent',
+        },
+      }),
+      valueContainer: (provided: React.CSSProperties) => ({
+        ...provided,
+        alignItems: 'center',
+        ...(isCompact && {
+          fontSize: theme.fontSizeMedium,
+          padding: `${space(0.5)} ${space(1)}`,
+          border: `1px solid ${theme.innerBorder}`,
+          borderRadius: theme.borderRadius,
+          cursor: 'text',
+          background: theme.backgroundSecondary,
+        }),
+      }),
+      input: (provided: React.CSSProperties) => ({
+        ...provided,
+        color: theme.formText,
+        ...(isCompact && {
+          padding: 0,
+          margin: 0,
+        }),
+      }),
+      singleValue: (provided: React.CSSProperties) => ({
+        ...provided,
+        color: theme.formText,
+        display: 'flex',
+        alignItems: 'center',
+      }),
+      placeholder: (provided: React.CSSProperties) => ({
+        ...provided,
+        color: theme.formPlaceholder,
+        ...(isCompact && {
+          padding: 0,
+          margin: 0,
+        }),
+      }),
+      multiValue: (provided: React.CSSProperties) => ({
+        ...provided,
+        color: '#007eff',
+        backgroundColor: '#ebf5ff',
+        borderRadius: '2px',
+        border: '1px solid #c2e0ff',
+        display: 'flex',
+      }),
+      multiValueLabel: (provided: React.CSSProperties) => ({
+        ...provided,
+        color: '#007eff',
+        padding: '0',
+        paddingLeft: '6px',
+        lineHeight: '1.8',
+      }),
+      multiValueRemove: () => ({
+        cursor: 'pointer',
+        alignItems: 'center',
+        borderLeft: '1px solid #c2e0ff',
+        borderRadius: '0 2px 2px 0',
+        display: 'flex',
+        padding: '0 4px',
+        marginLeft: '4px',
+
+        '&:hover': {
+          color: '#6284b9',
+          background: '#cce5ff',
+        },
+      }),
+      indicatorsContainer: () => ({
+        display: 'grid',
+        gridAutoFlow: 'column',
+        gridGap: '2px',
+        marginRight: '6px',
+        ...(isCompact && {display: 'none'}),
+      }),
+      clearIndicator: indicatorStyles,
+      dropdownIndicator: indicatorStyles,
+      loadingIndicator: indicatorStyles,
+      groupHeading: (provided: React.CSSProperties) => ({
+        ...provided,
+        lineHeight: '1.5',
+        fontWeight: 600,
+        color: theme.subText,
+        marginBottom: 0,
+        padding: `${space(0.5)} ${space(1.5)}`,
+      }),
+      group: (provided: React.CSSProperties) => ({
+        ...provided,
+        paddingTop: 0,
+        ':last-of-type': {
+          paddingBottom: 0,
+        },
+      }),
     }),
-  };
+    [theme, maxMenuWidth, menuHeight, indicatorStyles, isSearchable, isCompact]
+  );
 
   const getFieldLabelStyle = (label?: string) => ({
     ':before': {
       content: `"${label}"`,
       color: theme.gray300,
       fontWeight: 600,
+      marginRight: space(1),
     },
   });
 
@@ -333,6 +443,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     : labelOrDefaultStyles;
 
   const replacedComponents = {
+    SingleValue,
     ClearIndicator,
     DropdownIndicator,
     MultiValueRemove,
@@ -402,7 +513,7 @@ function SelectPicker<OptionType>({
 }
 
 // The generics need to be filled here as forwardRef can't expose generics.
-const RefForwardedSelectControl = React.forwardRef<
+const RefForwardedSelectControl = forwardRef<
   ReactSelect<GeneralSelectValue>,
   ControlProps<GeneralSelectValue>
 >(function RefForwardedSelectControl(props, ref) {

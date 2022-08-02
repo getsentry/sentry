@@ -13,12 +13,10 @@ class TeamGroupsOldTest(APITestCase):
         project1 = self.create_project(teams=[self.team], slug="foo")
         project2 = self.create_project(teams=[self.team], slug="bar")
         group1 = self.create_group(
-            checksum="a" * 32,
             project=project1,
             first_seen=datetime(2018, 1, 12, 3, 8, 25, tzinfo=timezone.utc),
         )
         group2 = self.create_group(
-            checksum="b" * 32,
             project=project2,
             first_seen=datetime(2015, 1, 12, 3, 8, 25, tzinfo=timezone.utc),
         )
@@ -29,13 +27,11 @@ class TeamGroupsOldTest(APITestCase):
 
         other_user = self.create_user()
         assigned_to_other = self.create_group(
-            checksum="b" * 32,
             project=project2,
             first_seen=datetime(2015, 1, 12, 3, 8, 25, tzinfo=timezone.utc),
         )
         GroupAssignee.objects.assign(assigned_to_other, other_user)
         self.create_group(
-            checksum="b" * 32,
             project=project2,
             first_seen=datetime(2015, 1, 12, 3, 8, 25, tzinfo=timezone.utc),
         )
@@ -57,7 +53,6 @@ class TeamGroupsOldTest(APITestCase):
         environment = self.create_environment(name="prod", project=project1)
         self.create_environment(name="dev", project=project1)
         group1 = self.create_group(
-            checksum="a" * 32,
             project=project1,
             first_seen=datetime(2018, 1, 12, 3, 8, 25, tzinfo=timezone.utc),
         )

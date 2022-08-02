@@ -54,7 +54,7 @@ describe('ProjectEnvironments', function () {
       expect(wrapper.find('ProjectEnvironments')).toSnapshot();
     });
 
-    it('renders environment list', async function () {
+    it('renders environment list', function () {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/environments/',
         body: TestStubs.Environments(false),

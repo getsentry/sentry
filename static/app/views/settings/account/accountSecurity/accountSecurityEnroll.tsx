@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
-import QRCode from 'qrcode.react';
+import {QRCodeCanvas} from 'qrcode.react';
 
 import {
   addErrorMessage,
@@ -44,7 +45,7 @@ type getFieldsOpts = {
   /**
    * Callback when u2f device is activated
    */
-  onU2fTap: U2fsign['props']['onTap'];
+  onU2fTap: React.ComponentProps<typeof U2fsign>['onTap'];
   /**
    * Flag to track if we are currently sending the otp code
    */
@@ -434,7 +435,7 @@ const Actions = styled(PanelItem)`
   justify-content: flex-end;
 `;
 
-const StyledQRCode = styled(QRCode)`
+const StyledQRCode = styled(QRCodeCanvas)`
   background: white;
   padding: ${space(2)};
 `;

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -7,11 +7,12 @@ import DateTime from 'sentry/components/dateTime';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import TimeSince from 'sentry/components/timeSince';
 import Tooltip from 'sentry/components/tooltip';
+import {frontend} from 'sentry/data/platformCategories';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {OrganizationSummary} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import {AvatarProject, OrganizationSummary} from 'sentry/types';
+import {Event, EventTransaction} from 'sentry/types/event';
 import {getShortEventId} from 'sentry/utils/events';
 import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -45,9 +46,9 @@ type State = {
 /**
  * This should match the breakpoint chosen for the `EventDetailHeader` below
  */
-const BREAKPOINT_MEDIA_QUERY = `(min-width: ${theme.breakpoints[2]})`;
+const BREAKPOINT_MEDIA_QUERY = `(min-width: ${theme.breakpoints.large})`;
 
-class EventMetas extends React.Component<Props, State> {
+class EventMetas extends Component<Props, State> {
   state: State = {
     isLargeScreen: window.matchMedia?.(BREAKPOINT_MEDIA_QUERY)?.matches,
   };
@@ -140,7 +141,7 @@ class EventMetas extends React.Component<Props, State> {
                   tooltipText={t(
                     'The status of this transaction indicating if it succeeded or otherwise.'
                   )}
-                  bodyText={event.contexts?.trace?.status ?? '\u2014'}
+                  bodyText={getStatusBodyText(project, event, meta)}
                   subtext={httpStatus}
                 />
               )}
@@ -171,12 +172,12 @@ const EventDetailHeader = styled('div')<{type?: 'transaction' | 'event'}>`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     margin-bottom: 0;
   }
 
   /* This should match the breakpoint chosen for BREAKPOINT_MEDIA_QUERY above. */
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     ${p =>
       p.type === 'transaction'
         ? 'grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr) 6fr;'
@@ -188,7 +189,7 @@ const EventDetailHeader = styled('div')<{type?: 'transaction' | 'event'}>`
 const QuickTraceContainer = styled('div')`
   grid-column: 1/4;
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     justify-self: flex-end;
     min-width: 325px;
     grid-column: unset;
@@ -221,7 +222,7 @@ const EventIDWrapper = styled('span')`
 function HttpStatus({event}: {event: Event}) {
   const {tags} = event;
 
-  const emptyStatus = <React.Fragment>{'\u2014'}</React.Fragment>;
+  const emptyStatus = <Fragment>{'\u2014'}</Fragment>;
 
   if (!Array.isArray(tags)) {
     return emptyStatus;
@@ -233,7 +234,35 @@ function HttpStatus({event}: {event: Event}) {
     return emptyStatus;
   }
 
-  return <React.Fragment>HTTP {tag.value}</React.Fragment>;
+  return <Fragment>HTTP {tag.value}</Fragment>;
+}
+
+/*
+  TODO: Ash
+  I put this in place as a temporary patch to prevent successful frontend transactions from being set as 'unknown', which is what Relay sets by default
+  if there is no status set by the SDK. In the future, the possible statuses will be revised and frontend transactions should properly have a status set.
+  When that change is implemented, this function can simply be replaced with:
+
+  event.contexts?.trace?.status ?? '\u2014';
+*/
+
+function getStatusBodyText(
+  project: AvatarProject | undefined,
+  event: EventTransaction,
+  meta: TraceMeta | null
+): string {
+  const isFrontendProject = frontend.some(val => val === project?.platform);
+
+  if (
+    isFrontendProject &&
+    meta &&
+    meta.errors === 0 &&
+    event.contexts?.trace?.status === 'unknown'
+  ) {
+    return 'ok';
+  }
+
+  return event.contexts?.trace?.status ?? '\u2014';
 }
 
 export default EventMetas;

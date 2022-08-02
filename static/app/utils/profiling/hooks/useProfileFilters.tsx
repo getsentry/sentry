@@ -8,7 +8,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 type ProfileFilters = Record<string, Tag>;
 
-function useProfileFilters(selection: PageFilters | undefined): ProfileFilters {
+interface ProfileFiltersOptions {
+  query: string;
+  selection?: PageFilters;
+}
+
+function useProfileFilters({query, selection}: ProfileFiltersOptions): ProfileFilters {
   const api = useApi();
   const organization = useOrganization();
 
@@ -19,7 +24,7 @@ function useProfileFilters(selection: PageFilters | undefined): ProfileFilters {
       return undefined;
     }
 
-    fetchProfileFilters(api, organization, selection).then(response => {
+    fetchProfileFilters(api, organization, query, selection).then(response => {
       const withPredefinedFilters = response.reduce(
         (filters: ProfileFilters, tag: Tag) => {
           filters[tag.key] = {
@@ -36,7 +41,7 @@ function useProfileFilters(selection: PageFilters | undefined): ProfileFilters {
     });
 
     return () => api.clear();
-  }, [api, organization, selection]);
+  }, [api, organization, query, selection]);
 
   return profileFilters;
 }
@@ -44,11 +49,13 @@ function useProfileFilters(selection: PageFilters | undefined): ProfileFilters {
 function fetchProfileFilters(
   api: Client,
   organization: Organization,
+  query: string,
   selection: PageFilters
 ): Promise<[Tag]> {
   return api.requestPromise(`/organizations/${organization.slug}/profiling/filters/`, {
     method: 'GET',
     query: {
+      query,
       project: selection.projects,
       environment: selection.environments,
       ...normalizeDateTimeParams(selection.datetime),

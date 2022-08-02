@@ -8,6 +8,7 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import NotFound from 'sentry/components/errors/notFound';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
+import EventCustomPerformanceMetrics from 'sentry/components/events/eventCustomPerformanceMetrics';
 import {BorderlessEventEntries} from 'sentry/components/events/eventEntries';
 import EventMessage from 'sentry/components/events/eventMessage';
 import EventVitals from 'sentry/components/events/eventVitals';
@@ -24,6 +25,7 @@ import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {Event, EventTag} from 'sentry/types/event';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {formatTagKey} from 'sentry/utils/discover/fields';
 import {eventDetailsRoute} from 'sentry/utils/discover/urls';
@@ -165,7 +167,19 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               <Button onClick={this.toggleSidebar}>
                 {isSidebarVisible ? 'Hide Details' : 'Show Details'}
               </Button>
-              <Button icon={<IconOpen />} href={eventJsonUrl} external>
+              <Button
+                icon={<IconOpen />}
+                href={eventJsonUrl}
+                external
+                onClick={() =>
+                  trackAdvancedAnalyticsEvent(
+                    'performance_views.event_details.json_button_click',
+                    {
+                      organization,
+                    }
+                  )
+                }
+              >
                 {t('JSON')} (<FileSize bytes={event.size} />)
               </Button>
               {transactionSummaryTarget && (
@@ -240,6 +254,14 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
           {isSidebarVisible && (
             <Layout.Side>
               <EventVitals event={event} />
+              {(organization.features.includes('dashboards-mep') ||
+                organization.features.includes('mep-rollout-flag')) && (
+                <EventCustomPerformanceMetrics
+                  event={event}
+                  location={location}
+                  organization={organization}
+                />
+              )}
               {event.groupID && (
                 <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
               )}
@@ -351,7 +373,7 @@ const EventHeader = ({event}: {event: Event}) => {
 };
 
 const EventHeaderContainer = styled('div')`
-  max-width: ${p => p.theme.breakpoints[0]};
+  max-width: ${p => p.theme.breakpoints.small};
 `;
 
 const TitleWrapper = styled('div')`

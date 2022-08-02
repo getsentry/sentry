@@ -1,4 +1,5 @@
-import * as React from 'react';
+import {Component} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import {withTheme} from '@emotion/react';
 import round from 'lodash/round';
@@ -17,7 +18,7 @@ import {
   ReleaseProject,
   ReleaseWithHealth,
   SessionApiResponse,
-  SessionField,
+  SessionFieldWithOperation,
   SessionStatus,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -58,7 +59,7 @@ type Props = {
   utc?: boolean;
 } & WithRouterProps;
 
-class ReleaseSessionsChart extends React.Component<Props> {
+class ReleaseSessionsChart extends Component<Props> {
   formatTooltipValue = (value: string | number | null, label?: string) => {
     if (label && Object.values(releaseMarkLinesLabels).includes(label)) {
       return '';
@@ -211,7 +212,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
               data: getCrashFreeRateSeries(
                 releaseSessions?.groups,
                 releaseSessions?.intervals,
-                SessionField.SESSIONS
+                SessionFieldWithOperation.SESSIONS
               ),
             },
           ],
@@ -221,7 +222,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
               data: getCrashFreeRateSeries(
                 allSessions?.groups,
                 allSessions?.intervals,
-                SessionField.SESSIONS
+                SessionFieldWithOperation.SESSIONS
               ),
             },
           ],
@@ -236,7 +237,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
               data: getSessionStatusRateSeries(
                 releaseSessions?.groups,
                 releaseSessions?.intervals,
-                SessionField.SESSIONS,
+                SessionFieldWithOperation.SESSIONS,
                 SessionStatus.HEALTHY
               ),
             },
@@ -247,7 +248,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
               data: getSessionStatusRateSeries(
                 allSessions?.groups,
                 allSessions?.intervals,
-                SessionField.SESSIONS,
+                SessionFieldWithOperation.SESSIONS,
                 SessionStatus.HEALTHY
               ),
             },
@@ -263,7 +264,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
               data: getSessionStatusRateSeries(
                 releaseSessions?.groups,
                 releaseSessions?.intervals,
-                SessionField.SESSIONS,
+                SessionFieldWithOperation.SESSIONS,
                 SessionStatus.ABNORMAL
               ),
             },
@@ -274,7 +275,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
               data: getSessionStatusRateSeries(
                 allSessions?.groups,
                 allSessions?.intervals,
-                SessionField.SESSIONS,
+                SessionFieldWithOperation.SESSIONS,
                 SessionStatus.ABNORMAL
               ),
             },
@@ -290,7 +291,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
               data: getSessionStatusRateSeries(
                 releaseSessions?.groups,
                 releaseSessions?.intervals,
-                SessionField.SESSIONS,
+                SessionFieldWithOperation.SESSIONS,
                 SessionStatus.ERRORED
               ),
             },
@@ -301,7 +302,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
               data: getSessionStatusRateSeries(
                 allSessions?.groups,
                 allSessions?.intervals,
-                SessionField.SESSIONS,
+                SessionFieldWithOperation.SESSIONS,
                 SessionStatus.ERRORED
               ),
             },
@@ -317,7 +318,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
               data: getSessionStatusRateSeries(
                 releaseSessions?.groups,
                 releaseSessions?.intervals,
-                SessionField.SESSIONS,
+                SessionFieldWithOperation.SESSIONS,
                 SessionStatus.CRASHED
               ),
             },
@@ -328,7 +329,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
               data: getSessionStatusRateSeries(
                 allSessions?.groups,
                 allSessions?.intervals,
-                SessionField.SESSIONS,
+                SessionFieldWithOperation.SESSIONS,
                 SessionStatus.CRASHED
               ),
             },
@@ -344,7 +345,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
               data: getCrashFreeRateSeries(
                 releaseSessions?.groups,
                 releaseSessions?.intervals,
-                SessionField.USERS
+                SessionFieldWithOperation.USERS
               ),
             },
           ],
@@ -354,7 +355,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
               data: getCrashFreeRateSeries(
                 allSessions?.groups,
                 allSessions?.intervals,
-                SessionField.USERS
+                SessionFieldWithOperation.USERS
               ),
             },
           ],
@@ -369,7 +370,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
               data: getSessionStatusRateSeries(
                 releaseSessions?.groups,
                 releaseSessions?.intervals,
-                SessionField.USERS,
+                SessionFieldWithOperation.USERS,
                 SessionStatus.HEALTHY
               ),
             },
@@ -380,7 +381,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
               data: getSessionStatusRateSeries(
                 allSessions?.groups,
                 allSessions?.intervals,
-                SessionField.USERS,
+                SessionFieldWithOperation.USERS,
                 SessionStatus.HEALTHY
               ),
             },
@@ -396,7 +397,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
               data: getSessionStatusRateSeries(
                 releaseSessions?.groups,
                 releaseSessions?.intervals,
-                SessionField.USERS,
+                SessionFieldWithOperation.USERS,
                 SessionStatus.ABNORMAL
               ),
             },
@@ -407,7 +408,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
               data: getSessionStatusRateSeries(
                 allSessions?.groups,
                 allSessions?.intervals,
-                SessionField.USERS,
+                SessionFieldWithOperation.USERS,
                 SessionStatus.ABNORMAL
               ),
             },
@@ -423,7 +424,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
               data: getSessionStatusRateSeries(
                 releaseSessions?.groups,
                 releaseSessions?.intervals,
-                SessionField.USERS,
+                SessionFieldWithOperation.USERS,
                 SessionStatus.ERRORED
               ),
             },
@@ -434,7 +435,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
               data: getSessionStatusRateSeries(
                 allSessions?.groups,
                 allSessions?.intervals,
-                SessionField.USERS,
+                SessionFieldWithOperation.USERS,
                 SessionStatus.ERRORED
               ),
             },
@@ -450,7 +451,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
               data: getSessionStatusRateSeries(
                 releaseSessions?.groups,
                 releaseSessions?.intervals,
-                SessionField.USERS,
+                SessionFieldWithOperation.USERS,
                 SessionStatus.CRASHED
               ),
             },
@@ -461,7 +462,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
               data: getSessionStatusRateSeries(
                 allSessions?.groups,
                 allSessions?.intervals,
-                SessionField.USERS,
+                SessionFieldWithOperation.USERS,
                 SessionStatus.CRASHED
               ),
             },
@@ -474,7 +475,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
             {
               ...countCharts[SessionStatus.HEALTHY],
               data: getCountSeries(
-                SessionField.SESSIONS,
+                SessionFieldWithOperation.SESSIONS,
                 releaseSessions.groups.find(
                   g => g.by['session.status'] === SessionStatus.HEALTHY
                 ),
@@ -484,7 +485,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
             {
               ...countCharts[SessionStatus.ERRORED],
               data: getCountSeries(
-                SessionField.SESSIONS,
+                SessionFieldWithOperation.SESSIONS,
                 releaseSessions.groups.find(
                   g => g.by['session.status'] === SessionStatus.ERRORED
                 ),
@@ -494,7 +495,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
             {
               ...countCharts[SessionStatus.ABNORMAL],
               data: getCountSeries(
-                SessionField.SESSIONS,
+                SessionFieldWithOperation.SESSIONS,
                 releaseSessions.groups.find(
                   g => g.by['session.status'] === SessionStatus.ABNORMAL
                 ),
@@ -504,7 +505,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
             {
               ...countCharts[SessionStatus.CRASHED],
               data: getCountSeries(
-                SessionField.SESSIONS,
+                SessionFieldWithOperation.SESSIONS,
                 releaseSessions.groups.find(
                   g => g.by['session.status'] === SessionStatus.CRASHED
                 ),
@@ -523,7 +524,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
               data: getSessionP50Series(
                 releaseSessions?.groups,
                 releaseSessions?.intervals,
-                SessionField.DURATION,
+                SessionFieldWithOperation.DURATION,
                 duration => roundDuration(duration / 1000)
               ),
             },
@@ -534,7 +535,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
               data: getSessionP50Series(
                 allSessions?.groups,
                 allSessions?.intervals,
-                SessionField.DURATION,
+                SessionFieldWithOperation.DURATION,
                 duration => roundDuration(duration / 1000)
               ),
             },
@@ -547,7 +548,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
             {
               ...countCharts[SessionStatus.HEALTHY],
               data: getCountSeries(
-                SessionField.USERS,
+                SessionFieldWithOperation.USERS,
                 releaseSessions.groups.find(
                   g => g.by['session.status'] === SessionStatus.HEALTHY
                 ),
@@ -557,7 +558,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
             {
               ...countCharts[SessionStatus.ERRORED],
               data: getCountSeries(
-                SessionField.USERS,
+                SessionFieldWithOperation.USERS,
                 releaseSessions.groups.find(
                   g => g.by['session.status'] === SessionStatus.ERRORED
                 ),
@@ -567,7 +568,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
             {
               ...countCharts[SessionStatus.ABNORMAL],
               data: getCountSeries(
-                SessionField.USERS,
+                SessionFieldWithOperation.USERS,
                 releaseSessions.groups.find(
                   g => g.by['session.status'] === SessionStatus.ABNORMAL
                 ),
@@ -577,7 +578,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
             {
               ...countCharts[SessionStatus.CRASHED],
               data: getCountSeries(
-                SessionField.USERS,
+                SessionFieldWithOperation.USERS,
                 releaseSessions.groups.find(
                   g => g.by['session.status'] === SessionStatus.CRASHED
                 ),

@@ -38,7 +38,7 @@ UPLOAD_RETRY_TIME = getattr(settings, "SENTRY_UPLOAD_RETRY_TIME", 60)  # 1min
 DEFAULT_BLOB_SIZE = 1024 * 1024  # one mb
 CHUNK_STATE_HEADER = "__state"
 MULTI_BLOB_UPLOAD_CONCURRENCY = 8
-MAX_FILE_SIZE = 2 ** 31  # 2GB is the maximum offset supported by fileblob
+MAX_FILE_SIZE = 2**31  # 2GB is the maximum offset supported by fileblob
 
 
 class nooplogger:
@@ -69,7 +69,9 @@ def _get_size_and_checksum(fileobj, logger=nooplogger):
 @contextmanager
 def _locked_blob(checksum, logger=nooplogger):
     logger.debug("_locked_blob.start", extra={"checksum": checksum})
-    lock = locks.get(f"fileblob:upload:{checksum}", duration=UPLOAD_RETRY_TIME)
+    lock = locks.get(
+        f"fileblob:upload:{checksum}", duration=UPLOAD_RETRY_TIME, name="fileblob_upload_model"
+    )
     with TimedRetryPolicy(UPLOAD_RETRY_TIME, metric_instance="lock.fileblob.upload")(lock.acquire):
         logger.debug("_locked_blob.acquired", extra={"checksum": checksum})
         # test for presence
@@ -273,7 +275,11 @@ class FileBlob(Model):
     def delete(self, *args, **kwargs):
         if self.path:
             self.deletefile(commit=False)
-        lock = locks.get(f"fileblob:upload:{self.checksum}", duration=UPLOAD_RETRY_TIME)
+        lock = locks.get(
+            f"fileblob:upload:{self.checksum}",
+            duration=UPLOAD_RETRY_TIME,
+            name="fileblob_upload_delete",
+        )
         with TimedRetryPolicy(UPLOAD_RETRY_TIME, metric_instance="lock.fileblob.delete")(
             lock.acquire
         ):

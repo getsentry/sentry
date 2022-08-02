@@ -9,7 +9,7 @@ from sentry.testutils.helpers.slack import get_attachment, send_notification
 from sentry.types.activity import ActivityType
 
 
-class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
+class SlackResolvedInReleaseNotificationTest(SlackActivityNotificationTest):
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_resolved_in_release(self, mock_func):
@@ -33,5 +33,5 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
         assert text == f"Issue marked as resolved in {release_name} by {self.name}"
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved-in-release-activity-slack-user|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_in_release_activity-slack-user|Notification Settings>"
         )

@@ -5,20 +5,14 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import roles
+from sentry import audit_log, roles
 from sentry.api.base import Endpoint, SessionAuthentication
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization import (
     DetailedOrganizationSerializerWithProjectsAndTeams,
 )
-from sentry.models import (
-    AuditLogEntryEvent,
-    Organization,
-    OrganizationMember,
-    OrganizationStatus,
-    Project,
-)
+from sentry.models import Organization, OrganizationMember, OrganizationStatus, Project
 from sentry.utils import metrics
 from sentry.utils.signing import unsign
 
@@ -126,7 +120,7 @@ class AcceptProjectTransferEndpoint(Endpoint):
             request=request,
             organization=project.organization,
             target_object=project.id,
-            event=AuditLogEntryEvent.PROJECT_ACCEPT_TRANSFER,
+            event=audit_log.get_event_id("PROJECT_ACCEPT_TRANSFER"),
             data=project.get_audit_log_data(),
             transaction_id=transaction_id,
         )

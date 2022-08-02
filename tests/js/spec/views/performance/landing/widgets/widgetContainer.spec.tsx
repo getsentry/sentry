@@ -1,4 +1,7 @@
-import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
+import {
+  initializeData as _initializeData,
+  initializeDataSettings,
+} from 'sentry-test/performance/initializePerformanceData';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -12,7 +15,7 @@ import WidgetContainer from 'sentry/views/performance/landing/widgets/components
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {PROJECT_PERFORMANCE_TYPE} from 'sentry/views/performance/utils';
 
-const initializeData = (query = {}, rest = {}) => {
+const initializeData = (query = {}, rest: initializeDataSettings = {}) => {
   const data = _initializeData({
     query: {statsPeriod: '7d', environment: ['prod'], project: [-42], ...query},
     ...rest,
@@ -23,11 +26,13 @@ const initializeData = (query = {}, rest = {}) => {
   return data;
 };
 
-const WrappedComponent = ({data, isMEPEnabled = false, ...rest}) => {
+const WrappedComponent = ({data, withStaticFilters = false, ...rest}) => {
   return (
-    <MEPSettingProvider _isMEPEnabled={isMEPEnabled}>
-      <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
-        <OrganizationContext.Provider value={data.organization}>
+    <OrganizationContext.Provider value={data.organization}>
+      <MEPSettingProvider>
+        <PerformanceDisplayProvider
+          value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}
+        >
           <WidgetContainer
             allowedCharts={[
               PerformanceWidgetSetting.TPM_AREA,
@@ -36,13 +41,14 @@ const WrappedComponent = ({data, isMEPEnabled = false, ...rest}) => {
               PerformanceWidgetSetting.DURATION_HISTOGRAM,
             ]}
             rowChartSettings={[]}
+            withStaticFilters={withStaticFilters}
             forceDefaultChartSetting
             {...data}
             {...rest}
           />
-        </OrganizationContext.Provider>
-      </PerformanceDisplayProvider>
-    </MEPSettingProvider>
+        </PerformanceDisplayProvider>
+      </MEPSettingProvider>
+    </OrganizationContext.Provider>
   );
 };
 
@@ -102,7 +108,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     }
   });
 
-  it('Check requests when changing widget props', async function () {
+  it('Check requests when changing widget props', function () {
     const data = initializeData();
 
     wrapper = render(
@@ -155,7 +161,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Check requests when changing widget props for GenericDiscoverQuery based widget', async function () {
+  it('Check requests when changing widget props for GenericDiscoverQuery based widget', function () {
     const data = initializeData();
 
     wrapper = render(
@@ -331,7 +337,6 @@ describe('Performance > Widgets > WidgetContainer', function () {
     wrapper = render(
       <WrappedComponent
         data={data}
-        isMEPEnabled
         defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
       />
     );
@@ -341,13 +346,12 @@ describe('Performance > Widgets > WidgetContainer', function () {
       1,
       expect.anything(),
       expect.objectContaining({
-        query: expect.objectContaining({
-          metricsEnhanced: '1',
-          preventMetricAggregates: '1',
-        }),
+        query: expect.objectContaining({dataset: 'metricsEnhanced'}),
       })
     );
-    expect(await screen.findByTestId('no-metrics-data-tag')).toBeInTheDocument();
+    expect(await screen.findByTestId('has-metrics-data-tag')).toHaveTextContent(
+      'metrics'
+    );
   });
 
   it('Widget with MEP enabled and metric meta set to undefined', async function () {
@@ -370,7 +374,6 @@ describe('Performance > Widgets > WidgetContainer', function () {
     wrapper = render(
       <WrappedComponent
         data={data}
-        isMEPEnabled
         defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
       />
     );
@@ -381,10 +384,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       1,
       expect.anything(),
       expect.objectContaining({
-        query: expect.objectContaining({
-          metricsEnhanced: '1',
-          preventMetricAggregates: '1',
-        }),
+        query: expect.objectContaining({dataset: 'metricsEnhanced'}),
       })
     );
   });
@@ -409,7 +409,6 @@ describe('Performance > Widgets > WidgetContainer', function () {
     wrapper = render(
       <WrappedComponent
         data={data}
-        isMEPEnabled
         defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
       />
     );
@@ -419,14 +418,11 @@ describe('Performance > Widgets > WidgetContainer', function () {
       1,
       expect.anything(),
       expect.objectContaining({
-        query: expect.objectContaining({
-          metricsEnhanced: '1',
-          preventMetricAggregates: '1',
-        }),
+        query: expect.objectContaining({dataset: 'metricsEnhanced'}),
       })
     );
     expect(await screen.findByTestId('has-metrics-data-tag')).toHaveTextContent(
-      'Sampled'
+      'transactions'
     );
   });
 
@@ -489,7 +485,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             'count_web_vitals(measurements.lcp, meh)',
             'count_web_vitals(measurements.lcp, good)',
           ],
-          per_page: 3,
+          per_page: 4,
           project: ['-42'],
           query: 'transaction.op:pageload',
           sort: '-count_web_vitals(measurements.lcp, poor)',
@@ -500,13 +496,17 @@ describe('Performance > Widgets > WidgetContainer', function () {
   });
 
   it('Worst LCP widget - MEP', async function () {
-    const data = initializeData();
+    const data = initializeData(
+      {},
+      {
+        features: ['performance-use-metrics'],
+      }
+    );
 
     wrapper = render(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.WORST_LCP_VITALS}
-        isMEPEnabled
       />
     );
 
@@ -530,13 +530,11 @@ describe('Performance > Widgets > WidgetContainer', function () {
             'count_web_vitals(measurements.lcp, meh)',
             'count_web_vitals(measurements.lcp, good)',
           ],
-          per_page: 3,
+          per_page: 4,
           project: ['-42'],
-          query: 'transaction.op:pageload',
+          query: 'transaction.op:pageload !transaction:"<< unparameterized >>"',
           sort: '-count_web_vitals(measurements.lcp, poor)',
           statsPeriod: '7d',
-          metricsEnhanced: '1',
-          preventMetricAggregates: '1',
         }),
       })
     );
@@ -572,7 +570,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             'count_web_vitals(measurements.fcp, meh)',
             'count_web_vitals(measurements.fcp, good)',
           ],
-          per_page: 3,
+          per_page: 4,
           project: ['-42'],
           query: 'transaction.op:pageload',
           sort: '-count_web_vitals(measurements.fcp, poor)',
@@ -611,7 +609,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             'count_web_vitals(measurements.fid, meh)',
             'count_web_vitals(measurements.fid, good)',
           ],
-          per_page: 3,
+          per_page: 4,
           project: ['-42'],
           query: 'transaction.op:pageload',
           sort: '-count_web_vitals(measurements.fid, poor)',
@@ -855,13 +853,17 @@ describe('Performance > Widgets > WidgetContainer', function () {
   });
 
   it('Most slow frames widget - MEP', async function () {
-    const data = initializeData();
+    const data = initializeData(
+      {},
+      {
+        features: ['performance-use-metrics'],
+      }
+    );
 
     wrapper = render(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.MOST_SLOW_FRAMES}
-        isMEPEnabled
       />
     );
 
@@ -884,8 +886,6 @@ describe('Performance > Widgets > WidgetContainer', function () {
           query: 'transaction.op:pageload epm():>0.01 avg(measurements.frames_slow):>0',
           sort: '-avg(measurements.frames_slow)',
           statsPeriod: '7d',
-          metricsEnhanced: '1',
-          preventMetricAggregates: '1',
         }),
       })
     );
@@ -954,13 +954,8 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(eventStatsMock).toHaveBeenCalledTimes(1);
     expect(setRowChartSettings).toHaveBeenCalledTimes(0);
 
-    userEvent.click(await screen.findByTestId('context-menu'));
-
-    const menuItems = await screen.findAllByTestId('performance-widget-menu-item');
-
-    expect(menuItems[2]).toHaveTextContent('User Misery');
-
-    userEvent.click(menuItems[2]);
+    userEvent.click(await screen.findByLabelText('More'));
+    userEvent.click(await screen.findByText('User Misery'));
 
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'User Misery'
@@ -990,14 +985,15 @@ describe('Performance > Widgets > WidgetContainer', function () {
       'Failure Rate'
     );
 
-    userEvent.click(await screen.findByTestId('context-menu'));
+    // Open context menu
+    userEvent.click(await screen.findByLabelText('More'));
 
-    const menuItems = await screen.findAllByTestId('performance-widget-menu-item');
-
-    expect(menuItems[1]).toHaveTextContent('Failure Rate');
-    expect(menuItems[1]).toBeEnabled();
-
-    expect(menuItems[2]).toHaveTextContent('User Misery');
-    expect(menuItems[2]).toHaveAttribute('disabled');
+    // Check that the the "User Misery" option is disabled by clicking on it,
+    // expecting that the selected option doesn't change
+    const userMiseryOption = await screen.findByTestId('user_misery_area');
+    userEvent.click(userMiseryOption);
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
+      'Failure Rate'
+    );
   });
 });

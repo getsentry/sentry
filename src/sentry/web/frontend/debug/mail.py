@@ -15,9 +15,10 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.generic import View
+from rest_framework.request import Request
+from rest_framework.response import Response
 
-from sentry import eventstore, features
-from sentry.app import tsdb
+from sentry import eventstore
 from sentry.constants import LOG_LEVELS
 from sentry.digests import Record
 from sentry.digests.notifications import Notification, build_digest
@@ -95,6 +96,7 @@ def make_group_generator(random, project):
     for id in itertools.count(1):
         first_seen = epoch + random.randint(0, 60 * 60 * 24 * 30)
         last_seen = random.randint(first_seen, first_seen + (60 * 60 * 24 * 30))
+        times_seen = 98765
 
         culprit = make_culprit(random)
         level = random.choice(list(LOG_LEVELS.keys()))
@@ -109,6 +111,7 @@ def make_group_generator(random, project):
             message=message,
             first_seen=to_datetime(first_seen),
             last_seen=to_datetime(last_seen),
+            times_seen=times_seen,
             status=random.choice((GroupStatus.UNRESOLVED, GroupStatus.RESOLVED)),
             data={"type": "default", "metadata": {"title": message}},
         )
@@ -181,22 +184,18 @@ class ActivityMailPreview:
         return context
 
     def text_body(self):
-        return render_to_string(self.email.get_template(), context=self.get_context())
+        txt_template = f"{self.email.template_path}.txt"
+        return render_to_string(txt_template, context=self.get_context())
 
     def html_body(self):
+        html_template = f"{self.email.template_path}.html"
         try:
-            return inline_css(
-                render_to_string(self.email.get_html_template(), context=self.get_context())
-            )
+            return inline_css(render_to_string(html_template, context=self.get_context()))
         except Exception:
             import traceback
 
             traceback.print_exc()
             raise
-
-
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 
 class ActivityMailDebugView(View):
@@ -295,7 +294,6 @@ def alert(request):
             "interfaces": interface_list,
             "tags": event.tags,
             "project_label": project.slug,
-            "alert_status_page_enabled": features.has("organizations:alert-rule-status-page", org),
             "commits": [
                 {
                     # TODO(dcramer): change to use serializer
@@ -329,6 +327,84 @@ def alert(request):
                     },
                 }
             ],
+        },
+    ).render(request)
+
+
+@login_required
+def release_alert(request):
+    platform = request.GET.get("platform", "python")
+    org = Organization(id=1, slug="example", name="Example")
+    project = Project(id=1, slug="example", name="Example", organization=org, platform="python")
+
+    random = get_random(request)
+    group = next(make_group_generator(random, project))
+
+    data = dict(load_data(platform))
+    data["message"] = group.message
+    data["event_id"] = "44f1419e73884cd2b45c79918f4b6dc4"
+    data.pop("logentry", None)
+    data["environment"] = "prod"
+    data["tags"] = [
+        ("logger", "javascript"),
+        ("environment", "prod"),
+        ("level", "error"),
+        ("device", "Other"),
+    ]
+
+    event_manager = EventManager(data)
+    event_manager.normalize()
+    data = event_manager.get_data()
+    event = event_manager.save(project.id)
+    # Prevent CI screenshot from constantly changing
+    event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
+    event_type = get_event_type(event.data)
+    # In non-debug context users_seen we get users_seen from group.count_users_seen()
+    users_seen = random.randint(0, 100 * 1000)
+
+    group.message = event.search_message
+    group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
+
+    rule = Rule(id=1, label="An example rule")
+
+    # XXX: this interface_list code needs to be the same as in
+    #      src/sentry/mail/adapter.py
+    interfaces = {}
+    for interface in event.interfaces.values():
+        body = interface.to_email_html(event)
+        if not body:
+            continue
+        text_body = interface.to_string(event)
+        interfaces[interface.get_title()] = {
+            "label": interface.get_title(),
+            "html": mark_safe(body),
+            "body": text_body,
+        }
+
+    contexts = event.data["contexts"].items() if "contexts" in event.data else None
+    event_user = event.data["event_user"] if "event_user" in event.data else None
+
+    return MailPreview(
+        html_template="sentry/emails/release_alert.html",
+        text_template="sentry/emails/release_alert.txt",
+        context={
+            "rules": get_rules([rule], org, project),
+            "group": group,
+            "event": event,
+            "event_user": event_user,
+            "timezone": pytz.timezone("Europe/Vienna"),
+            "link": get_group_settings_link(group, None, get_rules([rule], org, project), 1337),
+            "interfaces": interfaces,
+            "tags": event.tags,
+            "contexts": contexts,
+            "users_seen": users_seen,
+            "project": project,
+            "last_release": {
+                "version": "13.9.2",
+            },
+            "last_release_link": f"http://testserver/organizations/{org.slug}/releases/13.9.2/?project={project.id}",
+            "environment": "production",
+            "regression": False,
         },
     ).render(request)
 
@@ -474,21 +550,6 @@ def report(request):
             int(random.weibullvariate(5, 1) * random.paretovariate(0.2)),
         )
 
-    def build_calendar_data(project):
-        start, stop = reports.get_calendar_query_range(interval, 3)
-        rollup = 60 * 60 * 24
-        series = []
-
-        weekend = frozenset((5, 6))
-        value = int(random.weibullvariate(5000, 3))
-        for timestamp in tsdb.get_optimal_rollup_series(start, stop, rollup)[1]:
-            damping = random.uniform(0.2, 0.6) if to_datetime(timestamp).weekday in weekend else 1
-            jitter = random.paretovariate(1.2)
-            series.append((timestamp, int(value * damping * jitter)))
-            value = value * random.uniform(0.25, 2)
-
-        return reports.clean_calendar_data(project, series, start, stop, rollup, stop)
-
     def build_report(project):
         daily_maximum = random.randint(1000, 10000)
 
@@ -497,9 +558,7 @@ def report(request):
             (
                 timestamp + (i * rollup),
                 (
-                    # Resolved issues
-                    random.randint(0, daily_maximum),
-                    # Unresolved issues
+                    # Issues
                     random.randint(0, daily_maximum),
                     # Transactions
                     random.randint(0, daily_maximum),
@@ -518,7 +577,6 @@ def report(request):
             aggregates,
             build_issue_summaries(),
             build_usage_outcomes(),
-            build_calendar_data(project),
             key_events=[(g.id, random.randint(0, 1000)) for g in Group.objects.all()[:3]],
             key_transactions=[("/transaction/1", 1234, project.id, 1111, 2222)],
         )
@@ -527,11 +585,7 @@ def report(request):
         personal = {"resolved": random.randint(0, 100), "users": int(random.paretovariate(0.2))}
     else:
         personal = {"resolved": 0, "users": 0}
-
-    if request.GET.get("new"):
-        html_template = "sentry/emails/reports/new.html"
-    else:
-        html_template = "sentry/emails/reports/body.html"
+    html_template = "sentry/emails/reports/body.html"
 
     return MailPreview(
         html_template=html_template,

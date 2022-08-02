@@ -1,4 +1,3 @@
-import * as React from 'react';
 import {createFilter} from 'react-select';
 
 import Alert from 'sentry/components/alert';
@@ -119,7 +118,7 @@ type SelectControlType = {type: 'choice' | 'select'} & {
   filterOption?: ReturnType<typeof createFilter>;
   multiple?: boolean;
   noOptionsMessage?: () => string;
-  options?: Array<{label: string; value: any}>;
+  options?: Array<{label: React.ReactNode; value: any}>;
 };
 
 type TextareaType = {type: 'textarea'} & {

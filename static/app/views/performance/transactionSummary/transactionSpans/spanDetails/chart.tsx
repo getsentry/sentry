@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-restricted-imports
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {Location} from 'history';
 
@@ -17,13 +18,11 @@ import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
-import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 
 import ExclusiveTimeHistogram from './exclusiveTimeHistogram';
 import ExclusiveTimeTimeSeries from './exclusiveTimeTimeSeries';
-import {MAX, MIN} from './utils';
 
 type Props = WithRouterProps & {
   eventView: EventView;
@@ -59,7 +58,7 @@ function Chart(props: Props) {
     browserHistory.push({
       pathname: location.pathname,
       query: {
-        ...removeHistogramQueryStrings(location, [MIN, MAX]),
+        ...location.query,
         display: value,
       },
     });

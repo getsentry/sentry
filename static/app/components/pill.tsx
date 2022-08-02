@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {memo} from 'react';
 import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
@@ -14,7 +14,7 @@ type Props = {
   value?: number | string | boolean | null;
 };
 
-const Pill = React.memo(({name, value, children, type, className}: Props) => {
+const Pill = memo(({name, value, children, type, className}: Props) => {
   const getTypeAndValue = (): Partial<{renderValue: string; valueType: PillType}> => {
     if (value === undefined) {
       return {};

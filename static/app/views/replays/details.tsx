@@ -1,217 +1,95 @@
-import React from 'react';
-import {RouteComponentProps} from 'react-router';
-import styled from '@emotion/styled';
+import {Fragment} from 'react';
 
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import DetailedError from 'sentry/components/errors/detailedError';
 import NotFound from 'sentry/components/errors/notFound';
-import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
-import EventEntry from 'sentry/components/events/eventEntry';
-import EventMessage from 'sentry/components/events/eventMessage';
-import BaseRRWebReplayer from 'sentry/components/events/rrwebReplayer/baseRRWebReplayer';
-import FeatureBadge from 'sentry/components/featureBadge';
-import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import TagsTable from 'sentry/components/tagsTable';
+import {
+  Provider as ReplayContextProvider,
+  useReplayContext,
+} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
-import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {Event} from 'sentry/types/event';
-import {getMessage} from 'sentry/utils/events';
-import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
+import useUrlParam from 'sentry/utils/replays/hooks/useUrlParams';
+import {useRouteContext} from 'sentry/utils/useRouteContext';
+import Layout from 'sentry/views/replays/detail/layout';
+import Page from 'sentry/views/replays/detail/page';
 
-import useReplayEvent from './utils/useReplayEvent';
+const LAYOUT_NAMES = ['topbar', 'sidebar_right', 'sidebar_left'];
 
-type Props = AsyncView['props'] &
-  RouteComponentProps<
-    {
-      eventSlug: string;
-      orgId: string;
-    },
-    {}
-  > & {organization: Organization};
-
-type ReplayLoaderProps = {
-  eventSlug: string;
-  location: Props['location'];
-  orgId: string;
-  organization: Organization;
-  route: Props['route'];
-  router: Props['router'];
-};
-
-type State = AsyncView['state'];
-
-const EventHeader = ({event}: {event: Event}) => {
-  const message = getMessage(event);
-  return (
-    <EventHeaderContainer data-test-id="event-header">
-      <TitleWrapper>
-        <EventOrGroupTitle data={event} /> <FeatureBadge type="alpha" />
-      </TitleWrapper>
-      {message && (
-        <MessageWrapper>
-          <EventMessage message={message} />
-        </MessageWrapper>
-      )}
-    </EventHeaderContainer>
-  );
-};
-
-class ReplayDetails extends AsyncView<Props, State> {
-  state: State = {
-    loading: true,
-    reloading: false,
-    error: false,
-    errors: {},
-  };
-
-  getTitle() {
-    if (this.state.event) {
-      return `${this.state.event.id} - Replays - ${this.props.params.orgId}`;
-    }
-    return `Replays - ${this.props.params.orgId}`;
-  }
-
-  renderLoading() {
-    return <PageContent>{super.renderLoading()}</PageContent>;
-  }
-
-  renderBody() {
-    const {
-      location,
-      router,
-      route,
-      organization,
-      params: {eventSlug, orgId},
-    } = this.props;
-    return (
-      <ReplayLoader
-        eventSlug={eventSlug}
-        location={location}
-        orgId={orgId}
-        organization={organization}
-        router={router}
-        route={route}
-      />
-    );
-  }
-}
-
-function getProjectSlug(event: Event) {
-  return event.projectSlug || event['project.name']; // seems janky
-}
-
-function ReplayLoader(props: ReplayLoaderProps) {
-  const orgSlug = props.orgId;
+function ReplayDetails() {
+  const {
+    location,
+    params: {eventSlug, orgId},
+  } = useRouteContext();
 
   const {
-    fetchError,
-    fetching,
-    breadcrumbEntry,
-    event,
-    replayEvents,
-    rrwebEvents,
-    mergedReplayEvent,
-  } = useReplayEvent(props);
+    t: initialTimeOffset, // Time, in seconds, where the video should start
+  } = location.query;
 
-  /* eslint-disable-next-line no-console */
-  console.log({
-    fetchError,
-    fetching,
-    event,
-    replayEvents,
-    rrwebEvents,
-    mergedReplayEvent,
+  const {fetching, onRetry, replay} = useReplayData({
+    eventSlug,
+    orgId,
   });
 
-  const renderMain = () => {
-    if (fetching) {
-      return <LoadingIndicator />;
-    }
-    if (!event) {
-      return <NotFound />;
-    }
-
+  if (!fetching && !replay) {
     return (
-      <React.Fragment>
-        <BaseRRWebReplayer events={rrwebEvents} />
-
-        {breadcrumbEntry && (
-          <EventEntry
-            projectSlug={getProjectSlug(event)}
-            // group={group}
-            organization={props.organization}
-            event={event}
-            entry={breadcrumbEntry}
-            route={props.route}
-            router={props.router}
-          />
-        )}
-
-        {mergedReplayEvent && (
-          <EventEntry
-            key={`${mergedReplayEvent.id}`}
-            projectSlug={getProjectSlug(mergedReplayEvent)}
-            // group={group}
-            organization={props.organization}
-            event={mergedReplayEvent}
-            entry={mergedReplayEvent.entries[0]}
-            route={props.route}
-            router={props.router}
-          />
-        )}
-      </React.Fragment>
+      <Page orgId={orgId}>
+        <PageContent>
+          <NotFound />
+        </PageContent>
+      </Page>
     );
-  };
+  }
 
-  const renderSide = () => {
-    if (event) {
-      return <TagsTable generateUrl={() => ''} event={event} query="" />;
-    }
-    return null;
-  };
+  if (!fetching && replay && replay.getRRWebEvents().length < 2) {
+    return (
+      <Page orgId={orgId} replayRecord={replay.getReplay()}>
+        <DetailedError
+          onRetry={onRetry}
+          hideSupportLinks
+          heading={t('Expected two or more replay events')}
+          message={
+            <Fragment>
+              <p>{t('This Replay may not have captured any user actions.')}</p>
+              <p>
+                {t(
+                  'Or there may be an issue loading the actions from the server, click to try loading the Replay again.'
+                )}
+              </p>
+            </Fragment>
+          }
+        />
+      </Page>
+    );
+  }
 
   return (
-    <NoPaddingContent>
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <Breadcrumbs
-            crumbs={[
-              {
-                to: `/organizations/${orgSlug}/replays/`,
-                label: t('Replays'),
-              },
-              {label: t('Replay Details')}, // TODO: put replay ID or something here
-            ]}
-          />
-          {event ? <EventHeader event={event} /> : null}
-        </Layout.HeaderContent>
-      </Layout.Header>
-      <Layout.Body>
-        <Layout.Main>{renderMain()}</Layout.Main>
-        <Layout.Side>{renderSide()}</Layout.Side>
-      </Layout.Body>
-    </NoPaddingContent>
+    <ReplayContextProvider replay={replay} initialTimeOffset={initialTimeOffset}>
+      <LoadedDetails orgId={orgId} />
+    </ReplayContextProvider>
   );
 }
 
-const EventHeaderContainer = styled('div')`
-  max-width: ${p => p.theme.breakpoints[0]};
-`;
+function LoadedDetails({orgId}: {orgId: string}) {
+  const {getParamValue} = useUrlParam('l_page', 'topbar');
+  const {replay} = useReplayContext();
+  const durationMs = replay?.getDurationMs();
 
-const TitleWrapper = styled('div')`
-  font-size: ${p => p.theme.headerFontSize};
-  margin-top: 20px;
-`;
+  return (
+    <Page
+      orgId={orgId}
+      crumbs={replay?.getRawCrumbs()}
+      durationMs={durationMs}
+      replayRecord={replay?.getReplay()}
+    >
+      <Layout
+        layout={
+          // TODO(replay): If we end up keeping this, we'll fix up the typing
+          LAYOUT_NAMES.includes(getParamValue()) ? (getParamValue() as any) : 'topbar'
+        }
+      />
+    </Page>
+  );
+}
 
-const MessageWrapper = styled('div')`
-  margin-top: ${space(1)};
-`;
-
-const NoPaddingContent = styled(PageContent)`
-  padding: 0;
-`;
-
-export default withOrganization(ReplayDetails);
+export default ReplayDetails;

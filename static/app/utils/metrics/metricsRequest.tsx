@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import isEqual from 'lodash/isEqual';
 import omitBy from 'lodash/omitBy';
 
@@ -71,7 +71,7 @@ type State = {
   responsePrevious: MetricsApiResponse | null;
 };
 
-class MetricsRequest extends React.Component<Props, State> {
+class MetricsRequest extends Component<Props, State> {
   static defaultProps: DefaultProps = {
     includePrevious: false,
     includeSeriesData: false,

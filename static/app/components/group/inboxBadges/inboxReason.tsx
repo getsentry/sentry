@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import DateTime from 'sentry/components/dateTime';
@@ -169,10 +169,10 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
     <StyledTag type={tagType} tooltipText={tooltip} fontSize={fontSize}>
       {reasonBadgeText}
       {showDateAdded && dateAdded && (
-        <React.Fragment>
+        <Fragment>
           <Separator type={tagType ?? 'default'}>{' | '}</Separator>
           <TimeSince date={dateAdded} suffix="" extraShort disabledAbsoluteTooltip />
-        </React.Fragment>
+        </Fragment>
       )}
     </StyledTag>
   );

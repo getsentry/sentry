@@ -1,9 +1,42 @@
-from sentry.models import ProjectKey, ProjectKeyStatus
+import pytest
+
+from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 from sentry.testutils import TestCase
 
 
 class ProjectKeyTest(TestCase):
     model = ProjectKey
+
+    def test_get_dsn_custom_prefix(self):
+        key = ProjectKey(project_id=1, public_key="public", secret_key="secret")
+        with self.options({"system.url-prefix": "http://example.com"}):
+            self.assertEqual(key.get_dsn(), "http://public:secret@example.com/1")
+
+    def test_get_dsn_with_ssl(self):
+        key = ProjectKey(project_id=1, public_key="public", secret_key="secret")
+        with self.options({"system.url-prefix": "https://example.com"}):
+            self.assertEqual(key.get_dsn(), "https://public:secret@example.com/1")
+
+    def test_get_dsn_with_port(self):
+        key = ProjectKey(project_id=1, public_key="public", secret_key="secret")
+        with self.options({"system.url-prefix": "http://example.com:81"}):
+            self.assertEqual(key.get_dsn(), "http://public:secret@example.com:81/1")
+
+    def test_get_dsn_with_public_endpoint_setting(self):
+        key = ProjectKey(project_id=1, public_key="public", secret_key="secret")
+        with self.settings(SENTRY_PUBLIC_ENDPOINT="http://public_endpoint.com"):
+            self.assertEqual(key.get_dsn(public=True), "http://public@public_endpoint.com/1")
+
+    def test_get_dsn_with_endpoint_setting(self):
+        key = ProjectKey(project_id=1, public_key="public", secret_key="secret")
+        with self.settings(SENTRY_ENDPOINT="http://endpoint.com"):
+            self.assertEqual(key.get_dsn(), "http://public:secret@endpoint.com/1")
+
+    def test_key_is_created_for_project(self):
+        self.create_user("admin@example.com")
+        team = self.create_team(name="Test")
+        project = self.create_project(name="Test", teams=[team])
+        assert project.key_set.exists() is True
 
     def test_generate_api_key(self):
         assert len(self.model.generate_api_key()) == 32
@@ -14,10 +47,10 @@ class ProjectKeyTest(TestCase):
         assert self.model.from_dsn("http://abc@testserver/1") == key
         assert self.model.from_dsn("http://abc@o1.ingest.testserver/1") == key
 
-        with self.assertRaises(self.model.DoesNotExist):
+        with pytest.raises(self.model.DoesNotExist):
             self.model.from_dsn("http://xxx@testserver/1")
 
-        with self.assertRaises(self.model.DoesNotExist):
+        with pytest.raises(self.model.DoesNotExist):
             self.model.from_dsn("abc")
 
     def test_get_default(self):

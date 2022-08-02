@@ -48,7 +48,7 @@ class SnubaEventStorage(EventStorage):
 
     def get_events(
         self,
-        filter,  # NOQA
+        filter,
         orderby=None,
         limit=DEFAULT_LIMIT,
         offset=DEFAULT_OFFSET,
@@ -59,7 +59,7 @@ class SnubaEventStorage(EventStorage):
         """
         with sentry_sdk.start_span(op="eventstore.snuba.get_events"):
             return self.__get_events(
-                filter,  # NOQA
+                filter,
                 orderby=orderby,
                 limit=limit,
                 offset=offset,
@@ -69,7 +69,7 @@ class SnubaEventStorage(EventStorage):
 
     def get_unfetched_events(
         self,
-        filter,  # NOQA
+        filter,
         orderby=None,
         limit=DEFAULT_LIMIT,
         offset=DEFAULT_OFFSET,
@@ -79,7 +79,7 @@ class SnubaEventStorage(EventStorage):
         Get events from Snuba, without node data loaded.
         """
         return self.__get_events(
-            filter,  # NOQA
+            filter,
             orderby=orderby,
             limit=limit,
             offset=offset,
@@ -89,14 +89,14 @@ class SnubaEventStorage(EventStorage):
 
     def __get_events(
         self,
-        filter,  # NOQA
+        filter,
         orderby=None,
         limit=DEFAULT_LIMIT,
         offset=DEFAULT_OFFSET,
         referrer=None,
         should_bind_nodes=False,
     ):
-        assert filter, "You must provide a filter"  # NOQA
+        assert filter, "You must provide a filter"
         cols = self.__get_columns()
         orderby = orderby or DESC_ORDERING
 
@@ -207,15 +207,20 @@ class SnubaEventStorage(EventStorage):
                 raw_query_kwargs["conditions"] = [
                     ["timestamp", ">", datetime.fromtimestamp(random.randint(0, 1000000000))]
                 ]
-            result = snuba.raw_query(
-                selected_columns=["group_id"],
-                start=event.datetime,
-                end=event.datetime + timedelta(seconds=1),
-                filter_keys={"project_id": [project_id], "event_id": [event_id]},
-                limit=1,
-                referrer="eventstore.get_event_by_id_nodestore",
-                **raw_query_kwargs,
-            )
+            try:
+                result = snuba.raw_query(
+                    selected_columns=["group_id"],
+                    start=event.datetime,
+                    end=event.datetime + timedelta(seconds=1),
+                    filter_keys={"project_id": [project_id], "event_id": [event_id]},
+                    limit=1,
+                    referrer="eventstore.get_event_by_id_nodestore",
+                    **raw_query_kwargs,
+                )
+            except snuba.QueryOutsideRetentionError:
+                # this can happen due to races.  We silently want to hide
+                # this from callers.
+                return None
 
             # Return None if the event from Nodestore was not yet written to Snuba
             if len(result["data"]) != 1:
@@ -238,60 +243,62 @@ class SnubaEventStorage(EventStorage):
 
         return event
 
-    def get_earliest_event_id(self, event, filter):  # NOQA
-        filter = deepcopy(filter)  # NOQA
+    def get_earliest_event_id(self, event, filter):
+        filter = deepcopy(filter)
         filter.conditions = filter.conditions or []
         filter.conditions.extend(get_before_event_condition(event))
         filter.end = event.datetime
 
-        return self.__get_event_id_from_filter(filter=filter, orderby=ASC_ORDERING)  # NOQA
+        return self.__get_event_id_from_filter(filter=filter, orderby=ASC_ORDERING)
 
-    def get_latest_event_id(self, event, filter):  # NOQA
-        filter = deepcopy(filter)  # NOQA
+    def get_latest_event_id(self, event, filter):
+        filter = deepcopy(filter)
         filter.conditions = filter.conditions or []
         filter.conditions.extend(get_after_event_condition(event))
         filter.start = event.datetime
 
-        return self.__get_event_id_from_filter(filter=filter, orderby=DESC_ORDERING)  # NOQA
+        return self.__get_event_id_from_filter(filter=filter, orderby=DESC_ORDERING)
 
-    def get_next_event_id(self, event, filter):  # NOQA
+    def get_next_event_id(self, event, filter):
         """
         Returns (project_id, event_id) of a next event given a current event
         and any filters/conditions. Returns None if no next event is found.
         """
-        assert filter, "You must provide a filter"  # NOQA
+        assert filter, "You must provide a filter"
 
         if not event:
             return None
 
-        filter = deepcopy(filter)  # NOQA
+        filter = deepcopy(filter)
         filter.conditions = filter.conditions or []
         filter.conditions.extend(get_after_event_condition(event))
         filter.start = event.datetime
 
-        return self.__get_event_id_from_filter(filter=filter, orderby=ASC_ORDERING)  # NOQA
+        return self.__get_event_id_from_filter(filter=filter, orderby=ASC_ORDERING)
 
-    def get_prev_event_id(self, event, filter):  # NOQA
+    def get_prev_event_id(self, event, filter):
         """
         Returns (project_id, event_id) of a previous event given a current event
         and a filter. Returns None if no previous event is found.
         """
-        assert filter, "You must provide a filter"  # NOQA
+        assert filter, "You must provide a filter"
 
         if not event:
             return None
 
-        filter = deepcopy(filter)  # NOQA
+        filter = deepcopy(filter)
         filter.conditions = filter.conditions or []
         filter.conditions.extend(get_before_event_condition(event))
-        filter.end = event.datetime
+        # the previous event can have the same timestamp, add 1 second
+        # to the end condition since it uses a less than condition
+        filter.end = event.datetime + timedelta(seconds=1)
 
-        return self.__get_event_id_from_filter(filter=filter, orderby=DESC_ORDERING)  # NOQA
+        return self.__get_event_id_from_filter(filter=filter, orderby=DESC_ORDERING)
 
     def __get_columns(self):
         return [col.value.event_name for col in EventStorage.minimal_columns]
 
-    def __get_event_id_from_filter(self, filter=None, orderby=None):  # NOQA
+    def __get_event_id_from_filter(self, filter=None, orderby=None):
         columns = [Columns.EVENT_ID.value.alias, Columns.PROJECT_ID.value.alias]
 
         try:

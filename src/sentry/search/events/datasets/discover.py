@@ -73,7 +73,6 @@ from sentry.search.events.fields import (
     SnQLFieldColumn,
     SnQLFunction,
     SnQLStringArg,
-    StringArrayColumn,
     normalize_count_if_value,
     normalize_percentile_alias,
     reflective_result_type,
@@ -227,7 +226,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                     "count_web_vitals",
                     required_args=[
                         NumericColumn("column"),
-                        SnQLStringArg("quality", allowed_strings=["good", "meh", "poor"]),
+                        SnQLStringArg("quality", allowed_strings=["good", "meh", "poor", "any"]),
                     ],
                     snql_aggregate=self._resolve_web_vital_function,
                     default_result_type="integer",
@@ -371,6 +370,27 @@ class DiscoverDatasetConfig(DatasetConfig):
                         alias,
                     ),
                     default_result_type="duration",
+                ),
+                SnQLFunction(
+                    "random_number",
+                    snql_aggregate=lambda args, alias: Function(
+                        "rand",
+                        [],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                    private=True,
+                ),
+                SnQLFunction(
+                    "modulo",
+                    required_args=[SnQLStringArg("column"), NumberRange("factor", None, None)],
+                    snql_aggregate=lambda args, alias: Function(
+                        "modulo",
+                        [Column(args["column"]), args["factor"]],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                    private=True,
                 ),
                 SnQLFunction(
                     "avg_range",
@@ -604,7 +624,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                 ),
                 SnQLFunction(
                     "array_join",
-                    required_args=[StringArrayColumn("column")],
+                    required_args=[ColumnArg("column")],
                     snql_column=lambda args, alias: Function("arrayJoin", [args["column"]], alias),
                     default_result_type="string",
                     private=True,
@@ -676,6 +696,84 @@ class DiscoverDatasetConfig(DatasetConfig):
                     ),
                     default_result_type="number",
                     private=True,
+                ),
+                SnQLFunction(
+                    "spans_count_histogram",
+                    required_args=[
+                        SnQLStringArg("spans_op", True, True),
+                        # the bucket_size and start_offset should already be adjusted
+                        # using the multiplier before it is passed here
+                        NumberRange("bucket_size", 0, None),
+                        NumberRange("start_offset", 0, None),
+                        NumberRange("multiplier", 1, None),
+                    ],
+                    snql_column=lambda args, alias: Function(
+                        "plus",
+                        [
+                            Function(
+                                "multiply",
+                                [
+                                    Function(
+                                        "floor",
+                                        [
+                                            Function(
+                                                "divide",
+                                                [
+                                                    Function(
+                                                        "minus",
+                                                        [
+                                                            Function(
+                                                                "multiply",
+                                                                [
+                                                                    Function(
+                                                                        "length",
+                                                                        [
+                                                                            Function(
+                                                                                "arrayFilter",
+                                                                                [
+                                                                                    Lambda(
+                                                                                        [
+                                                                                            "x",
+                                                                                        ],
+                                                                                        Function(
+                                                                                            "equals",
+                                                                                            [
+                                                                                                Identifier(
+                                                                                                    "x"
+                                                                                                ),
+                                                                                                args[
+                                                                                                    "spans_op"
+                                                                                                ],
+                                                                                            ],
+                                                                                        ),
+                                                                                    ),
+                                                                                    Column(
+                                                                                        "spans.op"
+                                                                                    ),
+                                                                                ],
+                                                                            )
+                                                                        ],
+                                                                    ),
+                                                                    args["multiplier"],
+                                                                ],
+                                                            ),
+                                                            args["start_offset"],
+                                                        ],
+                                                    ),
+                                                    args["bucket_size"],
+                                                ],
+                                            ),
+                                        ],
+                                    ),
+                                    args["bucket_size"],
+                                ],
+                            ),
+                            args["start_offset"],
+                        ],
+                        alias,
+                    ),
+                    default_result_type="number",
+                    private=False,
                 ),
                 SnQLFunction(
                     "spans_histogram",
@@ -779,6 +877,43 @@ class DiscoverDatasetConfig(DatasetConfig):
                     ),
                     default_result_type="number",
                     private=True,
+                ),
+                SnQLFunction(
+                    "fn_span_count",
+                    required_args=[
+                        SnQLStringArg("spans_op", True, True),
+                        SnQLStringArg("fn"),
+                    ],
+                    snql_column=lambda args, alias: Function(
+                        args["fn"],
+                        [
+                            Function(
+                                "length",
+                                [
+                                    Function(
+                                        "arrayFilter",
+                                        [
+                                            Lambda(
+                                                [
+                                                    "x",
+                                                ],
+                                                Function(
+                                                    "equals",
+                                                    [
+                                                        Identifier("x"),
+                                                        args["spans_op"],
+                                                    ],
+                                                ),
+                                            ),
+                                            Column("spans.op"),
+                                        ],
+                                    )
+                                ],
+                                "span_count",
+                            )
+                        ],
+                        alias,
+                    ),
                 ),
                 SnQLFunction(
                     "fn_span_exclusive_time",
@@ -1118,7 +1253,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         if quality == "good":
             return Function(
                 "countIf",
-                [Function("lessOrEquals", [column, VITAL_THRESHOLDS[column.key]["meh"]])],
+                [Function("less", [column, VITAL_THRESHOLDS[column.key]["meh"]])],
                 alias,
             )
         elif quality == "meh":
@@ -1128,24 +1263,38 @@ class DiscoverDatasetConfig(DatasetConfig):
                     Function(
                         "and",
                         [
-                            Function("greater", [column, VITAL_THRESHOLDS[column.key]["meh"]]),
                             Function(
-                                "lessOrEquals", [column, VITAL_THRESHOLDS[column.key]["poor"]]
+                                "greaterOrEquals", [column, VITAL_THRESHOLDS[column.key]["meh"]]
                             ),
+                            Function("less", [column, VITAL_THRESHOLDS[column.key]["poor"]]),
                         ],
                     )
                 ],
                 alias,
             )
-        else:
+        elif quality == "poor":
             return Function(
                 "countIf",
                 [
                     Function(
-                        "greater",
+                        "greaterOrEquals",
                         [
                             column,
                             VITAL_THRESHOLDS[column.key]["poor"],
+                        ],
+                    )
+                ],
+                alias,
+            )
+        elif quality == "any":
+            return Function(
+                "countIf",
+                [
+                    Function(
+                        "greaterOrEquals",
+                        [
+                            column,
+                            0,
                         ],
                     )
                 ],
@@ -1378,8 +1527,8 @@ class DiscoverDatasetConfig(DatasetConfig):
         Parses a release stage search and returns a snuba condition to filter to the
         requested releases.
         """
-        # TODO: Filter by project here as well. It's done elsewhere, but could critcally limit versions
-        # for orgs with thousands of projects, each with their own releases (potentailly drowning out ones we care about)
+        # TODO: Filter by project here as well. It's done elsewhere, but could critically limit versions
+        # for orgs with thousands of projects, each with their own releases (potentially drowning out ones we care about)
 
         if "organization_id" not in self.builder.params:
             raise ValueError("organization_id is a required param")
@@ -1516,10 +1665,14 @@ class DiscoverDatasetConfig(DatasetConfig):
         build: str = search_filter.value.raw_value
 
         operator, negated = handle_operator_negation(search_filter.operator)
+        try:
+            django_op = OPERATOR_TO_DJANGO[operator]
+        except KeyError:
+            raise InvalidSearchQuery("Invalid operation 'IN' for semantic version filter.")
         versions = list(
             Release.objects.filter_by_semver_build(
                 organization_id,
-                OPERATOR_TO_DJANGO[operator],
+                django_op,
                 build,
                 project_ids=project_ids,
                 negated=negated,

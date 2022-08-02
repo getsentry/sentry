@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
 
@@ -13,23 +13,28 @@ describe('InboxReason', () => {
   });
 
   it('displays new issue inbox reason', () => {
-    const wrapper = mountWithTheme(<InboxReason inbox={inbox} />);
-    expect(wrapper.text()).toBe('New Issue');
+    render(<InboxReason inbox={inbox} />);
+    expect(screen.getByText('New Issue')).toBeInTheDocument();
   });
 
   it('displays time added to inbox', () => {
-    const wrapper = mountWithTheme(<InboxReason showDateAdded inbox={inbox} />);
-    expect(wrapper.find('TimeSince').exists()).toBeTruthy();
+    render(<InboxReason showDateAdded inbox={inbox} />);
+    // Use a pattern so we can work around slowness between beforeEach and here.
+    expect(screen.getByText(/\d+(s|ms|m)/i)).toBeInTheDocument();
   });
 
-  it('has a tooltip', () => {
-    const wrapper = mountWithTheme(<InboxReason inbox={inbox} />);
-    const tooltip = mountWithTheme(wrapper.find('Tooltip').prop('title'));
-    expect(tooltip.text()).toContain('Mark Reviewed to remove this label');
+  it('has a tooltip', async () => {
+    render(<InboxReason inbox={inbox} />);
+    const tag = screen.getByText('New Issue');
+    userEvent.hover(tag);
+
+    expect(
+      await screen.findByText('Mark Reviewed to remove this label')
+    ).toBeInTheDocument();
   });
 
-  it('has affected user count', () => {
-    const wrapper = mountWithTheme(
+  it('has affected user count', async () => {
+    render(
       <InboxReason
         inbox={{
           ...inbox,
@@ -44,7 +49,12 @@ describe('InboxReason', () => {
         }}
       />
     );
-    const tooltip = mountWithTheme(wrapper.find('Tooltip').prop('title'));
-    expect(tooltip.text()).toContain('Affected 10 user(s)');
+    const tag = screen.getByText('Unignored');
+    userEvent.hover(tag);
+
+    // Text is split up because of translations
+    expect(await screen.findByText('Affected')).toBeInTheDocument();
+    expect(screen.getByText('10')).toBeInTheDocument();
+    expect(screen.getByText('user(s)')).toBeInTheDocument();
   });
 });

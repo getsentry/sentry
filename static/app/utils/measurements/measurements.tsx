@@ -1,13 +1,14 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 
-import {MobileVital, WebVital} from 'sentry/utils/discover/fields';
 import {
   MOBILE_VITAL_DETAILS,
   WEB_VITAL_DETAILS,
 } from 'sentry/utils/performance/vitals/constants';
 import {Vital} from 'sentry/utils/performance/vitals/types';
 
-type Measurement = {
+import {MobileVital, WebVital} from '../fields';
+
+export type Measurement = {
   key: string;
   name: string;
 };
@@ -33,6 +34,10 @@ function measurementsFromDetails(
 const MOBILE_MEASUREMENTS = measurementsFromDetails(MOBILE_VITAL_DETAILS);
 const WEB_MEASUREMENTS = measurementsFromDetails(WEB_VITAL_DETAILS);
 
+export function getMeasurements() {
+  return {...WEB_MEASUREMENTS, ...MOBILE_MEASUREMENTS};
+}
+
 type ChildrenProps = {
   measurements: MeasurementCollection;
 };
@@ -42,8 +47,8 @@ type Props = {
 };
 
 function Measurements({children}: Props) {
-  const measurements = {...WEB_MEASUREMENTS, ...MOBILE_MEASUREMENTS};
-  return <React.Fragment>{children({measurements})}</React.Fragment>;
+  const measurements = getMeasurements();
+  return <Fragment>{children({measurements})}</Fragment>;
 }
 
 export default Measurements;

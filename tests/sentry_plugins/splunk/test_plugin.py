@@ -1,3 +1,4 @@
+import pytest
 import responses
 from exam import fixture
 
@@ -71,7 +72,7 @@ class SplunkPluginTest(PluginTestCase):
             data={"message": "Hello world", "level": "warning"}, project_id=self.project.id
         )
         with self.options({"system.url-prefix": "http://example.com"}):
-            with self.assertRaises(ApiError):
+            with pytest.raises(ApiError):
                 self.plugin.post_process(event)
 
     def test_http_payload(self):

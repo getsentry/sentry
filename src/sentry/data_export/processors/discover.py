@@ -4,7 +4,6 @@ from sentry.api.utils import get_date_range_from_params
 from sentry.models import Environment, Group, Project
 from sentry.search.events.fields import get_function_alias
 from sentry.snuba import discover
-from sentry.utils.compat import map
 
 from ..base import ExportError
 
@@ -32,9 +31,7 @@ class DiscoverProcessor:
             self.params["environment"] = self.environments
 
         equations = discover_query.get("equations", [])
-        self.header_fields = (
-            map(lambda x: get_function_alias(x), discover_query["field"]) + equations
-        )
+        self.header_fields = [get_function_alias(x) for x in discover_query["field"]] + equations
         self.equation_aliases = {
             f"equation[{index}]": equation for index, equation in enumerate(equations)
         }
@@ -44,7 +41,6 @@ class DiscoverProcessor:
             query=discover_query["query"],
             params=self.params,
             sort=discover_query.get("sort"),
-            use_snql=discover_query.get("use_snql", False),
         )
 
     @staticmethod
@@ -76,7 +72,7 @@ class DiscoverProcessor:
         return environment_names
 
     @staticmethod
-    def get_data_fn(fields, equations, query, params, sort, use_snql=False):
+    def get_data_fn(fields, equations, query, params, sort):
         def data_fn(offset, limit):
             return discover.query(
                 selected_columns=fields,
@@ -90,7 +86,6 @@ class DiscoverProcessor:
                 auto_fields=True,
                 auto_aggregations=True,
                 use_aggregate_conditions=True,
-                use_snql=use_snql,
             )
 
         return data_fn

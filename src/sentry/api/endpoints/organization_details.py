@@ -8,7 +8,7 @@ from pytz import UTC
 from rest_framework import serializers, status
 
 from bitfield.types import BitHandler
-from sentry import roles
+from sentry import audit_log, roles
 from sentry.api.base import ONE_DAY
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
@@ -16,9 +16,12 @@ from sentry.api.fields import AvatarField
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization as org_serializers
-from sentry.api.serializers.models.organization import TrustedRelaySerializer
+from sentry.api.serializers.models.organization import (
+    BaseOrganizationSerializer,
+    TrustedRelaySerializer,
+)
 from sentry.api.serializers.rest_framework import ListField
-from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS, RESERVED_ORGANIZATION_SLUGS
+from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS
 from sentry.datascrubbing import validate_pii_config_update
 from sentry.lang.native.utils import (
     STORE_CRASH_REPORTS_DEFAULT,
@@ -26,7 +29,6 @@ from sentry.lang.native.utils import (
     convert_crashreport_count,
 )
 from sentry.models import (
-    AuditLogEntryEvent,
     Authenticator,
     AuthProvider,
     Organization,
@@ -122,9 +124,7 @@ UNSAVED = object()
 DEFERRED = object()
 
 
-class OrganizationSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=64)
-    slug = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50)
+class OrganizationSerializer(BaseOrganizationSerializer):
     accountRateLimit = EmptyIntegerField(
         min_value=0, max_value=1000000, required=False, allow_null=True
     )
@@ -172,22 +172,6 @@ class OrganizationSerializer(serializers.Serializer):
     def _has_sso_enabled(self):
         org = self.context["organization"]
         return AuthProvider.objects.filter(organization=org).exists()
-
-    def validate_slug(self, value):
-        # Historically, the only check just made sure there was more than 1
-        # character for the slug, but since then, there are many slugs that
-        # fit within this new imposed limit. We're not fixing existing, but
-        # just preventing new bad values.
-        if len(value) < 3:
-            raise serializers.ValidationError(
-                f'This slug "{value}" is too short. Minimum of 3 characters.'
-            )
-        if value in RESERVED_ORGANIZATION_SLUGS:
-            raise serializers.ValidationError(f'This slug "{value}" is reserved and not allowed.')
-        qs = Organization.objects.filter(slug=value).exclude(id=self.context["organization"].id)
-        if qs.exists():
-            raise serializers.ValidationError(f'The slug "{value}" is already in use.')
-        return value
 
     def validate_relayPiiConfig(self, value):
         organization = self.context["organization"]
@@ -341,50 +325,52 @@ class OrganizationSerializer(serializers.Serializer):
         if not hasattr(org, "__data"):
             update_tracked_data(org)
 
+        data = self.validated_data
+
         for key, option, type_, default_value in ORG_OPTIONS:
-            if key not in self.initial_data:
+            if key not in data:
                 continue
             try:
                 option_inst = OrganizationOption.objects.get(organization=org, key=option)
                 update_tracked_data(option_inst)
             except OrganizationOption.DoesNotExist:
                 OrganizationOption.objects.set_value(
-                    organization=org, key=option, value=type_(self.initial_data[key])
+                    organization=org, key=option, value=type_(data[key])
                 )
 
-                if self.initial_data[key] != default_value:
-                    changed_data[key] = f"to {self.initial_data[key]}"
+                if data[key] != default_value:
+                    changed_data[key] = f"to {data[key]}"
             else:
-                option_inst.value = self.initial_data[key]
+                option_inst.value = data[key]
                 # check if ORG_OPTIONS changed
                 if has_changed(option_inst, "value"):
                     old_val = old_value(option_inst, "value")
                     changed_data[key] = f"from {old_val} to {option_inst.value}"
                 option_inst.save()
 
-        trusted_relay_info = self.validated_data.get("trustedRelays")
+        trusted_relay_info = data.get("trustedRelays")
         if trusted_relay_info is not None:
             self.save_trusted_relays(trusted_relay_info, changed_data, org)
 
-        if "openMembership" in self.initial_data:
-            org.flags.allow_joinleave = self.initial_data["openMembership"]
-        if "allowSharedIssues" in self.initial_data:
-            org.flags.disable_shared_issues = not self.initial_data["allowSharedIssues"]
-        if "enhancedPrivacy" in self.initial_data:
-            org.flags.enhanced_privacy = self.initial_data["enhancedPrivacy"]
-        if "isEarlyAdopter" in self.initial_data:
-            org.flags.early_adopter = self.initial_data["isEarlyAdopter"]
-        if "require2FA" in self.initial_data:
-            org.flags.require_2fa = self.initial_data["require2FA"]
+        if "openMembership" in data:
+            org.flags.allow_joinleave = data["openMembership"]
+        if "allowSharedIssues" in data:
+            org.flags.disable_shared_issues = not data["allowSharedIssues"]
+        if "enhancedPrivacy" in data:
+            org.flags.enhanced_privacy = data["enhancedPrivacy"]
+        if "isEarlyAdopter" in data:
+            org.flags.early_adopter = data["isEarlyAdopter"]
+        if "require2FA" in data:
+            org.flags.require_2fa = data["require2FA"]
         if (
             features.has("organizations:required-email-verification", org)
-            and "requireEmailVerification" in self.initial_data
+            and "requireEmailVerification" in data
         ):
-            org.flags.require_email_verification = self.initial_data["requireEmailVerification"]
-        if "name" in self.initial_data:
-            org.name = self.initial_data["name"]
-        if "slug" in self.initial_data:
-            org.slug = self.initial_data["slug"]
+            org.flags.require_email_verification = data["requireEmailVerification"]
+        if "name" in data:
+            org.name = data["name"]
+        if "slug" in data:
+            org.slug = data["slug"]
 
         org_tracked_field = {
             "name": org.name,
@@ -413,18 +399,18 @@ class OrganizationSerializer(serializers.Serializer):
 
         org.save()
 
-        if "avatar" in self.initial_data or "avatarType" in self.initial_data:
+        if "avatar" in data or "avatarType" in data:
             OrganizationAvatar.save_avatar(
                 relation={"organization": org},
-                type=self.initial_data.get("avatarType", "upload"),
-                avatar=self.initial_data.get("avatar"),
+                type=data.get("avatarType", "upload"),
+                avatar=data.get("avatar"),
                 filename=f"{org.slug}.png",
             )
-        if self.initial_data.get("require2FA") is True:
+        if data.get("require2FA") is True:
             org.handle_2fa_required(self.context["request"])
         if (
             features.has("organizations:required-email-verification", org)
-            and self.initial_data.get("requireEmailVerification") is True
+            and data.get("requireEmailVerification") is True
         ):
             org.handle_email_verification_required(self.context["request"])
         return org, changed_data
@@ -437,9 +423,10 @@ class OwnerOrganizationSerializer(OrganizationSerializer):
     def save(self, *args, **kwargs):
         org = self.context["organization"]
         update_tracked_data(org)
-        cancel_deletion = "cancelDeletion" in self.initial_data and org.status in DELETION_STATUSES
-        if "defaultRole" in self.initial_data:
-            org.default_role = self.initial_data["defaultRole"]
+        data = self.validated_data
+        cancel_deletion = "cancelDeletion" in data and org.status in DELETION_STATUSES
+        if "defaultRole" in data:
+            org.default_role = data["defaultRole"]
         if cancel_deletion:
             org.status = OrganizationStatus.VISIBLE
         return super().save(*args, **kwargs)
@@ -508,7 +495,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     request=request,
                     organization=organization,
                     target_object=organization.id,
-                    event=AuditLogEntryEvent.ORG_RESTORE,
+                    event=audit_log.get_event_id("ORG_RESTORE"),
                     data=organization.get_audit_log_data(),
                 )
                 ScheduledDeletion.cancel(organization)
@@ -517,7 +504,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     request=request,
                     organization=organization,
                     target_object=organization.id,
-                    event=AuditLogEntryEvent.ORG_EDIT,
+                    event=audit_log.get_event_id("ORG_EDIT"),
                     data=changed_data,
                 )
 
@@ -551,7 +538,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     request=request,
                     organization=organization,
                     target_object=organization.id,
-                    event=AuditLogEntryEvent.ORG_REMOVE,
+                    event=audit_log.get_event_id("ORG_REMOVE"),
                     data=organization.get_audit_log_data(),
                     transaction_id=schedule.guid,
                 )

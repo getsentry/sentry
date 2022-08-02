@@ -8,7 +8,7 @@ import type {
   PENDING,
 } from 'sentry/views/organizationIntegrations/constants';
 
-import type {Avatar, Choices, ObjectStatus, Scope} from './core';
+import type {Avatar, Choice, Choices, ObjectStatus, Scope} from './core';
 import type {BaseRelease} from './release';
 import type {User} from './user';
 
@@ -379,7 +379,7 @@ export type PlatformExternalIssue = {
 export type IssueConfigField = Field & {
   name: string;
   choices?: Choices;
-  default?: string | number;
+  default?: string | number | Choice;
   multiple?: boolean;
   url?: string;
 };
@@ -525,4 +525,12 @@ export type ServerlessFunction = {
   outOfDate: boolean;
   runtime: string;
   version: number;
+};
+
+export type SentryFunction = {
+  author: string;
+  code: string;
+  name: string;
+  slug: string;
+  overview?: string;
 };

@@ -1,5 +1,6 @@
 from sentry.models import Activity, Commit, Deploy, Environment, Release, ReleaseHeadCommit
 from sentry.testutils import TestCase
+from sentry.types.activity import ActivityType
 
 
 class DeployNotifyTest(TestCase):
@@ -15,7 +16,7 @@ class DeployNotifyTest(TestCase):
         Deploy.notify_if_ready(deploy.id)
 
         # make sure activity has been created
-        record = Activity.objects.get(type=Activity.DEPLOY, project=project)
+        record = Activity.objects.get(type=ActivityType.DEPLOY.value, project=project)
         assert release.version.startswith(record.ident)
 
     def test_already_notified(self):
@@ -33,7 +34,7 @@ class DeployNotifyTest(TestCase):
 
         # make sure no activity has been created
         assert not Activity.objects.filter(
-            type=Activity.DEPLOY, project=project, ident=release.version
+            type=ActivityType.DEPLOY.value, project=project, ident=release.version
         ).exists()
 
     def test_no_commits_no_head_commits(self):
@@ -53,12 +54,12 @@ class DeployNotifyTest(TestCase):
 
         # make sure activity has been created
         assert Activity.objects.filter(
-            type=Activity.DEPLOY, project=project, ident=release.version
+            type=ActivityType.DEPLOY.value, project=project, ident=release.version
         ).exists()
         assert (
-            Activity.objects.get(type=Activity.DEPLOY, project=project, ident=release.version).data[
-                "deploy_id"
-            ]
+            Activity.objects.get(
+                type=ActivityType.DEPLOY.value, project=project, ident=release.version
+            ).data["deploy_id"]
             == deploy.id
         )
         assert Deploy.objects.get(id=deploy.id).notified is True
@@ -86,7 +87,7 @@ class DeployNotifyTest(TestCase):
 
         # make sure activity has been created
         assert not Activity.objects.filter(
-            type=Activity.DEPLOY, project=project, ident=release.version
+            type=ActivityType.DEPLOY.value, project=project, ident=release.version
         ).exists()
         assert Deploy.objects.get(id=deploy.id).notified is False
 
@@ -108,12 +109,12 @@ class DeployNotifyTest(TestCase):
 
         # make sure activity has been created
         assert Activity.objects.filter(
-            type=Activity.DEPLOY, project=project, ident=release.version
+            type=ActivityType.DEPLOY.value, project=project, ident=release.version
         ).exists()
         assert (
-            Activity.objects.get(type=Activity.DEPLOY, project=project, ident=release.version).data[
-                "deploy_id"
-            ]
+            Activity.objects.get(
+                type=ActivityType.DEPLOY.value, project=project, ident=release.version
+            ).data["deploy_id"]
             == deploy.id
         )
         assert Deploy.objects.get(id=deploy.id).notified is True

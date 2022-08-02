@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, createRef, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import InputField from 'sentry/components/forms/inputField';
@@ -34,7 +34,7 @@ type State = {
   suggestions: Array<SourceSuggestion>;
 };
 
-class SourceField extends React.Component<Props, State> {
+class SourceField extends Component<Props, State> {
   state: State = {
     suggestions: [],
     fieldValues: [],
@@ -63,8 +63,8 @@ class SourceField extends React.Component<Props, State> {
     }
   }
 
-  selectorField = React.createRef<HTMLDivElement>();
-  suggestionList = React.createRef<HTMLUListElement>();
+  selectorField = createRef<HTMLDivElement>();
+  suggestionList = createRef<HTMLUListElement>();
 
   getAllSuggestions() {
     return [...this.getValueSuggestions(), ...unarySuggestions, ...binarySuggestions];
@@ -273,6 +273,11 @@ class SourceField extends React.Component<Props, State> {
 
     if (lastFieldValue?.type === 'string' && !lastFieldValue?.value) {
       fieldValues[fieldValues.length - 1] = suggestion;
+      return fieldValues;
+    }
+
+    if (suggestion.type === 'value' && lastFieldValue?.value !== suggestion.value) {
+      return [suggestion];
     }
 
     return fieldValues;
@@ -323,7 +328,7 @@ class SourceField extends React.Component<Props, State> {
     });
   };
 
-  handleClickSuggestionItem = (suggestion: SourceSuggestion) => () => {
+  handleClickSuggestionItem = (suggestion: SourceSuggestion) => {
     const fieldValues = this.getNewFieldValues(suggestion);
     this.setState(
       {
@@ -348,7 +353,7 @@ class SourceField extends React.Component<Props, State> {
     }
 
     if (keyCode === 13) {
-      this.handleClickSuggestionItem(suggestions[activeSuggestion])();
+      this.handleClickSuggestionItem(suggestions[activeSuggestion]);
       return;
     }
 
@@ -404,7 +409,7 @@ class SourceField extends React.Component<Props, State> {
           showHelpInTooltip
         />
         {showSuggestions && suggestions.length > 0 && (
-          <React.Fragment>
+          <Fragment>
             <Suggestions
               ref={this.suggestionList}
               error={error}
@@ -413,7 +418,10 @@ class SourceField extends React.Component<Props, State> {
               {suggestions.slice(0, 50).map((suggestion, index) => (
                 <Suggestion
                   key={suggestion.value}
-                  onClick={this.handleClickSuggestionItem(suggestion)}
+                  onClick={event => {
+                    event.preventDefault();
+                    this.handleClickSuggestionItem(suggestion);
+                  }}
                   active={index === activeSuggestion}
                   tabIndex={-1}
                 >
@@ -433,7 +441,7 @@ class SourceField extends React.Component<Props, State> {
               ))}
             </Suggestions>
             <SuggestionsOverlay onClick={this.handleClickOutside} />
-          </React.Fragment>
+          </Fragment>
         )}
       </Wrapper>
     );
@@ -492,6 +500,7 @@ const SuggestionDescription = styled('div')`
   display: flex;
   overflow: hidden;
   color: ${p => p.theme.gray300};
+  line-height: 1.2;
 `;
 
 const SuggestionsOverlay = styled('div')`

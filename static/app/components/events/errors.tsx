@@ -6,7 +6,7 @@ import uniqWith from 'lodash/uniqWith';
 
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
-import ErrorItem from 'sentry/components/events/errorItem';
+import {ErrorItem, ErrorItemProps} from 'sentry/components/events/errorItem';
 import List from 'sentry/components/list';
 import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
 import {t, tn} from 'sentry/locale';
@@ -18,7 +18,7 @@ import {DataSection} from './styles';
 
 const MAX_ERRORS = 100;
 
-export type Error = ErrorItem['props']['error'];
+export type Error = ErrorItemProps['error'];
 
 type Props = {
   api: Client;
@@ -114,7 +114,7 @@ class Errors extends Component<Props, State> {
   render() {
     const {event, proGuardErrors} = this.props;
     const {releaseArtifacts} = this.state;
-    const {dist: eventDistribution, errors: eventErrors = []} = event;
+    const {dist: eventDistribution, errors: eventErrors = [], _meta} = event;
 
     // XXX: uniqWith returns unique errors and is not performant with large datasets
     const otherErrors: Array<Error> =
@@ -136,6 +136,8 @@ class Errors extends Component<Props, State> {
             >
               {errors.map((error, errorIdx) => {
                 const data = error.data ?? {};
+                const meta = _meta?.errors?.[errorIdx];
+
                 if (
                   error.type === JavascriptProcessingErrors.JS_MISSING_SOURCE &&
                   data.url &&
@@ -166,18 +168,16 @@ class Errors extends Component<Props, State> {
                   }
                 }
 
-                return <ErrorItem key={errorIdx} error={{...error, data}} />;
+                return <ErrorItem key={errorIdx} error={{...error, data}} meta={meta} />;
               })}
             </ErrorList>,
           ]}
         >
-          <span data-test-id="alert-summary-info">
-            {tn(
-              'There was %s problem processing this event',
-              'There were %s problems processing this event',
-              errors.length
-            )}
-          </span>
+          {tn(
+            'There was %s problem processing this event',
+            'There were %s problems processing this event',
+            errors.length
+          )}
         </StyledAlert>
       </StyledDataSection>
     );
@@ -187,7 +187,7 @@ class Errors extends Component<Props, State> {
 const StyledDataSection = styled(DataSection)`
   border-top: none;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     padding-top: 0;
   }
 `;

@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import AsyncComponent from 'sentry/components/asyncComponent';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 

@@ -11,7 +11,7 @@ from django.utils import timezone
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
-from pkg_resources import parse_version as Version
+from packaging.version import parse as parse_version
 
 from sentry import options
 from sentry.api.serializers import serialize as serialize_func
@@ -180,7 +180,7 @@ def get_sentry_version(context):
     current = sentry.VERSION
 
     latest = options.get("sentry:latest_version") or current
-    update_available = Version(latest) > Version(current)
+    update_available = parse_version(latest) > parse_version(current)
     build = sentry.__build__ or current
 
     context["sentry_version"] = SentryVersion(current, latest, update_available, build)

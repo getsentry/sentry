@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import DropdownBubble from 'sentry/components/dropdownBubble';
@@ -63,6 +63,7 @@ type Props = DefaultProps & {
   buttonTooltipTitle?: string | null;
   className?: string;
   detached?: boolean;
+  fullWidth?: boolean;
 
   /**
    * String or element for the button contents.
@@ -77,15 +78,22 @@ type Props = DefaultProps & {
  * including the button + menu options. Use the `button` or `label` prop to set
  * the button content and `children` to provide menu options.
  */
-class DropdownControl extends React.Component<Props> {
+class DropdownControl extends Component<Props> {
   static defaultProps: DefaultProps = {
     alwaysRenderMenu: true,
     menuWidth: '100%',
   };
 
   renderButton(isOpen: boolean, getActorProps: GetActorPropsFn) {
-    const {label, button, buttonProps, buttonTooltipTitle, priority, detached} =
-      this.props;
+    const {
+      label,
+      button,
+      buttonProps,
+      buttonTooltipTitle,
+      priority,
+      detached,
+      fullWidth,
+    } = this.props;
 
     if (button) {
       return button({isOpen, getActorProps});
@@ -101,6 +109,7 @@ class DropdownControl extends React.Component<Props> {
             data-test-id="dropdown-control-button"
             detached={detached}
             hideBottomBorder={!detached}
+            rightAlignChevron={fullWidth ?? false}
           >
             {label}
           </StyledDropdownButton>
@@ -116,6 +125,7 @@ class DropdownControl extends React.Component<Props> {
         data-test-id="dropdown-control-button"
         detached={detached}
         hideBottomBorder={!detached}
+        rightAlignChevron={fullWidth ?? false}
       >
         {label}
       </StyledDropdownButton>
@@ -150,16 +160,16 @@ class DropdownControl extends React.Component<Props> {
   }
 
   render() {
-    const {alwaysRenderMenu, className} = this.props;
+    const {alwaysRenderMenu, className, fullWidth} = this.props;
 
     return (
-      <Container className={className}>
+      <Container className={className} fullWidth={fullWidth ?? false}>
         <DropdownMenu alwaysRenderMenu={alwaysRenderMenu}>
           {({isOpen, getMenuProps, getActorProps}) => (
-            <React.Fragment>
+            <Fragment>
               {this.renderButton(isOpen, getActorProps)}
               {this.renderChildren(isOpen, getMenuProps)}
-            </React.Fragment>
+            </Fragment>
           )}
         </DropdownMenu>
       </Container>
@@ -167,9 +177,13 @@ class DropdownControl extends React.Component<Props> {
   }
 }
 
-const Container = styled('div')`
+const Container = styled('div')<{fullWidth: boolean}>`
   display: inline-block;
   position: relative;
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    width: ${p => p.fullWidth && '100%'};
+  }
 `;
 
 const StyledDropdownButton = styled(DropdownButton)`

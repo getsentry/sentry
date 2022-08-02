@@ -1,5 +1,6 @@
-import * as React from 'react';
-import type {OnChangeProps, RangeWithKey} from 'react-date-range';
+import {Component, lazy, Suspense} from 'react';
+import type {Range, RangeKeyDict} from 'react-date-range';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -23,15 +24,14 @@ import {
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {Theme} from 'sentry/utils/theme';
 
-const DateRangePicker = React.lazy(() => import('./dateRangeWrapper'));
+const DateRangePicker = lazy(() => import('./dateRangeWrapper'));
 
 const getTimeStringFromDate = (date: Date) => moment(date).local().format('HH:mm');
 
-// react.date-range doesn't export this as a type.
-type RangeSelection = {selection: RangeWithKey};
+type RangeSelection = {selection: Range};
 
-function isRangeSelection(maybe: OnChangeProps): maybe is RangeSelection {
-  return (maybe as RangeSelection).selection !== undefined;
+function isRangeSelection(rangesByKey: RangeKeyDict): rangesByKey is RangeSelection {
+  return rangesByKey?.selection !== undefined;
 }
 
 type ChangeData = {end?: Date; hasDateRangeErrors?: boolean; start?: Date};
@@ -73,6 +73,7 @@ type Props = WithRouterProps & {
   theme: Theme;
 
   className?: string;
+
   /**
    * Should we have a time selector?
    */
@@ -89,7 +90,7 @@ type State = {
   hasStartErrors: boolean;
 };
 
-class BaseDateRange extends React.Component<Props, State> {
+class BaseDateRange extends Component<Props, State> {
   static defaultProps = defaultProps;
 
   state: State = {
@@ -97,11 +98,11 @@ class BaseDateRange extends React.Component<Props, State> {
     hasEndErrors: false,
   };
 
-  handleSelectDateRange = (changeProps: OnChangeProps) => {
-    if (!isRangeSelection(changeProps)) {
+  handleSelectDateRange = (rangesByKey: RangeKeyDict) => {
+    if (!isRangeSelection(rangesByKey)) {
       return;
     }
-    const {selection} = changeProps;
+    const {selection} = rangesByKey;
     const {onChange} = this.props;
     const {startDate, endDate} = selection;
 
@@ -200,7 +201,7 @@ class BaseDateRange extends React.Component<Props, State> {
 
     return (
       <div className={className} data-test-id="date-range">
-        <React.Suspense
+        <Suspense
           fallback={
             <Placeholder width="342px" height="254px">
               <LoadingIndicator />
@@ -220,7 +221,7 @@ class BaseDateRange extends React.Component<Props, State> {
             maxDate={maxDate}
             onChange={this.handleSelectDateRange}
           />
-        </React.Suspense>
+        </Suspense>
         {showTimePicker && (
           <TimeAndUtcPicker>
             <TimePicker

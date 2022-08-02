@@ -1,6 +1,7 @@
-import {useState} from 'react';
+import {useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useHover} from '@react-aria/interactions';
 import classNames from 'classnames';
 
 import {IconCheckmark, IconChevron, IconInfo, IconNot, IconWarning} from 'sentry/icons';
@@ -10,6 +11,7 @@ import {Theme} from 'sentry/utils/theme';
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   expand?: React.ReactNode;
+  icon?: React.ReactNode;
   opaque?: boolean;
   showIcon?: boolean;
   system?: boolean;
@@ -19,49 +21,131 @@ export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const DEFAULT_TYPE = 'info';
 
-const IconWrapper = styled('div')`
-  display: flex;
-  height: calc(${p => p.theme.fontSizeMedium} * ${p => p.theme.text.lineHeightBody});
-  margin-right: ${space(1)};
-  align-items: center;
-`;
+function Alert({
+  type = DEFAULT_TYPE,
+  showIcon = false,
+  icon,
+  opaque,
+  system,
+  expand,
+  trailingItems,
+  className,
+  children,
+  ...props
+}: AlertProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const showExpand = defined(expand);
+  const showTrailingItems = defined(trailingItems);
 
-const ContentWrapper = styled('div')`
-  width: 100%;
-`;
+  // Show the hover state (with darker borders) only when hovering over the
+  // IconWrapper or MessageContainer.
+  const {hoverProps, isHovered} = useHover({
+    isDisabled: !showExpand,
+  });
+  const {hoverProps: expandHoverProps, isHovered: expandIsHovered} = useHover({
+    isDisabled: !showExpand,
+  });
 
-const TrailingItems = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-template-rows: 100%;
-  align-items: center;
-  gap: ${space(1)};
-  height: calc(${p => p.theme.fontSizeMedium} * ${p => p.theme.text.lineHeightBody});
-  margin-left: ${space(1)};
-`;
+  function getIcon() {
+    switch (type) {
+      case 'warning':
+        return <IconWarning />;
+      case 'success':
+        return <IconCheckmark />;
+      case 'error':
+        return <IconNot />;
+      case 'info':
+      default:
+        return <IconInfo />;
+    }
+  }
+
+  const expandRef = useRef<HTMLDivElement>(null);
+  function handleClick(e: React.MouseEvent<HTMLDivElement>) {
+    if (
+      // Only close the alert when the click event originated from outside the expanded
+      // content.
+      e.target === expandRef.current ||
+      expandRef.current?.contains(e.target as HTMLDivElement)
+    ) {
+      return;
+    }
+    showExpand && setIsExpanded(!isExpanded);
+  }
+
+  return (
+    <Wrap
+      type={type}
+      system={system}
+      opaque={opaque}
+      expand={expand}
+      trailingItems={trailingItems}
+      showIcon={showIcon}
+      onClick={handleClick}
+      hovered={isHovered && !expandIsHovered}
+      className={classNames(type ? `ref-${type}` : '', className)}
+      {...hoverProps}
+      {...props}
+    >
+      {showIcon && <IconWrapper onClick={handleClick}>{icon ?? getIcon()}</IconWrapper>}
+      <Message>{children}</Message>
+      {showTrailingItems && (
+        <TrailingItems showIcon={showIcon} onClick={e => e.stopPropagation()}>
+          {trailingItems}
+        </TrailingItems>
+      )}
+      {showExpand && (
+        <ExpandIconWrap>
+          <IconChevron direction={isExpanded ? 'up' : 'down'} />
+        </ExpandIconWrap>
+      )}
+      {isExpanded && (
+        <ExpandContainer
+          ref={expandRef}
+          showIcon={showIcon}
+          showTrailingItems={showTrailingItems}
+          {...expandHoverProps}
+        >
+          {Array.isArray(expand) ? expand.map(item => item) : expand}
+        </ExpandContainer>
+      )}
+    </Wrap>
+  );
+}
 
 const alertStyles = ({
-  theme,
   type = DEFAULT_TYPE,
-  trailingItems,
   system,
   opaque,
   expand,
-}: AlertProps & {theme: Theme}) => {
-  const alertColors = theme.alert[type] ?? theme.alert[DEFAULT_TYPE];
+  showIcon,
+  trailingItems,
+  hovered,
+  theme,
+}: AlertProps & {theme: Theme; hovered?: boolean}) => {
+  const alertColors = theme.alert[type];
+  const showExpand = defined(expand);
+  const showTrailingItems = defined(trailingItems);
 
   return css`
-    display: flex;
+    display: grid;
+    grid-template-columns:
+      ${showIcon && `minmax(0, max-content)`}
+      minmax(0, 1fr)
+      ${showTrailingItems && 'max-content'}
+      ${showExpand && 'max-content'};
+    gap: ${space(1)};
     margin: 0 0 ${space(2)};
-    padding: ${space(1.5)} ${space(2)};
     font-size: ${theme.fontSizeMedium};
     border-radius: ${theme.borderRadius};
     border: 1px solid ${alertColors.border};
     background: ${opaque
-      ? `linear-gradient(${alertColors.backgroundLight}, ${alertColors.backgroundLight}), linear-gradient(${theme.background}, ${theme.background})`
+      ? `linear-gradient(
+          ${alertColors.backgroundLight},
+          ${alertColors.backgroundLight}),
+          linear-gradient(${theme.background}, ${theme.background}
+        )`
       : `${alertColors.backgroundLight}`};
-
-    ${defined(trailingItems) && `padding-right: ${space(1.5)};`}
 
     a:not([role='button']) {
       color: ${theme.textColor};
@@ -81,18 +165,22 @@ const alertStyles = ({
       margin: ${space(0.5)} 0 0;
     }
 
-    ${IconWrapper} {
+    ${IconWrapper}, ${ExpandIconWrap} {
       color: ${alertColors.iconColor};
     }
 
-    ${expand &&
+    ${hovered &&
     `
-      cursor: pointer;
-      &:hover {
-        border-color: ${alertColors.borderHover}
-      }
-      &:hover ${IconWrapper} {
+      border-color: ${alertColors.borderHover};
+      ${IconWrapper}, ${IconChevron} {
         color: ${alertColors.iconHoverColor};
+      }
+    `}
+
+    ${showExpand &&
+    `cursor: pointer;
+      ${TrailingItems} {
+       cursor: auto;
       }
     `}
 
@@ -104,92 +192,56 @@ const alertStyles = ({
   `;
 };
 
-const StyledTextBlock = styled('span')`
-  line-height: ${p => p.theme.text.lineHeightBody};
-  position: relative;
-  flex: 1;
-`;
-
-const MessageContainer = styled('div')`
-  display: flex;
-  width: 100%;
-`;
-
-const ExpandContainer = styled('div')`
-  display: grid;
-  padding-top: ${space(1)};
-`;
-
-const ExpandIcon = styled(props => (
-  <IconWrapper {...props}>{<IconChevron />}</IconWrapper>
-))`
-  transform: ${props => (props.isExpanded ? 'rotate(0deg)' : 'rotate(180deg)')};
-  justify-self: flex-end;
-`;
-
-const Alert = styled(
-  ({
-    type,
-    children,
-    className,
-    showIcon = false,
-    expand,
-    trailingItems,
-    opaque: _opaque, // don't forward to `div`
-    system: _system, // don't forward to `div`
-    ...props
-  }: AlertProps) => {
-    const [isExpanded, setIsExpanded] = useState(false);
-    const showExpand = defined(expand);
-    const showExpandItems = showExpand && isExpanded;
-
-    const getIcon = () => {
-      switch (type) {
-        case 'warning':
-          return <IconWarning />;
-        case 'success':
-          return <IconCheckmark />;
-        case 'error':
-          return <IconNot />;
-        case 'info':
-        default:
-          return <IconInfo />;
-      }
-    };
-
-    return (
-      <div
-        onClick={() => showExpand && setIsExpanded(!isExpanded)}
-        className={classNames(type ? `ref-${type}` : '', className)}
-        {...props}
-      >
-        {showIcon && <IconWrapper>{getIcon()}</IconWrapper>}
-        <ContentWrapper>
-          <MessageContainer>
-            <StyledTextBlock>{children}</StyledTextBlock>
-            {(showExpand || defined(trailingItems)) && (
-              <TrailingItems>
-                {trailingItems}
-                {showExpand && <ExpandIcon isExpanded={isExpanded} />}
-              </TrailingItems>
-            )}
-          </MessageContainer>
-          {showExpandItems && (
-            <ExpandContainer>
-              {Array.isArray(expand) ? expand.map(item => item) : expand}
-            </ExpandContainer>
-          )}
-        </ContentWrapper>
-      </div>
-    );
-  }
-)<AlertProps>`
+const Wrap = styled('div')<AlertProps & {hovered: boolean}>`
   ${alertStyles}
+  padding: ${space(1.5)} ${space(2)};
 `;
 
-Alert.defaultProps = {
-  type: DEFAULT_TYPE,
-};
+const IconWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  height: calc(${p => p.theme.fontSizeMedium} * ${p => p.theme.text.lineHeightBody});
+`;
+
+const Message = styled('span')`
+  position: relative;
+  line-height: ${p => p.theme.text.lineHeightBody};
+`;
+
+const TrailingItems = styled('div')<{showIcon: boolean}>`
+  height: calc(${p => p.theme.fontSizeMedium} * ${p => p.theme.text.lineHeightBody});
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: 100%;
+  align-items: center;
+  gap: ${space(1)};
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    /* In mobile, TrailingItems should wrap to a second row and be vertically aligned
+    with Message. When there is a leading icon, Message is in the second grid column.
+    Otherwise it's in the first grid column. */
+    grid-row: 2;
+    grid-column: ${p => (p.showIcon ? 2 : 1)} / -1;
+    justify-items: start;
+    margin: ${space(0.5)} 0;
+  }
+`;
+
+const ExpandIconWrap = styled(IconWrapper)`
+  margin-left: ${space(0.5)};
+`;
+
+const ExpandContainer = styled('div')<{showIcon: boolean; showTrailingItems: boolean}>`
+  grid-row: 2;
+  /* ExpandContainer should be vertically aligned with Message. When there is a leading icon,
+  Message is in the second grid column. Otherwise it's in the first column. */
+  grid-column: ${p => (p.showIcon ? 2 : 1)} / -1;
+  cursor: auto;
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    grid-row: ${p => (p.showTrailingItems ? 3 : 2)};
+  }
+`;
 
 export {alertStyles};
 

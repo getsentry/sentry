@@ -4,7 +4,14 @@ import pytest
 import responses
 from django.test import RequestFactory
 from exam import fixture
+from responses.matchers import query_string_matcher
 
+from fixtures.vsts import (
+    GET_PROJECTS_RESPONSE,
+    GET_USERS_RESPONSE,
+    WORK_ITEM_RESPONSE,
+    WORK_ITEM_STATES,
+)
 from sentry.integrations.mixins import ResolveSyncAction
 from sentry.integrations.vsts.integration import VstsIntegration
 from sentry.models import (
@@ -18,13 +25,6 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
-
-from .testutils import (
-    GET_PROJECTS_RESPONSE,
-    GET_USERS_RESPONSE,
-    WORK_ITEM_RESPONSE,
-    WORK_ITEM_STATES,
-)
 
 
 class VstsIssueBase(TestCase):
@@ -231,14 +231,13 @@ class VstsIssueSyncTest(VstsIssueBase):
                 ]
             },
             headers={"X-MS-ContinuationToken": "continuation-token"},
-            match_querystring=True,
         )
         responses.add(
             responses.GET,
-            "https://fabrikam-fiber-inc.vssps.visualstudio.com/_apis/graph/users?continuationToken=continuation-token",
+            "https://fabrikam-fiber-inc.vssps.visualstudio.com/_apis/graph/users",
+            match=[query_string_matcher("continuationToken=continuation-token")],
             body=GET_USERS_RESPONSE,
             content_type="application/json",
-            match_querystring=True,
         )
 
         user = self.create_user("ftotten@vscsi.us")

@@ -1,8 +1,9 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
@@ -14,6 +15,7 @@ import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
+import {UNSAVED_FILTERS_MESSAGE} from './detail';
 import {DashboardListItem, DashboardState, MAX_WIDGETS} from './types';
 
 type Props = {
@@ -26,12 +28,14 @@ type Props = {
   onEdit: () => void;
   organization: Organization;
   widgetLimitReached: boolean;
+  hasUnsavedFilters?: boolean;
 };
 
 function Controls({
   organization,
   dashboardState,
   dashboards,
+  hasUnsavedFilters,
   widgetLimitReached,
   onEdit,
   onCommit,
@@ -121,7 +125,7 @@ function Controls({
     <StyledButtonBar gap={1} key="controls">
       <DashboardEditFeature>
         {hasFeature => (
-          <React.Fragment>
+          <Fragment>
             <Button
               data-test-id="dashboard-edit"
               onClick={e => {
@@ -129,40 +133,47 @@ function Controls({
                 onEdit();
               }}
               icon={<IconEdit />}
-              disabled={!hasFeature}
-              priority={
-                organization.features.includes('widget-library') ? 'default' : 'primary'
-              }
+              disabled={!hasFeature || hasUnsavedFilters}
+              title={hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE}
+              priority="default"
             >
               {t('Edit Dashboard')}
             </Button>
-            {organization.features.includes('widget-library') && hasFeature ? (
+            {hasFeature ? (
               <Tooltip
-                title={tct('Max widgets ([maxWidgets]) per dashboard reached.', {
-                  maxWidgets: MAX_WIDGETS,
-                })}
-                disabled={!!!widgetLimitReached}
+                title={
+                  (hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE) ||
+                  tct('Max widgets ([maxWidgets]) per dashboard reached.', {
+                    maxWidgets: MAX_WIDGETS,
+                  })
+                }
+                disabled={!!!widgetLimitReached && !!!hasUnsavedFilters}
               >
-                <Button
-                  data-test-id="add-widget-library"
-                  priority="primary"
-                  disabled={widgetLimitReached}
-                  icon={<IconAdd isCircled />}
-                  onClick={() => {
-                    trackAdvancedAnalyticsEvent(
-                      'dashboards_views.widget_library.opened',
-                      {
-                        organization,
-                      }
-                    );
-                    onAddWidget();
-                  }}
+                <GuideAnchor
+                  disabled={!!!organization.features.includes('dashboards-releases')}
+                  target="releases_widget"
                 >
-                  {t('Add Widget')}
-                </Button>
+                  <Button
+                    data-test-id="add-widget-library"
+                    priority="primary"
+                    disabled={widgetLimitReached || hasUnsavedFilters}
+                    icon={<IconAdd isCircled />}
+                    onClick={() => {
+                      trackAdvancedAnalyticsEvent(
+                        'dashboards_views.widget_library.opened',
+                        {
+                          organization,
+                        }
+                      );
+                      onAddWidget();
+                    }}
+                  >
+                    {t('Add Widget')}
+                  </Button>
+                </GuideAnchor>
               </Tooltip>
             ) : null}
-          </React.Fragment>
+          </Fragment>
         )}
       </DashboardEditFeature>
     </StyledButtonBar>
@@ -174,16 +185,13 @@ const DashboardEditFeature = ({
 }: {
   children: (hasFeature: boolean) => React.ReactNode;
 }) => {
-  const noFeatureMessage = t('Requires dashboard editing.');
-
   const renderDisabled = p => (
     <Hovercard
       body={
         <FeatureDisabled
           features={p.features}
           hideHelpToggle
-          message={noFeatureMessage}
-          featureName={noFeatureMessage}
+          featureName={t('Dashboard Editing')}
         />
       }
     >
@@ -203,7 +211,7 @@ const DashboardEditFeature = ({
 };
 
 const StyledButtonBar = styled(ButtonBar)`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-auto-flow: row;
     grid-row-gap: ${space(1)};
     width: 100%;

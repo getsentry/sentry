@@ -4,7 +4,6 @@ import logging
 from sentry.incidents.models import IncidentStatus
 from sentry.models import Integration
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils.compat import filter
 
 from .client import MsTeamsClient, MsTeamsPreInstallClient, get_token_data
 
@@ -30,6 +29,25 @@ def channel_filter(channel, name):
         return name.lower() == channel.get("name").lower()
     else:
         return name.lower() == "general"
+
+
+def get_user_conversation_id(integration: Integration, user_id: str) -> str:
+    """
+    Get the user_conversation_id even if `integration.metadata.tenant_id` is not set.
+    """
+    client = MsTeamsClient(integration)
+
+    tenant_id = integration.metadata.get("tenant_id")
+
+    if not tenant_id:
+        # This is definitely an integration of `integration.metadata.installation_type` == `team`,
+        # so use the `integration.external_id` (team_id) to get the tenant_id.
+        members = client.get_member_list(integration.external_id).get("members")
+        tenant_id = members[0].get("tenantId")
+
+    conversation_id = client.get_user_conversation_id(user_id, tenant_id)
+
+    return conversation_id
 
 
 def get_channel_id(organization, integration_id, name):

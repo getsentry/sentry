@@ -1,11 +1,9 @@
-import functools
 from time import time
 
 import sentry_sdk
 
 from sentry.constants import DataCategory
 from sentry.quotas.base import NotRateLimited, Quota, QuotaConfig, QuotaScope, RateLimited
-from sentry.utils.compat import map, zip
 from sentry.utils.redis import (
     get_dynamic_cluster_from_options,
     load_script,
@@ -46,14 +44,8 @@ class RedisQuota(Quota):
             return self.cluster.get_local_client_for_key(routing_key)
 
     def __get_redis_key(self, quota, timestamp, shift, organization_id):
-        if self.is_redis_cluster:
-            scope_id = quota.scope_id or "" if quota.scope != QuotaScope.ORGANIZATION else ""
-            # new style redis cluster format which always has the organization id in
-            local_key = f"{quota.id}{{{organization_id}}}{scope_id}"
-        else:
-            # legacy key format
-            local_key = f"{quota.id}:{quota.scope_id or organization_id}"
-
+        scope_id = quota.scope_id or "" if quota.scope != QuotaScope.ORGANIZATION else ""
+        local_key = f"{quota.id}{{{organization_id}}}{scope_id}"
         interval = quota.window
         return f"{self.namespace}:{local_key}:{int((timestamp - shift) // interval)}"
 
@@ -141,13 +133,11 @@ class RedisQuota(Quota):
             return int(result.value or 0) - int(refund_result.value or 0)
 
         if self.is_redis_cluster:
-            results = map(functools.partial(get_usage_for_quota, self.cluster), quotas)
+            results = [get_usage_for_quota(self.cluster, quota) for quota in quotas]
         else:
             with self.cluster.fanout() as client:
-                results = map(
-                    functools.partial(get_usage_for_quota, client.target_key(str(organization_id))),
-                    quotas,
-                )
+                target = client.target_key(str(organization_id))
+                results = [get_usage_for_quota(target, quota) for quota in quotas]
 
         return [get_value_for_result(*r) for r in results]
 

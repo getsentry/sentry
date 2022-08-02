@@ -27,7 +27,9 @@ class EditOwnershipRulesModal extends Component<Props, State> {
         <Block>
           {t('Examples')}
           <CodeBlock>
-            path:src/example/pipeline/* person@sentry.io #infrastructure
+            path:src/example/pipeline/* person@sentry.io #infra
+            {'\n'}
+            module:com.module.name.example #sdks
             {'\n'}
             url:http://example.com/settings/* #product
             {'\n'}

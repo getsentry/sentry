@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import type {TooltipComponentFormatterCallback} from 'echarts';
@@ -26,11 +27,11 @@ import {Trace} from 'sentry/types/profiling/core';
 import {defined} from 'sentry/utils';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import {getDuration} from 'sentry/utils/formatters';
+import {generateProfileDetailsRoute} from 'sentry/utils/profiling/routes';
 import {Theme} from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-import {generateFlamegraphRoute} from '../routes';
 import {COLOR_ENCODINGS, getColorEncodingFromLocation} from '../utils';
 
 interface ProfilingScatterChartProps extends WithRouterProps {
@@ -89,7 +90,7 @@ function ProfilingScatterChart({
         projects,
         theme,
       }),
-    [location, datetime, theme, data]
+    [location, datetime, theme, data, organization, projects]
   );
 
   const handleColorEncodingChange = useCallback(
@@ -171,7 +172,7 @@ function makeScatterChartOptions({
       {
         label: t('Duration'),
         value: defined(dataPoint?.trace_duration_ms)
-          ? getDuration(dataPoint?.trace_duration_ms, 2, true)
+          ? getDuration(dataPoint?.trace_duration_ms / 1000, 2, true)
           : null,
       },
       {label: t('Transaction'), value: dataPoint?.transaction_name},
@@ -249,7 +250,7 @@ function makeScatterChartOptions({
         return;
       }
       browserHistory.push(
-        generateFlamegraphRoute({
+        generateProfileDetailsRoute({
           orgSlug: organization.slug,
           projectSlug: project.slug,
           profileId: dataPoint.id,

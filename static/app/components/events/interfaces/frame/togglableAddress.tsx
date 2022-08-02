@@ -1,4 +1,3 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 
 import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'sentry/components/stacktracePreview';
@@ -109,7 +108,7 @@ const AddressToggleIcon = styled(IconFilter)`
   cursor: pointer;
   visibility: hidden;
   display: none;
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     display: block;
   }
 `;
@@ -132,7 +131,7 @@ const Address = styled('span')<Partial<Props> & {canBeConverted: boolean}>`
   border-bottom: ${getAddresstextBorderBottom};
   white-space: nowrap;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     padding-left: ${p => (p.canBeConverted ? null : '18px')};
   }
 `;
@@ -150,7 +149,7 @@ const Wrapper = styled('span')`
   padding: 0 ${space(0.5)} 0 0;
   order: 1;
 
-  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+  @media (min-width: ${props => props.theme.breakpoints.small}) {
     padding: 0 ${space(0.5)};
     order: 0;
   }

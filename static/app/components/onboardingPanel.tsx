@@ -1,13 +1,13 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 
 import {Panel} from 'sentry/components/panels';
 import space from 'sentry/styles/space';
 
-type Props = React.PropsWithChildren<{
+type Props = {
+  children: React.ReactNode;
   image: React.ReactNode;
   className?: string;
-}>;
+};
 
 function OnboardingPanel({className, image, children}: Props) {
   return (
@@ -24,7 +24,7 @@ const Container = styled('div')`
   padding: ${space(3)};
   position: relative;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     display: flex;
     align-items: center;
     flex-direction: row;
@@ -35,7 +35,7 @@ const Container = styled('div')`
     margin: 0 auto;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     min-height: 350px;
   }
 `;
@@ -43,7 +43,7 @@ const Container = styled('div')`
 const StyledBox = styled('div')`
   z-index: 1;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     flex: 2;
   }
 `;
@@ -54,7 +54,7 @@ const IlloBox = styled(StyledBox)`
   max-width: 300px;
   margin: ${space(2)} auto;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     flex: 1;
     margin: ${space(3)};
     max-width: auto;

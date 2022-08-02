@@ -10,7 +10,6 @@ from exam import fixture, patcher
 from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
-from sentry.exceptions import InvalidSearchQuery
 from sentry.incidents.events import (
     IncidentCommentCreatedEvent,
     IncidentCreatedEvent,
@@ -69,10 +68,13 @@ from sentry.incidents.models import (
 )
 from sentry.models import ActorTuple, Integration, PagerDutyService
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
-from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.testutils import BaseIncidentsTest, SnubaTestCase, TestCase
-from sentry.testutils.cases import SessionMetricsTestCase
+from sentry.testutils.cases import BaseMetricsTestCase
 from sentry.utils import json
+
+pytestmark = [pytest.mark.sentry_metrics, pytest.mark.broken_under_tags_values_as_strings]
 
 
 class CreateIncidentTest(TestCase):
@@ -275,7 +277,7 @@ class GetCrashRateIncidentAggregatesTest(TestCase, SnubaTestCase):
         self.now = timezone.now().replace(minute=0, second=0, microsecond=0)
         for _ in range(2):
             self.store_session(self.build_session(status="exited"))
-        self.dataset = QueryDatasets.SESSIONS
+        self.dataset = Dataset.Sessions
 
     def test_sessions(self):
         incident = self.create_incident(
@@ -296,11 +298,11 @@ class GetCrashRateIncidentAggregatesTest(TestCase, SnubaTestCase):
 
 
 class GetCrashRateMetricsIncidentAggregatesTest(
-    GetCrashRateIncidentAggregatesTest, SessionMetricsTestCase
+    GetCrashRateIncidentAggregatesTest, BaseMetricsTestCase
 ):
     def setUp(self):
         super().setUp()
-        self.dataset = QueryDatasets.METRICS
+        self.dataset = Dataset.Metrics
 
 
 @freeze_time()
@@ -436,7 +438,45 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.owner is None
         assert alert_rule.status == AlertRuleStatus.PENDING.value
         assert alert_rule.snuba_query.subscriptions.all().count() == 1
-        assert alert_rule.snuba_query.dataset == QueryDatasets.EVENTS.value
+        assert alert_rule.snuba_query.type == SnubaQuery.Type.ERROR.value
+        assert alert_rule.snuba_query.dataset == Dataset.Events.value
+        assert alert_rule.snuba_query.query == query
+        assert alert_rule.snuba_query.aggregate == aggregate
+        assert alert_rule.snuba_query.time_window == time_window * 60
+        assert alert_rule.snuba_query.resolution == DEFAULT_ALERT_RULE_RESOLUTION * 60
+        assert set(alert_rule.snuba_query.event_types) == set(event_types)
+        assert alert_rule.threshold_type == threshold_type.value
+        assert alert_rule.resolve_threshold == resolve_threshold
+        assert alert_rule.threshold_period == threshold_period
+
+    def test_release_version(self):
+        name = "hello"
+        query = "release.version:1.2.3"
+        aggregate = "count(*)"
+        time_window = 10
+        threshold_type = AlertRuleThresholdType.ABOVE
+        resolve_threshold = 10
+        threshold_period = 1
+        event_types = [SnubaQueryEventType.EventType.ERROR]
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            name,
+            query,
+            aggregate,
+            time_window,
+            threshold_type,
+            threshold_period,
+            resolve_threshold=resolve_threshold,
+            event_types=event_types,
+        )
+        assert alert_rule.snuba_query.subscriptions.get().project == self.project
+        assert alert_rule.name == name
+        assert alert_rule.owner is None
+        assert alert_rule.status == AlertRuleStatus.PENDING.value
+        assert alert_rule.snuba_query.subscriptions.all().count() == 1
+        assert alert_rule.snuba_query.type == SnubaQuery.Type.ERROR.value
+        assert alert_rule.snuba_query.dataset == Dataset.Events.value
         assert alert_rule.snuba_query.query == query
         assert alert_rule.snuba_query.aggregate == aggregate
         assert alert_rule.snuba_query.time_window == time_window * 60
@@ -459,19 +499,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
         assert alert_rule.snuba_query.subscriptions.get().project == new_project
         assert alert_rule.include_all_projects == include_all_projects
-
-    def test_invalid_query(self):
-        with self.assertRaises(InvalidSearchQuery):
-            create_alert_rule(
-                self.organization,
-                [self.project],
-                "hi",
-                "has:",
-                "count()",
-                1,
-                AlertRuleThresholdType.ABOVE,
-                1,
-            )
 
     # This test will fail unless real migrations are run. Refer to migration 0061.
     @pytest.mark.skipif(
@@ -550,6 +577,54 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.comparison_delta == comparison_delta * 60
         assert alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION * 60
 
+    def test_session_to_metric_alert(self):
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            "session alert rule",
+            "",
+            "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
+            1,
+            AlertRuleThresholdType.ABOVE,
+            1,
+            query_type=SnubaQuery.Type.CRASH_RATE,
+            dataset=Dataset.Sessions,
+        )
+        assert alert_rule.snuba_query.type == SnubaQuery.Type.CRASH_RATE.value
+        assert alert_rule.snuba_query.dataset == Dataset.Sessions.value
+
+        with self.feature("organizations:alert-crash-free-metrics"):
+            alert_rule = create_alert_rule(
+                self.organization,
+                [self.project],
+                "session converted alert rule",
+                "",
+                "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
+                1,
+                AlertRuleThresholdType.ABOVE,
+                1,
+                query_type=SnubaQuery.Type.CRASH_RATE,
+                dataset=Dataset.Sessions,
+            )
+        assert alert_rule.snuba_query.type == SnubaQuery.Type.CRASH_RATE.value
+        assert alert_rule.snuba_query.dataset == Dataset.Metrics.value
+
+    def test_performance_metric_alert(self):
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            "performance alert",
+            "",
+            "count()",
+            1,
+            AlertRuleThresholdType.ABOVE,
+            1,
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.PerformanceMetrics,
+        )
+        assert alert_rule.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
+        assert alert_rule.snuba_query.dataset == Dataset.PerformanceMetrics.value
+
 
 class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     @fixture
@@ -606,10 +681,6 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     def test_empty_query(self):
         alert_rule = update_alert_rule(self.alert_rule, query="")
         assert alert_rule.snuba_query.query == ""
-
-    def test_invalid_query(self):
-        with self.assertRaises(InvalidSearchQuery):
-            update_alert_rule(self.alert_rule, query="has:")
 
     def test_delete_projects(self):
         alert_rule = self.create_alert_rule(
@@ -817,6 +888,49 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert self.alert_rule.comparison_delta is None
         assert self.alert_rule.snuba_query.resolution == DEFAULT_ALERT_RULE_RESOLUTION * 60
 
+    def test_session_to_metric_alert(self):
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            "session alert rule",
+            "",
+            "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
+            1,
+            AlertRuleThresholdType.ABOVE,
+            1,
+            query_type=SnubaQuery.Type.CRASH_RATE,
+            dataset=Dataset.Sessions,
+        )
+        alert_rule = update_alert_rule(alert_rule, dataset=Dataset.Sessions)
+        assert alert_rule.snuba_query.type == SnubaQuery.Type.CRASH_RATE.value
+        assert alert_rule.snuba_query.dataset == Dataset.Sessions.value
+
+        with self.feature("organizations:alert-crash-free-metrics"):
+            alert_rule = update_alert_rule(alert_rule, dataset=Dataset.Sessions)
+        assert alert_rule.snuba_query.type == SnubaQuery.Type.CRASH_RATE.value
+        assert alert_rule.snuba_query.dataset == Dataset.Metrics.value
+
+    def test_performance_metric_alert(self):
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            "performance alert",
+            "",
+            "count()",
+            1,
+            AlertRuleThresholdType.ABOVE,
+            1,
+            query_type=SnubaQuery.Type.ERROR,
+            dataset=Dataset.Events,
+        )
+        alert_rule = update_alert_rule(
+            alert_rule,
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.PerformanceMetrics,
+        )
+        assert alert_rule.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
+        assert alert_rule.snuba_query.dataset == Dataset.PerformanceMetrics.value
+
 
 class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
     @fixture
@@ -919,13 +1033,13 @@ class CreateAlertRuleTriggerTest(TestCase):
     def test_excluded_projects_not_associated_with_rule(self):
         other_project = self.create_project(fire_project_created=True)
         alert_rule = self.create_alert_rule(projects=[self.project])
-        with self.assertRaises(ProjectsNotAssociatedWithAlertRuleError):
+        with pytest.raises(ProjectsNotAssociatedWithAlertRuleError):
             create_alert_rule_trigger(alert_rule, "hi", 100, excluded_projects=[other_project])
 
     def test_existing_label(self):
         name = "uh oh"
         create_alert_rule_trigger(self.alert_rule, name, 100)
-        with self.assertRaises(AlertRuleTriggerLabelAlreadyUsedError):
+        with pytest.raises(AlertRuleTriggerLabelAlreadyUsedError):
             create_alert_rule_trigger(self.alert_rule, name, 100)
 
 
@@ -947,7 +1061,7 @@ class UpdateAlertRuleTriggerTest(TestCase):
         label = "uh oh"
         create_alert_rule_trigger(self.alert_rule, label, 1000)
         trigger = create_alert_rule_trigger(self.alert_rule, "something else", 1000)
-        with self.assertRaises(AlertRuleTriggerLabelAlreadyUsedError):
+        with pytest.raises(AlertRuleTriggerLabelAlreadyUsedError):
             update_alert_rule_trigger(trigger, label=label)
 
     def test_exclude_projects(self):
@@ -979,7 +1093,7 @@ class UpdateAlertRuleTriggerTest(TestCase):
         alert_rule = self.create_alert_rule(projects=[self.project])
         trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
 
-        with self.assertRaises(ProjectsNotAssociatedWithAlertRuleError):
+        with pytest.raises(ProjectsNotAssociatedWithAlertRuleError):
             update_alert_rule_trigger(trigger, excluded_projects=[other_project])
 
 
@@ -1076,7 +1190,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         type = AlertRuleTriggerAction.Type.SLACK
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         channel_name = "#some_channel_that_doesnt_exist"
-        with self.assertRaises(InvalidTriggerActionError):
+        with pytest.raises(InvalidTriggerActionError):
             create_alert_rule_trigger_action(
                 self.trigger,
                 type,
@@ -1108,7 +1222,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
             content_type="application/json",
             body=json.dumps({"ok": "false", "error": "ratelimited"}),
         )
-        with self.assertRaises(ApiRateLimitedError):
+        with pytest.raises(ApiRateLimitedError):
             create_alert_rule_trigger_action(
                 self.trigger,
                 type,
@@ -1148,7 +1262,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         channel_name = "some_channel"
 
-        with self.assertRaises(InvalidTriggerActionError):
+        with pytest.raises(InvalidTriggerActionError):
             create_alert_rule_trigger_action(
                 self.trigger,
                 type,
@@ -1206,7 +1320,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         target_identifier = 1
 
-        with self.assertRaises(InvalidTriggerActionError):
+        with pytest.raises(InvalidTriggerActionError):
             create_alert_rule_trigger_action(
                 self.trigger,
                 type,
@@ -1282,7 +1396,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         type = AlertRuleTriggerAction.Type.SLACK
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         channel_name = "#some_channel_that_doesnt_exist"
-        with self.assertRaises(InvalidTriggerActionError):
+        with pytest.raises(InvalidTriggerActionError):
             update_alert_rule_trigger_action(
                 self.action,
                 type,
@@ -1314,7 +1428,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             content_type="application/json",
             body=json.dumps({"ok": "false", "error": "ratelimited"}),
         )
-        with self.assertRaises(ApiRateLimitedError):
+        with pytest.raises(ApiRateLimitedError):
             update_alert_rule_trigger_action(
                 self.action,
                 type,
@@ -1354,7 +1468,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         channel_name = "some_channel"
 
-        with self.assertRaises(InvalidTriggerActionError):
+        with pytest.raises(InvalidTriggerActionError):
             update_alert_rule_trigger_action(
                 self.action,
                 type,
@@ -1413,7 +1527,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         target_identifier = 1
 
-        with self.assertRaises(InvalidTriggerActionError):
+        with pytest.raises(InvalidTriggerActionError):
             update_alert_rule_trigger_action(
                 self.action,
                 type,
@@ -1436,7 +1550,7 @@ class DeleteAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
     def test(self):
         action_id = self.action.id
         delete_alert_rule_trigger_action(self.action)
-        with self.assertRaises(AlertRuleTriggerAction.DoesNotExist):
+        with pytest.raises(AlertRuleTriggerAction.DoesNotExist):
             AlertRuleTriggerAction.objects.get(id=action_id)
 
 

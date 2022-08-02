@@ -1,11 +1,12 @@
 from collections import defaultdict
+from typing import Mapping
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models.release import CommitAuthor, get_users_for_authors
+from sentry.api.serializers.models.release import Author, CommitAuthor, get_users_for_authors
 from sentry.models import Commit, Repository
 
 
-def get_users_for_commits(item_list, user=None):
+def get_users_for_commits(item_list, user=None) -> Mapping[str, Author]:
     authors = list(
         CommitAuthor.objects.get_many_from_cache([i.author_id for i in item_list if i.author_id])
     )

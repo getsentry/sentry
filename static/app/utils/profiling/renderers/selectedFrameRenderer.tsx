@@ -16,10 +16,10 @@ class SelectedFrameRenderer {
   draw(
     frame: Rect,
     style: {BORDER_COLOR: string; BORDER_WIDTH: number},
-    context: CanvasRenderingContext2D = this.context,
-    configToPhysicalSpace: mat3
+    configViewToPhysicalSpace: mat3,
+    context: CanvasRenderingContext2D = this.context
   ): void {
-    const frameInPhysicalSpace = frame.transformRect(configToPhysicalSpace);
+    const frameInPhysicalSpace = frame.transformRect(configViewToPhysicalSpace);
 
     // We draw the border in the center of the flamegraph, so we need to increase
     // the width by border width and negatively offset it by half the border width

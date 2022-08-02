@@ -11,12 +11,17 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ReleaseWithVersionSerializer
 from sentry.models import Activity, Environment, Release, ReleaseStatus
 from sentry.plugins.interfaces.releasehook import ReleaseHook
+from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
 from sentry.signals import release_created
+from sentry.types.activity import ActivityType
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
 
 class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
     permission_classes = (ProjectReleasePermission,)
+    rate_limits = RateLimitConfig(
+        group="CLI", limit_overrides={"GET": SENTRY_RATELIMITER_GROUP_DEFAULTS["default"]}
+    )
 
     def get(self, request: Request, project) -> Response:
         """
@@ -154,7 +159,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
 
                 if not was_released and release.date_released:
                     Activity.objects.create(
-                        type=Activity.RELEASE,
+                        type=ActivityType.RELEASE.value,
                         project=project,
                         ident=Activity.get_version_ident(result["version"]),
                         data={"version": result["version"]},

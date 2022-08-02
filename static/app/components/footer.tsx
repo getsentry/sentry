@@ -42,6 +42,9 @@ function BaseFooter({className}: Props) {
       </LeftLinks>
       <LogoLink />
       <RightLinks>
+        {!config.isSelfHosted && (
+          <FooterLink href="https://status.sentry.io/">{t('Service Status')}</FooterLink>
+        )}
         <FooterLink href="/api/">{t('API')}</FooterLink>
         <FooterLink href="/docs/">{t('Docs')}</FooterLink>
         <FooterLink href="https://github.com/getsentry/sentry">
@@ -84,14 +87,13 @@ const FooterLink = styled(ExternalLink)`
 
 const LogoLink = styled(props => (
   <ExternalLink href="https://sentry.io/welcome/" tabIndex={-1} {...props}>
-    <IconSentry size="xl" />
+    <IconSentry size="lg" />
   </ExternalLink>
 ))`
-  color: ${p => p.theme.subText};
-  display: block;
-  width: 32px;
-  height: 32px;
+  display: flex;
+  align-items: center;
   margin: 0 auto;
+  color: ${p => p.theme.subText};
 `;
 
 const Build = styled('span')`
@@ -105,11 +107,17 @@ const Footer = styled(BaseFooter)`
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeMedium};
   border-top: 1px solid ${p => p.theme.border};
-  padding: ${space(4)};
+  align-content: center;
+  padding: ${space(2)} ${space(4)};
   margin-top: auto; /* pushes footer to the bottom of the page when loading */
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    padding: ${space(2)};
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: none;
   }
 `;

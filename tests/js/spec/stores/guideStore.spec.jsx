@@ -25,7 +25,7 @@ describe('GuideStore', function () {
       },
       {guide: 'issue_stream', seen: true},
     ];
-    GuideStore.registerAnchor('issue_title');
+    GuideStore.registerAnchor('issue_number');
     GuideStore.registerAnchor('exception');
     GuideStore.registerAnchor('breadcrumbs');
     GuideStore.registerAnchor('issue_stream');

@@ -15,6 +15,8 @@ import EventWaiter from 'sentry/utils/eventWaiter';
 import testableTransition from 'sentry/utils/testableTransition';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 
+import {usePersistedOnboardingState} from '../utils';
+
 import GenericFooter from './genericFooter';
 
 interface FirstEventFooterProps {
@@ -35,17 +37,15 @@ export default function FirstEventFooter({
   handleFirstIssueReceived,
 }: FirstEventFooterProps) {
   const source = 'targeted_onboarding_first_event_footer';
+  const [clientState, setClientState] = usePersistedOnboardingState();
 
   const getSecondaryCta = () => {
-    // if hasn't sent first event, allow skiping
-    if (!hasFirstEvent) {
-      return <Button onClick={onClickSetupLater}>{t('Setup Later')}</Button>;
-    }
+    // if hasn't sent first event, allow skiping.
     // if last, no secondary cta
-    if (isLast) {
-      return null;
+    if (!hasFirstEvent && !isLast) {
+      return <Button onClick={onClickSetupLater}>{t('Next Platform')}</Button>;
     }
-    return <Button onClick={onClickSetupLater}>{t('Next Platform')}</Button>;
+    return null;
   };
 
   const getPrimaryCta = ({firstIssue}: {firstIssue: null | true | Group}) => {
@@ -77,12 +77,18 @@ export default function FirstEventFooter({
   return (
     <GridFooter>
       <SkipOnboardingLink
-        onClick={() =>
+        onClick={() => {
           trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
             organization,
             source,
-          })
-        }
+          });
+          if (clientState) {
+            setClientState({
+              ...clientState,
+              state: 'skipped',
+            });
+          }
+        }}
         to={`/organizations/${organization.slug}/issues/`}
       >
         {t('Skip Onboarding')}
@@ -118,14 +124,14 @@ export default function FirstEventFooter({
 const OnboardingButtonBar = styled(ButtonBar)`
   margin: ${space(2)} ${space(4)};
   justify-self: end;
+  margin-left: auto;
 `;
 
 const AnimatedText = styled(motion.div, {
   shouldForwardProp: prop => prop !== 'errorReceived',
 })<{errorReceived: boolean}>`
   margin-left: ${space(1)};
-  color: ${p =>
-    p.errorReceived ? p.theme.successText : p.theme.charts.getColorPalette(5)[4]};
+  color: ${p => (p.errorReceived ? p.theme.successText : p.theme.pink300)};
 `;
 
 const indicatorAnimation: Variants = {
@@ -141,7 +147,7 @@ AnimatedText.defaultProps = {
 
 const WaitingIndicator = styled(motion.div)`
   ${pulsingIndicatorStyles};
-  background-color: ${p => p.theme.charts.getColorPalette(5)[4]};
+  background-color: ${p => p.theme.pink300};
 `;
 
 WaitingIndicator.defaultProps = {
@@ -154,6 +160,10 @@ const StatusWrapper = styled(motion.div)`
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
   justify-content: center;
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    display: none;
+  }
 `;
 
 StatusWrapper.defaultProps = {
@@ -173,9 +183,18 @@ StatusWrapper.defaultProps = {
 
 const SkipOnboardingLink = styled(Link)`
   margin: auto ${space(4)};
+  white-space: nowrap;
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    display: none;
+  }
 `;
 
 const GridFooter = styled(GenericFooter)`
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    display: flex;
+    flex-direction: row;
+    justify-content: end;
+  }
 `;

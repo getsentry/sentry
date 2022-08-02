@@ -4,5 +4,5 @@
     "allowJs": true
   },
   "include": ["static", "tests/js", "docs-ui"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "**/*.benchmark.ts"]
 }

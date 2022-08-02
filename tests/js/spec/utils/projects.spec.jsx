@@ -27,7 +27,7 @@ describe('utils.projects', function () {
   });
 
   describe('with predefined list of slugs', function () {
-    it('gets projects that are in the ProjectsStore', async function () {
+    it('gets projects that are in the ProjectsStore', function () {
       createWrapper({slugs: ['foo', 'bar']});
 
       // This is initial state
@@ -231,6 +231,100 @@ describe('utils.projects', function () {
             ],
           })
         )
+      );
+    });
+  });
+
+  describe('with predefined list of project ids', function () {
+    it('gets project ids that are in the ProjectsStore', function () {
+      createWrapper({projectIds: [1, 2]});
+
+      // This is initial state
+      expect(renderer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fetching: false,
+          isIncomplete: null,
+          hasMore: null,
+          projects: [
+            expect.objectContaining({
+              id: '1',
+              slug: 'foo',
+            }),
+            expect.objectContaining({
+              id: '2',
+              slug: 'bar',
+            }),
+          ],
+        })
+      );
+    });
+
+    it('fetches projects from API if ids not found in store', async function () {
+      const request = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/',
+        query: {
+          all_projects: '1',
+          collapse: ['latestDeploys'],
+        },
+        body: [
+          TestStubs.Project({
+            id: '1',
+            slug: 'foo',
+          }),
+          TestStubs.Project({
+            id: '100',
+            slug: 'a',
+          }),
+          TestStubs.Project({
+            id: '101',
+            slug: 'b',
+          }),
+        ],
+      });
+
+      createWrapper({projectIds: [1, 100, 101]});
+
+      // This is initial state
+      expect(renderer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fetching: true,
+          isIncomplete: null,
+          hasMore: null,
+          projects: [],
+        })
+      );
+
+      await waitFor(() =>
+        expect(request).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: {
+              collapse: ['latestDeploys'],
+            },
+          })
+        )
+      );
+
+      expect(renderer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fetching: false,
+          isIncomplete: null,
+          hasMore: false,
+          projects: [
+            expect.objectContaining({
+              id: '1',
+              slug: 'foo',
+            }),
+            expect.objectContaining({
+              id: '100',
+              slug: 'a',
+            }),
+            expect.objectContaining({
+              id: '101',
+              slug: 'b',
+            }),
+          ],
+        })
       );
     });
   });
@@ -466,7 +560,7 @@ describe('utils.projects', function () {
     let mockProjects;
     let request;
 
-    beforeEach(async function () {
+    beforeEach(function () {
       mockProjects = [
         TestStubs.Project({
           id: '100',

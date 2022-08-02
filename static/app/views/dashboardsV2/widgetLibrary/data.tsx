@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {TOP_N} from 'sentry/utils/discover/types';
 
 import {DisplayType, Widget, WidgetType} from '../types';
 
@@ -8,7 +9,7 @@ export type WidgetTemplate = Widget & {
 
 export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
   {
-    id: undefined,
+    id: 'duration-distribution',
     title: t('Duration Distribution'),
     description: t('Compare transaction durations across different percentiles.'),
     displayType: DisplayType.LINE,
@@ -34,7 +35,7 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
     ],
   },
   {
-    id: undefined,
+    id: 'high-throughput-transactions',
     title: t('High Throughput Transactions'),
     description: t('Top 5 transactions with the largest volume.'),
     displayType: DisplayType.TOP_N,
@@ -47,12 +48,49 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
         fields: ['transaction', 'count()'],
         aggregates: ['count()'],
         columns: ['transaction'],
-        orderby: '-count',
+        orderby: '-count()',
       },
     ],
   },
   {
-    id: undefined,
+    id: 'crash-rates-recent-releases',
+    title: t('Crash Rates for Recent Releases'),
+    description: t('Percentage of crashed sessions for latest releases.'),
+    displayType: DisplayType.LINE,
+    widgetType: WidgetType.RELEASE,
+    interval: '5m',
+    limit: 8,
+    queries: [
+      {
+        name: '',
+        conditions: '',
+        fields: ['crash_rate(session)', 'release'],
+        aggregates: ['crash_rate(session)'],
+        columns: ['release'],
+        orderby: '-release',
+      },
+    ],
+  },
+  {
+    id: 'session-health',
+    title: t('Session Health'),
+    description: t('Number of abnormal,crashed, errored and healthy sessions.'),
+    displayType: DisplayType.TABLE,
+    widgetType: WidgetType.RELEASE,
+    interval: '5m',
+    queries: [
+      {
+        name: '',
+        conditions: '',
+        fields: ['session.status', 'sum(session)'],
+        aggregates: ['sum(session)'],
+        columns: ['session.status'],
+        orderby: '',
+      },
+    ],
+  },
+  {
+    id: 'lcp-country',
     title: t('LCP by Country'),
     description: t('Density map showing page load times by country.'),
     displayType: DisplayType.WORLD_MAP,
@@ -70,7 +108,7 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
     ],
   },
   {
-    id: undefined,
+    id: 'miserable-users',
     title: t('Miserable Users'),
     description: t('Unique users who have experienced slow load times.'),
     displayType: DisplayType.BIG_NUMBER,
@@ -88,7 +126,7 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
     ],
   },
   {
-    id: undefined,
+    id: 'slow-vs-fast',
     title: t('Slow vs. Fast Transactions'),
     description: t('Percentage breakdown of transaction durations over and under 300ms.'),
     displayType: DisplayType.BAR,
@@ -112,7 +150,7 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
     ],
   },
   {
-    id: undefined,
+    id: 'issue-for-review',
     title: t('Issues For Review'),
     description: t('Most recently seen unresolved issues for review.'),
     displayType: DisplayType.TABLE,
@@ -130,7 +168,7 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
     ],
   },
   {
-    id: undefined,
+    id: 'top-unhandled',
     title: t('Top Unhandled Error Types'),
     description: t('Most frequently encountered unhandled errors.'),
     displayType: DisplayType.TOP_N,
@@ -143,12 +181,12 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
         fields: ['error.type', 'count()'],
         aggregates: ['count()'],
         columns: ['error.type'],
-        orderby: '-count',
+        orderby: '-count()',
       },
     ],
   },
   {
-    id: undefined,
+    id: 'users-affected',
     title: t('Users Affected by Errors'),
     description: t('Footprint of unique users affected by errors.'),
     displayType: DisplayType.LINE,
@@ -166,3 +204,16 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
     ],
   },
 ];
+
+export function getTopNConvertedDefaultWidgets(): Readonly<Array<WidgetTemplate>> {
+  return DEFAULT_WIDGETS.map(widget => {
+    if (widget.displayType === DisplayType.TOP_N) {
+      return {
+        ...widget,
+        displayType: DisplayType.AREA,
+        limit: TOP_N,
+      };
+    }
+    return widget;
+  });
+}

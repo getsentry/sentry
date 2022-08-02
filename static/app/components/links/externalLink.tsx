@@ -1,4 +1,6 @@
-import * as React from 'react';
+import {forwardRef} from 'react';
+
+import Anchor from './anchor';
 
 export interface ExternalLinkProps
   extends Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'target'> {
@@ -6,13 +8,13 @@ export interface ExternalLinkProps
   openInNewTab?: boolean;
 }
 
-const ExternalLink = React.forwardRef<HTMLAnchorElement, ExternalLinkProps>(
+const ExternalLink = forwardRef<HTMLAnchorElement, ExternalLinkProps>(
   ({openInNewTab = true, ...props}, ref) => {
     const anchorProps = openInNewTab
       ? {target: '_blank', rel: 'noreferrer noopener'}
       : {href: props.href};
 
-    return <a ref={ref} {...anchorProps} {...props} />;
+    return <Anchor ref={ref} {...anchorProps} {...props} />;
   }
 );
 

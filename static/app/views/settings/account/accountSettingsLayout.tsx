@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
 import SentryTypes from 'sentry/sentryTypes';
@@ -11,7 +11,7 @@ type Props = React.ComponentProps<typeof SettingsLayout> & {
   organization: Organization;
 };
 
-class AccountSettingsLayout extends React.Component<Props> {
+class AccountSettingsLayout extends Component<Props> {
   static childContextTypes = {
     organization: SentryTypes.Organization,
   };

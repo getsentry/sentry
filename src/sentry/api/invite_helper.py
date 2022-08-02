@@ -4,9 +4,8 @@ from urllib.parse import parse_qsl, urlencode
 from django.urls import reverse
 from django.utils.crypto import constant_time_compare
 
-from sentry import features
+from sentry import audit_log, features
 from sentry.models import (
-    AuditLogEntryEvent,
     Authenticator,
     AuthIdentity,
     AuthProvider,
@@ -203,7 +202,7 @@ class ApiInviteHelper:
             organization=om.organization,
             target_object=om.id,
             target_user=user,
-            event=AuditLogEntryEvent.MEMBER_ACCEPT,
+            event=audit_log.get_event_id("MEMBER_ACCEPT"),
             data=om.get_audit_log_data(),
         )
 

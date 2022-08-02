@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
@@ -19,15 +19,7 @@ function StatsHeader({organization, activeTab}: Props) {
         <StyledLayoutTitle>{t('Stats')}</StyledLayoutTitle>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        {activeTab !== 'stats' && (
-          <Button
-            title={t('Send us feedback via email')}
-            size="small"
-            href="mailto:alerting-feedback@sentry.io?subject=Team Stats Feedback"
-          >
-            {t('Give Feedback')}
-          </Button>
-        )}
+        {activeTab !== 'stats' && <FeatureFeedback featureName="team-stats" />}
       </Layout.HeaderActions>
       <Layout.HeaderNavTabs underlined>
         <li className={`${activeTab === 'stats' ? 'active' : ''}`}>

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
@@ -6,7 +6,7 @@ import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Button from 'sentry/components/button';
-import {Hovercard} from 'sentry/components/hovercard';
+import {Divider, Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
 import {IconCommit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -43,7 +43,7 @@ type State = {
   rulesExpanded: boolean;
 };
 
-class SuggestedOwnerHovercard extends React.Component<Props, State> {
+class SuggestedOwnerHovercard extends Component<Props, State> {
   state: State = {
     commitsExpanded: false,
     rulesExpanded: false,
@@ -64,7 +64,7 @@ class SuggestedOwnerHovercard extends React.Component<Props, State> {
     return (
       <Hovercard
         header={
-          <React.Fragment>
+          <Fragment>
             <HovercardHeader>
               <HovercardActorAvatar actor={actor} />
               {actor.name || actor.email}
@@ -81,15 +81,15 @@ class SuggestedOwnerHovercard extends React.Component<Props, State> {
                 )}
               </EmailAlert>
             )}
-          </React.Fragment>
+          </Fragment>
         }
         body={
           <HovercardBody>
             {commits !== undefined && (
-              <React.Fragment>
-                <div className="divider">
+              <Fragment>
+                <Divider>
                   <h6>{t('Commits')}</h6>
-                </div>
+                </Divider>
                 <div>
                   {commits
                     .slice(0, commitsExpanded ? commits.length : 3)
@@ -112,13 +112,13 @@ class SuggestedOwnerHovercard extends React.Component<Props, State> {
                     {t('View more')}
                   </ViewMoreButton>
                 ) : null}
-              </React.Fragment>
+              </Fragment>
             )}
             {defined(rules) && (
-              <React.Fragment>
-                <div className="divider">
+              <Fragment>
+                <Divider>
                   <h6>{t('Matching Ownership Rules')}</h6>
-                </div>
+                </Divider>
                 <div>
                   {rules
                     .slice(0, rulesExpanded ? rules.length : 3)
@@ -138,7 +138,7 @@ class SuggestedOwnerHovercard extends React.Component<Props, State> {
                     {t('View more')}
                   </ViewMoreButton>
                 ) : null}
-              </React.Fragment>
+              </Fragment>
             )}
           </HovercardBody>
         }
@@ -227,7 +227,6 @@ const EmailAlert = styled(Alert)`
   margin: 10px -13px -13px;
   border-radius: 0;
   border-color: #ece0b0;
-  padding: 10px;
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: normal;
   box-shadow: none;

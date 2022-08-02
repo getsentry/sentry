@@ -28,7 +28,7 @@ export const _PageTimeRangeSelectorWithOptions = () => (
       release: (
         <Fragment>
           {t('Entire Release Period')} (
-          <DateTime date={start} timeAndDate /> - <DateTime date={end} timeAndDate />)
+          <DateTime date={start} /> - <DateTime date={end} />)
         </Fragment>
       ),
       ...omit(DEFAULT_RELATIVE_PERIODS, ['1h']),

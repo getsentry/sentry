@@ -1,16 +1,14 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {archiveRelease, restoreRelease} from 'sentry/actionCreators/release';
 import {Client} from 'sentry/api';
-import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import Confirm from 'sentry/components/confirm';
-import DropdownLink from 'sentry/components/dropdownLink';
+import {openConfirmModal} from 'sentry/components/confirm';
+import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import MenuItem from 'sentry/components/menuItem';
 import NavigationButtonGroup from 'sentry/components/navigationButtonGroup';
 import TextOverflow from 'sentry/components/textOverflow';
 import Tooltip from 'sentry/components/tooltip';
@@ -73,7 +71,7 @@ function ReleaseActions({
       releaseMeta.projects.length - visibleProjects.length;
 
     return (
-      <React.Fragment>
+      <Fragment>
         {visibleProjects.map(project => (
           <ProjectBadge key={project.slug} project={project} avatarSize={18} />
         ))}
@@ -89,7 +87,7 @@ function ReleaseActions({
             </Tooltip>
           </span>
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -103,13 +101,13 @@ function ReleaseActions({
 
   function getModalMessage(message: React.ReactNode) {
     return (
-      <React.Fragment>
+      <Fragment>
         {message}
 
         <ProjectsWrapper>{getProjectList()}</ProjectsWrapper>
 
         {t('Are you sure you want to do this?')}
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -132,6 +130,54 @@ function ReleaseActions({
       direction,
     });
   }
+
+  const menuItems = [
+    isReleaseArchived(release)
+      ? {
+          key: 'restore',
+          label: t('Restore'),
+          onAction: () =>
+            openConfirmModal({
+              onConfirm: handleRestore,
+              header: getModalHeader(
+                tct('Restore Release [release]', {
+                  release: formatVersion(release.version),
+                })
+              ),
+              message: getModalMessage(
+                tn(
+                  'You are restoring this release for the following project:',
+                  'By restoring this release, you are also restoring it for the following projects:',
+                  releaseMeta.projects.length
+                )
+              ),
+              cancelText: t('Nevermind'),
+              confirmText: t('Restore'),
+            }),
+        }
+      : {
+          key: 'archive',
+          label: t('Archive'),
+          onAction: () =>
+            openConfirmModal({
+              onConfirm: handleArchive,
+              header: getModalHeader(
+                tct('Archive Release [release]', {
+                  release: formatVersion(release.version),
+                })
+              ),
+              message: getModalMessage(
+                tn(
+                  'You are archiving this release for the following project:',
+                  'By archiving this release, you are also archiving it for the following projects:',
+                  releaseMeta.projects.length
+                )
+              ),
+              cancelText: t('Nevermind'),
+              confirmText: t('Archive'),
+            }),
+        },
+  ];
 
   const {
     nextReleaseVersion,
@@ -156,68 +202,18 @@ function ReleaseActions({
         onNewerClick={() => handleNavigationClick('newer')}
         onNewestClick={() => handleNavigationClick('newest')}
       />
-      <StyledDropdownLink
-        caret={false}
-        anchorRight={window.innerWidth > 992}
-        title={<ActionsButton icon={<IconEllipsis />} aria-label={t('Actions')} />}
-      >
-        {isReleaseArchived(release) ? (
-          <Confirm
-            onConfirm={handleRestore}
-            header={getModalHeader(
-              tct('Restore Release [release]', {
-                release: formatVersion(release.version),
-              })
-            )}
-            message={getModalMessage(
-              tn(
-                'You are restoring this release for the following project:',
-                'By restoring this release, you are also restoring it for the following projects:',
-                releaseMeta.projects.length
-              )
-            )}
-            cancelText={t('Nevermind')}
-            confirmText={t('Restore')}
-          >
-            <MenuItem>{t('Restore')}</MenuItem>
-          </Confirm>
-        ) : (
-          <Confirm
-            onConfirm={handleArchive}
-            header={getModalHeader(
-              tct('Archive Release [release]', {
-                release: formatVersion(release.version),
-              })
-            )}
-            message={getModalMessage(
-              tn(
-                'You are archiving this release for the following project:',
-                'By archiving this release, you are also archiving it for the following projects:',
-                releaseMeta.projects.length
-              )
-            )}
-            cancelText={t('Nevermind')}
-            confirmText={t('Archive')}
-          >
-            <MenuItem>{t('Archive')}</MenuItem>
-          </Confirm>
-        )}
-      </StyledDropdownLink>
+      <DropdownMenuControlV2
+        items={menuItems}
+        triggerProps={{
+          showChevron: false,
+          icon: <IconEllipsis />,
+          'aria-label': t('Actions'),
+        }}
+        placement="bottom right"
+      />
     </ButtonBar>
   );
 }
-
-const ActionsButton = styled(Button)`
-  width: 40px;
-  height: 40px;
-  padding: 0;
-`;
-
-const StyledDropdownLink = styled(DropdownLink)`
-  & + .dropdown-menu {
-    top: 50px !important;
-  }
-`;
 
 const ProjectsWrapper = styled('div')`
   margin: ${space(2)} 0 ${space(2)} ${space(2)};

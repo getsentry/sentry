@@ -2,7 +2,6 @@ import {useReducer} from 'react';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
-import {combinedReducers} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider';
 import {makeCombinedReducers} from 'sentry/utils/useCombinedReducer';
 import {
   makeUndoableReducer,
@@ -11,7 +10,7 @@ import {
 } from 'sentry/utils/useUndoableReducer';
 
 describe('makeUndoableReducer', () => {
-  it('does not overflow', () => {
+  it('does not overflow undo/redo', () => {
     const mockFirstReducer = jest.fn().mockImplementation(v => ++v);
     const reducer = makeUndoableReducer(mockFirstReducer);
 
@@ -127,13 +126,22 @@ describe('makeUndoableReducer', () => {
     });
   });
 
+  it('can peek previous and next state', () => {
+    const simpleReducer = (state: number, action: {type: 'add'} | {type: 'subtract'}) =>
+      action.type === 'add' ? state + 1 : state - 1;
+
+    const {result} = reactHooks.renderHook(() => useUndoableReducer(simpleReducer, 0));
+
+    reactHooks.act(() => result.current[1]({type: 'add'}));
+    expect(result.current?.[2].previousState).toEqual(0);
+
+    reactHooks.act(() => result.current[1]({type: 'undo'}));
+    expect(result.current?.[2].nextState).toEqual(1);
+  });
+
   it('can work with primitives', () => {
-    const simpleReducer = (state: number, action: {type: 'add'} | {type: 'subtract'}) => {
-      if (action.type === 'add') {
-        return state + 1;
-      }
-      return state - 1;
-    };
+    const simpleReducer = (state: number, action: {type: 'add'} | {type: 'subtract'}) =>
+      action.type === 'add' ? state + 1 : state - 1;
 
     const {result} = reactHooks.renderHook(() =>
       useReducer(makeUndoableReducer(makeCombinedReducers({simple: simpleReducer})), {
@@ -156,35 +164,27 @@ describe('makeUndoableReducer', () => {
   });
 
   it('can work with objects', () => {
+    const combinedReducers = makeCombinedReducers({
+      math: (state: number, action: {type: 'add'} | {type: 'subtract'}) =>
+        action.type === 'add' ? state + 1 : state - 1,
+    });
     const {result} = reactHooks.renderHook(() =>
       useReducer(makeUndoableReducer(combinedReducers), {
         previous: undefined,
         current: {
-          preferences: {
-            colorCoding: 'by symbol name',
-            sorting: 'call order',
-            view: 'top down',
-          },
-          search: {
-            open: false,
-            index: null,
-            results: null,
-            query: '',
-          },
+          math: 0,
         },
         next: undefined,
       })
     );
 
-    reactHooks.act(() =>
-      result.current[1]({type: 'set color coding', payload: 'by library'})
-    );
-    expect(result.current[0].current.preferences.colorCoding).toBe('by library');
+    reactHooks.act(() => result.current[1]({type: 'add'}));
+    expect(result.current[0].current.math).toBe(1);
 
     reactHooks.act(() => result.current[1]({type: 'undo'}));
-    expect(result.current[0].current.preferences.colorCoding).toBe('by symbol name');
+    expect(result.current[0].current.math).toBe(0);
 
     reactHooks.act(() => result.current[1]({type: 'redo'}));
-    expect(result.current[0].current.preferences.colorCoding).toBe('by library');
+    expect(result.current[0].current.math).toBe(1);
   });
 });

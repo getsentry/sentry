@@ -5,26 +5,25 @@ import pytest
 import responses
 from exam import fixture
 
+from fixtures.github import COMPARE_COMMITS_EXAMPLE, GET_COMMIT_EXAMPLE, GET_LAST_COMMITS_EXAMPLE
 from sentry.integrations.github.repository import GitHubRepositoryProvider
 from sentry.models import Integration, PullRequest, Repository
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.testutils import PluginTestCase
+from sentry.testutils import TestCase
 from sentry.testutils.asserts import assert_commit_shape
 from sentry.utils import json
 
-from .testutils import COMPARE_COMMITS_EXAMPLE, GET_COMMIT_EXAMPLE, GET_LAST_COMMITS_EXAMPLE
 
-
-def stub_installation_token():
+def stub_installation_token(external_id=654321):
     ten_hours = datetime.datetime.utcnow() + datetime.timedelta(hours=10)
     responses.add(
         responses.POST,
-        "https://api.github.com/app/installations/654321/access_tokens",
+        f"https://api.github.com/app/installations/{external_id}/access_tokens",
         json={"token": "v1.install-token", "expires_at": ten_hours.strftime("%Y-%m-%dT%H:%M:%SZ")},
     )
 
 
-class GitHubAppsProviderTest(PluginTestCase):
+class GitHubAppsProviderTest(TestCase):
     def setUp(self):
         super().setUp()
         self.organization = self.create_organization()

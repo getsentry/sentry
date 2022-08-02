@@ -1,6 +1,6 @@
 {% spaceless %}
 {% autoescape off %}
-# {{ activity_name }}
+# {{ title }}
 
 {{ text_description }}
 

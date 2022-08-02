@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import Count from 'sentry/components/count';
 import {t} from 'sentry/locale';
@@ -17,18 +15,19 @@ type Markers = React.ComponentProps<typeof MiniBarChart>['markers'];
  */
 type StatsGroup = Record<string, TimeseriesValue[]>;
 
-type Props = {
+interface Props {
   group: Group;
   statsPeriod: string;
   title: string;
   className?: string;
   environment?: string;
+  environmentLabel?: string;
   environmentStats?: StatsGroup;
   firstSeen?: string;
   lastSeen?: string;
   release?: Release;
   releaseStats?: StatsGroup;
-};
+}
 
 function GroupReleaseChart(props: Props) {
   const {
@@ -40,33 +39,37 @@ function GroupReleaseChart(props: Props) {
     release,
     releaseStats,
     environment,
+    environmentLabel,
     environmentStats,
     title,
   } = props;
 
   const stats = group.stats[statsPeriod];
-  if (!stats || !stats.length) {
+  const environmentPeriodStats = environmentStats?.[statsPeriod];
+  if (!stats || !stats.length || !environmentPeriodStats) {
     return null;
   }
+
   const series: Series[] = [];
-  // Add all events.
+
+  if (environment) {
+    // Add all events.
+    series.push({
+      seriesName: t('Events'),
+      data: stats.map(point => ({name: point[0] * 1000, value: point[1]})),
+    });
+  }
+
   series.push({
-    seriesName: t('Events'),
-    data: stats.map(point => ({name: point[0] * 1000, value: point[1]})),
+    seriesName: t('Events in %s', environmentLabel),
+    data: environmentStats[statsPeriod].map(point => ({
+      name: point[0] * 1000,
+      value: point[1],
+    })),
   });
 
   // Get the timestamp of the first point.
   const firstTime = series[0].data[0].value;
-
-  if (environment && environmentStats) {
-    series.push({
-      seriesName: t('Events in %s', environment),
-      data: environmentStats[statsPeriod].map(point => ({
-        name: point[0] * 1000,
-        value: point[1],
-      })),
-    });
-  }
 
   if (release && releaseStats) {
     series.push({
@@ -114,6 +117,7 @@ function GroupReleaseChart(props: Props) {
         isGroupedByDate
         showTimeInTooltip
         height={42}
+        colors={environment ? undefined : [theme.purple300, theme.purple300]}
         series={series}
         markers={markers}
       />

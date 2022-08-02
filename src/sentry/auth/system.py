@@ -59,7 +59,7 @@ class SystemToken:
         return 1  # singleton
 
     def is_expired(self):
-        False
+        return False
 
     @memoize
     def user(self):

@@ -1,8 +1,12 @@
-from django.urls import reverse
+from datetime import datetime, timedelta
 
+from django.urls import reverse
+from freezegun import freeze_time
+
+from sentry.api.endpoints.integrations.sentry_apps.requests import INVALID_DATE_FORMAT_MESSAGE
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
+from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 
 class SentryAppRequestsTest(APITestCase):
@@ -292,3 +296,89 @@ class GetSentryAppRequestsTest(SentryAppRequestsTest):
         assert response.data[0]["organization"]["slug"] == self.org.slug
         assert response.data[0]["sentryAppSlug"] == self.published_app.slug
         assert "errorUrl" not in response.data[0]
+
+    def test_org_slug_filter(self):
+        """Test that filtering by the qparam organizationSlug properly filters results"""
+        self.login_as(user=self.user)
+        buffer = SentryAppWebhookRequestsBuffer(self.published_app)
+        buffer.add_request(
+            response_code=200,
+            org_id=self.org.id,
+            event="issue.assigned",
+            url=self.published_app.webhook_url,
+        )
+        buffer.add_request(
+            response_code=500,
+            org_id=self.org.id,
+            event="issue.assigned",
+            url=self.published_app.webhook_url,
+        )
+
+        url = reverse("sentry-api-0-sentry-app-requests", args=[self.published_app.slug])
+        made_up_org_response = self.client.get(f"{url}?organizationSlug=madeUpOrg", format="json")
+        assert made_up_org_response.status_code == 400
+        assert made_up_org_response.data["detail"] == "Invalid organization."
+
+        org_response = self.client.get(f"{url}?organizationSlug={self.org.slug}", format="json")
+        assert org_response.status_code == 200
+        assert len(org_response.data) == 2
+
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200
+        assert len(response.data) == 2
+
+    def test_date_filter(self):
+        """Test that filtering by the qparams start and end properly filters results"""
+        self.login_as(user=self.user)
+        buffer = SentryAppWebhookRequestsBuffer(self.published_app)
+        now = datetime.now() - timedelta(hours=1)
+        buffer.add_request(
+            response_code=200,
+            org_id=self.org.id,
+            event="issue.assigned",
+            url=self.published_app.webhook_url,
+        )
+        with freeze_time(now + timedelta(seconds=1)):
+            buffer.add_request(
+                response_code=200,
+                org_id=self.org.id,
+                event="issue.assigned",
+                url=self.published_app.webhook_url,
+            )
+        with freeze_time(now + timedelta(seconds=2)):
+            buffer.add_request(
+                response_code=200,
+                org_id=self.org.id,
+                event="issue.assigned",
+                url=self.published_app.webhook_url,
+            )
+
+        url = reverse("sentry-api-0-sentry-app-requests", args=[self.published_app.slug])
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200
+        assert len(response.data) == 3
+
+        # test adding a start time
+        start_date = now.strftime("%Y-%m-%d %H:%M:%S")
+        start_date_response = self.client.get(f"{url}?start={start_date}", format="json")
+        assert start_date_response.status_code == 200
+        assert len(start_date_response.data) == 3
+
+        # test adding an end time
+        end_date = (now + timedelta(seconds=2)).strftime("%Y-%m-%d %H:%M:%S")
+        end_date_response = self.client.get(f"{url}?end={end_date}", format="json")
+        assert end_date_response.status_code == 200
+        assert len(end_date_response.data) == 2
+
+        # test adding a start and end time
+        new_start_date = (now + timedelta(seconds=1)).strftime("%Y-%m-%d %H:%M:%S")
+        new_end_date = (now + timedelta(seconds=2)).strftime("%Y-%m-%d %H:%M:%S")
+        start_end_date_response = self.client.get(
+            f"{url}?start={new_start_date}&end={new_end_date}", format="json"
+        )
+        assert start_end_date_response.status_code == 200
+        assert len(start_end_date_response.data) == 2
+
+        # test adding an improperly formatted end time
+        bad_date_format_response = self.client.get(f"{url}?end=2000-01- 00:00:00", format="json")
+        assert bad_date_format_response.data["detail"] == INVALID_DATE_FORMAT_MESSAGE

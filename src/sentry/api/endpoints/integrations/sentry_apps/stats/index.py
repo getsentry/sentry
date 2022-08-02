@@ -15,7 +15,7 @@ class SentryAppsStatsEndpoint(SentryAppsBaseEndpoint):
         sentry_apps = (
             SentryApp.objects.filter(installations__date_deleted=None)
             .annotate(Count("installations"))
-            .order_by()
+            .order_by("-installations__count")
         )
 
         if "per_page" in request.query_params:

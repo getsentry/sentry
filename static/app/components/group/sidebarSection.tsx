@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
@@ -43,15 +43,15 @@ function SidebarSection({title, children, secondary, ...props}: SidebarSectionPr
   const HeaderComponent = secondary ? Subheading : Heading;
 
   return (
-    <React.Fragment>
+    <Fragment>
       <HeaderComponent {...props}>{title}</HeaderComponent>
-      <SectionContent secondary={secondary}>{children}</SectionContent>
-    </React.Fragment>
+      <SectionContent>{children}</SectionContent>
+    </Fragment>
   );
 }
 
-const SectionContent = styled('div')<{secondary?: boolean}>`
-  margin-bottom: ${p => (p.secondary ? space(4) : space(4))};
+const SectionContent = styled('div')`
+  margin-bottom: ${space(4)};
   line-height: 1;
 `;
 

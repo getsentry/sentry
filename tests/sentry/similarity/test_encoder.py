@@ -19,7 +19,7 @@ def test_builtin_types():
     ]
 
     try:
-        values.append(long(1))  # noqa
+        values.append(long(1))
     except NameError:
         pass
 

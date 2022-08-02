@@ -10,4 +10,12 @@ export interface FlamegraphFrame {
   node: CallTreeNode;
   parent: FlamegraphFrame | null;
   start: number;
+  processId?: number;
+  threadId?: number;
+}
+
+export function getFlamegraphFrameSearchId(frame: FlamegraphFrame) {
+  return (
+    frame.frame.name + (frame.frame.file ? frame.frame.file : '') + String(frame.start)
+  );
 }

@@ -11,8 +11,8 @@ import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
-import {WebVital} from 'sentry/utils/discover/fields';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
+import {WebVital} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 import {vitalsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionVitals/utils';
@@ -40,13 +40,22 @@ function UserStats({
   transactionName,
   eventView,
 }: Props) {
+  const useAggregateAlias = !organization.features.includes(
+    'performance-frontend-use-events-endpoint'
+  );
   let userMisery = error !== null ? <div>{'\u2014'}</div> : <Placeholder height="34px" />;
 
   if (!isLoading && error === null && totals) {
     const threshold: number | undefined = totals.project_threshold_config[1];
-    const miserableUsers: number | undefined = totals.count_miserable_user;
-    const userMiseryScore: number = totals.user_misery;
-    const totalUsers = totals.count_unique_user;
+    const miserableUsers: number | undefined = useAggregateAlias
+      ? totals.count_miserable_user
+      : totals['count_miserable_user()'];
+    const userMiseryScore: number = useAggregateAlias
+      ? totals.user_misery
+      : totals['user_misery()'];
+    const totalUsers = useAggregateAlias
+      ? totals.count_unique_user
+      : totals['count_unique_user()'];
     userMisery = (
       <UserMisery
         bars={40}

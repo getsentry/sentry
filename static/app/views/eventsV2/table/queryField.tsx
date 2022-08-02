@@ -1,6 +1,5 @@
-import {CSSProperties} from 'react';
-import * as React from 'react';
-import {components, OptionProps, SingleValueProps} from 'react-select';
+import {Component, createRef} from 'react';
+import {components, SingleValueProps} from 'react-select';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -15,7 +14,7 @@ import space from 'sentry/styles/space';
 import {SelectValue} from 'sentry/types';
 import {
   AggregateParameter,
-  AggregationKey,
+  AggregationKeyWithAlias,
   AGGREGATIONS,
   Column,
   ColumnType,
@@ -23,6 +22,7 @@ import {
   QueryFieldValue,
   ValidateColumnTypes,
 } from 'sentry/utils/discover/fields';
+import {SESSIONS_OPERATIONS} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
 
 import ArithmeticInput from './arithmeticInput';
 import {FieldValue, FieldValueColumns, FieldValueKind} from './types';
@@ -66,7 +66,10 @@ type Props = {
   /**
    * Function to filter the options that are used as parameters for function/aggregate.
    */
-  filterAggregateParameters?: (option: FieldValueOption) => boolean;
+  filterAggregateParameters?: (
+    option: FieldValueOption,
+    fieldValue?: QueryFieldValue
+  ) => boolean;
   /**
    * Filter the options in the primary selector. Useful if you only want to
    * show a subset of selectable items.
@@ -107,20 +110,8 @@ type OptionType = {
   value: FieldValue;
 };
 
-class QueryField extends React.Component<Props> {
+class QueryField extends Component<Props> {
   FieldSelectComponents = {
-    Option: ({label, data, ...props}: OptionProps<OptionType>) => {
-      return (
-        <components.Option label={label} data={data} {...props}>
-          <InnerWrap isFocused={props.isFocused}>
-            <OptionLabelWrapper data-test-id="label">
-              {label}
-              {data.value && this.renderTag(data.value.kind, label)}
-            </OptionLabelWrapper>
-          </InnerWrap>
-        </components.Option>
-      );
-    },
     SingleValue: ({data, ...props}: SingleValueProps<OptionType>) => {
       return (
         <components.SingleValue data={data} {...props}>
@@ -132,21 +123,12 @@ class QueryField extends React.Component<Props> {
   };
 
   FieldSelectStyles = {
-    singleValue(provided: CSSProperties) {
+    singleValue(provided: React.CSSProperties) {
       const custom = {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         width: 'calc(100% - 10px)',
-      };
-      return {...provided, ...custom};
-    },
-    option(provided: CSSProperties) {
-      const custom = {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        width: '100%',
       };
       return {...provided, ...custom};
     },
@@ -163,6 +145,7 @@ class QueryField extends React.Component<Props> {
     switch (value.kind) {
       case FieldValueKind.TAG:
       case FieldValueKind.MEASUREMENT:
+      case FieldValueKind.CUSTOM_MEASUREMENT:
       case FieldValueKind.BREAKDOWN:
       case FieldValueKind.FIELD:
         fieldValue = {kind: 'field', field: value.meta.name};
@@ -178,7 +161,7 @@ class QueryField extends React.Component<Props> {
           fieldValue = {
             kind: 'function',
             function: [
-              value.meta.name as AggregationKey,
+              value.meta.name as AggregationKeyWithAlias,
               current.function[1],
               current.function[2],
               current.function[3],
@@ -187,9 +170,21 @@ class QueryField extends React.Component<Props> {
         } else {
           fieldValue = {
             kind: 'function',
-            function: [value.meta.name as AggregationKey, '', undefined, undefined],
+            function: [
+              value.meta.name as AggregationKeyWithAlias,
+              '',
+              undefined,
+              undefined,
+            ],
           };
         }
+        break;
+      case FieldValueKind.EQUATION:
+        fieldValue = {
+          kind: 'equation',
+          field: value.meta.name,
+          alias: value.meta.name,
+        };
         break;
       default:
         throw new Error('Invalid field type found in column picker');
@@ -208,6 +203,7 @@ class QueryField extends React.Component<Props> {
             (field.kind === FieldValueKind.FIELD ||
               field.kind === FieldValueKind.TAG ||
               field.kind === FieldValueKind.MEASUREMENT ||
+              field.kind === FieldValueKind.CUSTOM_MEASUREMENT ||
               field.kind === FieldValueKind.METRICS ||
               field.kind === FieldValueKind.BREAKDOWN) &&
             validateColumnTypes(param.columnTypes as ValidateColumnTypes, field)
@@ -301,6 +297,11 @@ class QueryField extends React.Component<Props> {
       return fieldOptions[spanOperationBreakdownName].value;
     }
 
+    const equationName = `equation:${name}`;
+    if (fieldOptions[equationName]) {
+      return fieldOptions[equationName].value;
+    }
+
     const tagName =
       name.indexOf('tags[') === 0
         ? `tag:${name.replace(/tags\[(.*?)\]/, '$1')}`
@@ -367,6 +368,7 @@ class QueryField extends React.Component<Props> {
                   (value.kind === FieldValueKind.FIELD ||
                     value.kind === FieldValueKind.TAG ||
                     value.kind === FieldValueKind.MEASUREMENT ||
+                    value.kind === FieldValueKind.CUSTOM_MEASUREMENT ||
                     value.kind === FieldValueKind.METRICS ||
                     value.kind === FieldValueKind.BREAKDOWN) &&
                   validateColumnTypes(param.columnTypes as ValidateColumnTypes, value)
@@ -426,6 +428,7 @@ class QueryField extends React.Component<Props> {
       filterAggregateParameters,
       hideParameterSelector,
       skipParameterPlaceholder,
+      fieldValue,
     } = this.props;
 
     const inputs = parameters.map((descriptor: ParameterDescription, index: number) => {
@@ -434,13 +437,20 @@ class QueryField extends React.Component<Props> {
           return null;
         }
         const aggregateParameters = filterAggregateParameters
-          ? descriptor.options.filter(filterAggregateParameters)
+          ? descriptor.options.filter(option =>
+              filterAggregateParameters(option, fieldValue)
+            )
           : descriptor.options;
+
+        aggregateParameters.forEach(opt => {
+          opt.trailingItems = this.renderTag(opt.value.kind, String(opt.label));
+        });
 
         return (
           <SelectControl
             key="select"
             name="parameter"
+            menuPlacement="auto"
             placeholder={t('Select value')}
             options={aggregateParameters}
             value={descriptor.value}
@@ -500,6 +510,7 @@ class QueryField extends React.Component<Props> {
           <SelectControl
             key="dropdown"
             name="dropdown"
+            menuPlacement="auto"
             placeholder={t('Select value')}
             options={descriptor.options}
             value={descriptor.value}
@@ -541,6 +552,7 @@ class QueryField extends React.Component<Props> {
         text = 'f(x)';
         tagType = 'success';
         break;
+      case FieldValueKind.CUSTOM_MEASUREMENT:
       case FieldValueKind.MEASUREMENT:
         text = 'field';
         tagType = 'highlight';
@@ -590,6 +602,10 @@ class QueryField extends React.Component<Props> {
       ? Object.values(fieldOptions).filter(filterPrimaryOptions)
       : Object.values(fieldOptions);
 
+    allFieldOptions.forEach(opt => {
+      opt.trailingItems = this.renderTag(opt.value.kind, String(opt.label));
+    });
+
     const selectProps: ControlProps<FieldValueOption> = {
       name: 'field',
       options: Object.values(allFieldOptions),
@@ -599,6 +615,7 @@ class QueryField extends React.Component<Props> {
       inFieldLabel: inFieldLabels ? t('Function: ') : undefined,
       disabled,
       noOptionsMessage: () => noFieldsMessage,
+      menuPlacement: 'auto',
     };
     if (takeFocus && field === null) {
       selectProps.autoFocus = true;
@@ -642,20 +659,21 @@ class QueryField extends React.Component<Props> {
     if (skipParameterPlaceholder) {
       // if the selected field is a function and has parameters, we would like to display each value in separate columns.
       // Otherwise the field should be displayed in a column, taking up all available space and not displaying the "no parameter" field
-      if (
-        fieldValue.kind === 'function' &&
-        AGGREGATIONS[fieldValue.function[0]].parameters.length > 0
-      ) {
-        if (
-          containerColumns === 3 &&
-          AGGREGATIONS[fieldValue.function[0]].parameters.length === 1
-        ) {
-          gridColumnsQuantity = 2;
-        } else {
-          gridColumnsQuantity = containerColumns;
-        }
-      } else {
+      if (fieldValue.kind !== 'function') {
         gridColumnsQuantity = 1;
+      } else {
+        const operation =
+          AGGREGATIONS[fieldValue.function[0]] ??
+          SESSIONS_OPERATIONS[fieldValue.function[0]];
+        if (operation.parameters.length > 0) {
+          if (containerColumns === 3 && operation.parameters.length === 1) {
+            gridColumnsQuantity = 2;
+          } else {
+            gridColumnsQuantity = containerColumns;
+          }
+        } else {
+          gridColumnsQuantity = 1;
+        }
       }
     }
 
@@ -719,10 +737,10 @@ type InputState = {value: string};
  * Using a buffered input lets us throttle rendering and enforce data
  * constraints better.
  */
-class BufferedInput extends React.Component<BufferedInputProps, InputState> {
+class BufferedInput extends Component<BufferedInputProps, InputState> {
   constructor(props: BufferedInputProps) {
     super(props);
-    this.input = React.createRef();
+    this.input = createRef();
   }
 
   state: InputState = {
@@ -799,22 +817,6 @@ const ArithmeticError = styled(Tooltip)`
   color: ${p => p.theme.red300};
   animation: ${() => pulse(1.15)} 1s ease infinite;
   display: flex;
-`;
-
-const InnerWrap = styled('div')<{isFocused: boolean}>`
-  display: flex;
-  padding: 0 ${space(1)};
-  border-radius: ${p => p.theme.borderRadius};
-  box-sizing: border-box;
-  width: 100%;
-  ${p => p.isFocused && `background: ${p.theme.hover};`}
-`;
-
-const OptionLabelWrapper = styled('span')`
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
-  padding: ${space(1)} 0;
 `;
 
 export {QueryField};

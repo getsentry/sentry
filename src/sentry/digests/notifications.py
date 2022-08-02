@@ -3,7 +3,7 @@ from __future__ import annotations
 import functools
 import itertools
 import logging
-from collections import OrderedDict, defaultdict, namedtuple
+from collections import defaultdict, namedtuple
 from typing import Any, Mapping, MutableMapping, MutableSequence, Sequence
 
 from sentry.app import tsdb
@@ -141,7 +141,7 @@ def sort_group_contents(
     rules: MutableMapping[str, Mapping[Group, Sequence[Record]]]
 ) -> Mapping[str, Mapping[Group, Sequence[Record]]]:
     for key, groups in rules.items():
-        rules[key] = OrderedDict(
+        rules[key] = dict(
             sorted(
                 groups.items(),
                 # x = (group, records)
@@ -153,7 +153,7 @@ def sort_group_contents(
 
 
 def sort_rule_groups(rules: Mapping[str, Rule]) -> Mapping[str, Rule]:
-    return OrderedDict(
+    return dict(
         sorted(
             rules.items(),
             # x = (rule, groups)

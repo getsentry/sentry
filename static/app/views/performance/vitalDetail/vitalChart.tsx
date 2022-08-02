@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-restricted-imports
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 
@@ -16,7 +17,7 @@ import {t} from 'sentry/locale';
 import {DateString, OrganizationSummary} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
-import {WebVital} from 'sentry/utils/discover/fields';
+import {WebVital} from 'sentry/utils/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import useApi from 'sentry/utils/useApi';
 
@@ -26,6 +27,7 @@ import {ViewProps} from '../types';
 import {
   getMaxOfSeries,
   getVitalChartDefinitions,
+  getVitalChartTitle,
   vitalNameFromLocation,
   VitalState,
   vitalStateColors,
@@ -86,7 +88,7 @@ function VitalChart({
     <Panel>
       <ChartContainer>
         <HeaderTitleLegend>
-          {t('Duration p75')}
+          {getVitalChartTitle(vitalName)}
           <QuestionTooltip
             size="sm"
             position="top"
@@ -224,11 +226,11 @@ export function _VitalChart(props: _VitalChartProps) {
     utc,
     vitalFields,
   } = props;
+  const theme = useTheme();
 
   if (!_results || !vitalFields) {
     return null;
   }
-  const theme = useTheme();
 
   const chartOptions: Omit<LineChartProps, 'series'> = {
     grid,

@@ -41,7 +41,7 @@ export const TraceDetailHeader = styled('div')`
   gap: ${space(3)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: max-content max-content;
     grid-row-gap: 0;
   }
@@ -88,7 +88,6 @@ export function Tags({
   }
 
   const orgSlug = organization.slug;
-  const releasesPath = `/organizations/${orgSlug}/releases/`;
 
   return (
     <tr>
@@ -114,7 +113,6 @@ export function Tags({
                 organization={organization}
                 query={query}
                 streamPath={streamPath}
-                releasesPath={releasesPath}
               />
             );
           })}

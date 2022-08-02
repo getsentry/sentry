@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectActions from 'sentry/actions/projectActions';
 import TeamActions from 'sentry/actions/teamActions';
@@ -8,6 +8,19 @@ describe('withUserTeams HoC', function () {
   const api = new MockApiClient();
   const organization = TestStubs.Organization();
   delete organization.projects;
+
+  function Output({error, teams}) {
+    if (error) {
+      return <p>Error: {error.responseText}</p>;
+    }
+    return (
+      <p>
+        {teams.map(team => (
+          <span key={team.slug}>{team.slug}</span>
+        ))}
+      </p>
+    );
+  }
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -20,11 +33,9 @@ describe('withUserTeams HoC', function () {
       url: `/organizations/${organization.slug}/user-teams/`,
       statusCode: 400,
     });
-    const MyComponent = () => null;
-    const Container = withTeamsForUser(MyComponent);
-    const wrapper = mountWithTheme(<Container organization={organization} api={api} />);
-    await tick();
-    expect(wrapper.update().find('MyComponent').prop('error')).not.toBeNull();
+    const Container = withTeamsForUser(Output);
+    render(<Container organization={organization} api={api} />);
+    expect(await screen.findByText(/Error:/)).toBeInTheDocument();
   });
 
   it('fetches teams and loads stores', async function () {
@@ -46,10 +57,9 @@ describe('withUserTeams HoC', function () {
       body: mockTeams,
     });
 
-    const MyComponent = () => null;
-    const Container = withTeamsForUser(MyComponent);
-    const wrapper = mountWithTheme(<Container organization={organization} api={api} />);
-    await tick();
-    expect(wrapper.update().find('MyComponent').prop('teams')).toEqual(mockTeams);
+    const Container = withTeamsForUser(Output);
+    render(<Container organization={organization} api={api} />);
+    expect(await screen.findByText('sentry')).toBeInTheDocument();
+    expect(screen.getByText('captainplanet')).toBeInTheDocument();
   });
 });

@@ -9,7 +9,7 @@ from sentry.testutils.helpers.slack import get_attachment, send_notification
 from sentry.types.activity import ActivityType
 
 
-class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
+class SlackRegressionNotificationTest(SlackActivityNotificationTest):
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_regression(self, mock_func):
@@ -32,5 +32,5 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
         assert text == "Issue marked as regression"
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=regression-activity-slack-user|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=regression_activity-slack-user|Notification Settings>"
         )

@@ -23,7 +23,7 @@ export enum DisplayType {
 export enum WidgetType {
   DISCOVER = 'discover',
   ISSUE = 'issue',
-  METRICS = 'metrics',
+  RELEASE = 'metrics', // TODO(dashboards): Rename this on backend and then change here
 }
 
 export type WidgetQuery = {
@@ -76,15 +76,30 @@ export type DashboardListItem = {
   dateCreated?: string;
 };
 
+export enum DashboardFilterKeys {
+  RELEASE = 'release',
+}
+
+export type DashboardFilters = {
+  [DashboardFilterKeys.RELEASE]?: string[];
+};
+
 /**
  * Saved dashboard with widgets
  */
 export type DashboardDetails = {
   dateCreated: string;
+  filters: DashboardFilters;
   id: string;
+  projects: number[];
   title: string;
   widgets: Widget[];
   createdBy?: User;
+  end?: string;
+  environment?: string[];
+  period?: string;
+  start?: string;
+  utc?: boolean;
 };
 
 export enum DashboardState {

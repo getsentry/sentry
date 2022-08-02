@@ -75,7 +75,7 @@ class TestGroupOwners(TestCase):
     def test_simple(self):
         self.set_release_commits(self.user.email)
         assert not GroupOwner.objects.filter(group=self.event.group).exists()
-        event_frames = get_frame_paths(self.event.data)
+        event_frames = get_frame_paths(self.event)
         process_suspect_commits(
             event_id=self.event.event_id,
             event_platform=self.event.platform,
@@ -100,7 +100,7 @@ class TestGroupOwners(TestCase):
         assert len(result[0]["commits"]) == 1
         assert result[0]["commits"][0]["id"] == "a" * 40
         assert not GroupOwner.objects.filter(group=self.event.group).exists()
-        event_frames = get_frame_paths(self.event.data)
+        event_frames = get_frame_paths(self.event)
         process_suspect_commits(
             event_id=self.event.event_id,
             event_platform=self.event.platform,
@@ -113,7 +113,7 @@ class TestGroupOwners(TestCase):
     def test_delete_old_entries(self):
         # As new events come in associated with new owners, we should delete old ones.
         self.set_release_commits(self.user.email)
-        event_frames = get_frame_paths(self.event.data)
+        event_frames = get_frame_paths(self.event)
         process_suspect_commits(
             event_id=self.event.event_id,
             event_platform=self.event.platform,
@@ -204,7 +204,7 @@ class TestGroupOwners(TestCase):
         assert event_3.group == self.event.group
 
         self.set_release_commits(self.user_2.email)
-        event_2_frames = get_frame_paths(event_2.data)
+        event_2_frames = get_frame_paths(event_2)
         process_suspect_commits(
             event_id=event_2.event_id,
             event_platform=event_2.platform,
@@ -217,7 +217,7 @@ class TestGroupOwners(TestCase):
         assert GroupOwner.objects.filter(group=event_2.group, user=self.user_2).exists()
 
         self.set_release_commits(self.user_3.email)
-        event_3_frames = get_frame_paths(event_3.data)
+        event_3_frames = get_frame_paths(event_3)
         process_suspect_commits(
             event_id=event_3.event_id,
             event_platform=event_3.platform,
@@ -251,7 +251,7 @@ class TestGroupOwners(TestCase):
     def test_update_existing_entries(self):
         # As new events come in associated with existing owners, we should update the date_added of that owner.
         self.set_release_commits(self.user.email)
-        event_frames = get_frame_paths(self.event.data)
+        event_frames = get_frame_paths(self.event)
         process_suspect_commits(
             event_id=self.event.event_id,
             event_platform=self.event.platform,
@@ -393,7 +393,7 @@ class TestGroupOwners(TestCase):
                 },
             },
         ]
-        event_frames = get_frame_paths(self.event.data)
+        event_frames = get_frame_paths(self.event)
         process_suspect_commits(
             event_id=self.event.event_id,
             event_platform=self.event.platform,

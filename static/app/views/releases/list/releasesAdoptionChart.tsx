@@ -36,6 +36,7 @@ import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, SessionApiResponse} from 'sentry/types';
+import {EChartClickHandler} from 'sentry/types/echarts';
 import {formatVersion} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {getAdoptionSeries, getCount} from 'sentry/utils/sessions';
@@ -114,7 +115,7 @@ class ReleasesAdoptionChart extends Component<Props> {
     }));
   }
 
-  handleClick = (params: {seriesId: string}) => {
+  handleClick: EChartClickHandler = params => {
     const {organization, router, selection, location} = this.props;
 
     const project = selection.projects[0];

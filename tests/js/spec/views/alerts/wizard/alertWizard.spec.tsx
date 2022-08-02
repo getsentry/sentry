@@ -22,13 +22,13 @@ describe('AlertWizard', () => {
     render(
       <AlertWizard
         organization={organization}
-        project={project}
         route={{}}
         router={router}
         routes={router.routes}
         routeParams={router.params}
         location={router.location}
         params={{orgId: organization.slug, projectId: project.slug}}
+        projectId={project.slug}
       />,
       {context: routerContext, organization}
     );
@@ -36,13 +36,13 @@ describe('AlertWizard', () => {
     userEvent.click(screen.getByText('Crash Free Session Rate'));
     userEvent.click(screen.getByText('Set Conditions'));
     expect(routerContext.context.router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/alerts/project-slug/new/',
+      pathname: '/organizations/org-slug/alerts/new/metric/',
       query: {
         aggregate:
           'percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate',
-        createFromWizard: true,
         dataset: 'metrics',
         eventTypes: 'session',
+        project: 'project-slug',
         referrer: undefined,
       },
     });

@@ -1,44 +1,44 @@
+import selectEvent from 'react-select-event';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import IncidentsList from 'sentry/views/alerts/list';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import AlertsContainer from 'sentry/views/alerts';
+import IncidentsList from 'sentry/views/alerts/list/incidents';
 
-describe('IncidentsList', function () {
-  let routerContext;
-  let router;
-  let organization;
+describe('IncidentsList', () => {
   let projectMock;
-  let projects;
   const projects1 = ['a', 'b', 'c'];
   const projects2 = ['c', 'd'];
 
-  const createWrapper = (props = {}) => {
-    return render(
-      <OrganizationContext.Provider value={organization}>
-        <IncidentsList
-          params={{orgId: organization.slug}}
-          location={{query: {}, search: ''}}
-          router={router}
-          {...props}
-        />
-      </OrganizationContext.Provider>,
-      {context: routerContext}
-    );
-  };
-
-  beforeEach(function () {
+  const renderComponent = ({organization} = {}) => {
     const context = initializeOrg({
       organization: {
         features: ['incidents'],
+        ...organization,
       },
     });
-    routerContext = context.routerContext;
-    router = context.router;
-    organization = context.organization;
+    const routerContext = context.routerContext;
+    const org = context.organization;
+    const router = context.router;
+    return {
+      component: render(
+        <AlertsContainer>
+          <IncidentsList
+            params={{orgId: org.slug}}
+            location={{query: {}, search: ''}}
+            router={router}
+          />
+        </AlertsContainer>,
+        {context: routerContext, organization: org}
+      ),
+      router,
+    };
+  };
 
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
       body: [
@@ -68,7 +68,7 @@ describe('IncidentsList', function () {
       }),
     });
 
-    projects = [
+    const projects = [
       TestStubs.Project({slug: 'a', platform: 'javascript'}),
       TestStubs.Project({slug: 'b'}),
       TestStubs.Project({slug: 'c'}),
@@ -82,13 +82,13 @@ describe('IncidentsList', function () {
     act(() => ProjectsStore.loadInitialData(projects));
   });
 
-  afterEach(function () {
+  afterEach(() => {
     act(() => ProjectsStore.reset());
     MockApiClient.clearMockResponses();
   });
 
-  it('displays list', async function () {
-    createWrapper();
+  it('displays list', async () => {
+    renderComponent();
 
     const items = await screen.findAllByTestId('alert-title');
 
@@ -109,7 +109,7 @@ describe('IncidentsList', function () {
     expect(within(projectBadges[0]).getByText('a')).toBeInTheDocument();
   });
 
-  it('displays empty state (first time experience)', async function () {
+  it('displays empty state (first time experience)', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
       body: [],
@@ -127,7 +127,7 @@ describe('IncidentsList', function () {
       method: 'PUT',
     });
 
-    createWrapper();
+    renderComponent();
 
     expect(await screen.findByText('More signal, less noise')).toBeInTheDocument();
 
@@ -136,7 +136,7 @@ describe('IncidentsList', function () {
     expect(promptsUpdateMock).toHaveBeenCalledTimes(1);
   });
 
-  it('displays empty state (rules not yet created)', async function () {
+  it('displays empty state (rules not yet created)', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
       body: [],
@@ -150,7 +150,7 @@ describe('IncidentsList', function () {
       body: {data: {dismissed_ts: Math.floor(Date.now() / 1000)}},
     });
 
-    createWrapper();
+    renderComponent();
 
     expect(
       await screen.findByText('No incidents exist for the current query.')
@@ -160,7 +160,7 @@ describe('IncidentsList', function () {
     expect(promptsMock).toHaveBeenCalledTimes(1);
   });
 
-  it('displays empty state (rules created)', async function () {
+  it('displays empty state (rules created)', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
       body: [],
@@ -174,7 +174,7 @@ describe('IncidentsList', function () {
       body: {data: {dismissed_ts: Math.floor(Date.now() / 1000)}},
     });
 
-    createWrapper();
+    renderComponent();
 
     expect(
       await screen.findByText('No incidents exist for the current query.')
@@ -184,56 +184,46 @@ describe('IncidentsList', function () {
     expect(promptsMock).toHaveBeenCalledTimes(0);
   });
 
-  it('filters by opened issues', function () {
-    createWrapper();
+  it('filters by status', async () => {
+    const {router} = renderComponent();
 
-    userEvent.click(screen.getByTestId('filter-button'));
+    await selectEvent.select(await screen.findByText('Status'), 'Active');
 
-    const resolved = screen.getByText('Resolved');
-    expect(resolved).toBeInTheDocument();
-    expect(
-      within(resolved.parentElement).getByTestId('checkbox-fancy')
-    ).not.toBeChecked();
-
-    userEvent.click(resolved);
-
-    expect(router.push).toHaveBeenCalledWith({
-      pathname: undefined,
-      query: {
-        expand: ['original_alert_rule'],
-        status: ['closed'],
-        team: ['myteams', 'unassigned'],
-      },
-    });
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: {
+          status: 'open',
+        },
+      })
+    );
   });
 
-  it('disables the new alert button for those without alert:write', function () {
+  it('disables the new alert button for those without alert:write', async () => {
     const noAccessOrg = {
-      ...organization,
       access: [],
     };
 
-    createWrapper({organization: noAccessOrg});
-    expect(screen.getByLabelText('Create Alert')).toHaveAttribute(
+    renderComponent({organization: noAccessOrg});
+    expect(await screen.findByLabelText('Create Alert')).toHaveAttribute(
       'aria-disabled',
       'true'
     );
   });
 
-  it('does not disable the new alert button for those with alert:write', function () {
+  it('does not disable the new alert button for those with alert:write', async () => {
     // Enabled with access
-    createWrapper();
+    renderComponent();
 
-    expect(screen.getByLabelText('Create Alert')).toHaveAttribute(
+    expect(await screen.findByLabelText('Create Alert')).toHaveAttribute(
       'aria-disabled',
       'false'
     );
   });
 
   it('searches by name', async () => {
-    createWrapper();
+    const {router} = renderComponent();
 
-    const input = screen.getByPlaceholderText('Search by name');
+    const input = await screen.findByPlaceholderText('Search by name');
     expect(input).toBeInTheDocument();
     const testQuery = 'test name';
     userEvent.type(input, `${testQuery}{enter}`);
@@ -242,8 +232,6 @@ describe('IncidentsList', function () {
       expect.objectContaining({
         query: {
           title: testQuery,
-          expand: ['original_alert_rule'],
-          team: ['myteams', 'unassigned'],
         },
       })
     );
@@ -259,18 +247,13 @@ describe('IncidentsList', function () {
           identifier: '1',
           title: 'First incident',
           projects: projects1,
-          alertRule: TestStubs.IncidentRule({owner: `team:${team.id}`}),
+          alertRule: TestStubs.MetricRule({owner: `team:${team.id}`}),
         }),
       ],
     });
     TeamStore.getById = jest.fn().mockReturnValue(team);
-    const org = {
-      ...organization,
-      features: ['incidents', 'team-alerts-ownership'],
-    };
 
-    const {container} = createWrapper({organization: org});
-    expect(screen.getByText(team.name)).toBeInTheDocument();
-    expect(container).toSnapshot();
+    renderComponent();
+    expect(await screen.findByText(team.name)).toBeInTheDocument();
   });
 });

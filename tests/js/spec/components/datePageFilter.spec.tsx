@@ -6,7 +6,7 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 
 const {organization, router, routerContext} = initializeOrg({
-  organization: {features: ['selection-filters-v2']},
+  organization: {},
   project: undefined,
   projects: undefined,
   router: {
@@ -95,6 +95,9 @@ describe('DatePageFilter', function () {
     userEvent.click(pinButton);
 
     await screen.findByRole('button', {name: 'Lock filter', pressed: true});
+
+    // Check if the pin indicator has been added
+    expect(screen.getByLabelText('Filter applied across pages')).toBeInTheDocument();
 
     expect(PageFiltersStore.getState()).toEqual(
       expect.objectContaining({

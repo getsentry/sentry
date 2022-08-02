@@ -16,13 +16,8 @@ if sys.version_info.major < 3:
 try:
     import sentry_sdk
 
-    if os.environ.get("SENTRY_DSN"):
-        sentry_sdk.init(dsn=os.environ["SENTRY_DSN"])
-    else:
-        sys.stdout.write(
-            "WARNING: Errors in this file will not be reported to Sentry since SENTRY_DSN is not set.\n"
-            "Use this command to report the issue: make direnv-help\n\n"
-        )
+    if not os.environ.get("SENTRY_DEVENV_NO_REPORT"):
+        sentry_sdk.init(dsn="https://9bdb053cb8274ea69231834d1edeec4c@o1.ingest.sentry.io/5723503")
 except ModuleNotFoundError:
     sys.stdout.write(
         "WARNING: Sentry SDK not installed, thus, errors will not be reported. Run: make install-py-dev\n"

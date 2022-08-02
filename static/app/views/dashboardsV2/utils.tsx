@@ -1,6 +1,10 @@
-import {Query} from 'history';
+import {browserHistory} from 'react-router';
+import {Location, Query} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
+import isEmpty from 'lodash/isEmpty';
+import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
+import trimStart from 'lodash/trimStart';
 import * as qs from 'query-string';
 
 import WidgetArea from 'sentry-images/dashboard/widget-area.svg';
@@ -11,19 +15,31 @@ import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
 import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
-import {getDiffInMinutes, getInterval} from 'sentry/components/charts/utils';
+import {
+  Fidelity,
+  getDiffInMinutes,
+  getInterval,
+  SIX_HOURS,
+  TWENTY_FOUR_HOURS,
+} from 'sentry/components/charts/utils';
+import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
 import {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {
+  getAggregateAlias,
+  getAggregateArg,
   getColumnsAndAggregates,
   isEquation,
+  isMeasurement,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {DisplayModes} from 'sentry/utils/discover/types';
+import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {
   DashboardDetails,
+  DashboardFilters,
   DisplayType,
   Widget,
   WidgetQuery,
@@ -63,13 +79,18 @@ export function eventViewFromWidget(
       ? `${query.conditions} has:geo.country_code`.trim()
       : query.conditions;
 
+  const {orderby} = query;
+  // Need to convert orderby to aggregate alias because eventView still uses aggregate alias format
+  const aggregateAliasOrderBy = orderby
+    ? `${orderby.startsWith('-') ? '-' : ''}${getAggregateAlias(trimStart(orderby, '-'))}`
+    : orderby;
   return EventView.fromSavedQuery({
     id: undefined,
     name: title,
     version: 2,
     fields,
     query: conditions,
-    orderby: query.orderby,
+    orderby: aggregateAliasOrderBy,
     projects,
     range: statsPeriod ?? undefined,
     start: start ? getUtcDateString(start) : undefined,
@@ -142,21 +163,33 @@ export function miniWidget(displayType: DisplayType): string {
 }
 
 export function getWidgetInterval(
-  widget: Widget,
-  datetimeObj: Partial<PageFilters['datetime']>
+  displayType: DisplayType,
+  datetimeObj: Partial<PageFilters['datetime']>,
+  widgetInterval?: string,
+  fidelity?: Fidelity
 ): string {
   // Don't fetch more than 66 bins as we're plotting on a small area.
   const MAX_BIN_COUNT = 66;
 
   // Bars charts are daily totals to aligned with discover. It also makes them
   // usefully different from line/area charts until we expose the interval control, or remove it.
-  let interval = widget.displayType === 'bar' ? '1d' : widget.interval;
+  let interval = displayType === 'bar' ? '1d' : widgetInterval;
   if (!interval) {
     // Default to 5 minutes
     interval = '5m';
   }
   const desiredPeriod = parsePeriodToHours(interval);
   const selectedRange = getDiffInMinutes(datetimeObj);
+
+  if (fidelity) {
+    // Primarily to support lower fidelity for Release Health widgets
+    // the sort on releases and hit the metrics API endpoint.
+    interval = getInterval(datetimeObj, fidelity);
+    if (selectedRange > SIX_HOURS && selectedRange <= TWENTY_FOUR_HOURS) {
+      interval = '1h';
+    }
+    return displayType === 'bar' ? '1d' : interval;
+  }
 
   // selectedRange is in minutes, desiredPeriod is in hours
   // convert desiredPeriod to minutes
@@ -185,7 +218,8 @@ export function getWidgetDiscoverUrl(
   widget: Widget,
   selection: PageFilters,
   organization: Organization,
-  index: number = 0
+  index: number = 0,
+  isMetricsData: boolean = false
 ) {
   const eventView = eventViewFromWidget(
     widget.title,
@@ -238,6 +272,10 @@ export function getWidgetDiscoverUrl(
     }
   });
 
+  if (isMetricsData) {
+    discoverLocation.query.fromMetric = 'true';
+  }
+
   // Construct and return the discover url
   const discoverPath = `${discoverLocation.pathname}?${qs.stringify({
     ...discoverLocation.query,
@@ -259,30 +297,185 @@ export function getWidgetIssueUrl(
     query: widget.queries?.[0]?.conditions,
     sort: widget.queries?.[0]?.orderby,
     ...datetime,
+    project: selection.projects,
+    environment: selection.environments,
   })}`;
   return issuesLocation;
 }
 
+export function getWidgetReleasesUrl(
+  _widget: Widget,
+  selection: PageFilters,
+  organization: Organization
+) {
+  const {start, end, utc, period} = selection.datetime;
+  const datetime =
+    start && end
+      ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
+      : {statsPeriod: period};
+  const releasesLocation = `/organizations/${organization.slug}/releases/?${qs.stringify({
+    ...datetime,
+    project: selection.projects,
+    environment: selection.environments,
+  })}`;
+  return releasesLocation;
+}
+
 export function flattenErrors(
-  data: ValidationError,
+  data: ValidationError | string,
   update: FlatValidationError
 ): FlatValidationError {
-  Object.keys(data).forEach((key: string) => {
-    const value = data[key];
-    if (typeof value === 'string') {
-      update[key] = value;
-      return;
-    }
-    // Recurse into nested objects.
-    if (Array.isArray(value) && typeof value[0] === 'string') {
-      update[key] = value[0];
-      return;
-    }
-    if (Array.isArray(value) && typeof value[0] === 'object') {
-      (value as ValidationError[]).map(item => flattenErrors(item, update));
-    } else {
-      flattenErrors(value as ValidationError, update);
-    }
-  });
+  if (typeof data === 'string') {
+    update.error = data;
+  } else {
+    Object.keys(data).forEach((key: string) => {
+      const value = data[key];
+      if (typeof value === 'string') {
+        update[key] = value;
+        return;
+      }
+      // Recurse into nested objects.
+      if (Array.isArray(value) && typeof value[0] === 'string') {
+        update[key] = value[0];
+        return;
+      }
+      if (Array.isArray(value) && typeof value[0] === 'object') {
+        (value as ValidationError[]).map(item => flattenErrors(item, update));
+      } else {
+        flattenErrors(value as ValidationError, update);
+      }
+    });
+  }
   return update;
+}
+
+export function getDashboardsMEPQueryParams(isMEPEnabled: boolean) {
+  return isMEPEnabled
+    ? {
+        dataset: 'metricsEnhanced',
+      }
+    : {};
+}
+
+export function getNumEquations(possibleEquations: string[]) {
+  return possibleEquations.filter(isEquation).length;
+}
+
+export function isCustomMeasurement(field: string) {
+  const definedMeasurements = Object.keys(getMeasurements());
+  return isMeasurement(field) && !definedMeasurements.includes(field);
+}
+
+export function isCustomMeasurementWidget(widget: Widget) {
+  return (
+    widget.widgetType === WidgetType.DISCOVER &&
+    widget.queries.some(({aggregates, columns, fields}) => {
+      const aggregateArgs = aggregates.reduce((acc: string[], aggregate) => {
+        // Should be ok to use getAggregateArg. getAggregateArg only returns the first arg
+        // but there aren't any custom measurement aggregates that use custom measurements
+        // outside of the first arg.
+        const aggregateArg = getAggregateArg(aggregate);
+        if (aggregateArg) {
+          acc.push(aggregateArg);
+        }
+        return acc;
+      }, []);
+      return [...aggregateArgs, ...columns, ...(fields ?? [])].some(field =>
+        isCustomMeasurement(field)
+      );
+    })
+  );
+}
+
+export function getCustomMeasurementQueryParams() {
+  return {
+    dataset: 'metrics',
+  };
+}
+
+export function hasSavedPageFilters(dashboard: DashboardDetails) {
+  return !(
+    isEmpty(dashboard.projects) &&
+    dashboard.environment === undefined &&
+    dashboard.start === undefined &&
+    dashboard.end === undefined &&
+    dashboard.period === undefined
+  );
+}
+
+export function hasUnsavedFilterChanges(
+  initialDashboard: DashboardDetails,
+  location: Location,
+  newDashboardFilters: DashboardFilters
+) {
+  const savedFilters = {
+    projects: initialDashboard.projects,
+    environment: initialDashboard.environment,
+    period: initialDashboard.period,
+    start: normalizeDateTimeString(initialDashboard.start),
+    end: normalizeDateTimeString(initialDashboard.end),
+    filters: initialDashboard.filters,
+    utc: initialDashboard.utc,
+  };
+  const currentFilters = {
+    ...getCurrentPageFilters(location),
+    filters: newDashboardFilters,
+  };
+  return !isEqual(savedFilters, currentFilters);
+}
+
+export function getSavedFiltersAsPageFilters(dashboard: DashboardDetails): PageFilters {
+  return {
+    datetime: {
+      end: dashboard.end || null,
+      period: dashboard.period || null,
+      start: dashboard.start || null,
+      utc: null,
+    },
+    environments: dashboard.environment || [],
+    projects: dashboard.projects || [],
+  };
+}
+
+export function getSavedPageFilters(dashboard: DashboardDetails) {
+  return {
+    project: dashboard.projects,
+    environment: dashboard.environment,
+    statsPeriod: dashboard.period,
+    start: normalizeDateTimeString(dashboard.start),
+    end: normalizeDateTimeString(dashboard.end),
+    utc: dashboard.utc,
+  };
+}
+
+export function resetPageFilters(dashboard: DashboardDetails, location: Location) {
+  browserHistory.replace({
+    ...location,
+    query: getSavedPageFilters(dashboard),
+  });
+}
+
+export function getCurrentPageFilters(
+  location: Location
+): Pick<
+  DashboardDetails,
+  'projects' | 'environment' | 'period' | 'start' | 'end' | 'utc'
+> {
+  const {project, environment, statsPeriod, start, end, utc} = location.query ?? {};
+  return {
+    // Ensure projects and environment are sent as arrays, or undefined in the request
+    // location.query will return a string if there's only one value
+    projects:
+      project === undefined || project === null
+        ? []
+        : typeof project === 'string'
+        ? [Number(project)]
+        : project.map(Number),
+    environment:
+      typeof environment === 'string' ? [environment] : environment ?? undefined,
+    period: statsPeriod as string | undefined,
+    start: defined(start) ? normalizeDateTimeString(start as string) : undefined,
+    end: defined(end) ? normalizeDateTimeString(end as string) : undefined,
+    utc: defined(utc) ? utc === 'true' : undefined,
+  };
 }

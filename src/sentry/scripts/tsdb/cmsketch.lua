@@ -337,7 +337,7 @@ function Sketch:export()
     })
 end
 
-function table.is_empty(t)
+local function table_is_empty(t)
     return next(t) == nil
 end
 
@@ -349,10 +349,10 @@ function Sketch:import(payload)
 
     local source_index, source_estimators = unpack(data)
 
-    if table.is_empty(source_estimators) then
+    if table_is_empty(source_estimators) then
         -- If we're just writing the source index values (and not estimators)
         -- to the destination, we can just directly increment the sketch which
-        -- will take care of destinaton estimator updates and index truncation,
+        -- will take care of destination estimator updates and index truncation,
         -- if necessary.
         local items = {}
         for key, value in pairs(source_index) do
@@ -523,7 +523,7 @@ return Router:new({
 
     --[[
     Find the most frequently observed items across all sketches, returning a
-    seqeunce of item, score pairs.
+    sequence of item, score pairs.
     ]]--
     RANKED = Command:new(
         function (sketches, arguments)

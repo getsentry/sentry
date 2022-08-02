@@ -9,6 +9,8 @@ import {
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import SuspectSpans from 'sentry/views/performance/transactionSummary/transactionOverview/suspectSpans';
 
 function initializeData({query} = {query: {}}) {
@@ -28,6 +30,8 @@ function initializeData({query} = {query: {}}) {
         },
       },
     },
+    project: 1,
+    projects: [],
   });
 
   act(() => void ProjectsStore.loadInitialData(initialData.organization.projects));
@@ -48,17 +52,25 @@ describe('SuspectSpans', function () {
       });
     });
 
+    afterEach(function () {
+      jest.resetAllMocks();
+    });
+
     it('renders basic UI elements', async function () {
       const initialData = initializeData();
       render(
-        <SuspectSpans
-          organization={initialData.organization}
-          location={initialData.router.location}
-          eventView={initialData.eventView}
-          projectId="1"
-          transactionName="Test Transaction"
-          totals={{count: 1}}
-        />
+        <OrganizationContext.Provider value={initialData.organization}>
+          <MEPSettingProvider>
+            <SuspectSpans
+              organization={initialData.organization}
+              location={initialData.router.location}
+              eventView={initialData.eventView}
+              projectId="1"
+              transactionName="Test Transaction"
+              totals={{'count()': 1}}
+            />
+          </MEPSettingProvider>
+        </OrganizationContext.Provider>
       );
 
       expect(await screen.findByText('Suspect Spans')).toBeInTheDocument();

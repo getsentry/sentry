@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -39,7 +39,7 @@ type State = {
 type DropdownAutoCompleteProps = React.ComponentProps<typeof DropdownAutoComplete>;
 type Item = Parameters<NonNullable<DropdownAutoCompleteProps['onSelect']>>[0];
 
-class TeamProjects extends React.Component<Props, State> {
+class TeamProjects extends Component<Props, State> {
   state: State = {
     error: false,
     loading: true,
@@ -159,7 +159,7 @@ class TeamProjects extends React.Component<Props, State> {
             title={t('You do not have enough permission to change project association.')}
           >
             <Button
-              size="small"
+              size="sm"
               disabled={!canWrite}
               icon={<IconSubtract isCircled size="xs" />}
               aria-label={t('Remove')}
@@ -199,7 +199,7 @@ class TeamProjects extends React.Component<Props, State> {
     }));
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Panel>
           <PanelHeader hasButtons>
             <div>{t('Projects')}</div>
@@ -208,7 +208,7 @@ class TeamProjects extends React.Component<Props, State> {
                 <DropdownButton
                   disabled
                   title={t('You do not have enough permission to associate a project.')}
-                  size="xsmall"
+                  size="xs"
                 >
                   {t('Add Project')}
                 </DropdownButton>
@@ -221,7 +221,7 @@ class TeamProjects extends React.Component<Props, State> {
                   alignMenu="right"
                 >
                   {({isOpen}) => (
-                    <DropdownButton isOpen={isOpen} size="xsmall">
+                    <DropdownButton isOpen={isOpen} size="xs">
                       {t('Add Project')}
                     </DropdownButton>
                   )}
@@ -232,7 +232,7 @@ class TeamProjects extends React.Component<Props, State> {
           <PanelBody>{this.projectPanelContents(linkedProjects)}</PanelBody>
         </Panel>
         <Pagination pageLinks={this.state.pageLinks} {...this.props} />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

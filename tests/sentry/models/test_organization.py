@@ -5,6 +5,8 @@ from uuid import uuid4
 from django.core import mail
 from django.db import models
 
+from sentry import audit_log
+from sentry.api.base import ONE_DAY
 from sentry.api.endpoints.organization_details import (
     flag_has_changed,
     has_changed,
@@ -15,7 +17,6 @@ from sentry.auth.authenticators import TotpInterface
 from sentry.models import (
     ApiKey,
     AuditLogEntry,
-    AuditLogEntryEvent,
     Commit,
     File,
     Integration,
@@ -34,9 +35,34 @@ from sentry.models import (
     User,
 )
 from sentry.testutils import TestCase
+from sentry.utils.audit import create_system_audit_entry
 
 
 class OrganizationTest(TestCase):
+    def test_slugify_on_new_orgs(self):
+        org = Organization.objects.create(name="name", slug="---downtown_canada---")
+        assert org.slug == "downtown-canada"
+
+        # Only slugify on new instances of Organization
+        org.slug = "---downtown_canada---"
+        org.save()
+        org.refresh_from_db()
+        assert org.slug == "---downtown_canada---"
+
+        org = Organization.objects.create(name="---foo_bar---")
+        assert org.slug == "foo-bar"
+
+    def test_slugify_long_org_names(self):
+        # Org name is longer than allowed org slug, and should be trimmed when slugified.
+        org = Organization.objects.create(name="Stove, Electrical, and Catering Stuff")
+        assert org.slug == "stove-electrical-and-catering"
+
+        # Ensure org slugs are unique
+        org2 = Organization.objects.create(name="Stove, Electrical, and Catering Stuff")
+        assert org2.slug.startswith("stove-electrical-and-cateri-")
+        assert len(org2.slug) > len("stove-electrical-and-cateri-")
+        assert org.slug != org2.slug
+
     def test_merge_to(self):
         from_owner = self.create_user("foo@example.com")
         from_org = self.create_organization(owner=from_owner)
@@ -293,7 +319,7 @@ class Require2fa(TestCase):
         assert mail.outbox[0].to == [non_compliant_user.email]
 
         audit_logs = AuditLogEntry.objects.filter(
-            event=AuditLogEntryEvent.MEMBER_PENDING, organization=self.org, actor=self.owner
+            event=audit_log.get_event_id("MEMBER_PENDING"), organization=self.org, actor=self.owner
         )
         assert audit_logs.count() == 1
         assert audit_logs[0].data["email"] == non_compliant_user.email
@@ -313,7 +339,7 @@ class Require2fa(TestCase):
 
         assert len(mail.outbox) == 0
         assert not AuditLogEntry.objects.filter(
-            event=AuditLogEntryEvent.MEMBER_PENDING, organization=self.org, actor=self.owner
+            event=audit_log.get_event_id("MEMBER_PENDING"), organization=self.org, actor=self.owner
         ).exists()
 
     def test_handle_2fa_required__non_compliant_members(self):
@@ -330,7 +356,7 @@ class Require2fa(TestCase):
 
         assert len(mail.outbox) == len(non_compliant)
         assert AuditLogEntry.objects.filter(
-            event=AuditLogEntryEvent.MEMBER_PENDING, organization=self.org, actor=self.owner
+            event=audit_log.get_event_id("MEMBER_PENDING"), organization=self.org, actor=self.owner
         ).count() == len(non_compliant)
 
     def test_handle_2fa_required__pending_member__ok(self):
@@ -344,7 +370,7 @@ class Require2fa(TestCase):
 
         assert len(mail.outbox) == 0
         assert not AuditLogEntry.objects.filter(
-            event=AuditLogEntryEvent.MEMBER_PENDING, organization=self.org, actor=self.owner
+            event=audit_log.get_event_id("MEMBER_PENDING"), organization=self.org, actor=self.owner
         ).exists()
 
     @mock.patch("sentry.tasks.auth.logger")
@@ -400,7 +426,7 @@ class Require2fa(TestCase):
         assert len(mail.outbox) == 1
         assert (
             AuditLogEntry.objects.filter(
-                event=AuditLogEntryEvent.MEMBER_PENDING,
+                event=audit_log.get_event_id("MEMBER_PENDING"),
                 organization=self.org,
                 actor=None,
                 actor_key=api_key,
@@ -421,7 +447,7 @@ class Require2fa(TestCase):
         assert len(mail.outbox) == 1
         assert (
             AuditLogEntry.objects.filter(
-                event=AuditLogEntryEvent.MEMBER_PENDING,
+                event=audit_log.get_event_id("MEMBER_PENDING"),
                 organization=self.org,
                 actor=self.owner,
                 actor_key=None,
@@ -434,3 +460,16 @@ class Require2fa(TestCase):
         org = self.create_organization()
         result = org.get_audit_log_data()
         assert result["flags"] == int(org.flags)
+
+    def test_send_delete_confirmation_system_audi(self):
+        org = self.create_organization(owner=self.user)
+        audit_entry = create_system_audit_entry(
+            organization=org,
+            target_object=org.id,
+            event=audit_log.get_event_id("ORG_REMOVE"),
+            data=org.get_audit_log_data(),
+        )
+        with self.tasks():
+            org.send_delete_confirmation(audit_entry, ONE_DAY)
+        assert len(mail.outbox) == 1
+        assert "User: Sentry" in mail.outbox[0].body

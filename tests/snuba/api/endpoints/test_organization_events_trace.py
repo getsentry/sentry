@@ -1,6 +1,7 @@
 from datetime import timedelta
 from uuid import uuid4
 
+import pytest
 from django.urls import NoReverseMatch, reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
@@ -122,7 +123,10 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
         # Second Generation
         self.gen2_span_ids = [uuid4().hex[:16] for _ in range(3)]
         self.gen2_project = self.create_project(organization=self.organization)
-        self.gen2_span_id = uuid4().hex[:16]
+
+        # Intentially pick a span id that starts with 0s
+        self.gen2_span_id = "0011" * 4
+
         self.gen2_events = [
             self.create_event(
                 trace=self.trace_id,
@@ -251,7 +255,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         assert response.status_code == 404, response.content
 
         # Invalid trace id
-        with self.assertRaises(NoReverseMatch):
+        with pytest.raises(NoReverseMatch):
             self.url = reverse(
                 "sentry-api-0-organization-events-trace-light",
                 kwargs={
@@ -1181,7 +1185,7 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["errors"] == 0
 
         # Invalid trace id
-        with self.assertRaises(NoReverseMatch):
+        with pytest.raises(NoReverseMatch):
             self.url = reverse(
                 self.url_name,
                 kwargs={
@@ -1233,15 +1237,3 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["projects"] == 4
         assert data["transactions"] == 8
         assert data["errors"] == 1
-
-
-class OrganizationEventsTraceLightEndpointTestWithSnql(OrganizationEventsTraceLightEndpointTest):
-    FEATURES = ["organizations:performance-view", "organizations:performance-use-snql"]
-
-
-class OrganizationEventsTraceEndpointTestWithSnql(OrganizationEventsTraceEndpointTest):
-    FEATURES = ["organizations:performance-view", "organizations:performance-use-snql"]
-
-
-class OrganizationEventsTraceMetaEndpointTestWithSnql(OrganizationEventsTraceMetaEndpointTest):
-    FEATURES = ["organizations:performance-view", "organizations:performance-use-snql"]

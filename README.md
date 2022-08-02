@@ -1,7 +1,7 @@
 <p align="center">
   <p align="center">
     <a href="https://sentry.io/?utm_source=github&utm_medium=logo" target="_blank">
-      <img src="https://sentry-brand.storage.googleapis.com/sentry-logo-black.png" alt="Sentry" height="72">
+      <img src="https://sentry-brand.storage.googleapis.com/sentry-wordmark-dark-280x84.png" alt="Sentry" width="280" height="84">
     </a>
   </p>
   <p align="center">
@@ -11,14 +11,15 @@
 
 # What's Sentry?
 
-Sentry is a service that helps you monitor and fix crashes
-in realtime. The server is in Python, but it contains a full API for
-sending events from any language, in any application.
+Sentry is a developer-first error tracking and performance monitoring platform that helps developers see what actually matters, solve quicker, and learn continuously about their applications.
+
+
 
 <p align="center">
-  <img src="https://github.com/getsentry/sentry/raw/master/docs/screenshots/thumb-1.png" width="270">
-  <img src="https://github.com/getsentry/sentry/raw/master/docs/screenshots/thumb-2.png" width="270">
-  <img src="https://github.com/getsentry/sentry/raw/master/docs/screenshots/thumb-3.png" width="270">
+  <img src="https://github.com/getsentry/sentry/raw/master/.github/screenshots/projects.png" width="270">
+  <img src="https://github.com/getsentry/sentry/raw/master/.github/screenshots/issue-details.png" width="270">
+  <img src="https://github.com/getsentry/sentry/raw/master/.github/screenshots/transaction-summary.png" width="270">
+  <img src="https://github.com/getsentry/sentry/raw/master/.github/screenshots/releases.png" width="270">
 </p>
 
 ## Official Sentry SDKs

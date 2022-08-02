@@ -2,7 +2,10 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import {SmartSearchBar} from 'sentry/components/smartSearchBar';
+import {ShortcutType} from 'sentry/components/smartSearchBar/types';
+import {shortcuts} from 'sentry/components/smartSearchBar/utils';
 import TagStore from 'sentry/stores/tagStore';
+import {FieldKey} from 'sentry/utils/fields';
 
 describe('SmartSearchBar', function () {
   let location, options, organization, supportedTags;
@@ -21,11 +24,16 @@ describe('SmartSearchBar', function () {
     TagStore.reset();
     TagStore.loadTagsSuccess(TestStubs.Tags());
     tagValuesMock.mockClear();
-    supportedTags = TagStore.getAllTags();
+    supportedTags = TagStore.getStateTags();
     supportedTags.firstRelease = {
       key: 'firstRelease',
       name: 'firstRelease',
     };
+    supportedTags.is = {
+      key: 'is',
+      name: 'is',
+    };
+
     organization = TestStubs.Organization({id: '123'});
 
     location = {
@@ -567,7 +575,7 @@ describe('SmartSearchBar', function () {
       await tick();
       wrapper.update();
       expect(searchBar.state.searchTerm).toEqual('fu');
-      // 1 items because of headers ("Tags")
+      // 2 items because of headers ("Tags")
       expect(searchBar.state.searchGroups).toHaveLength(1);
       expect(searchBar.state.activeSearchItem).toEqual(-1);
     });
@@ -682,12 +690,12 @@ describe('SmartSearchBar', function () {
       searchBar.updateAutoCompleteItems();
       await tick();
       wrapper.update();
-      // one search group because only showing tags now
+      // one search group because showing tags
       expect(searchBar.state.searchGroups).toHaveLength(1);
       expect(searchBar.state.activeSearchItem).toEqual(-1);
     });
 
-    it('shows errors on incorrect tokens', async function () {
+    it('shows errors on incorrect tokens', function () {
       const props = {
         query: 'tag: is: has: ',
         organization,
@@ -699,6 +707,378 @@ describe('SmartSearchBar', function () {
       wrapper.find('Filter').forEach(filter => {
         expect(filter.prop('invalid')).toBe(true);
       });
+    });
+
+    it('handles autocomplete race conditions when cursor position changed', async function () {
+      const props = {
+        query: 'is:',
+        organization,
+        location,
+        supportedTags,
+      };
+
+      jest.useFakeTimers();
+      const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = wrapper.instance();
+      // Cursor is on ':'
+      searchBar.generateValueAutocompleteGroup = jest.fn(
+        () =>
+          new Promise(resolve => {
+            setTimeout(() => {
+              resolve({
+                searchItems: [],
+                recentSearchItems: [],
+                tagName: 'test',
+                type: 'value',
+              });
+            }, [300]);
+          })
+      );
+      mockCursorPosition(searchBar, 3);
+      searchBar.updateAutoCompleteItems();
+      jest.advanceTimersByTime(200);
+
+      // Move cursor off of the place the update was called before it's done at 300ms
+      mockCursorPosition(searchBar, 0);
+
+      jest.advanceTimersByTime(101);
+
+      // Get the pending promises to resolve
+      await Promise.resolve();
+      wrapper.update();
+
+      expect(searchBar.state.searchGroups).toHaveLength(0);
+    });
+
+    it('handles race conditions when query changes from default state', async function () {
+      const props = {
+        query: '',
+        organization,
+        location,
+        supportedTags,
+      };
+
+      jest.useFakeTimers();
+      const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = wrapper.instance();
+      // Cursor is on ':'
+      searchBar.getRecentSearches = jest.fn(
+        () =>
+          new Promise(resolve => {
+            setTimeout(() => {
+              resolve([]);
+            }, [300]);
+          })
+      );
+      mockCursorPosition(searchBar, 0);
+      searchBar.updateAutoCompleteItems();
+      jest.advanceTimersByTime(200);
+
+      // Change query before it's done at 300ms
+      searchBar.updateQuery('is:');
+
+      jest.advanceTimersByTime(101);
+
+      // Get the pending promises to resolve
+      await Promise.resolve();
+      wrapper.update();
+
+      expect(searchBar.state.searchGroups).toHaveLength(0);
+    });
+
+    it('correctly groups nested keys', async function () {
+      const props = {
+        query: 'nest',
+        organization,
+        location,
+        supportedTags: {
+          nested: {
+            key: 'nested',
+            name: 'nested',
+          },
+          'nested.child': {
+            key: 'nested.child',
+            name: 'nested.child',
+          },
+        },
+      };
+      jest.useRealTimers();
+      const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = wrapper.instance();
+      // Cursor is at end of line
+      mockCursorPosition(searchBar, 4);
+      searchBar.updateAutoCompleteItems();
+      await tick();
+      wrapper.update();
+
+      expect(searchBar.state.searchGroups).toHaveLength(1);
+      expect(searchBar.state.searchGroups[0].children).toHaveLength(1);
+      expect(searchBar.state.searchGroups[0].children[0].title).toBe('nested');
+      expect(searchBar.state.searchGroups[0].children[0].children).toHaveLength(1);
+      expect(searchBar.state.searchGroups[0].children[0].children[0].title).toBe(
+        'nested.child'
+      );
+    });
+
+    it('correctly groups nested keys without a parent', async function () {
+      const props = {
+        query: 'nest',
+        organization,
+        location,
+        supportedTags: {
+          'nested.child1': {
+            key: 'nested.child1',
+            name: 'nested.child1',
+          },
+          'nested.child2': {
+            key: 'nested.child2',
+            name: 'nested.child2',
+          },
+        },
+      };
+      jest.useRealTimers();
+      const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = wrapper.instance();
+      // Cursor is at end of line
+      mockCursorPosition(searchBar, 4);
+      searchBar.updateAutoCompleteItems();
+      await tick();
+      wrapper.update();
+
+      expect(searchBar.state.searchGroups).toHaveLength(1);
+      expect(searchBar.state.searchGroups[0].children).toHaveLength(1);
+      expect(searchBar.state.searchGroups[0].children[0].title).toBe('nested');
+      expect(searchBar.state.searchGroups[0].children[0].children).toHaveLength(2);
+      expect(searchBar.state.searchGroups[0].children[0].children[0].title).toBe(
+        'nested.child1'
+      );
+      expect(searchBar.state.searchGroups[0].children[0].children[1].title).toBe(
+        'nested.child2'
+      );
+    });
+  });
+
+  describe('cursorSearchTerm', function () {
+    it('selects the correct free text word', async function () {
+      jest.useRealTimers();
+
+      const props = {
+        query: '',
+        organization,
+        location,
+        supportedTags,
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+      const textarea = smartSearchBar.find('textarea');
+
+      textarea.simulate('focus');
+      mockCursorPosition(searchBar, 6);
+      textarea.simulate('change', {target: {value: 'typ testest    err'}});
+      await tick();
+
+      // Expect the correct search term to be selected
+      const cursorSearchTerm = searchBar.cursorSearchTerm;
+      expect(cursorSearchTerm.searchTerm).toEqual('testest');
+      expect(cursorSearchTerm.start).toBe(4);
+      expect(cursorSearchTerm.end).toBe(11);
+    });
+
+    it('selects the correct free text word (last word)', async function () {
+      jest.useRealTimers();
+
+      const props = {
+        query: '',
+        organization,
+        location,
+        supportedTags,
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+      const textarea = smartSearchBar.find('textarea');
+
+      textarea.simulate('focus');
+      mockCursorPosition(searchBar, 15);
+      textarea.simulate('change', {target: {value: 'typ testest    err'}});
+      await tick();
+
+      // Expect the correct search term to be selected
+      const cursorSearchTerm = searchBar.cursorSearchTerm;
+      expect(cursorSearchTerm.searchTerm).toEqual('err');
+      expect(cursorSearchTerm.start).toBe(15);
+      expect(cursorSearchTerm.end).toBe(18);
+    });
+
+    it('selects the correct free text word (first word)', async function () {
+      jest.useRealTimers();
+
+      const props = {
+        query: '',
+        organization,
+        location,
+        supportedTags,
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+      const textarea = smartSearchBar.find('textarea');
+
+      textarea.simulate('focus');
+      mockCursorPosition(searchBar, 1);
+      textarea.simulate('change', {target: {value: 'typ testest    err'}});
+      await tick();
+
+      // Expect the correct search term to be selected
+      const cursorSearchTerm = searchBar.cursorSearchTerm;
+      expect(cursorSearchTerm.searchTerm).toEqual('typ');
+      expect(cursorSearchTerm.start).toBe(0);
+      expect(cursorSearchTerm.end).toBe(3);
+    });
+
+    it('search term location correctly selects key of filter token', async function () {
+      jest.useRealTimers();
+
+      const props = {
+        query: '',
+        organization,
+        location,
+        supportedTags,
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+      const textarea = smartSearchBar.find('textarea');
+
+      textarea.simulate('focus');
+      mockCursorPosition(searchBar, 6);
+      textarea.simulate('change', {target: {value: 'typ device:123'}});
+      await tick();
+
+      // Expect the correct search term to be selected
+      const cursorSearchTerm = searchBar.cursorSearchTerm;
+      expect(cursorSearchTerm.searchTerm).toEqual('device');
+      expect(cursorSearchTerm.start).toBe(4);
+      expect(cursorSearchTerm.end).toBe(10);
+    });
+
+    it('search term location correctly selects value of filter token', async function () {
+      jest.useRealTimers();
+
+      const props = {
+        query: '',
+        organization,
+        location,
+        supportedTags,
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+      const textarea = smartSearchBar.find('textarea');
+
+      textarea.simulate('focus');
+      mockCursorPosition(searchBar, 11);
+      textarea.simulate('change', {target: {value: 'typ device:123'}});
+      await tick();
+
+      // Expect the correct search term to be selected
+      const cursorSearchTerm = searchBar.cursorSearchTerm;
+      expect(cursorSearchTerm.searchTerm).toEqual('123');
+      expect(cursorSearchTerm.start).toBe(11);
+      expect(cursorSearchTerm.end).toBe(14);
+    });
+  });
+
+  describe('getTagKeys()', function () {
+    it('filters both keys and descriptions', async function () {
+      jest.useRealTimers();
+
+      const props = {
+        query: 'event',
+        organization,
+        location,
+        supportedTags: {
+          [FieldKey.DEVICE_CHARGING]: {
+            key: FieldKey.DEVICE_CHARGING,
+          },
+          [FieldKey.EVENT_TYPE]: {
+            key: FieldKey.EVENT_TYPE,
+          },
+          [FieldKey.DEVICE_ARCH]: {
+            key: FieldKey.DEVICE_ARCH,
+          },
+        },
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+
+      mockCursorPosition(searchBar, 3);
+      searchBar.updateAutoCompleteItems();
+
+      await tick();
+
+      expect(searchBar.state.flatSearchItems).toHaveLength(2);
+      expect(searchBar.state.flatSearchItems[0].title).toBe(FieldKey.EVENT_TYPE);
+      expect(searchBar.state.flatSearchItems[1].title).toBe(FieldKey.DEVICE_CHARGING);
+    });
+
+    it('filters only keys', async function () {
+      jest.useRealTimers();
+
+      const props = {
+        query: 'device',
+        organization,
+        location,
+        supportedTags: {
+          [FieldKey.DEVICE_CHARGING]: {
+            key: FieldKey.DEVICE_CHARGING,
+          },
+          [FieldKey.EVENT_TYPE]: {
+            key: FieldKey.EVENT_TYPE,
+          },
+          [FieldKey.DEVICE_ARCH]: {
+            key: FieldKey.DEVICE_ARCH,
+          },
+        },
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+
+      mockCursorPosition(searchBar, 2);
+      searchBar.updateAutoCompleteItems();
+
+      await tick();
+
+      expect(searchBar.state.flatSearchItems).toHaveLength(2);
+      expect(searchBar.state.flatSearchItems[0].title).toBe(FieldKey.DEVICE_ARCH);
+      expect(searchBar.state.flatSearchItems[1].title).toBe(FieldKey.DEVICE_CHARGING);
+    });
+
+    it('filters only descriptions', async function () {
+      jest.useRealTimers();
+
+      const props = {
+        query: 'time',
+        organization,
+        location,
+        supportedTags: {
+          [FieldKey.DEVICE_CHARGING]: {
+            key: FieldKey.DEVICE_CHARGING,
+          },
+          [FieldKey.EVENT_TYPE]: {
+            key: FieldKey.EVENT_TYPE,
+          },
+          [FieldKey.DEVICE_ARCH]: {
+            key: FieldKey.DEVICE_ARCH,
+          },
+        },
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+
+      mockCursorPosition(searchBar, 4);
+      searchBar.updateAutoCompleteItems();
+
+      await tick();
+
+      expect(searchBar.state.flatSearchItems).toHaveLength(1);
+      expect(searchBar.state.flatSearchItems[0].title).toBe(FieldKey.DEVICE_CHARGING);
     });
   });
 
@@ -761,7 +1141,8 @@ describe('SmartSearchBar', function () {
       );
     });
 
-    it('keeps the negation operator is present', function () {
+    it('keeps the negation operator present', async function () {
+      jest.useRealTimers();
       const props = {
         query: '',
         organization,
@@ -772,8 +1153,15 @@ describe('SmartSearchBar', function () {
       const searchBar = smartSearchBar.instance();
       const textarea = smartSearchBar.find('textarea');
       // start typing part of the tag prefixed by the negation operator!
+      textarea.simulate('focus');
       textarea.simulate('change', {target: {value: 'event.type:error !ti'}});
       mockCursorPosition(searchBar, 20);
+      await tick();
+      // Expect the correct search term to be selected
+      const cursorSearchTerm = searchBar.cursorSearchTerm;
+      expect(cursorSearchTerm.searchTerm).toEqual('ti');
+      expect(cursorSearchTerm.start).toBe(18);
+      expect(cursorSearchTerm.end).toBe(20);
       // use autocompletion to do the rest
       searchBar.onAutoComplete('title:', {});
       expect(searchBar.state.query).toEqual('event.type:error !title:');
@@ -794,6 +1182,266 @@ describe('SmartSearchBar', function () {
       mockCursorPosition(searchBar, 5);
       searchBar.onAutoComplete('id:1', {});
       expect(searchBar.state.query).toEqual('user:"id:1" ');
+    });
+  });
+
+  it('quotes in predefined values with spaces when autocompleting', async function () {
+    jest.useRealTimers();
+    const onSearch = jest.fn();
+    supportedTags.predefined = {
+      key: 'predefined',
+      name: 'predefined',
+      predefined: true,
+      values: ['predefined tag with spaces'],
+    };
+    const props = {
+      orgId: 'org-slug',
+      projectId: '0',
+      query: '',
+      location,
+      organization,
+      supportedTags,
+      onSearch,
+    };
+    const searchBar = mountWithTheme(
+      <SmartSearchBar {...props} api={new Client()} />,
+
+      options
+    );
+    searchBar.find('textarea').simulate('focus');
+    searchBar
+      .find('textarea')
+      .simulate('change', {target: {value: 'predefined:predefined'}});
+    await tick();
+
+    const preventDefault = jest.fn();
+    searchBar.find('textarea').simulate('keyDown', {key: 'ArrowDown'});
+    searchBar.find('textarea').simulate('keyDown', {key: 'Enter', preventDefault});
+    await tick();
+
+    expect(searchBar.find('textarea').props().value).toEqual(
+      'predefined:"predefined tag with spaces" '
+    );
+  });
+
+  it('escapes quotes in predefined values properly when autocompleting', async function () {
+    jest.useRealTimers();
+    const onSearch = jest.fn();
+    supportedTags.predefined = {
+      key: 'predefined',
+      name: 'predefined',
+      predefined: true,
+      values: ['"predefined" "tag" "with" "quotes"'],
+    };
+    const props = {
+      orgId: 'org-slug',
+      projectId: '0',
+      query: '',
+      location,
+      organization,
+      supportedTags,
+      onSearch,
+    };
+    const searchBar = mountWithTheme(
+      <SmartSearchBar {...props} api={new Client()} />,
+
+      options
+    );
+    searchBar.find('textarea').simulate('focus');
+    searchBar
+      .find('textarea')
+      .simulate('change', {target: {value: 'predefined:predefined'}});
+    await tick();
+
+    const preventDefault = jest.fn();
+    searchBar.find('textarea').simulate('keyDown', {key: 'ArrowDown'});
+    searchBar.find('textarea').simulate('keyDown', {key: 'Enter', preventDefault});
+    await tick();
+
+    expect(searchBar.find('textarea').props().value).toEqual(
+      'predefined:"\\"predefined\\" \\"tag\\" \\"with\\" \\"quotes\\"" '
+    );
+  });
+
+  describe('quick actions', () => {
+    it('delete first token', async () => {
+      const props = {
+        query: 'is:unresolved sdk.name:sentry-cocoa has:key',
+        organization,
+        location,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      searchBar.updateAutoCompleteItems();
+
+      mockCursorPosition(searchBar, 1);
+
+      await tick();
+
+      const deleteAction = shortcuts.find(a => a.shortcutType === ShortcutType.Delete);
+
+      expect(deleteAction).toBeDefined();
+      if (deleteAction) {
+        searchBar.runShortcut(deleteAction);
+
+        await tick();
+
+        expect(searchBar.state.query).toEqual('sdk.name:sentry-cocoa has:key');
+      }
+    });
+
+    it('delete middle token', async () => {
+      const props = {
+        query: 'is:unresolved sdk.name:sentry-cocoa has:key',
+        organization,
+        location,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      searchBar.updateAutoCompleteItems();
+
+      mockCursorPosition(searchBar, 18);
+
+      await tick();
+
+      const deleteAction = shortcuts.find(a => a.shortcutType === ShortcutType.Delete);
+
+      expect(deleteAction).toBeDefined();
+      if (deleteAction) {
+        searchBar.runShortcut(deleteAction);
+
+        await tick();
+
+        expect(searchBar.state.query).toEqual('is:unresolved has:key');
+      }
+    });
+
+    it('exclude token', async () => {
+      const props = {
+        query: 'is:unresolved sdk.name:sentry-cocoa has:key',
+        organization,
+        location,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      searchBar.updateAutoCompleteItems();
+
+      mockCursorPosition(searchBar, 18);
+
+      await tick();
+
+      const excludeAction = shortcuts.find(shortcut => shortcut.text === 'Exclude');
+
+      expect(excludeAction).toBeDefined();
+      if (excludeAction) {
+        searchBar.runShortcut(excludeAction);
+
+        await tick();
+
+        expect(searchBar.state.query).toEqual(
+          'is:unresolved !sdk.name:sentry-cocoa has:key '
+        );
+      }
+    });
+
+    it('include token', async () => {
+      const props = {
+        query: 'is:unresolved !sdk.name:sentry-cocoa has:key',
+        organization,
+        location,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      searchBar.updateAutoCompleteItems();
+
+      mockCursorPosition(searchBar, 18);
+
+      await tick();
+
+      const includeAction = shortcuts.find(shortcut => shortcut.text === 'Include');
+
+      expect(includeAction).toBeDefined();
+      if (includeAction) {
+        searchBar.runShortcut(includeAction);
+
+        await tick();
+
+        expect(searchBar.state.query).toEqual(
+          'is:unresolved sdk.name:sentry-cocoa has:key '
+        );
+      }
+    });
+
+    it('replaces the correct word', async function () {
+      const props = {
+        query: '',
+        organization,
+        location,
+        supportedTags,
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+      const textarea = smartSearchBar.find('textarea');
+
+      textarea.simulate('focus');
+      mockCursorPosition(searchBar, 4);
+      textarea.simulate('change', {target: {value: 'typ ti err'}});
+
+      await tick();
+
+      // Expect the correct search term to be selected
+      const cursorSearchTerm = searchBar.cursorSearchTerm;
+      expect(cursorSearchTerm.searchTerm).toEqual('ti');
+      expect(cursorSearchTerm.start).toBe(4);
+      expect(cursorSearchTerm.end).toBe(6);
+      // use autocompletion to do the rest
+      searchBar.onAutoComplete('title:', {});
+      expect(searchBar.state.query).toEqual('typ title: err');
+    });
+  });
+
+  describe('Invalid field state', () => {
+    it('Shows invalid field state when invalid field is used', async () => {
+      const props = {
+        query: 'invalid:',
+        organization,
+        location,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBarInst = searchBar.instance();
+
+      mockCursorPosition(searchBarInst, 8);
+
+      searchBar.find('textarea').simulate('focus');
+
+      searchBarInst.updateAutoCompleteItems();
+
+      await tick();
+
+      expect(searchBarInst.state.searchGroups).toHaveLength(1);
+      expect(searchBarInst.state.searchGroups[0].title).toEqual('Keys');
+      expect(searchBarInst.state.searchGroups[0].type).toEqual('invalid-tag');
+      expect(searchBar.text()).toContain("The field invalid isn't supported here");
+    });
+
+    it('Does not show invalid field state when valid field is used', async () => {
+      const props = {
+        query: 'is:',
+        organization,
+        location,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBarInst = searchBar.instance();
+
+      mockCursorPosition(searchBarInst, 3);
+
+      searchBarInst.updateAutoCompleteItems();
+
+      await tick();
+
+      expect(searchBar.text()).not.toContain("isn't supported here");
     });
   });
 });

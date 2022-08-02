@@ -45,7 +45,6 @@ export default class OrganizationRepositoriesContainer extends AsyncView<Props, 
         <OrganizationRepositories
           {...this.props}
           itemList={itemList!}
-          api={this.api}
           onRepositoryChange={this.onRepositoryChange}
         />
         {itemListPageLinks && (

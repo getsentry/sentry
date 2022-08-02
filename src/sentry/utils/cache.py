@@ -1,5 +1,3 @@
-import functools
-
 from django.core.cache import cache
 
 default_cache = cache
@@ -33,43 +31,6 @@ class memoize:
             d[n] = value
         value = d[n]
         return value
-
-
-class cached_for_request(memoize):
-    """
-    Memoize the result of a for the duration of a request. If the system does
-    not think it's in a request, the result is never saved.
-
-    >>> class A(object):
-    >>>     @memoize_for_request
-    >>>     def func(self):
-    >>>         return 'foo'
-    """
-
-    def _get_key(self, args, kwargs):
-        return (self, tuple(args), tuple(kwargs.items()))
-
-    def __call__(self, *args, **kwargs):
-        from sentry.app import env
-
-        request = env.request
-        if not request:
-            return self.func(*args, **kwargs)
-
-        if not hasattr(request, "__func_cache"):
-            data = request.__func_cache = {}
-        else:
-            data = request.__func_cache
-
-        key = self._get_key(args, kwargs)
-
-        if key not in data:
-            value = self.func(*args, **kwargs)
-            data[key] = value
-        return data[key]
-
-    def __get__(self, obj, type=None):
-        return functools.partial(self.__call__, obj)
 
 
 def cache_key_for_event(data) -> str:

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
@@ -46,7 +46,7 @@ type State = {
   filter: string;
 };
 
-class PlatformPicker extends React.Component<PlatformPickerProps, State> {
+class PlatformPicker extends Component<PlatformPickerProps, State> {
   static defaultProps = {
     showOther: true,
   };
@@ -95,7 +95,7 @@ class PlatformPicker extends React.Component<PlatformPickerProps, State> {
     const {filter, category} = this.state;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <NavContainer>
           <CategoryNav>
             {PLATFORM_CATEGORIES.map(({id, name}) => (
@@ -168,7 +168,7 @@ class PlatformPicker extends React.Component<PlatformPickerProps, State> {
             )}
           </EmptyMessage>
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
@@ -238,7 +238,7 @@ const ClearButton = styled(Button)`
 ClearButton.defaultProps = {
   icon: <IconClose isCircled size="xs" />,
   borderless: true,
-  size: 'xsmall',
+  size: 'xs',
 };
 
 const PlatformCard = styled(({platform, selected, onClear, ...props}) => (

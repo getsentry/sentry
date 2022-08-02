@@ -9,7 +9,7 @@ import {OnboardingTask, Organization} from 'sentry/types';
  * If no API client is provided the task will not be updated on the server side
  * and will only update in the organization store.
  */
-export async function updateOnboardingTask(
+export function updateOnboardingTask(
   api: Client | null,
   organization: Organization,
   updatedTask: Partial<Pick<OnboardingTask, 'status' | 'data'>> & {

@@ -86,7 +86,7 @@ describe('projectGeneralSettings', function () {
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />
     );
 
-    expect(wrapper.find('Input[name="slug"]').prop('value')).toBe('project-slug');
+    expect(wrapper.find('Input[name="name"]').prop('value')).toBe('Project Name');
     expect(wrapper.find('Input[name="subjectPrefix"]').prop('value')).toBe('[my-org]');
     expect(wrapper.find('RangeSlider[name="resolveAge"]').prop('value')).toBe(48);
     expect(wrapper.find('TextArea[name="allowedDomains"]').prop('value')).toBe(
@@ -285,7 +285,7 @@ describe('projectGeneralSettings', function () {
     expect(ProjectsStore.itemsById['2'].platform).toBe('javascript');
   });
 
-  it('changing slug updates ProjectsStore', async function () {
+  it('changing name updates ProjectsStore', async function () {
     const params = {orgId: org.slug, projectId: project.slug};
     act(() => ProjectsStore.loadInitialData([project]));
 
@@ -314,8 +314,8 @@ describe('projectGeneralSettings', function () {
 
     // Change slug to new-slug
     wrapper
-      .find('input[name="slug"]')
-      .simulate('change', {target: {value: 'NEW PROJECT'}})
+      .find('input[name="name"]')
+      .simulate('change', {target: {value: 'New Project'}})
       .simulate('blur');
 
     // Slug does not save on blur
@@ -340,7 +340,7 @@ describe('projectGeneralSettings', function () {
     // updates ProjectsStore
     expect(ProjectsStore.itemsById['2'].slug).toBe('new-project');
     expect(browserHistory.replace).toHaveBeenCalled();
-    expect(wrapper.find('Input[name="slug"]').prop('value')).toBe('new-project');
+    expect(wrapper.find('Input[name="name"]').prop('value')).toBe('new-project');
 
     wrapper.setProps({
       projectId: 'new-project',

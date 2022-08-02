@@ -1,4 +1,5 @@
 import type {PlatformKey} from 'sentry/data/platformCategories';
+import {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
 import type {Event, EventMetadata, EventOrGroupType, Level} from './event';
@@ -38,6 +39,7 @@ export type SavedSearch = {
 export enum SavedSearchType {
   ISSUE = 0,
   EVENT = 1,
+  SESSION = 2,
 }
 
 // endpoint: /api/0/issues/:issueId/attachments/?limit=50
@@ -62,7 +64,10 @@ export type EventAttachment = Omit<IssueAttachment, 'event_id'>;
 export type Tag = {
   key: string;
   name: string;
+
   isInput?: boolean;
+
+  kind?: FieldKind;
   /**
    * How many values should be suggested in autocomplete.
    * Overrides SmartSearchBar's `maxSearchItems` prop.
@@ -78,13 +83,13 @@ export type TagCollection = Record<string, Tag>;
 export type TagValue = {
   count: number;
   firstSeen: string;
-  key: string;
   lastSeen: string;
   name: string;
   value: string;
   email?: string;
   identifier?: string;
   ipAddress?: string;
+  key?: string;
   query?: string;
   username?: string;
 } & AvatarUser;
@@ -137,6 +142,7 @@ export type SuggestedOwner = {
 
 export type IssueOwnership = {
   autoAssignment: boolean;
+  codeownersAutoSync: boolean;
   dateCreated: string;
   fallthrough: boolean;
   isActive: boolean;
@@ -307,6 +313,7 @@ export type GroupActivityAssigned = GroupActivityBase & {
     assignee: string;
     assigneeType: string;
     user: Team | User;
+    assigneeEmail?: string;
   };
   type: GroupActivityType.ASSIGNED;
 };
@@ -528,6 +535,7 @@ export type UserReport = {
 export type KeyValueListData = {
   key: string;
   subject: string;
+  actionButton?: React.ReactNode;
   meta?: Meta;
   subjectDataTestId?: string;
   subjectIcon?: React.ReactNode;

@@ -1,3 +1,5 @@
+from unittest import mock
+
 from django.core import mail
 
 from sentry.mail.actions import NotifyEmailAction, NotifyEmailForm
@@ -138,3 +140,64 @@ class NotifyEmailTest(RuleTestCase):
         sent = mail.outbox[0]
         assert sent.to == [self.user.email]
         assert "uh oh" in sent.subject
+
+    # XXX(gilbert): remove this later one
+    @mock.patch("sentry.mail.actions.determine_eligible_recipients")
+    def test_release_note_target_type(self, mock_eligible_recipients):
+        mock_eligible_recipients.return_value = [self.user]
+        event = self.get_event()
+        rule = self.get_rule(data={"targetType": ActionTargetType.RELEASE_MEMBERS.value})
+
+        results = list(rule.after(event=event, state=self.get_state()))
+        assert len(results) == 1
+
+    def test_hack_mail_workflow(self):
+        gil_workflow = self.create_user(email="gilbert@workflow.com", is_active=True)
+        dan_workflow = self.create_user(email="dan@workflow.com", is_active=True)
+        team_workflow = self.create_team(
+            organization=self.organization, members=[gil_workflow, dan_workflow]
+        )
+        self.project.add_team(team_workflow)
+        one_min_ago = iso_format(before_now(minutes=1))
+        event = self.store_event(
+            data={
+                "message": "hello",
+                "exception": {"type": "Foo", "value": "uh oh"},
+                "level": "error",
+                "timestamp": one_min_ago,
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        action_data = {
+            "id": "sentry.mail.actions.NotifyEmailAction",
+            "targetType": "Member",
+            "targetIdentifier": str(self.user.id),
+        }
+        inject_workflow = {
+            "id": "sentry.mail.actions.NotifyEmailAction",
+            "targetType": ActionTargetType.TEAM.value,
+            "targetIdentifier": str(team_workflow.id),
+        }
+        condition_data = {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+
+        Rule.objects.filter(project=event.project).delete()
+        Rule.objects.create(
+            project=event.project,
+            data={"conditions": [condition_data], "actions": [action_data, inject_workflow]},
+        )
+
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+            )
+
+        assert len(mail.outbox) == 3
+        sent_out_to = sorted(x for out in mail.outbox for x in out.to)
+        assert sent_out_to == sorted([self.user.email, gil_workflow.email, dan_workflow.email])
+        for x in [out.subject for out in mail.outbox]:
+            assert "uh oh" in x

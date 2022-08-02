@@ -1,8 +1,9 @@
-import os.path
-from os.path import dirname, join
 from urllib.parse import urlencode
 
+from selenium.webdriver.common.by import By
+
 from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.factories import get_fixture_path
 
 EMAILS = (
     ("/debug/mail/assigned/", "assigned"),
@@ -36,9 +37,8 @@ def read_txt_email_fixture(name: str) -> str:
     # "sso unlinked without password"
     # => "sso_unlinked_without_password.txt"
     filename = name.replace(" ", "_") + ".txt"
-    path = join(dirname(__file__), os.pardir, "fixtures", "emails", filename)
 
-    with open(path) as f:
+    with open(get_fixture_path("emails", filename)) as f:
         return f.read()
 
 
@@ -63,7 +63,7 @@ class EmailTestCase(AcceptanceTestCase):
             # Text output is asserted against static fixture files
             self.browser.get(build_url(url, "txt"))
             self.browser.wait_until("#preview")
-            elem = self.browser.find_element_by_css_selector("#preview pre")
+            elem = self.browser.find_element(by=By.CSS_SELECTOR, value="#preview pre")
             text_src = elem.get_attribute("innerHTML")
 
             fixture_src = read_txt_email_fixture(name)

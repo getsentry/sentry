@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -12,7 +12,6 @@ import EventDataSection from 'sentry/components/events/eventDataSection';
 import FileSize from 'sentry/components/fileSize';
 import {PanelTable} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import {IssueAttachment} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import AttachmentUrl from 'sentry/utils/attachmentUrl';
@@ -35,7 +34,7 @@ type State = {
   expanded: boolean;
 };
 
-class EventAttachments extends React.Component<Props, State> {
+class EventAttachments extends Component<Props, State> {
   state: State = {
     expanded: false,
     attachmentPreviews: {},
@@ -70,13 +69,13 @@ class EventAttachments extends React.Component<Props, State> {
   };
 
   renderInlineAttachment(attachment: IssueAttachment) {
-    const Component = this.getInlineAttachmentRenderer(attachment);
-    if (!Component || !this.attachmentPreviewIsOpen(attachment)) {
+    const AttachmentComponent = this.getInlineAttachmentRenderer(attachment);
+    if (!AttachmentComponent || !this.attachmentPreviewIsOpen(attachment)) {
       return null;
     }
     return (
       <AttachmentPreviewWrapper>
-        <Component
+        <AttachmentComponent
           orgId={this.props.orgId}
           projectId={this.props.projectId}
           event={this.props.event}
@@ -130,7 +129,7 @@ class EventAttachments extends React.Component<Props, State> {
             ]}
           >
             {attachments.map(attachment => (
-              <React.Fragment key={attachment.id}>
+              <Fragment key={attachment.id}>
                 <Name>{attachment.name}</Name>
                 <Size>
                   <FileSize bytes={attachment.size} />
@@ -157,12 +156,12 @@ class EventAttachments extends React.Component<Props, State> {
                 {this.renderInlineAttachment(attachment)}
                 {/* XXX: hack to deal with table grid borders */}
                 {lastAttachmentPreviewed && (
-                  <React.Fragment>
+                  <Fragment>
                     <div style={{display: 'none'}} />
                     <div style={{display: 'none'}} />
-                  </React.Fragment>
+                  </Fragment>
                 )}
-              </React.Fragment>
+              </Fragment>
             ))}
           </StyledPanelTable>
         )}
@@ -178,7 +177,7 @@ const StyledPanelTable = styled(PanelTable)`
 `;
 
 const Name = styled('div')`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const Size = styled('div')`

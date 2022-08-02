@@ -15,8 +15,8 @@ from . import FireTest
 @freeze_time()
 class SlackActionHandlerTest(FireTest, TestCase):
     @responses.activate
-    def run_test(self, incident, method):
-        from sentry.integrations.slack.message_builder.incidents import build_incident_attachment
+    def run_test(self, incident, method, chart_url=None):
+        from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 
         token = "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
         integration = Integration.objects.create(
@@ -57,9 +57,13 @@ class SlackActionHandlerTest(FireTest, TestCase):
         data = parse_qs(responses.calls[1].request.body)
         assert data["channel"] == [channel_id]
         assert data["token"] == [token]
-        assert json.loads(data["attachments"][0])[0] == build_incident_attachment(
-            incident, metric_value
-        )
+        slack_body = SlackIncidentsMessageBuilder(
+            incident, IncidentStatus(incident.status), metric_value, chart_url
+        ).build()
+        attachments = json.loads(data["attachments"][0])
+        assert attachments[0]["color"] == slack_body["color"]
+        assert attachments[0]["blocks"] == slack_body["blocks"]
+        assert data["text"][0] == slack_body["text"]
 
     def test_fire_metric_alert(self):
         self.run_fire_test()
@@ -67,12 +71,15 @@ class SlackActionHandlerTest(FireTest, TestCase):
     def test_resolve_metric_alert(self):
         self.run_fire_test("resolve")
 
+    def test_fire_metric_alert_with_chart(self):
+        self.run_fire_test(chart_url="chart-url")
+
 
 @freeze_time()
 class SlackWorkspaceActionHandlerTest(FireTest, TestCase):
     @responses.activate
     def run_test(self, incident, method):
-        from sentry.integrations.slack.message_builder.incidents import build_incident_attachment
+        from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 
         token = "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
         integration = Integration.objects.create(
@@ -113,9 +120,13 @@ class SlackWorkspaceActionHandlerTest(FireTest, TestCase):
         data = parse_qs(responses.calls[1].request.body)
         assert data["channel"] == [channel_id]
         assert data["token"] == [token]
-        assert json.loads(data["attachments"][0])[0] == build_incident_attachment(
-            incident, metric_value
-        )
+        slack_body = SlackIncidentsMessageBuilder(
+            incident, IncidentStatus(incident.status), metric_value
+        ).build()
+        attachments = json.loads(data["attachments"][0])
+        assert attachments[0]["color"] == slack_body["color"]
+        assert attachments[0]["blocks"] == slack_body["blocks"]
+        assert data["text"][0] == slack_body["text"]
 
     def test_fire_metric_alert(self):
         self.run_fire_test()

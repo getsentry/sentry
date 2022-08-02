@@ -1,4 +1,3 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -34,7 +33,7 @@ const CrashTitle = ({
           {title}
         </GuideAnchor>
         {onChange && (
-          <Tooltip title={t('Toggle stack trace order')}>
+          <Tooltip showUnderline title={t('Toggle stack trace order')}>
             <small>
               (
               <span onClick={handleToggleOrder}>

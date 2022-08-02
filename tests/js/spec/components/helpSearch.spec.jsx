@@ -40,7 +40,7 @@ const mockResults = [
         url: 'https://develop.sentry.dev/services/digests/',
         context: {context1: 'Services > Digests'},
         title: 'Notification Digests',
-        text: '… operation, especially on large data sets. Backends <mark>Dumm</mark>y Backend The <mark>dumm</mark>y backend disables digest scheduling …',
+        text: '… operation, especially on large datasets. Backends <mark>Dumm</mark>y Backend The <mark>dumm</mark>y backend disables digest scheduling …',
       },
     ],
   },

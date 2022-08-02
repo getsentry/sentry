@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
@@ -22,7 +22,7 @@ type Props = {
   zoomKeys: string[];
 };
 
-class Histogram extends React.Component<Props> {
+class Histogram extends Component<Props> {
   isZoomed() {
     const {location, zoomKeys} = this.props;
     return zoomKeys.map(key => location.query[key]).some(value => value !== undefined);

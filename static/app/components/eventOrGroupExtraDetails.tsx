@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -114,9 +115,14 @@ const GroupExtra = styled('div')`
   position: relative;
   min-width: 500px;
   white-space: nowrap;
+  line-height: 1.2;
 
   a {
     color: inherit;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    line-height: 1;
   }
 `;
 

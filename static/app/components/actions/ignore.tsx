@@ -1,4 +1,3 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -66,7 +65,7 @@ const IgnoreActions = ({
       <Tooltip title={t('Change status to unresolved')}>
         <Button
           priority="primary"
-          size="xsmall"
+          size="xs"
           onClick={() => onUpdate({status: ResolutionStatus.UNRESOLVED})}
           aria-label={t('Unignore')}
           icon={<IconMute size="xs" />}
@@ -204,7 +203,7 @@ const IgnoreActions = ({
   return (
     <ButtonBar merged>
       <IgnoreButton
-        size="xsmall"
+        size="xs"
         tooltipProps={{delay: 300, disabled}}
         title={t(
           'Silences alerts for this issue and removes it from the issue stream by default.'
@@ -221,7 +220,7 @@ const IgnoreActions = ({
             ref={triggerRef}
             {...triggerProps}
             aria-label={t('Ignore options')}
-            size="xsmall"
+            size="xs"
             icon={<IconChevron direction="down" size="xs" />}
             disabled={disabled}
           />

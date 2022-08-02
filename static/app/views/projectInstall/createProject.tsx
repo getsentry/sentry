@@ -1,4 +1,5 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -16,8 +17,9 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {inputStyles} from 'sentry/styles/input';
 import space from 'sentry/styles/space';
-import {Organization, Project, Team} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {Organization, Team} from 'sentry/types';
+import {logExperiment} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getPlatformName from 'sentry/utils/getPlatformName';
 import slugify from 'sentry/utils/slugify';
 import withApi from 'sentry/utils/withApi';
@@ -25,17 +27,10 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withTeams from 'sentry/utils/withTeams';
 import IssueAlertOptions from 'sentry/views/projectInstall/issueAlertOptions';
 
+import {PRESET_AGGREGATES} from '../alerts/rules/metric/presets';
+
 const getCategoryName = (category?: string) =>
   categoryList.find(({id}) => id === category)?.id;
-
-type RuleEventData = {
-  eventKey: string;
-  eventName: string;
-  organization_id: string;
-  project_id: string;
-  rule_type: string;
-  custom_rule_id?: string;
-};
 
 type Props = WithRouterProps & {
   api: any;
@@ -57,7 +52,7 @@ type State = {
   team: string;
 };
 
-class CreateProject extends React.Component<Props, State> {
+class CreateProject extends Component<Props, State> {
   constructor(props: Props, context) {
     super(props, context);
 
@@ -78,6 +73,16 @@ class CreateProject extends React.Component<Props, State> {
     };
   }
 
+  componentDidMount() {
+    trackAdvancedAnalyticsEvent('project_creation_page.viewed', {
+      organization: this.props.organization,
+    });
+    logExperiment({
+      key: 'MetricAlertOnProjectCreationExperiment',
+      organization: this.props.organization,
+    });
+  }
+
   get defaultCategory() {
     const {query} = this.props.location;
     return getCategoryName(query.category);
@@ -96,7 +101,7 @@ class CreateProject extends React.Component<Props, State> {
             <input
               type="text"
               name="name"
-              placeholder={t('Project name')}
+              placeholder={t('project-name')}
               autoComplete="off"
               value={projectName}
               onChange={e => this.setState({projectName: slugify(e.target.value)})}
@@ -143,10 +148,10 @@ class CreateProject extends React.Component<Props, State> {
     );
 
     return (
-      <React.Fragment>
+      <Fragment>
         <PageHeading withMargins>{t('Give your project a name')}</PageHeading>
         {createProjectForm}
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -175,6 +180,7 @@ class CreateProject extends React.Component<Props, State> {
       actionMatch,
       frequency,
       defaultRules,
+      metricAlertPresets,
     } = dataFragment || {};
 
     this.setState({inFlight: true});
@@ -214,12 +220,61 @@ class CreateProject extends React.Component<Props, State> {
         );
         ruleId = ruleData.id;
       }
-      this.trackIssueAlertOptionSelectedEvent(
-        projectData,
-        defaultRules,
-        shouldCreateCustomRule,
-        ruleId
-      );
+      if (
+        !!organization.experiments.MetricAlertOnProjectCreationExperiment &&
+        metricAlertPresets &&
+        metricAlertPresets.length > 0
+      ) {
+        const presets = PRESET_AGGREGATES.filter(aggregate =>
+          metricAlertPresets.includes(aggregate.id)
+        );
+        const teamObj = this.props.teams.find(aTeam => aTeam.slug === team);
+        await Promise.all([
+          presets.map(preset => {
+            const context = preset.makeUnqueriedContext(
+              {
+                ...projectData,
+                teams: teamObj ? [teamObj] : [],
+              },
+              organization
+            );
+
+            return api.requestPromise(
+              `/projects/${organization.slug}/${projectData.slug}/alert-rules/?referrer=create_project`,
+              {
+                method: 'POST',
+                data: {
+                  aggregate: context.aggregate,
+                  comparisonDelta: context.comparisonDelta,
+                  dataset: context.dataset,
+                  eventTypes: context.eventTypes,
+                  name: context.name,
+                  owner: null,
+                  projectId: projectData.id,
+                  projects: [projectData.slug],
+                  query: '',
+                  resolveThreshold: null,
+                  thresholdPeriod: 1,
+                  thresholdType: context.thresholdType,
+                  timeWindow: context.timeWindow,
+                  triggers: context.triggers,
+                },
+              }
+            );
+          }),
+        ]);
+      }
+      trackAdvancedAnalyticsEvent('project_creation_page.created', {
+        organization,
+        metric_alerts: (metricAlertPresets || []).join(','),
+        issue_alert: defaultRules
+          ? 'Default'
+          : shouldCreateCustomRule
+          ? 'Custom'
+          : 'No Rule',
+        project_id: projectData.id,
+        rule_id: ruleId || '',
+      });
 
       ProjectActions.createSuccess(projectData);
       const platformKey = platform || 'other';
@@ -245,33 +300,6 @@ class CreateProject extends React.Component<Props, State> {
     }
   };
 
-  trackIssueAlertOptionSelectedEvent(
-    projectData: Project,
-    isDefaultRules: boolean | undefined,
-    shouldCreateCustomRule: boolean | undefined,
-    ruleId: string | undefined
-  ) {
-    const {organization} = this.props;
-
-    let data: RuleEventData = {
-      eventKey: 'new_project.alert_rule_selected',
-      eventName: 'New Project Alert Rule Selected',
-      organization_id: organization.id,
-      project_id: projectData.id,
-      rule_type: isDefaultRules
-        ? 'Default'
-        : shouldCreateCustomRule
-        ? 'Custom'
-        : 'No Rule',
-    };
-
-    if (ruleId !== undefined) {
-      data = {...data, custom_rule_id: ruleId};
-    }
-
-    trackAnalyticsEvent(data);
-  }
-
   setPlatform = (platformId: PlatformName | null) =>
     this.setState(({projectName, platform}: State) => ({
       platform: platformId,
@@ -285,7 +313,7 @@ class CreateProject extends React.Component<Props, State> {
     const {platform, error} = this.state;
 
     return (
-      <React.Fragment>
+      <Fragment>
         {error && <Alert type="error">{error}</Alert>}
 
         <div data-test-id="onboarding-info">
@@ -312,7 +340,7 @@ class CreateProject extends React.Component<Props, State> {
           />
           {this.renderProjectForm()}
         </div>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
@@ -356,6 +384,7 @@ const ProjectNameInput = styled('div')`
 
 const TeamSelectInput = styled('div')`
   display: grid;
+  gap: ${space(1)};
   grid-template-columns: 1fr min-content;
   align-items: center;
 `;

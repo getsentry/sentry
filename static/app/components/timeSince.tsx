@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
 import moment from 'moment-timezone';
@@ -7,31 +7,26 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {ColorOrAlias} from 'sentry/utils/theme';
 
 import Tooltip from './tooltip';
 
 const ONE_MINUTE_IN_MS = 60000;
 
-type RelaxedDateType = string | number | Date;
-
-interface DefaultProps {
-  /**
-   * Suffix after elapsed time
-   * e.g. "ago" in "5 minutes ago"
-   */
-  suffix: string;
+function getDateObj(date: RelaxedDateType): Date {
+  return isString(date) || isNumber(date) ? new Date(date) : date;
 }
 
-interface Props extends DefaultProps, React.TimeHTMLAttributes<HTMLTimeElement> {
+type RelaxedDateType = string | number | Date;
+
+interface Props extends React.TimeHTMLAttributes<HTMLTimeElement> {
   /**
    * The date value, can be string, number (e.g. timestamp), or instance of Date
    */
   date: RelaxedDateType;
-
-  className?: string;
-
   /**
-   * By default we show tooltip with absolute date on hover, this prop disables that
+   * By default we show tooltip with absolute date on hover, this prop disables
+   * that
    */
   disabledAbsoluteTooltip?: boolean;
   /**
@@ -39,114 +34,83 @@ interface Props extends DefaultProps, React.TimeHTMLAttributes<HTMLTimeElement> 
    * min to m, hr to h
    */
   extraShort?: boolean;
-
   /**
    * For relative time shortens minutes to min, hour to hr etc.
    */
   shorten?: boolean;
+  /**
+   * Suffix after elapsed time e.g. "ago" in "5 minutes ago"
+   */
+  suffix?: string;
 
   tooltipTitle?: React.ReactNode;
+  tooltipUnderlineColor?: ColorOrAlias;
 }
 
-type State = {
-  relative: string;
-};
+function TimeSince({
+  date,
+  suffix = t('ago'),
+  disabledAbsoluteTooltip,
+  tooltipTitle,
+  tooltipUnderlineColor,
+  shorten,
+  extraShort,
+  ...props
+}: Props) {
+  const tickerRef = useRef<number | undefined>();
 
-class TimeSince extends React.PureComponent<Props, State> {
-  static defaultProps: DefaultProps = {
-    suffix: 'ago',
-  };
+  const computeRelativeDate = useCallback(
+    () => getRelativeDate(date, suffix, shorten, extraShort),
+    [date, suffix, shorten, extraShort]
+  );
 
-  state: State = {
-    relative: '',
-  };
+  const [relative, setRelative] = useState<string>(computeRelativeDate());
 
-  // TODO(ts) TODO(emotion): defining the props type breaks emotion's typings
-  // See: https://github.com/emotion-js/emotion/pull/1514
-  static getDerivedStateFromProps(props) {
-    return {
-      relative: getRelativeDate(
-        props.date,
-        props.suffix,
-        props.shorten,
-        props.extraShort
-      ),
-    };
-  }
+  useEffect(() => {
+    // Immediately update if props change
+    setRelative(computeRelativeDate());
 
-  componentDidMount() {
-    this.setRelativeDateTicker();
-  }
-
-  componentWillUnmount() {
-    window.clearTimeout(this.tickerTimeout);
-  }
-
-  tickerTimeout: number | undefined = undefined;
-
-  setRelativeDateTicker = () => {
-    window.clearTimeout(this.tickerTimeout);
-    this.tickerTimeout = window.setTimeout(() => {
-      this.setState({
-        relative: getRelativeDate(
-          this.props.date,
-          this.props.suffix,
-          this.props.shorten,
-          this.props.extraShort
-        ),
-      });
-      this.setRelativeDateTicker();
-    }, ONE_MINUTE_IN_MS);
-  };
-
-  render() {
-    const {
-      date,
-      suffix: _suffix,
-      disabledAbsoluteTooltip,
-      className,
-      tooltipTitle,
-      shorten: _shorten,
-      extraShort: _extraShort,
-      ...props
-    } = this.props;
-    const dateObj = getDateObj(date);
-    const user = ConfigStore.get('user');
-    const options = user ? user.options : null;
-    const format = options?.clock24Hours ? 'MMMM D, YYYY HH:mm z' : 'LLL z';
-    const tooltip = getDynamicText({
-      fixed: options?.clock24Hours
-        ? 'November 3, 2020 08:57 UTC'
-        : 'November 3, 2020 8:58 AM UTC',
-      value: moment.tz(dateObj, options?.timezone ?? '').format(format),
-    });
-
-    return (
-      <Tooltip
-        disabled={disabledAbsoluteTooltip}
-        title={
-          <div>
-            <div>{tooltipTitle}</div>
-            {tooltip}
-          </div>
-        }
-      >
-        <time dateTime={dateObj.toISOString()} className={className} {...props}>
-          {this.state.relative}
-        </time>
-      </Tooltip>
+    // Start a ticker to update the relative time
+    tickerRef.current = window.setTimeout(
+      () => setRelative(computeRelativeDate()),
+      ONE_MINUTE_IN_MS
     );
-  }
+
+    return () => window.clearTimeout(tickerRef.current);
+  }, [computeRelativeDate]);
+
+  const dateObj = getDateObj(date);
+  const user = ConfigStore.get('user');
+  const options = user ? user.options : null;
+  const format = options?.clock24Hours ? 'MMMM D, YYYY HH:mm z' : 'LLL z';
+
+  const tooltip = getDynamicText({
+    fixed: options?.clock24Hours
+      ? 'November 3, 2020 08:57 UTC'
+      : 'November 3, 2020 8:58 AM UTC',
+    value: moment.tz(dateObj, options?.timezone ?? '').format(format),
+  });
+
+  return (
+    <Tooltip
+      disabled={disabledAbsoluteTooltip}
+      underlineColor={tooltipUnderlineColor}
+      showUnderline
+      title={
+        <Fragment>
+          {tooltipTitle && <div>{tooltipTitle}</div>}
+          {tooltip}
+        </Fragment>
+      }
+    >
+      <time dateTime={dateObj?.toISOString()} {...props}>
+        {relative}
+      </time>
+    </Tooltip>
+  );
 }
 
 export default TimeSince;
-
-function getDateObj(date: RelaxedDateType): Date {
-  if (isString(date) || isNumber(date)) {
-    date = new Date(date);
-  }
-  return date;
-}
 
 export function getRelativeDate(
   currentDateTime: RelaxedDateType,

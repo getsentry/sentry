@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 
 import InputField, {InputFieldProps} from 'sentry/components/forms/inputField';
 import SelectAsyncControl, {
@@ -10,16 +10,19 @@ import {GeneralSelectValue} from 'sentry/components/forms/selectControl';
 
 export interface SelectAsyncFieldProps
   extends Omit<InputFieldProps, 'highlighted' | 'visible' | 'required' | 'value'>,
-    SelectAsyncControlProps {}
+    SelectAsyncControlProps {
+  /**
+   * Similar to onChange, except it provides the entire option object (including label) when a
+   * change is made to the field. Occurs after onChange.
+   */
+  onChangeOption?: (option: GeneralSelectValue, event: any) => void;
+}
 
 type SelectAsyncFieldState = {
   results: Result[];
   latestSelection?: GeneralSelectValue;
 };
-class SelectAsyncField extends React.Component<
-  SelectAsyncFieldProps,
-  SelectAsyncFieldState
-> {
+class SelectAsyncField extends Component<SelectAsyncFieldProps, SelectAsyncFieldState> {
   state: SelectAsyncFieldState = {
     results: [],
     latestSelection: undefined,
@@ -32,6 +35,7 @@ class SelectAsyncField extends React.Component<
   handleChange = (
     onBlur: SelectAsyncFieldProps['onBlur'],
     onChange: SelectAsyncFieldProps['onChange'],
+    onChangeOption: SelectAsyncFieldProps['onChangeOption'],
     optionObj: GeneralSelectValue,
     event: React.MouseEvent
   ) => {
@@ -46,6 +50,7 @@ class SelectAsyncField extends React.Component<
     }
     this.setState({latestSelection: optionObj});
     onChange?.(value, event);
+    onChangeOption?.(optionObj, event);
     onBlur?.(value, event);
   };
 
@@ -69,24 +74,19 @@ class SelectAsyncField extends React.Component<
   }
 
   render() {
-    const {...otherProps} = this.props;
+    const {onChangeOption, ...otherProps} = this.props;
     return (
       <InputField
         {...otherProps}
-        field={({onChange, onBlur, required: _required, onResults, value, ...props}) => (
+        field={({onBlur, onChange, required: _required, onResults, value, ...props}) => (
           <SelectAsyncControl
             {...props}
-            onChange={this.handleChange.bind(this, onBlur, onChange)}
+            onChange={this.handleChange.bind(this, onBlur, onChange, onChangeOption)}
             onResults={data => {
               const results = onResults(data);
               const resultSelection = results.find(result => result.value === value);
               this.setState(
-                resultSelection
-                  ? {
-                      results,
-                      latestSelection: resultSelection,
-                    }
-                  : {results}
+                resultSelection ? {results, latestSelection: resultSelection} : {results}
               );
               return results;
             }}

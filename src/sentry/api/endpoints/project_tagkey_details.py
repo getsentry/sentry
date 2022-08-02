@@ -1,16 +1,26 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import tagstore
+from sentry import audit_log, tagstore
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.constants import PROTECTED_TAG_KEYS
-from sentry.models import AuditLogEntryEvent, Environment
+from sentry.models import Environment
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
+    enforce_rate_limit = True
+    rate_limits = {
+        "DELETE": {
+            RateLimitCategory.IP: RateLimit(1, 1),
+            RateLimitCategory.USER: RateLimit(1, 1),
+            RateLimitCategory.ORGANIZATION: RateLimit(1, 1),
+        },
+    }
+
     def get(self, request: Request, project, key) -> Response:
         lookup_key = tagstore.prefix_reserved_key(key)
 
@@ -60,7 +70,7 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
                 request=request,
                 organization=project.organization,
                 target_object=getattr(tagkey, "id", None),
-                event=AuditLogEntryEvent.TAGKEY_REMOVE,
+                event=audit_log.get_event_id("TAGKEY_REMOVE"),
                 data=tagkey.get_audit_log_data(),
             )
 

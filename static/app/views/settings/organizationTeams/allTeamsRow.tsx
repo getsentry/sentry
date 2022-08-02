@@ -1,7 +1,8 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
 import {joinTeam, leaveTeam} from 'sentry/actionCreators/teams';
 import TeamActions from 'sentry/actions/teamActions';
 import {Client} from 'sentry/api';
@@ -27,13 +28,21 @@ type State = {
   loading: boolean;
 };
 
-class AllTeamsRow extends React.Component<Props, State> {
+class AllTeamsRow extends Component<Props, State> {
   state: State = {
     loading: false,
     error: false,
   };
 
-  handleRequestAccess = async () => {
+  reloadProjects() {
+    const {organization} = this.props;
+    // After a change in teams has happened, refresh the project store
+    fetchOrganizationDetails(organization.slug, {
+      loadProjects: true,
+    });
+  }
+
+  handleRequestAccess = () => {
     const {team} = this.props;
 
     try {
@@ -57,10 +66,10 @@ class AllTeamsRow extends React.Component<Props, State> {
     }
   };
 
-  handleJoinTeam = () => {
+  handleJoinTeam = async () => {
     const {team} = this.props;
 
-    this.joinTeam({
+    await this.joinTeam({
       successMessage: tct('You have joined [team]', {
         team: `#${team.slug}`,
       }),
@@ -68,6 +77,8 @@ class AllTeamsRow extends React.Component<Props, State> {
         team: `#${team.slug}`,
       }),
     });
+
+    this.reloadProjects();
   };
 
   joinTeam = ({
@@ -136,6 +147,9 @@ class AllTeamsRow extends React.Component<Props, State> {
               team: `#${team.slug}`,
             })
           );
+
+          // Reload ProjectsStore
+          this.reloadProjects();
         },
         error: () => {
           this.setState({
@@ -152,8 +166,21 @@ class AllTeamsRow extends React.Component<Props, State> {
     );
   };
 
+  getTeamRoleName = () => {
+    const {organization, team} = this.props;
+    if (!organization.features.includes('team-roles') || !team.teamRole) {
+      return null;
+    }
+
+    const {teamRoleList} = organization;
+    const roleName = teamRoleList.find(r => r.id === team.teamRole)?.name;
+
+    return roleName;
+  };
+
   render() {
     const {team, urlPrefix, openMembership} = this.props;
+
     const display = (
       <IdBadge
         team={team}
@@ -168,25 +195,28 @@ class AllTeamsRow extends React.Component<Props, State> {
 
     return (
       <TeamPanelItem>
-        <TeamNameWrapper>
+        <div>
           {canViewTeam ? (
-            <TeamLink to={`${urlPrefix}teams/${team.slug}/`}>{display}</TeamLink>
+            <TeamLink data-test-id="team-link" to={`${urlPrefix}teams/${team.slug}/`}>
+              {display}
+            </TeamLink>
           ) : (
             display
           )}
-        </TeamNameWrapper>
-        <Spacer>
+        </div>
+        <div>{this.getTeamRoleName()}</div>
+        <div>
           {this.state.loading ? (
-            <Button size="small" disabled>
+            <Button size="sm" disabled>
               ...
             </Button>
           ) : team.isMember ? (
-            <Button size="small" onClick={this.handleLeaveTeam}>
+            <Button size="sm" onClick={this.handleLeaveTeam}>
               {t('Leave Team')}
             </Button>
           ) : team.isPending ? (
             <Button
-              size="small"
+              size="sm"
               disabled
               title={t(
                 'Your request to join this team is being reviewed by organization owners'
@@ -195,15 +225,15 @@ class AllTeamsRow extends React.Component<Props, State> {
               {t('Request Pending')}
             </Button>
           ) : openMembership ? (
-            <Button size="small" onClick={this.handleJoinTeam}>
+            <Button size="sm" onClick={this.handleJoinTeam}>
               {t('Join Team')}
             </Button>
           ) : (
-            <Button size="small" onClick={this.handleRequestAccess}>
+            <Button size="sm" onClick={this.handleRequestAccess}>
               {t('Request Access')}
             </Button>
           )}
-        </Spacer>
+        </div>
       </TeamPanelItem>
     );
   }
@@ -225,14 +255,12 @@ export {AllTeamsRow};
 export default withApi(AllTeamsRow);
 
 const TeamPanelItem = styled(PanelItem)`
-  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(150px, 4fr) minmax(90px, 1fr) min-content;
+  gap: ${space(2)};
   align-items: center;
-`;
 
-const Spacer = styled('div')`
-  padding: ${space(2)};
-`;
-
-const TeamNameWrapper = styled(Spacer)`
-  flex: 1;
+  > div:last-child {
+    margin-left: auto;
+  }
 `;

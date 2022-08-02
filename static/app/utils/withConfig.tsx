@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {Config} from 'sentry/types';

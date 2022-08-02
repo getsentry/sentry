@@ -1,24 +1,26 @@
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {updateEnvironments} from 'sentry/actionCreators/pageFilters';
 import Badge from 'sentry/components/badge';
-import MultipleEnvironmentSelector from 'sentry/components/organizations/multipleEnvironmentSelector';
+import EnvironmentSelector from 'sentry/components/organizations/environmentSelector';
 import PageFilterDropdownButton from 'sentry/components/organizations/pageFilters/pageFilterDropdownButton';
+import PageFilterPinIndicator from 'sentry/components/organizations/pageFilters/pageFilterPinIndicator';
 import {IconWindow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import {trimSlug} from 'sentry/utils/trimSlug';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 
-type EnvironmentSelectorProps = React.ComponentProps<typeof MultipleEnvironmentSelector>;
+type EnvironmentSelectorProps = React.ComponentProps<typeof EnvironmentSelector>;
 
 type Props = {
   router: WithRouterProps['router'];
   alignDropdown?: EnvironmentSelectorProps['alignDropdown'];
+  disabled?: EnvironmentSelectorProps['disabled'];
   /**
    * Max character length for the dropdown title. Default is 20. This number
    * is used to determine how many projects to show, and how much to truncate.
@@ -34,11 +36,12 @@ function EnvironmentPageFilter({
   router,
   resetParamsOnChange = [],
   alignDropdown,
+  disabled,
   maxTitleLength = 20,
 }: Props) {
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const organization = useOrganization();
-  const {selection, isReady, desyncedFilters} = useLegacyStore(PageFiltersStore);
+  const {selection, isReady, desyncedFilters} = usePageFilters();
 
   const handleUpdateEnvironments = (environments: string[]) => {
     updateEnvironments(environments, router, {
@@ -57,7 +60,7 @@ function EnvironmentPageFilter({
         : value.slice(0, 1);
     const summary = value.length
       ? environmentsToShow.map(env => trimSlug(env, maxTitleLength)).join(', ')
-      : t('All Environments');
+      : t('All Env');
 
     return (
       <PageFilterDropdownButton
@@ -65,9 +68,13 @@ function EnvironmentPageFilter({
         hideBottomBorder={false}
         isOpen={isOpen}
         highlighted={desyncedFilters.has('environments')}
+        data-test-id="page-filter-environment-selector"
+        disabled={disabled}
       >
         <DropdownTitle>
-          <IconWindow />
+          <PageFilterPinIndicator filter="environments">
+            <IconWindow />
+          </PageFilterPinIndicator>
           <TitleContainer>
             {summary}
             {!!value.length && value.length > environmentsToShow.length && (
@@ -80,16 +87,20 @@ function EnvironmentPageFilter({
   };
 
   const customLoadingIndicator = (
-    <PageFilterDropdownButton showChevron={false} disabled>
+    <PageFilterDropdownButton
+      showChevron={false}
+      disabled
+      data-test-id="page-filter-environment-selector"
+    >
       <DropdownTitle>
         <IconWindow />
-        {t('Loading\u2026')}
+        <TitleContainer>{t('Loading\u2026')}</TitleContainer>
       </DropdownTitle>
     </PageFilterDropdownButton>
   );
 
   return (
-    <MultipleEnvironmentSelector
+    <EnvironmentSelector
       organization={organization}
       projects={projects}
       loadingProjects={!projectsLoaded || !isReady}
@@ -99,6 +110,7 @@ function EnvironmentPageFilter({
       customDropdownButton={customDropdownButton}
       customLoadingIndicator={customLoadingIndicator}
       alignDropdown={alignDropdown}
+      disabled={disabled}
       detached
       showPin
     />
@@ -108,7 +120,7 @@ function EnvironmentPageFilter({
 const TitleContainer = styled('div')`
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   flex: 1 1 0%;
   margin-left: ${space(1)};
   overflow: hidden;
@@ -118,7 +130,6 @@ const TitleContainer = styled('div')`
 
 const DropdownTitle = styled('div')`
   display: flex;
-  overflow: hidden;
   align-items: center;
   flex: 1;
 `;

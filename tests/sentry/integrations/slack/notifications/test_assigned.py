@@ -8,6 +8,7 @@ from sentry.notifications.notifications.activity import AssignedActivityNotifica
 from sentry.testutils.cases import SlackActivityNotificationTest
 from sentry.testutils.helpers.slack import get_attachment, send_notification
 from sentry.types.activity import ActivityType
+from sentry.types.integrations import ExternalProviders
 
 
 class SlackAssignedNotificationTest(SlackActivityNotificationTest):
@@ -142,5 +143,19 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest):
         assert attachment["title"] == self.group.title
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=assigned-activity-slack-user|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=assigned_activity-slack-user|Notification Settings>"
+        )
+
+    def test_automatic_assignment(self):
+        notification = AssignedActivityNotification(
+            Activity(
+                project=self.project,
+                group=self.group,
+                type=ActivityType.ASSIGNED,
+                data={"assignee": self.user.id},
+            )
+        )
+        assert (
+            notification.get_notification_title(ExternalProviders.SLACK)
+            == f"Issue automatically assigned to {self.user.get_display_name()}"
         )

@@ -99,7 +99,7 @@ function DiscoverBanner({organization, resultsUrl}: Props) {
     });
   }
 
-  const isSmallBanner = useMedia(`(max-width: ${theme.breakpoints[1]})`);
+  const isSmallBanner = useMedia(`(max-width: ${theme.breakpoints.medium})`);
 
   return (
     <Banner
@@ -111,7 +111,7 @@ function DiscoverBanner({organization, resultsUrl}: Props) {
       dismissKey="discover"
     >
       <Button
-        size={isSmallBanner ? 'xsmall' : undefined}
+        size={isSmallBanner ? 'xs' : undefined}
         translucentBorder
         to={resultsUrl}
         onClick={() => {
@@ -133,7 +133,7 @@ function DiscoverBanner({organization, resultsUrl}: Props) {
       >
         {({showModal}) => (
           <Button
-            size={isSmallBanner ? 'xsmall' : undefined}
+            size={isSmallBanner ? 'xs' : undefined}
             translucentBorder
             onClick={() => {
               trackAnalyticsEvent({

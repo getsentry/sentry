@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -41,7 +41,7 @@ type State = {
   v2: boolean;
 };
 
-class SimilarStackTrace extends React.Component<Props, State> {
+class SimilarStackTrace extends Component<Props, State> {
   state: State = {
     similarItems: [],
     filteredSimilarItems: [],
@@ -178,7 +178,7 @@ class SimilarStackTrace extends React.Component<Props, State> {
     const isLoadedSuccessfully = !isError && !isLoading;
     const hasSimilarItems =
       this.hasSimilarityFeature() &&
-      (similarItems.length >= 0 || filteredSimilarItems.length >= 0) &&
+      (similarItems.length > 0 || filteredSimilarItems.length > 0) &&
       isLoadedSuccessfully;
 
     return (
@@ -193,10 +193,10 @@ class SimilarStackTrace extends React.Component<Props, State> {
             <Title>{t('Issues with a similar stack trace')}</Title>
             {hasV2 && (
               <ButtonBar merged active={v2 ? 'new' : 'old'}>
-                <Button barId="old" size="small" onClick={this.toggleSimilarityVersion}>
+                <Button barId="old" size="sm" onClick={this.toggleSimilarityVersion}>
                   {t('Old Algorithm')}
                 </Button>
-                <Button barId="new" size="small" onClick={this.toggleSimilarityVersion}>
+                <Button barId="new" size="sm" onClick={this.toggleSimilarityVersion}>
                   {t('New Algorithm')}
                 </Button>
               </ButtonBar>

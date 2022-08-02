@@ -1,10 +1,11 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import {Client} from 'sentry/api';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import EventsTable from 'sentry/components/eventsTable/eventsTable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -14,14 +15,16 @@ import {Panel, PanelBody} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Group} from 'sentry/types';
+import {Group, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import parseApiError from 'sentry/utils/parseApiError';
 import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
   api: Client;
   group: Group;
+  organization: Organization;
 } & RouteComponentProps<{groupId: string; orgId: string}, {}>;
 
 type State = {
@@ -32,7 +35,7 @@ type State = {
   query: string;
 };
 
-class GroupEvents extends React.Component<Props, State> {
+class GroupEvents extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
@@ -160,12 +163,15 @@ class GroupEvents extends React.Component<Props, State> {
       <Layout.Body>
         <Layout.Main fullWidth>
           <Wrapper>
-            <SearchBar
-              defaultQuery=""
-              placeholder={t('Search events by id, message, or tags')}
-              query={this.state.query}
-              onSearch={this.handleSearch}
-            />
+            <FilterSection>
+              <EnvironmentPageFilter />
+              <SearchBar
+                defaultQuery=""
+                placeholder={t('Search events by id, message, or tags')}
+                query={this.state.query}
+                onSearch={this.handleSearch}
+              />
+            </FilterSection>
 
             <Panel className="event-list">
               <PanelBody>{this.renderBody()}</PanelBody>
@@ -178,6 +184,12 @@ class GroupEvents extends React.Component<Props, State> {
   }
 }
 
+const FilterSection = styled('div')`
+  display: grid;
+  gap: ${space(1)};
+  grid-template-columns: max-content 1fr;
+`;
+
 const Wrapper = styled('div')`
   display: grid;
   gap: ${space(2)};
@@ -185,4 +197,4 @@ const Wrapper = styled('div')`
 
 export {GroupEvents};
 
-export default withApi(GroupEvents);
+export default withOrganization(withApi(GroupEvents));

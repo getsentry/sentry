@@ -224,12 +224,12 @@ export function statsPeriodToDays(
   return 0;
 }
 
-export function use24Hours() {
+export function shouldUse24Hours() {
   return ConfigStore.get('user')?.options?.clock24Hours;
 }
 
 export function getTimeFormat({displaySeconds = false}: {displaySeconds?: boolean} = {}) {
-  if (use24Hours()) {
+  if (shouldUse24Hours()) {
     return displaySeconds ? 'HH:mm:ss' : 'HH:mm';
   }
 

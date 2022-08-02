@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import ModalActions from 'sentry/actions/modalActions';
+import ModalStore from 'sentry/stores/modalStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
 import TransactionThresholdButton from 'sentry/views/performance/transactionSummary/transactionThresholdButton';
@@ -115,7 +115,7 @@ describe('TransactionThresholdButton', function () {
       wrapper.find('TransactionThresholdButton').state('transactionThresholdMetric')
     ).toEqual('lcp');
 
-    const spy = jest.spyOn(ModalActions, 'openModal');
+    const spy = jest.spyOn(ModalStore, 'openModal');
     const button = wrapper.find('Button');
     button.simulate('click');
 

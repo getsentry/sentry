@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
@@ -82,7 +83,7 @@ class Monitors extends AsyncView<Props, State> {
           </HeaderTitle>
         </PageHeader>
         <Filters>
-          <ProjectPageFilter />
+          <ProjectPageFilter resetParamsOnChange={['cursor']} />
           <SearchBar
             query={decodeScalar(qs.parse(location.search)?.query, '')}
             placeholder={t('Search for monitors.')}

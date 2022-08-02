@@ -17,11 +17,17 @@ class SentryAppInstallationsTest(APITestCase):
         self.unpublished_app = self.create_sentry_app(name="Testin", organization=self.org)
 
         self.installation = self.create_sentry_app_installation(
-            slug=self.published_app.slug, organization=self.super_org, user=self.superuser
+            slug=self.published_app.slug,
+            organization=self.super_org,
+            user=self.superuser,
+            prevent_token_exchange=True,
         )
 
         self.installation2 = self.create_sentry_app_installation(
-            slug=self.unpublished_app.slug, organization=self.org, user=self.user
+            slug=self.unpublished_app.slug,
+            organization=self.org,
+            user=self.user,
+            prevent_token_exchange=True,
         )
 
         self.url = reverse("sentry-api-0-sentry-app-installations", args=[self.org.slug])

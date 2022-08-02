@@ -1,68 +1,62 @@
-import * as React from 'react';
 import upperFirst from 'lodash/upperFirst';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
-import {getMeta} from 'sentry/components/events/meta/metaProxy';
 import {t} from 'sentry/locale';
+import {Event} from 'sentry/types';
 
 type KeyValueListData = React.ComponentProps<typeof ContextBlock>['data'];
 
 type StateDescription = {
-  value: Record<string, any>;
+  value: Record<string, any> | null | string;
   type?: string;
 };
 
 type Props = {
-  alias: string;
   data: {
     [state: string]: StateDescription;
     state: StateDescription;
   };
+  event: Event;
 };
 
-class StateContextType extends React.Component<Props> {
-  getStateTitle(name: string, type?: string) {
+export function StateEventContext({data, event}: Props) {
+  const meta = event._meta?.contexts?.state ?? {};
+
+  function getStateTitle(name: string, type?: string) {
     return `${name}${type ? ` (${upperFirst(type)})` : ''}`;
   }
 
-  getKnownData(): KeyValueListData {
-    const primaryState = this.props.data.state;
-
-    if (!primaryState) {
+  function getKnownData(): KeyValueListData {
+    if (!data.state) {
       return [];
     }
 
     return [
       {
         key: 'state',
-        subject: this.getStateTitle(t('State'), primaryState.type),
-        value: primaryState.value,
+        subject: getStateTitle(t('State'), data.state.type),
+        value: data.state.value,
+        meta: meta.state?.value?.[''],
       },
     ];
   }
 
-  getUnknownData(): KeyValueListData {
-    const {data} = this.props;
-
+  function getUnknownData(): KeyValueListData {
     return Object.entries(data)
       .filter(([key]) => !['type', 'title', 'state'].includes(key))
       .map(([name, state]) => ({
         key: name,
         value: state.value,
-        subject: this.getStateTitle(name, state.type),
-        meta: getMeta(data, name),
+        subject: getStateTitle(name, state.type),
+        meta: meta[name]?.value?.[''],
       }));
   }
 
-  render() {
-    return (
-      <ClippedBox clipHeight={250}>
-        <ContextBlock data={this.getKnownData()} />
-        <ContextBlock data={this.getUnknownData()} />
-      </ClippedBox>
-    );
-  }
+  return (
+    <ClippedBox clipHeight={250}>
+      <ContextBlock data={getKnownData()} />
+      <ContextBlock data={getUnknownData()} />
+    </ClippedBox>
+  );
 }
-
-export default StateContextType;

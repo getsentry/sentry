@@ -28,7 +28,7 @@ const CardHeader = ({
 }: Props) => {
   const deleteButton = (
     <Button
-      size="small"
+      size="sm"
       icon={<IconDelete />}
       aria-label={t('Delete Key')}
       disabled={disabled}
@@ -42,16 +42,16 @@ const CardHeader = ({
         {description && <QuestionTooltip position="top" size="sm" title={description} />}
       </KeyName>
       <DateCreated>
-        {tct('Created on [date]', {date: <DateTime date={created} timeAndDate />})}
+        {tct('Created on [date]', {date: <DateTime date={created} />})}
       </DateCreated>
       <StyledButtonBar gap={1}>
         <Clipboard value={publicKey}>
-          <Button size="small" icon={<IconCopy />}>
+          <Button size="sm" icon={<IconCopy />}>
             {t('Copy Key')}
           </Button>
         </Clipboard>
         <Button
-          size="small"
+          size="sm"
           onClick={onEdit(publicKey)}
           icon={<IconEdit />}
           aria-label={t('Edit Key')}
@@ -92,7 +92,7 @@ const DateCreated = styled('div')`
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-row: 1/3;
   }
 `;
@@ -102,7 +102,7 @@ const Header = styled('div')`
   grid-row-gap: ${space(1)};
   margin-bottom: ${space(1)};
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: 1fr max-content;
     grid-template-rows: repeat(2, max-content);
   }

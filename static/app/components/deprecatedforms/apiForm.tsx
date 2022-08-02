@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Children} from 'react';
 
 import {
   addErrorMessage,
@@ -45,7 +45,7 @@ export default class ApiForm extends Form<Props> {
     // carries a slight performance hit. Why is yer form so big? 🤔
 
     const data = {...this.state.data}; // Copy to avoid mutating state.data itself.
-    React.Children.forEach(this.props.children, (child: any) => {
+    Children.forEach(this.props.children, (child: any) => {
       if (!FormField.isPrototypeOf(child.type)) {
         return; // Form children include h4's, etc.
       }

@@ -13,7 +13,7 @@ from rest_framework.response import Response
 from sentry import options
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
 from sentry.models import FileBlob
-from sentry.utils.compat import zip
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.utils.files import get_max_file_size
 
 MAX_CHUNKS_PER_REQUEST = 64
@@ -28,6 +28,7 @@ CHUNK_UPLOAD_ACCEPT = (
     "pdbs",  # PDB upload and debug id override
     "sources",  # Source artifact bundle upload
     "bcsymbolmaps",  # BCSymbolMaps and associated PLists/UuidMaps
+    "il2cpp",  # Il2cpp LineMappingJson files
 )
 
 
@@ -41,6 +42,7 @@ class GzipChunk(BytesIO):
 
 class ChunkUploadEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationReleasePermission,)
+    rate_limits = RateLimitConfig(group="CLI")
 
     def get(self, request: Request, organization) -> Response:
         """

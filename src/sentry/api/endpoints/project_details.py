@@ -2,6 +2,7 @@ import math
 import time
 from datetime import timedelta
 from itertools import chain
+from uuid import uuid4
 
 from django.db import IntegrityError, transaction
 from django.utils import timezone
@@ -10,7 +11,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_relay.processing import validate_sampling_condition, validate_sampling_configuration
 
-from sentry import features
+from sentry import audit_log, features
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.api.fields.empty_integer import EmptyIntegerField
@@ -31,7 +32,6 @@ from sentry.lang.native.symbolicator import (
 )
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_MAX, convert_crashreport_count
 from sentry.models import (
-    AuditLogEntryEvent,
     Group,
     GroupStatus,
     NotificationSetting,
@@ -46,7 +46,6 @@ from sentry.notifications.utils import has_alert_integration
 from sentry.notifications.utils.legacy_mappings import get_option_value_from_boolean
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
-from sentry.utils.compat import filter
 
 
 def clean_newline_inputs(value, case_insensitive=True):
@@ -89,12 +88,43 @@ class DynamicSamplingRuleSerializer(serializers.Serializer):
         required=True,
     )
     condition = DynamicSamplingConditionSerializer()
+    active = serializers.BooleanField(default=False)
     id = serializers.IntegerField(min_value=0, required=False)
 
 
 class DynamicSamplingSerializer(serializers.Serializer):
     rules = serializers.ListSerializer(child=DynamicSamplingRuleSerializer())
     next_id = serializers.IntegerField(min_value=0, required=False)
+
+    @staticmethod
+    def _is_uniform_sampling_rule(rule):
+        # A uniform sampling rule must be an 'and' with no rules. An 'or' with no rules will not
+        # match anything.
+        assert rule["condition"]["op"] == "and"
+        # Matching the uniform sampling rule check on UI because currently we only support
+        # uniform rules on traces, not on single transactions. If we change this spec in the
+        # future, we will have to update this to also support single transactions.
+        return len(rule["condition"]["inner"]) == 0 and rule["type"] == "trace"
+
+    def validate_uniform_sampling_rule(self, rules):
+        # Guards against deletion of uniform sampling rule i.e. sending a payload with no rules
+        if len(rules) == 0:
+            raise serializers.ValidationError(
+                "Payload must contain a uniform dynamic sampling rule"
+            )
+
+        uniform_rule = rules[-1]
+        # Guards against placing uniform sampling rule not in last position or adding multiple
+        # uniform sampling rules
+        for rule in rules[:-1]:
+            if self._is_uniform_sampling_rule(rule):
+                raise serializers.ValidationError("Uniform rule must be in the last position only")
+
+        # Ensures last rule in rules is always a uniform sampling rule
+        if not self._is_uniform_sampling_rule(uniform_rule):
+            raise serializers.ValidationError(
+                "Last rule is reserved for uniform rule which must have no conditions"
+            )
 
     def validate(self, data):
         """
@@ -106,6 +136,7 @@ class DynamicSamplingSerializer(serializers.Serializer):
         try:
             config_str = json.dumps(data)
             validate_sampling_configuration(config_str)
+            self.validate_uniform_sampling_rule(data.get("rules", []))
         except ValueError as err:
             reason = err.args[0] if len(err.args) > 0 else "invalid configuration"
             raise serializers.ValidationError(reason)
@@ -153,6 +184,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         required=False, allow_blank=True, allow_null=True
     )
     secondaryGroupingExpiry = serializers.IntegerField(min_value=1, required=False, allow_null=True)
+    groupingAutoUpdate = serializers.BooleanField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
     allowedDomains = EmptyListField(child=OriginField(allow_blank=True), required=False)
     resolveAge = EmptyIntegerField(required=False, allow_null=True)
@@ -180,7 +212,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         return data
 
     def validate_allowedDomains(self, value):
-        value = filter(bool, value)
+        value = list(filter(bool, value))
         if len(value) == 0:
             raise serializers.ValidationError(
                 "Empty value will block all requests, use * to accept from all domains"
@@ -240,13 +272,25 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         except InvalidSourcesError as e:
             raise serializers.ValidationError(str(e))
 
-        sources_json = json.dumps(sources) if sources else ""
-
         # If no sources are added or modified, we're either only deleting sources or doing nothing.
         # This is always allowed.
         added_or_modified_sources = [s for s in sources if s not in orig_sources]
         if not added_or_modified_sources:
-            return sources_json
+            return json.dumps(sources) if sources else ""
+
+        # All modified sources should get a new UUID, as a way to invalidate caches.
+        # Downstream symbolicator uses this ID as part of a cache key, so assigning
+        # a new ID does have the following effects/tradeoffs:
+        # * negative cache entries (eg auth errors) are retried immediately.
+        # * positive caches are re-fetches as well, making it less effective.
+        for source in added_or_modified_sources:
+            # This should only apply to sources which are being fed to symbolicator.
+            # App Store Connect in particular is managed in a completely different
+            # way, and needs its `id` to stay valid for a longer time.
+            if source["type"] != "appStoreConnect":
+                source["id"] = str(uuid4())
+
+        sources_json = json.dumps(sources) if sources else ""
 
         # Adding sources is only allowed if custom symbol sources are enabled.
         has_sources = features.has(
@@ -406,9 +450,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         :param int digestsMaxDelay:
         :auth: required
         """
-        has_project_write = (request.auth and request.auth.has_scope("project:write")) or (
-            request.access and request.access.has_scope("project:write")
-        )
+        has_project_write = request.access and request.access.has_scope("project:write")
 
         changed_proj_settings = {}
 
@@ -420,27 +462,23 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         serializer = serializer_cls(
             data=request.data, partial=True, context={"project": project, "request": request}
         )
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+        serializer.is_valid()
 
         result = serializer.validated_data
 
         allow_dynamic_sampling = features.has(
-            "organizations:filters-and-sampling", project.organization, actor=request.user
-        )
-
-        allow_dynamic_sampling_error_rules = features.has(
-            "organizations:filters-and-sampling-error-rules",
-            project.organization,
-            actor=request.user,
+            "organizations:server-side-sampling", project.organization, actor=request.user
         )
 
         if not allow_dynamic_sampling and result.get("dynamicSampling"):
-            # trying to set dynamic sampling with feature disabled
+            # trying to set sampling with feature disabled
             return Response(
-                {"detail": ["You do not have permission to set dynamic sampling."]},
+                {"detail": ["You do not have permission to set sampling."]},
                 status=403,
             )
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
 
         if not has_project_write:
             # options isn't part of the serializer, but should not be editable by members
@@ -524,6 +562,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:secondary_grouping_expiry"] = result[
                     "secondaryGroupingExpiry"
                 ]
+        if result.get("groupingAutoUpdate") is not None:
+            if project.update_option("sentry:grouping_auto_update", result["groupingAutoUpdate"]):
+                changed_proj_settings["sentry:grouping_auto_update"] = result["groupingAutoUpdate"]
         if result.get("securityToken") is not None:
             if project.update_option("sentry:token", result["securityToken"]):
                 changed_proj_settings["sentry:token"] = result["securityToken"]
@@ -604,19 +645,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         if "dynamicSampling" in result:
             raw_dynamic_sampling = result["dynamicSampling"]
-            if (
-                not allow_dynamic_sampling_error_rules
-                and self._dynamic_sampling_contains_error_rule(raw_dynamic_sampling)
-            ):
-                return Response(
-                    {
-                        "detail": [
-                            "Dynamic Sampling only accepts rules of type transaction or trace"
-                        ]
-                    },
-                    status=400,
-                )
-
             fixed_rules = self._fix_rule_ids(project, raw_dynamic_sampling)
             project.update_option("sentry:dynamic_sampling", fixed_rules)
 
@@ -730,7 +758,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 request=request,
                 organization=project.organization,
                 target_object=project.id,
-                event=AuditLogEntryEvent.PROJECT_EDIT,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
                 data=changed_proj_settings,
             )
 
@@ -770,7 +798,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 request=request,
                 organization=project.organization,
                 target_object=project.id,
-                event=AuditLogEntryEvent.PROJECT_REMOVE,
+                event=audit_log.get_event_id("PROJECT_REMOVE"),
                 data=project.get_audit_log_data(),
                 transaction_id=scheduled.id,
             )
@@ -804,6 +832,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         if raw_dynamic_sampling is not None:
             rules = raw_dynamic_sampling.get("rules", [])
+
             for rule in rules:
                 rid = rule.get("id", 0)
                 original_rule = original_rules_dict.get(rid)

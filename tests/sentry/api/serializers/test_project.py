@@ -140,7 +140,14 @@ class ProjectSerializerTest(TestCase):
         assert "test-feature" in result["features"]
         assert "disabled-feature" not in result["features"]
 
-    def test_project_features(self):
+    @mock.patch("sentry.api.serializers.project.features")
+    def test_project_features(self, mock_features):
+        test_features = features.FeatureManager()
+        mock_features.all = test_features.all
+        mock_features.has = test_features.has
+        mock_features.batch_has = test_features.batch_has
+        mock_features.has_for_batch = test_features.has_for_batch
+
         early_flag = "projects:TEST_early"
         red_flag = "projects:TEST_red"
         blue_flag = "projects:TEST_blue"
@@ -168,13 +175,13 @@ class ProjectSerializerTest(TestCase):
 
             return ProjectColorFeatureHandler()
 
-        features.add(early_flag, features.ProjectFeature)
-        features.add(red_flag, features.ProjectFeature)
-        features.add(blue_flag, features.ProjectFeature)
+        test_features.add(early_flag, features.ProjectFeature)
+        test_features.add(red_flag, features.ProjectFeature)
+        test_features.add(blue_flag, features.ProjectFeature)
         red_handler = create_color_handler(red_flag, [early_red, late_red])
         blue_handler = create_color_handler(blue_flag, [early_blue, late_blue])
         for handler in (EarlyAdopterFeatureHandler(), red_handler, blue_handler):
-            features.add_handler(handler)
+            test_features.add_handler(handler)
 
         def api_form(flag):
             return flag[len("projects:") :]
@@ -473,7 +480,7 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         assert results[0]["sessionStats"]["currentCrashFreeRate"] == 75.63453
         assert results[0]["sessionStats"]["hasHealthData"]
 
-        check_has_health_data.assert_not_called()  # NOQA
+        check_has_health_data.assert_not_called()
 
     @mock.patch("sentry.api.serializers.models.project.release_health.check_has_health_data")
     @mock.patch(
@@ -502,7 +509,7 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         assert results[0]["sessionStats"]["currentCrashFreeRate"] is None
         assert results[0]["sessionStats"]["hasHealthData"]
 
-        check_has_health_data.assert_called()  # NOQA
+        check_has_health_data.assert_called()
 
 
 class ProjectWithOrganizationSerializerTest(TestCase):

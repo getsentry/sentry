@@ -3,7 +3,8 @@ from datetime import timedelta
 from django.utils import timezone
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.models import AuditLogEntry, AuditLogEntryEvent
+from sentry import audit_log
+from sentry.models import AuditLogEntry
 from sentry.testutils import APITestCase
 
 
@@ -21,18 +22,21 @@ class OrganizationAuditLogsTest(APITestCase):
 
         entry1 = AuditLogEntry.objects.create(
             organization=self.organization,
-            event=AuditLogEntryEvent.ORG_EDIT,
+            event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now,
         )
         entry2 = AuditLogEntry.objects.create(
             organization=self.organization,
-            event=AuditLogEntryEvent.ORG_EDIT,
+            event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now + timedelta(seconds=1),
         )
         AuditLogEntry.objects.create(
-            organization=org2, event=AuditLogEntryEvent.ORG_EDIT, actor=self.user, datetime=now
+            organization=org2,
+            event=audit_log.get_event_id("ORG_EDIT"),
+            actor=self.user,
+            datetime=now,
         )
 
         response = self.get_success_response(self.organization.slug)
@@ -45,13 +49,13 @@ class OrganizationAuditLogsTest(APITestCase):
 
         entry1 = AuditLogEntry.objects.create(
             organization=self.organization,
-            event=AuditLogEntryEvent.ORG_EDIT,
+            event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now,
         )
         AuditLogEntry.objects.create(
             organization=self.organization,
-            event=AuditLogEntryEvent.ORG_ADD,
+            event=audit_log.get_event_id("ORG_ADD"),
             actor=self.user,
             datetime=now + timedelta(seconds=1),
         )
@@ -72,10 +76,13 @@ class OrganizationAuditLogsTest(APITestCase):
         self.create_member(user=user2, organization=self.organization)
 
         entry1 = AuditLogEntry.objects.create(
-            organization=org, event=AuditLogEntryEvent.ORG_EDIT, actor=self.user, datetime=now
+            organization=org,
+            event=audit_log.get_event_id("ORG_EDIT"),
+            actor=self.user,
+            datetime=now,
         )
         AuditLogEntry.objects.create(
-            organization=org, event=AuditLogEntryEvent.ORG_EDIT, actor=user2, datetime=now
+            organization=org, event=audit_log.get_event_id("ORG_EDIT"), actor=user2, datetime=now
         )
 
         response = self.get_success_response(org.slug, qs_params={"actor": self.user.id})
@@ -92,14 +99,17 @@ class OrganizationAuditLogsTest(APITestCase):
         self.create_member(user=user2, organization=self.organization)
 
         entry1 = AuditLogEntry.objects.create(
-            organization=org, event=AuditLogEntryEvent.ORG_EDIT, actor=self.user, datetime=now
+            organization=org,
+            event=audit_log.get_event_id("ORG_EDIT"),
+            actor=self.user,
+            datetime=now,
         )
         AuditLogEntry.objects.create(
-            organization=org, event=AuditLogEntryEvent.ORG_EDIT, actor=user2, datetime=now
+            organization=org, event=audit_log.get_event_id("ORG_EDIT"), actor=user2, datetime=now
         )
         AuditLogEntry.objects.create(
             organization=org,
-            event=AuditLogEntryEvent.ORG_ADD,
+            event=audit_log.get_event_id("ORG_ADD"),
             actor=self.user,
             datetime=now + timedelta(seconds=1),
         )
@@ -115,22 +125,20 @@ class OrganizationAuditLogsTest(APITestCase):
 
         AuditLogEntry.objects.create(
             organization=self.organization,
-            event=AuditLogEntryEvent.ORG_EDIT,
+            event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now,
         )
 
-        response = self.get_error_response(
-            self.organization.slug, qs_params={"event": "wrong"}, status_code=400
-        )
-        assert response.data == {"event": ["Invalid audit log event"]}
+        response = self.get_success_response(self.organization.slug, qs_params={"event": "wrong"})
+        assert response.data == []
 
     def test_user_out_of_bounds(self):
         now = timezone.now()
 
         AuditLogEntry.objects.create(
             organization=self.organization,
-            event=AuditLogEntryEvent.ORG_EDIT,
+            event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now,
         )
@@ -146,3 +154,25 @@ class OrganizationAuditLogsTest(APITestCase):
                 )
             ]
         }
+
+    def test_version_two_response(self):
+        # Test that version two request will send "rows" with audit log entries
+        # and "options" with the audit log api names list.
+        now = timezone.now()
+
+        entry = AuditLogEntry.objects.create(
+            organization=self.organization,
+            event=audit_log.get_event_id("ORG_EDIT"),
+            actor=self.user,
+            datetime=now,
+        )
+        audit_log_api_names = set(audit_log.get_api_names())
+
+        response = self.get_success_response(self.organization.slug, qs_params={"version": "2"})
+        assert len(response.data) == 2
+        assert response.data["rows"][0]["id"] == str(entry.id)
+        assert set(response.data["options"]) == audit_log_api_names
+
+        response_2 = self.get_success_response(self.organization.slug, qs_params={"version": "3"})
+        assert len(response_2.data) == 1
+        assert response_2.data[0]["id"] == str(entry.id)

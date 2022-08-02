@@ -1,6 +1,7 @@
 import datetime
 import unittest
 
+import pytest
 from django.utils import timezone
 from freezegun import freeze_time
 
@@ -24,7 +25,7 @@ class GetDateRangeFromParamsTest(unittest.TestCase):
         start, end = get_date_range_from_params({"statsPeriod": "91d"})
         assert end - datetime.timedelta(days=91) == start
 
-        with self.assertRaises(InvalidParams):
+        with pytest.raises(InvalidParams):
             get_date_range_from_params({"statsPeriod": "9000000d"})
 
     def test_date_range(self):
@@ -33,7 +34,7 @@ class GetDateRangeFromParamsTest(unittest.TestCase):
         assert start == datetime.datetime(2018, 11, 1, tzinfo=timezone.utc)
         assert end == datetime.datetime(2018, 11, 7, tzinfo=timezone.utc)
 
-        with self.assertRaises(InvalidParams):
+        with pytest.raises(InvalidParams):
             get_date_range_from_params(
                 {"start": "2018-11-01T00:00:00", "end": "2018-11-01T00:00:00"}
             )
@@ -58,5 +59,5 @@ class GetDateRangeFromParamsTest(unittest.TestCase):
     @freeze_time("2018-12-11 03:21:34")
     def test_relative_date_range_incomplete(self):
 
-        with self.assertRaises(InvalidParams):
+        with pytest.raises(InvalidParams):
             start, end = get_date_range_from_params({"statsPeriodStart": "14d"})

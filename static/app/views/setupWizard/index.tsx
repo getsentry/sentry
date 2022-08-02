@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 
 import Button from 'sentry/components/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -29,7 +29,7 @@ function SetupWizard({hash = false}: Props) {
     };
   });
 
-  async function checkFinished() {
+  const checkFinished = useCallback(async () => {
     try {
       await api.requestPromise(`/wizard/${hash}/`);
     } catch {
@@ -37,12 +37,12 @@ function SetupWizard({hash = false}: Props) {
       window.clearTimeout(closeTimeoutRef.current);
       closeTimeoutRef.current = window.setTimeout(() => window.close(), 10000);
     }
-  }
+  }, [api, hash]);
 
   useEffect(() => {
     const pollingInterval = window.setInterval(checkFinished, 1000);
     return () => window.clearInterval(pollingInterval);
-  }, []);
+  }, [checkFinished]);
 
   return (
     <ThemeAndStyleProvider>

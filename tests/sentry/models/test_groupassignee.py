@@ -13,6 +13,7 @@ from sentry.models import (
     OrganizationIntegration,
 )
 from sentry.testutils import TestCase
+from sentry.types.activity import ActivityType
 
 
 class GroupAssigneeTestCase(TestCase):
@@ -37,7 +38,7 @@ class GroupAssigneeTestCase(TestCase):
         ).exists()
 
         activity = Activity.objects.get(
-            project=self.group.project, group=self.group, type=Activity.ASSIGNED
+            project=self.group.project, group=self.group, type=ActivityType.ASSIGNED.value
         )
 
         assert activity.data["assignee"] == str(self.user.id)
@@ -52,7 +53,7 @@ class GroupAssigneeTestCase(TestCase):
         ).exists()
 
         activity = Activity.objects.get(
-            project=self.group.project, group=self.group, type=Activity.ASSIGNED
+            project=self.group.project, group=self.group, type=ActivityType.ASSIGNED.value
         )
 
         assert activity.data["assignee"] == str(self.team.id)
@@ -67,7 +68,7 @@ class GroupAssigneeTestCase(TestCase):
             project=self.group.project, group=self.group, user=self.user, team__isnull=True
         ).exists()
         activity = Activity.objects.get(
-            project=self.group.project, group=self.group, type=Activity.ASSIGNED
+            project=self.group.project, group=self.group, type=ActivityType.ASSIGNED.value
         )
         assert activity.data["assignee"] == str(self.user.id)
         assert activity.data["assigneeEmail"] == self.user.email
@@ -82,7 +83,7 @@ class GroupAssigneeTestCase(TestCase):
         ).exists()
         # Should be no new activity rows
         activity = Activity.objects.get(
-            project=self.group.project, group=self.group, type=Activity.ASSIGNED
+            project=self.group.project, group=self.group, type=ActivityType.ASSIGNED.value
         )
         assert activity.data["assignee"] == str(self.user.id)
         assert activity.data["assigneeEmail"] == self.user.email
@@ -103,7 +104,7 @@ class GroupAssigneeTestCase(TestCase):
 
         activity = list(
             Activity.objects.filter(
-                project=self.group.project, group=self.group, type=Activity.ASSIGNED
+                project=self.group.project, group=self.group, type=ActivityType.ASSIGNED.value
             ).order_by("id")
         )
 
@@ -158,7 +159,7 @@ class GroupAssigneeTestCase(TestCase):
                 ).exists()
 
                 activity = Activity.objects.get(
-                    project=self.group.project, group=self.group, type=Activity.ASSIGNED
+                    project=self.group.project, group=self.group, type=ActivityType.ASSIGNED.value
                 )
 
                 assert activity.data["assignee"] == str(self.user.id)
@@ -207,7 +208,7 @@ class GroupAssigneeTestCase(TestCase):
                 ).exists()
 
                 assert Activity.objects.filter(
-                    project=self.group.project, group=self.group, type=Activity.UNASSIGNED
+                    project=self.group.project, group=self.group, type=ActivityType.UNASSIGNED.value
                 ).exists()
 
     def test_assignee_sync_inbound_assign(self):

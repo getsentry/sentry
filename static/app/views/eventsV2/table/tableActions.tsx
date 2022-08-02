@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
@@ -39,12 +39,15 @@ function handleDownloadAsCsv(title: string, {organization, eventView, tableData}
 }
 
 function renderDownloadButton(canEdit: boolean, props: Props) {
+  const {tableData} = props;
   return (
     <Feature
       features={['organizations:discover-query']}
       renderDisabled={() => renderBrowserExportButton(canEdit, props)}
     >
-      {renderAsyncExportButton(canEdit, props)}
+      {tableData?.data && tableData.data.length < 50
+        ? renderBrowserExportButton(canEdit, props)
+        : renderAsyncExportButton(canEdit, props)}
     </Feature>
   );
 }
@@ -56,13 +59,16 @@ function renderBrowserExportButton(canEdit: boolean, props: Props) {
 
   return (
     <Button
-      size="small"
+      size="sm"
       disabled={disabled}
       onClick={onClick}
       data-test-id="grid-download-csv"
       icon={<IconDownload size="xs" />}
+      title={t(
+        "There aren't that many results, start your export and it'll download immediately."
+      )}
     >
-      {t('Export')}
+      {t('Export All')}
     </Button>
   );
 }
@@ -90,7 +96,7 @@ function renderEditButton(canEdit: boolean, props: Props) {
   return (
     <GuideAnchor target="columns_header_button">
       <Button
-        size="small"
+        size="sm"
         disabled={!canEdit}
         onClick={onClick}
         data-test-id="grid-edit-enable"
@@ -107,7 +113,7 @@ function renderSummaryButton({onChangeShowTags, showTags}: Props) {
   return (
     <Button
       data-test-id="toggle-show-tags"
-      size="small"
+      size="sm"
       onClick={onChangeShowTags}
       icon={<IconTag size="xs" />}
     >
@@ -151,7 +157,7 @@ function FeatureWrapper(props: FeatureWrapperProps) {
 
 function HeaderActions(props: Props) {
   return (
-    <React.Fragment>
+    <Fragment>
       <FeatureWrapper {...props} key="edit">
         {renderEditButton}
       </FeatureWrapper>
@@ -159,7 +165,7 @@ function HeaderActions(props: Props) {
         {renderDownloadButton}
       </FeatureWrapper>
       {renderSummaryButton(props)}
-    </React.Fragment>
+    </Fragment>
   );
 }
 

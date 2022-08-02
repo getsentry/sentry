@@ -1,30 +1,30 @@
-import * as React from 'react';
+import {forwardRef, useMemo} from 'react';
 import {keyframes, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {uniqueId} from 'sentry/utils/guid';
 
-import SvgIcon, {SVGIconProps} from './svgIcon';
+import {SvgIcon, SVGIconProps} from './svgIcon';
 
 type WrappedProps = {
-  forwardRef: React.Ref<SVGSVGElement>;
+  forwardedRef: React.Ref<SVGSVGElement>;
 } & Props;
 
 function IconBusinessComponent({
   gradient = false,
   withShine = false,
-  forwardRef,
+  forwardedRef,
   ...props
 }: WrappedProps) {
   const theme = useTheme();
 
-  const uid = React.useMemo(() => uniqueId(), []);
+  const uid = useMemo(() => uniqueId(), []);
   const maskId = `icon-business-mask-${uid}`;
   const gradientId = `icon-business-gradient-${uid}`;
   const shineId = `icon-business-shine-${uid}`;
 
   return (
-    <SvgIcon {...props} ref={forwardRef}>
+    <SvgIcon {...props} ref={forwardedRef}>
       <mask id={maskId}>
         <path
           fill="white"
@@ -68,8 +68,8 @@ interface Props extends SVGIconProps {
   withShine?: boolean;
 }
 
-const IconBusiness = React.forwardRef<SVGSVGElement, Props>((props, ref) => (
-  <IconBusinessComponent {...props} forwardRef={ref} />
+const IconBusiness = forwardRef<SVGSVGElement, Props>((props, ref) => (
+  <IconBusinessComponent {...props} forwardedRef={ref} />
 ));
 
 IconBusiness.displayName = 'IconBusiness';

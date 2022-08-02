@@ -56,11 +56,15 @@ class SentryAppTest(TestCase):
 
     def test_is_installed_on(self):
         other_app = self.create_sentry_app()
-        self.create_sentry_app_installation(organization=self.org, slug=self.sentry_app.slug)
+        self.create_sentry_app_installation(
+            organization=self.org, slug=self.sentry_app.slug, prevent_token_exchange=True
+        )
         assert self.sentry_app.is_installed_on(self.org)
         assert not other_app.is_installed_on(self.org)
 
     def test_not_installed_on_org(self):
         other_org = self.create_organization()
-        self.create_sentry_app_installation(organization=other_org, slug=self.sentry_app.slug)
+        self.create_sentry_app_installation(
+            organization=other_org, slug=self.sentry_app.slug, prevent_token_exchange=True
+        )
         assert not self.sentry_app.is_installed_on(self.org)

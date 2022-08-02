@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, createContext} from 'react';
 
 import {clamp, rectOfContent} from 'sentry/components/performance/waterfall/utils';
 
@@ -14,7 +14,7 @@ export type CursorGuideManagerChildrenProps = {
   traceViewMouseLeft: number | undefined;
 };
 
-const CursorGuideManagerContext = React.createContext<CursorGuideManagerChildrenProps>({
+const CursorGuideManagerContext = createContext<CursorGuideManagerChildrenProps>({
   showCursorGuide: false,
   mouseLeft: void 0,
   traceViewMouseLeft: void 0,
@@ -39,7 +39,7 @@ type StateType = {
   traceViewMouseLeft: number | undefined;
 };
 
-export class Provider extends React.Component<PropType, StateType> {
+export class Provider extends Component<PropType, StateType> {
   state: StateType = {
     showCursorGuide: false,
     mouseLeft: void 0,

@@ -1,4 +1,3 @@
-import * as React from 'react';
 import isEqual from 'lodash/isEqual';
 
 import {Form, FormState} from 'sentry/components/deprecatedforms';

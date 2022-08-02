@@ -8,6 +8,7 @@ from typing import (
     Any,
     Callable,
     List,
+    Literal,
     Mapping,
     Optional,
     Sequence,
@@ -27,7 +28,6 @@ from sentry_sdk import (
     set_extra,
     set_tag,
 )
-from typing_extensions import Literal
 
 from sentry import features
 from sentry.models import Organization, Project
@@ -48,16 +48,17 @@ from sentry.release_health.base import (
     ReleaseName,
     ReleasesAdoption,
     ReleaseSessionsTimeBounds,
+    SessionsQueryConfig,
     SessionsQueryResult,
     StatsPeriod,
 )
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
-from sentry.snuba.metrics.query_builder import get_intervals
+from sentry.snuba.metrics.utils import get_intervals
 from sentry.snuba.sessions import get_rollup_starts_and_buckets
-from sentry.snuba.sessions_v2 import QueryDefinition
+from sentry.snuba.sessions_v2 import InvalidParams, QueryDefinition
 from sentry.tasks.base import instrumented_task
-from sentry.utils.metrics import incr, timer, timing
+from sentry.utils.metrics import Tags, incr, timer, timing
 
 DateLike = Union[datetime, str]
 
@@ -583,7 +584,7 @@ def compare_results(
         return [ComparisonError(f"invalid schema type={type(schema)} at path:'{path}'")]
 
 
-def tag_delta(errors: List[ComparisonError], tags: Mapping[str, str]) -> None:
+def tag_delta(errors: List[ComparisonError], tags: Tags) -> None:
     relative_changes = [e.relative_change for e in errors if e.relative_change is not None]
     if relative_changes:
         max_relative_change = max(relative_changes, key=lambda x: abs(x))
@@ -619,7 +620,7 @@ def get_sessionsv2_schema(now: datetime, query: QueryDefinition) -> Mapping[str,
                 # timestamp 09:00 contains data for the range 09:00 - 10:00,
                 # And we want to still exclude that at 10:01
                 comparator if timestamp < max_timestamp else ComparatorType.Ignore
-                for timestamp in get_intervals(query)
+                for timestamp in get_intervals(query.start, query.end, query.rollup)
             ]
         )
         for field, comparator in schema_for_totals.items()
@@ -642,7 +643,7 @@ def run_comparison(
     sessions_result: Any,
     metrics_result: Any,
     sessions_time: datetime,
-    sentry_tags: Optional[Mapping[str, str]] = None,
+    sentry_tags: Optional[Tags] = None,
     **kwargs,
 ) -> None:
     if rollup is None:
@@ -797,7 +798,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         metrics_fn = getattr(self.metrics, fn_name)
 
         now = datetime.now(pytz.utc)
-        tags = {"method": fn_name, "rollup": str(rollup)}
+        tags: Tags = {"method": fn_name, "rollup": str(rollup)}
         incr(
             "releasehealth.metrics.should_return",
             tags={"should_return": str(should_return_metrics), **tags},
@@ -810,6 +811,10 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             try:
                 with timer("releasehealth.metrics.duration", tags=tags, sample_rate=1.0):
                     metrics_result = metrics_fn(*args)
+            except InvalidParams:
+                # This is a valid result from metrics, not a crash
+                # -> no need to fall back to session_fn, just re-raise
+                raise
             except Exception:
                 capture_exception()
 
@@ -935,6 +940,21 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             now,
             org_id,
         )
+
+    def sessions_query_config(
+        self, organization: Organization, start: datetime
+    ) -> SessionsQueryConfig:
+        # Same should compare condition as run_sessions_query:
+        should_compare = _coerce_utc(start) > self.metrics_start
+        if should_compare and features.has(
+            "organizations:release-health-return-metrics", organization
+        ):
+            # Note: This is not watertight. If metrics_result in _dispatch_call_inner
+            # is None because of a crash, we return sessions data, but with the metrics-based
+            # config.
+            return self.metrics.sessions_query_config(organization, start)
+        else:
+            return self.sessions.sessions_query_config(organization, start)
 
     def run_sessions_query(
         self,

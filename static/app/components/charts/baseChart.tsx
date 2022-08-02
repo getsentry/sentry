@@ -34,6 +34,7 @@ import {
   EChartEventHandler,
   EChartFinishedHandler,
   EChartHighlightHandler,
+  EChartMouseOutHandler,
   EChartMouseOverHandler,
   EChartRenderedHandler,
   EChartRestoreHandler,
@@ -45,7 +46,7 @@ import type {Theme} from 'sentry/utils/theme';
 
 import Grid from './components/grid';
 import Legend from './components/legend';
-import Tooltip from './components/tooltip';
+import Tooltip, {TooltipSubLabel} from './components/tooltip';
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
 import LineSeries from './series/lineSeries';
@@ -93,12 +94,12 @@ interface TooltipOption
     bucketSize: number | undefined,
     seriesParamsOrParam: TooltipComponentFormatterCallbackParams
   ) => string;
-  /**
-   * Array containing seriesNames that need to be indented
-   */
-  indentLabels?: string[];
   markerFormatter?: (marker: string, label?: string) => string;
   nameFormatter?: (name: string) => string;
+  /**
+   * Array containing data that is used to display indented sublabels.
+   */
+  subLabels?: TooltipSubLabel[];
   valueFormatter?: (
     value: number,
     label?: string,
@@ -191,6 +192,7 @@ type Props = {
     selected: Record<string, boolean>;
     type: 'legendselectchanged';
   }>;
+  onMouseOut?: EChartMouseOutHandler;
   onMouseOver?: EChartMouseOverHandler;
   onRendered?: EChartRenderedHandler;
   /**
@@ -318,6 +320,7 @@ function BaseChartUnwrapped({
   onClick,
   onLegendSelectChanged,
   onHighlight,
+  onMouseOut,
   onMouseOver,
   onDataZoom,
   onRestore,
@@ -332,7 +335,7 @@ function BaseChartUnwrapped({
 
   autoHeightResize = false,
   height = 200,
-  width = 'auto',
+  width,
   renderer = 'svg',
   notMerge = true,
   lazyUpdate = false,
@@ -511,6 +514,7 @@ function BaseChartUnwrapped({
           onClick?.(props, instance);
         },
         highlight: (props, instance) => onHighlight?.(props, instance),
+        mouseout: (props, instance) => onMouseOut?.(props, instance),
         mouseover: (props, instance) => onMouseOver?.(props, instance),
         datazoom: (props, instance) => onDataZoom?.(props, instance),
         restore: (props, instance) => onRestore?.(props, instance),
@@ -519,7 +523,17 @@ function BaseChartUnwrapped({
         legendselectchanged: (props, instance) =>
           onLegendSelectChanged?.(props, instance),
       } as ReactEchartProps['onEvents']),
-    [onclick, onHighlight, onMouseOver, onDataZoom, onRestore, onFinished, onRendered]
+    [
+      onClick,
+      onHighlight,
+      onLegendSelectChanged,
+      onMouseOut,
+      onMouseOver,
+      onDataZoom,
+      onRestore,
+      onFinished,
+      onRendered,
+    ]
   );
 
   return (
@@ -534,7 +548,7 @@ function BaseChartUnwrapped({
         onEvents={eventsMap}
         style={chartStyles}
         opts={{
-          height: autoHeightResize ? 'auto' : height,
+          height: autoHeightResize ? undefined : height,
           width,
           renderer,
           devicePixelRatio,
@@ -573,7 +587,7 @@ const ChartContainer = styled('div')<{autoHeightResize: boolean}>`
     color: ${p => p.theme.textColor};
   }
   .tooltip-label-indent {
-    margin-left: ${space(3)};
+    margin-left: 18px;
   }
   .tooltip-series > div {
     display: flex;

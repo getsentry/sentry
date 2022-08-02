@@ -1,4 +1,4 @@
-import * as React from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {browserHistory, InjectedRouter, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -31,10 +31,12 @@ import {
 } from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import AnomaliesQuery from 'sentry/utils/performance/anomalies/anomaliesQuery';
+import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 
+import {getMEPQueryParams} from '../../landing/widgets/utils';
 import {
   anomaliesRouteWithQuery,
   ANOMALY_FLAG,
@@ -84,6 +86,9 @@ function SidebarCharts({
   location,
   transactionName,
 }: Props) {
+  const useAggregateAlias = !organization.features.includes(
+    'performance-frontend-use-events-endpoint'
+  );
   const theme = useTheme();
   return (
     <RelativeBox>
@@ -100,7 +105,11 @@ function SidebarCharts({
           data-test-id="apdex-summary-value"
           isLoading={isLoading}
           error={error}
-          value={totals ? formatFloat(totals.apdex, 4) : null}
+          value={
+            totals
+              ? formatFloat(useAggregateAlias ? totals.apdex : totals['apdex()'], 4)
+              : null
+          }
         />
       </ChartLabel>
 
@@ -117,7 +126,13 @@ function SidebarCharts({
           data-test-id="failure-rate-summary-value"
           isLoading={isLoading}
           error={error}
-          value={totals ? formatPercentage(totals.failure_rate) : null}
+          value={
+            totals
+              ? formatPercentage(
+                  useAggregateAlias ? totals.failure_rate : totals['failure_rate()']
+                )
+              : null
+          }
         />
       </ChartLabel>
 
@@ -134,7 +149,13 @@ function SidebarCharts({
           data-test-id="tpm-summary-value"
           isLoading={isLoading}
           error={error}
-          value={totals ? tct('[tpm] tpm', {tpm: formatFloat(totals.tpm, 4)}) : null}
+          value={
+            totals
+              ? tct('[tpm] tpm', {
+                  tpm: formatFloat(useAggregateAlias ? totals.tpm : totals['tpm()'], 4),
+                })
+              : null
+          }
         />
       </ChartLabel>
 
@@ -229,6 +250,7 @@ function SidebarChartsContainer({
 }: ContainerProps) {
   const api = useApi();
   const theme = useTheme();
+  const mepSetting = useMEPSettingContext();
 
   const colors = theme.charts.getColorPalette(3);
   const statsPeriod = eventView.statsPeriod;
@@ -335,7 +357,7 @@ function SidebarChartsContainer({
     api,
     start,
     end,
-    statsPeriod,
+    period: statsPeriod,
     project,
     environment,
     query,
@@ -368,6 +390,7 @@ function SidebarChartsContainer({
       yAxis={['apdex()', 'failure_rate()', 'epm()']}
       partial
       referrer="api.performance.transaction-summary.sidebar-chart"
+      queryExtras={getMEPQueryParams(mepSetting)}
     >
       {({results, errored, loading, reloading}) => {
         const series = results

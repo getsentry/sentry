@@ -2,12 +2,15 @@ import {action} from '@storybook/addon-actions';
 
 import NewBooleanField from 'sentry/components/forms/booleanField';
 import CheckboxField from 'sentry/components/forms/checkboxField';
+import CompactSelect from 'sentry/components/forms/compactSelect';
+import CompositeSelect from 'sentry/components/forms/compositeSelect';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import DatePickerField from 'sentry/components/forms/datePickerField';
 import FileField from 'sentry/components/forms/fileField';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
+import MultipleCheckboxField from 'sentry/components/forms/MultipleCheckboxField';
 import RadioBooleanField from 'sentry/components/forms/radioBooleanField';
 import RadioField from 'sentry/components/forms/radioField';
 import SelectField from 'sentry/components/forms/selectField';
@@ -171,6 +174,28 @@ export const _CheckboxField = () => (
 
 _CheckboxField.storyName = 'Checkbox';
 
+export const _MultipleCheckboxField = () => (
+  <Form>
+    <MultipleCheckboxField
+      choices={[
+        {title: 'Checkbox', value: 0},
+        {title: 'Disabled Checkbox', value: 1},
+        {title: 'Checked Checkbox', value: 2, checked: true},
+        {title: 'Intermediate Checkbox', value: 3, intermediate: true},
+        {title: 'Disabled Checked Checkbox', value: 4, checked: true, disabled: true},
+        {
+          title: 'Disabled Intermediate Checkbox',
+          value: 5,
+          intermediate: true,
+          disabled: true,
+        },
+      ]}
+    />
+  </Form>
+);
+
+_MultipleCheckboxField.storyName = 'MultipleCheckbox';
+
 export const _DatePickerField = () => (
   <Form>
     <DatePickerField name="field" label="Date Picker Field" />
@@ -312,6 +337,95 @@ SelectFieldInFieldLabel.parameters = {
     },
   },
 };
+
+export const CompactSelectField = props => (
+  <CompactSelect
+    defaultValue="opt_one"
+    options={[
+      {value: 'opt_one', label: 'Option One'},
+      {value: 'opt_two', label: 'Option Two'},
+    ]}
+    {...props}
+  />
+);
+
+CompactSelectField.storyName = 'Select - Compact';
+CompactSelectField.parameters = {
+  docs: {
+    description: {
+      story: 'Compact',
+    },
+  },
+};
+CompactSelectField.args = {
+  menuTitle: '',
+  isSearchable: false,
+  isDisabled: false,
+  isClearable: false,
+  isLoading: false,
+  multiple: false,
+  placeholder: 'Search…',
+  closeOnSelect: true,
+  shouldCloseOnBlur: true,
+  isDismissable: true,
+  offset: 8,
+  crossOffset: 0,
+  containerPadding: 8,
+  placement: 'bottom left',
+  triggerProps: {
+    prefix: 'Prefix',
+  },
+};
+CompactSelectField.argTypes = {
+  placement: {
+    options: [
+      'top',
+      'bottom',
+      'left',
+      'right',
+      'top left',
+      'top right',
+      'bottom left',
+      'bottom right',
+      'left top',
+      'left bottom',
+      'right top',
+      'right bottom',
+    ],
+    control: {type: 'radio'},
+  },
+};
+
+export const CompositeSelectField = props => (
+  <CompositeSelect
+    sections={[
+      {
+        label: 'Group 1',
+        value: 'group_1',
+        defaultValue: 'choice_one',
+        options: [
+          {value: 'choice_one', label: 'Choice One'},
+          {value: 'choice_two', label: 'Choice Two'},
+        ],
+      },
+      {
+        label: 'Group 2',
+        value: 'group_2',
+        defaultValue: ['choice_three'],
+        multiple: true,
+        options: [
+          {value: 'choice_three', label: 'Choice Three'},
+          {value: 'choice_four', label: 'Choice Four'},
+        ],
+      },
+    ]}
+    {...props}
+  />
+);
+CompositeSelectField.storyName = 'Select - Composite';
+CompositeSelectField.args = {...CompactSelectField.args};
+delete CompositeSelectField.args.multiple;
+CompositeSelectField.argTypes = CompactSelectField.argTypes;
 
 export const NonInlineField = () => (
   <Form>

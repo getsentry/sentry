@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 

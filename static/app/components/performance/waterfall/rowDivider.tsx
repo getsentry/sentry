@@ -81,6 +81,7 @@ export function EmbeddedTransactionBadge({
 }) {
   return (
     <BadgeBorder
+      data-test-id="embedded-transaction-badge"
       borderColor="border"
       onClick={event => {
         event.stopPropagation();

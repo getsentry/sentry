@@ -8,7 +8,6 @@ import Confirm from 'sentry/components/confirm';
 import Field from 'sentry/components/forms/field';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import FormModel from 'sentry/components/forms/model';
 import {Panel, PanelHeader} from 'sentry/components/panels';
 import teamSettingsFields from 'sentry/data/forms/teamSettingsFields';
 import {IconDelete} from 'sentry/icons';
@@ -16,8 +15,6 @@ import {t, tct} from 'sentry/locale';
 import {Organization, Scope, Team} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
-
-import TeamModel from './model';
 
 type Props = RouteComponentProps<{orgId: string; teamId: string}, {}> & {
   organization: Organization;
@@ -27,8 +24,6 @@ type Props = RouteComponentProps<{orgId: string; teamId: string}, {}> & {
 type State = AsyncView['state'];
 
 class TeamSettings extends AsyncView<Props, State> {
-  model = new TeamModel(this.props.params.orgId, this.props.params.teamId);
-
   getTitle() {
     return 'Team Settings';
   }
@@ -37,8 +32,10 @@ class TeamSettings extends AsyncView<Props, State> {
     return [];
   }
 
-  handleSubmitSuccess = (resp: any, model: FormModel, id?: string) => {
-    updateTeamSuccess(resp.slug, resp);
+  handleSubmitSuccess: Form['props']['onSubmitSuccess'] = (resp, model, id) => {
+    // Use the old slug when triggering the update so we correctly replace the
+    // previous team in the store
+    updateTeamSuccess(this.props.team.slug, resp);
     if (id === 'slug') {
       addSuccessMessage(t('Team name changed'));
       browserHistory.replace(
@@ -54,15 +51,15 @@ class TeamSettings extends AsyncView<Props, State> {
   };
 
   renderBody() {
-    const {organization, team} = this.props;
+    const {organization, team, params} = this.props;
 
     const access = new Set<Scope>(organization.access);
 
     return (
       <Fragment>
         <Form
-          model={this.model}
           apiMethod="PUT"
+          apiEndpoint={`/teams/${params.orgId}/${team.slug}/`}
           saveOnBlur
           allowUndo
           onSubmitSuccess={this.handleSubmitSuccess}

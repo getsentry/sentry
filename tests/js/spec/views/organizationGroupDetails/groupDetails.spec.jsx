@@ -6,6 +6,7 @@ import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import GroupStore from 'sentry/stores/groupStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import GroupDetails from 'sentry/views/organizationGroupDetails';
 
 jest.unmock('sentry/utils/recreateRoute');
@@ -65,9 +66,11 @@ describe('groupDetails', () => {
 
   const createWrapper = (props = {selection}) => {
     return render(
-      <GroupDetails organization={organization} {...router} selection={props.selection}>
-        <MockComponent />
-      </GroupDetails>,
+      <OrganizationContext.Provider value={organization}>
+        <GroupDetails {...router} selection={props.selection}>
+          <MockComponent />
+        </GroupDetails>
+      </OrganizationContext.Provider>,
       {context: routerContext}
     );
   };
@@ -104,6 +107,17 @@ describe('groupDetails', () => {
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/first-last-release/`,
       body: {firstRelease: group.firstRelease, lastRelease: group.lastRelease},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      statusCode: 200,
+      body: {
+        data: [
+          {
+            'count()': 1,
+          },
+        ],
+      },
     });
   });
 
@@ -161,7 +175,7 @@ describe('groupDetails', () => {
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(
       await screen.findByText(
-        "You'll need to join a team with access before you can view this data."
+        'No teams have access to this project yet. Ask an admin to add your team to this project.'
       )
     ).toBeInTheDocument();
   });

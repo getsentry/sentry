@@ -15,10 +15,13 @@ import SentryTypes from 'sentry/sentryTypes';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
 import {AvatarProject, Group, Organization, Project} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import {EntrySpanTree, EntryType, Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {TableData} from 'sentry/utils/discover/discoverQuery';
+import EventView from 'sentry/utils/discover/eventView';
+import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import Projects from 'sentry/utils/projects';
 import recreateRoute from 'sentry/utils/recreateRoute';
@@ -54,7 +57,9 @@ type State = {
   loading: boolean;
   loadingEvent: boolean;
   loadingGroup: boolean;
+  loadingReplaysCount: boolean;
   project: null | (Pick<Project, 'id' | 'slug'> & Partial<Pick<Project, 'platform'>>);
+  replaysCount: number | null;
   event?: Event;
 };
 
@@ -75,6 +80,7 @@ class GroupDetails extends Component<Props, State> {
 
   componentDidMount() {
     this.fetchData(true);
+    this.fetchReplaysCount();
     this.updateReprocessingProgress();
   }
 
@@ -114,10 +120,12 @@ class GroupDetails extends Component<Props, State> {
       loading: true,
       loadingEvent: true,
       loadingGroup: true,
+      loadingReplaysCount: true,
       error: false,
       eventError: false,
       errorType: null,
       project: null,
+      replaysCount: null,
     };
   }
 
@@ -130,7 +138,7 @@ class GroupDetails extends Component<Props, State> {
       group_id: parseInt(params.groupId, 10),
       // Alert properties track if the user came from email/slack alerts
       alert_date:
-        typeof alert_date === 'string' ? getUtcDateString(alert_date) : undefined,
+        typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
       alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
       alert_type: typeof alert_type === 'string' ? alert_type : undefined,
     });
@@ -153,18 +161,35 @@ class GroupDetails extends Component<Props, State> {
     return `/issues/${this.props.params.groupId}/first-last-release/`;
   }
 
+  addPerformanceSpecificEntries(event: Event) {
+    const performanceData = event.contexts.performance_issue;
+
+    const spanTreeEntry: EntrySpanTree = {
+      data: {
+        focusedSpanIds: performanceData.spans,
+      },
+      type: EntryType.SPANTREE,
+    };
+
+    const updatedEvent = {
+      ...event,
+      entries: [event.entries[0], spanTreeEntry, event.entries[1]],
+    };
+    return updatedEvent;
+  }
+
   async getEvent(group?: Group) {
     if (group) {
       this.setState({loadingEvent: true, eventError: false});
     }
 
-    const {params, environments, api} = this.props;
+    const {params, environments, api, organization} = this.props;
     const orgSlug = params.orgId;
     const groupId = params.groupId;
     const eventId = params?.eventId || 'latest';
     const projectId = group?.project?.slug;
     try {
-      const event = await fetchGroupEvent(
+      let event = await fetchGroupEvent(
         api,
         orgSlug,
         groupId,
@@ -172,6 +197,16 @@ class GroupDetails extends Component<Props, State> {
         environments,
         projectId
       );
+
+      if (
+        organization.features.includes('performance-extraneous-spans-poc') &&
+        event.contexts.performance_issue
+      ) {
+        const updatedEvent = this.addPerformanceSpecificEntries(event);
+        // TODO (udameli): fix typing here
+        event = updatedEvent as Event;
+      }
+
       this.setState({event, loading: false, eventError: false, loadingEvent: false});
     } catch (err) {
       // This is an expected error, capture to Sentry so that it is not considered as an unhandled error
@@ -353,6 +388,39 @@ class GroupDetails extends Component<Props, State> {
     GroupStore.onPopulateReleases(this.props.params.groupId, releases);
   }
 
+  async fetchReplaysCount() {
+    const {api, location, organization, params} = this.props;
+    const {groupId} = params;
+
+    this.setState({loadingReplaysCount: true});
+
+    const eventView = EventView.fromSavedQuery({
+      id: '',
+      name: `Replays in issue ${groupId}`,
+      version: 2,
+      fields: ['count()'],
+      query: `issue.id:${groupId}`,
+      projects: [],
+    });
+
+    try {
+      const [data] = await doDiscoverQuery<TableData>(
+        api,
+        `/organizations/${organization.slug}/events/`,
+        eventView.getEventsAPIPayload(location)
+      );
+
+      const replaysCount = data.data[0]['count()'].toString();
+
+      this.setState({
+        replaysCount: parseInt(replaysCount, 10),
+        loadingReplaysCount: false,
+      });
+    } catch (err) {
+      this.setState({loadingReplaysCount: false});
+    }
+  }
+
   async fetchData(trackView = false) {
     const {api, isGlobalSelectionReady, params} = this.props;
 
@@ -406,7 +474,7 @@ class GroupDetails extends Component<Props, State> {
           // If it is defined, we do not so that our back button will bring us
           // to the issue list page with no project selected instead of the
           // locked project.
-          locationWithProject.query.project = project.id;
+          locationWithProject.query = {...locationWithProject.query, project: project.id};
         }
         // We delete _allp from the URL to keep the hack a bit cleaner, but
         // this is not an ideal solution and will ultimately be replaced with
@@ -496,8 +564,8 @@ class GroupDetails extends Component<Props, State> {
   }
 
   renderContent(project: AvatarProject, group: Group) {
-    const {children, environments} = this.props;
-    const {loadingEvent, eventError, event} = this.state;
+    const {children, environments, organization} = this.props;
+    const {loadingEvent, eventError, event, replaysCount} = this.state;
 
     const {currentTab, baseUrl} = this.getCurrentRouteInfo(group);
     const groupReprocessingStatus = getGroupReprocessingStatus(group);
@@ -509,14 +577,20 @@ class GroupDetails extends Component<Props, State> {
     };
 
     if (currentTab === Tab.DETAILS) {
-      childProps = {
-        ...childProps,
-        event,
-        loadingEvent,
-        eventError,
-        groupReprocessingStatus,
-        onRetry: () => this.remountComponent(),
-      };
+      if (group.id !== event?.groupID && !eventError) {
+        // if user pastes only the event id into the url, but it's from another group, redirect to correct group/event
+        const redirectUrl = `/organizations/${organization.slug}/issues/${event?.groupID}/events/${event?.id}/`;
+        this.props.router.push(redirectUrl);
+      } else {
+        childProps = {
+          ...childProps,
+          event,
+          loadingEvent,
+          eventError,
+          groupReprocessingStatus,
+          onRetry: () => this.remountComponent(),
+        };
+      }
     }
 
     if (currentTab === Tab.TAGS) {
@@ -530,6 +604,7 @@ class GroupDetails extends Component<Props, State> {
           project={project as Project}
           event={event}
           group={group}
+          replaysCount={replaysCount}
           currentTab={currentTab}
           baseUrl={baseUrl}
         />
@@ -588,11 +663,7 @@ class GroupDetails extends Component<Props, State> {
           <PageFiltersContainer
             skipLoadLastUsed
             forceProject={project}
-            showDateSelector={false}
             shouldForceProject
-            lockedMessageSubject={t('issue')}
-            showIssueStreamLink
-            showProjectSettingsLink
           >
             {this.renderPageContent()}
           </PageFiltersContainer>

@@ -24,7 +24,7 @@ import {Organization, UserReport} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
-import UserFeedbackEmpty from './userFeedbackEmpty';
+import {UserFeedbackEmpty} from './userFeedbackEmpty';
 import {getQuery} from './utils';
 
 type State = AsyncView['state'] & {
@@ -121,7 +121,7 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
     const allIssuesQuery = {...query, status: ''};
 
     return (
-      <PageFiltersContainer hideGlobalHeader>
+      <PageFiltersContainer>
         <PageContent>
           <NoProjectMessage organization={organization}>
             <div data-test-id="user-feedback">
@@ -166,14 +166,14 @@ const Filters = styled('div')`
   display: grid;
   grid-template-columns: minmax(0, max-content) max-content;
   justify-content: start;
-  gap: ${space(1)};
+  gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: minmax(0, 1fr) max-content;
   }
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: minmax(0, 1fr);
   }
 `;

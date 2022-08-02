@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import {DeviceName} from 'sentry/components/deviceName';
 import FileSize from 'sentry/components/fileSize';
 import {t} from 'sentry/locale';
@@ -16,11 +14,17 @@ type Output = {
   value?: React.ReactNode;
 };
 
-function getDeviceKnownDataDetails(
-  event: Event,
-  data: DeviceData,
-  type: DeviceKnownDataType
-): Output {
+type Props = {
+  data: DeviceData;
+  event: Event;
+  type: DeviceKnownDataType;
+};
+
+export function getDeviceKnownDataDetails({
+  data,
+  event,
+  type,
+}: Props): Output | undefined {
   switch (type) {
     case DeviceKnownDataType.NAME:
       return {
@@ -180,7 +184,9 @@ function getDeviceKnownDataDetails(
     case DeviceKnownDataType.LANGUAGE:
       return {
         subject: t('Language'),
-        value: getFullLanguageDescription(data.language),
+        value: defined(data.language)
+          ? getFullLanguageDescription(data.language)
+          : undefined,
       };
     case DeviceKnownDataType.LOW_MEMORY:
       return {
@@ -238,11 +244,6 @@ function getDeviceKnownDataDetails(
         value: data.screen_width_pixels,
       };
     default:
-      return {
-        subject: type,
-        value: data[type],
-      };
+      return undefined;
   }
 }
-
-export default getDeviceKnownDataDetails;

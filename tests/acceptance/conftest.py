@@ -1,5 +1,6 @@
 import os
 import subprocess
+import sys
 import time
 
 from sentry.utils import json
@@ -27,17 +28,16 @@ def pytest_configure(config):
             last_built = int(time.time()) - data["built"]
 
             if last_built <= 3600:
-                print(  # noqa: B314
-                    """
+                print(
+                    f"""
 ###################
 #
-# Frontend assets last built {} seconds ago, skipping rebuilds for another {} seconds.
+# Frontend assets last built {last_built} seconds ago, skipping rebuilds for another {3600 - last_built} seconds.
 # Delete the file: `.webpack.meta` to rebuild.
 #
 ###################
-                """.format(
-                        last_built, 3600 - last_built
-                    )
+                """,
+                    file=sys.stderr,
                 )
                 return
     except OSError:
@@ -45,7 +45,7 @@ def pytest_configure(config):
     except Exception:
         pass
 
-    print(  # noqa: B314
+    print(
         """
 ###################
 #

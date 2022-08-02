@@ -1,7 +1,4 @@
-import type SvgIcon from 'sentry/icons/svgIcon';
 import type {Color} from 'sentry/utils/theme';
-
-export type IconProps = React.ComponentProps<typeof SvgIcon>;
 
 export enum BreadcrumbLevelType {
   FATAL = 'fatal',
@@ -10,6 +7,7 @@ export enum BreadcrumbLevelType {
   INFO = 'info',
   DEBUG = 'debug',
   UNDEFINED = 'undefined',
+  LOG = 'log',
 }
 
 export enum BreadcrumbType {
@@ -28,13 +26,14 @@ export enum BreadcrumbType {
   SYSTEM = 'system',
   SESSION = 'session',
   TRANSACTION = 'transaction',
+  INIT = 'init',
 }
 
 type BreadcrumbTypeBase = {
   level: BreadcrumbLevelType;
   // it's recommended
   category?: string | null;
-  event_id?: string;
+  event_id?: string | null;
   message?: string;
   timestamp?: string;
 };
@@ -53,7 +52,7 @@ export type BreadcrumbTypeSession = {
 
 export type BreadcrumbTypeNavigation = {
   type: BreadcrumbType.NAVIGATION;
-  data?: {
+  data?: null | {
     from?: string;
     to?: string;
   };
@@ -61,7 +60,7 @@ export type BreadcrumbTypeNavigation = {
 
 export type BreadcrumbTypeHTTP = {
   type: BreadcrumbType.HTTP;
-  data?: {
+  data?: null | {
     method?:
       | 'POST'
       | 'PUT'
@@ -89,11 +88,11 @@ export type BreadcrumbTypeDefault = {
     | BreadcrumbType.WARNING
     | BreadcrumbType.ERROR
     | BreadcrumbType.DEFAULT
+    | BreadcrumbType.INIT
     | BreadcrumbType.SESSION
     | BreadcrumbType.SYSTEM
-    | BreadcrumbType.SESSION
     | BreadcrumbType.TRANSACTION;
-  data?: Record<string, any>;
+  data?: Record<string, any> | null;
 } & BreadcrumbTypeBase;
 
 export type RawCrumb =
@@ -106,3 +105,9 @@ export type Crumb = RawCrumb & {
   description: string;
   id: number;
 };
+
+export function isBreadcrumbTypeDefault(
+  breadcrumb: RawCrumb
+): breadcrumb is BreadcrumbTypeDefault {
+  return ![BreadcrumbType.HTTP, BreadcrumbType.NAVIGATION].includes(breadcrumb.type);
+}

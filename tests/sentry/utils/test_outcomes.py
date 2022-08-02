@@ -66,10 +66,7 @@ def test_track_outcome_default(settings):
     """
 
     # Provide a billing cluster config that should be ignored
-    settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES_BILLING] = {
-        "cluster": "different",
-        "topic": "new-topic",
-    }
+    settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES_BILLING] = {"cluster": "different"}
 
     track_outcome(
         org_id=1,
@@ -84,7 +81,7 @@ def test_track_outcome_default(settings):
 
     assert outcomes.outcomes_publisher
     (topic_name, payload), _ = outcomes.outcomes_publisher.publish.call_args
-    assert topic_name == settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES]["topic"]
+    assert topic_name == settings.KAFKA_OUTCOMES
 
     data = json.loads(payload)
     del data["timestamp"]
@@ -120,7 +117,7 @@ def test_track_outcome_billing(settings):
 
     assert outcomes.outcomes_publisher
     (topic_name, _), _ = outcomes.outcomes_publisher.publish.call_args
-    assert topic_name == settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES]["topic"]
+    assert topic_name == settings.KAFKA_OUTCOMES
 
     assert outcomes.billing_publisher is None
 
@@ -133,7 +130,6 @@ def test_track_outcome_billing_topic(settings):
 
     settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES_BILLING] = {
         "cluster": settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES]["cluster"],
-        "topic": "new-topic",
     }
 
     track_outcome(
@@ -148,7 +144,7 @@ def test_track_outcome_billing_topic(settings):
 
     assert outcomes.outcomes_publisher
     (topic_name, _), _ = outcomes.outcomes_publisher.publish.call_args
-    assert topic_name == "new-topic"
+    assert topic_name == settings.KAFKA_OUTCOMES_BILLING
 
     assert outcomes.billing_publisher is None
 
@@ -158,10 +154,7 @@ def test_track_outcome_billing_cluster(settings):
     Checks that outcomes are routed to the dedicated cluster and topic.
     """
 
-    settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES_BILLING] = {
-        "cluster": "different",
-        "topic": "new-topic",
-    }
+    settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES_BILLING] = {"cluster": "different"}
 
     track_outcome(
         org_id=1,
@@ -175,6 +168,6 @@ def test_track_outcome_billing_cluster(settings):
 
     assert outcomes.billing_publisher
     (topic_name, _), _ = outcomes.billing_publisher.publish.call_args
-    assert topic_name == "new-topic"
+    assert topic_name == settings.KAFKA_OUTCOMES_BILLING
 
     assert outcomes.outcomes_publisher is None

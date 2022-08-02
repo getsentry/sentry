@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import type {LineSeriesOption} from 'echarts';
 import moment from 'moment';
 
@@ -29,7 +29,7 @@ type Props = Omit<ChartProps, 'series'> &
  *
  * See https://exceljet.net/chart-type/100-stacked-bar-chart
  */
-export default class PercentageAreaChart extends React.Component<Props> {
+export default class PercentageAreaChart extends Component<Props> {
   static defaultProps: DefaultProps = {
     // TODO(billyvg): Move these into BaseChart? or get rid completely
     getDataItemName: ({name}) => name,
@@ -95,7 +95,6 @@ export default class PercentageAreaChart extends React.Component<Props> {
             ].join('');
           },
         }}
-        xAxis={{boundaryGap: true}}
         yAxis={{
           min: 0,
           max: 100,

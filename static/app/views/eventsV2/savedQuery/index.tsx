@@ -1,11 +1,12 @@
-import * as React from 'react';
+import {Fragment, PureComponent} from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {urlEncode} from '@sentry/utils';
+import {FocusScope} from '@react-aria/focus';
+import {AnimatePresence} from 'framer-motion';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
@@ -14,33 +15,77 @@ import Banner from 'sentry/components/banner';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
-import DropdownControl from 'sentry/components/dropdownControl';
 import InputControl from 'sentry/components/forms/controls/input';
 import {Hovercard} from 'sentry/components/hovercard';
+import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconDelete, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project, SavedQuery} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
-import {getColumnsAndAggregates} from 'sentry/utils/discover/fields';
-import {DisplayModes} from 'sentry/utils/discover/types';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
+import useOverlay from 'sentry/utils/useOverlay';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
-import {
-  DashboardWidgetSource,
-  DisplayType,
-  WidgetQuery,
-} from 'sentry/views/dashboardsV2/types';
+import {handleAddQueryToDashboard} from 'sentry/views/eventsV2/utils';
 
-import {
-  displayModeToDisplayType,
-  handleCreateQuery,
-  handleDeleteQuery,
-  handleUpdateQuery,
-} from './utils';
+import {handleCreateQuery, handleDeleteQuery, handleUpdateQuery} from './utils';
+
+type SaveAsDropdownProps = {
+  disabled: boolean;
+  modifiedHandleCreateQuery: (e: React.MouseEvent<Element>) => void;
+  onChangeInput: (e: React.FormEvent<HTMLInputElement>) => void;
+  queryName: string;
+};
+
+function SaveAsDropdown({
+  queryName,
+  disabled,
+  onChangeInput,
+  modifiedHandleCreateQuery,
+}: SaveAsDropdownProps) {
+  const {isOpen, triggerProps, overlayProps, arrowProps} = useOverlay();
+  const theme = useTheme();
+
+  return (
+    <div>
+      <Button
+        {...triggerProps}
+        icon={<IconStar />}
+        aria-label={t('Save as')}
+        disabled={disabled}
+      >
+        {`${t('Save as')}\u2026`}
+      </Button>
+      <AnimatePresence>
+        {isOpen && (
+          <FocusScope contain restoreFocus autoFocus>
+            <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayProps}>
+              <StyledOverlay arrowProps={arrowProps} animated>
+                <SaveAsInput
+                  type="text"
+                  name="query_name"
+                  placeholder={t('Display name')}
+                  value={queryName || ''}
+                  onChange={onChangeInput}
+                  disabled={disabled}
+                />
+                <SaveAsButton
+                  onClick={modifiedHandleCreateQuery}
+                  priority="primary"
+                  disabled={disabled || !queryName}
+                >
+                  {t('Save for Org')}
+                </SaveAsButton>
+              </StyledOverlay>
+            </PositionWrapper>
+          </FocusScope>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 type DefaultProps = {
   disabled: boolean;
@@ -58,9 +103,6 @@ type Props = DefaultProps & {
    * passed down only because it is needed for navigation.
    */
   location: Location;
-  onIncompatibleAlertQuery: React.ComponentProps<
-    typeof CreateAlertFromViewButton
-  >['onIncompatibleQuery'];
   organization: Organization;
   projects: Project[];
   router: InjectedRouter;
@@ -77,7 +119,7 @@ type State = {
   queryName: string;
 };
 
-class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
+class SavedQueryButtonGroup extends PureComponent<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     const {eventView: nextEventView, savedQuery, savedQueryLoading, yAxis} = nextProps;
 
@@ -150,11 +192,6 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     isEditingQuery: false,
 
     queryName: '',
-  };
-
-  onBlurInput = (event: React.FormEvent<HTMLInputElement>) => {
-    const target = event.target as HTMLInputElement;
-    this.setState({queryName: target.value});
   };
 
   onChangeInput = (event: React.FormEvent<HTMLInputElement>) => {
@@ -236,102 +273,15 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     });
   };
 
-  handleAddDashboardWidget = () => {
-    const {organization, router, location, eventView, savedQuery, yAxis} = this.props;
-
-    const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
-    const defaultTableFields = eventView.fields.map(({field}) => field);
-    const {columns, aggregates} = getColumnsAndAggregates(defaultTableFields);
-    const sort = eventView.sorts[0];
-
-    const defaultWidgetQuery: WidgetQuery = {
-      name: '',
-      aggregates: [
-        ...(displayType === DisplayType.TOP_N ? aggregates : []),
-        ...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()']),
-      ],
-      columns: [...(displayType === DisplayType.TOP_N ? columns : [])],
-      fields: [
-        ...(displayType === DisplayType.TOP_N ? defaultTableFields : []),
-        ...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()']),
-      ],
-      conditions: eventView.query,
-      orderby: sort ? `${sort.kind === 'desc' ? '-' : ''}${sort.field}` : '',
-    };
-
-    trackAdvancedAnalyticsEvent('discover_views.add_to_dashboard.modal_open', {
-      organization,
-      saved_query: !!savedQuery,
-    });
-
-    const defaultTitle =
-      savedQuery?.name ?? (eventView.name !== 'All Events' ? eventView.name : undefined);
-
-    if (organization.features.includes('new-widget-builder-experience')) {
-      router.push({
-        pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
-        query: {
-          ...location.query,
-          source: DashboardWidgetSource.DISCOVERV2,
-          defaultWidgetQuery: urlEncode(defaultWidgetQuery),
-          defaultTableColumns: defaultTableFields,
-          defaultTitle,
-          displayType,
-        },
-      });
-      return;
-    }
-
-    openAddDashboardWidgetModal({
-      organization,
-      source: DashboardWidgetSource.DISCOVERV2,
-      defaultWidgetQuery,
-      defaultTableColumns: defaultTableFields,
-      defaultTitle,
-      displayType,
-    });
-  };
-
   renderButtonSaveAs(disabled: boolean) {
     const {queryName} = this.state;
-    /**
-     * For a great UX, we should focus on `ButtonSaveInput` when `ButtonSave`
-     * is clicked. However, `DropdownControl` wraps them in a FunctionComponent
-     * which breaks `React.createRef`.
-     */
     return (
-      <DropdownControl
-        alignRight
-        menuWidth="220px"
-        priority="default"
-        buttonProps={{
-          'aria-label': t('Save as'),
-          showChevron: false,
-          icon: <IconStar />,
-          disabled,
-        }}
-        label={`${t('Save as')}\u{2026}`}
-      >
-        <ButtonSaveDropDown onClick={SavedQueryButtonGroup.stopEventPropagation}>
-          <ButtonSaveInput
-            type="text"
-            name="query_name"
-            placeholder={t('Display name')}
-            value={queryName || ''}
-            onBlur={this.onBlurInput}
-            onChange={this.onChangeInput}
-            disabled={disabled}
-          />
-          <Button
-            onClick={this.handleCreateQuery}
-            priority="primary"
-            disabled={disabled || !this.state.queryName}
-            style={{width: '100%'}}
-          >
-            {t('Save for Org')}
-          </Button>
-        </ButtonSaveDropDown>
-      </DropdownControl>
+      <SaveAsDropdown
+        queryName={queryName}
+        onChangeInput={this.onChangeInput}
+        modifiedHandleCreateQuery={this.handleCreateQuery}
+        disabled={disabled}
+      />
     );
   }
 
@@ -353,7 +303,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     // Existing query with edits, show save and save as.
     if (!isNewQuery && isEditingQuery) {
       return (
-        <React.Fragment>
+        <Fragment>
           <Button
             onClick={this.handleUpdateQuery}
             data-test-id="discover2-savedquery-button-update"
@@ -363,7 +313,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
             {t('Save Changes')}
           </Button>
           {this.renderButtonSaveAs(disabled)}
-        </React.Fragment>
+        </Fragment>
       );
     }
 
@@ -390,7 +340,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
   }
 
   renderButtonCreateAlert() {
-    const {eventView, organization, projects, onIncompatibleAlertQuery} = this.props;
+    const {eventView, organization, projects} = this.props;
 
     return (
       <GuideAnchor target="create_alert_from_discover">
@@ -398,8 +348,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
           eventView={eventView}
           organization={organization}
           projects={projects}
-          onIncompatibleQuery={onIncompatibleAlertQuery}
-          onSuccess={this.handleCreateAlertSuccess}
+          onClick={this.handleCreateAlertSuccess}
           referrer="discover"
           aria-label={t('Create Alert')}
           data-test-id="discover2-create-from-discover"
@@ -409,11 +358,20 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
   }
 
   renderButtonAddToDashboard() {
+    const {organization, eventView, savedQuery, yAxis, router} = this.props;
     return (
       <Button
         key="add-dashboard-widget-from-discover"
         data-test-id="add-dashboard-widget-from-discover"
-        onClick={this.handleAddDashboardWidget}
+        onClick={() =>
+          handleAddQueryToDashboard({
+            organization,
+            eventView,
+            query: savedQuery,
+            yAxis,
+            router,
+          })
+        }
       >
         {t('Add to Dashboard')}
       </Button>
@@ -467,20 +425,22 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 }
 
 const ResponsiveButtonBar = styled(ButtonBar)`
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     margin-top: 0;
   }
 `;
 
-const ButtonSaveDropDown = styled('div')`
-  display: flex;
-  flex-direction: column;
+const StyledOverlay = styled(Overlay)`
   padding: ${space(1)};
-  gap: ${space(1)};
 `;
 
-const ButtonSaveInput = styled(InputControl)`
+const SaveAsButton = styled(Button)`
+  width: 100%;
+`;
+
+const SaveAsInput = styled(InputControl)`
   height: 40px;
+  margin-bottom: ${space(1)};
 `;
 
 const IconUpdate = styled('div')`

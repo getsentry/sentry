@@ -1,6 +1,7 @@
 from django.utils import timezone
 
 from sentry.models import (
+    Integration,
     OnboardingTask,
     OnboardingTaskStatus,
     OrganizationOnboardingTask,
@@ -14,6 +15,7 @@ from sentry.signals import (
     first_event_pending,
     first_event_received,
     first_transaction_received,
+    integration_added,
     issue_tracker_used,
     member_invited,
     member_joined,
@@ -26,6 +28,13 @@ from sentry.utils.samples import load_data
 
 
 class OrganizationOnboardingTaskTest(TestCase):
+    def create_integration(self, provider, external_id=9999):
+        return Integration.objects.create(
+            provider=provider,
+            name="test",
+            external_id=external_id,
+        )
+
     def test_no_existing_task(self):
         now = timezone.now()
         project = self.create_project(first_event=now)
@@ -305,6 +314,70 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
+    def test_integration_added(self):
+        integration_added.send(
+            integration=self.create_integration("slack", 1234),
+            organization=self.organization,
+            user=self.user,
+            sender=type(self.organization),
+        )
+        task = OrganizationOnboardingTask.objects.get(
+            organization=self.organization,
+            task=OnboardingTask.INTEGRATIONS,
+            status=OnboardingTaskStatus.COMPLETE,
+        )
+        assert task is not None
+        assert task.data["providers"] == ["slack"]
+
+        # Adding a second integration
+        integration_added.send(
+            integration=self.create_integration("github", 4567),
+            organization=self.organization,
+            user=self.user,
+            sender=type(self.organization),
+        )
+        task = OrganizationOnboardingTask.objects.get(
+            organization=self.organization,
+            task=OnboardingTask.INTEGRATIONS,
+            status=OnboardingTaskStatus.COMPLETE,
+        )
+        assert "slack" in task.data["providers"]
+        assert "github" in task.data["providers"]
+        assert len(task.data["providers"]) == 2
+
+        # Installing an integration a second time doesn't produce
+        # duplicated providers in the list
+        integration_added.send(
+            integration=self.create_integration("slack", 4747),
+            organization=self.organization,
+            user=self.user,
+            sender=type(self.organization),
+        )
+        task = OrganizationOnboardingTask.objects.get(
+            organization=self.organization,
+            task=OnboardingTask.INTEGRATIONS,
+            status=OnboardingTaskStatus.COMPLETE,
+        )
+        assert "slack" in task.data["providers"]
+        assert "github" in task.data["providers"]
+        assert len(task.data["providers"]) == 2
+
+    def test_metric_added(self):
+        alert_rule_created.send(
+            rule=Rule(id=1),
+            project=self.project,
+            user=self.user,
+            rule_type="metric",
+            sender=type(Rule),
+            is_api_token=False,
+        )
+        task = OrganizationOnboardingTask.objects.get(
+            organization=self.organization,
+            task=OnboardingTask.METRIC_ALERT,
+            status=OnboardingTaskStatus.COMPLETE,
+        )
+        assert task is not None
+
     def test_onboarding_complete(self):
         now = timezone.now()
         user = self.create_user(email="test@example.org")
@@ -376,11 +449,25 @@ class OrganizationOnboardingTaskTest(TestCase):
             user=user,
             sender=type(IssueTrackingPlugin),
         )
+        integration_added.send(
+            integration=self.create_integration("slack"),
+            organization=self.organization,
+            user=user,
+            sender=type(project),
+        )
         alert_rule_created.send(
             rule=Rule(id=1),
             project=self.project,
             user=self.user,
             rule_type="issue",
+            sender=type(Rule),
+            is_api_token=False,
+        )
+        alert_rule_created.send(
+            rule=Rule(id=1),
+            project=self.project,
+            user=self.user,
+            rule_type="metric",
             sender=type(Rule),
             is_api_token=False,
         )

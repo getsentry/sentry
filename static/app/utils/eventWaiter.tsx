@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Client} from 'sentry/api';
@@ -8,10 +8,18 @@ import withApi from 'sentry/utils/withApi';
 
 const DEFAULT_POLL_INTERVAL = 5000;
 
-const recordAnalyticsFirstEvent = ({key, organization, project}) =>
+const recordAnalyticsFirstEvent = ({
+  key,
+  organization,
+  project,
+}: {
+  key: 'first_event_recieved' | 'first_transaction_recieved';
+  organization: Organization;
+  project: Project;
+}) =>
   analytics(`onboarding_v2.${key}`, {
     org_id: parseInt(organization.id, 10),
-    project: parseInt(project.id, 10),
+    project: String(project.id),
   });
 
 /**
@@ -41,7 +49,7 @@ type EventWaiterState = {
  * This is a render prop component that can be used to wait for the first event
  * of a project to be received via polling.
  */
-class EventWaiter extends React.Component<EventWaiterProps, EventWaiterState> {
+class EventWaiter extends Component<EventWaiterProps, EventWaiterState> {
   state: EventWaiterState = {
     firstIssue: null,
   };

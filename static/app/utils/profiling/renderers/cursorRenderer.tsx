@@ -1,7 +1,7 @@
 import {mat3, vec2} from 'gl-matrix';
 
 import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
-import {getContext, Rect, resizeCanvasToDisplaySize} from '../gl/utils';
+import {getContext, Rect} from '../gl/utils';
 
 class CursorRenderer {
   canvas: HTMLCanvasElement;
@@ -13,15 +13,17 @@ class CursorRenderer {
     this.canvas = canvas;
     this.theme = theme;
     this.context = getContext(canvas, '2d');
-
-    resizeCanvasToDisplaySize(canvas);
   }
 
-  draw(configSpaceCursor: vec2, physicalSpace: Rect, configToPhysicalSpace: mat3): void {
+  draw(
+    configSpaceCursor: vec2,
+    physicalSpace: Rect,
+    configViewToPhysicalSpace: mat3
+  ): void {
     const physicalSpaceCursor = vec2.transformMat3(
       vec2.create(),
       configSpaceCursor,
-      configToPhysicalSpace
+      configViewToPhysicalSpace
     );
 
     this.context.beginPath();

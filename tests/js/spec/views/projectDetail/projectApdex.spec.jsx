@@ -1,15 +1,10 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import ProjectApdexScoreCard from 'sentry/views/projectDetail/projectScoreCards/projectApdexScoreCard';
 
 describe('ProjectDetail > ProjectApdex', function () {
   let endpointMock;
-  const {organization} = initializeOrg({
-    organization: {
-      apdexThreshold: 500,
-    },
-  });
+  const organization = TestStubs.Organization({apdexThreshold: 500});
 
   const selection = {
     projects: [1],
@@ -21,7 +16,7 @@ describe('ProjectDetail > ProjectApdex', function () {
 
   beforeEach(function () {
     endpointMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/eventsv2/`,
+      url: `/organizations/${organization.slug}/events/`,
       body: {
         data: [],
       },
@@ -34,10 +29,9 @@ describe('ProjectDetail > ProjectApdex', function () {
   });
 
   it('calls api with apdex', function () {
-    organization.features = ['discover-basic', 'performance-view'];
-    mountWithTheme(
+    render(
       <ProjectApdexScoreCard
-        organization={organization}
+        organization={{...organization, features: ['discover-basic', 'performance-view']}}
         selection={selection}
         isProjectStabilized
         hasTransactions
@@ -46,7 +40,7 @@ describe('ProjectDetail > ProjectApdex', function () {
 
     expect(endpointMock).toHaveBeenNthCalledWith(
       1,
-      `/organizations/${organization.slug}/eventsv2/`,
+      `/organizations/${organization.slug}/events/`,
       expect.objectContaining({
         query: {
           environment: [],

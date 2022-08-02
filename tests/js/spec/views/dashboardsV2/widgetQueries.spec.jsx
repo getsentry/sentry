@@ -1,7 +1,9 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
+import {DashboardFilterKeys} from 'sentry/views/dashboardsV2/types';
+import {DashboardsMEPContext} from 'sentry/views/dashboardsV2/widgetCard/dashboardsMEPContext';
 import WidgetQueries, {
   flattenMultiSeriesDataWithGrouping,
 } from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
@@ -22,6 +24,7 @@ describe('Dashboards > WidgetQueries', function () {
         aggregates: ['count()'],
         columns: [],
         name: 'errors',
+        orderby: '',
       },
       {
         conditions: 'event.type:default',
@@ -29,6 +32,7 @@ describe('Dashboards > WidgetQueries', function () {
         aggregates: ['count()'],
         columns: [],
         name: 'default',
+        orderby: '',
       },
     ],
   };
@@ -43,6 +47,7 @@ describe('Dashboards > WidgetQueries', function () {
         aggregates: ['count()'],
         columns: [],
         name: 'errors',
+        orderby: '',
       },
     ],
   };
@@ -57,6 +62,7 @@ describe('Dashboards > WidgetQueries', function () {
         aggregates: [],
         columns: ['sdk.name'],
         name: 'sdk',
+        orderby: '',
       },
     ],
   };
@@ -65,6 +71,7 @@ describe('Dashboards > WidgetQueries', function () {
     environments: ['prod'],
     datetime: {
       period: '14d',
+      orderby: '',
     },
   };
 
@@ -85,7 +92,7 @@ describe('Dashboards > WidgetQueries', function () {
       body: [],
       match: [MockApiClient.matchQuery({query: 'event.type:default'})],
     });
-    const wrapper = mountWithTheme(
+    render(
       <WidgetQueries
         api={api}
         widget={multipleQueryWidget}
@@ -93,16 +100,69 @@ describe('Dashboards > WidgetQueries', function () {
         selection={selection}
       >
         {() => <div data-test-id="child" />}
-      </WidgetQueries>,
-      initialData.routerContext
+      </WidgetQueries>
     );
-    await tick();
-    await tick();
 
     // Child should be rendered and 2 requests should be sent.
-    expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
+    await screen.findByTestId('child');
     expect(errorMock).toHaveBeenCalledTimes(1);
     expect(defaultMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('appends dashboard filters to events series request', async function () {
+    const mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: [],
+    });
+    render(
+      <WidgetQueries
+        api={api}
+        widget={singleQueryWidget}
+        organization={initialData.organization}
+        selection={selection}
+        dashboardFilters={{[DashboardFilterKeys.RELEASE]: ['abc@1.2.0', 'abc@1.3.0']}}
+      >
+        {() => <div data-test-id="child" />}
+      </WidgetQueries>
+    );
+
+    await screen.findByTestId('child');
+    expect(mock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: 'event.type:error release:[abc@1.2.0,abc@1.3.0] ',
+        }),
+      })
+    );
+  });
+
+  it('appends dashboard filters to events table request', async function () {
+    const mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      body: [],
+    });
+    render(
+      <WidgetQueries
+        api={api}
+        widget={tableWidget}
+        organization={initialData.organization}
+        selection={selection}
+        dashboardFilters={{[DashboardFilterKeys.RELEASE]: ['abc@1.3.0']}}
+      >
+        {() => <div data-test-id="child" />}
+      </WidgetQueries>
+    );
+
+    await screen.findByTestId('child');
+    expect(mock).toHaveBeenCalledWith(
+      '/organizations/org-slug/eventsv2/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: 'event.type:error release:abc@1.3.0 ',
+        }),
+      })
+    );
   });
 
   it('sets errorMessage when the first request fails', async function () {
@@ -119,7 +179,7 @@ describe('Dashboards > WidgetQueries', function () {
     });
 
     let error = '';
-    const wrapper = mountWithTheme(
+    render(
       <WidgetQueries
         api={api}
         widget={multipleQueryWidget}
@@ -130,14 +190,11 @@ describe('Dashboards > WidgetQueries', function () {
           error = errorMessage;
           return <div data-test-id="child" />;
         }}
-      </WidgetQueries>,
-      initialData.routerContext
+      </WidgetQueries>
     );
-    await tick();
-    await tick();
 
     // Child should be rendered and 2 requests should be sent.
-    expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
+    await screen.findByTestId('child');
     expect(okMock).toHaveBeenCalledTimes(1);
     expect(failMock).toHaveBeenCalledTimes(1);
     expect(error).toEqual('Bad request data');
@@ -157,7 +214,7 @@ describe('Dashboards > WidgetQueries', function () {
         period: '90d',
       },
     };
-    const wrapper = mountWithTheme(
+    render(
       <WidgetQueries
         api={api}
         widget={widget}
@@ -165,13 +222,11 @@ describe('Dashboards > WidgetQueries', function () {
         selection={longSelection}
       >
         {() => <div data-test-id="child" />}
-      </WidgetQueries>,
-      initialData.routerContext
+      </WidgetQueries>
     );
-    await tick();
 
     // Child should be rendered and interval bumped up.
-    expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
+    await screen.findByTestId('child');
     expect(errorMock).toHaveBeenCalledTimes(1);
     expect(errorMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
@@ -193,7 +248,7 @@ describe('Dashboards > WidgetQueries', function () {
     });
     const widget = {...singleQueryWidget, interval: '1m'};
 
-    const wrapper = mountWithTheme(
+    render(
       <WidgetQueries
         api={api}
         widget={widget}
@@ -201,13 +256,11 @@ describe('Dashboards > WidgetQueries', function () {
         selection={selection}
       >
         {() => <div data-test-id="child" />}
-      </WidgetQueries>,
-      initialData.routerContext
+      </WidgetQueries>
     );
-    await tick();
 
     // Child should be rendered and interval bumped up.
-    expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
+    await screen.findByTestId('child');
     expect(errorMock).toHaveBeenCalledTimes(1);
     expect(errorMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
@@ -227,7 +280,7 @@ describe('Dashboards > WidgetQueries', function () {
     });
 
     let childProps = undefined;
-    const wrapper = mountWithTheme(
+    render(
       <WidgetQueries
         api={api}
         widget={tableWidget}
@@ -238,21 +291,17 @@ describe('Dashboards > WidgetQueries', function () {
           childProps = props;
           return <div data-test-id="child" />;
         }}
-      </WidgetQueries>,
-      initialData.routerContext
+      </WidgetQueries>
     );
-    await tick();
-    await tick();
 
     // Child should be rendered and 1 requests should be sent.
-    expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
+    await screen.findByTestId('child');
     expect(tableMock).toHaveBeenCalledTimes(1);
     expect(tableMock).toHaveBeenCalledWith(
       '/organizations/org-slug/eventsv2/',
       expect.objectContaining({
         query: expect.objectContaining({
           query: 'event.type:error',
-          name: 'SDK',
           field: ['sdk.name'],
           statsPeriod: '14d',
           environment: ['prod'],
@@ -294,6 +343,7 @@ describe('Dashboards > WidgetQueries', function () {
           aggregates: [],
           columns: ['sdk.name'],
           name: 'sdk',
+          orderby: '',
         },
         {
           conditions: 'title:ValueError',
@@ -301,12 +351,13 @@ describe('Dashboards > WidgetQueries', function () {
           aggregates: [],
           columns: ['sdk.name'],
           name: 'title',
+          orderby: '',
         },
       ],
     };
 
     let childProps = undefined;
-    const wrapper = mountWithTheme(
+    render(
       <WidgetQueries
         api={api}
         widget={widget}
@@ -317,14 +368,11 @@ describe('Dashboards > WidgetQueries', function () {
           childProps = props;
           return <div data-test-id="child" />;
         }}
-      </WidgetQueries>,
-      initialData.routerContext
+      </WidgetQueries>
     );
-    await tick();
-    await tick();
 
     // Child should be rendered and 2 requests should be sent.
-    expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
+    await screen.findByTestId('child');
     expect(firstQuery).toHaveBeenCalledTimes(1);
     expect(secondQuery).toHaveBeenCalledTimes(1);
 
@@ -343,7 +391,7 @@ describe('Dashboards > WidgetQueries', function () {
     });
 
     let childProps = undefined;
-    const wrapper = mountWithTheme(
+    render(
       <WidgetQueries
         api={api}
         widget={{
@@ -357,6 +405,7 @@ describe('Dashboards > WidgetQueries', function () {
               aggregates: [],
               columns: ['sdk.name'],
               name: 'sdk',
+              orderby: '',
             },
           ],
         }}
@@ -367,14 +416,11 @@ describe('Dashboards > WidgetQueries', function () {
           childProps = props;
           return <div data-test-id="child" />;
         }}
-      </WidgetQueries>,
-      initialData.routerContext
+      </WidgetQueries>
     );
-    await tick();
-    await tick();
 
     // Child should be rendered and 1 requests should be sent.
-    expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
+    await screen.findByTestId('child');
     expect(tableMock).toHaveBeenCalledTimes(1);
     expect(tableMock).toHaveBeenCalledWith(
       '/organizations/org-slug/eventsv2/',
@@ -382,7 +428,6 @@ describe('Dashboards > WidgetQueries', function () {
         query: expect.objectContaining({
           referrer: 'api.dashboards.bignumberwidget',
           query: 'event.type:error',
-          name: 'SDK',
           field: ['sdk.name'],
           statsPeriod: '14d',
           environment: ['prod'],
@@ -405,7 +450,7 @@ describe('Dashboards > WidgetQueries', function () {
     });
 
     let childProps = undefined;
-    const wrapper = mountWithTheme(
+    render(
       <WidgetQueries
         api={api}
         widget={{
@@ -419,6 +464,7 @@ describe('Dashboards > WidgetQueries', function () {
               aggregates: [],
               columns: ['count()'],
               name: 'sdk',
+              orderby: '',
             },
           ],
         }}
@@ -429,14 +475,11 @@ describe('Dashboards > WidgetQueries', function () {
           childProps = props;
           return <div data-test-id="child" />;
         }}
-      </WidgetQueries>,
-      initialData.routerContext
+      </WidgetQueries>
     );
-    await tick();
-    await tick();
 
     // Child should be rendered and 1 requests should be sent.
-    expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
+    await screen.findByTestId('child');
     expect(tableMock).toHaveBeenCalledTimes(1);
     expect(tableMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-geo/',
@@ -444,7 +487,6 @@ describe('Dashboards > WidgetQueries', function () {
         query: expect.objectContaining({
           referrer: 'api.dashboards.worldmapwidget',
           query: 'event.type:error',
-          name: 'SDK',
           field: ['count()'],
           statsPeriod: '14d',
           environment: ['prod'],
@@ -484,6 +526,7 @@ describe('Dashboards > WidgetQueries', function () {
           aggregates: [],
           columns: ['sdk.name'],
           name: 'sdk',
+          orderby: '',
         },
         {
           conditions: 'title:ValueError',
@@ -491,12 +534,13 @@ describe('Dashboards > WidgetQueries', function () {
           aggregates: [],
           columns: ['sdk.name'],
           name: 'title',
+          orderby: '',
         },
       ],
     };
 
     let childProps = undefined;
-    const wrapper = mountWithTheme(
+    render(
       <WidgetQueries
         api={api}
         widget={widget}
@@ -507,14 +551,11 @@ describe('Dashboards > WidgetQueries', function () {
           childProps = props;
           return <div data-test-id="child" />;
         }}
-      </WidgetQueries>,
-      initialData.routerContext
+      </WidgetQueries>
     );
-    await tick();
-    await tick();
 
     // Child should be rendered and 2 requests should be sent.
-    expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
+    await screen.findByTestId('child');
     expect(firstQuery).toHaveBeenCalledTimes(1);
     expect(secondQuery).toHaveBeenCalledTimes(1);
 
@@ -533,7 +574,7 @@ describe('Dashboards > WidgetQueries', function () {
       // Should be ignored for bars.
       interval: '5m',
     };
-    const wrapper = mountWithTheme(
+    render(
       <WidgetQueries
         api={api}
         widget={barWidget}
@@ -541,14 +582,11 @@ describe('Dashboards > WidgetQueries', function () {
         selection={selection}
       >
         {() => <div data-test-id="child" />}
-      </WidgetQueries>,
-      initialData.routerContext
+      </WidgetQueries>
     );
-    await tick();
-    await tick();
 
     // Child should be rendered and 1 requests should be sent.
-    expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
+    await screen.findByTestId('child');
     expect(errorMock).toHaveBeenCalledTimes(1);
   });
 
@@ -599,7 +637,7 @@ describe('Dashboards > WidgetQueries', function () {
       interval: '5m',
     };
     const child = jest.fn(() => <div data-test-id="child" />);
-    const wrapper = mountWithTheme(
+    render(
       <WidgetQueries
         api={api}
         widget={barWidget}
@@ -607,13 +645,10 @@ describe('Dashboards > WidgetQueries', function () {
         selection={selection}
       >
         {child}
-      </WidgetQueries>,
-      initialData.routerContext
+      </WidgetQueries>
     );
-    await tick();
-    await tick();
-    wrapper.update();
 
+    await screen.findByTestId('child');
     expect(defaultMock).toHaveBeenCalledTimes(1);
     expect(errorMock).toHaveBeenCalledTimes(1);
     expect(child).toHaveBeenLastCalledWith(
@@ -623,44 +658,6 @@ describe('Dashboards > WidgetQueries', function () {
           {data: [{name: 1000000, value: 100}], seriesName: 'default : count()'},
         ],
       })
-    );
-  });
-
-  it('calls events-stats with desired 1d interval when interval buckets would exceed 66 and calculated interval is higher fidelity', async function () {
-    const eventsStatsMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: [],
-    });
-    const areaWidget = {
-      ...singleQueryWidget,
-      displayType: 'area',
-      interval: '1d',
-    };
-    const wrapper = mountWithTheme(
-      <WidgetQueries
-        api={api}
-        widget={areaWidget}
-        organization={initialData.organization}
-        selection={{
-          ...selection,
-          datetime: {
-            period: '90d',
-          },
-        }}
-      >
-        {() => <div data-test-id="child" />}
-      </WidgetQueries>,
-      initialData.routerContext
-    );
-    await tick();
-    await tick();
-
-    // Child should be rendered and 1 requests should be sent.
-    expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
-    expect(eventsStatsMock).toHaveBeenCalledTimes(1);
-    expect(eventsStatsMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
-      expect.objectContaining({query: expect.objectContaining({interval: '1d'})})
     );
   });
 
@@ -674,7 +671,7 @@ describe('Dashboards > WidgetQueries', function () {
       displayType: 'area',
       interval: '5m',
     };
-    const wrapper = mountWithTheme(
+    render(
       <WidgetQueries
         api={api}
         widget={areaWidget}
@@ -687,18 +684,77 @@ describe('Dashboards > WidgetQueries', function () {
         }}
       >
         {() => <div data-test-id="child" />}
-      </WidgetQueries>,
-      initialData.routerContext
+      </WidgetQueries>
     );
-    await tick();
-    await tick();
 
     // Child should be rendered and 1 requests should be sent.
-    expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
+    await screen.findByTestId('child');
     expect(eventsStatsMock).toHaveBeenCalledTimes(1);
     expect(eventsStatsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({query: expect.objectContaining({interval: '4h'})})
+    );
+  });
+
+  it('does not re-query events and sets name in widgets', async function () {
+    const eventsStatsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: TestStubs.EventsStats(),
+    });
+    const lineWidget = {
+      ...singleQueryWidget,
+      displayType: 'line',
+      interval: '5m',
+    };
+    let childProps;
+    const {rerender} = render(
+      <WidgetQueries
+        api={api}
+        widget={lineWidget}
+        organization={initialData.organization}
+        selection={selection}
+      >
+        {props => {
+          childProps = props;
+          return <div data-test-id="child" />;
+        }}
+      </WidgetQueries>
+    );
+
+    expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(childProps.loading).toEqual(false));
+
+    // Simulate a re-render with a new query alias
+    rerender(
+      <WidgetQueries
+        api={api}
+        widget={{
+          ...lineWidget,
+          queries: [
+            {
+              conditions: 'event.type:error',
+              fields: ['count()'],
+              aggregates: ['count()'],
+              columns: [],
+              name: 'this query alias changed',
+              orderby: '',
+            },
+          ],
+        }}
+        organization={initialData.organization}
+        selection={selection}
+      >
+        {props => {
+          childProps = props;
+          return <div data-test-id="child" />;
+        }}
+      </WidgetQueries>
+    );
+
+    // Did not re-query
+    expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+    expect(childProps.timeseriesResults[0].seriesName).toEqual(
+      'this query alias changed : count()'
     );
   });
 
@@ -804,5 +860,158 @@ describe('Dashboards > WidgetQueries', function () {
         ],
       ]);
     });
+  });
+
+  it('charts send metricsEnhanced requests', async function () {
+    const {organization} = initialData;
+    const mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {
+        data: [
+          [
+            1000,
+            [
+              {
+                count: 100,
+              },
+            ],
+          ],
+        ],
+        isMetricsData: false,
+        start: 1000,
+        end: 2000,
+      },
+    });
+    const setIsMetricsMock = jest.fn();
+
+    const children = jest.fn(() => <div />);
+
+    render(
+      <DashboardsMEPContext.Provider
+        value={{
+          isMetricsData: undefined,
+          setIsMetricsData: setIsMetricsMock,
+        }}
+      >
+        <WidgetQueries
+          api={api}
+          widget={singleQueryWidget}
+          organization={{
+            ...organization,
+            features: [...organization.features, 'dashboards-mep'],
+          }}
+          selection={selection}
+        >
+          {children}
+        </WidgetQueries>
+      </DashboardsMEPContext.Provider>
+    );
+
+    expect(mock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({dataset: 'metricsEnhanced'}),
+      })
+    );
+
+    await waitFor(() => {
+      expect(setIsMetricsMock).toHaveBeenCalledWith(false);
+    });
+  });
+
+  it('tables send metricsEnhanced requests', async function () {
+    const {organization} = initialData;
+    const mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      body: {
+        meta: {title: 'string', isMetricsData: true},
+        data: [{title: 'ValueError'}],
+      },
+    });
+    const setIsMetricsMock = jest.fn();
+
+    const children = jest.fn(() => <div />);
+
+    render(
+      <DashboardsMEPContext.Provider
+        value={{
+          isMetricsData: undefined,
+          setIsMetricsData: setIsMetricsMock,
+        }}
+      >
+        <WidgetQueries
+          api={api}
+          widget={{...singleQueryWidget, displayType: 'table'}}
+          organization={{
+            ...organization,
+            features: [...organization.features, 'dashboards-mep'],
+          }}
+          selection={selection}
+        >
+          {children}
+        </WidgetQueries>
+      </DashboardsMEPContext.Provider>
+    );
+
+    expect(mock).toHaveBeenCalledWith(
+      '/organizations/org-slug/eventsv2/',
+      expect.objectContaining({
+        query: expect.objectContaining({dataset: 'metricsEnhanced'}),
+      })
+    );
+
+    await waitFor(() => {
+      expect(setIsMetricsMock).toHaveBeenCalledWith(true);
+    });
+  });
+
+  it('does not inject equation aliases for top N requests', async function () {
+    const testData = initializeOrg({
+      organization: {
+        ...TestStubs.Organization(),
+        features: ['new-widget-builder-experience-design'],
+      },
+    });
+    const eventsStatsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: [],
+    });
+    const areaWidget = {
+      displayType: 'area',
+      interval: '5m',
+      queries: [
+        {
+          conditions: 'event.type:error',
+          fields: [],
+          aggregates: ['count()', 'equation|count() * 2'],
+          columns: ['project'],
+          orderby: 'equation[0]',
+          name: '',
+        },
+      ],
+    };
+    render(
+      <WidgetQueries
+        api={api}
+        widget={areaWidget}
+        organization={testData.organization}
+        selection={selection}
+      >
+        {() => <div data-test-id="child" />}
+      </WidgetQueries>
+    );
+
+    // Child should be rendered and 1 requests should be sent.
+    await screen.findByTestId('child');
+    expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+    expect(eventsStatsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          field: ['project', 'count()', 'equation|count() * 2'],
+          orderby: 'equation[0]',
+        }),
+      })
+    );
   });
 });

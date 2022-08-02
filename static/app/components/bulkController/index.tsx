@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import intersection from 'lodash/intersection';
 import isEqual from 'lodash/isEqual';
 import uniq from 'lodash/uniq';
@@ -72,7 +72,7 @@ type Props = {
   onChange?: (props: State) => void;
 };
 
-class BulkController extends React.Component<Props, State> {
+class BulkController extends Component<Props, State> {
   state: State = this.getInitialState();
 
   getInitialState() {

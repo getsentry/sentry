@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 
 import click
 
+from sentry.runner.commands.devservices import get_docker_client
 from sentry.runner.decorators import configuration, log_options
 
 _DEFAULT_DAEMONS = {
@@ -30,7 +31,20 @@ _DEFAULT_DAEMONS = {
         "--force-offset-reset",
         "latest",
     ],
-    "metrics": ["sentry", "run", "ingest-metrics-consumer-2"],
+    "metrics-rh": [
+        "sentry",
+        "run",
+        "ingest-metrics-consumer-2",
+        "--ingest-profile",
+        "release-health",
+    ],
+    "metrics-perf": [
+        "sentry",
+        "run",
+        "ingest-metrics-consumer-2",
+        "--ingest-profile",
+        "performance",
+    ],
     "profiles": ["sentry", "run", "ingest-profiles"],
 }
 
@@ -58,7 +72,7 @@ def _get_daemon(name, *args, **kwargs):
     "--watchers/--no-watchers", default=True, help="Watch static files and recompile on changes."
 )
 @click.option("--workers/--no-workers", default=False, help="Run asynchronous workers.")
-@click.option("--ingest/--no-ingest", default=None, help="Run ingest services (including Relay).")
+@click.option("--ingest/--no-ingest", default=False, help="Run ingest services (including Relay).")
 @click.option(
     "--prefix/--no-prefix", default=True, help="Show the service name prefix and timestamp"
 )
@@ -101,6 +115,20 @@ def devserver(
     bind,
 ):
     "Starts a lightweight web server for development."
+
+    if ingest:
+        # Ingest requires kakfa+zookeeper to be running.
+        # They're too heavyweight to startup on-demand with devserver.
+        docker = get_docker_client()
+        containers = {c.name for c in docker.containers.list(filters={"status": "running"})}
+        if "sentry_zookeeper" not in containers or "sentry_kafka" not in containers:
+            raise SystemExit(
+                """
+Kafka + Zookeeper don't seem to be running.
+Make sure you have settings.SENTRY_USE_RELAY = True,
+and run `sentry devservices up kafka zookeeper`.
+"""
+            )
 
     if bind is None:
         bind = "127.0.0.1:8000"
@@ -206,13 +234,13 @@ def devserver(
                 # have a proxy/load-balancer in front in dev mode.
                 "http": f"{host}:{port}",
                 "protocol": "uwsgi",
-                # This is needed to prevent https://git.io/fj7Lw
+                # This is needed to prevent https://github.com/getsentry/sentry/blob/c6f9660e37fcd9c1bbda8ff4af1dcfd0442f5155/src/sentry/services/http.py#L70
                 "uwsgi-socket": None,
             }
         )
 
-    if ingest in (True, False):
-        settings.SENTRY_USE_RELAY = ingest
+    if ingest:
+        settings.SENTRY_USE_RELAY = True
 
     os.environ["SENTRY_USE_RELAY"] = "1" if settings.SENTRY_USE_RELAY else ""
 
@@ -249,7 +277,7 @@ def devserver(
                     "`SENTRY_USE_METRICS_DEV` can only be used when "
                     "`SENTRY_EVENTSTREAM=sentry.eventstream.kafka.KafkaEventStream`."
                 )
-            daemons += [_get_daemon("metrics")]
+            daemons += [_get_daemon("metrics-rh"), _get_daemon("metrics-perf")]
 
     if settings.SENTRY_USE_RELAY:
         daemons += [_get_daemon("ingest")]

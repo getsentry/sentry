@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {useEffect, useRef} from 'react';
 
 interface AutoplayVideoProps extends React.VideoHTMLAttributes<HTMLVideoElement> {
   'aria-label': string;
@@ -13,9 +13,9 @@ interface AutoplayVideoProps extends React.VideoHTMLAttributes<HTMLVideoElement>
  * See https://developer.mozilla.org/en-US/docs/Web/HTML/Element/video
  */
 function AutoplayVideo(props: AutoplayVideoProps) {
-  const videoRef = React.useRef<HTMLVideoElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (videoRef.current) {
       // Set muted as more browsers allow autoplay with muted video.
       // We can't use the muted prop because of a react bug.

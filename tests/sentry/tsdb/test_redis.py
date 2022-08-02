@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 
 import pytest
 import pytz
+from django.test import override_settings
 
 from sentry.testutils import TestCase
 from sentry.tsdb.base import ONE_DAY, ONE_HOUR, ONE_MINUTE, TSDBModel
@@ -28,6 +29,11 @@ def test_suppression_wrapper():
 
 
 class RedisTSDBTest(TestCase):
+    @override_settings(
+        SENTRY_OPTIONS={
+            "redis.clusters": {"tsdb": {"hosts": {i - 6: {"db": i} for i in range(6, 9)}}}
+        }
+    )
     def setUp(self):
         self.db = RedisTSDB(
             rollups=(
@@ -39,8 +45,11 @@ class RedisTSDBTest(TestCase):
             ),
             vnodes=64,
             enable_frequency_sketches=True,
-            hosts={i - 6: {"db": i} for i in range(6, 9)},
+            cluster="tsdb",
         )
+
+        # the point of this test is to demonstrate behaviour with a multi-host cluster
+        assert len(self.db.cluster.hosts) == 3
 
     def tearDown(self):
         with self.db.cluster.all() as client:
@@ -402,17 +411,14 @@ class RedisTSDBTest(TestCase):
             "organization:2": [("project:5", 1.5)],
         }
 
-        assert (
-            self.db.get_most_frequent(
-                model,
-                ("organization:1", "organization:2"),
-                now - timedelta(hours=1),
-                now,
-                rollup=rollup,
-                environment_id=0,
-            )
-            == {"organization:1": [], "organization:2": []}
-        )
+        assert self.db.get_most_frequent(
+            model,
+            ("organization:1", "organization:2"),
+            now - timedelta(hours=1),
+            now,
+            rollup=rollup,
+            environment_id=0,
+        ) == {"organization:1": [], "organization:2": []}
 
         timestamp = int(to_timestamp(now) // rollup) * rollup
 

@@ -24,7 +24,6 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
         )
 
         self.min_ago = before_now(minutes=1).replace(microsecond=0)
-        self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
 
     def create_event(self, **kwargs):
         if "spans" not in kwargs:
@@ -220,6 +219,20 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, "failing for max"
         assert response.data == {"max": ["A valid number is required."]}, "failing for max"
 
+    def test_bad_params_invalid_data_filter(self):
+        query = {
+            "project": [self.project.id],
+            "span": self.format_span("django.middleware", "cd" * 8),
+            "numBuckets": 50,
+            "dataFilter": "invalid",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 400, "failing for dataFilter"
+        assert response.data == {
+            "dataFilter": ['"invalid" is not a valid choice.']
+        }, "failing for dataFilter"
+
     def test_histogram_empty(self):
         num_buckets = 5
         query = {
@@ -314,3 +327,63 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
         for bucket in response.data:
             assert bucket["count"] == 0
         assert response.data[-1] == {"bin": max - 1, "count": 0}
+
+    def test_histogram_all_data_filter(self):
+        # populate with default spans
+        self.create_event()
+
+        spans = [
+            {
+                "same_process_as_parent": True,
+                "parent_span_id": "a" * 16,
+                "span_id": "e" * 16,
+                "start_timestamp": iso_format(self.min_ago + timedelta(seconds=1)),
+                "timestamp": iso_format(self.min_ago + timedelta(seconds=4)),
+                "op": "django.middleware",
+                "description": "middleware span",
+                "hash": "cd" * 8,
+                "exclusive_time": 60.0,
+            }
+        ]
+
+        # populate with an outlier span
+        self.create_event(spans=spans)
+        query = {
+            "project": [self.project.id],
+            "span": self.format_span("django.middleware", "cd" * 8),
+            "numBuckets": 10,
+            "dataFilter": "all",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert response.data[-1] == {"bin": 60, "count": 1}
+
+    def test_histogram_exclude_outliers_data_filter(self):
+        # populate with default spans
+        self.create_event()
+
+        spans = [
+            {
+                "same_process_as_parent": True,
+                "parent_span_id": "a" * 16,
+                "span_id": "e" * 16,
+                "start_timestamp": iso_format(self.min_ago + timedelta(seconds=1)),
+                "timestamp": iso_format(self.min_ago + timedelta(seconds=4)),
+                "op": "django.middleware",
+                "description": "middleware span",
+                "hash": "cd" * 8,
+                "exclusive_time": 60.0,
+            }
+        ]
+
+        # populate with an outlier span
+        self.create_event(spans=spans)
+        query = {
+            "project": [self.project.id],
+            "span": self.format_span("django.middleware", "cd" * 8),
+            "numBuckets": 10,
+            "dataFilter": "exclude_outliers",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert response.data[-1]["bin"] != 60

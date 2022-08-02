@@ -152,7 +152,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                 <Button
                   disabled={!canAddMembers}
                   priority="primary"
-                  size="small"
+                  size="sm"
                   onClick={this.handleSendInvite}
                 >
                   {pending ? t('Resend invite') : t('Resend SSO link')}
@@ -172,7 +172,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
         </div>
 
         {showRemoveButton || showLeaveButton ? (
-          <div>
+          <RightColumn>
             {showRemoveButton && canRemoveMember && (
               <Confirm
                 message={tct('Are you sure you want to remove [name] from [orgName]?', {
@@ -184,7 +184,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                 <Button
                   data-test-id="remove"
                   icon={<IconSubtract isCircled size="xs" />}
-                  size="small"
+                  size="sm"
                   busy={this.state.busy}
                 >
                   {t('Remove')}
@@ -195,7 +195,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
             {showRemoveButton && !canRemoveMember && (
               <Button
                 disabled
-                size="small"
+                size="sm"
                 title={t('You do not have access to remove members')}
                 icon={<IconSubtract isCircled size="xs" />}
               >
@@ -210,7 +210,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                 })}
                 onConfirm={this.handleLeave}
               >
-                <Button priority="danger" size="small" icon={<IconClose size="xs" />}>
+                <Button priority="danger" size="sm" icon={<IconClose size="xs" />}>
                   {t('Leave')}
                 </Button>
               </Confirm>
@@ -218,7 +218,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
 
             {showLeaveButton && !memberCanLeave && (
               <Button
-                size="small"
+                size="sm"
                 icon={<IconClose size="xs" />}
                 disabled
                 title={t(
@@ -228,7 +228,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                 {t('Leave')}
               </Button>
             )}
-          </div>
+          </RightColumn>
         ) : null}
       </StyledPanelItem>
     );
@@ -237,9 +237,17 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
 
 const StyledPanelItem = styled(PanelItem)`
   display: grid;
-  grid-template-columns: minmax(150px, 2fr) minmax(90px, 1fr) minmax(120px, 1fr) 90px;
+  grid-template-columns: minmax(150px, 4fr) minmax(90px, 2fr) minmax(120px, 2fr) minmax(
+      100px,
+      1fr
+    );
   gap: ${space(2)};
   align-items: center;
+`;
+// Force action button at the end to align to right
+const RightColumn = styled('div')`
+  display: flex;
+  justify-content: flex-end;
 `;
 
 const Section = styled('div')`
@@ -256,14 +264,14 @@ const MemberDescription = styled(Link)`
 
 const UserName = styled('div')`
   display: block;
-  font-size: ${p => p.theme.fontSizeLarge};
   overflow: hidden;
+  font-size: ${p => p.theme.fontSizeMedium};
   text-overflow: ellipsis;
 `;
 
 const Email = styled('div')`
-  color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
   overflow: hidden;
   text-overflow: ellipsis;
 `;

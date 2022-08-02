@@ -3,8 +3,9 @@ from unittest.mock import Mock
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.auth import access
-from sentry.auth.access import Access
+from sentry.auth.access import Access, NoAccess
 from sentry.models import (
+    ApiKey,
     AuthIdentity,
     AuthProvider,
     ObjectStatus,
@@ -14,6 +15,7 @@ from sentry.models import (
     UserRole,
 )
 from sentry.testutils import TestCase
+from sentry.testutils.helpers import with_feature
 
 
 class FromUserTest(TestCase):
@@ -128,6 +130,8 @@ class FromUserTest(TestCase):
             assert result.has_project_access(project)
             assert result.has_projects_access([project])
             assert result.has_project_scope(project, "project:read")
+            assert result.has_any_project_scope(project, ["project:read", "project:admin"])
+
             # owners should have access but not membership
             assert result.has_project_membership(project) is False
 
@@ -152,6 +156,7 @@ class FromUserTest(TestCase):
             assert not result.has_project_access(project)
             assert not result.has_projects_access([project])
             assert not result.has_project_scope(project, "project:read")
+            assert not result.has_any_project_scope(project, ["project:read", "project:admin"])
             assert not result.has_project_membership(project)
 
     def test_member_no_teams_open_membership(self):
@@ -175,6 +180,9 @@ class FromUserTest(TestCase):
             assert result.has_project_access(project)
             assert result.has_projects_access([project])
             assert result.has_project_scope(project, "project:read")
+            assert not result.has_project_scope(project, "project:write")
+            assert result.has_any_project_scope(project, ["project:read", "project:write"])
+            assert not result.has_any_project_scope(project, ["project:write", "project:admin"])
             assert not result.has_project_membership(project)
 
     def test_team_restricted_org_member_access(self):
@@ -195,7 +203,27 @@ class FromUserTest(TestCase):
             assert result.has_project_access(project)
             assert result.has_projects_access([project])
             assert result.has_project_scope(project, "project:read")
+            assert not result.has_project_scope(project, "project:write")
+            assert result.has_any_project_scope(project, ["project:read", "project:write"])
+            assert not result.has_any_project_scope(project, ["project:write", "project:admin"])
             assert result.has_project_membership(project)
+
+    @with_feature("organizations:team-roles")
+    def test_has_scope_from_team_role(self):
+        user = self.create_user()
+        organization = self.create_organization()
+        team = self.create_team(organization=organization)
+        project = self.create_project(organization=organization, teams=[team])
+        member = self.create_member(organization=organization, user=user)
+        self.create_team_membership(team, member, role="admin")
+
+        request = self.make_request(user=user)
+        results = [access.from_user(user, organization), access.from_request(request, organization)]
+
+        for result in results:
+            assert not result.has_scope("team:admin")
+            assert result.has_team_scope(team, "team:admin")
+            assert result.has_project_scope(project, "team:admin")
 
     def test_unlinked_sso(self):
         user = self.create_user()
@@ -330,6 +358,100 @@ class FromRequestTest(TestCase):
         assert result.has_team_access(self.team1)
         assert result.projects == frozenset()
         assert result.has_project_access(self.project1)
+
+    def test_member_role_in_organization_closed_membership(self):
+        # disable default allow_joinleave
+        self.org.update(flags=0)
+        member_user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=member_user, organization=self.org, role="member", teams=[self.team1]
+        )
+
+        request = self.make_request(member_user, is_superuser=False)
+        result = access.from_request(request, self.org)
+
+        assert result.role == "member"
+        assert result.teams == frozenset({self.team1})
+        assert result.has_team_access(self.team1)
+        assert result.projects == frozenset({self.project1})
+        assert result.has_project_access(self.project1)
+        assert result.has_project_membership(self.project1)
+        assert not result.has_project_membership(self.project2)
+
+        # member_user should not have visibility to other teams or projects
+        assert not result.has_global_access
+        assert not result.has_team_access(self.team2)
+        assert not result.has_project_access(self.project2)
+
+    def test_member_role_in_organization_open_membership(self):
+        self.org.flags.allow_joinleave = True
+        self.org.save()
+        member_user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=member_user, organization=self.org, role="member", teams=[self.team1]
+        )
+
+        request = self.make_request(member_user, is_superuser=False)
+        result = access.from_request(request, self.org)
+
+        assert result.role == "member"
+        assert result.teams == frozenset({self.team1})
+        assert result.has_team_access(self.team1)
+        assert result.projects == frozenset({self.project1})
+        assert result.has_project_access(self.project1)
+        assert result.has_project_membership(self.project1)
+        assert not result.has_project_membership(self.project2)
+
+        # member_user should have visibility to other teams or projects
+        assert result.has_global_access
+        assert result.has_team_access(self.team2)
+        assert result.has_project_access(self.project2)
+
+    def test_with_valid_auth(self):
+        user = self.create_user()
+        organization = self.create_organization()
+
+        member_team = self.create_team(organization=organization)
+        member_project = self.create_project(organization=organization, teams=[member_team])
+        non_member_team = self.create_team(organization=organization)
+        non_member_project = self.create_project(organization=organization, teams=[non_member_team])
+        self.create_member(user=user, organization=organization, role="admin", teams=[member_team])
+
+        request = self.make_request()
+        request.auth = ApiKey.objects.create(organization=organization, allowed_origins="*")
+        result = access.from_request(request, organization)
+
+        assert result.teams == frozenset({})
+        assert result.has_team_access(member_team)
+        assert result.has_team_access(non_member_team)
+        assert result.projects == frozenset({})
+        assert result.has_project_access(member_project)
+        assert result.has_project_access(non_member_project)
+        assert result.has_project_membership(member_project) is False
+        assert result.has_project_membership(non_member_project) is False
+        assert result.has_global_access
+
+    def test_with_invalid_auth(self):
+        self.create_user()
+        organization = self.create_organization()
+        other_organization = self.create_organization()
+
+        team = self.create_team(organization=organization)
+        project = self.create_project(organization=organization, teams=[team])
+
+        request = self.make_request()
+        # Using an API key for another org should be invalid
+        request.auth = ApiKey.objects.create(organization=other_organization, allowed_origins="*")
+        result = access.from_request(request, organization)
+
+        assert result == NoAccess()
+
+        assert result.teams == frozenset({})
+        assert result.has_team_access(team) is False
+        assert result.projects == frozenset({})
+        assert result.has_project_access(project) is False
+        assert result.has_project_membership(project) is False
+        assert result.has_global_access is False
 
 
 class FromSentryAppTest(TestCase):

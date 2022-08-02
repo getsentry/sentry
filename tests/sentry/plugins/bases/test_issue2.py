@@ -1,5 +1,7 @@
 from unittest import mock
 
+import pytest
+
 from sentry.models import GroupMeta, User
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
@@ -56,7 +58,7 @@ class GetAuthForUserTest(TestCase):
     def test_requires_auth_provider(self):
         user = self._get_mock_user()
         p = IssueTrackingPlugin2()
-        self.assertRaises(AssertionError, p.get_auth_for_user, user)
+        pytest.raises(AssertionError, p.get_auth_for_user, user)
 
     def test_returns_none_on_missing_identity(self):
         user = self._get_mock_user()

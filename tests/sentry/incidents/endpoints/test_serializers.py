@@ -1,6 +1,8 @@
 from unittest.mock import patch
 
+import pytest
 import responses
+from django.test import override_settings
 from exam import fixture
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
@@ -15,6 +17,7 @@ from sentry.incidents.logic import (
 from sentry.incidents.models import AlertRule, AlertRuleThresholdType, AlertRuleTriggerAction
 from sentry.incidents.serializers import (
     ACTION_TARGET_TYPE_TO_STRING,
+    QUERY_TYPE_VALID_DATASETS,
     STRING_TO_ACTION_TARGET_TYPE,
     STRING_TO_ACTION_TYPE,
     AlertRuleSerializer,
@@ -22,9 +25,12 @@ from sentry.incidents.serializers import (
     AlertRuleTriggerSerializer,
 )
 from sentry.models import ACTOR_TYPES, Environment, Integration
-from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.testutils import TestCase
 from sentry.utils import json
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 class TestAlertRuleSerializer(TestCase):
@@ -34,7 +40,7 @@ class TestAlertRuleSerializer(TestCase):
             "name": "hello",
             "owner": self.user.id,
             "time_window": 10,
-            "dataset": QueryDatasets.EVENTS.value,
+            "dataset": Dataset.Events.value,
             "query": "level:error",
             "threshold_type": 0,
             "resolve_threshold": 100,
@@ -64,7 +70,7 @@ class TestAlertRuleSerializer(TestCase):
     @fixture
     def valid_transaction_params(self):
         params = self.valid_params.copy()
-        params["dataset"] = QueryDatasets.TRANSACTIONS.value
+        params["dataset"] = Dataset.Transactions.value
         params["event_types"] = [SnubaQueryEventType.EventType.TRANSACTION.name.lower()]
         return params
 
@@ -75,13 +81,6 @@ class TestAlertRuleSerializer(TestCase):
     @fixture
     def context(self):
         return {"organization": self.organization, "access": self.access, "user": self.user}
-
-    def Any(self, cls):
-        class Any:
-            def __eq__(self, other):
-                return isinstance(other, cls)
-
-        return Any()
 
     def run_fail_validation_test(self, params, errors):
         base_params = self.valid_params.copy()
@@ -134,10 +133,59 @@ class TestAlertRuleSerializer(TestCase):
         )
 
     def test_dataset(self):
-        invalid_values = [
-            "Invalid dataset, valid values are %s" % [item.value for item in QueryDatasets]
-        ]
+        invalid_values = ["Invalid dataset, valid values are %s" % [item.value for item in Dataset]]
         self.run_fail_validation_test({"dataset": "events_wrong"}, {"dataset": invalid_values})
+        valid_datasets_for_type = sorted(
+            dataset.name.lower()
+            for dataset in QUERY_TYPE_VALID_DATASETS[SnubaQuery.Type.PERFORMANCE]
+        )
+        self.run_fail_validation_test(
+            {
+                "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                "dataset": Dataset.Events.value,
+            },
+            {
+                "nonFieldErrors": [
+                    f"Invalid dataset for this query type. Valid datasets are {valid_datasets_for_type}"
+                ]
+            },
+        )
+        valid_datasets_for_type = sorted(
+            dataset.name.lower() for dataset in QUERY_TYPE_VALID_DATASETS[SnubaQuery.Type.ERROR]
+        )
+        self.run_fail_validation_test(
+            {
+                "queryType": SnubaQuery.Type.ERROR.value,
+                "dataset": Dataset.Metrics.value,
+            },
+            {
+                "nonFieldErrors": [
+                    f"Invalid dataset for this query type. Valid datasets are {valid_datasets_for_type}"
+                ]
+            },
+        )
+        self.run_fail_validation_test(
+            {
+                "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                "dataset": Dataset.PerformanceMetrics.value,
+            },
+            {
+                "nonFieldErrors": [
+                    "This project does not have access to the `generic_metrics` dataset"
+                ]
+            },
+        )
+        with self.feature("organizations:metrics-performance-alerts"):
+            base_params = self.valid_params.copy()
+            base_params["queryType"] = SnubaQuery.Type.PERFORMANCE.value
+            base_params["eventTypes"] = [SnubaQueryEventType.EventType.TRANSACTION.name.lower()]
+            base_params["dataset"] = Dataset.PerformanceMetrics.value
+            base_params["query"] = ""
+            serializer = AlertRuleSerializer(context=self.context, data=base_params)
+            assert serializer.is_valid(), serializer.errors
+            alert_rule = serializer.save()
+            assert alert_rule.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
+            assert alert_rule.snuba_query.dataset == Dataset.PerformanceMetrics.value
 
     def test_aggregate(self):
         self.run_fail_validation_test(
@@ -199,14 +247,8 @@ class TestAlertRuleSerializer(TestCase):
         serializer = AlertRuleSerializer(context=self.context, data=self.valid_transaction_params)
         assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
-        assert alert_rule.snuba_query.dataset == QueryDatasets.TRANSACTIONS.value
+        assert alert_rule.snuba_query.dataset == Dataset.Transactions.value
         assert alert_rule.snuba_query.aggregate == "count()"
-
-    def test_query_project(self):
-        self.run_fail_validation_test(
-            {"query": f"project:{self.project.slug}"},
-            {"query": ["Project is an invalid search term"]},
-        )
 
     def test_decimal(self):
         params = self.valid_transaction_params.copy()
@@ -412,7 +454,7 @@ class TestAlertRuleSerializer(TestCase):
         )
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
         assert serializer.is_valid()
-        with self.assertRaises(serializers.ValidationError):
+        with pytest.raises(serializers.ValidationError):
             serializer.save()
 
         # Make sure the rule was not created.
@@ -483,10 +525,10 @@ class TestAlertRuleSerializer(TestCase):
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
         # error is raised during save
         assert serializer.is_valid()
-        with self.assertRaises(ChannelLookupTimeoutError) as err:
+        with pytest.raises(ChannelLookupTimeoutError) as excinfo:
             serializer.save()
         assert (
-            str(err.exception)
+            str(excinfo.value)
             == "Could not find channel my-channel. We have timed out trying to look for it."
         )
 
@@ -516,9 +558,9 @@ class TestAlertRuleSerializer(TestCase):
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
         # error is raised during save
         assert serializer.is_valid()
-        with self.assertRaises(serializers.ValidationError) as err:
+        with pytest.raises(serializers.ValidationError) as excinfo:
             serializer.save()
-        assert err.exception.detail == {"nonFieldErrors": ["Team does not exist"]}
+        assert excinfo.value.detail == {"nonFieldErrors": ["Team does not exist"]}
         mock_get_channel_id.assert_called_with(self.integration, "my-channel", 10)
 
     def test_event_types(self):
@@ -645,6 +687,17 @@ class TestAlertRuleSerializer(TestCase):
         alert_rule = serializer.save()
         assert alert_rule.comparison_delta is None
         assert alert_rule.snuba_query.resolution == DEFAULT_ALERT_RULE_RESOLUTION * 60
+
+    @override_settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=1)
+    def test_enforce_max_subscriptions(self):
+        serializer = AlertRuleSerializer(context=self.context, data=self.valid_params)
+        assert serializer.is_valid(), serializer.errors
+        serializer.save()
+        serializer = AlertRuleSerializer(context=self.context, data=self.valid_params)
+        assert serializer.is_valid(), serializer.errors
+        with pytest.raises(serializers.ValidationError) as excinfo:
+            serializer.save()
+        assert excinfo.value.detail[0] == "You may not exceed 1 metric alerts per organization"
 
 
 class TestAlertRuleTriggerSerializer(TestCase):
@@ -845,7 +898,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
         )
         serializer = AlertRuleTriggerActionSerializer(context=self.context, data=base_params)
         assert serializer.is_valid()
-        with self.assertRaises(serializers.ValidationError):
+        with pytest.raises(serializers.ValidationError):
             serializer.save()
 
     @responses.activate
@@ -995,39 +1048,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
             {"sentryApp": ["Missing parameter: sentry_app_installation_uuid"]},
         )
 
-    @responses.activate
-    def test_sentry_app_action_creator_fails(self):
-        responses.add(
-            method=responses.POST,
-            url="https://example.com/sentry/alert-rule",
-            status=400,
-            body="Invalid channel.",
-        )
-        self.run_fail_validation_test(
-            {
-                "type": AlertRuleTriggerAction.get_registered_type(
-                    AlertRuleTriggerAction.Type.SENTRY_APP
-                ).slug,
-                "target_type": ACTION_TARGET_TYPE_TO_STRING[
-                    AlertRuleTriggerAction.TargetType.SENTRY_APP
-                ],
-                "target_identifier": "1",
-                "sentry_app": self.sentry_app.id,
-                "sentry_app_config": {"channel": "#santry"},
-                "sentry_app_installation_uuid": self.sentry_app_installation.uuid,
-            },
-            {"sentryApp": ["Super Awesome App: Invalid channel."]},
-        )
-
-    @responses.activate
     def test_create_and_update_sentry_app_action_success(self):
-        responses.add(
-            method=responses.POST,
-            url="https://example.com/sentry/alert-rule",
-            status=200,
-            json={},
-        )
-
         serializer = AlertRuleTriggerActionSerializer(
             context=self.context,
             data={

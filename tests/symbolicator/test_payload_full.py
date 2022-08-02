@@ -10,8 +10,9 @@ from django.urls import reverse
 from sentry import eventstore
 from sentry.models import File, ProjectDebugFile
 from sentry.testutils import RelayStoreHelper, TransactionTestCase
+from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from tests.symbolicator import get_fixture_path, insta_snapshot_stacktrace_data
+from tests.symbolicator import insta_snapshot_stacktrace_data
 
 # IMPORTANT:
 # For these tests to run, write `symbolicator.enabled: true` into your
@@ -89,7 +90,7 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
 
         out = BytesIO()
         f = zipfile.ZipFile(out, "w")
-        f.write(get_fixture_path("hello.dsym"), "dSYM/hello")
+        f.write(get_fixture_path("native", "hello.dsym"), "dSYM/hello")
         f.close()
 
         response = self.client.post(
@@ -104,9 +105,7 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
         assert response.status_code == 201, response.content
         assert len(response.data) == 1
 
-        with self.feature({"organizations:images-loaded-v2": False}):
-            event = self.post_and_retrieve_event(REAL_RESOLVING_EVENT_DATA)
-
+        event = self.post_and_retrieve_event(REAL_RESOLVING_EVENT_DATA)
         assert event.data["culprit"] == "main"
         insta_snapshot_stacktrace_data(self, event.data)
 
@@ -115,7 +114,7 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
             name="crash.pdb", type="default", headers={"Content-Type": "text/x-breakpad"}
         )
 
-        path = get_fixture_path("windows.sym")
+        path = get_fixture_path("native", "windows.sym")
         with open(path, "rb") as f:
             file.putfile(f)
 
@@ -164,16 +163,14 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
             "timestamp": iso_format(before_now(seconds=1)),
         }
 
-        with self.feature({"organizations:images-loaded-v2": False}):
-            event = self.post_and_retrieve_event(event_data)
+        event = self.post_and_retrieve_event(event_data)
         assert event.data["culprit"] == "main"
         insta_snapshot_stacktrace_data(self, event.data)
 
     def test_missing_dsym(self):
         self.login_as(user=self.user)
 
-        with self.feature({"organizations:images-loaded-v2": False}):
-            event = self.post_and_retrieve_event(REAL_RESOLVING_EVENT_DATA)
+        event = self.post_and_retrieve_event(REAL_RESOLVING_EVENT_DATA)
         assert event.data["culprit"] == "unknown"
         insta_snapshot_stacktrace_data(self, event.data)
 
@@ -183,8 +180,7 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
         payload = dict(project=self.project.id, **REAL_RESOLVING_EVENT_DATA)
         del payload["debug_meta"]
 
-        with self.feature({"organizations:images-loaded-v2": False}):
-            event = self.post_and_retrieve_event(payload)
+        event = self.post_and_retrieve_event(payload)
         assert event.data["culprit"] == "unknown"
         insta_snapshot_stacktrace_data(self, event.data)
 
@@ -194,7 +190,7 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
             name="crash.pdb", type="default", headers={"Content-Type": "text/x-breakpad"}
         )
 
-        path = get_fixture_path("windows.sym")
+        path = get_fixture_path("native", "windows.sym")
         with open(path, "rb") as f:
             file.putfile(f)
 
@@ -239,8 +235,7 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
             "timestamp": iso_format(before_now(seconds=1)),
         }
 
-        with self.feature("organizations:images-loaded-v2"):
-            event = self.post_and_retrieve_event(event_data)
+        event = self.post_and_retrieve_event(event_data)
         assert event.data["culprit"] == "main"
 
         candidates = event.data["debug_meta"]["images"][0]["candidates"]

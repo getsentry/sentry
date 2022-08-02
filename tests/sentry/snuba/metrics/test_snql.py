@@ -1,6 +1,9 @@
+import pytest
 from snuba_sdk import Column, Function
 
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
 from sentry.snuba.metrics import (
     TransactionStatusTagValue,
     TransactionTagsKey,
@@ -14,12 +17,12 @@ from sentry.snuba.metrics import (
     crashed_users,
     errored_all_users,
     errored_preaggr_sessions,
-    percentage,
     session_duration_filters,
-    sessions_errored_set,
     subtraction,
+    uniq_aggregation_on_metric,
 )
 from sentry.snuba.metrics.fields.snql import (
+    complement,
     division_float,
     failure_count_transaction,
     miserable_users,
@@ -29,13 +32,16 @@ from sentry.snuba.metrics.fields.snql import (
 from sentry.snuba.metrics.naming_layer.public import TransactionSatisfactionTagValue
 from sentry.testutils import TestCase
 
+pytestmark = pytest.mark.sentry_metrics
+
 
 class DerivedMetricSnQLTestCase(TestCase):
     def setUp(self):
         self.org_id = 666
         self.metric_ids = [0, 1, 2]
         indexer.bulk_record(
-            {
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            org_strings={
                 self.org_id: [
                     "abnormal",
                     "crashed",
@@ -44,6 +50,13 @@ class DerivedMetricSnQLTestCase(TestCase):
                     "exited",
                     "init",
                     "session.status",
+                ]
+            },
+        )
+        indexer.bulk_record(
+            use_case_id=UseCaseKey.PERFORMANCE,
+            org_strings={
+                self.org_id: [
                     TransactionSatisfactionTagValue.FRUSTRATED.value,
                     TransactionSatisfactionTagValue.SATISFIED.value,
                     TransactionSatisfactionTagValue.TOLERATED.value,
@@ -53,7 +66,7 @@ class DerivedMetricSnQLTestCase(TestCase):
                     TransactionTagsKey.TRANSACTION_SATISFACTION.value,
                     TransactionTagsKey.TRANSACTION_STATUS.value,
                 ]
-            }
+            },
         )
 
     def test_counter_sum_aggregation_on_session_status(self):
@@ -74,9 +87,13 @@ class DerivedMetricSnQLTestCase(TestCase):
                                 "equals",
                                 [
                                     Column(
-                                        f"tags[{indexer.resolve(self.org_id, 'session.status')}]"
+                                        resolve_tag_key(
+                                            UseCaseKey.RELEASE_HEALTH, self.org_id, "session.status"
+                                        ),
                                     ),
-                                    indexer.resolve(self.org_id, status),
+                                    resolve_tag_value(
+                                        UseCaseKey.RELEASE_HEALTH, self.org_id, status
+                                    ),
                                 ],
                             ),
                             Function("in", [Column("metric_id"), list(self.metric_ids)]),
@@ -88,7 +105,6 @@ class DerivedMetricSnQLTestCase(TestCase):
 
     def test_set_uniq_aggregation_on_session_status(self):
         for status, func in [
-            ("init", all_users),
             ("crashed", crashed_users),
             ("abnormal", abnormal_users),
             ("errored", errored_all_users),
@@ -105,9 +121,13 @@ class DerivedMetricSnQLTestCase(TestCase):
                                 "equals",
                                 [
                                     Column(
-                                        f"tags[{indexer.resolve(self.org_id, 'session.status')}]"
+                                        resolve_tag_key(
+                                            UseCaseKey.RELEASE_HEALTH, self.org_id, "session.status"
+                                        )
                                     ),
-                                    indexer.resolve(self.org_id, status),
+                                    resolve_tag_value(
+                                        UseCaseKey.RELEASE_HEALTH, self.org_id, status
+                                    ),
                                 ],
                             ),
                             Function("in", [Column("metric_id"), list(self.metric_ids)]),
@@ -117,9 +137,19 @@ class DerivedMetricSnQLTestCase(TestCase):
                 status,
             )
 
+    def test_set_uniq_aggregation_all_users(self):
+        assert all_users(self.org_id, self.metric_ids, alias="foo") == Function(
+            "uniqIf",
+            [
+                Column("value"),
+                Function("in", [Column("metric_id"), list(self.metric_ids)]),
+            ],
+            alias="foo",
+        )
+
     def test_set_sum_aggregation_for_errored_sessions(self):
         alias = "whatever"
-        assert sessions_errored_set(self.metric_ids, alias) == Function(
+        assert uniq_aggregation_on_metric(self.metric_ids, alias) == Function(
             "uniqIf",
             [
                 Column("value"),
@@ -169,17 +199,27 @@ class DerivedMetricSnQLTestCase(TestCase):
                             "notIn",
                             [
                                 Column(
-                                    f"tags[{indexer.resolve(self.org_id, TransactionTagsKey.TRANSACTION_STATUS.value)}]"
+                                    resolve_tag_key(
+                                        UseCaseKey.PERFORMANCE,
+                                        self.org_id,
+                                        TransactionTagsKey.TRANSACTION_STATUS.value,
+                                    )
                                 ),
                                 [
-                                    indexer.resolve(
-                                        self.org_id, TransactionStatusTagValue.OK.value
+                                    resolve_tag_value(
+                                        UseCaseKey.PERFORMANCE,
+                                        self.org_id,
+                                        TransactionStatusTagValue.OK.value,
                                     ),
-                                    indexer.resolve(
-                                        self.org_id, TransactionStatusTagValue.CANCELLED.value
+                                    resolve_tag_value(
+                                        UseCaseKey.PERFORMANCE,
+                                        self.org_id,
+                                        TransactionStatusTagValue.CANCELLED.value,
                                     ),
-                                    indexer.resolve(
-                                        self.org_id, TransactionStatusTagValue.UNKNOWN.value
+                                    resolve_tag_value(
+                                        UseCaseKey.PERFORMANCE,
+                                        self.org_id,
+                                        TransactionStatusTagValue.UNKNOWN.value,
                                     ),
                                 ],
                             ],
@@ -208,9 +248,14 @@ class DerivedMetricSnQLTestCase(TestCase):
                             "equals",
                             [
                                 Column(
-                                    f"tags[{indexer.resolve(self.org_id, TransactionTagsKey.TRANSACTION_SATISFACTION.value)}]"
+                                    resolve_tag_key(
+                                        UseCaseKey.PERFORMANCE,
+                                        self.org_id,
+                                        TransactionTagsKey.TRANSACTION_SATISFACTION.value,
+                                    )
                                 ),
-                                indexer.resolve(
+                                resolve_tag_value(
+                                    UseCaseKey.PERFORMANCE,
                                     self.org_id,
                                     TransactionSatisfactionTagValue.FRUSTRATED.value,
                                 ),
@@ -244,10 +289,16 @@ class DerivedMetricSnQLTestCase(TestCase):
                             "equals",
                             [
                                 Column(
-                                    f"tags[{indexer.resolve(self.org_id, TransactionTagsKey.TRANSACTION_SATISFACTION.value)}]"
+                                    resolve_tag_key(
+                                        UseCaseKey.PERFORMANCE,
+                                        self.org_id,
+                                        TransactionTagsKey.TRANSACTION_SATISFACTION.value,
+                                    )
                                 ),
-                                indexer.resolve(
-                                    self.org_id, TransactionSatisfactionTagValue.SATISFIED.value
+                                resolve_tag_value(
+                                    UseCaseKey.PERFORMANCE,
+                                    self.org_id,
+                                    TransactionSatisfactionTagValue.SATISFIED.value,
                                 ),
                             ],
                         ),
@@ -277,10 +328,16 @@ class DerivedMetricSnQLTestCase(TestCase):
                             "equals",
                             [
                                 Column(
-                                    f"tags[{indexer.resolve(self.org_id, TransactionTagsKey.TRANSACTION_SATISFACTION.value)}]"
+                                    resolve_tag_key(
+                                        UseCaseKey.PERFORMANCE,
+                                        self.org_id,
+                                        TransactionTagsKey.TRANSACTION_SATISFACTION.value,
+                                    )
                                 ),
-                                indexer.resolve(
-                                    self.org_id, TransactionSatisfactionTagValue.TOLERATED.value
+                                resolve_tag_value(
+                                    UseCaseKey.PERFORMANCE,
+                                    self.org_id,
+                                    TransactionSatisfactionTagValue.TOLERATED.value,
                                 ),
                             ],
                         ),
@@ -297,27 +354,19 @@ class DerivedMetricSnQLTestCase(TestCase):
             alias="transaction.tolerated",
         )
 
-    def test_percentage_in_snql(self):
-        alias = "foo.percentage"
-        init_session_snql = all_sessions(self.org_id, self.metric_ids, "init_sessions")
-        crashed_session_snql = crashed_sessions(self.org_id, self.metric_ids, "crashed_sessions")
-
-        assert percentage(crashed_session_snql, init_session_snql, alias=alias) == Function(
-            "minus", [1, Function("divide", [crashed_session_snql, init_session_snql])], alias
-        )
+    def test_complement_in_sql(self):
+        alias = "foo.complement"
+        assert complement(0.64, alias=alias) == Function("minus", [1, 0.64], alias)
 
     def test_addition_in_snql(self):
         alias = "session.crashed_and_abnormal_user"
         arg1_snql = crashed_users(self.org_id, self.metric_ids, alias="session.crashed_user")
         arg2_snql = abnormal_users(self.org_id, self.metric_ids, alias="session.abnormal_user")
-        assert (
-            addition(
-                arg1_snql,
-                arg2_snql,
-                alias=alias,
-            )
-            == Function("plus", [arg1_snql, arg2_snql], alias=alias)
-        )
+        assert addition(
+            arg1_snql,
+            arg2_snql,
+            alias=alias,
+        ) == Function("plus", [arg1_snql, arg2_snql], alias=alias)
 
     def test_subtraction_in_snql(self):
         arg1_snql = all_users(self.org_id, self.metric_ids, alias="session.all_user")
@@ -325,14 +374,11 @@ class DerivedMetricSnQLTestCase(TestCase):
             self.org_id, self.metric_ids, alias="session.errored_user_all"
         )
 
-        assert (
-            subtraction(
-                arg1_snql,
-                arg2_snql,
-                alias="session.healthy_user",
-            )
-            == Function("minus", [arg1_snql, arg2_snql], alias="session.healthy_user")
-        )
+        assert subtraction(
+            arg1_snql,
+            arg2_snql,
+            alias="session.healthy_user",
+        ) == Function("minus", [arg1_snql, arg2_snql], alias="session.healthy_user")
 
     def test_division_in_snql(self):
         alias = "transactions.failure_rate"
@@ -350,8 +396,10 @@ class DerivedMetricSnQLTestCase(TestCase):
             Function(
                 "equals",
                 (
-                    Column(f"tags[{indexer.resolve(self.org_id, 'session.status')}]"),
-                    indexer.resolve(self.org_id, "exited"),
+                    Column(
+                        resolve_tag_key(UseCaseKey.RELEASE_HEALTH, self.org_id, "session.status"),
+                    ),
+                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.org_id, "exited"),
                 ),
             )
         ]

@@ -5,15 +5,11 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import RuleDetailsContainer from 'sentry/views/alerts/details/index';
-import AlertRuleDetails from 'sentry/views/alerts/details/ruleDetails';
+import RuleDetailsContainer from 'sentry/views/alerts/rules/issue/details/index';
+import AlertRuleDetails from 'sentry/views/alerts/rules/issue/details/ruleDetails';
 
 describe('AlertRuleDetails', () => {
-  const context = initializeOrg({
-    organization: {
-      features: ['alert-rule-status-page'],
-    },
-  });
+  const context = initializeOrg();
   const organization = context.organization;
   const project = TestStubs.Project();
   const rule = TestStubs.ProjectAlertRule({
@@ -70,9 +66,15 @@ describe('AlertRuleDetails', () => {
           '<https://sentry.io/api/0/projects/org-slug/project-slug/rules/1/group-history/?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"',
       },
     });
+
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
       body: [project],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [],
     });
 
     ProjectsStore.init();
@@ -109,8 +111,8 @@ describe('AlertRuleDetails', () => {
   it('should reset pagination cursor on date change', async () => {
     createWrapper();
 
-    expect(await screen.findByText('Last 14 days')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Last 14 days'));
+    expect(await screen.findByText('Last 7 days')).toBeInTheDocument();
+    userEvent.click(screen.getByText('Last 7 days'));
     userEvent.click(screen.getByText('Last 24 hours'));
 
     expect(context.router.push).toHaveBeenCalledWith({
@@ -129,5 +131,19 @@ describe('AlertRuleDetails', () => {
 
     expect(await screen.findAllByText('Last Triggered')).toHaveLength(2);
     expect(screen.getByText('2 days ago')).toBeInTheDocument();
+  });
+
+  it('renders not found on 404', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/`,
+      statusCode: 404,
+      body: {},
+      match: [MockApiClient.matchQuery({expand: 'lastTriggered'})],
+    });
+    createWrapper();
+
+    expect(
+      await screen.findByText('The alert rule you were looking for was not found.')
+    ).toBeInTheDocument();
   });
 });

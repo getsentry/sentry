@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-restricted-imports
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Query} from 'history';
@@ -29,7 +30,8 @@ type Props = WithRouterProps & {
   disabled?: boolean;
   onCursor?: CursorHandler;
   pageLinks?: string | null;
-  size?: 'zero' | 'xsmall' | 'small';
+  paginationAnalyticsEvent?: (direction: string) => void;
+  size?: 'zero' | 'xs' | 'sm';
   to?: string;
 };
 
@@ -44,8 +46,9 @@ const Pagination = ({
   location,
   className,
   onCursor = defaultOnCursor,
+  paginationAnalyticsEvent,
   pageLinks,
-  size = 'small',
+  size = 'sm',
   caption,
   disabled = false,
 }: Props) => {
@@ -68,14 +71,20 @@ const Pagination = ({
           aria-label={t('Previous')}
           size={size}
           disabled={previousDisabled}
-          onClick={() => onCursor?.(links.previous?.cursor, path, query, -1)}
+          onClick={() => {
+            onCursor?.(links.previous?.cursor, path, query, -1);
+            paginationAnalyticsEvent?.('Previous');
+          }}
         />
         <Button
           icon={<IconChevron direction="right" size="sm" />}
           aria-label={t('Next')}
           size={size}
           disabled={nextDisabled}
-          onClick={() => onCursor?.(links.next?.cursor, path, query, 1)}
+          onClick={() => {
+            onCursor?.(links.next?.cursor, path, query, 1);
+            paginationAnalyticsEvent?.('Next');
+          }}
         />
       </ButtonBar>
     </Wrapper>

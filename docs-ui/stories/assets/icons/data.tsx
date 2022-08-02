@@ -1,3 +1,5 @@
+import {GeneralSelectValue} from 'sentry/components/forms/selectControl';
+
 type IconGroupName =
   | 'product'
   | 'action'
@@ -9,17 +11,18 @@ type IconGroupName =
 
 export type IconPropName = 'size' | 'direction' | 'isCircled' | 'isSolid' | 'type';
 
-type IconProps = {
-  [key in IconPropName]: {
-    type: 'boolean' | 'select';
+type IconProps = Record<
+  IconPropName,
+  {
+    type: 'select' | 'boolean';
     default?: string;
     /**
      * Whether to list all variants of this prop in the icon list
      */
     enumerate?: boolean;
-    options?: [string, string][];
-  };
-};
+    options?: GeneralSelectValue[];
+  }
+>;
 
 type IconGroup = {
   id: IconGroupName;
@@ -43,32 +46,33 @@ export type IconData = {
    */
   additionalProps?: IconPropName[];
   /**
-   * Limit the set of options available for certain additional props.
-   * For example, {direction: ['left', 'up']} would limit the available
-   * options for the prop 'direction' to just 'left' and 'up'. Useful for
-   * controlling prop enumeration in the icon list.
+   * Limit the set of options available for certain additional props. For
+   * example, {direction: ['left', 'up']} would limit the available options for
+   * the prop 'direction' to just 'left' and 'up'. Useful for controlling prop
+   * enumeration in the icon list.
    */
-  limitOptions?: Partial<Record<IconPropName, string[][]>>;
+  limitOptions?: Partial<Record<IconPropName, GeneralSelectValue[]>>;
 };
 
 export const iconProps: IconProps = {
   size: {
     type: 'select',
     options: [
-      ['xs', 'Extra small'],
-      ['sm', 'Small'],
-      ['md', 'Medium'],
-      ['lg', 'Large'],
-      ['xl', 'Extra large'],
+      {value: 'xs', label: 'Extra small'},
+      {value: 'sm', label: 'Small'},
+      {value: 'md', label: 'Medium'},
+      {value: 'lg', label: 'Large'},
+      {value: 'xl', label: 'Extra large'},
     ],
     default: 'sm',
   },
   type: {
     type: 'select',
     options: [
-      ['line', 'Line'],
-      ['circle', 'Circle'],
-      ['bar', 'Bar'],
+      {value: 'line', label: 'Line'},
+      {value: 'circle', label: 'Circle'},
+      {value: 'bar', label: 'Bar'},
+      {value: 'area', label: 'Area'},
     ],
     default: 'line',
     enumerate: true,
@@ -76,10 +80,10 @@ export const iconProps: IconProps = {
   direction: {
     type: 'select',
     options: [
-      ['left', 'Left'],
-      ['right', 'Right'],
-      ['up', 'Up'],
-      ['down', 'Down'],
+      {value: 'left', label: 'Left'},
+      {value: 'right', label: 'Right'},
+      {value: 'up', label: 'Up'},
+      {value: 'down', label: 'Down'},
     ],
     default: 'left',
     enumerate: true,
@@ -167,7 +171,11 @@ export const icons: IconData[] = [
   {id: 'sync', groups: ['action'], keywords: ['swap']},
   {id: 'menu', groups: ['action'], keywords: ['navigate']},
   {id: 'list', groups: ['action'], keywords: ['item']},
-  {id: 'dashboard', groups: ['action'], keywords: ['overview', 'group', 'organize']},
+  {
+    id: 'dashboard',
+    groups: ['product'],
+    keywords: ['overview', 'group', 'organize', 'widgets'],
+  },
   {
     id: 'upgrade',
     groups: ['action'],
@@ -180,7 +188,7 @@ export const icons: IconData[] = [
   },
   {
     id: 'return',
-    groups: ['action'],
+    groups: ['device'],
     keywords: ['enter'],
   },
   {
@@ -234,7 +242,7 @@ export const icons: IconData[] = [
   },
   {
     id: 'stats',
-    groups: ['product', 'chart'],
+    groups: ['product'],
     keywords: ['bar', 'graph'],
   },
   {
@@ -264,7 +272,7 @@ export const icons: IconData[] = [
   },
   {
     id: 'print',
-    groups: ['action', 'device'],
+    groups: ['device'],
     keywords: [],
   },
   {
@@ -304,29 +312,28 @@ export const icons: IconData[] = [
   },
   {
     id: 'stack',
-    groups: ['action'],
+    groups: ['chart'],
     keywords: ['group', 'combine', 'view'],
   },
   {
     id: 'span',
-    groups: ['device'],
+    groups: ['chart'],
     keywords: ['performance', 'transaction'],
   },
   {
     id: 'link',
-    groups: ['action', 'device'],
+    groups: ['action'],
     keywords: ['hyperlink', 'anchor'],
   },
   {
     id: 'attachment',
-    groups: ['device'],
+    groups: ['action'],
     keywords: ['include', 'clip'],
   },
   {
     id: 'location',
     groups: ['action'],
     keywords: ['pin', 'position', 'map'],
-    additionalProps: ['isSolid'],
   },
   {
     id: 'edit',
@@ -421,11 +428,6 @@ export const icons: IconData[] = [
     keywords: ['person', 'portrait'],
   },
   {
-    id: 'group',
-    groups: ['action'],
-    keywords: ['person', 'people'],
-  },
-  {
     id: 'chat',
     groups: ['action', 'action'],
     keywords: ['message', 'bubble'],
@@ -452,8 +454,8 @@ export const icons: IconData[] = [
     additionalProps: ['direction'],
     limitOptions: {
       direction: [
-        ['left', 'Left'],
-        ['up', 'Up'],
+        {value: 'left', label: 'Left'},
+        {value: 'up', label: 'Up'},
       ],
     },
   },
@@ -506,7 +508,6 @@ export const icons: IconData[] = [
     id: 'lightning',
     groups: ['product'],
     keywords: ['feature', 'new', 'fresh'],
-    additionalProps: ['isSolid'],
   },
   {
     id: 'business',
@@ -622,5 +623,56 @@ export const icons: IconData[] = [
     id: 'expand',
     groups: ['action'],
     keywords: ['open'],
+  },
+  {
+    id: 'contract',
+    groups: ['action'],
+    keywords: ['close'],
+  },
+  {
+    id: 'asana',
+    groups: ['logo'],
+    keywords: [''],
+  },
+  {
+    id: 'globe',
+    groups: ['action'],
+    keywords: ['international', 'global'],
+  },
+  {
+    id: 'group',
+    groups: ['action'],
+    keywords: ['users', 'person', 'people'],
+  },
+  {
+    id: 'input',
+    groups: ['device'],
+    keywords: ['text'],
+  },
+  {
+    id: 'number',
+    groups: ['chart'],
+    keywords: ['value'],
+  },
+  {
+    id: 'vercel',
+    groups: ['logo'],
+    keywords: [''],
+  },
+  {
+    id: 'option',
+    groups: ['device'],
+    keywords: [''],
+  },
+  {
+    id: 'panel',
+    groups: ['navigation'],
+    keywords: ['sidebar', 'footer', 'header'],
+    additionalProps: ['direction'],
+  },
+  {
+    id: 'rewind10',
+    groups: ['action'],
+    keywords: ['rewind'],
   },
 ];

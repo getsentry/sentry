@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Client} from 'sentry/api';
@@ -35,7 +35,7 @@ type State = {
   loading: boolean;
 };
 
-class Login extends React.Component<Props, State> {
+class Login extends Component<Props, State> {
   state: State = {
     loading: true,
     error: null,
@@ -104,7 +104,7 @@ class Login extends React.Component<Props, State> {
       );
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Header>
           <Heading>{t('Sign in to continue')}</Heading>
           <AuthNavTabs>{tabs.map(renderTab)}</AuthNavTabs>
@@ -121,7 +121,7 @@ class Login extends React.Component<Props, State> {
             <FormComponent {...{api, authConfig}} />
           </FormWrapper>
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

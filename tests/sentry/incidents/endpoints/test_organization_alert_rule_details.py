@@ -47,7 +47,7 @@ class AlertRuleDetailsBase(AlertRuleBase):
         self.endpoint = "sentry-api-0-organization-alert-rules"
         self.method = "get"
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(self.organization.slug)
+            resp = self.get_success_response(self.organization.slug)
             assert len(resp.data) >= 1
             serialized_alert_rule = resp.data[0]
             if serialized_alert_rule["environment"]:
@@ -94,9 +94,29 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase, APITestCase):
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(self.organization.slug, self.alert_rule.id)
+            resp = self.get_success_response(self.organization.slug, self.alert_rule.id)
 
         assert resp.data == serialize(self.alert_rule, serializer=DetailedAlertRuleSerializer())
+
+    def test_expand_latest_incident(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+        incident = self.create_incident(
+            organization=self.organization,
+            title="Incident #1",
+            projects=[self.project],
+            alert_rule=self.alert_rule,
+            status=IncidentStatus.CRITICAL.value,
+        )
+        with self.feature("organizations:incidents"):
+            resp = self.get_success_response(
+                self.organization.slug, self.alert_rule.id, expand=["latestIncident"]
+            )
+            no_expand_resp = self.get_success_response(self.organization.slug, self.alert_rule.id)
+
+        assert resp.data["latestIncident"] is not None
+        assert resp.data["latestIncident"]["id"] == str(incident.id)
+        assert "latestIncident" not in no_expand_resp.data
 
     @responses.activate
     def test_with_unresponsive_sentryapp(self):
@@ -166,7 +186,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         serialized_alert_rule["name"] = "what"
 
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug, alert_rule.id, **serialized_alert_rule
             )
 
@@ -199,7 +219,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         }
 
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug, alert_rule.id, **serialized_alert_rule
             )
 
@@ -219,7 +239,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         serialized_alert_rule = self.get_serialized_alert_rule()
 
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug, alert_rule.id, **serialized_alert_rule
             )
 
@@ -246,13 +266,13 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         serialized_alert_rule["triggers"][0]["label"] = "goodbye"
 
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
+            resp = self.get_error_response(
                 self.organization.slug, alert_rule.id, status_code=400, **serialized_alert_rule
             )
             assert resp.data == {"nonFieldErrors": ['Trigger 1 must be labeled "critical"']}
             serialized_alert_rule["triggers"][0]["label"] = "critical"
             serialized_alert_rule["triggers"][1]["label"] = "goodbye"
-            resp = self.get_valid_response(
+            resp = self.get_error_response(
                 self.organization.slug, alert_rule.id, status_code=400, **serialized_alert_rule
             )
             assert resp.data == {"nonFieldErrors": ['Trigger 2 must be labeled "warning"']}
@@ -271,7 +291,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         serialized_alert_rule["name"] = "AUniqueName"
 
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug, alert_rule.id, **serialized_alert_rule
             )
 
@@ -294,7 +314,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         serialized_alert_rule["name"] = "AUniqueName"
 
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug, alert_rule.id, **serialized_alert_rule
             )
 
@@ -317,7 +337,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         serialized_alert_rule["name"] = "AUniqueName"
 
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug, alert_rule.id, **serialized_alert_rule
             )
         assert resp.data["name"] == "AUniqueName"
@@ -336,7 +356,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         serialized_alert_rule["triggers"].pop(1)
 
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug, alert_rule.id, **serialized_alert_rule
             )
 
@@ -355,7 +375,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         serialized_alert_rule["triggers"][1]["actions"].pop(1)
 
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug, alert_rule.id, **serialized_alert_rule
             )
 
@@ -365,7 +385,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         serialized_alert_rule["triggers"][1]["actions"].pop()
 
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug, alert_rule.id, **serialized_alert_rule
             )
 
@@ -387,7 +407,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         serialized_alert_rule["triggers"][0]["actions"][0]["targetIdentifier"] = self.user.id
 
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug, alert_rule.id, **serialized_alert_rule
             )
 
@@ -413,7 +433,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         serialized_alert_rule["triggers"][0]["alertThreshold"] = 50  # Invalid
         serialized_alert_rule.pop("resolveThreshold")
         with self.feature("organizations:incidents"):
-            self.get_valid_response(
+            self.get_error_response(
                 self.organization.slug, alert_rule.id, status_code=400, **serialized_alert_rule
             )
 
@@ -431,7 +451,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         alert_rule.save()
 
         with self.feature("organizations:incidents"):
-            self.get_valid_response(
+            self.get_error_response(
                 self.organization.slug, alert_rule.id, status_code=404, **serialized_alert_rule
             )
 
@@ -447,7 +467,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         serialized_alert_rule["owner"] = None
 
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug, alert_rule.id, **serialized_alert_rule
             )
 
@@ -476,7 +496,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         assert resp.status_code == 403
         self.create_team_membership(team=self.team, member=om)
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug, alert_rule.id, **serialized_alert_rule
             )
 
@@ -494,7 +514,7 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
         self.login_as(self.user)
 
         with self.feature("organizations:incidents"):
-            self.get_valid_response(self.organization.slug, self.alert_rule.id, status_code=204)
+            self.get_success_response(self.organization.slug, self.alert_rule.id, status_code=204)
 
         assert not AlertRule.objects.filter(id=self.alert_rule.id).exists()
         assert not AlertRule.objects_with_snapshots.filter(name=self.alert_rule.name).exists()
@@ -511,7 +531,9 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
             incident = self.create_incident(alert_rule=self.alert_rule)
 
             with self.feature("organizations:incidents"):
-                self.get_valid_response(self.organization.slug, self.alert_rule.id, status_code=204)
+                self.get_success_response(
+                    self.organization.slug, self.alert_rule.id, status_code=204
+                )
 
             alert_rule = AlertRule.objects_with_snapshots.get(id=self.alert_rule.id)
 
@@ -541,4 +563,4 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
         assert resp.status_code == 403
         self.create_team_membership(team=self.team, member=om)
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(self.organization.slug, alert_rule.id, status_code=204)
+            resp = self.get_success_response(self.organization.slug, alert_rule.id, status_code=204)

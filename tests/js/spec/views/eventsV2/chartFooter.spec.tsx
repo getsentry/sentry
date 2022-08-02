@@ -1,5 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {t} from 'sentry/locale';
 import {DisplayModes} from 'sentry/utils/discover/types';
@@ -49,7 +50,7 @@ describe('EventsV2 > ChartFooter', function () {
     await tick();
     wrapper.update();
 
-    const optionCheckboxSelector = wrapper.find('OptionCheckboxSelector').last();
+    const optionCheckboxSelector = wrapper.find('OptionSelector').last();
     expect(optionCheckboxSelector.props().title).toEqual(t('Y-Axis'));
     expect(optionCheckboxSelector.props().selected).toEqual(yAxisValue);
   });
@@ -89,5 +90,57 @@ describe('EventsV2 > ChartFooter', function () {
 
     const optionSelector = wrapper.find('OptionSelector[title="Limit"]');
     expect(optionSelector.props().selected).toEqual('5');
+  });
+
+  it('renders single value y-axis dropdown selector on a Top display', function () {
+    const organization = TestStubs.Organization({
+      features,
+    });
+    let yAxis = ['count()'];
+
+    render(
+      <ChartFooter
+        organization={organization}
+        total={100}
+        yAxisValue={yAxis}
+        yAxisOptions={yAxisOptions}
+        onAxisChange={newYAxis => (yAxis = newYAxis)}
+        displayMode={DisplayModes.TOP5}
+        displayOptions={[{label: DisplayModes.TOP5, value: DisplayModes.TOP5}]}
+        onDisplayChange={() => undefined}
+        onTopEventsChange={() => undefined}
+        topEvents="5"
+      />
+    );
+
+    userEvent.click(screen.getByText('count()'));
+    userEvent.click(screen.getByText('failure_count()'));
+    expect(yAxis).toEqual(['failure_count()']);
+  });
+
+  it('renders multi value y-axis dropdown selector on a non-Top display', function () {
+    const organization = TestStubs.Organization({
+      features,
+    });
+    let yAxis = ['count()'];
+
+    render(
+      <ChartFooter
+        organization={organization}
+        total={100}
+        yAxisValue={yAxis}
+        yAxisOptions={yAxisOptions}
+        onAxisChange={newYAxis => (yAxis = newYAxis)}
+        displayMode={DisplayModes.DEFAULT}
+        displayOptions={[{label: DisplayModes.DEFAULT, value: DisplayModes.DEFAULT}]}
+        onDisplayChange={() => undefined}
+        onTopEventsChange={() => undefined}
+        topEvents="5"
+      />
+    );
+
+    userEvent.click(screen.getByText('count()'));
+    userEvent.click(screen.getByText('failure_count()'));
+    expect(yAxis).toEqual(['count()', 'failure_count()']);
   });
 });

@@ -5,9 +5,20 @@ from time import time
 from unittest import mock
 
 import pytest
+import responses
 from django.core.cache import cache
+from django.test.utils import override_settings
 from django.utils import timezone
+from rest_framework.status import HTTP_404_NOT_FOUND
 
+from fixtures.github import (
+    COMPARE_COMMITS_EXAMPLE_WITH_INTERMEDIATE,
+    EARLIER_COMMIT_SHA,
+    GET_COMMIT_EXAMPLE,
+    GET_LAST_2_COMMITS_EXAMPLE,
+    GET_PRIOR_COMMIT_EXAMPLE,
+    LATER_COMMIT_SHA,
+)
 from sentry import nodestore
 from sentry.app import tsdb
 from sentry.attachments import CachedAttachment, attachment_cache
@@ -24,6 +35,7 @@ from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.models import (
     Activity,
     Commit,
+    CommitAuthor,
     Environment,
     ExternalIssue,
     Group,
@@ -36,15 +48,23 @@ from sentry.models import (
     GroupTombstone,
     Integration,
     OrganizationIntegration,
+    Project,
+    PullRequest,
+    PullRequestCommit,
     Release,
     ReleaseCommit,
+    ReleaseHeadCommit,
     ReleaseProjectEnvironment,
     UserReport,
 )
+from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.spans.grouping.utils import hash_values
 from sentry.testutils import TestCase, assert_mock_called_once_with_partial
+from sentry.types.activity import ActivityType
+from sentry.utils import json
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.outcomes import Outcome
+from tests.sentry.integrations.github.test_repository import stub_installation_token
 
 
 def make_event(**kwargs):
@@ -58,13 +78,15 @@ def make_event(**kwargs):
     return result
 
 
-class EventManagerTest(TestCase):
+class EventManagerTestMixin:
     def make_release_event(self, release_name, project_id):
         manager = EventManager(make_event(release=release_name))
         manager.normalize()
         event = manager.save(project_id)
         return event
 
+
+class EventManagerTest(TestCase, EventManagerTestMixin):
     def test_similar_message_prefix_doesnt_group(self):
         # we had a regression which caused the default hash to just be
         # 'event.message' instead of '[event.message]' which caused it to
@@ -193,7 +215,7 @@ class EventManagerTest(TestCase):
             manager = EventManager(
                 make_event(
                     message="foo 123",
-                    event_id=hex(2 ** 127 + int(ts))[-32:],
+                    event_id=hex(2**127 + int(ts))[-32:],
                     timestamp=ts,
                     exception={
                         "values": [
@@ -406,7 +428,7 @@ class EventManagerTest(TestCase):
         activity = Activity.objects.create(
             group=group,
             project=group.project,
-            type=Activity.SET_RESOLVED_IN_RELEASE,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
             ident=resolution.id,
             data={"version": ""},
         )
@@ -441,7 +463,7 @@ class EventManagerTest(TestCase):
 
         assert not GroupResolution.objects.filter(group=group).exists()
 
-        activity = Activity.objects.get(group=group, type=Activity.SET_REGRESSION)
+        activity = Activity.objects.get(group=group, type=ActivityType.SET_REGRESSION.value)
 
         mock_send_activity_notifications_delay.assert_called_once_with(activity.id)
 
@@ -478,7 +500,7 @@ class EventManagerTest(TestCase):
         activity = Activity.objects.create(
             group=group,
             project=group.project,
-            type=Activity.SET_RESOLVED_IN_RELEASE,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
             ident=resolution.id,
             data={"version": "foobar"},
         )
@@ -496,7 +518,9 @@ class EventManagerTest(TestCase):
         activity = Activity.objects.get(id=activity.id)
         assert activity.data["version"] == "foobar"
 
-        regressed_activity = Activity.objects.get(group=group, type=Activity.SET_REGRESSION)
+        regressed_activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_REGRESSION.value
+        )
         assert regressed_activity.data["version"] == "b"
 
         mock_send_activity_notifications_delay.assert_called_once_with(regressed_activity.id)
@@ -534,7 +558,7 @@ class EventManagerTest(TestCase):
         activity = Activity.objects.create(
             group=group,
             project=group.project,
-            type=Activity.SET_RESOLVED_IN_RELEASE,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
             ident=resolution.id,
             data={"version": "", "current_release_version": "pre foobar"},
         )
@@ -553,7 +577,9 @@ class EventManagerTest(TestCase):
         assert activity.data["version"] == "b"
         assert activity.data["current_release_version"] == "pre foobar"
 
-        regressed_activity = Activity.objects.get(group=group, type=Activity.SET_REGRESSION)
+        regressed_activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_REGRESSION.value
+        )
         assert regressed_activity.data["version"] == "b"
 
         mock_send_activity_notifications_delay.assert_called_once_with(regressed_activity.id)
@@ -564,8 +590,7 @@ class EventManagerTest(TestCase):
 
         group = event.group
         assert group.first_release.version == "1.0"
-        pending = has_pending_commit_resolution(group)
-        assert pending is False
+        assert not has_pending_commit_resolution(group)
 
         # Add a commit with no associated release
         repo = self.create_repo(project=group.project)
@@ -580,8 +605,7 @@ class EventManagerTest(TestCase):
             relationship=GroupLink.Relationship.resolves,
         )
 
-        pending = has_pending_commit_resolution(group)
-        assert pending
+        assert has_pending_commit_resolution(group)
 
     def test_multiple_pending_commit_resolution(self):
         project_id = 1
@@ -624,6 +648,118 @@ class EventManagerTest(TestCase):
             commit=latest_commit,
             order=0,
         )
+
+        pending = has_pending_commit_resolution(group)
+        assert pending is False
+
+    def test_has_pending_commit_resolution_issue_regression(self):
+        project_id = 1
+        event = self.make_release_event("1.0", project_id)
+        group = event.group
+        repo = self.create_repo(project=group.project)
+
+        # commit that resolved the issue is part of a PR, but all commits within the PR are unreleased
+        commit = Commit.objects.create(
+            organization_id=group.project.organization_id, repository_id=repo.id, key="a" * 40
+        )
+
+        second_commit = Commit.objects.create(
+            organization_id=group.project.organization_id, repository_id=repo.id, key="b" * 40
+        )
+
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id,
+            relationship=GroupLink.Relationship.resolves,
+        )
+
+        pr = PullRequest.objects.create(
+            organization_id=group.project.organization_id,
+            repository_id=repo.id,
+            key="1",
+        )
+
+        PullRequestCommit.objects.create(pull_request_id=pr.id, commit_id=commit.id)
+        PullRequestCommit.objects.create(pull_request_id=pr.id, commit_id=second_commit.id)
+
+        assert PullRequestCommit.objects.filter(pull_request_id=pr.id, commit_id=commit.id).exists()
+        assert PullRequestCommit.objects.filter(
+            pull_request_id=pr.id, commit_id=second_commit.id
+        ).exists()
+
+        assert not ReleaseCommit.objects.filter(commit__pullrequestcommit__id=commit.id).exists()
+        assert not ReleaseCommit.objects.filter(
+            commit__pullrequestcommit__id=second_commit.id
+        ).exists()
+
+        pending = has_pending_commit_resolution(group)
+        assert pending
+
+    def test_has_pending_commit_resolution_issue_regression_released_commits(self):
+        project_id = 1
+        event = self.make_release_event("1.0", project_id)
+        group = event.group
+        release = self.create_release(project=self.project, version="1.1")
+
+        repo = self.create_repo(project=group.project)
+
+        # commit 1 is part of the PR, it resolves the issue in the commit message, and is unreleased
+        commit = Commit.objects.create(
+            organization_id=group.project.organization_id, repository_id=repo.id, key="a" * 38
+        )
+
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id,
+            relationship=GroupLink.Relationship.resolves,
+        )
+
+        # commit 2 is part of the PR, but does not resolve the issue, and is released
+        released_commit = Commit.objects.create(
+            organization_id=group.project.organization_id, repository_id=repo.id, key="b" * 38
+        )
+
+        # commit 3 is part of the PR, but does not resolve the issue, and is unreleased
+        unreleased_commit = Commit.objects.create(
+            organization_id=group.project.organization_id, repository_id=repo.id, key="c" * 38
+        )
+
+        pr = PullRequest.objects.create(
+            organization_id=group.project.organization_id,
+            repository_id=repo.id,
+            key="19",
+        )
+
+        PullRequestCommit.objects.create(pull_request_id=pr.id, commit_id=commit.id)
+
+        released_pr_commit = PullRequestCommit.objects.create(
+            pull_request_id=pr.id, commit_id=released_commit.id
+        )
+
+        unreleased_pr_commit = PullRequestCommit.objects.create(
+            pull_request_id=pr.id, commit_id=unreleased_commit.id
+        )
+
+        ReleaseCommit.objects.create(
+            organization_id=group.project.organization_id,
+            release=release,
+            commit=released_commit,
+            order=1,
+        )
+
+        assert Commit.objects.all().count() == 3
+        assert PullRequestCommit.objects.filter(pull_request_id=pr.id, commit_id=commit.id).exists()
+        assert PullRequestCommit.objects.filter(
+            pull_request_id=pr.id, commit_id=released_commit.id
+        ).exists()
+        assert PullRequestCommit.objects.filter(commit__id=unreleased_pr_commit.commit.id).exists()
+        assert ReleaseCommit.objects.filter(
+            commit__pullrequestcommit__id=released_pr_commit.id
+        ).exists()
 
         pending = has_pending_commit_resolution(group)
         assert pending is False
@@ -692,7 +828,7 @@ class EventManagerTest(TestCase):
         activity = Activity.objects.create(
             group=group,
             project=group.project,
-            type=Activity.SET_RESOLVED_IN_RELEASE,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
             ident=resolution.id,
             data={"version": ""},
         )
@@ -733,7 +869,7 @@ class EventManagerTest(TestCase):
 
                 assert not GroupResolution.objects.filter(group=group).exists()
 
-                activity = Activity.objects.get(group=group, type=Activity.SET_REGRESSION)
+                activity = Activity.objects.get(group=group, type=ActivityType.SET_REGRESSION.value)
 
                 mock_send_activity_notifications_delay.assert_called_once_with(activity.id)
 
@@ -1034,37 +1170,28 @@ class EventManagerTest(TestCase):
             tsdb.models.users_affected_by_group, (event.group.id,), event.datetime, event.datetime
         ) == {event.group.id: 1}
 
-        assert (
-            tsdb.get_distinct_counts_totals(
-                tsdb.models.users_affected_by_project,
-                (event.project.id,),
-                event.datetime,
-                event.datetime,
-            )
-            == {event.project.id: 1}
-        )
+        assert tsdb.get_distinct_counts_totals(
+            tsdb.models.users_affected_by_project,
+            (event.project.id,),
+            event.datetime,
+            event.datetime,
+        ) == {event.project.id: 1}
 
-        assert (
-            tsdb.get_distinct_counts_totals(
-                tsdb.models.users_affected_by_group,
-                (event.group.id,),
-                event.datetime,
-                event.datetime,
-                environment_id=environment_id,
-            )
-            == {event.group.id: 1}
-        )
+        assert tsdb.get_distinct_counts_totals(
+            tsdb.models.users_affected_by_group,
+            (event.group.id,),
+            event.datetime,
+            event.datetime,
+            environment_id=environment_id,
+        ) == {event.group.id: 1}
 
-        assert (
-            tsdb.get_distinct_counts_totals(
-                tsdb.models.users_affected_by_project,
-                (event.project.id,),
-                event.datetime,
-                event.datetime,
-                environment_id=environment_id,
-            )
-            == {event.project.id: 1}
-        )
+        assert tsdb.get_distinct_counts_totals(
+            tsdb.models.users_affected_by_project,
+            (event.project.id,),
+            event.datetime,
+            event.datetime,
+            environment_id=environment_id,
+        ) == {event.project.id: 1}
 
         euser = EventUser.objects.get(project_id=self.project.id, ident="1")
         assert event.get_tag("sentry:user") == euser.tag_value
@@ -1496,7 +1623,7 @@ class EventManagerTest(TestCase):
         with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
             with self.feature("organizations:event-attachments"):
                 with self.tasks():
-                    with self.assertRaises(HashDiscarded):
+                    with pytest.raises(HashDiscarded):
                         event = manager.save(1, cache_key=cache_key)
 
         assert mock_track_outcome.call_count == 3
@@ -1934,6 +2061,287 @@ class EventManagerTest(TestCase):
         assert mechanism is not None
         assert mechanism.synthetic is True
         assert event.title == "foo"
+
+    def test_auto_update_grouping(self):
+        with override_settings(SENTRY_GROUPING_AUTO_UPDATE_ENABLED=True):
+            # start out with legacy grouping, this should update us
+            self.project.update_option("sentry:grouping_config", LEGACY_GROUPING_CONFIG)
+
+            manager = EventManager(
+                make_event(
+                    message="foo",
+                    event_id="c" * 32,
+                ),
+                project=self.project,
+            )
+            manager.normalize()
+            manager.save(self.project.id, auto_upgrade_grouping=True)
+
+            # This should have moved us back to the default grouping
+            project = Project.objects.get(id=self.project.id)
+            assert project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
+
+
+class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
+    def setUp(self):
+        super().setUp()
+        self.repo_name = "example"
+        self.project = self.create_project(name="foo")
+        self.integration = Integration.objects.create(
+            provider="github", name=self.repo_name, external_id="654321"
+        )
+        self.org_integration = self.integration.add_organization(
+            self.project.organization, self.user
+        )
+        self.repo = self.create_repo(
+            project=self.project,
+            name=self.repo_name,
+            provider="integrations:github",
+            integration_id=self.integration.id,
+        )
+        self.repo.update(config={"name": self.repo_name})
+        self.create_code_mapping(
+            project=self.project,
+            repo=self.repo,
+            organization_integration=self.org_integration,
+            stack_root="/stack/root",
+            source_root="/source/root",
+            default_branch="main",
+        )
+        stub_installation_token()
+        responses.add(
+            "GET",
+            f"https://api.github.com/repos/{self.repo_name}/commits/{LATER_COMMIT_SHA}",
+            json=json.loads(GET_COMMIT_EXAMPLE),
+        )
+        responses.add(
+            "GET",
+            f"https://api.github.com/repos/{self.repo_name}/commits/{EARLIER_COMMIT_SHA}",
+            json=json.loads(GET_PRIOR_COMMIT_EXAMPLE),
+        )
+        self.dummy_commit_sha = "a" * 40
+        responses.add(
+            responses.GET,
+            f"https://api.github.com/repos/{self.repo_name}/compare/{self.dummy_commit_sha}...{LATER_COMMIT_SHA}",
+            json=json.loads(COMPARE_COMMITS_EXAMPLE_WITH_INTERMEDIATE),
+        )
+        responses.add(
+            responses.GET,
+            f"https://api.github.com/repos/{self.repo_name}/commits?sha={LATER_COMMIT_SHA}",
+            json=json.loads(GET_LAST_2_COMMITS_EXAMPLE),
+        )
+
+    def _create_first_release_commit(self):
+        # Create a release
+        release = self.create_release(project=self.project, version="abcabcabc")
+        # Create a commit
+        commit = self.create_commit(
+            repo=self.repo,
+            key=self.dummy_commit_sha,
+        )
+        # Make a release head commit
+        ReleaseHeadCommit.objects.create(
+            organization_id=self.project.organization.id,
+            repository_id=self.repo.id,
+            release=release,
+            commit=commit,
+        )
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_autoassign_commits_on_sha_release_version(self, get_jwt):
+        with self.feature("projects:auto-associate-commits-to-release"):
+
+            self._create_first_release_commit()
+            # Make a new release with SHA checksum
+            with self.tasks():
+                _ = self.make_release_event(LATER_COMMIT_SHA, self.project.id)
+
+            release2 = Release.objects.get(version=LATER_COMMIT_SHA)
+            commit_list = list(
+                Commit.objects.filter(releasecommit__release=release2).order_by(
+                    "releasecommit__order"
+                )
+            )
+
+            assert len(commit_list) == 2
+            assert commit_list[0].repository_id == self.repo.id
+            assert commit_list[0].organization_id == self.project.organization.id
+            assert commit_list[0].key == EARLIER_COMMIT_SHA
+            assert commit_list[1].repository_id == self.repo.id
+            assert commit_list[1].organization_id == self.project.organization.id
+            assert commit_list[1].key == LATER_COMMIT_SHA
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_autoassign_commits_first_release(self, get_jwt):
+        with self.feature("projects:auto-associate-commits-to-release"):
+            with self.tasks():
+                _ = self.make_release_event(LATER_COMMIT_SHA, self.project.id)
+
+            release2 = Release.objects.get(version=LATER_COMMIT_SHA)
+            commit_list = list(
+                Commit.objects.filter(releasecommit__release=release2).order_by(
+                    "releasecommit__order"
+                )
+            )
+
+            assert len(commit_list) == 2
+            assert commit_list[0].repository_id == self.repo.id
+            assert commit_list[0].organization_id == self.project.organization.id
+            assert commit_list[0].key == EARLIER_COMMIT_SHA
+            assert commit_list[1].repository_id == self.repo.id
+            assert commit_list[1].organization_id == self.project.organization.id
+            assert commit_list[1].key == LATER_COMMIT_SHA
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_autoassign_commits_not_a_sha(self, get_jwt):
+        SHA = "not-a-sha"
+        with self.feature("projects:auto-associate-commits-to-release"):
+            with self.tasks():
+                _ = self.make_release_event(SHA, self.project.id)
+
+            release2 = Release.objects.get(version=SHA)
+            commit_list = list(
+                Commit.objects.filter(releasecommit__release=release2).order_by(
+                    "releasecommit__order"
+                )
+            )
+            assert len(commit_list) == 0
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_autoassign_commit_not_found(self, get_jwt):
+        SHA = "b" * 40
+        responses.add(
+            "GET",
+            f"https://api.github.com/repos/{self.repo_name}/commits/{SHA}",
+            status=HTTP_404_NOT_FOUND,
+        )
+        with self.feature("projects:auto-associate-commits-to-release"):
+            with self.tasks():
+                _ = self.make_release_event(SHA, self.project.id)
+
+            release2 = Release.objects.get(version=SHA)
+            commit_list = list(
+                Commit.objects.filter(releasecommit__release=release2).order_by(
+                    "releasecommit__order"
+                )
+            )
+            assert len(commit_list) == 0
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_autoassign_commits_release_conflict(self, get_jwt):
+        # Release is created but none of the commits, we should still associate commits
+        with self.feature("projects:auto-associate-commits-to-release"):
+            preexisting_release = self.create_release(
+                project=self.project, version=LATER_COMMIT_SHA
+            )
+            with self.tasks():
+                _ = self.make_release_event(LATER_COMMIT_SHA, self.project.id)
+
+            commit_releases = Release.objects.filter(version=LATER_COMMIT_SHA).all()
+            assert len(commit_releases) == 1
+            assert commit_releases[0].id == preexisting_release.id
+            commit_list = list(
+                Commit.objects.filter(releasecommit__release=preexisting_release).order_by(
+                    "releasecommit__order"
+                )
+            )
+
+            assert len(commit_list) == 2
+            assert commit_list[0].repository_id == self.repo.id
+            assert commit_list[0].organization_id == self.project.organization.id
+            assert commit_list[0].key == EARLIER_COMMIT_SHA
+            assert commit_list[1].repository_id == self.repo.id
+            assert commit_list[1].organization_id == self.project.organization.id
+            assert commit_list[1].key == LATER_COMMIT_SHA
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_autoassign_commits_commit_conflict(self, get_jwt):
+        # A commit tied to the release is somehow created before the release itself is created.
+        # autoassociation should tie the existing commit to the new release
+        with self.feature("projects:auto-associate-commits-to-release"):
+
+            author = CommitAuthor.objects.create(
+                organization_id=self.organization.id,
+                email="support@github.com",
+                name="Monalisa Octocat",
+            )
+
+            # Values taken from commit generated from GH response fixtures
+            preexisting_commit = self.create_commit(
+                repo=self.repo,
+                project=self.project,
+                author=author,
+                key=EARLIER_COMMIT_SHA,
+                message="Fix all the bugs",
+                date_added=datetime(2011, 4, 14, 16, 0, 49, tzinfo=timezone.utc),
+            )
+
+            with self.tasks():
+                self.make_release_event(LATER_COMMIT_SHA, self.project.id)
+
+            new_release = Release.objects.get(version=LATER_COMMIT_SHA)
+            commit_list = list(
+                Commit.objects.filter(releasecommit__release=new_release).order_by(
+                    "releasecommit__order"
+                )
+            )
+
+            assert len(commit_list) == 2
+            assert commit_list[0].id == preexisting_commit.id
+            assert commit_list[0].repository_id == self.repo.id
+            assert commit_list[0].organization_id == self.project.organization.id
+            assert commit_list[0].key == EARLIER_COMMIT_SHA
+            assert commit_list[1].repository_id == self.repo.id
+            assert commit_list[1].organization_id == self.project.organization.id
+            assert commit_list[1].key == LATER_COMMIT_SHA
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_autoassign_commits_feature_not_enabled(self, get_jwt):
+        with self.feature({"projects:auto-associate-commits-to-release": False}):
+            with self.tasks():
+                _ = self.make_release_event(LATER_COMMIT_SHA, self.project.id)
+
+            release2 = Release.objects.get(version=LATER_COMMIT_SHA)
+            commit_list = list(
+                Commit.objects.filter(releasecommit__release=release2).order_by(
+                    "releasecommit__order"
+                )
+            )
+
+            assert len(commit_list) == 0
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_autoassign_commits_duplicate_events(self, get_jwt):
+        with self.feature({"projects:auto-associate-commits-to-release": True}):
+            with self.tasks():
+                event1 = self.make_release_event(LATER_COMMIT_SHA, self.project.id)
+                event2 = self.make_release_event(LATER_COMMIT_SHA, self.project.id)
+
+            assert event1 != event2
+            assert event1.release == event2.release
+            releases = Release.objects.filter(version=LATER_COMMIT_SHA).all()
+            assert len(releases) == 1
+            commit_list = list(
+                Commit.objects.filter(releasecommit__release=releases[0]).order_by(
+                    "releasecommit__order"
+                )
+            )
+
+            assert len(commit_list) == 2
+            assert commit_list[0].repository_id == self.repo.id
+            assert commit_list[0].organization_id == self.project.organization.id
+            assert commit_list[0].key == EARLIER_COMMIT_SHA
+            assert commit_list[1].repository_id == self.repo.id
+            assert commit_list[1].organization_id == self.project.organization.id
+            assert commit_list[1].key == LATER_COMMIT_SHA
 
 
 class ReleaseIssueTest(TestCase):

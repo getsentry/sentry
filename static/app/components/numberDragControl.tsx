@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {IconArrow} from 'sentry/icons';
@@ -25,7 +25,7 @@ type State = {
   isClicked: boolean;
 };
 
-class NumberDragControl extends React.Component<Props, State> {
+class NumberDragControl extends Component<Props, State> {
   state: State = {
     isClicked: false,
   };

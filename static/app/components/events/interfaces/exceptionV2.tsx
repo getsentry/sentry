@@ -5,8 +5,7 @@ import {ExceptionType, Group, PlatformType, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
 
-import TraceEventDataSection from '../traceEventDataSection';
-import {DisplayOption} from '../traceEventDataSection/displayOptions';
+import {TraceEventDataSection} from '../traceEventDataSection';
 
 import CrashContentException from './crashContent/exception';
 import NoStackTraceMessage from './noStackTraceMessage';
@@ -102,20 +101,18 @@ function Exception({
       showPermalink
       wrapTitle={false}
     >
-      {({raw, recentFirst, activeDisplayOptions}) =>
+      {({recentFirst, display, fullStackTrace}) =>
         stackTraceNotFound ? (
           <NoStackTraceMessage />
         ) : (
           <CrashContentException
             stackType={
-              activeDisplayOptions.includes(DisplayOption.MINIFIED)
-                ? STACK_TYPE.MINIFIED
-                : STACK_TYPE.ORIGINAL
+              display.includes('minified') ? STACK_TYPE.MINIFIED : STACK_TYPE.ORIGINAL
             }
             stackView={
-              raw
+              display.includes('raw-stack-trace')
                 ? STACK_VIEW.RAW
-                : activeDisplayOptions.includes(DisplayOption.FULL_STACK_TRACE)
+                : fullStackTrace
                 ? STACK_VIEW.FULL
                 : STACK_VIEW.APP
             }

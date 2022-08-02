@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
@@ -55,7 +55,7 @@ type State = {
   collapsed: boolean;
 };
 
-export default class FormPanel extends React.Component<Props, State> {
+export default class FormPanel extends Component<Props, State> {
   static defaultProps: DefaultProps = {
     additionalFieldProps: {},
   };

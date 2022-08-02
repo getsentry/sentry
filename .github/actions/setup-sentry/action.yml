@@ -23,17 +23,14 @@ inputs:
     description: 'Is chartcuterie required?'
     required: false
     default: 'false'
-  cache-files-hash:
-    description: 'A single hash for a set of files. Used for caching.'
+  bigtable:
+    description: 'Is bigtable required?'
     required: false
-    default: ${{ hashFiles('requirements-*.txt', '!requirements-pre-commit.txt') }}
+    default: 'false'
   python-version:
     description: 'python version to install'
     required: false
-  pip-cache-version:
-    description: 'pip cache version in order to bust cache'
-    required: false
-    default: '1630355466247'
+    default: '3.8.13'
   pg-version:
     description: 'PostgreSQL version to use'
     default: '9.6'
@@ -43,15 +40,6 @@ outputs:
   yarn-cache-dir:
     description: 'Path to yarn cache'
     value: ${{ steps.config.outputs.yarn-cache-dir }}
-  pip-cache-dir:
-    description: 'Path to pip cache'
-    value: ${{ steps.setup-python.outputs.pip-cache-dir }}
-  pip-version:
-    description: 'pip version'
-    value: ${{ steps.setup-python.outputs.pip-version }}
-  python-version:
-    description: 'python version'
-    value: ${{ steps.setup-python.outputs.python-version }}
   acceptance-dir:
     description: 'Path to acceptance visual snapshot artifacts'
     value: ${{ steps.config.outputs.acceptance-dir }}
@@ -68,7 +56,6 @@ runs:
     - name: Setup default environment variables
       shell: bash
       env:
-        NEED_KAFKA: ${{ inputs.kafka }}
         MATRIX_INSTANCE: ${{ matrix.instance }}
         # XXX: We should be using something like len(strategy.matrix.instance) (not possible atm)
         # If you have other things like python-version: [foo, bar, baz] then the sharding logic
@@ -81,7 +68,7 @@ runs:
         fi
 
         echo "PIP_DISABLE_PIP_VERSION_CHECK=on" >> $GITHUB_ENV
-        echo "SENTRY_LIGHT_BUILD=1" >> $GITHUB_ENV
+        echo "PY_COLORS=1" >> "$GITHUB_ENV"
         echo "SENTRY_SKIP_BACKEND_VALIDATION=1" >> $GITHUB_ENV
 
         ### node configuration ###
@@ -91,6 +78,13 @@ runs:
         ### pytest-sentry configuration ###
         echo "PYTEST_SENTRY_DSN=https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079" >> $GITHUB_ENV
         echo "PYTEST_ADDOPTS=--reruns 5" >> $GITHUB_ENV
+
+        # Configure a different release version, otherwise it defaults to the
+        # commit sha which will conflict with our actual prod releases. This is a
+        # confusing experience because it looks like these are "empty" releases
+        # because no commits are attached and associates the release with our
+        # javascript + sentry projects.
+        echo "SENTRY_RELEASE=ci@$GITHUB_SHA" >> $GITHUB_ENV
 
         # this handles pytest test sharding
         if [ "$MATRIX_INSTANCE" ]; then
@@ -106,23 +100,12 @@ runs:
         # expected that people have failing tests on their PRs
         [ "$GITHUB_REF" = "refs/heads/master" ] && echo "PYTEST_SENTRY_ALWAYS_REPORT=1" >> $GITHUB_ENV || true
 
-        ### services configuration ###
-        echo "BIGTABLE_EMULATOR_HOST=localhost:8086" >> $GITHUB_ENV
-        # Note: some backend tests (e.g. tests/sentry/eventstream/kafka/test_consumer.py) will behave
-        # differently if these are set.
-        if [ "$NEED_KAFKA" = "true" ]; then
-          echo "SENTRY_KAFKA_HOSTS=127.0.0.1:9092" >> $GITHUB_ENV
-          echo "SENTRY_ZOOKEEPER_HOSTS=127.0.0.1:2181" >> $GITHUB_ENV
-        fi
-
     - name: Setup python
-      id: setup-python
-      uses: ./.github/actions/setup-python
+      uses: actions/setup-python@c4e89fac7e8767b327bbad6cb4d859eda999cf08  # v4
       with:
         python-version: ${{ inputs.python-version }}
-        cache-files-hash: ${{ inputs.cache-files-hash }}
-        pip-cache-version: ${{ inputs.pip-cache-version }}
-        workdir: ${{ inputs.workdir }}
+        cache: pip
+        cache-dependency-path: ${{ inputs.workdir }}/requirements-dev-frozen.txt
 
     - name: Install system dependencies
       shell: bash
@@ -152,8 +135,10 @@ runs:
       run: |
         cd "$WORKDIR"
         python setup.py install_egg_info
-        pip install wheel # GitHub Actions does not have `wheel` installed by default
-        pip install -U -e ".[dev]"
+        # We need to install editable otherwise things like check migration will fail.
+        pip install -r requirements-dev-frozen.txt & \
+        SENTRY_LIGHT_BUILD=1 pip install --no-deps -e . & \
+        wait
         cd -
 
     - name: Start devservices
@@ -162,6 +147,7 @@ runs:
         NEED_KAFKA: ${{ inputs.kafka }}
         NEED_SNUBA: ${{ inputs.snuba }}
         NEED_CLICKHOUSE: ${{ inputs.clickhouse }}
+        NEED_BIGTABLE: ${{ inputs.bigtable }}
         NEED_CHARTCUTERIE: ${{ inputs.chartcuterie }}
         WORKDIR: ${{ inputs.workdir }}
         PG_VERSION: ${{ inputs.pg-version }}
@@ -169,11 +155,26 @@ runs:
         sentry init
 
         # redis, postgres are needed for almost every code path.
-        sentry devservices up redis postgres
+        services='redis postgres'
 
-        if [ "$BIGTABLE_EMULATOR_HOST" ]; then
-          sentry devservices up --skip-only-if bigtable
+        if [ "$NEED_CLICKHOUSE" = "true" ] || [ "$NEED_SNUBA" = "true" ]; then
+          services="${services} clickhouse"
         fi
+
+        if [ "$NEED_SNUBA" = "true" ]; then
+          services="${services} snuba"
+        fi
+
+        if [ "$NEED_BIGTABLE" = "true" ]; then
+          echo "BIGTABLE_EMULATOR_HOST=127.0.0.1:8086" >> $GITHUB_ENV
+          services="${services} bigtable"
+        fi
+
+        if [ "$NEED_CHARTCUTERIE" = "true" ]; then
+          services="${services} chartcuterie"
+        fi
+
+        sentry devservices up $services &
 
         # TODO: Use devservices kafka. See https://github.com/getsentry/sentry/pull/20986#issuecomment-704510570
         if [ "$NEED_KAFKA" = "true" ]; then
@@ -183,7 +184,8 @@ runs:
             --name sentry_zookeeper \
             -d --network host \
             -e ZOOKEEPER_CLIENT_PORT=2181 \
-            confluentinc/cp-zookeeper:4.1.0
+            confluentinc/cp-zookeeper:4.1.0 \
+            &
 
           # This is the production version; do not change w/o changing it there as well
           # https://github.com/getsentry/ops/blob/c823e62f930ecc6c97bb08898c71e49edc7232f6/cookbooks/getsentry/attributes/default.rb#L643
@@ -196,20 +198,11 @@ runs:
             -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT \
             -e KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL \
             -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
-            confluentinc/cp-kafka:5.1.2
+            confluentinc/cp-kafka:5.1.2 \
+            &
         fi
 
-        if [ "$NEED_SNUBA" = "true" ]; then
-          sentry devservices up clickhouse snuba
-        fi
-
-        if [ "$NEED_CLICKHOUSE" = "true" ]; then
-          sentry devservices up clickhouse
-        fi
-
-        if [ "$NEED_CHARTCUTERIE" = "true" ]; then
-          sentry devservices up --skip-only-if chartcuterie
-        fi
+        wait
 
         docker ps -a
 

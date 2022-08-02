@@ -12,8 +12,8 @@ from sentry.utils.services import LazyServiceWrapper
 if TYPE_CHECKING:
     from sentry.models import Rule, Group
 
-from .backends.base import Backend  # NOQA
-from .backends.dummy import DummyBackend  # NOQA
+from .backends.base import Backend
+from .backends.dummy import DummyBackend
 
 backend = LazyServiceWrapper(
     Backend, settings.SENTRY_DIGESTS, settings.SENTRY_DIGESTS_OPTIONS, (DummyBackend,)

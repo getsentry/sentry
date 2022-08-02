@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import AnnotatedText from 'sentry/components/events/meta/annotatedText';
 import MetaData from 'sentry/components/events/meta/metaData';
 import {isFunction} from 'sentry/utils';

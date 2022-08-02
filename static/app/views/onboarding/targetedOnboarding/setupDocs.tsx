@@ -1,20 +1,24 @@
-import {useEffect, useState} from 'react';
-import * as React from 'react';
+import 'prism-sentry/index.css';
+
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {motion} from 'framer-motion';
+import {AnimatePresence, motion} from 'framer-motion';
 import * as qs from 'query-string';
 
 import {loadDocs} from 'sentry/actionCreators/projects';
 import Alert, {alertStyles} from 'sentry/components/alert';
+import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
+import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
+import {logExperiment} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';
@@ -23,8 +27,9 @@ import withProjects from 'sentry/utils/withProjects';
 
 import FirstEventFooter from './components/firstEventFooter';
 import FullIntroduction from './components/fullIntroduction';
-import TargetedOnboardingSidebar from './components/sidebar';
-import {ClientState, fetchClientState, StepProps} from './types';
+import ProjectSidebarSection from './components/projectSidebarSection';
+import {StepProps} from './types';
+import {usePersistedOnboardingState} from './utils';
 
 /**
  * The documentation will include the following string should it be missing the
@@ -32,25 +37,172 @@ import {ClientState, fetchClientState, StepProps} from './types';
  */
 const INCOMPLETE_DOC_FLAG = 'TODO-ADD-VERIFICATION-EXAMPLE';
 
-type PlatformDoc = {html: string; link: string};
+type PlatformDoc = {html: string; link: string; wizardSetup: string};
 
 type Props = {
   projects: Project[];
   search: string;
+  loadingProjects?: boolean;
 } & StepProps;
 
-function SetupDocs({organization, projects, search}: Props) {
-  const api = useApi();
-  const [clientState, setClientState] = useState<ClientState | null>(null);
-  const selectedProjectsSet = new Set(
-    clientState?.selectedPlatforms.map(
-      platform => clientState.platformToProjectIdMap[platform]
-    ) || []
+function ProjecDocs(props: {
+  hasError: boolean;
+  onRetry: () => void;
+  organization: Organization;
+  platform: PlatformKey | null;
+  platformDocs: PlatformDoc | null;
+  project: Project;
+}) {
+  const testOnlyAlert = (
+    <Alert type="warning">
+      Platform documentation is not rendered in for tests in CI
+    </Alert>
   );
-  useEffect(() => {
-    fetchClientState(api, organization.slug).then(setClientState);
-  }, []);
+  const missingExampleWarning = () => {
+    const missingExample =
+      props.platformDocs && props.platformDocs.html.includes(INCOMPLETE_DOC_FLAG);
 
+    if (!missingExample) {
+      return null;
+    }
+
+    return (
+      <Alert type="warning" showIcon>
+        {tct(
+          `Looks like this getting started example is still undergoing some
+           work and doesn't include an example for triggering an event quite
+           yet. If you have trouble sending your first event be sure to consult
+           the [docsLink:full documentation] for [platform].`,
+          {
+            docsLink: <ExternalLink href={props.platformDocs?.link} />,
+            platform: platforms.find(p => p.id === props.platform)?.name,
+          }
+        )}
+      </Alert>
+    );
+  };
+
+  useEffect(() => {
+    props.platformDocs?.wizardSetup &&
+      logExperiment({
+        key: 'OnboardingHighlightWizardExperiment',
+        organization: props.organization,
+      });
+  }, [props.organization, props.platformDocs?.wizardSetup]);
+
+  const showWizardSetup =
+    props.organization.experiments.OnboardingHighlightWizardExperiment;
+  const [wizardSetupDetailsCollapsed, setWizardSetupDetailsCollapsed] = useState(true);
+  const [interacted, setInteracted] = useState(false);
+  const docs =
+    props.platformDocs !== null &&
+    (showWizardSetup && props.platformDocs.wizardSetup ? (
+      <DocsWrapper key={props.platformDocs.html}>
+        <Content
+          dangerouslySetInnerHTML={{__html: props.platformDocs.wizardSetup}}
+          onMouseDown={() => {
+            !interacted &&
+              trackAdvancedAnalyticsEvent('growth.onboarding_wizard_interacted', {
+                organization: props.organization,
+                project_id: props.project.id,
+                platform: props.platform || 'unknown',
+                wizard_instructions: true,
+              });
+            setInteracted(true);
+          }}
+        />
+        <Button
+          priority="link"
+          onClick={() => {
+            trackAdvancedAnalyticsEvent('growth.onboarding_wizard_clicked_more_details', {
+              organization: props.organization,
+              project_id: props.project.id,
+              platform: props.platform || 'unknown',
+            });
+            setWizardSetupDetailsCollapsed(!wizardSetupDetailsCollapsed);
+          }}
+        >
+          <IconChevron
+            direction={wizardSetupDetailsCollapsed ? 'down' : 'up'}
+            style={{marginRight: space(1)}}
+          />
+          {wizardSetupDetailsCollapsed ? t('More Details') : t('Less Details')}
+        </Button>
+
+        <AnimatePresence>
+          {!wizardSetupDetailsCollapsed && (
+            <AnimatedContentWrapper>
+              <Content dangerouslySetInnerHTML={{__html: props.platformDocs.html}} />
+              {missingExampleWarning()}
+            </AnimatedContentWrapper>
+          )}
+        </AnimatePresence>
+      </DocsWrapper>
+    ) : (
+      <DocsWrapper key={props.platformDocs.html}>
+        <Content
+          dangerouslySetInnerHTML={{__html: props.platformDocs.html}}
+          onMouseDown={() => {
+            !interacted &&
+              trackAdvancedAnalyticsEvent('growth.onboarding_wizard_interacted', {
+                organization: props.organization,
+                project_id: props.project.id,
+                platform: props.platform || undefined,
+                wizard_instructions: false,
+              });
+            setInteracted(true);
+          }}
+        />
+        {missingExampleWarning()}
+      </DocsWrapper>
+    ));
+  const loadingError = (
+    <LoadingError
+      message={t(
+        'Failed to load documentation for the %s platform.',
+        props.project?.platform
+      )}
+      onRetry={props.onRetry}
+    />
+  );
+
+  const currentPlatform = props.platform ?? props.project?.platform ?? 'other';
+  return (
+    <Fragment>
+      <FullIntroduction
+        currentPlatform={currentPlatform}
+        organization={props.organization}
+      />
+      {getDynamicText({
+        value: !props.hasError ? docs : loadingError,
+        fixed: testOnlyAlert,
+      })}
+    </Fragment>
+  );
+}
+
+function SetupDocs({
+  organization,
+  projects: rawProjects,
+  search,
+  loadingProjects,
+}: Props) {
+  const api = useApi();
+  const [clientState, setClientState] = usePersistedOnboardingState();
+  const selectedPlatforms = clientState?.selectedPlatforms || [];
+  const platformToProjectIdMap = clientState?.platformToProjectIdMap || {};
+  // id is really slug here
+  const projectSlugs = selectedPlatforms
+    .map(platform => platformToProjectIdMap[platform])
+    .filter((slug): slug is string => slug !== undefined);
+
+  const selectedProjectsSet = new Set(projectSlugs);
+  // get projects in the order they appear in selectedPlatforms
+  const projects = projectSlugs
+    .map(slug => rawProjects.find(project => project.slug === slug))
+    .filter((project): project is Project => project !== undefined);
+
+  // SDK instrumentation
   const [hasError, setHasError] = useState(false);
   const [platformDocs, setPlatformDocs] = useState<PlatformDoc | null>(null);
   const [loadedPlatform, setLoadedPlatform] = useState<PlatformKey | null>(null);
@@ -65,9 +217,7 @@ function SetupDocs({organization, projects, search}: Props) {
     return !!hasFirstEventMap[project.id];
   };
 
-  // TODO: Check no projects
-  const {sub_step: rawSubStep, project_id: rawProjectId} = qs.parse(search);
-  const subStep = rawSubStep === 'integration' ? 'integration' : 'project';
+  const {project_id: rawProjectId} = qs.parse(search);
   const rawProjectIndex = projects.findIndex(p => p.id === rawProjectId);
   const firstProjectNoError = projects.findIndex(
     p => selectedProjectsSet.has(p.slug) && !checkProjectHasFirstEvent(p)
@@ -75,18 +225,27 @@ function SetupDocs({organization, projects, search}: Props) {
   // Select a project based on search params. If non exist, use the first project without first event.
   const projectIndex = rawProjectIndex >= 0 ? rawProjectIndex : firstProjectNoError;
   const project = projects[projectIndex];
+  // find the next project that doesn't have a first event
+  const nextProject = projects.find(
+    (p, i) => i > projectIndex && !checkProjectHasFirstEvent(p)
+  );
 
   useEffect(() => {
-    if (clientState && !project) {
-      // Can't find a project to show, probably because all projects are either deleted or finished.
+    // should not redirect if we don't have an active client state or projects aren't loaded
+    if (!clientState || loadingProjects) {
+      return;
+    }
+    if (
+      // If no projects remaining, then we can leave
+      !project
+    ) {
       browserHistory.push('/');
     }
-  }, [clientState, project]);
+  });
 
   const currentPlatform = loadedPlatform ?? project?.platform ?? 'other';
 
-  const fetchData = async () => {
-    // const {platform} = project || {};
+  const fetchData = useCallback(async () => {
     // TODO: add better error handling logic
     if (!project?.platform) {
       return;
@@ -105,22 +264,28 @@ function SetupDocs({organization, projects, search}: Props) {
       setHasError(error);
       throw error;
     }
-  };
+  }, [project, api, organization]);
 
   useEffect(() => {
     fetchData();
-  }, [project]);
+  }, [fetchData]);
 
-  // TODO: add better error handling logic
-  if (!project && subStep === 'project') {
+  if (!project) {
     return null;
   }
 
   const setNewProject = (newProjectId: string) => {
     const searchParams = new URLSearchParams({
+      sub_step: 'project',
       project_id: newProjectId,
     });
     browserHistory.push(`${window.location.pathname}?${searchParams}`);
+    clientState &&
+      setClientState({
+        ...clientState,
+        state: 'projects_selected',
+        url: `setup-docs/?${searchParams}`,
+      });
   };
 
   const selectProject = (newProjectId: string) => {
@@ -132,74 +297,31 @@ function SetupDocs({organization, projects, search}: Props) {
     setNewProject(newProjectId);
   };
 
-  const missingExampleWarning = () => {
-    const missingExample =
-      platformDocs && platformDocs.html.includes(INCOMPLETE_DOC_FLAG);
-
-    if (!missingExample) {
-      return null;
-    }
-
-    return (
-      <Alert type="warning" showIcon>
-        {tct(
-          `Looks like this getting started example is still undergoing some
-           work and doesn't include an example for triggering an event quite
-           yet. If you have trouble sending your first event be sure to consult
-           the [docsLink:full documentation] for [platform].`,
-          {
-            docsLink: <ExternalLink href={platformDocs?.link} />,
-            platform: platforms.find(p => p.id === loadedPlatform)?.name,
-          }
-        )}
-      </Alert>
-    );
-  };
-
-  const docs = platformDocs !== null && (
-    <DocsWrapper key={platformDocs.html}>
-      <Content dangerouslySetInnerHTML={{__html: platformDocs.html}} />
-      {missingExampleWarning()}
-    </DocsWrapper>
-  );
-
-  const loadingError = (
-    <LoadingError
-      message={t('Failed to load documentation for the %s platform.', project.platform)}
-      onRetry={fetchData}
-    />
-  );
-
-  const testOnlyAlert = (
-    <Alert type="warning">
-      Platform documentation is not rendered in for tests in CI
-    </Alert>
-  );
-
   return (
-    <React.Fragment>
+    <Fragment>
       <Wrapper>
-        <TargetedOnboardingSidebar
-          projects={projects}
-          selectedPlatformToProjectIdMap={
-            clientState
-              ? Object.fromEntries(
-                  clientState.selectedPlatforms.map(platform => [
-                    platform,
-                    clientState.platformToProjectIdMap[platform],
-                  ])
-                )
-              : {}
-          }
-          activeProject={project}
-          {...{checkProjectHasFirstEvent, selectProject}}
-        />
+        <SidebarWrapper>
+          <ProjectSidebarSection
+            projects={projects}
+            selectedPlatformToProjectIdMap={Object.fromEntries(
+              selectedPlatforms.map(platform => [
+                platform,
+                platformToProjectIdMap[platform],
+              ])
+            )}
+            activeProject={project}
+            {...{checkProjectHasFirstEvent, selectProject}}
+          />
+        </SidebarWrapper>
         <MainContent>
-          <FullIntroduction currentPlatform={currentPlatform} />
-          {getDynamicText({
-            value: !hasError ? docs : loadingError,
-            fixed: testOnlyAlert,
-          })}
+          <ProjecDocs
+            platform={loadedPlatform}
+            organization={organization}
+            project={project}
+            hasError={hasError}
+            platformDocs={platformDocs}
+            onRetry={fetchData}
+          />
         </MainContent>
       </Wrapper>
 
@@ -207,9 +329,10 @@ function SetupDocs({organization, projects, search}: Props) {
         <FirstEventFooter
           project={project}
           organization={organization}
-          isLast={projectIndex === projects.length - 1}
+          isLast={!nextProject}
           hasFirstEvent={checkProjectHasFirstEvent(project)}
           onClickSetupLater={() => {
+            const orgIssuesURL = `/organizations/${organization.slug}/issues/?project=${project.id}`;
             trackAdvancedAnalyticsEvent(
               'growth.onboarding_clicked_setup_platform_later',
               {
@@ -218,15 +341,20 @@ function SetupDocs({organization, projects, search}: Props) {
                 project_index: projectIndex,
               }
             );
-            const nextProject = projects.find(
-              (p, index) => !p.firstEvent && index > projectIndex
-            );
-            if (!nextProject) {
-              // TODO: integrations
-              browserHistory.push('/');
+            if (!project.platform || !clientState) {
+              browserHistory.push(orgIssuesURL);
               return;
             }
-            setNewProject(nextProject.id);
+            // if we have a next project, switch to that
+            if (nextProject) {
+              setNewProject(nextProject.id);
+            } else {
+              setClientState({
+                ...clientState,
+                state: 'finished',
+              });
+              browserHistory.push(orgIssuesURL);
+            }
           }}
           handleFirstIssueReceived={() => {
             const newHasFirstEventMap = {...hasFirstEventMap, [project.id]: true};
@@ -234,7 +362,7 @@ function SetupDocs({organization, projects, search}: Props) {
           }}
         />
       )}
-    </React.Fragment>
+    </Fragment>
   );
 }
 
@@ -252,6 +380,21 @@ const mapAlertStyles = (p: {theme: Theme}, type: AlertType) =>
       display: block;
     }
   `;
+
+const AnimatedContentWrapper = styled(motion.div)`
+  overflow: hidden;
+`;
+AnimatedContentWrapper.defaultProps = {
+  initial: {
+    height: 0,
+  },
+  animate: {
+    height: 'auto',
+  },
+  exit: {
+    height: 0,
+  },
+};
 
 const Content = styled(motion.div)`
   h1,
@@ -317,4 +460,18 @@ const MainContent = styled('div')`
   max-width: 850px;
   min-width: 0;
   flex-grow: 1;
+`;
+
+// the number icon will be space(2) + 30px to the left of the margin of center column
+// so we need to offset the right margin by that much
+// also hide the sidebar if the screen is too small
+const SidebarWrapper = styled('div')`
+  margin: ${space(1)} calc(${space(2)} + 30px + ${space(4)}) 0 ${space(2)};
+  @media (max-width: 1150px) {
+    display: none;
+  }
+  flex-basis: 240px;
+  flex-grow: 0;
+  flex-shrink: 0;
+  min-width: 240px;
 `;

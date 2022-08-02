@@ -1,10 +1,6 @@
-import * as React from 'react';
-import styled from '@emotion/styled';
-
 import Button from 'sentry/components/button';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
@@ -14,14 +10,22 @@ import {TraceKnownData, TraceKnownDataType} from './types';
 type Output = {
   subject: string;
   value: React.ReactNode;
+  actionButton?: React.ReactNode;
 };
 
-function getUserKnownDataDetails(
-  data: TraceKnownData,
-  type: TraceKnownDataType,
-  event: Event,
-  organization: Organization
-): Output | undefined {
+type Props = {
+  data: TraceKnownData;
+  event: Event;
+  organization: Organization;
+  type: TraceKnownDataType;
+};
+
+export function getTraceKnownDataDetails({
+  data,
+  event,
+  organization,
+  type,
+}: Props): Output | undefined {
   switch (type) {
     case TraceKnownDataType.TRACE_ID: {
       const traceId = data.trace_id || '';
@@ -39,15 +43,11 @@ function getUserKnownDataDetails(
 
       return {
         subject: t('Trace ID'),
-        value: (
-          <ButtonWrapper>
-            <pre className="val">
-              <span className="val-string">{traceId}</span>
-            </pre>
-            <StyledButton size="xsmall" to={generateTraceTarget(event, organization)}>
-              {t('Search by Trace')}
-            </StyledButton>
-          </ButtonWrapper>
+        value: traceId,
+        actionButton: (
+          <Button size="xs" to={generateTraceTarget(event, organization)}>
+            {t('Search by Trace')}
+          </Button>
         ),
       };
     }
@@ -106,15 +106,11 @@ function getUserKnownDataDetails(
 
       return {
         subject: t('Transaction'),
-        value: (
-          <ButtonWrapper>
-            <pre className="val">
-              <span className="val-string">{transactionName}</span>
-            </pre>
-            <StyledButton size="xsmall" to={to}>
-              {t('View Summary')}
-            </StyledButton>
-          </ButtonWrapper>
+        value: transactionName,
+        actionButton: (
+          <Button size="xs" to={to}>
+            {t('View Summary')}
+          </Button>
         ),
       };
     }
@@ -123,15 +119,3 @@ function getUserKnownDataDetails(
       return undefined;
   }
 }
-
-const ButtonWrapper = styled('div')`
-  position: relative;
-`;
-
-const StyledButton = styled(Button)`
-  position: absolute;
-  top: ${space(0.5)};
-  right: ${space(0.5)};
-`;
-
-export default getUserKnownDataDetails;

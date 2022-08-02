@@ -50,7 +50,6 @@ export default function getConfiguration({
           path: `${pathPrefix}/ownership/`,
           title: t('Issue Owners'),
           description: t('Manage issue ownership rules for a project'),
-          badge: () => 'new',
         },
         {
           path: `${pathPrefix}/data-forwarding/`,
@@ -69,11 +68,12 @@ export default function getConfiguration({
           ),
         },
         {
-          path: `${pathPrefix}/filters-and-sampling/`,
-          title: t('Filters & Sampling'),
-          show: () => !!organization?.features?.includes('filters-and-sampling'),
-          description: t("Manage an organization's inbound data"),
-          badge: () => 'new',
+          path: `${pathPrefix}/server-side-sampling/`,
+          title: t('Server-Side Sampling'),
+          show: () => !!organization?.features?.includes('server-side-sampling'),
+          description: t(
+            "Per-Project basis solution to configure sampling rules within Sentry's UI"
+          ),
         },
         {
           path: `${pathPrefix}/security-and-privacy/`,

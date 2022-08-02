@@ -61,7 +61,7 @@ const BOTTOM_MOBILE_VIEW_POSITION = {
   x: 0,
   y: Number.MAX_SAFE_INTEGER,
 };
-const MOBILE_BREAKPOINT = parseInt(theme.breakpoints[0], 10);
+const MOBILE_BREAKPOINT = parseInt(theme.breakpoints.small, 10);
 const BREAKPOINTS = {[MOBILE]: 0, [DESKTOP]: MOBILE_BREAKPOINT};
 const COLUMNS = {[MOBILE]: NUM_MOBILE_COLS, [DESKTOP]: NUM_DESKTOP_COLS};
 
@@ -80,6 +80,7 @@ type Props = {
   router: InjectedRouter;
   selection: PageFilters;
   widgetLimitReached: boolean;
+  hasUnsavedFilters?: boolean;
   isPreview?: boolean;
   newWidget?: Widget;
   onSetNewWidget?: () => void;
@@ -139,7 +140,7 @@ class Dashboard extends Component<Props, State> {
     return null;
   }
 
-  async componentDidMount() {
+  componentDidMount() {
     const {organization, newWidget} = this.props;
     if (organization.features.includes('dashboard-grid-layout')) {
       window.addEventListener('resize', this.debouncedHandleResize);
@@ -156,7 +157,7 @@ class Dashboard extends Component<Props, State> {
     this.fetchMemberList();
   }
 
-  async componentDidUpdate(prevProps: Props) {
+  componentDidUpdate(prevProps: Props) {
     const {selection, newWidget} = this.props;
 
     if (newWidget && newWidget !== prevProps.newWidget) {
@@ -225,7 +226,7 @@ class Dashboard extends Component<Props, State> {
       paramDashboardId,
     } = this.props;
 
-    if (organization.features.includes('new-widget-builder-experience')) {
+    if (organization.features.includes('new-widget-builder-experience-design')) {
       if (paramDashboardId) {
         router.push({
           pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/new/`,
@@ -252,26 +253,16 @@ class Dashboard extends Component<Props, State> {
       organization,
     });
 
-    if (organization.features.includes('widget-library')) {
-      trackAdvancedAnalyticsEvent('dashboards_views.widget_library.opened', {
-        organization,
-      });
-      openAddDashboardWidgetModal({
-        organization,
-        dashboard,
-        selection,
-        onAddWidget: handleAddCustomWidget,
-        onAddLibraryWidget: (widgets: Widget[]) => handleUpdateWidgetList(widgets),
-        source: DashboardWidgetSource.LIBRARY,
-      });
-      return;
-    }
+    trackAdvancedAnalyticsEvent('dashboards_views.widget_library.opened', {
+      organization,
+    });
     openAddDashboardWidgetModal({
       organization,
       dashboard,
       selection,
       onAddWidget: handleAddCustomWidget,
-      source: DashboardWidgetSource.DASHBOARDS,
+      onAddLibraryWidget: (widgets: Widget[]) => handleUpdateWidgetList(widgets),
+      source: DashboardWidgetSource.LIBRARY,
     });
   };
 
@@ -345,7 +336,7 @@ class Dashboard extends Component<Props, State> {
     } = this.props;
 
     if (
-      organization.features.includes('new-widget-builder-experience') &&
+      organization.features.includes('new-widget-builder-experience-design') &&
       (!organization.features.includes('new-widget-builder-experience-modal-access') ||
         isEditing)
     ) {
@@ -399,7 +390,14 @@ class Dashboard extends Component<Props, State> {
 
   renderWidget(widget: Widget, index: number) {
     const {isMobile, windowWidth} = this.state;
-    const {isEditing, organization, widgetLimitReached, isPreview} = this.props;
+    const {
+      isEditing,
+      organization,
+      widgetLimitReached,
+      isPreview,
+      dashboard,
+      hasUnsavedFilters,
+    } = this.props;
 
     const widgetProps = {
       widget,
@@ -409,6 +407,8 @@ class Dashboard extends Component<Props, State> {
       onEdit: this.handleEditWidget(widget, index),
       onDuplicate: this.handleDuplicateWidget(widget, index),
       isPreview,
+      dashboardFilters: dashboard.filters,
+      hasUnsavedFilters,
     };
 
     if (organization.features.includes('dashboard-grid-layout')) {
@@ -538,10 +538,10 @@ class Dashboard extends Component<Props, State> {
     const {layouts, isMobile} = this.state;
     const {isEditing, dashboard, organization, widgetLimitReached} = this.props;
     let {widgets} = dashboard;
-    // Filter out any issue/metrics widgets if the user does not have the feature flag
+    // Filter out any issue/release widgets if the user does not have the feature flag
     widgets = widgets.filter(({widgetType}) => {
-      if (widgetType === WidgetType.METRICS) {
-        return organization.features.includes('dashboards-metrics');
+      if (widgetType === WidgetType.RELEASE) {
+        return organization.features.includes('dashboards-releases');
       }
       return true;
     });
@@ -569,7 +569,7 @@ class Dashboard extends Component<Props, State> {
             aria-label={t('Resize Widget')}
             data-test-id="custom-resize-handle"
             className={DRAG_RESIZE_CLASS}
-            size="xsmall"
+            size="xs"
             borderless
             icon={<IconResize size="xs" />}
           />
@@ -593,10 +593,10 @@ class Dashboard extends Component<Props, State> {
   renderDndDashboard = () => {
     const {isEditing, onUpdate, dashboard, organization, widgetLimitReached} = this.props;
     let {widgets} = dashboard;
-    // Filter out any issue/metrics widgets if the user does not have the feature flag
+    // Filter out any issue/release widgets if the user does not have the feature flag
     widgets = widgets.filter(({widgetType}) => {
-      if (widgetType === WidgetType.METRICS) {
-        return organization.features.includes('dashboards-metrics');
+      if (widgetType === WidgetType.RELEASE) {
+        return organization.features.includes('dashboards-releases');
       }
       return true;
     });
@@ -650,15 +650,15 @@ const WidgetContainer = styled('div')`
   grid-auto-flow: row dense;
   gap: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[4]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
     grid-template-columns: repeat(8, minmax(0, 1fr));
   }
 `;

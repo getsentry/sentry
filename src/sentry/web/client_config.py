@@ -3,12 +3,13 @@ from django.contrib.auth.models import AnonymousUser
 from django.contrib.messages import get_messages
 from django.core.cache import cache
 from django.db.models import F
-from pkg_resources import parse_version
+from packaging.version import parse as parse_version
 
 import sentry
 from sentry import features, options
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.user import DetailedSelfUserSerializer
+from sentry.api.utils import generate_organization_url
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import ProjectKey
 from sentry.utils import auth
@@ -98,13 +99,6 @@ def _get_public_dsn():
     return result
 
 
-def _get_dsn_requests():
-    if settings.SENTRY_FRONTEND_REQUESTS_DSN:
-        return settings.SENTRY_FRONTEND_REQUESTS_DSN
-
-    return ""
-
-
 def get_client_config(request=None):
     """
     Provides initial bootstrap data needed to boot the frontend application.
@@ -113,7 +107,7 @@ def get_client_config(request=None):
         user = getattr(request, "user", None) or AnonymousUser()
         messages = get_messages(request)
         session = getattr(request, "session", None)
-        is_superuser = is_active_superuser(request)
+        active_superuser = is_active_superuser(request)
         language_code = getattr(request, "LANGUAGE_CODE", "en")
 
         # User identity is used by the sentry SDK
@@ -127,7 +121,7 @@ def get_client_config(request=None):
         user_identity = {}
         messages = []
         session = None
-        is_superuser = False
+        active_superuser = False
         language_code = "en"
 
     enabled_features = []
@@ -140,10 +134,12 @@ def get_client_config(request=None):
 
     needs_upgrade = False
 
-    if is_superuser:
+    if active_superuser:
         needs_upgrade = _needs_upgrade()
 
     public_dsn = _get_public_dsn()
+
+    last_organization = session["activeorg"] if session and "activeorg" in session else None
 
     context = {
         "singleOrganization": settings.SENTRY_SINGLE_ORGANIZATION,
@@ -154,7 +150,6 @@ def get_client_config(request=None):
         "distPrefix": get_frontend_app_asset_url("sentry", ""),
         "needsUpgrade": needs_upgrade,
         "dsn": public_dsn,
-        "dsn_requests": _get_dsn_requests(),
         "statuspage": _get_statuspage(),
         "messages": [{"message": msg.message, "level": msg.tags} for msg in messages],
         "apmSampling": float(settings.SENTRY_FRONTEND_APM_SAMPLING or 0),
@@ -168,12 +163,17 @@ def get_client_config(request=None):
         # Note `lastOrganization` should not be expected to update throughout frontend app lifecycle
         # It should only be used on a fresh browser nav to a path where an
         # organization is not in context
-        "lastOrganization": session["activeorg"] if session and "activeorg" in session else None,
+        "lastOrganization": last_organization,
         "languageCode": language_code,
         "userIdentity": user_identity,
         "csrfCookieName": settings.CSRF_COOKIE_NAME,
         "sentryConfig": {
             "dsn": public_dsn,
+            # XXX: In the world of frontend / backend deploys being separated,
+            # this is likely incorrect, since the backend version may not
+            # match the frontend build version.
+            #
+            # This is likely to be removed sometime in the future.
             "release": f"frontend@{settings.SENTRY_SDK_CONFIG['release']}",
             "environment": settings.SENTRY_SDK_CONFIG["environment"],
             # By default `ALLOWED_HOSTS` is [*], however the JS SDK does not support globbing
@@ -184,6 +184,12 @@ def get_client_config(request=None):
             ),
         },
         "demoMode": settings.DEMO_MODE,
+        "enableAnalytics": settings.ENABLE_ANALYTICS,
+        "validateSUForm": getattr(settings, "VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON", False),
+        "sentryUrl": options.get("system.url-prefix"),
+        "organizationUrl": generate_organization_url(last_organization)
+        if last_organization
+        else None,
     }
     if user and user.is_authenticated:
         context.update(

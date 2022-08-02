@@ -195,7 +195,7 @@ export function formatBytesBase10(bytes: number, u: number = 0) {
  * For billing-related code around attachments. please take a look at
  * formatBytesBase10
  */
-export function formatBytesBase2(bytes: number): string {
+export function formatBytesBase2(bytes: number, fixPoints: number = 1): string {
   const units = ['KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB'];
   const thresh = 1024;
   if (bytes < thresh) {
@@ -207,7 +207,7 @@ export function formatBytesBase2(bytes: number): string {
     bytes /= thresh;
     ++u;
   } while (bytes >= thresh);
-  return bytes.toFixed(1) + ' ' + units[u];
+  return bytes.toFixed(fixPoints) + ' ' + units[u];
 }
 
 export function getShortCommitHash(hash: string): string {

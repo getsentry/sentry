@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
@@ -15,14 +15,14 @@ import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
-import EventView, {EventData, isFieldSortable} from 'sentry/utils/discover/eventView';
+import EventView, {
+  EventData,
+  EventsMetaType,
+  isFieldSortable,
+} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {
-  fieldAlignment,
-  getAggregateAlias,
-  Sort,
-  WebVital,
-} from 'sentry/utils/discover/fields';
+import {fieldAlignment, getAggregateAlias, Sort} from 'sentry/utils/discover/fields';
+import {WebVital} from 'sentry/utils/fields';
 import VitalsDetailsTableQuery, {
   TableData,
   TableDataRow,
@@ -37,6 +37,7 @@ import {
   TransactionFilterOptions,
   transactionSummaryRouteWithQuery,
 } from '../transactionSummary/utils';
+import {getSelectedProjectPlatforms} from '../utils';
 
 import {
   getVitalDetailTableMehStatusFunction,
@@ -94,7 +95,7 @@ type State = {
   widths: number[];
 };
 
-class Table extends React.Component<Props, State> {
+class Table extends Component<Props, State> {
   state: State = {
     widths: [],
   };
@@ -135,22 +136,22 @@ class Table extends React.Component<Props, State> {
   ): React.ReactNode {
     const {eventView, organization, projects, location, summaryConditions} = this.props;
 
-    if (!tableData || !tableData.meta) {
+    if (!tableData || !tableData.meta?.fields) {
       return dataRow[column.key];
     }
-    const tableMeta = tableData.meta;
+    const tableMeta = tableData.meta?.fields;
 
     const field = String(column.key);
 
     if (field === getVitalDetailTablePoorStatusFunction(vitalName)) {
-      if (dataRow[getAggregateAlias(field)]) {
+      if (dataRow[field]) {
         return (
           <UniqueTagCell>
             <PoorTag>{t('Poor')}</PoorTag>
           </UniqueTagCell>
         );
       }
-      if (dataRow[getAggregateAlias(getVitalDetailTableMehStatusFunction(vitalName))]) {
+      if (dataRow[getVitalDetailTableMehStatusFunction(vitalName)]) {
         return (
           <UniqueTagCell>
             <MehTag>{t('Meh')}</MehTag>
@@ -164,7 +165,7 @@ class Table extends React.Component<Props, State> {
       );
     }
 
-    const fieldRenderer = getFieldRenderer(field, tableMeta);
+    const fieldRenderer = getFieldRenderer(field, tableMeta, false);
     const rendered = fieldRenderer(dataRow, {organization, location});
 
     const allowActions = [
@@ -234,20 +235,32 @@ class Table extends React.Component<Props, State> {
   };
 
   renderHeadCell(
-    tableMeta: TableData['meta'],
     column: TableColumn<keyof TableDataRow>,
-    title: React.ReactNode
+    title: React.ReactNode,
+    tableMeta?: EventsMetaType['fields']
   ): React.ReactNode {
     const {eventView, location} = this.props;
-    const align = fieldAlignment(column.name, column.type, tableMeta);
+    // TODO: Need to map table meta keys to aggregate alias since eventView sorting still expects
+    // aggregate aliases for now. We'll need to refactor event view to get rid of all aggregate
+    // alias references and then we can remove this.
+    const aggregateAliasTableMeta: EventsMetaType['fields'] | undefined = tableMeta
+      ? {}
+      : undefined;
+    if (tableMeta) {
+      Object.keys(tableMeta).forEach(key => {
+        aggregateAliasTableMeta![getAggregateAlias(key)] = tableMeta[key];
+      });
+    }
+
+    const align = fieldAlignment(column.name, column.type, aggregateAliasTableMeta);
     const field = {field: column.name, width: column.width};
 
     function generateSortLink(): LocationDescriptorObject | undefined {
-      if (!tableMeta) {
+      if (!aggregateAliasTableMeta) {
         return undefined;
       }
 
-      const nextEventView = eventView.sortOnField(field, tableMeta);
+      const nextEventView = eventView.sortOnField(field, aggregateAliasTableMeta);
       const queryStringObject = nextEventView.generateQueryStringObject();
 
       return {
@@ -255,8 +268,8 @@ class Table extends React.Component<Props, State> {
         query: {...location.query, sort: queryStringObject.sort},
       };
     }
-    const currentSort = eventView.sortForField(field, tableMeta);
-    const canSort = isFieldSortable(field, tableMeta);
+    const currentSort = eventView.sortForField(field, aggregateAliasTableMeta);
+    const canSort = isFieldSortable(field, aggregateAliasTableMeta);
 
     return (
       <SortLink
@@ -269,9 +282,12 @@ class Table extends React.Component<Props, State> {
     );
   }
 
-  renderHeadCellWithMeta = (tableMeta: TableData['meta'], vitalName: WebVital) => {
+  renderHeadCellWithMeta = (
+    vitalName: WebVital,
+    tableMeta?: EventsMetaType['fields']
+  ) => {
     return (column: TableColumn<keyof TableDataRow>, index: number): React.ReactNode =>
-      this.renderHeadCell(tableMeta, column, getTableColumnTitle(index, vitalName));
+      this.renderHeadCell(column, getTableColumnTitle(index, vitalName), tableMeta);
   };
 
   renderPrependCellWithData = (tableData: TableData | null, vitalName: WebVital) => {
@@ -290,7 +306,9 @@ class Table extends React.Component<Props, State> {
               data-test-id="key-transaction-header"
             />
           );
-          return [this.renderHeadCell(tableData?.meta, teamKeyTransactionColumn, star)];
+          return [
+            this.renderHeadCell(teamKeyTransactionColumn, star, tableData?.meta?.fields),
+          ];
         }
         return [
           this.renderBodyCell(tableData, teamKeyTransactionColumn, dataRow, vitalName),
@@ -301,11 +319,12 @@ class Table extends React.Component<Props, State> {
   };
 
   handleSummaryClick = () => {
-    const {organization} = this.props;
+    const {organization, projects, location} = this.props;
     trackAnalyticsEvent({
       eventKey: 'performance_views.overview.navigate.summary',
       eventName: 'Performance Views: Overview view summary',
       organization_id: parseInt(organization.id, 10),
+      project_platforms: getSelectedProjectPlatforms(location, projects),
     });
   };
 
@@ -384,7 +403,7 @@ class Table extends React.Component<Props, State> {
           referrer="api.performance.vital-detail"
         >
           {({pageLinks, isLoading, tableData}) => (
-            <React.Fragment>
+            <Fragment>
               <GridEditable
                 isLoading={isLoading}
                 data={tableData ? tableData.data : []}
@@ -393,8 +412,8 @@ class Table extends React.Component<Props, State> {
                 grid={{
                   onResizeColumn: this.handleResizeColumn,
                   renderHeadCell: this.renderHeadCellWithMeta(
-                    tableData?.meta,
-                    vitalName
+                    vitalName,
+                    tableData?.meta?.fields
                   ) as any,
                   renderBodyCell: this.renderBodyCellWithData(
                     tableData,
@@ -409,7 +428,7 @@ class Table extends React.Component<Props, State> {
                 location={location}
               />
               <Pagination pageLinks={pageLinks} />
-            </React.Fragment>
+            </Fragment>
           )}
         </VitalsDetailsTableQuery>
       </div>

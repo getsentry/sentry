@@ -5,6 +5,10 @@ import fs from 'fs';
 import prettier from 'prettier';
 
 //joining path of directory
+const tmpOutputPath = path.join(
+  __dirname,
+  '../static/app/constants/ios-device-list.tmp.tsx'
+);
 const outputPath = path.join(__dirname, '../static/app/constants/ios-device-list.tsx');
 const directoryPath = path.join(__dirname, '../node_modules/ios-device-list/');
 
@@ -81,21 +85,27 @@ const formatOutput = async (unformatted: string) => {
 };
 
 export async function extractIOSDeviceNames() {
-  try {
-    if (fs.statSync(outputPath)) {
-      // Out with the old, in with the new
-      fs.unlinkSync(outputPath);
-    }
-  } catch (e) {
-    // File does not exists, carry along
-  }
-
   const files = await getDefinitionFiles();
   const definitions = await collectDefinitions(files);
   const formatted = await formatOutput(
     template(JSON.stringify(definitions, undefined, 2))
   );
 
-  fs.writeFileSync(outputPath, formatted);
-  console.log('✅ Regenerated ios-device-list.tsx');
+  // All exit code has to synchronous
+  const cleanup = () => {
+    if (fs.existsSync(tmpOutputPath)) {
+      fs.unlinkSync(tmpOutputPath);
+    }
+  };
+
+  process.on('exit', cleanup);
+  process.on('SIGINT', () => {
+    cleanup();
+    process.exit(1);
+  });
+
+  // Write to tmp output path
+  fs.writeFileSync(tmpOutputPath, formatted);
+  // Rename the file (atomic)
+  fs.renameSync(tmpOutputPath, outputPath);
 }

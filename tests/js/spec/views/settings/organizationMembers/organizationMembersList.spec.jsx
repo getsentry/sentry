@@ -298,7 +298,7 @@ describe('OrganizationMembersList', function () {
     expect(inviteMock).toHaveBeenCalled();
   });
 
-  it('can search organization members', async function () {
+  it('can search organization members', function () {
     const searchMock = MockApiClient.addMockResponse({
       url: '/organizations/org-id/members/',
       body: [],
@@ -328,7 +328,7 @@ describe('OrganizationMembersList', function () {
     expect(routerContext.context.router.push).toHaveBeenCalledTimes(1);
   });
 
-  it('can filter members', async function () {
+  it('can filter members', function () {
     const searchMock = MockApiClient.addMockResponse({
       url: '/organizations/org-id/members/',
       body: [],
@@ -405,7 +405,7 @@ describe('OrganizationMembersList', function () {
       role: 'member',
       teams: [],
     });
-    it('disable buttons for no access', async function () {
+    it('disable buttons for no access', function () {
       const org = TestStubs.Organization({
         status: {
           id: 'active',

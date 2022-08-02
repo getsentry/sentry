@@ -12,7 +12,8 @@ from django.conf import settings
 from django.test.utils import override_settings
 from exam import fixture
 
-from sentry.snuba.models import QueryDatasets
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import SnubaQuery
 from sentry.snuba.query_subscription_consumer import (
     QuerySubscriptionConsumer,
     register_subscriber,
@@ -78,7 +79,7 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
         self.override_settings_cm = override_settings(
-            KAFKA_TOPICS={self.topic: {"cluster": "default", "topic": self.topic}}
+            KAFKA_TOPICS={self.topic: {"cluster": "default"}}
         )
         self.override_settings_cm.__enter__()
         self.orig_registry = deepcopy(subscriber_registry)
@@ -96,7 +97,8 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
     def create_subscription(self):
         with self.tasks():
             snuba_query = create_snuba_query(
-                QueryDatasets.EVENTS,
+                SnubaQuery.Type.ERROR,
+                Dataset.Events,
                 "hello",
                 "count()",
                 timedelta(minutes=1),

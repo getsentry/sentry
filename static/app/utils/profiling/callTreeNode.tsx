@@ -21,12 +21,19 @@ export class CallTreeNode extends WeightedNode {
     this.parent = parent;
   }
 
-  setRecursive(node: CallTreeNode): void {
+  setRecursiveThroughNode(node: CallTreeNode): void {
     this.recursive = node;
   }
 
   isRecursive(): boolean {
     return !!this.recursive;
+  }
+
+  isDirectRecursive(): boolean {
+    if (!this.parent) {
+      return false;
+    }
+    return this.parent.frame === this.frame;
   }
 
   isLocked(): boolean {
@@ -38,7 +45,7 @@ export class CallTreeNode extends WeightedNode {
   }
 
   isRoot(): boolean {
-    return Frame.Root === this.frame;
+    return Frame.Root.name === this.frame.name;
   }
 
   static readonly Root = new CallTreeNode(Frame.Root, null);

@@ -40,6 +40,10 @@ class ProjectDocsPlatformEndpoint(ProjectEndpoint):
         data = load_doc(platform)
         if not data:
             raise ResourceDoesNotExist
+        keys = ("id", "name", "html", "link")
+        for key in keys:
+            if key not in data:
+                raise ResourceDoesNotExist
 
         project_key = ProjectKey.get_default(project)
 
@@ -49,5 +53,6 @@ class ProjectDocsPlatformEndpoint(ProjectEndpoint):
                 "name": data["name"],
                 "html": replace_keys(data["html"], project_key),
                 "link": data["link"],
+                "wizardSetup": data.get("wizard_setup", None),
             }
         )

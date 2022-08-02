@@ -20,7 +20,10 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
         :auth: required
         """
         # Serialize Alert Rule
-        serialized_rule = serialize(alert_rule, request.user, DetailedAlertRuleSerializer())
+        expand = request.GET.getlist("expand", [])
+        serialized_rule = serialize(
+            alert_rule, request.user, DetailedAlertRuleSerializer(expand=expand)
+        )
 
         # Prepare AlertRuleTriggerActions that are SentryApp components
         errors = []

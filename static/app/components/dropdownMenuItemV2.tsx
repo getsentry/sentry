@@ -1,20 +1,20 @@
-import {useEffect, useRef, useState} from 'react';
-import isPropValid from '@emotion/is-prop-valid';
-import styled from '@emotion/styled';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import {useHover, useKeyboard} from '@react-aria/interactions';
 import {useMenuItem} from '@react-aria/menu';
 import {mergeProps} from '@react-aria/utils';
 import {TreeState} from '@react-stately/tree';
 import {Node} from '@react-types/shared';
+import {LocationDescriptor} from 'history';
 
 import Link from 'sentry/components/links/link';
+import MenuListItem, {
+  InnerWrap as MenuListItemInnerWrap,
+  MenuListItemProps,
+} from 'sentry/components/menuListItem';
 import {IconChevron} from 'sentry/icons';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
-import space from 'sentry/styles/space';
-import {Theme} from 'sentry/utils/theme';
+import usePrevious from 'sentry/utils/usePrevious';
 
-type Priority = 'primary' | 'danger';
-export type MenuItemProps = {
+export type MenuItemProps = MenuListItemProps & {
   /**
    * Item key. Must be unique across the entire menu, including sub-menus.
    */
@@ -26,11 +26,6 @@ export type MenuItemProps = {
    */
   children?: MenuItemProps[];
   /**
-   * Optional descriptive text. Like 'label', should preferably be a string or
-   * have appropriate aria-labels.
-   */
-  details?: React.ReactNode;
-  /**
    * Hide item from the dropdown menu. Note: this will also remove the item
    * from the selection manager.
    */
@@ -41,30 +36,10 @@ export type MenuItemProps = {
    */
   isSubmenu?: boolean;
   /**
-   * Item label. Should prefereably be a string. If not, make sure that
-   * there are appropriate aria-labels.
-   */
-  label?: React.ReactNode;
-  /*
-   * Items to be added to the left of the label
-   */
-  leadingItems?: React.ReactNode;
-  /*
-   * Whether leading items should be centered with respect to the entire
-   * height of the menu item. If false (default), they will be centered with
-   * respect to the first line of the label element.
-   */
-  leadingItemsSpanFullHeight?: boolean;
-  /**
    * Function to call when user selects/clicks/taps on the menu item. The
    * item's key is passed as an argument.
    */
   onAction?: (key: MenuItemProps['key']) => void;
-  /**
-   * Accented text and background (on hover) colors. Primary = purple, and
-   * danger = red.
-   */
-  priority?: Priority;
   /**
    * Whether to show a line divider below this menu item
    */
@@ -77,17 +52,7 @@ export type MenuItemProps = {
   /**
    * Destination if this menu item is a link. See also: `isExternalLink`.
    */
-  to?: string;
-  /*
-   * Items to be added to the right of the label.
-   */
-  trailingItems?: React.ReactNode;
-  /*
-   * Whether trailing items should be centered wrt/ the entire height of the
-   * menu item. If false (default), they will be centered wrt/ the first line of the
-   * label element.
-   */
-  trailingItemsSpanFullHeight?: boolean;
+  to?: LocationDescriptor;
 };
 
 type Props = {
@@ -144,26 +109,34 @@ const MenuItem = ({
   renderAs = 'li' as React.ElementType,
   ...submenuTriggerProps
 }: Props) => {
-  const [isHovering, setIsHovering] = useState(false);
-  const ref = submenuTriggerRef ?? useRef(null);
+  const ourRef = useRef(null);
   const isDisabled = state.disabledKeys.has(node.key);
   const isFocused = state.selectionManager.focusedKey === node.key;
-  const item = node.value;
+  const {key, onAction, to, label, showDividers, ...itemProps} = node.value;
+
+  const ref = submenuTriggerRef ?? ourRef;
 
   const actionHandler = () => {
-    if (item.to) {
+    if (to) {
       return;
     }
     if (isSubmenuTrigger) {
       state.selectionManager.select(node.key);
       return;
     }
-    item.onAction?.(item.key);
+    onAction?.(key);
   };
 
   // Open submenu on hover
+  const [isHovering, setIsHovering] = useState(false);
   const {hoverProps} = useHover({onHoverChange: setIsHovering});
+  const prevIsHovering = usePrevious(isHovering);
+  const prevIsFocused = usePrevious(isFocused);
   useEffect(() => {
+    if (isHovering === prevIsHovering && isFocused === prevIsFocused) {
+      return;
+    }
+
     if (isHovering && isFocused) {
       if (isSubmenuTrigger) {
         state.selectionManager.select(node.key);
@@ -171,17 +144,25 @@ const MenuItem = ({
       }
       state.selectionManager.clearSelection();
     }
-  }, [isHovering, isFocused]);
+  }, [
+    isHovering,
+    isFocused,
+    prevIsHovering,
+    prevIsFocused,
+    isSubmenuTrigger,
+    node.key,
+    state.selectionManager,
+  ]);
 
   // Open submenu on arrow right key press
   const {keyboardProps} = useKeyboard({
     onKeyDown: e => {
-      if (e.key === 'Enter' && item.to) {
+      if (e.key === 'Enter' && to) {
         const mouseEvent = new MouseEvent('click', {
           ctrlKey: e.ctrlKey,
           metaKey: e.metaKey,
         });
-        ref.current?.querySelector(`${InnerWrap}`)?.dispatchEvent(mouseEvent);
+        ref.current?.querySelector(`${MenuListItemInnerWrap}`)?.dispatchEvent(mouseEvent);
         onClose();
         return;
       }
@@ -200,7 +181,7 @@ const MenuItem = ({
     {
       key: node.key,
       onAction: actionHandler,
-      closeOnSelect: item.to ? false : closeOnSelect,
+      closeOnSelect: to ? false : closeOnSelect,
       onClose,
       isDisabled,
     },
@@ -211,205 +192,35 @@ const MenuItem = ({
   // Merged menu item props, class names are combined, event handlers chained,
   // etc. See: https://react-spectrum.adobe.com/react-aria/mergeProps.html
   const props = mergeProps(submenuTriggerProps, menuItemProps, hoverProps, keyboardProps);
-  const {
-    priority,
-    details,
-    leadingItems,
-    leadingItemsSpanFullHeight,
-    trailingItems,
-    trailingItemsSpanFullHeight,
-  } = item;
-  const label = node.rendered ?? item.label;
-  const showDividers = item.showDividers && !isLastNode;
-  const renderInnerWrapAs = item.to ? Link : 'div';
+  const itemLabel = node.rendered ?? label;
+  const showDivider = showDividers && !isLastNode;
+  const innerWrapProps = {as: to ? Link : 'div', to};
 
   return (
-    <MenuItemWrap
+    <MenuListItem
       ref={ref}
       as={renderAs}
-      data-test-id={item.key}
+      data-test-id={key}
+      label={itemLabel}
+      isDisabled={isDisabled}
+      isFocused={isFocused}
+      showDivider={showDivider}
+      innerWrapProps={innerWrapProps}
+      labelProps={labelProps}
+      detailsProps={descriptionProps}
       {...props}
-      {...(isSubmenuTrigger && {role: 'menuitemradio'})}
-    >
-      <InnerWrap
-        isDisabled={isDisabled}
-        isFocused={isFocused}
-        priority={priority}
-        as={renderInnerWrapAs}
-        to={item.to}
-      >
-        {leadingItems && (
-          <LeadingItems
-            isDisabled={isDisabled}
-            spanFullHeight={leadingItemsSpanFullHeight}
-          >
-            {leadingItems}
-          </LeadingItems>
-        )}
-        <ContentWrap isFocused={isFocused} showDividers={showDividers}>
-          <LabelWrap>
-            <Label {...labelProps} aria-hidden="true">
-              {label}
-            </Label>
-            {details && (
-              <Details isDisabled={isDisabled} priority={priority} {...descriptionProps}>
-                {details}
-              </Details>
-            )}
-          </LabelWrap>
-          {(trailingItems || isSubmenuTrigger) && (
-            <TrailingItems
-              isDisabled={isDisabled}
-              spanFullHeight={trailingItemsSpanFullHeight}
-            >
-              {trailingItems}
-              {isSubmenuTrigger && (
-                <IconChevron size="xs" direction="right" aria-hidden="true" />
-              )}
-            </TrailingItems>
-          )}
-        </ContentWrap>
-      </InnerWrap>
-    </MenuItemWrap>
+      {...itemProps}
+      {...(isSubmenuTrigger && {
+        role: 'menuitemradio',
+        trailingItems: (
+          <Fragment>
+            {itemProps.trailingItems}
+            <IconChevron size="xs" direction="right" aria-hidden="true" />
+          </Fragment>
+        ),
+      })}
+    />
   );
 };
+
 export default MenuItem;
-
-const MenuItemWrap = styled('li')`
-  position: static;
-  list-style-type: none;
-  margin: 0;
-  padding: 0 ${space(0.5)};
-  cursor: pointer;
-
-  &:focus {
-    outline: none;
-  }
-  &:focus-visible {
-    outline: none;
-  }
-`;
-
-const getHoverBackground = (theme: Theme, priority?: Priority) => {
-  let hoverBackground: string;
-  switch (priority) {
-    case 'primary':
-      hoverBackground = theme.purple100;
-      break;
-    case 'danger':
-      hoverBackground = theme.red100;
-      break;
-    default:
-      hoverBackground = theme.hover;
-  }
-
-  return `background: ${hoverBackground}; z-index: 1;`;
-};
-
-const InnerWrap = styled('div', {
-  shouldForwardProp: p =>
-    typeof p === 'string' &&
-    isPropValid(p) &&
-    !['isDisabled', 'isFocused', 'priority'].includes(p),
-})<{
-  isDisabled: boolean;
-  isFocused: boolean;
-  priority?: Priority;
-  to?: string;
-}>`
-  display: flex;
-  position: relative;
-  padding: 0 ${space(1)};
-  border-radius: ${p => p.theme.borderRadius};
-  box-sizing: border-box;
-
-  &,
-  &:hover {
-    color: ${p => p.theme.textColor};
-  }
-  ${p => p.priority === 'primary' && `&,&:hover {color: ${p.theme.activeText}}`}
-  ${p => p.priority === 'danger' && `&,&:hover {color: ${p.theme.errorText}}`}
-  ${p =>
-    p.isDisabled &&
-    `
-    &, &:hover {
-      color: ${p.theme.subText};
-      cursor: initial;
-    }
-  `}
-
-  ${p => p.isFocused && getHoverBackground(p.theme, p.priority)}
-`;
-
-const LeadingItems = styled('div')<{isDisabled?: boolean; spanFullHeight?: boolean}>`
-  display: flex;
-  align-items: center;
-  height: 1.4em;
-  gap: ${space(1)};
-  padding: ${space(1)} 0;
-  margin-top: ${space(1)};
-  margin-right: ${space(0.5)};
-
-  ${p => p.isDisabled && `opacity: 0.5;`}
-  ${p => p.spanFullHeight && `height: 100%;`}
-`;
-
-const ContentWrap = styled('div')<{isFocused: boolean; showDividers?: boolean}>`
-  position: relative;
-  width: 100%;
-  display: flex;
-  gap: ${space(2)};
-  justify-content: space-between;
-  padding: ${space(1)} 0;
-  margin-left: ${space(0.5)};
-
-  ${p =>
-    p.showDividers &&
-    !p.isFocused &&
-    `
-      &::after {
-        content: '';
-        position: absolute;
-        left: 0;
-        bottom: 0;
-        width: 100%;
-        height: 1px;
-        box-shadow:  0 1px 0 0 ${p.theme.innerBorder};
-      }
-    `}
-`;
-
-const LabelWrap = styled('div')`
-  padding-right: ${space(1)};
-  width: 100%;
-`;
-
-const Label = styled('p')`
-  margin-bottom: 0;
-  line-height: 1.4;
-  white-space: nowrap;
-  ${overflowEllipsis}
-`;
-
-const Details = styled('p')<{isDisabled: boolean; priority?: Priority}>`
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.subText};
-  line-height: 1.2;
-  margin-bottom: 0;
-  ${overflowEllipsis}
-
-  ${p => p.priority === 'primary' && `color: ${p.theme.activeText};`}
-  ${p => p.priority === 'danger' && `color: ${p.theme.errorText};`}
-  ${p => p.isDisabled && `color: ${p.theme.subText};`}
-`;
-
-const TrailingItems = styled('div')<{isDisabled?: boolean; spanFullHeight?: boolean}>`
-  display: flex;
-  align-items: center;
-  height: 1.4em;
-  gap: ${space(1)};
-  margin-right: ${space(0.5)};
-
-  ${p => p.isDisabled && `opacity: 0.5;`}
-  ${p => p.spanFullHeight && `height: 100%;`}
-`;

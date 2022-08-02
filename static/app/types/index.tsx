@@ -26,3 +26,4 @@ export * from './stacktrace';
 export * from './system';
 export * from './user';
 export * from './sandbox';
+export * from './sessions';

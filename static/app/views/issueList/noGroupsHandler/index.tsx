@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, lazy, Suspense} from 'react';
 
 import {Client} from 'sentry/api';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -32,7 +32,7 @@ type State = {
  * having no issues be returned from a query. This component will conditionally
  * render one of those states.
  */
-class NoGroupsHandler extends React.Component<Props, State> {
+class NoGroupsHandler extends Component<Props, State> {
   state: State = {
     fetchingSentFirstEvent: true,
     sentFirstEvent: false,
@@ -117,17 +117,17 @@ class NoGroupsHandler extends React.Component<Props, State> {
     const project = projects && projects.length > 0 ? projects[0] : undefined;
     const sampleIssueId = groupIds.length > 0 ? groupIds[0] : undefined;
 
-    const ErrorRobot = React.lazy(() => import('sentry/components/errorRobot'));
+    const ErrorRobot = lazy(() => import('sentry/components/errorRobot'));
 
     return (
-      <React.Suspense fallback={<Placeholder height="260px" />}>
+      <Suspense fallback={<Placeholder height="260px" />}>
         <ErrorRobot
           org={organization}
           project={project}
           sampleIssueId={sampleIssueId}
           gradient
         />
-      </React.Suspense>
+      </Suspense>
     );
   }
 

@@ -139,7 +139,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
           {onClick => (
             <Button
               priority="primary"
-              size="small"
+              size="sm"
               icon={<IconAdd size="xs" isCircled />}
               onClick={() => onClick()}
             >
@@ -162,8 +162,6 @@ class ConfigureIntegration extends AsyncView<Props, State> {
 
     return (
       <Fragment>
-        <BreadcrumbTitle routes={this.props.routes} title={integration.provider.name} />
-
         {integration.configOrganization.length > 0 && (
           <Form
             hideFooter
@@ -234,6 +232,10 @@ class ConfigureIntegration extends AsyncView<Props, State> {
       <Fragment>
         {header}
         {this.renderMainContent(provider)}
+        <BreadcrumbTitle
+          routes={this.props.routes}
+          title={t('Configure %s', integration.provider.name)}
+        />
       </Fragment>
     );
   }

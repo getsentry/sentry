@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
@@ -72,7 +72,7 @@ const defaultProps = {
  * trigger re-renders in the modal contents. This requires a bit of duplicate state
  * to be managed around the current step.
  */
-class FeatureTourModal extends React.Component<Props, State> {
+class FeatureTourModal extends Component<Props, State> {
   static defaultProps = defaultProps;
 
   state: State = {
@@ -118,7 +118,7 @@ class FeatureTourModal extends React.Component<Props, State> {
 
   render() {
     const {children} = this.props;
-    return <React.Fragment>{children({showModal: this.handleShow})}</React.Fragment>;
+    return <Fragment>{children({showModal: this.handleShow})}</Fragment>;
   }
 }
 
@@ -133,7 +133,7 @@ type ContentsState = {
   openedAt: number;
 };
 
-class ModalContents extends React.Component<ContentsProps, ContentsState> {
+class ModalContents extends Component<ContentsProps, ContentsState> {
   static defaultProps = defaultProps;
 
   state: ContentsState = {
@@ -160,7 +160,7 @@ class ModalContents extends React.Component<ContentsProps, ContentsState> {
     const hasNext = steps[current + 1] !== undefined;
 
     return (
-      <Body>
+      <Body data-test-id="feature-tour">
         <CloseButton
           borderless
           size="zero"
@@ -175,11 +175,7 @@ class ModalContents extends React.Component<ContentsProps, ContentsState> {
           <TourButtonBar gap={1}>
             {step.actions && step.actions}
             {hasNext && (
-              <Button
-                data-test-id="next-step"
-                priority="primary"
-                onClick={this.handleAdvance}
-              >
+              <Button priority="primary" onClick={this.handleAdvance}>
                 {t('Next')}
               </Button>
             )}
@@ -187,7 +183,6 @@ class ModalContents extends React.Component<ContentsProps, ContentsState> {
               <Button
                 external
                 href={doneUrl}
-                data-test-id="complete-tour"
                 onClick={closeModal}
                 priority="primary"
                 aria-label={t('Complete tour')}

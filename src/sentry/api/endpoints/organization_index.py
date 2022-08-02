@@ -5,16 +5,16 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features, options, roles
+from sentry import analytics, audit_log, features, options, roles
 from sentry.api.base import Endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.paginator import DateTimePaginator, OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.organization import BaseOrganizationSerializer
 from sentry.app import ratelimiter
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.query import in_iexact
 from sentry.models import (
-    AuditLogEntryEvent,
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
@@ -25,9 +25,7 @@ from sentry.search.utils import tokenize_query
 from sentry.signals import terms_accepted
 
 
-class OrganizationSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=64, required=True)
-    slug = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50, required=False)
+class OrganizationSerializer(BaseOrganizationSerializer):
     defaultTeam = serializers.BooleanField(required=False)
     agreeTerms = serializers.BooleanField(required=True)
 
@@ -35,6 +33,8 @@ class OrganizationSerializer(serializers.Serializer):
         super().__init__(*args, **kwargs)
         if not (settings.TERMS_URL and settings.PRIVACY_URL):
             del self.fields["agreeTerms"]
+        self.fields["slug"].required = False
+        self.fields["name"].required = True
 
     def validate_agreeTerms(self, value):
         if not value:
@@ -215,7 +215,7 @@ class OrganizationIndexEndpoint(Endpoint):
                         request=request,
                         organization=org,
                         target_object=org.id,
-                        event=AuditLogEntryEvent.ORG_ADD,
+                        event=audit_log.get_event_id("ORG_ADD"),
                         data=org.get_audit_log_data(),
                     )
 

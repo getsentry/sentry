@@ -6,12 +6,15 @@ type usePerformanceEventViewContext = {
   eventView: EventView;
 };
 
-const [PerformanceEventViewProvider, _usePerformanceEventView] =
-  createDefinedContext<usePerformanceEventViewContext>({
-    name: 'PerformanceEventViewContext',
-  });
+const [
+  PerformanceEventViewProvider,
+  _usePerformanceEventView,
+  PerformanceEventViewContext,
+] = createDefinedContext<usePerformanceEventViewContext>({
+  name: 'PerformanceEventViewContext',
+});
 
-export {PerformanceEventViewProvider};
+export {PerformanceEventViewProvider, PerformanceEventViewContext};
 
 // Provides a readonly event view. Also omits anything that isn't currently read-only, although in the future we should switch the code in EventView instead.
 // If you need mutability, use the mutable version.

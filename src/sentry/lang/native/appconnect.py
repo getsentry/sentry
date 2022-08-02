@@ -260,7 +260,9 @@ class AppConnectClient:
 
     def list_builds(self) -> List[BuildInfo]:
         """Returns the available AppStore builds."""
-        return appstore_connect.get_build_info(self._session, self._api_credentials, self._app_id)
+        return appstore_connect.get_build_info(
+            self._session, self._api_credentials, self._app_id, include_expired=True
+        )
 
     def download_dsyms(self, build: BuildInfo, path: pathlib.Path) -> None:
         """Downloads the dSYMs from the build into the filename given by `path`.

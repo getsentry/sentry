@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {cloneElement} from 'react';
 import styled from '@emotion/styled';
 
 import BadgeDisplayName from 'sentry/components/idBadge/badgeDisplayName';
@@ -24,7 +24,7 @@ interface Props
   hideOverflow?: boolean | string;
   organization?: Organization;
   /**
-   * Overides where the project badge links
+   * Overrides where the project badge links
    */
   to?: LinkProps['to'];
 }
@@ -62,7 +62,7 @@ const ProjectBadge = ({
     );
   }
 
-  return React.cloneElement(badge, {className});
+  return cloneElement(badge, {className});
 };
 
 const StyledLink = styled(Link)`

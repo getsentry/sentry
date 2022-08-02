@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.data_export.base import ExportError
 from sentry.data_export.processors.discover import DiscoverProcessor
 from sentry.testutils import SnubaTestCase, TestCase
@@ -16,7 +18,6 @@ class DiscoverProcessorTest(TestCase, SnubaTestCase):
             "project": [self.project1.id, self.project2.id],
             "field": ["count(id)", "fake(field)", "issue"],
             "query": "",
-            "use_snql": False,
         }
 
     def test_get_projects(self):
@@ -29,7 +30,7 @@ class DiscoverProcessorTest(TestCase, SnubaTestCase):
             organization_id=self.org.id, query={"project": [self.project1.id, self.project2.id]}
         )
         assert sorted(p.id for p in projects) == sorted([self.project1.id, self.project2.id])
-        with self.assertRaises(ExportError):
+        with pytest.raises(ExportError):
             DiscoverProcessor.get_projects(organization_id=self.org.id, query={"project": [-1]})
 
     def test_handle_fields(self):
@@ -59,15 +60,3 @@ class DiscoverProcessorTest(TestCase, SnubaTestCase):
         assert new_result_list[0] != result_list
         assert new_result_list[0]["count(id) / fake(field)"] == 5
         assert new_result_list[0]["count(id) / 2"] == 8
-
-
-class DiscoverProcessorTestWithSnql(DiscoverProcessorTest):
-    def setUp(self):
-        super().setUp()
-        self.discover_query = {
-            "statsPeriod": "14d",
-            "project": [self.project1.id, self.project2.id],
-            "field": ["count(id)", "fake(field)", "issue"],
-            "query": "",
-            "use_snql": True,
-        }

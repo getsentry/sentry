@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
@@ -15,7 +15,6 @@ import Sparklines from 'sentry/components/sparklines';
 import SparklinesLine from 'sentry/components/sparklines/line';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -26,8 +25,8 @@ import {
   Column,
   generateFieldAsString,
   getAggregateAlias,
-  WebVital,
 } from 'sentry/utils/discover/fields';
+import {WebVital} from 'sentry/utils/fields';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import VitalsCardsDiscoverQuery, {
   VitalData,
@@ -333,11 +332,11 @@ const VitalsContainer = styled('div')`
   grid-template-columns: 1fr;
   grid-column-gap: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   }
 `;
@@ -408,7 +407,7 @@ export function VitalBar(props: VitalBarProps) {
   const colorStops = getColorStopsFromPercents(percents);
 
   return (
-    <React.Fragment>
+    <Fragment>
       {showBar && (
         <StyledTooltip
           title={
@@ -443,7 +442,7 @@ export function VitalBar(props: VitalBarProps) {
           />
         </BarDetail>
       )}
-    </React.Fragment>
+    </Fragment>
   );
 }
 
@@ -543,7 +542,7 @@ function getColorStopsFromPercents(percents: Percent[]) {
 const BarDetail = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     display: flex;
     justify-content: space-between;
   }
@@ -555,5 +554,5 @@ const CardValue = styled('div')`
 `;
 
 const OverflowEllipsis = styled('div')`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;

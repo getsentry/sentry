@@ -136,9 +136,11 @@ const SidebarDropdown = ({
                   )}
 
                   {!config.singleOrganization && (
-                    <SidebarMenuItem>
-                      <SwitchOrganization canCreateOrganization={canCreateOrg} />
-                    </SidebarMenuItem>
+                    <DemoModeGate>
+                      <SidebarMenuItem>
+                        <SwitchOrganization canCreateOrganization={canCreateOrg} />
+                      </SidebarMenuItem>
+                    </DemoModeGate>
                   )}
                 </Fragment>
               )}

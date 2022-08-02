@@ -1,11 +1,10 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
 import {Client} from 'sentry/api';
-import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
@@ -23,9 +22,6 @@ type Props = {
   errorCode: number;
   eventView: EventView;
   location: Location;
-  onIncompatibleAlertQuery: React.ComponentProps<
-    typeof CreateAlertFromViewButton
-  >['onIncompatibleQuery'];
   organization: Organization;
   router: InjectedRouter;
   yAxis: string[];
@@ -36,7 +32,7 @@ type State = {
   savedQuery: SavedQuery | undefined;
 };
 
-class ResultsHeader extends React.Component<Props, State> {
+class ResultsHeader extends Component<Props, State> {
   state: State = {
     savedQuery: undefined,
     loading: true,
@@ -89,15 +85,7 @@ class ResultsHeader extends React.Component<Props, State> {
   }
 
   render() {
-    const {
-      organization,
-      location,
-      errorCode,
-      eventView,
-      onIncompatibleAlertQuery,
-      yAxis,
-      router,
-    } = this.props;
+    const {organization, location, errorCode, eventView, yAxis, router} = this.props;
     const {savedQuery, loading} = this.state;
 
     return (
@@ -124,7 +112,6 @@ class ResultsHeader extends React.Component<Props, State> {
             savedQueryLoading={loading}
             disabled={errorCode >= 400 && errorCode < 500}
             updateCallback={() => this.fetchData()}
-            onIncompatibleAlertQuery={onIncompatibleAlertQuery}
             yAxis={yAxis}
             router={router}
           />

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -11,7 +11,7 @@ import DropdownMenu from 'sentry/components/dropdownMenu';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
-import {MEMBER_ROLES} from 'sentry/constants';
+import {ORG_ROLES} from 'sentry/constants';
 import {IconSliders} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -269,7 +269,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
               </Button>
               {isOpen && (
                 <StyledMembersFilter
-                  roles={currentMember?.roles ?? MEMBER_ROLES}
+                  roles={currentMember?.roles ?? ORG_ROLES}
                   query={value}
                   onChange={(query: string) => handleChange(query)}
                 />
@@ -282,7 +282,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
     );
 
     return (
-      <React.Fragment>
+      <Fragment>
         <ClassNames>
           {({css}) =>
             this.renderSearchInput({
@@ -311,7 +311,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
                   organization={organization}
                   inviteRequest={inviteRequest}
                   inviteRequestBusy={{}}
-                  allRoles={currentMember?.roles ?? MEMBER_ROLES}
+                  allRoles={currentMember?.roles ?? ORG_ROLES}
                   onApprove={this.handleInviteRequestApprove}
                   onDeny={this.handleInviteRequestDeny}
                   onUpdate={data => this.updateInviteRequest(inviteRequest.id, data)}
@@ -348,7 +348,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
         </Panel>
 
         <Pagination pageLinks={membersPageLinks} />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

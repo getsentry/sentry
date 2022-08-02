@@ -5,9 +5,10 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.models import Deploy, Environment, Release, ReleaseProjectEnvironment
 from sentry.signals import deploy_created
 
@@ -18,6 +19,9 @@ class DeploySerializer(serializers.Serializer):
     url = serializers.URLField(required=False, allow_blank=True, allow_null=True)
     dateStarted = serializers.DateTimeField(required=False, allow_null=True)
     dateFinished = serializers.DateTimeField(required=False, allow_null=True)
+    projects = serializers.ListField(
+        child=ProjectField(scope="project:read"), required=False, allow_empty=False
+    )
 
     def validate_environment(self, value):
         if not Environment.is_valid_name(value):
@@ -65,6 +69,9 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         :pparam string version: the version identifier of the release.
         :param string environment: the environment you're deploying to
         :param string name: the optional name of the deploy
+        :param list projects: the optional list of project slugs to
+                        create a deploy within. If not provided, deploys
+                        are created for all of the release's projects.
         :param url url: the optional url that points to the deploy
         :param datetime dateStarted: an optional date that indicates when
                                      the deploy started
@@ -80,11 +87,21 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         if not self.has_release_permission(request, organization, release):
             raise ResourceDoesNotExist
 
-        serializer = DeploySerializer(data=request.data)
+        serializer = DeploySerializer(
+            data=request.data, context={"organization": organization, "access": request.access}
+        )
 
         if serializer.is_valid():
-            projects = list(release.projects.all())
             result = serializer.validated_data
+            release_projects = list(release.projects.all())
+            projects = result.get("projects", release_projects)
+            invalid_projects = {project.slug for project in projects} - {
+                project.slug for project in release_projects
+            }
+            if len(invalid_projects) > 0:
+                raise ParameterValidationError(
+                    f"Invalid projects ({', '.join(invalid_projects)}) for release {release.version}"
+                )
 
             env = Environment.objects.get_or_create(
                 name=result["environment"], organization_id=organization.id

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 import logging
-from typing import TYPE_CHECKING, Any, Iterable, MutableMapping, Type
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Type
 
 from sentry.db.models import Model
 from sentry.models import Team
@@ -21,7 +21,6 @@ logger = logging.getLogger(__name__)
 
 class OrganizationRequestNotification(BaseNotification, abc.ABC):
     notification_setting_type = NotificationSettingTypes.APPROVAL
-    referrer_base: str = ""
     RoleBasedRecipientStrategyClass: Type[RoleBasedRecipientStrategy]
 
     def __init__(self, organization: Organization, requester: User) -> None:
@@ -39,21 +38,27 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
     def determine_recipients(self) -> Iterable[Team | User]:
         return self.role_based_recipient_strategy.determine_recipients()
 
-    def get_notification_title(self) -> str:
+    def get_notification_title(
+        self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
+    ) -> str:
         # purposely use empty string for the notification title
         return ""
 
-    def build_notification_footer(self, recipient: Team | User) -> str:
+    def build_notification_footer(self, recipient: Team | User, provider: ExternalProviders) -> str:
         if isinstance(recipient, Team):
             raise NotImplementedError
 
-        # notification footer only used for Slack for now
-        settings_url = self.get_settings_url(recipient, ExternalProviders.SLACK)
+        settings_url = self.format_url(
+            text="Notification Settings",
+            url=self.get_settings_url(recipient, provider),
+            provider=provider,
+        )
+
         return self.role_based_recipient_strategy.build_notification_footer_from_settings_url(
             settings_url, recipient
         )
 
-    def get_title_link(self, recipient: Team | User) -> str | None:
+    def get_title_link(self, recipient: Team | User, provider: ExternalProviders) -> str | None:
         return None
 
     def get_log_params(self, recipient: Team | User) -> MutableMapping[str, Any]:

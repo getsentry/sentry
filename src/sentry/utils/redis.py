@@ -19,7 +19,6 @@ from rediscluster.exceptions import ClusterError
 from sentry import options
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import warnings
-from sentry.utils.compat import map
 from sentry.utils.imports import import_string
 from sentry.utils.versioning import Version, check_versions
 from sentry.utils.warnings import DeprecatedSettingWarning
@@ -48,19 +47,6 @@ def _shared_pool(**opts):
 
 
 _make_rb_cluster = functools.partial(rb.Cluster, pool_cls=_shared_pool)
-
-
-def make_rb_cluster(*args, **kwargs):
-    # This uses the standard library `warnings`, since this is provided for
-    # plugin compatibility but isn't actionable by the system administrator.
-    import warnings
-
-    warnings.warn(
-        "Direct Redis cluster construction is deprecated, please use named clusters. "
-        "Direct cluster construction will be removed in Sentry 8.5.",
-        DeprecationWarning,
-    )
-    return _make_rb_cluster(*args, **kwargs)
 
 
 class _RBCluster:
@@ -199,7 +185,7 @@ class FailoverRedis(StrictRedis):
                 time.sleep(
                     min(
                         self._backoff_max,
-                        (self._backoff_min * (self._backoff_multiplier ** retries))
+                        (self._backoff_min * (self._backoff_multiplier**retries))
                         * (1 + random.random()),
                     )
                 )
@@ -301,14 +287,15 @@ def get_cluster_from_options(setting, options, cluster_manager=clusters):
         if cluster_option_name in options:
             raise InvalidConfiguration(
                 "Cannot provide both named cluster ({!r}) and cluster configuration ({}) options.".format(
-                    cluster_option_name, ", ".join(map(repr, cluster_constructor_option_names))
+                    cluster_option_name,
+                    ", ".join(repr(name) for name in cluster_constructor_option_names),
                 )
             )
         else:
             warnings.warn(
                 DeprecatedSettingWarning(
                     "{} parameter of {}".format(
-                        ", ".join(map(repr, cluster_constructor_option_names)), setting
+                        ", ".join(repr(name) for name in cluster_constructor_option_names), setting
                     ),
                     f'{setting}["{cluster_option_name}"]',
                     removed_in_version="8.5",
@@ -337,9 +324,11 @@ def validate_dynamic_cluster(is_redis_cluster, cluster):
     try:
         if is_redis_cluster:
             cluster.ping()
+            cluster.connection_pool.disconnect()
         else:
             with cluster.all() as client:
                 client.ping()
+            cluster.disconnect_pools()
     except Exception as e:
         raise InvalidConfiguration(str(e))
 
@@ -348,6 +337,7 @@ def check_cluster_versions(cluster, required, recommended=None, label=None):
     try:
         with cluster.all() as client:
             results = client.info()
+        cluster.disconnect_pools()
     except Exception as e:
         # Any connection issues should be caught here.
         raise InvalidConfiguration(str(e))
@@ -358,7 +348,7 @@ def check_cluster_versions(cluster, required, recommended=None, label=None):
         # NOTE: This assumes there is no routing magic going on here, and
         # all requests to this host are being served by the same database.
         key = f"{host.host}:{host.port}"
-        versions[key] = Version(map(int, info["redis_version"].split(".", 3)))
+        versions[key] = Version([int(part) for part in info["redis_version"].split(".", 3)])
 
     check_versions(
         "Redis" if label is None else f"Redis ({label})", versions, required, recommended

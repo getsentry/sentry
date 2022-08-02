@@ -9,9 +9,15 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.github import API_ERRORS, GitHubIntegrationProvider
 from sentry.models import Integration, OrganizationIntegration, Project, Repository
 from sentry.plugins.base import plugins
+from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils import IntegrationTestCase
-from tests.sentry.plugins.testutils import register_mock_plugins, unregister_mock_plugins
+
+
+class GitHubPlugin(IssueTrackingPlugin2):
+    slug = "github"
+    name = "GitHub Mock Plugin"
+    conf_key = slug
 
 
 class GitHubIntegrationTest(IntegrationTestCase):
@@ -28,10 +34,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self.expires_at = "3000-01-01T00:00:00Z"
 
         self._stub_github()
-        register_mock_plugins()
+        plugins.register(GitHubPlugin)
 
     def tearDown(self):
-        unregister_mock_plugins()
+        plugins.unregister(GitHubPlugin)
         super().tearDown()
 
     def _stub_github(self):
@@ -190,6 +196,18 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert OrganizationIntegration.objects.filter(
             organization=self.organization_2, integration=integration
         ).exists()
+
+    @responses.activate
+    def test_installation_not_found(self):
+        # Add a 404 for an org to responses
+        responses.replace(
+            responses.GET, self.base_url + f"/app/installations/{self.installation_id}", status=404
+        )
+        # Attempt to install integration
+        resp = self.client.get(
+            "{}?{}".format(self.setup_path, urlencode({"installation_id": self.installation_id}))
+        )
+        assert b"The GitHub installation could not be found." in resp.content
 
     @responses.activate
     def test_reinstall_flow(self):

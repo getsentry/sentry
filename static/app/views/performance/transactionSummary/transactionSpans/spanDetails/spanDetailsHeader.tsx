@@ -4,7 +4,6 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import Count from 'sentry/components/count';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {t, tct} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/formatters';
@@ -23,6 +22,7 @@ export default function SpanDetailsHeader(props: HeaderProps) {
     description,
     frequency,
     avgOccurrences,
+    p50ExclusiveTime,
     p75ExclusiveTime,
     p95ExclusiveTime,
     p99ExclusiveTime,
@@ -41,6 +41,16 @@ export default function SpanDetailsHeader(props: HeaderProps) {
       <HeaderInfo data-test-id="header-percentiles">
         <StyledSectionHeading>{t('Self Time Percentiles')}</StyledSectionHeading>
         <PercentileHeaderBodyWrapper>
+          <div data-test-id="section-p50">
+            <SectionBody>
+              {defined(p50ExclusiveTime) ? (
+                <PerformanceDuration abbreviation milliseconds={p50ExclusiveTime} />
+              ) : (
+                '\u2014'
+              )}
+            </SectionBody>
+            <SectionSubtext>{t('p50')}</SectionSubtext>
+          </div>
           <div data-test-id="section-p75">
             <SectionBody>
               {defined(p75ExclusiveTime) ? (
@@ -111,14 +121,13 @@ const ContentHeader = styled('div')`
   gap: ${space(4)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: auto repeat(3, max-content);
-    grid-row-gap: 0;
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    grid-template-columns: 1fr repeat(3, max-content);
   }
 `;
 
 const HeaderInfo = styled('div')`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   height: 78px;
 `;
 
@@ -139,12 +148,12 @@ const SectionSubtext = styled('div')`
 
 const PercentileHeaderBodyWrapper = styled('div')`
   display: grid;
-  grid-template-columns: repeat(3, max-content);
+  grid-template-columns: repeat(4, max-content);
   gap: ${space(3)};
 `;
 
 export const SpanLabelContainer = styled('div')`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const EmptyValueContainer = styled('span')`

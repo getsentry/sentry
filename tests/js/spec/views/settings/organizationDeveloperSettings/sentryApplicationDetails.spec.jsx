@@ -321,7 +321,7 @@ describe('Sentry Application Details', function () {
       expect(wrapper.find('EmptyMessage').exists()).toBe(true);
     });
 
-    it('removing webhookURL unsets isAlertable and changes webhookDisabled to true', async () => {
+    it('removing webhookURL unsets isAlertable and changes webhookDisabled to true', () => {
       expect(wrapper.find(PermissionsObserver).prop('webhookDisabled')).toBe(false);
       expect(wrapper.find('Switch[name="isAlertable"]').prop('isActive')).toBe(true);
       wrapper.find('Input[name="webhookUrl"]').simulate('change', {target: {value: ''}});

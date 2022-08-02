@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
@@ -21,7 +21,7 @@ type State = {
   isExpanded: boolean;
 };
 
-class Truncate extends React.Component<Props, State> {
+class Truncate extends Component<Props, State> {
   static defaultProps: DefaultProps = {
     className: '',
     minLength: 15,

@@ -1,6 +1,8 @@
 from django.urls import reverse
+from rest_framework import status
 
 from sentry.models import Project, ProjectStatus, SentryAppInstallationToken
+from sentry.models.apitoken import ApiToken
 from sentry.testutils import APITestCase
 
 
@@ -18,7 +20,7 @@ class ProjectsListTest(APITestCase):
 
         self.login_as(user=user, superuser=True)
 
-        response = self.get_valid_response()
+        response = self.get_success_response()
         assert len(response.data) == 1
 
         assert response.data[0]["id"] == str(project.id)
@@ -36,7 +38,7 @@ class ProjectsListTest(APITestCase):
         self.create_project(organization=org2)
 
         self.login_as(user=user, superuser=True)
-        response = self.get_valid_response(qs_params={"show": "all"})
+        response = self.get_success_response(qs_params={"show": "all"})
         assert len(response.data) == 2
 
     def test_show_all_without_superuser(self):
@@ -51,7 +53,7 @@ class ProjectsListTest(APITestCase):
         self.create_project(organization=org2)
 
         self.login_as(user=user)
-        response = self.get_valid_response()
+        response = self.get_success_response()
         assert len(response.data) == 0
 
     def test_status_filter(self):
@@ -65,11 +67,11 @@ class ProjectsListTest(APITestCase):
 
         self.login_as(user=user)
 
-        response = self.get_valid_response(qs_params={"status": "active"})
+        response = self.get_success_response(qs_params={"status": "active"})
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(project1.id)
 
-        response = self.get_valid_response(qs_params={"status": "deleted"})
+        response = self.get_success_response(qs_params={"status": "deleted"})
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(project2.id)
 
@@ -84,11 +86,11 @@ class ProjectsListTest(APITestCase):
 
         self.login_as(user=user)
 
-        response = self.get_valid_response(qs_params={"query": "foo"})
+        response = self.get_success_response(qs_params={"query": "foo"})
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(project1.id)
 
-        response = self.get_valid_response(qs_params={"query": "baz"})
+        response = self.get_success_response(qs_params={"query": "baz"})
         assert len(response.data) == 0
 
     def test_slug_query(self):
@@ -102,11 +104,11 @@ class ProjectsListTest(APITestCase):
 
         self.login_as(user=user)
 
-        response = self.get_valid_response(qs_params={"query": "slug:foo"})
+        response = self.get_success_response(qs_params={"query": "slug:foo"})
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(project1.id)
 
-        response = self.get_valid_response(qs_params={"query": "slug:baz"})
+        response = self.get_success_response(qs_params={"query": "slug:baz"})
         assert len(response.data) == 0
 
     def test_id_query(self):
@@ -120,11 +122,11 @@ class ProjectsListTest(APITestCase):
 
         self.login_as(user=user)
 
-        response = self.get_valid_response(qs_params={"query": f"id:{project1.id}"})
+        response = self.get_success_response(qs_params={"query": f"id:{project1.id}"})
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(project1.id)
 
-        response = self.get_valid_response(qs_params={"query": "id:-1"})
+        response = self.get_success_response(qs_params={"query": "id:-1"})
         assert len(response.data) == 0
 
     def test_valid_with_internal_integration(self):
@@ -154,7 +156,39 @@ class ProjectsListTest(APITestCase):
 
         # Delete the token
         SentryAppInstallationToken.objects.all().delete()
+        self.get_error_response(
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token}"},
+            status_code=status.HTTP_401_UNAUTHORIZED,
+        )
 
-        path = reverse(self.endpoint)
-        response = self.client.get(path, HTTP_AUTHORIZATION=f"Bearer {token}")
-        assert response.status_code == 401
+    def get_installed_unpublished_sentry_app_access_token(self):
+        self.project = self.create_project(organization=self.organization, teams=[self.team])
+        sentry_app = self.create_sentry_app(
+            scopes=("project:read",),
+            published=False,
+            verify_install=False,
+            name="Super Awesome App",
+        )
+        installation = self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization, user=self.user
+        )
+        return installation.api_token.token
+
+    def test_valid_with_public_integration(self):
+        token = self.get_installed_unpublished_sentry_app_access_token()
+
+        # there should only be one record created so just grab the first one
+        response = self.get_success_response(
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token}"}
+        )
+        assert self.project.name.encode("utf-8") in response.content
+
+    def test_deleted_token_with_public_integration(self):
+        token = self.get_installed_unpublished_sentry_app_access_token()
+
+        ApiToken.objects.all().delete()
+
+        self.get_error_response(
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token}"},
+            status_code=status.HTTP_401_UNAUTHORIZED,
+        )

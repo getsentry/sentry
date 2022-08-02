@@ -148,7 +148,9 @@ class Symbolicator:
             event_id=str(event_id),
             timeout=settings.SYMBOLICATOR_POLL_TIMEOUT,
             sources=get_sources_for_project(project),
-            options=get_options_for_project(project),
+            options={
+                "dif_candidates": True,
+            },
         )
 
         self.task_id_cache_key = _task_id_cache_key_for_event(project.id, event_id)
@@ -401,13 +403,6 @@ def redact_source_secrets(config_sources: json.JSONData) -> json.JSONData:
     return redacted_sources
 
 
-def get_options_for_project(project):
-    return {
-        # Symbolicators who do not support options will ignore this field entirely.
-        "dif_candidates": features.has("organizations:images-loaded-v2", project.organization),
-    }
-
-
 def get_sources_for_project(project):
     """
     Returns a list of symbol sources for this project.
@@ -594,6 +589,10 @@ class SymbolicatorSession:
                 if response.ok:
                     json = response.json()
                 else:
+                    with sentry_sdk.push_scope():
+                        sentry_sdk.set_extra("symbolicator_response", response.text)
+                        sentry_sdk.capture_message("Symbolicator request failed")
+
                     json = {"status": "failed", "message": "internal server error"}
 
                 return self._process_response(json)

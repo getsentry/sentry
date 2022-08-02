@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, List, Optional, Union, cast
 
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
@@ -13,7 +13,13 @@ from sentry import features, roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models import UserSerializer
 from sentry.api.serializers.models.project import ProjectSerializerResponse
+from sentry.api.serializers.models.role import (
+    OrganizationRoleSerializer,
+    RoleSerializerResponse,
+    TeamRoleSerializer,
+)
 from sentry.api.serializers.models.team import TeamSerializerResponse
+from sentry.api.utils import generate_organization_url
 from sentry.app import quotas
 from sentry.auth.access import Access
 from sentry.constants import (
@@ -28,6 +34,7 @@ from sentry.constants import (
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
     REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
+    RESERVED_ORGANIZATION_SLUGS,
     SAFE_FIELDS_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
     SENSITIVE_FIELDS_DEFAULT,
@@ -52,6 +59,35 @@ _ORGANIZATION_SCOPE_PREFIX = "organizations:"
 
 if TYPE_CHECKING:
     from sentry.api.serializers import UserSerializerResponse, UserSerializerResponseSelf
+
+
+class BaseOrganizationSerializer(serializers.Serializer):  # type: ignore
+    name = serializers.CharField(max_length=64)
+    slug = serializers.RegexField(r"^[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$", max_length=50)
+
+    def validate_slug(self, value: str) -> str:
+        # Historically, the only check just made sure there was more than 1
+        # character for the slug, but since then, there are many slugs that
+        # fit within this new imposed limit. We're not fixing existing, but
+        # just preventing new bad values.
+        if len(value) < 3:
+            raise serializers.ValidationError(
+                f'This slug "{value}" is too short. Minimum of 3 characters.'
+            )
+        if value in RESERVED_ORGANIZATION_SLUGS:
+            raise serializers.ValidationError(f'This slug "{value}" is reserved and not allowed.')
+        qs = Organization.objects.filter(slug=value)
+        if "organization" in self.context:
+            qs = qs.exclude(id=self.context["organization"].id)
+        if qs.exists():
+            raise serializers.ValidationError(f'The slug "{value}" is already in use.')
+
+        contains_whitespace = any(c.isspace() for c in self.initial_data["slug"])
+        if contains_whitespace:
+            raise serializers.ValidationError(
+                f'The slug "{value}" should not contain any whitespace.'
+            )
+        return value
 
 
 class TrustedRelaySerializer(serializers.Serializer):  # type: ignore
@@ -114,6 +150,7 @@ class OrganizationSerializerResponse(TypedDict):
     name: str
     dateCreated: datetime
     isEarlyAdopter: bool
+    organizationUrl: str
     require2FA: bool
     requireEmailVerification: bool
     avatar: Any  # TODO replace with Avatar
@@ -205,6 +242,7 @@ class OrganizationSerializer(Serializer):  # type: ignore
             "name": obj.name or obj.slug,
             "dateCreated": obj.date_added,
             "isEarlyAdopter": bool(obj.flags.early_adopter),
+            "organizationUrl": generate_organization_url(obj.slug),
             "require2FA": bool(obj.flags.require_2fa),
             "requireEmailVerification": bool(
                 features.has("organizations:required-email-verification", obj)
@@ -258,6 +296,7 @@ class OnboardingTasksSerializer(Serializer):  # type: ignore
 
 class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResponse, total=False):
     role: Any  # TODO replace with enum/literal
+    orgRole: str
 
 
 class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResponseOptional):
@@ -265,7 +304,9 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     quota: Any
     isDefault: bool
     defaultRole: bool
-    availableRoles: list[Any]  # TODO replace with enum/literal
+    availableRoles: list[Any]  # TODO: deprecated, use orgRoleList
+    orgRoleList: List[RoleSerializerResponse]
+    teamRoleList: List[RoleSerializerResponse]
     openMembership: bool
     allowSharedIssues: bool
     enhancedPrivacy: bool
@@ -333,7 +374,13 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             {
                 "isDefault": obj.is_default,
                 "defaultRole": obj.default_role,
-                "availableRoles": [{"id": r.id, "name": r.name} for r in roles.get_all()],
+                "availableRoles": [
+                    {"id": r.id, "name": r.name} for r in roles.get_all()
+                ],  # Deprecated
+                "orgRoleList": serialize(roles.get_all(), serializer=OrganizationRoleSerializer()),
+                "teamRoleList": serialize(
+                    roles.team_roles.get_all(), serializer=TeamRoleSerializer()
+                ),
                 "openMembership": bool(obj.flags.allow_joinleave),
                 "require2FA": bool(obj.flags.require_2fa),
                 "requireEmailVerification": bool(
@@ -389,7 +436,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
         context["access"] = access.scopes
         if access.role is not None:
-            context["role"] = access.role
+            context["role"] = access.role  # Deprecated
+            context["orgRole"] = access.role
         context["pendingAccessRequests"] = OrganizationAccessRequest.objects.filter(
             team__organization=obj
         ).count()

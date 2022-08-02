@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
@@ -182,8 +182,9 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
   handleSubmitSuccess = (data: SentryApp) => {
     const {app} = this.state;
     const {orgId} = this.props.params;
+    const type = this.isInternal ? 'internal' : 'public';
     const baseUrl = `/settings/${orgId}/developer-settings/`;
-    const url = app ? baseUrl : `${baseUrl}${data.slug}/`;
+    const url = app ? `${baseUrl}?type=${type}` : `${baseUrl}${data.slug}/`;
     if (app) {
       addSuccessMessage(t('%s successfully saved.', data.name));
     } else {
@@ -283,7 +284,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
           </CreatedDate>
           <Button
             onClick={this.onRemoveToken.bind(this, token)}
-            size="small"
+            size="sm"
             icon={<IconDelete />}
             data-test-id="token-delete"
             type="button"
@@ -420,7 +421,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
               const webhookDisabled =
                 this.isInternal && !this.form.getValue('webhookUrl');
               return (
-                <React.Fragment>
+                <Fragment>
                   <JsonForm additionalFieldProps={{webhookDisabled}} forms={forms} />
                   {this.getAvatarChooser(true)}
                   {this.getAvatarChooser(false)}
@@ -430,7 +431,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
                     scopes={scopes}
                     events={events}
                   />
-                </React.Fragment>
+                </Fragment>
               );
             }}
           </Observer>
@@ -440,7 +441,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
               <PanelHeader hasButtons>
                 {t('Tokens')}
                 <Button
-                  size="xsmall"
+                  size="xs"
                   icon={<IconAdd size="xs" isCircled />}
                   onClick={evt => this.onAddToken(evt)}
                   data-test-id="token-add"

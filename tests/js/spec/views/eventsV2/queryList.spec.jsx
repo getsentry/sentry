@@ -5,10 +5,19 @@ import {selectDropdownMenuItem} from 'sentry-test/dropdownMenu';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {triggerPress} from 'sentry-test/utils';
 
+import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
+import {DisplayModes} from 'sentry/utils/discover/types';
+import {DashboardWidgetSource, DisplayType} from 'sentry/views/dashboardsV2/types';
 import QueryList from 'sentry/views/eventsV2/queryList';
+
+jest.mock('sentry/actionCreators/modal');
 
 describe('EventsV2 > QueryList', function () {
   let location, savedQueries, organization, deleteMock, duplicateMock, queryChangeMock;
+
+  beforeAll(async function () {
+    await import('sentry/components/modals/widgetBuilder/addToDashboardModal');
+  });
 
   beforeEach(function () {
     organization = TestStubs.Organization();
@@ -45,6 +54,10 @@ describe('EventsV2 > QueryList', function () {
       query: {cursor: '0:1:1', statsPeriod: '14d'},
     };
     queryChangeMock = jest.fn();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   it('renders an empty list', function () {
@@ -126,7 +139,7 @@ describe('EventsV2 > QueryList', function () {
     expect(queryChangeMock).toHaveBeenCalled();
   });
 
-  it('returns short url location for saved query', async function () {
+  it('returns short url location for saved query', function () {
     const wrapper = mountWithTheme(
       <QueryList
         organization={organization}
@@ -251,5 +264,148 @@ describe('EventsV2 > QueryList', function () {
 
     const miniGraph = wrapper.find('MiniGraph');
     expect(miniGraph.props().yAxis).toEqual(['count()', 'failure_count()']);
+  });
+
+  describe('Add to Dashboard modal', () => {
+    it('opens a modal with the correct params for Top 5 chart', async function () {
+      const featuredOrganization = TestStubs.Organization({
+        features: ['dashboards-edit', 'new-widget-builder-experience-design'],
+      });
+      const wrapper = mountWithTheme(
+        <QueryList
+          organization={featuredOrganization}
+          savedQueries={[
+            TestStubs.DiscoverSavedQuery({
+              display: DisplayModes.TOP5,
+              orderby: 'test',
+              fields: ['test', 'count()'],
+              yAxis: ['count()'],
+            }),
+          ]}
+          pageLinks=""
+          onQueryChange={queryChangeMock}
+          location={location}
+        />
+      );
+      let card = wrapper.find('QueryCard').last();
+
+      await act(async () => {
+        triggerPress(card.find('DropdownTrigger'));
+
+        await tick();
+        wrapper.update();
+      });
+
+      card = wrapper.find('QueryCard').last();
+      const menuItems = card.find('MenuItemWrap');
+
+      expect(menuItems.length).toEqual(3);
+      expect(menuItems.at(0).text()).toEqual('Add to Dashboard');
+      await act(async () => {
+        triggerPress(menuItems.at(0));
+
+        await tick();
+        wrapper.update();
+      });
+
+      expect(openAddToDashboardModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          widget: {
+            title: 'Saved query #1',
+            displayType: DisplayType.AREA,
+            limit: 5,
+            queries: [
+              {
+                aggregates: ['count()'],
+                columns: ['test'],
+                conditions: '',
+                fields: ['test', 'count()', 'count()'],
+                name: '',
+                orderby: 'test',
+              },
+            ],
+          },
+          widgetAsQueryParams: expect.objectContaining({
+            defaultTableColumns: ['test', 'count()'],
+            defaultTitle: 'Saved query #1',
+            defaultWidgetQuery:
+              'name=&aggregates=count()&columns=test&fields=test%2Ccount()%2Ccount()&conditions=&orderby=test',
+            displayType: DisplayType.AREA,
+            source: DashboardWidgetSource.DISCOVERV2,
+          }),
+        })
+      );
+    });
+
+    it('opens a modal with the correct params for other chart', async function () {
+      const featuredOrganization = TestStubs.Organization({
+        features: ['dashboards-edit', 'new-widget-builder-experience-design'],
+      });
+      const wrapper = mountWithTheme(
+        <QueryList
+          organization={featuredOrganization}
+          savedQueries={[
+            TestStubs.DiscoverSavedQuery({
+              display: DisplayModes.DEFAULT,
+              orderby: 'count()',
+              fields: ['test', 'count()'],
+              yAxis: ['count()'],
+            }),
+          ]}
+          pageLinks=""
+          onQueryChange={queryChangeMock}
+          location={location}
+        />
+      );
+      let card = wrapper.find('QueryCard').last();
+
+      await act(async () => {
+        triggerPress(card.find('DropdownTrigger'));
+
+        await tick();
+        wrapper.update();
+      });
+
+      card = wrapper.find('QueryCard').last();
+      const menuItems = card.find('MenuItemWrap');
+
+      expect(menuItems.length).toEqual(3);
+      expect(menuItems.at(0).text()).toEqual('Add to Dashboard');
+      await act(async () => {
+        triggerPress(menuItems.at(0));
+
+        await tick();
+        wrapper.update();
+      });
+
+      expect(openAddToDashboardModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          widget: {
+            title: 'Saved query #1',
+            displayType: DisplayType.LINE,
+            queries: [
+              {
+                aggregates: ['count()'],
+                columns: [],
+                conditions: '',
+                fields: ['count()'],
+                name: '',
+                // Orderby gets dropped because ordering only applies to
+                // Top-N and tables
+                orderby: '',
+              },
+            ],
+          },
+          widgetAsQueryParams: expect.objectContaining({
+            defaultTableColumns: ['test', 'count()'],
+            defaultTitle: 'Saved query #1',
+            defaultWidgetQuery:
+              'name=&aggregates=count()&columns=&fields=count()&conditions=&orderby=',
+            displayType: DisplayType.LINE,
+            source: DashboardWidgetSource.DISCOVERV2,
+          }),
+        })
+      );
+    });
   });
 });

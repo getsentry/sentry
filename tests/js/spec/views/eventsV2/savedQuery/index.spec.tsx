@@ -1,11 +1,15 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
+import {
+  openAddDashboardWidgetModal,
+  openAddToDashboardModal,
+} from 'sentry/actionCreators/modal';
 import {NewQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {DisplayModes} from 'sentry/utils/discover/types';
+import {DashboardWidgetSource, DisplayType} from 'sentry/views/dashboardsV2/types';
 import DiscoverBanner from 'sentry/views/eventsV2/banner';
 import {ALL_VIEWS} from 'sentry/views/eventsV2/data';
 import SavedQueryButtonGroup from 'sentry/views/eventsV2/savedQuery';
@@ -37,7 +41,6 @@ function mount(
       disabled={disabled}
       updateCallback={() => {}}
       yAxis={yAxis}
-      onIncompatibleAlertQuery={() => undefined}
       router={router}
       savedQueryLoading={false}
     />
@@ -61,7 +64,6 @@ function generateWrappedComponent(
       disabled={disabled}
       updateCallback={() => {}}
       yAxis={yAxis}
-      onIncompatibleAlertQuery={() => undefined}
       router={router}
       savedQueryLoading={false}
     />
@@ -102,6 +104,11 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
     dateUpdated: '',
     id: '1',
   };
+
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
+  });
 
   describe('building on a new query', () => {
     const mockUtils = jest
@@ -148,58 +155,34 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       expect(buttonDelete.exists()).toBe(false);
     });
 
-    it('hides the banner when save is complete.', async () => {
-      const wrapper = generateWrappedComponent(
-        location,
-        organization,
-        router,
-        errorsView,
-        undefined,
-        yAxis
-      );
+    it('hides the banner when save is complete.', () => {
+      mount(location, organization, router, errorsView, undefined, yAxis);
 
       // Click on ButtonSaveAs to open dropdown
-      const buttonSaveAs = wrapper.find('DropdownControl').first();
-      buttonSaveAs.simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Save as'}));
 
       // Fill in the Input
-      buttonSaveAs
-        .find('ButtonSaveInput')
-        .simulate('change', {target: {value: 'My New Query Name'}}); // currentTarget.value does not work
-      await tick();
+      userEvent.type(screen.getByPlaceholderText('Display name'), 'My New Query Name');
 
       // Click on Save in the Dropdown
-      await buttonSaveAs.find('ButtonSaveDropDown Button').simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Save for Org'}));
 
       // The banner should not render
-      const banner = mountWithTheme(
-        <DiscoverBanner organization={organization} resultsUrl="" />
-      );
-      expect(banner.find('BannerTitle').exists()).toBe(false);
+      mountWithTheme(<DiscoverBanner organization={organization} resultsUrl="" />);
+      expect(screen.queryByText('Discover Trends')).not.toBeInTheDocument();
     });
 
-    it('saves a well-formed query', async () => {
-      const wrapper = generateWrappedComponent(
-        location,
-        organization,
-        router,
-        errorsView,
-        undefined,
-        yAxis
-      );
+    it('saves a well-formed query', () => {
+      mount(location, organization, router, errorsView, undefined, yAxis);
 
       // Click on ButtonSaveAs to open dropdown
-      const buttonSaveAs = wrapper.find('DropdownControl').first();
-      buttonSaveAs.simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Save as'}));
 
       // Fill in the Input
-      buttonSaveAs
-        .find('ButtonSaveInput')
-        .simulate('change', {target: {value: 'My New Query Name'}}); // currentTarget.value does not work
-      await tick();
+      userEvent.type(screen.getByPlaceholderText('Display name'), 'My New Query Name');
 
       // Click on Save in the Dropdown
-      await buttonSaveAs.find('ButtonSaveDropDown Button').simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Save for Org'}));
 
       expect(mockUtils).toHaveBeenCalledWith(
         expect.anything(), // api
@@ -213,25 +196,16 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       );
     });
 
-    it('rejects if query.name is empty', async () => {
-      const wrapper = generateWrappedComponent(
-        location,
-        organization,
-        router,
-        errorsView,
-        undefined,
-        yAxis
-      );
+    it('rejects if query.name is empty', () => {
+      mount(location, organization, router, errorsView, undefined, yAxis);
 
       // Click on ButtonSaveAs to open dropdown
-      const buttonSaveAs = wrapper.find('DropdownControl').first();
-      buttonSaveAs.simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Save as'}));
 
       // Do not fill in Input
-      await tick();
 
       // Click on Save in the Dropdown
-      buttonSaveAs.find('ButtonSaveDropDown Button').simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Save for Org'}));
 
       // Check that EventView has a name
       expect(errorsView.name).toBe('Errors by Title');
@@ -335,6 +309,119 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         expect.objectContaining({id: '1'})
       );
     });
+
+    it('opens a modal with the correct params for top 5 display mode', async function () {
+      const featuredOrganization = TestStubs.Organization({
+        features: ['dashboards-edit', 'new-widget-builder-experience-design'],
+      });
+      const testData = initializeOrg({
+        ...initializeOrg(),
+        organization: featuredOrganization,
+      });
+      const savedTopNQuery = TestStubs.DiscoverSavedQuery({
+        display: DisplayModes.TOP5,
+        orderby: 'test',
+        fields: ['test', 'count()'],
+        topEvents: '2',
+      });
+      mount(
+        testData.router.location,
+        testData.organization,
+        testData.router,
+        EventView.fromSavedQuery(savedTopNQuery),
+        savedTopNQuery,
+        ['count()']
+      );
+      userEvent.click(screen.getByText('Add to Dashboard'));
+      expect(openAddDashboardWidgetModal).not.toHaveBeenCalled();
+
+      await waitFor(() => {
+        expect(openAddToDashboardModal).toHaveBeenCalledWith(
+          expect.objectContaining({
+            widget: {
+              title: 'Saved query #1',
+              displayType: DisplayType.AREA,
+              limit: 2,
+              queries: [
+                {
+                  aggregates: ['count()'],
+                  columns: ['test'],
+                  conditions: '',
+                  fields: ['test', 'count()', 'count()'],
+                  name: '',
+                  orderby: 'test',
+                },
+              ],
+            },
+            widgetAsQueryParams: expect.objectContaining({
+              defaultTableColumns: ['test', 'count()'],
+              defaultTitle: 'Saved query #1',
+              defaultWidgetQuery:
+                'name=&aggregates=count()&columns=test&fields=test%2Ccount()%2Ccount()&conditions=&orderby=test',
+              displayType: DisplayType.AREA,
+              source: DashboardWidgetSource.DISCOVERV2,
+            }),
+          })
+        );
+      });
+    });
+
+    it('opens a modal with the correct params for default display mode', async function () {
+      const featuredOrganization = TestStubs.Organization({
+        features: ['dashboards-edit', 'new-widget-builder-experience-design'],
+      });
+      const testData = initializeOrg({
+        ...initializeOrg(),
+        organization: featuredOrganization,
+      });
+      const savedDefaultQuery = TestStubs.DiscoverSavedQuery({
+        display: DisplayModes.DEFAULT,
+        orderby: 'count()',
+        fields: ['test', 'count()'],
+        yAxis: ['count()'],
+      });
+      mount(
+        testData.router.location,
+        testData.organization,
+        testData.router,
+        EventView.fromSavedQuery(savedDefaultQuery),
+        savedDefaultQuery,
+        ['count()']
+      );
+      userEvent.click(screen.getByText('Add to Dashboard'));
+      expect(openAddDashboardWidgetModal).not.toHaveBeenCalled();
+
+      await waitFor(() => {
+        expect(openAddToDashboardModal).toHaveBeenCalledWith(
+          expect.objectContaining({
+            widget: {
+              title: 'Saved query #1',
+              displayType: DisplayType.LINE,
+              queries: [
+                {
+                  aggregates: ['count()'],
+                  columns: [],
+                  conditions: '',
+                  fields: ['count()'],
+                  name: '',
+                  // Orderby gets dropped because ordering only applies to
+                  // Top-N and tables
+                  orderby: '',
+                },
+              ],
+            },
+            widgetAsQueryParams: expect.objectContaining({
+              defaultTableColumns: ['test', 'count()'],
+              defaultTitle: 'Saved query #1',
+              defaultWidgetQuery:
+                'name=&aggregates=count()&columns=&fields=count()&conditions=&orderby=',
+              displayType: DisplayType.LINE,
+              source: DashboardWidgetSource.DISCOVERV2,
+            }),
+          })
+        );
+      });
+    });
   });
 
   describe('modifying a saved query', () => {
@@ -408,28 +495,17 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         mockUtils.mockClear();
       });
 
-      it('checks that it is forked from a saved query', async () => {
-        const wrapper = generateWrappedComponent(
-          location,
-          organization,
-          router,
-          errorsViewModified,
-          savedQuery,
-          yAxis
-        );
+      it('checks that it is forked from a saved query', () => {
+        mount(location, organization, router, errorsViewModified, savedQuery, yAxis);
 
         // Click on ButtonSaveAs to open dropdown
-        const buttonSaveAs = wrapper.find('DropdownControl').first();
-        buttonSaveAs.simulate('click');
+        userEvent.click(screen.getByRole('button', {name: 'Save as'}));
 
         // Fill in the Input
-        buttonSaveAs
-          .find('ButtonSaveInput')
-          .simulate('change', {target: {value: 'Forked Query'}});
-        await tick();
+        userEvent.type(screen.getByPlaceholderText('Display name'), 'Forked Query');
 
         // Click on Save in the Dropdown
-        await buttonSaveAs.find('ButtonSaveDropDown Button').simulate('click');
+        userEvent.click(screen.getByRole('button', {name: 'Save for Org'}));
 
         expect(mockUtils).toHaveBeenCalledWith(
           expect.anything(), // api
@@ -505,7 +581,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       MockApiClient.clearMockResponses();
     });
 
-    it('opens widget modal when add to dashboard is clicked', async () => {
+    it('opens widget modal when add to dashboard is clicked', () => {
       mount(
         initialData.router.location,
         initialData.organization,
@@ -525,14 +601,14 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
             aggregates: ['count()'],
             columns: [],
             name: '',
-            orderby: '-count',
+            orderby: '-count()',
           },
           displayType: 'line',
         })
       );
     });
 
-    it('populates dashboard widget modal with saved query data if created from discover', async () => {
+    it('populates dashboard widget modal with saved query data if created from discover', () => {
       mount(
         initialData.router.location,
         initialData.organization,
@@ -552,14 +628,14 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
             aggregates: ['count()', 'failure_count()'],
             columns: [],
             name: '',
-            orderby: '-count',
+            orderby: '-count()',
           },
           displayType: 'line',
         })
       );
     });
 
-    it('adds equation to query fields if yAxis includes comprising functions', async () => {
+    it('adds equation to query fields if yAxis includes comprising functions', () => {
       mount(
         initialData.router.location,
         initialData.organization,
@@ -583,7 +659,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
             ],
             columns: [],
             name: '',
-            orderby: '-count',
+            orderby: '-count()',
           },
           displayType: 'line',
         })

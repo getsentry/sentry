@@ -4,12 +4,11 @@ from unittest import mock
 import pytest
 import responses
 
+from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.models import Identity
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
-
-from .testutils import GitLabTestCase
 
 GITLAB_CODEOWNERS = {
     "filepath": "CODEOWNERS",
@@ -24,6 +23,7 @@ class GitlabRefreshAuthTest(GitLabTestCase):
     def setUp(self):
         super().setUp()
         self.client = self.installation.get_client()
+        self.client.base_url = "https://example.gitlab.com/"
         self.request_data = {"id": "user_id"}
         self.request_url = "https://example.gitlab.com/api/v4/user"
         self.refresh_url = "https://example.gitlab.com/oauth/token"
@@ -158,7 +158,7 @@ class GitlabRefreshAuthTest(GitLabTestCase):
             f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/src%2Ffile.py?ref={ref}",
             status=404,
         )
-        with self.assertRaises(ApiError):
+        with pytest.raises(ApiError):
             self.client.check_file(self.repo, path, ref)
         assert responses.calls[0].response.status_code == 404
 
@@ -198,3 +198,15 @@ class GitlabRefreshAuthTest(GitLabTestCase):
         )
 
         assert result == GITLAB_CODEOWNERS
+
+    @responses.activate
+    def test_get_commit(self):
+        commit = "a" * 40
+        responses.add(
+            method=responses.GET,
+            url=f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/commits/{commit}",
+            json=json.loads(GET_COMMIT_RESPONSE),
+        )
+
+        resp = self.client.get_commit(self.gitlab_id, commit)
+        assert resp == json.loads(GET_COMMIT_RESPONSE)

@@ -1,8 +1,6 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 
 import ErrorLevel from 'sentry/components/events/errorLevel';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Level} from 'sentry/types';
 
@@ -48,7 +46,7 @@ const StyledErrorLevel = styled(ErrorLevel)`
 `;
 
 const Message = styled('span')`
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
   width: auto;
   max-height: 38px;
 `;

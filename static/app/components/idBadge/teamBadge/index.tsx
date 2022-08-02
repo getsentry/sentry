@@ -1,44 +1,15 @@
-import * as React from 'react';
-
 import TeamStore from 'sentry/stores/teamStore';
-import {Team} from 'sentry/types';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 import Badge, {BadgeProps} from './badge';
 
 function TeamBadge(props: BadgeProps) {
-  const [team, setTeam] = React.useState<Team>(props.team);
+  const {teams} = useLegacyStore(TeamStore);
 
-  React.useEffect(() => {
-    setTeam(props.team);
-  }, [props.team]);
+  // Get the most up-to-date team from the store
+  const teamFromStore = teams.find(t => t.id === props.team.id);
 
-  const onTeamStoreUpdate = React.useCallback(
-    (updatedTeam: Set<string>) => {
-      if (!updatedTeam.has(team.id)) {
-        return;
-      }
-
-      const newTeam = TeamStore.getById(team.id);
-
-      if (!newTeam) {
-        return;
-      }
-
-      setTeam(newTeam);
-    },
-    [props.team]
-  );
-
-  React.useEffect(() => {
-    const unsubscribeTeam = TeamStore.listen(
-      (teamSet: Set<string>) => onTeamStoreUpdate(teamSet),
-      undefined
-    );
-
-    return () => unsubscribeTeam();
-  }, [onTeamStoreUpdate]);
-
-  return <Badge {...props} team={team} />;
+  return <Badge {...props} team={teamFromStore ?? props.team} />;
 }
 
 export {TeamBadge};

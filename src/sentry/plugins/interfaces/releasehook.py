@@ -7,6 +7,7 @@ from rest_framework.response import Response
 
 from sentry.exceptions import HookValidationError
 from sentry.models import Activity, Release
+from sentry.types.activity import ActivityType
 
 
 class ReleaseHook:
@@ -76,7 +77,7 @@ class ReleaseHook:
         release.add_project(self.project)
 
         Activity.objects.create(
-            type=Activity.RELEASE,
+            type=ActivityType.RELEASE.value,
             project=self.project,
             ident=Activity.get_version_ident(version),
             data={"version": version},

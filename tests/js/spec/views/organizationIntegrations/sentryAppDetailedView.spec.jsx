@@ -124,11 +124,11 @@ describe('SentryAppDetailedView', function () {
       );
     });
 
-    it('shows the Integration name and install status', async function () {
+    it('shows the Integration name and install status', function () {
       expect(wrapper.find('Name').props().children).toEqual('ClickUp');
       expect(wrapper.find('IntegrationStatus').props().status).toEqual('Not Installed');
     });
-    it('shows the Accept & Install button', async function () {
+    it('shows the Accept & Install button', function () {
       expect(wrapper.find('InstallButton').props().disabled).toEqual(false);
       expect(wrapper.find('InstallButton').props().children).toEqual('Accept & Install');
     });
@@ -309,11 +309,11 @@ describe('SentryAppDetailedView', function () {
         />
       );
     });
-    it('shows the Integration name and install status', async function () {
+    it('shows the Integration name and install status', function () {
       expect(wrapper.find('Name').props().children).toEqual('La Croix Monitor');
       expect(wrapper.find('IntegrationStatus').props().status).toEqual('Not Installed');
     });
-    it('shows the Accept & Install button', async function () {
+    it('shows the Accept & Install button', function () {
       expect(wrapper.find('InstallButton').props().disabled).toEqual(false);
       expect(wrapper.find('InstallButton').props().children).toEqual('Accept & Install');
     });
@@ -398,11 +398,11 @@ describe('SentryAppDetailedView', function () {
       );
       mockRouterPush(wrapper, router);
     });
-    it('shows the Integration name and install status', async function () {
+    it('shows the Integration name and install status', function () {
       expect(wrapper.find('Name').props().children).toEqual('Go to Google');
       expect(wrapper.find('IntegrationStatus').props().status).toEqual('Not Installed');
     });
-    it('shows the Accept & Install button', async function () {
+    it('shows the Accept & Install button', function () {
       expect(wrapper.find('InstallButton').props().disabled).toEqual(false);
       expect(wrapper.find('InstallButton').props().children).toEqual('Accept & Install');
     });

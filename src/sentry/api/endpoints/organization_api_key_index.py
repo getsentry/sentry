@@ -2,9 +2,10 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry.api.bases.organization import OrganizationAdminPermission, OrganizationEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import ApiKey, AuditLogEntryEvent
+from sentry.models import ApiKey
 
 DEFAULT_SCOPES = ["project:read", "event:read", "team:read", "org:read", "member:read"]
 
@@ -38,7 +39,7 @@ class OrganizationApiKeyIndexEndpoint(OrganizationEndpoint):
             request,
             organization=organization,
             target_object=key.id,
-            event=AuditLogEntryEvent.APIKEY_ADD,
+            event=audit_log.get_event_id("APIKEY_ADD"),
             data=key.get_audit_log_data(),
         )
 

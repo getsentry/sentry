@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 
@@ -39,7 +39,7 @@ type State = {
 function withReleaseRepos<P extends DependentProps>(
   WrappedComponent: React.ComponentType<P>
 ) {
-  class WithReleaseRepos extends React.Component<P & HoCsProps, State> {
+  class WithReleaseRepos extends Component<P & HoCsProps, State> {
     static displayName = `withReleaseRepos(${getDisplayName(WrappedComponent)})`;
 
     state: State = {

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 
 import {getProjectRelease, getReleaseDeploys} from 'sentry/actionCreators/release';
 import {Client} from 'sentry/api';
@@ -23,7 +23,7 @@ type InjectedProps = {
 };
 
 function withRelease<P extends DependentProps>(WrappedComponent: React.ComponentType<P>) {
-  class WithRelease extends React.Component<
+  class WithRelease extends Component<
     Omit<P, keyof InjectedProps> & Partial<InjectedProps> & DependentProps,
     InjectedProps
   > {

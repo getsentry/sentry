@@ -3,7 +3,7 @@ from uuid import uuid4
 
 from django.db import models, transaction
 from django.utils import timezone
-from django.utils.encoding import force_text, python_2_unicode_compatible
+from django.utils.encoding import force_text
 
 from sentry.db.models import BaseManager, FlexibleForeignKey, Model, sane_repr
 from sentry.models.apiscopes import HasApiScopes
@@ -19,7 +19,6 @@ def generate_token():
     return uuid4().hex + uuid4().hex
 
 
-@python_2_unicode_compatible
 class ApiToken(Model, HasApiScopes):
     __include_in_export__ = True
 

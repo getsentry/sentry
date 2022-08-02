@@ -18,7 +18,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
     });
     rulesEndpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/alert-rules/`,
-      body: [TestStubs.IncidentRule()],
+      body: [TestStubs.MetricRule()],
     });
   });
 
@@ -129,7 +129,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
 
     expect(createRuleButton.text()).toBe('Create Alert');
     expect(createRuleButton.prop('to')).toBe(
-      `/organizations/${organization.slug}/alerts/${project.slug}/wizard/?referrer=project_detail`
+      `/organizations/${organization.slug}/alerts/wizard/?referrer=project_detail&project=project-slug`
     );
 
     expect(learnMoreButton.text()).toBe('Learn More');

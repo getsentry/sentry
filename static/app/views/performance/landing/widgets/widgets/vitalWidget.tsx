@@ -10,13 +10,18 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import DiscoverQuery, {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import {getAggregateAlias, WebVital} from 'sentry/utils/discover/fields';
-import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {getAggregateAlias} from 'sentry/utils/discover/fields';
+import {WebVital} from 'sentry/utils/fields';
+import {
+  canUseMetricsData,
+  useMEPSettingContext,
+} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
+import {UNPARAMETERIZED_TRANSACTION} from 'sentry/views/performance/utils';
 import {vitalDetailRouteWithQuery} from 'sentry/views/performance/vitalDetail/utils';
 import {_VitalChart} from 'sentry/views/performance/vitalDetail/vitalChart';
 
@@ -86,8 +91,11 @@ export function transformFieldsWithStops(props: {
 }
 
 export function VitalWidget(props: PerformanceWidgetProps) {
-  const {isMEPEnabled} = useMEPSettingContext();
+  const mepSetting = useMEPSettingContext();
   const {ContainerActions, eventView, organization, location} = props;
+  const useEvents = organization.features.includes(
+    'performance-frontend-use-events-endpoint'
+  );
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const field = props.fields[0];
   const pageError = usePageError();
@@ -110,6 +118,11 @@ export function VitalWidget(props: PerformanceWidgetProps) {
           }));
 
           _eventView.sorts = [{kind: 'desc', field: sortField}];
+          if (canUseMetricsData(organization)) {
+            _eventView.additionalConditions.setFilterValues('!transaction', [
+              UNPARAMETERIZED_TRANSACTION,
+            ]);
+          }
 
           _eventView.fields = [
             {field: 'transaction'},
@@ -124,16 +137,18 @@ export function VitalWidget(props: PerformanceWidgetProps) {
               {...provided}
               eventView={_eventView}
               location={props.location}
-              limit={3}
+              limit={4}
               cursor="0:0:1"
               noPagination
-              queryExtras={getMEPQueryParams(isMEPEnabled)}
+              queryExtras={getMEPQueryParams(mepSetting)}
+              useEvents={useEvents}
             />
           );
         },
         transform: transformDiscoverToList,
       }),
-      [props.eventView, fieldsList, props.organization.slug]
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      [props.eventView, fieldsList, props.organization.slug, mepSetting.memoizationKey]
     ),
     chart: useMemo<QueryDefinition<DataType, WidgetDataResult>>(
       () => ({
@@ -167,13 +182,14 @@ export function VitalWidget(props: PerformanceWidgetProps) {
               )}
               hideError
               onError={pageError.setPageError}
-              queryExtras={getMEPQueryParams(isMEPEnabled)}
+              queryExtras={getMEPQueryParams(mepSetting)}
             />
           );
         },
         transform: transformEventsRequestToVitals,
       }),
-      [props.chartSetting, selectedListIndex]
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      [props.chartSetting, selectedListIndex, mepSetting.memoizationKey]
     ),
   };
 
@@ -201,7 +217,11 @@ export function VitalWidget(props: PerformanceWidgetProps) {
         const vital = settingToVital[props.chartSetting];
 
         const data = {
-          [settingToVital[props.chartSetting]]: getVitalDataForListItem(listItem, vital),
+          [settingToVital[props.chartSetting]]: getVitalDataForListItem(
+            listItem,
+            vital,
+            !useEvents
+          ),
         };
 
         return (
@@ -233,7 +253,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
               <Button
                 onClick={handleViewAllClick}
                 to={target}
-                size="small"
+                size="sm"
                 data-test-id="view-all-button"
               >
                 {t('View All')}
@@ -262,8 +282,8 @@ export function VitalWidget(props: PerformanceWidgetProps) {
             <SelectableList
               selectedIndex={selectedListIndex}
               setSelectedIndex={setSelectListIndex}
-              items={provided.widgetData.list.data.map(listItem => () => {
-                const transaction = listItem?.transaction as string;
+              items={provided.widgetData.list.data.slice(0, 3).map(listItem => () => {
+                const transaction = (listItem?.transaction as string | undefined) ?? '';
                 const _eventView = eventView.clone();
 
                 const initialConditions = new MutableSearch(_eventView.query);
@@ -283,7 +303,8 @@ export function VitalWidget(props: PerformanceWidgetProps) {
                 const data = {
                   [settingToVital[props.chartSetting]]: getVitalDataForListItem(
                     listItem,
-                    vital
+                    vital,
+                    !useEvents
                   ),
                 };
 
@@ -304,10 +325,12 @@ export function VitalWidget(props: PerformanceWidgetProps) {
                         barHeight={20}
                       />
                     </VitalBarCell>
-                    <ListClose
-                      setSelectListIndex={setSelectListIndex}
-                      onClick={() => excludeTransaction(listItem.transaction, props)}
-                    />
+                    {!props.withStaticFilters && (
+                      <ListClose
+                        setSelectListIndex={setSelectListIndex}
+                        onClick={() => excludeTransaction(listItem.transaction, props)}
+                      />
+                    )}
                   </Fragment>
                 );
               })}
@@ -321,15 +344,20 @@ export function VitalWidget(props: PerformanceWidgetProps) {
   );
 }
 
-function getVitalDataForListItem(listItem: TableDataRow, vital: WebVital) {
+function getVitalDataForListItem(
+  listItem: TableDataRow,
+  vital: WebVital,
+  useAggregateAlias: boolean = true
+) {
   const vitalFields = getVitalFields(vital);
-
+  const transformFieldName = (fieldName: string) =>
+    useAggregateAlias ? getAggregateAlias(fieldName) : fieldName;
   const poorData: number =
-    (listItem[getAggregateAlias(vitalFields.poorCountField)] as number) || 0;
+    (listItem[transformFieldName(vitalFields.poorCountField)] as number) || 0;
   const mehData: number =
-    (listItem[getAggregateAlias(vitalFields.mehCountField)] as number) || 0;
+    (listItem[transformFieldName(vitalFields.mehCountField)] as number) || 0;
   const goodData: number =
-    (listItem[getAggregateAlias(vitalFields.goodCountField)] as number) || 0;
+    (listItem[transformFieldName(vitalFields.goodCountField)] as number) || 0;
   const _vitalData = {
     poor: poorData,
     meh: mehData,

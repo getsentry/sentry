@@ -1,4 +1,5 @@
-import * as React from 'react';
+import {Fragment} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -21,7 +22,7 @@ function EmailVerificationModal({
   actionMessage = 'taking this action',
 }: Props) {
   return (
-    <React.Fragment>
+    <Fragment>
       <Header closeButton>{t('Action Required')}</Header>
       <Body>
         <TextBlock>
@@ -36,7 +37,7 @@ function EmailVerificationModal({
         </TextBlock>
         <EmailAddresses />
       </Body>
-    </React.Fragment>
+    </Fragment>
   );
 }
 

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import {Link as RouterLink} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -21,7 +21,7 @@ type Props = {
 const SettingsNavItem = ({badge, label, index, id, ...props}: Props) => {
   const LabelHook = HookOrDefault({
     hookName: 'sidebar:item-label',
-    defaultComponent: ({children}) => <React.Fragment>{children}</React.Fragment>,
+    defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
   });
 
   let renderedBadge: React.ReactNode;

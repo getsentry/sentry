@@ -3,10 +3,10 @@ from rest_framework.exceptions import APIException
 
 from sentry.api.bases.integration import IntegrationEndpoint
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.testutils import APITestCase
+from sentry.testutils import TestCase
 
 
-class IntegrationEndpointTest(APITestCase):
+class IntegrationEndpointTest(TestCase):
     def setUp(self):
         self.endpoint = IntegrationEndpoint()
 

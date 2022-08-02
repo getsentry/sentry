@@ -2,10 +2,11 @@ from django.db import transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry.api.bases.monitor import MonitorEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.validators import MonitorValidator
-from sentry.models import AuditLogEntryEvent, Monitor, MonitorStatus, ScheduledDeletion
+from sentry.models import Monitor, MonitorStatus, ScheduledDeletion
 
 
 class MonitorDetailsEndpoint(MonitorEndpoint):
@@ -64,7 +65,7 @@ class MonitorDetailsEndpoint(MonitorEndpoint):
                 request=request,
                 organization=project.organization,
                 target_object=monitor.id,
-                event=AuditLogEntryEvent.MONITOR_EDIT,
+                event=audit_log.get_event_id("MONITOR_EDIT"),
                 data=monitor.get_audit_log_data(),
             )
 
@@ -94,7 +95,7 @@ class MonitorDetailsEndpoint(MonitorEndpoint):
                 request=request,
                 organization=project.organization,
                 target_object=monitor.id,
-                event=AuditLogEntryEvent.MONITOR_REMOVE,
+                event=audit_log.get_event_id("MONITOR_REMOVE"),
                 data=monitor.get_audit_log_data(),
                 transaction_id=schedule.guid,
             )

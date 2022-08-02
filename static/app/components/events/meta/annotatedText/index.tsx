@@ -1,4 +1,3 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
@@ -26,14 +25,17 @@ const AnnotatedText = ({value, meta, className, ...props}: Props) => {
       return <Chunks chunks={meta.chunks} />;
     }
 
-    const element = <ValueElement value={value} meta={meta} />;
-
     if (meta?.rem?.length) {
-      const title = getTooltipText({rule_id: meta.rem[0][0], remark: meta.rem[0][1]});
-      return <Tooltip title={title}>{element}</Tooltip>;
+      return (
+        <Tooltip
+          title={getTooltipText({rule_id: meta.rem[0][0], remark: meta.rem[0][1]})}
+        >
+          <ValueElement value={value} meta={meta} />
+        </Tooltip>
+      );
     }
 
-    return element;
+    return <ValueElement value={value} meta={meta} />;
   };
 
   const formatErrorKind = (kind: string) => {
@@ -87,7 +89,7 @@ const AnnotatedText = ({value, meta, className, ...props}: Props) => {
   };
 
   return (
-    <span className={className} {...props}>
+    <span role="text" className={className} {...props}>
       {renderValue()}
       {meta?.err && renderErrors(meta.err)}
     </span>

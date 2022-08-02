@@ -1,8 +1,6 @@
-import * as React from 'react';
-
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Hovercard, HOVERCARD_PORTAL_ID} from 'sentry/components/hovercard';
+import {Hovercard} from 'sentry/components/hovercard';
 
 describe('Hovercard', () => {
   beforeEach(() => {
@@ -13,31 +11,6 @@ describe('Hovercard', () => {
     jest.useRealTimers();
   });
 
-  it('reuses portal', () => {
-    render(
-      <React.Fragment>
-        <Hovercard
-          position="top"
-          body="Hovercard Body"
-          header="Hovercard Header"
-          displayTimeout={0}
-        >
-          Hovercard Trigger
-        </Hovercard>
-        <Hovercard
-          position="top"
-          body="Hovercard Body"
-          header="Hovercard Header"
-          displayTimeout={0}
-        >
-          Hovercard Trigger
-        </Hovercard>
-      </React.Fragment>
-    );
-
-    // eslint-disable-next-line
-    expect(document.querySelectorAll(`#${HOVERCARD_PORTAL_ID}`)).toHaveLength(1);
-  });
   it('Displays card', async () => {
     render(
       <Hovercard
@@ -63,14 +36,14 @@ describe('Hovercard', () => {
         body="Hovercard Body"
         header="Hovercard Header"
         displayTimeout={0}
-        show={false}
+        forceVisible={false}
       >
         Hovercard Trigger
       </Hovercard>
     );
 
     userEvent.hover(screen.getByText('Hovercard Trigger'));
-    jest.runAllTimers();
+    act(() => void jest.runAllTimers());
 
     expect(screen.queryByText(/Hovercard Body/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Hovercard Header/)).not.toBeInTheDocument();
@@ -83,7 +56,7 @@ describe('Hovercard', () => {
         body="Hovercard Body"
         header="Hovercard Header"
         displayTimeout={0}
-        show
+        forceVisible
       >
         Hovercard Trigger
       </Hovercard>
@@ -100,6 +73,7 @@ describe('Hovercard', () => {
         position="top"
         body="Hovercard Body"
         header="Hovercard Header"
+        delay={DISPLAY_TIMEOUT}
         displayTimeout={DISPLAY_TIMEOUT}
       >
         Hovercard Trigger
@@ -108,9 +82,7 @@ describe('Hovercard', () => {
 
     userEvent.hover(screen.getByText('Hovercard Trigger'));
 
-    act(() => {
-      jest.advanceTimersByTime(DISPLAY_TIMEOUT - 1);
-    });
+    act(() => void jest.advanceTimersByTime(DISPLAY_TIMEOUT - 1));
 
     expect(screen.queryByText(/Hovercard Body/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Hovercard Header/)).not.toBeInTheDocument();
@@ -120,12 +92,14 @@ describe('Hovercard', () => {
   });
 
   it('Doesnt leak timeout', () => {
+    const DISPLAY_TIMEOUT = 100;
     render(
       <Hovercard
         position="top"
         body="Hovercard Body"
         header="Hovercard Header"
-        displayTimeout={100}
+        delay={DISPLAY_TIMEOUT}
+        displayTimeout={DISPLAY_TIMEOUT}
       >
         Hovercard Trigger
       </Hovercard>
@@ -133,18 +107,14 @@ describe('Hovercard', () => {
 
     userEvent.hover(screen.getByText('Hovercard Trigger'));
 
-    act(() => {
-      jest.advanceTimersByTime(99);
-    });
+    act(() => void jest.advanceTimersByTime(DISPLAY_TIMEOUT - 1));
 
     expect(screen.queryByText(/Hovercard Body/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Hovercard Header/)).not.toBeInTheDocument();
 
     userEvent.unhover(screen.getByText('Hovercard Trigger'));
 
-    act(() => {
-      jest.advanceTimersByTime(1);
-    });
+    act(() => void jest.advanceTimersByTime(1));
 
     expect(screen.queryByText(/Hovercard Body/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Hovercard Header/)).not.toBeInTheDocument();

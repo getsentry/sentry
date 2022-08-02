@@ -90,7 +90,7 @@ def upgrade_legacy_mechanism(data):
         )
 
     # All remaining data has to be moved to the "data" key. We assume that even
-    # if someone accidentally sent a corret top-level key (such as "handled"),
+    # if someone accidentally sent a correct top-level key (such as "handled"),
     # it will not pass our interface validation and should be moved to "data"
     # instead.
     result.setdefault("data", {}).update(data)

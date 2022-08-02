@@ -48,6 +48,14 @@ describe('ProjectAlertsCreate', function () {
       url: `/projects/org-slug/project-slug/?expand=hasAlertIntegration`,
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/project-slug/ownership/`,
+      method: 'GET',
+      body: {
+        fallthrough: false,
+        autoAssignment: false,
+      },
+    });
   });
 
   afterEach(function () {
@@ -85,30 +93,32 @@ describe('ProjectAlertsCreate', function () {
     };
   };
 
-  it('redirects to wizard', function () {
+  it('adds default parameters if wizard was skipped', function () {
     const location = {query: {}};
     const wrapper = createWrapper(undefined, location);
 
-    expect(wrapper.router.replace).toHaveBeenCalledWith(
-      '/organizations/org-slug/alerts/project-slug/wizard'
-    );
+    expect(wrapper.router.replace).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/alerts/new/metric',
+      query: {
+        aggregate: 'count()',
+        dataset: 'events',
+        eventTypes: 'error',
+        project: 'project-slug',
+      },
+    });
   });
 
   describe('Issue Alert', function () {
     it('loads default values', function () {
       createWrapper();
 
-      expect(screen.getByDisplayValue('__all_environments__')).toBeInTheDocument();
-      expect(screen.getByDisplayValue('all')).toBeInTheDocument();
-      expect(screen.getByDisplayValue('30')).toBeInTheDocument();
+      expect(screen.getByText('All Environments')).toBeInTheDocument();
+      expect(screen.getAllByDisplayValue('all')).toHaveLength(2);
+      expect(screen.getByText('30 minutes')).toBeInTheDocument();
     });
 
     it('can remove filters', async function () {
-      createWrapper({
-        organization: {
-          features: ['alert-filters'],
-        },
-      });
+      createWrapper();
       const mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/',
         method: 'POST',
@@ -116,11 +126,11 @@ describe('ProjectAlertsCreate', function () {
       });
 
       // Change name of alert rule
-      userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
+      userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'My Rule Name');
 
       // Add a filter and remove it
       await selectEvent.select(screen.getByText('Add optional filter...'), [
-        'The issue is {comparison_type} than {value} {time}',
+        'The issue is older or newer than...',
       ]);
 
       userEvent.click(screen.getByLabelText('Delete Node'));
@@ -144,12 +154,8 @@ describe('ProjectAlertsCreate', function () {
       );
     });
 
-    it('can remove conditions', async function () {
-      const {organization} = createWrapper({
-        organization: {
-          features: ['alert-filters'],
-        },
-      });
+    it('can remove triggers', async function () {
+      const {organization} = createWrapper();
       const mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/',
         method: 'POST',
@@ -157,10 +163,10 @@ describe('ProjectAlertsCreate', function () {
       });
 
       // Change name of alert rule
-      userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
+      userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'My Rule Name');
 
-      // Add a condition and remove it
-      await selectEvent.select(screen.getByText('Add optional condition...'), [
+      // Add a trigger and remove it
+      await selectEvent.select(screen.getByText('Add optional trigger...'), [
         'A new issue is created',
       ]);
 
@@ -196,11 +202,7 @@ describe('ProjectAlertsCreate', function () {
     });
 
     it('can remove actions', async function () {
-      createWrapper({
-        organization: {
-          features: ['alert-filters'],
-        },
-      });
+      createWrapper();
       const mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/',
         method: 'POST',
@@ -208,11 +210,11 @@ describe('ProjectAlertsCreate', function () {
       });
 
       // Change name of alert rule
-      userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
+      userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'My Rule Name');
 
       // Add an action and remove it
       await selectEvent.select(screen.getByText('Add action...'), [
-        'Send a notification (for all legacy integrations)',
+        'Send a notification to all legacy integrations',
       ]);
 
       userEvent.click(screen.getByLabelText('Delete Node'));
@@ -252,11 +254,7 @@ describe('ProjectAlertsCreate', function () {
       });
 
       it('environment, action and filter match', async function () {
-        const wrapper = createWrapper({
-          organization: {
-            features: ['alert-filters'],
-          },
-        });
+        const wrapper = createWrapper();
 
         // Change target environment
         await selectEvent.select(screen.getByText('All Environments'), ['production']);
@@ -268,7 +266,7 @@ describe('ProjectAlertsCreate', function () {
         await selectEvent.select(allDropdowns[1], ['any']);
 
         // Change name of alert rule
-        userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
+        userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'My Rule Name');
 
         userEvent.click(screen.getByText('Save Rule'));
 
@@ -292,30 +290,25 @@ describe('ProjectAlertsCreate', function () {
 
         await waitFor(() => {
           expect(wrapper.router.push).toHaveBeenCalledWith({
-            pathname: '/organizations/org-slug/alerts/rules/',
-            query: {project: '2'},
+            pathname: '/organizations/org-slug/alerts/rules/project-slug/1/details/',
           });
         });
       });
 
       it('new condition', async function () {
-        const wrapper = createWrapper({
-          organization: {
-            features: ['alert-filters'],
-          },
-        });
+        const wrapper = createWrapper();
 
         // Change name of alert rule
-        userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
+        userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'My Rule Name');
 
         // Add another condition
-        await selectEvent.select(screen.getByText('Add optional condition...'), [
-          "An event's tags match {key} {match} {value}",
+        await selectEvent.select(screen.getByText('Add optional filter...'), [
+          "The event's tags match {key} {match} {value}",
         ]);
         // Edit new Condition
         userEvent.paste(screen.getByPlaceholderText('key'), 'conditionKey');
         userEvent.paste(screen.getByPlaceholderText('value'), 'conditionValue');
-        await selectEvent.select(screen.getByText('equals'), ['does not equal']);
+        await selectEvent.select(screen.getByText('contains'), ['does not equal']);
 
         userEvent.click(screen.getByText('Save Rule'));
 
@@ -324,17 +317,17 @@ describe('ProjectAlertsCreate', function () {
           expect.objectContaining({
             data: {
               actionMatch: 'all',
+              actions: [],
+              conditions: [],
               filterMatch: 'all',
-              conditions: [
+              filters: [
                 {
-                  id: 'sentry.rules.conditions.tagged_event.TaggedEventCondition',
+                  id: 'sentry.rules.filters.tagged_event.TaggedEventFilter',
                   key: 'conditionKey',
                   match: 'ne',
                   value: 'conditionValue',
                 },
               ],
-              actions: [],
-              filters: [],
               frequency: 30,
               name: 'My Rule Name',
               owner: null,
@@ -345,25 +338,20 @@ describe('ProjectAlertsCreate', function () {
 
         await waitFor(() => {
           expect(wrapper.router.push).toHaveBeenCalledWith({
-            pathname: '/organizations/org-slug/alerts/rules/',
-            query: {project: '2'},
+            pathname: '/organizations/org-slug/alerts/rules/project-slug/1/details/',
           });
         });
       });
 
       it('new filter', async function () {
-        const wrapper = createWrapper({
-          organization: {
-            features: ['alert-filters'],
-          },
-        });
+        const wrapper = createWrapper();
 
         // Change name of alert rule
-        userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
+        userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'My Rule Name');
 
         // Add a new filter
         await selectEvent.select(screen.getByText('Add optional filter...'), [
-          'The issue is {comparison_type} than {value} {time}',
+          'The issue is older or newer than...',
         ]);
         userEvent.paste(screen.getByPlaceholderText('10'), '12');
 
@@ -395,25 +383,20 @@ describe('ProjectAlertsCreate', function () {
 
         await waitFor(() => {
           expect(wrapper.router.push).toHaveBeenCalledWith({
-            pathname: '/organizations/org-slug/alerts/rules/',
-            query: {project: '2'},
+            pathname: '/organizations/org-slug/alerts/rules/project-slug/1/details/',
           });
         });
       });
 
       it('new action', async function () {
-        const wrapper = createWrapper({
-          organization: {
-            features: ['alert-filters'],
-          },
-        });
+        const wrapper = createWrapper();
 
         // Change name of alert rule
-        userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
+        userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'My Rule Name');
 
         // Add a new action
         await selectEvent.select(screen.getByText('Add action...'), [
-          'Send a notification via {service}',
+          'Issue Owners, Team, or Member',
         ]);
 
         // Update action interval
@@ -426,14 +409,11 @@ describe('ProjectAlertsCreate', function () {
           expect.objectContaining({
             data: {
               actionMatch: 'all',
-              filterMatch: 'all',
               actions: [
-                {
-                  id: 'sentry.rules.actions.notify_event_service.NotifyEventServiceAction',
-                  service: 'mail',
-                },
+                {id: 'sentry.mail.actions.NotifyEmailAction', targetType: 'IssueOwners'},
               ],
               conditions: [],
+              filterMatch: 'all',
               filters: [],
               frequency: '60',
               name: 'My Rule Name',
@@ -445,8 +425,7 @@ describe('ProjectAlertsCreate', function () {
 
         await waitFor(() => {
           expect(wrapper.router.push).toHaveBeenCalledWith({
-            pathname: '/organizations/org-slug/alerts/rules/',
-            query: {project: '2'},
+            pathname: '/organizations/org-slug/alerts/rules/project-slug/1/details/',
           });
         });
       });

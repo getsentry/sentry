@@ -3,10 +3,11 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import AuditLogEntryEvent, OrganizationAccessRequest, OrganizationMemberTeam
+from sentry.models import OrganizationAccessRequest, OrganizationMemberTeam
 
 
 class AccessRequestPermission(OrganizationPermission):
@@ -122,7 +123,7 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
                     organization=organization,
                     target_object=omt.id,
                     target_user=access_request.member.user,
-                    event=AuditLogEntryEvent.MEMBER_JOIN_TEAM,
+                    event=audit_log.get_event_id("MEMBER_JOIN_TEAM"),
                     data=omt.get_audit_log_data(),
                 )
 

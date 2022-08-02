@@ -24,7 +24,8 @@ frontend: &frontend
   - 'docs-ui/**'
   - 'static/**'
   - 'tests/js/**'
-  - '.github/workflows/js-*.yml'
+  - 'fixtures/search-syntax/**/*'
+  - '.github/workflows/frontend.yml'
 
 frontend_modified_lintable:
   - added|modified: *frontend_lintable
@@ -32,38 +33,55 @@ frontend_modified_lintable:
 frontend_components_modified_lintable:
   - added|modified: *frontend_components_lintable
 
-backend_lintable: &backend_lintable
-  - '**/*.py'
-  - 'requirements-base.txt'
-
-# Currently used in `getsentry-dispatch.yml` to dispatch backend tests on getsentry
+# Also used in `getsentry-dispatch.yml` to dispatch backend tests on getsentry
 backend_dependencies: &backend_dependencies
   - 'requirements-*.txt'
 
+backend_lintable: &backend_lintable
+  - '**/*.py'
+  - *backend_dependencies
+
 backend_build_changes: &backend_build_changes
-  - 'Makefile'
-  - '.pre-commit-config.yaml'
-  - '.github/workflows/!(js-*)'
+  # If you change this line make sure that workflows using this action (e.g. acceptance, api_docs)
+  # *and* file-filters would be updated as well
   - '.github/actions/setup-sentry/action.yml'
+  - '.github/workflows/backend.yml'
+  - '.pre-commit-config.yaml'
+  - 'Makefile'
+  - 'pyproject.toml'
 
 backend: &backend
   - *backend_build_changes
-  - *backend_dependencies
   - *backend_lintable
   - '**/*.sh'
   - '**/*.pysnap'
   - 'src/sentry/!(static)/**'
   - 'migrations_lockfile.txt'
   - 'config/**/*'
+  - 'fixtures/search-syntax/**/*'
 
-plugins:
+# This is the ultimate controller for acceptance.yml
+acceptance: &acceptance
+  - *backend
+  - *frontend
+  # This is verbose because backend_build_changes includes it, however,
+  - '.github/actions/setup-sentry/action.yml'
+  - '.github/workflows/acceptance.yml'
+
+plugins: &plugins
   - *backend
   - 'src/sentry_plugins/**/*.html'
 
-api_docs:
+api_docs: &api_docs
   - *backend
   - 'api-docs/**'
   - 'tests/apidocs/**'
+
+# This is the ultimate controller for backend.yml
+backend_any_type: &backend_any_type
+  - *backend
+  - *api_docs
+  - *plugins
 
 migrations_added:
   - added: 'src/sentry/migrations/*'
@@ -74,7 +92,6 @@ migrations_modified:
 # These files will trigger our wokrflow to check if lockfile
 # updates are needed
 migration_lockfile:
-  - *backend_dependencies
   - *backend_lintable
   - .github/workflows/check-if-migration-is-required.yml
   - .github/workflows/scripts/migration-check.sh

@@ -10,7 +10,6 @@ from django.utils.translation import ugettext_lazy as _
 import sentry
 from sentry.integrations import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases.notify import NotificationPlugin
-from sentry.utils.compat import filter, map
 from sentry_plugins.base import CorePluginMixin
 
 from .client import TwilioApiClient

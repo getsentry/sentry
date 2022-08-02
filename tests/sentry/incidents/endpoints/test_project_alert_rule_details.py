@@ -1,7 +1,8 @@
 from unittest.mock import patch
 
-from exam import fixture
+import responses
 
+from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.incidents.models import (
     AlertRule,
@@ -11,16 +12,29 @@ from sentry.incidents.models import (
     Incident,
     IncidentStatus,
 )
-from sentry.models import AuditLogEntry, AuditLogEntryEvent, Integration
+from sentry.models import AuditLogEntry, Integration
 from sentry.testutils import APITestCase
 
 
-class AlertRuleDetailsBase:
+class AlertRuleDetailsBase(APITestCase):
     endpoint = "sentry-api-0-project-alert-rule-details"
 
-    @fixture
-    def valid_params(self):
-        return {
+    def setUp(self):
+        super().setUp()
+        self.organization = self.create_organization()
+        self.project = self.create_project(organization=self.organization)
+        self.alert_rule = self.create_alert_rule(name="hello")
+        self.owner_user = self.create_user()
+        self.create_member(
+            user=self.owner_user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        # Default to the 'owner' user
+        self.user = self.owner_user
+        self.member_user = self.create_user()
+        self.create_member(
+            user=self.member_user, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.valid_params = {
             "name": "hello",
             "time_window": 10,
             "query": "level:error",
@@ -43,7 +57,11 @@ class AlertRuleDetailsBase:
                     "alertThreshold": 150,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
-                        {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
+                        {
+                            "type": "email",
+                            "targetType": "user",
+                            "targetIdentifier": self.owner_user.id,
+                        },
                     ],
                 },
             ],
@@ -56,41 +74,21 @@ class AlertRuleDetailsBase:
         self.endpoint = "sentry-api-0-organization-alert-rules"
         self.method = "get"
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(self.organization.slug)
+            resp = self.get_success_response(self.organization.slug)
             assert len(resp.data) >= 1
             serialized_alert_rule = resp.data[0]
         self.endpoint = original_endpoint
         self.method = original_method
         return serialized_alert_rule
 
-    @fixture
-    def organization(self):
-        return self.create_organization()
-
-    @fixture
-    def project(self):
-        return self.create_project(organization=self.organization)
-
-    @fixture
-    def user(self):
-        return self.create_user()
-
-    @fixture
-    def alert_rule(self):
-        return self.create_alert_rule(name="hello")
-
     def test_invalid_rule_id(self):
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-        self.login_as(self.user)
+        self.login_as(self.owner_user)
         with self.feature("organizations:incidents"):
             resp = self.get_response(self.organization.slug, self.project.slug, 1234)
 
         assert resp.status_code == 404
 
     def test_permissions(self):
-        self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.create_user())
         with self.feature("organizations:incidents"):
             resp = self.get_response(self.organization.slug, self.project.slug, self.alert_rule.id)
@@ -98,52 +96,46 @@ class AlertRuleDetailsBase:
         assert resp.status_code == 403
 
     def test_no_feature(self):
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-        self.login_as(self.user)
+        self.login_as(self.owner_user)
         resp = self.get_response(self.organization.slug, self.project.slug, self.alert_rule.id)
         assert resp.status_code == 404
 
 
-class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase, APITestCase):
+class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
     def test_simple(self):
-        self.create_team(organization=self.organization, members=[self.user])
-        self.login_as(self.user)
+        self.login_as(self.member_user)
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug, self.project.slug, self.alert_rule.id
             )
 
         assert resp.data == serialize(self.alert_rule)
 
     def test_aggregate_translation(self):
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-        self.login_as(self.user)
+        self.login_as(self.owner_user)
         alert_rule = self.create_alert_rule(aggregate="count_unique(tags[sentry:user])")
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(self.organization.slug, self.project.slug, alert_rule.id)
+            resp = self.get_success_response(
+                self.organization.slug, self.project.slug, alert_rule.id
+            )
             assert resp.data["aggregate"] == "count_unique(user)"
             assert alert_rule.snuba_query.aggregate == "count_unique(tags[sentry:user])"
 
 
-class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
+class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     method = "put"
 
-    def test_simple(self):
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
+    def setUp(self):
+        super().setUp()
+        self.login_as(self.owner_user)
 
+    def test_simple(self):
         test_params = self.valid_params.copy()
         test_params["resolve_threshold"] = self.alert_rule.resolve_threshold
         test_params.update({"name": "what"})
 
-        self.login_as(self.user)
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug, self.project.slug, self.alert_rule.id, **test_params
             )
 
@@ -154,7 +146,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         assert resp.data["name"] == "what"
 
         audit_log_entry = AuditLogEntry.objects.filter(
-            event=AuditLogEntryEvent.ALERT_RULE_EDIT, target_object=resp.data["id"]
+            event=audit_log.get_event_id("ALERT_RULE_EDIT"), target_object=resp.data["id"]
         )
         assert len(audit_log_entry) == 1
 
@@ -163,13 +155,8 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         test_params["resolve_threshold"] = self.alert_rule.resolve_threshold
         test_params["aggregate"] = self.alert_rule.snuba_query.aggregate
 
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-
-        self.login_as(self.user)
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug, self.project.slug, self.alert_rule.id, **test_params
             )
 
@@ -184,10 +171,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         assert updated_sub.subscription_id == existing_sub.subscription_id
 
     def test_update_snapshot(self):
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-        self.login_as(self.user)
         alert_rule = self.alert_rule
         # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
         serialized_alert_rule = self.get_serialized_alert_rule()
@@ -197,7 +180,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         alert_rule.save()
 
         with self.feature("organizations:incidents"):
-            self.get_valid_response(
+            self.get_error_response(
                 self.organization.slug,
                 self.project.slug,
                 alert_rule.id,
@@ -209,16 +192,12 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=("#", None, True),
     )
-    @patch("sentry.integrations.slack.tasks.find_channel_id_for_alert_rule.apply_async")
-    @patch("sentry.integrations.slack.tasks.uuid4")
+    @patch("sentry.tasks.integrations.slack.find_channel_id_for_alert_rule.apply_async")
+    @patch("sentry.integrations.slack.utils.rule_status.uuid4")
     def test_kicks_off_slack_async_job(
         self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
     ):
         mock_uuid4.return_value = self.get_mock_uuid()
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-        self.login_as(self.user)
         self.integration = Integration.objects.create(
             provider="slack",
             name="Team A",
@@ -254,7 +233,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
             "uuid": "abc123",
             "alert_rule_id": self.alert_rule.id,
             "data": test_params,
-            "user_id": self.user.id,
+            "user_id": self.owner_user.id,
         }
         mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
 
@@ -262,14 +241,9 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         side_effect=[("#", 10, False), ("#", 10, False), ("#", 20, False)],
     )
-    @patch("sentry.integrations.slack.tasks.uuid4")
+    @patch("sentry.integrations.slack.utils.rule_status.uuid4")
     def test_async_lookup_outside_transaction(self, mock_uuid4, mock_get_channel_id):
         mock_uuid4.return_value = self.get_mock_uuid()
-
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-        self.login_as(self.user)
         self.integration = Integration.objects.create(
             provider="slack",
             name="Team A",
@@ -399,12 +373,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         )  # Did not increment from the last assertion because we early out on the validation error
 
     def test_no_owner(self):
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-
-        self.login_as(self.user)
-
         alert_rule = self.alert_rule
         alert_rule.owner = self.user.actor
         alert_rule.save()
@@ -415,7 +383,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         test_params["owner"] = None
 
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug, self.project.slug, alert_rule.id, **test_params
             )
 
@@ -424,17 +392,157 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         assert resp.data == serialize(alert_rule, self.user)
         assert resp.data["owner"] is None
 
+    def test_no_config_sentry_app(self):
+        sentry_app = self.create_sentry_app(is_alertable=True)
+        self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization, user=self.user
+        )
+        test_params = {
+            **self.valid_params,
+            "triggers": [
+                {
+                    "actions": [
+                        {
+                            "type": "sentry_app",
+                            "targetType": "sentry_app",
+                            "targetIdentifier": sentry_app.id,
+                            "sentryAppId": sentry_app.id,
+                        }
+                    ],
+                    "alertThreshold": 300,
+                    "label": "critical",
+                }
+            ],
+        }
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.alert_rule.id,
+                status_code=200,
+                **test_params,
+            )
 
-class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
+    @responses.activate
+    def test_success_response_from_sentry_app(self):
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/sentry/alert-rule",
+            status=202,
+        )
+
+        sentry_app = self.create_sentry_app(
+            name="foo",
+            organization=self.organization,
+            schema={
+                "elements": [
+                    self.create_alert_rule_action_schema(),
+                ]
+            },
+        )
+        install = self.create_sentry_app_installation(
+            slug="foo", organization=self.organization, user=self.user
+        )
+
+        sentry_app_settings = [
+            {"name": "title", "value": "test title"},
+            {"name": "description", "value": "test description"},
+        ]
+
+        test_params = self.valid_params.copy()
+        test_params["triggers"] = [
+            {
+                "actions": [
+                    {
+                        "type": "sentry_app",
+                        "targetType": "sentry_app",
+                        "targetIdentifier": sentry_app.id,
+                        "hasSchemaFormConfig": True,
+                        "sentryAppId": sentry_app.id,
+                        "sentryAppInstallationUuid": install.uuid,
+                        "settings": sentry_app_settings,
+                    }
+                ],
+                "alertThreshold": 300,
+                "label": "critical",
+            }
+        ]
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.alert_rule.id,
+                status_code=200,
+                **test_params,
+            )
+
+    @responses.activate
+    def test_error_response_from_sentry_app(self):
+        error_message = "Everything is broken!"
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/sentry/alert-rule",
+            status=500,
+            json={"message": error_message},
+        )
+
+        sentry_app = self.create_sentry_app(
+            name="foo",
+            organization=self.organization,
+            schema={
+                "elements": [
+                    self.create_alert_rule_action_schema(),
+                ]
+            },
+        )
+        install = self.create_sentry_app_installation(
+            slug="foo", organization=self.organization, user=self.user
+        )
+
+        sentry_app_settings = [
+            {"name": "title", "value": "test title"},
+            {"name": "description", "value": "test description"},
+        ]
+
+        test_params = self.valid_params.copy()
+        test_params["triggers"] = [
+            {
+                "actions": [
+                    {
+                        "type": "sentry_app",
+                        "targetType": "sentry_app",
+                        "targetIdentifier": sentry_app.id,
+                        "hasSchemaFormConfig": True,
+                        "sentryAppId": sentry_app.id,
+                        "sentryAppInstallationUuid": install.uuid,
+                        "settings": sentry_app_settings,
+                    }
+                ],
+                "alertThreshold": 300,
+                "label": "critical",
+            }
+        ]
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_response(
+                self.organization.slug, self.project.slug, self.alert_rule.id, **test_params
+            )
+
+        assert resp.status_code == 400
+        assert error_message in resp.data["sentry_app"]
+
+
+class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
     method = "delete"
 
+    def setUp(self):
+        super().setUp()
+        self.login_as(self.owner_user)
+
     def test_simple(self):
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-        self.login_as(self.user)
         with self.feature("organizations:incidents"):
-            self.get_valid_response(
+            self.get_success_response(
                 self.organization.slug, self.project.slug, self.alert_rule.id, status_code=204
             )
 
@@ -443,22 +551,17 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
         assert not AlertRule.objects_with_snapshots.filter(id=self.alert_rule.id).exists()
 
         audit_log_entry = AuditLogEntry.objects.filter(
-            event=AuditLogEntryEvent.ALERT_RULE_REMOVE, target_object=self.alert_rule.id
+            event=audit_log.get_event_id("ALERT_RULE_REMOVE"), target_object=self.alert_rule.id
         )
         assert len(audit_log_entry) == 1
 
     def test_snapshot_and_create_new_with_same_name(self):
         with self.tasks():
-            self.create_member(
-                user=self.user, organization=self.organization, role="owner", teams=[self.team]
-            )
-            self.login_as(self.user)
-
             # We attach the rule to an incident so the rule is snapshotted instead of deleted.
             incident = self.create_incident(alert_rule=self.alert_rule)
 
             with self.feature("organizations:incidents"):
-                self.get_valid_response(
+                self.get_success_response(
                     self.organization.slug, self.project.slug, self.alert_rule.id, status_code=204
                 )
 

@@ -12,7 +12,7 @@ describe('trimSlug', function () {
   it('trims slug from the middle, preserves whole words', function () {
     expect(trimSlug('symbol-collector-console', 20)).toBe('symbol…console');
     expect(trimSlug('symbol-collector-mobile', 20)).toBe('symbol…mobile');
-    expect(trimSlug('visual-snapshot-cloud-run', 20)).toBe('visual-snapshot…run');
+    expect(trimSlug('visual-snapshot-cloud-run', 20)).toBe('visual…cloud-run');
   });
 
   it('trims slug from the middle, cuts whole words', function () {

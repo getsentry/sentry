@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
@@ -22,7 +22,7 @@ const Modal = ({
   Footer,
   closeModal,
 }: Props) => (
-  <React.Fragment>
+  <Fragment>
     <Header closeButton>{title}</Header>
     <Body>{content}</Body>
     <Footer>
@@ -33,7 +33,7 @@ const Modal = ({
         </Button>
       </ButtonBar>
     </Footer>
-  </React.Fragment>
+  </Fragment>
 );
 
 export default Modal;

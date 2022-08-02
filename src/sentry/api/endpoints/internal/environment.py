@@ -13,7 +13,7 @@ class InternalEnvironmentEndpoint(Endpoint):
     permission_classes = (SuperuserPermission,)
 
     def get(self, request: Request) -> Response:
-        reserved = ("PASSWORD", "SECRET", "KEY")
+        reserved = ("PASSWORD", "SECRET", "KEY", "TOKEN")
         config = []
         for k in sorted(dir(settings)):
             v_repr = repr(getattr(settings, k))

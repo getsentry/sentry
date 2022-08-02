@@ -653,7 +653,7 @@ def start_group_reprocessing(
     # Later the activity is migrated to the new group where it is used to serve
     # the success message.
     new_activity = models.Activity.objects.create(
-        type=models.Activity.REPROCESS,
+        type=models.ActivityType.REPROCESS.value,
         project=new_group.project,
         ident=str(group_id),
         group_id=group_id,

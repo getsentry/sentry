@@ -2,12 +2,12 @@ import itertools
 import logging
 import math
 from datetime import datetime, timedelta
-from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
 import pytz
 
 from sentry.api.utils import get_date_range_from_params
+from sentry.release_health.base import AllowedResolution, SessionsQueryConfig
 from sentry.search.events.filter import get_filter
 from sentry.utils.dates import parse_stats_period, to_datetime, to_timestamp
 from sentry.utils.snuba import Dataset, raw_query, resolve_condition
@@ -220,12 +220,13 @@ GROUPBY_MAP = {
     "session.status": SessionStatusGroupBy(),
 }
 
-CONDITION_COLUMNS = ["project", "environment", "release"]
+CONDITION_COLUMNS = ["project", "project_id", "environment", "release"]
 FILTER_KEY_COLUMNS = ["project_id"]
 
 
-def resolve_column(col):
-    if col in CONDITION_COLUMNS:
+def resolve_column(col, extra_columns=None):
+    condition_columns = CONDITION_COLUMNS + (extra_columns or [])
+    if col in condition_columns:
         return col
     raise InvalidField(f'Invalid query field: "{col}"')
 
@@ -240,12 +241,6 @@ class InvalidField(Exception):
     pass
 
 
-class AllowedResolution(Enum):
-    one_hour = (3600, "one hour")
-    one_minute = (60, "one minute")
-    ten_seconds = (10, "ten seconds")
-
-
 class QueryDefinition:
     """
     This is the definition of the query the user wants to execute.
@@ -253,10 +248,20 @@ class QueryDefinition:
     `fields` and `groupby` definitions as [`ColumnDefinition`] objects.
     """
 
-    def __init__(self, query, params, allowed_resolution: AllowedResolution):
+    def __init__(
+        self,
+        query,
+        params,
+        query_config: SessionsQueryConfig,
+        limit: Optional[int] = 0,
+        offset: Optional[int] = 0,
+    ):
         self.query = query.get("query", "")
         self.raw_fields = raw_fields = query.getlist("field", [])
         self.raw_groupby = raw_groupby = query.getlist("groupBy", [])
+        self.raw_orderby = query.getlist("orderBy")  # only respected by metrics implementation
+        self.limit = limit
+        self.offset = offset
 
         if len(raw_fields) == 0:
             raise InvalidField('Request is missing a "field"')
@@ -264,6 +269,12 @@ class QueryDefinition:
         self.fields = {}
         for key in raw_fields:
             if key not in COLUMN_MAP:
+                from sentry.release_health.metrics_sessions_v2 import FIELD_MAP
+
+                if key in FIELD_MAP:
+                    # HACK : Do not raise an error for metrics-only fields,
+                    # Simply ignore them instead.
+                    continue
                 raise InvalidField(f'Invalid field: "{key}"')
             self.fields[key] = COLUMN_MAP[key]
 
@@ -273,7 +284,11 @@ class QueryDefinition:
                 raise InvalidField(f'Invalid groupBy: "{key}"')
             self.groupby.append(GROUPBY_MAP[key])
 
-        start, end, rollup = get_constrained_date_range(query, allowed_resolution)
+        start, end, rollup = get_constrained_date_range(
+            query,
+            allowed_resolution=query_config.allowed_resolution,
+            restrict_date_range=query_config.restrict_date_range,
+        )
         self.rollup = rollup
         self.start = start
         self.end = end
@@ -281,11 +296,12 @@ class QueryDefinition:
         self.params = params
 
         query_columns = set()
-        for i, field in enumerate(self.fields.values()):
+        for i, (field_name, field) in enumerate(self.fields.items()):
             columns = field.get_snuba_columns(raw_groupby)
-            if i == 0:
+            if i == 0 or field_name == "sum(session)":  # Prefer first, but sum(session) always wins
                 self.primary_column = columns[0]  # Will be used in order by
             query_columns.update(columns)
+
         for groupby in self.groupby:
             query_columns.update(groupby.get_snuba_columns())
         self.query_columns = list(query_columns)
@@ -302,7 +318,14 @@ class QueryDefinition:
 
         # this makes sure that literals in complex queries are properly quoted,
         # and unknown fields are raised as errors
-        conditions = [resolve_condition(c, resolve_column) for c in snuba_filter.conditions]
+        if query_config.allow_session_status_query:
+            # NOTE: "''" is added because we use the event search parser, which
+            # resolves "session.status" to ifNull(..., "''")
+            column_resolver = lambda col: resolve_column(col, ["session.status", "''"])
+        else:
+            column_resolver = resolve_column
+
+        conditions = [resolve_condition(c, column_resolver) for c in snuba_filter.conditions]
         filter_keys = {
             resolve_filter_key(key): value for key, value in snuba_filter.filter_keys.items()
         }
@@ -334,6 +357,15 @@ class InvalidParams(Exception):
     pass
 
 
+class NonPreflightOrderByException(InvalidParams):
+    """
+    An exception that is raised when parsing orderBy, to indicate that this is only an exception
+    in the case where we don't run a preflight query on an accepted pre-flight query field
+    """
+
+    ...
+
+
 def get_now():
     """Wrapper function to make it mockable in unit tests"""
     return datetime.now(tz=pytz.utc)
@@ -343,6 +375,7 @@ def get_constrained_date_range(
     params,
     allowed_resolution: AllowedResolution = AllowedResolution.one_hour,
     max_points=MAX_POINTS,
+    restrict_date_range=True,
 ) -> Tuple[datetime, datetime, int]:
     interval = parse_stats_period(params.get("interval", "1h"))
     interval = int(3600 if interval is None else interval.total_seconds())
@@ -387,7 +420,7 @@ def get_constrained_date_range(
         seconds=int(rounding_interval * math.ceil(date_range.total_seconds() / rounding_interval))
     )
 
-    if using_minute_resolution:
+    if using_minute_resolution and restrict_date_range:
         if date_range.total_seconds() > 6 * ONE_HOUR:
             raise InvalidParams(
                 "The time-range when using one-minute resolution intervals is restricted to 6 hours."
@@ -433,11 +466,15 @@ def _run_sessions_query(query):
     interval.
     """
 
+    num_intervals = len(get_timestamps(query))
+    if num_intervals == 0:
+        return [], []
+
     # We only return the top-N groups, based on the first field that is being
     # queried, assuming that those are the most relevant to the user.
     # In a future iteration we might expose an `orderBy` query parameter.
     orderby = [f"-{query.primary_column}"]
-    max_groups = SNUBA_LIMIT // len(get_timestamps(query))
+    max_groups = SNUBA_LIMIT // num_intervals
 
     result_totals = raw_query(
         dataset=Dataset.Sessions,
@@ -573,15 +610,15 @@ def massage_sessions_result(
         groups.append(group)
 
     return {
-        "start": _isoformat_z(query.start),
-        "end": _isoformat_z(query.end),
+        "start": isoformat_z(query.start),
+        "end": isoformat_z(query.end),
         "query": query.query,
         "intervals": timestamps,
         "groups": groups,
     }
 
 
-def _isoformat_z(date):
+def isoformat_z(date):
     return datetime.utcfromtimestamp(int(to_timestamp(date))).isoformat() + "Z"
 
 
@@ -593,6 +630,7 @@ def get_timestamps(query):
     rollup = query.rollup
     start = int(to_timestamp(query.start))
     end = int(to_timestamp(query.end))
+
     return [datetime.utcfromtimestamp(ts).isoformat() + "Z" for ts in range(start, end, rollup)]
 
 

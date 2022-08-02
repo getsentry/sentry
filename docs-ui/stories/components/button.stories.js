@@ -42,13 +42,13 @@ _Button.argTypes = {
   priority: {
     control: {
       type: 'select',
-      options: ['default', 'primary', 'danger', 'link', 'success', 'form'],
+      options: ['default', 'primary', 'danger', 'link', 'form'],
     },
   },
   size: {
     control: {
       type: 'select',
-      options: ['zero', 'xsmall', 'small'],
+      options: ['zero', 'xs', 'sm', 'md'],
     },
   },
 };
@@ -65,11 +65,6 @@ export const Overview = ({busy}) => (
       <Item>
         <Button title="Tooltip" priority="primary" onClick={action('click primary')}>
           Primary Button
-        </Button>
-      </Item>
-      <Item>
-        <Button priority="success" onClick={action('click success')}>
-          Success Button
         </Button>
       </Item>
       <Item>
@@ -96,10 +91,10 @@ export const Overview = ({busy}) => (
         </Button>
       </Item>
       <Item>
-        <Button size="xsmall">X Small</Button>
+        <Button size="xs">X Small</Button>
       </Item>
       <Item>
-        <Button size="small">Small</Button>
+        <Button size="sm">Small</Button>
       </Item>
       <Item>
         <Button>Default</Button>
@@ -112,12 +107,12 @@ export const Overview = ({busy}) => (
           <Button size="zero" borderless icon={<IconDelete size="xs" />} />
         </Item>
         <Item>
-          <Button size="xsmall" icon={<IconDelete size="xs" />}>
+          <Button size="xs" icon={<IconDelete size="xs" />}>
             X Small
           </Button>
         </Item>
         <Item>
-          <Button size="small" icon={<IconDelete size="xs" />}>
+          <Button size="sm" icon={<IconDelete size="xs" />}>
             Small
           </Button>
         </Item>
@@ -139,12 +134,12 @@ export const Overview = ({busy}) => (
       <h2>States (busy/disabled)</h2>
       <div style={{display: 'flex', alignItems: 'center'}}>
         <Item>
-          <Button busy={busy} priority="primary" size="xsmall">
+          <Button busy={busy} priority="primary" size="xs">
             Extra Small
           </Button>
         </Item>
         <Item>
-          <Button busy={busy} priority="primary" size="small">
+          <Button busy={busy} priority="primary" size="sm">
             Small
           </Button>
         </Item>

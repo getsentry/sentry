@@ -1,15 +1,21 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import Access from 'sentry/components/acl/access';
 import Badge from 'sentry/components/badge';
-import DropdownLink from 'sentry/components/dropdownLink';
+import Button from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
+import DropdownButtonV2 from 'sentry/components/dropdownButtonV2';
+import CompactSelect from 'sentry/components/forms/compactSelect';
+import {ControlProps} from 'sentry/components/forms/selectControl';
 import QueryCount from 'sentry/components/queryCount';
+import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, SavedSearch} from 'sentry/types';
+import {defined} from 'sentry/utils';
 
-import SavedSearchMenu from './savedSearchMenu';
+import {getSortLabel} from './utils';
 
 type Props = {
   onSavedSearchDelete: (savedSearch: SavedSearch) => void;
@@ -35,111 +41,179 @@ function SavedSearchTab({
   const savedSearch = savedSearchList.find(
     search => search.query === query && search.sort === sort
   );
+  const savedSearchValue = savedSearch
+    ? savedSearch.isGlobal
+      ? `global-search-${savedSearch.id}`
+      : `saved-search-${savedSearch.id}`
+    : '';
 
-  const title = (
-    <TitleWrapper>
+  const options: ControlProps['options'] = useMemo(() => {
+    const savedSearches = savedSearchList.filter(search => !search.isGlobal);
+    const globalSearches = savedSearchList.filter(
+      search => search.isGlobal && !search.isPinned && search.query !== 'is:unresolved'
+    );
+
+    function getSearchOption(search, keyPrefix) {
+      return {
+        value: `${keyPrefix}-${search.id}`,
+        label: search.name,
+        details: (
+          <Details>
+            {search.query}
+            {` \u2022 ${t('Sort:')} ${getSortLabel(search.sort)}`}
+          </Details>
+        ),
+        tooltip: (
+          <Fragment>
+            {`${search.name} \u2022 `}
+            <TooltipSearchQuery>{search.query}</TooltipSearchQuery>
+            {` \u2022 `}
+            {t('Sort: ')}
+            {getSortLabel(search.sort)}
+          </Fragment>
+        ),
+        tooltipOptions: {delay: 1000},
+        ...(!search.isPinned &&
+          !search.isGlobal && {
+            trailingItems: (
+              <Access
+                organization={organization}
+                access={['org:write']}
+                renderNoAccessMessage={false}
+              >
+                <Confirm
+                  onConfirm={() => onSavedSearchDelete(search)}
+                  message={t('Are you sure you want to delete this saved search?')}
+                  stopPropagation
+                >
+                  <DeleteButton
+                    borderless
+                    icon={<IconDelete />}
+                    aria-label={t('delete')}
+                    size="zero"
+                  />
+                </Confirm>
+              </Access>
+            ),
+          }),
+        trailingItemsSpanFullHeight: true,
+      };
+    }
+
+    const searchOptions: ControlProps['options'] = [];
+
+    if (savedSearches.length > 0) {
+      searchOptions.push({
+        value: 'saved-searches',
+        label: t('Saved Searches'),
+        options: savedSearches.map(search => getSearchOption(search, 'saved-search')),
+      });
+    }
+
+    if (globalSearches.length > 0) {
+      searchOptions.push({
+        value: 'global-searches',
+        label: t('Recommended Searches'),
+        options: globalSearches.map(search => getSearchOption(search, 'global-search')),
+      });
+    }
+
+    return searchOptions;
+  }, []);
+
+  const trigger = ({props, ref}) => (
+    <StyledDropdownTrigger
+      ref={ref}
+      {...props}
+      isActive={isActive}
+      borderless
+      priority="link"
+      size="zero"
+    >
       {isActive ? (
         <Fragment>
-          <TitleTextOverflow>
-            {savedSearch ? savedSearch.name : t('Custom Search')}{' '}
-          </TitleTextOverflow>
-          {queryCount !== undefined && queryCount > 0 && (
-            <div>
-              <Badge>
-                <QueryCount hideParens count={queryCount} max={1000} />
-              </Badge>
-            </div>
+          <span>{savedSearch ? savedSearch.name : t('Custom Search')}&nbsp;</span>
+          {defined(queryCount) && queryCount > 0 && (
+            <Badge>
+              <QueryCount hideParens count={queryCount} max={1000} />
+            </Badge>
           )}
         </Fragment>
       ) : (
         t('Saved Searches')
       )}
-    </TitleWrapper>
+    </StyledDropdownTrigger>
+  );
+
+  const onChange = useCallback(
+    option => {
+      const searchObj = savedSearchList.find(s =>
+        s.isGlobal
+          ? `global-search-${s.id}` === option.value
+          : `saved-search-${s.id}` === option.value
+      );
+      searchObj && onSavedSearchSelect(searchObj);
+    },
+    [savedSearchList, onSavedSearchSelect]
   );
 
   return (
-    <TabWrapper
+    <StyledCompactSelect
+      renderWrapAs="li"
+      trigger={trigger}
+      options={options}
+      value={savedSearchValue}
       isActive={isActive}
-      className="saved-search-tab"
-      data-test-id="saved-search-tab"
-    >
-      <StyledDropdownLink
-        alwaysRenderMenu={false}
-        anchorMiddle
-        caret
-        title={title}
-        isActive={isActive}
-      >
-        <SavedSearchMenu
-          organization={organization}
-          savedSearchList={savedSearchList}
-          onSavedSearchSelect={onSavedSearchSelect}
-          onSavedSearchDelete={onSavedSearchDelete}
-          query={query}
-          sort={sort}
-        />
-      </StyledDropdownLink>
-    </TabWrapper>
+      onChange={onChange}
+      offset={-4}
+      maxMenuHeight={800}
+    />
   );
 }
 
 export default SavedSearchTab;
 
-const TabWrapper = styled('li')<{isActive?: boolean}>`
-  /* Color matches nav-tabs - overwritten using dark mode class saved-search-tab */
-  border-bottom: ${p => (p.isActive ? `4px solid #6c5fc7` : 0)};
-  /* Reposition menu under caret */
-  & > span {
-    display: block;
+const StyledCompactSelect = styled(CompactSelect)<{isActive?: boolean}>`
+  && {
+    position: static;
   }
-  & > span > .dropdown-menu {
-    padding: 0;
-    margin-top: ${space(1)};
-    min-width: 20vw;
-    max-width: 25vw;
-    z-index: ${p => p.theme.zIndex.globalSelectionHeader};
-
-    :after {
-      border-bottom-color: ${p => p.theme.backgroundSecondary};
-    }
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints[4]}) {
-    & > span > .dropdown-menu {
-      max-width: 30vw;
-    }
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    & > span > .dropdown-menu {
-      max-width: 50vw;
-    }
-  }
+  border-bottom-width: 4px;
+  border-bottom-style: solid;
+  border-bottom-color: ${p => (p.isActive ? p.theme.active : 'transparent')};
 `;
 
-const TitleWrapper = styled('span')`
-  margin-right: ${space(0.5)};
-  user-select: none;
+const StyledDropdownTrigger = styled(DropdownButtonV2)<{isActive?: boolean}>`
   display: flex;
+  height: calc(1.25rem - 2px);
   align-items: center;
-`;
-
-const TitleTextOverflow = styled('span')`
-  margin-right: ${space(0.5)};
-  max-width: 150px;
-  ${overflowEllipsis};
-`;
-
-const StyledDropdownLink = styled(DropdownLink)<{isActive?: boolean}>`
-  position: relative;
-  display: block;
+  color: ${p => (p.isActive ? p.theme.textColor : p.theme.subText)};
+  box-sizing: content-box;
   padding: ${space(1)} 0;
-  text-align: center;
-  text-transform: capitalize;
-  /* TODO(scttcper): Replace hex color when nav-tabs is replaced */
-  color: ${p => (p.isActive ? p.theme.textColor : '#7c6a8e')};
+
+  &:hover {
+    color: ${p => p.theme.textColor};
+  }
+`;
+
+const Details = styled('span')`
+  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  max-width: 16rem;
+  ${p => p.theme.overflowEllipsis}
+`;
+
+const TooltipSearchQuery = styled('span')`
+  color: ${p => p.theme.subText};
+  font-weight: normal;
+  font-family: ${p => p.theme.text.familyMono};
+`;
+
+const DeleteButton = styled(Button)`
+  color: ${p => p.theme.subText};
+  flex-shrink: 0;
+  padding: ${space(1)} 0;
 
   :hover {
-    color: #2f2936;
+    color: ${p => p.theme.error};
   }
 `;
