@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {t, tct, tn} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 
 import Button from '../button';
@@ -17,22 +17,14 @@ function getSelectAllText(allRowsCount?: number, bulkLimit?: number) {
 
   if (bulkLimit && allRowsCount > bulkLimit) {
     return {
-      noticeText: tct('Selected up to the first [count] items.', {
-        count: bulkLimit,
-      }),
-      actionText: tct('Select the first [count] items.', {
-        count: bulkLimit,
-      }),
+      noticeText: t('Selected up to the first %s items.', bulkLimit),
+      actionText: t('Select the first %s items.', bulkLimit),
     };
   }
 
   return {
-    noticeText: tct('Selected all [count] items.', {
-      count: allRowsCount,
-    }),
-    actionText: tct('Select all [count] items.', {
-      count: allRowsCount,
-    }),
+    noticeText: t('Selected all %s items.', allRowsCount),
+    actionText: t('Select all %s items.', allRowsCount),
   };
 }
 
