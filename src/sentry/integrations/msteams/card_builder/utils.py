@@ -115,3 +115,14 @@ class IssueConstants:
     ASSIGN_INPUT_ID = "assignInput"
 
     UNASSIGN = "Unassign"
+
+
+translator = str.maketrans({"&": "&amp;", "<": "&lt;", ">": "&gt;", "_": "&#95;"})
+
+
+def escape_markdown_special_chars(text: str) -> str:
+    """
+    Convert markdown special characters to markdown friendly alternatives.
+    docs - https://docs.microsoft.com/en-us/adaptive-cards/authoring-cards/text-features
+    """
+    return text.translate(translator)

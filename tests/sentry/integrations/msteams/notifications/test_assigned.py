@@ -39,11 +39,11 @@ class MSTeamsAssignedNotificationTest(MSTeamsActivityNotificationTest):
 
         assert f"Issue assigned to {self.user.get_display_name()} by themselves" == body[0]["text"]
         assert (
-            f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=assigned_activity-msteams)"
+            f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=assigned&#95;activity-msteams)"
             == body[1]["text"]
         )
         assert (
-            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=assigned_activity-msteams-user)"
+            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=assigned&#95;activity-msteams-user)"
             == body[3]["columns"][1]["items"][0]["text"]
         )
 
@@ -73,10 +73,10 @@ class MSTeamsAssignedNotificationTest(MSTeamsActivityNotificationTest):
 
         assert f"Issue automatically assigned to {self.user.get_display_name()}" == body[0]["text"]
         assert (
-            f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=assigned_activity-msteams)"
+            f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=assigned&#95;activity-msteams)"
             == body[1]["text"]
         )
         assert (
-            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=assigned_activity-msteams-user)"
+            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=assigned&#95;activity-msteams-user)"
             == body[3]["columns"][1]["items"][0]["text"]
         )
