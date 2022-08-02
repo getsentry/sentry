@@ -7,6 +7,7 @@ from rest_framework import serializers
 from sentry.api.issue_search import parse_search_query
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer, ListField
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
+from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
@@ -324,10 +325,16 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         page_filter_keys = ["environment", "period", "start", "end", "utc"]
         dashboard_filter_keys = ["release"]
 
-        if "projects" in validated_data:
-            instance.projects.set(validated_data["projects"])
-
         filters = {}
+
+        if "projects" in validated_data:
+            if validated_data["projects"] == ALL_ACCESS_PROJECTS:
+                filters["all_projects"] = True
+            else:
+                if instance.filters and instance.filters.get("all_projects"):
+                    instance.filters["all_projects"] = False
+                instance.projects.set(validated_data["projects"])
+
         for key in page_filter_keys:
             if key in validated_data:
                 filters[key] = validated_data[key]
