@@ -29,9 +29,11 @@ def get_suspect_resolutions(resolved_issue: Group) -> Sequence[Group]:
             start_time,
             end_time,
         ) = is_issue_error_rate_correlated(resolved_issue, issue)
-        is_commit_correlated = is_issue_commit_correlated(
-            resolved_issue.id, issue.id, resolved_issue.project.id
-        )
+        (
+            is_commit_correlated,
+            resolved_issue_release_ids,
+            candidate_issue_release_ids,
+        ) = is_issue_commit_correlated(resolved_issue.id, issue.id, resolved_issue.project.id)
         if is_rate_correlated and is_commit_correlated:
             correlated_issues.append(issue)
         analytics.record(
@@ -44,6 +46,8 @@ def get_suspect_resolutions(resolved_issue: Group) -> Sequence[Group]:
             pearson_r_end_time=end_time,
             pearson_r_resolution_time=resolution_time,
             is_commit_correlated=is_commit_correlated,
+            resolved_issue_release_ids=resolved_issue_release_ids,
+            candidate_issue_release_ids=candidate_issue_release_ids,
         )
 
     return correlated_issues
