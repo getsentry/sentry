@@ -15,7 +15,7 @@ import {useMenuTriggerState} from '@react-stately/menu';
 
 import Badge from 'sentry/components/badge';
 import Button from 'sentry/components/button';
-import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButtonV2';
+import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import SelectControl, {
   ControlProps,
   GeneralSelectValue,

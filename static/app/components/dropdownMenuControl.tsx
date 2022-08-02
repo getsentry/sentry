@@ -8,8 +8,8 @@ import {Item, Section} from '@react-stately/collections';
 import {useMenuTriggerState} from '@react-stately/menu';
 import {MenuTriggerProps} from '@react-types/menu';
 
-import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButtonV2';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
+import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButton';
+import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import Menu from 'sentry/components/dropdownMenuV2';
 import {FormSize} from 'sentry/utils/theme';
 
