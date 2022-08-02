@@ -9,20 +9,32 @@ from sentry.integrations.msteams.card_builder import AdaptiveCard
 from sentry.integrations.msteams.utils import get_user_conversation_id
 from sentry.integrations.notifications import get_context, get_integrations_by_channel_by_recipient
 from sentry.models import Team, User
-from sentry.notifications.notifications.activity.note import NoteActivityNotification
+from sentry.notifications.notifications.activity import (
+    AssignedActivityNotification,
+    NoteActivityNotification,
+    UnassignedActivityNotification,
+)
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notify import register_notification_provider
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 
-from .card_builder.notifications import MSTeamsNotificationsMessageBuilder
+from .card_builder.notifications import (
+    MSTeamsIssueNotificationsMessageBuilder,
+    MSTeamsNotificationsMessageBuilder,
+)
 from .client import MsTeamsClient
 
 logger = logging.getLogger("sentry.notifications.msteams")
 
-SUPPORTED_NOTIFICATION_TYPES = [NoteActivityNotification]
+SUPPORTED_NOTIFICATION_TYPES = [
+    NoteActivityNotification,
+    AssignedActivityNotification,
+    UnassignedActivityNotification,
+]
 MESSAGE_BUILDERS = {
     "SlackNotificationsMessageBuilder": MSTeamsNotificationsMessageBuilder,
+    "IssueNotificationMessageBuilder": MSTeamsIssueNotificationsMessageBuilder,
 }
 
 
