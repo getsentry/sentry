@@ -159,8 +159,11 @@ def backfill_teams(apps):
     for external_actor in RangeQuerySetWrapperWithProgressBar(ExternalActor.objects.all()):
         if external_actor.provider != ExternalProviders.SLACK.value:
             continue
-
-        team = Team.objects.get(actor_id=external_actor.actor_id)
+        try:
+            team = Team.objects.get(actor_id=external_actor.actor_id)
+        except Team.DoesNotExist:
+            # if team doesn't exist, move on
+            continue
         backfill_one(apps, team)
 
 
