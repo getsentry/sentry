@@ -1,7 +1,6 @@
 import EventDataSection from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
-import Annotated from 'sentry/components/events/meta/annotated';
-import {getMeta} from 'sentry/components/events/meta/metaProxy';
+import AnnotatedText from 'sentry/components/events/meta/annotatedText';
 import {t} from 'sentry/locale';
 import {objectIsEmpty} from 'sentry/utils';
 
@@ -10,10 +9,11 @@ type Props = {
     formatted: string;
     params?: Record<string, any> | any[];
   };
+  meta?: Record<any, any>;
 };
 
-const Message = ({data}: Props) => {
-  const renderParams = () => {
+export function Message({data, meta}: Props) {
+  function renderParams() {
     const params = data?.params;
 
     if (!params || objectIsEmpty(params)) {
@@ -32,6 +32,7 @@ const Message = ({data}: Props) => {
           key,
           value,
           subject: key,
+          meta: meta?.data?.params?.[i]?.[''],
         };
       });
 
@@ -42,20 +43,20 @@ const Message = ({data}: Props) => {
       key,
       value,
       subject: key,
-      meta: getMeta(params, key),
+      meta: meta?.data?.params?.[key]?.[''],
     }));
 
     return <KeyValueList data={objectData} isSorted={false} isContextData />;
-  };
+  }
 
   return (
     <EventDataSection type="message" title={t('Message')}>
-      <Annotated object={data} objectKey="formatted">
-        {value => <pre className="plain">{value}</pre>}
-      </Annotated>
+      {meta?.data?.formatted?.[''] ? (
+        <AnnotatedText value={data.formatted} meta={meta?.data?.formatted?.['']} />
+      ) : (
+        <pre className="plain">{data.formatted}</pre>
+      )}
       {renderParams()}
     </EventDataSection>
   );
-};
-
-export default Message;
+}
