@@ -116,6 +116,10 @@ export function FrameStackTable({
     }
 
     canvasPoolManager.dispatch('zoom at frame', [clickedContextMenuNode.node, 'exact']);
+    canvasPoolManager.dispatch('highlight frame', [
+      clickedContextMenuNode.node,
+      'selected',
+    ]);
   }, [canvasPoolManager, clickedContextMenuNode]);
 
   const renderRow: UseVirtualizedListProps<FlamegraphFrame>['renderRow'] = useCallback(
