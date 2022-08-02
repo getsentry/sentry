@@ -137,7 +137,7 @@ function useReplayData({eventSlug, orgId}: Options): Result {
 
   const fetchEvent = useCallback(() => {
     return api.requestPromise(
-      `/projects/${orgId}/${projectId}/replays/${eventId}`
+      `/projects/${orgId}/${projectId}/replays/${eventId}/`
     ) as Promise<{data: ReplayRecord}>;
   }, [api, orgId, projectId, eventId]);
 
