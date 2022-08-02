@@ -8,6 +8,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.endpoints.debug_files import has_download_permission
 from sentry.api.endpoints.project_release_files import pseudo_releasefile
@@ -198,6 +199,7 @@ class ReleaseFileDetailsMixin:
         return Response(status=204)
 
 
+@customer_silo_endpoint
 class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin):
     permission_classes = (ProjectReleasePermission,)
 

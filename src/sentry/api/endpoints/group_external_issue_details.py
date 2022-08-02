@@ -1,11 +1,13 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.mediators import external_issues
 from sentry.models import PlatformExternalIssue
 
 
+@customer_silo_endpoint
 class GroupExternalIssueDetailsEndpoint(GroupEndpoint):
     def delete(self, request: Request, external_issue_id, group) -> Response:
         try:

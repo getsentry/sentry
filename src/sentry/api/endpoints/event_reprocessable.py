@@ -3,10 +3,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.reprocessing2 import CannotReprocess, pull_event_data
 
 
+@customer_silo_endpoint
 class EventReprocessableEndpoint(ProjectEndpoint):
     def get(self, request: Request, project, event_id) -> Response:
         """

@@ -3,6 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
@@ -34,6 +35,7 @@ def get_use_case_id(use_case: str) -> UseCaseKey:
         )
 
 
+@customer_silo_endpoint
 class OrganizationMetricsEndpoint(OrganizationEndpoint):
     """Get metric name, available operations and the metric unit"""
 
@@ -52,6 +54,7 @@ class OrganizationMetricsEndpoint(OrganizationEndpoint):
         return Response(metrics, status=200)
 
 
+@customer_silo_endpoint
 class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
     """Get metric name, available operations, metric unit and available tags"""
 
@@ -74,6 +77,7 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
         return Response(metric, status=200)
 
 
+@customer_silo_endpoint
 class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
     """Get list of tag names for this project
 
@@ -104,6 +108,7 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
         return Response(tags, status=200)
 
 
+@customer_silo_endpoint
 class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
     """Get all existing tag values for a metric"""
 
@@ -133,6 +138,7 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
         return Response(tag_values, status=200)
 
 
+@customer_silo_endpoint
 class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
     """Get the time series data for one or more metrics.
 

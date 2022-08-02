@@ -3,6 +3,7 @@ from google.api_core.exceptions import FailedPrecondition, InvalidArgument, NotF
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.endpoints.organization_sentry_function import SentryFunctionSerializer
 from sentry.api.serializers import serialize
@@ -10,6 +11,7 @@ from sentry.models.sentryfunction import SentryFunction
 from sentry.utils.cloudfunctions import delete_function, update_function
 
 
+@customer_silo_endpoint
 class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
     private = True
 

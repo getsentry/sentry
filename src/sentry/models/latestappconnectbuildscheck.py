@@ -7,9 +7,10 @@ did manage to check for available builds.
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey
+from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, customer_silo_model
 
 
+@customer_silo_model
 class LatestAppConnectBuildsCheck(DefaultFieldsModel):
     """
     The last date and time Sentry checked App Store Connect for new builds associated with a

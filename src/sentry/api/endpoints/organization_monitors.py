@@ -1,6 +1,7 @@
 from django.db.models import Q
 
 from sentry import audit_log, features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -25,6 +26,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 
+@customer_silo_endpoint
 class OrganizationMonitorsEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization) -> Response:
         """

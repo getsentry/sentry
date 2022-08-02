@@ -8,6 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import release_health
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import get_date_range_from_params
@@ -17,6 +18,7 @@ from sentry.utils.cursors import Cursor, CursorResult
 
 
 # NOTE: this currently extends `OrganizationEventsEndpointBase` for `handle_query_errors` only, which should ideally be decoupled from the base class.
+@customer_silo_endpoint
 class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
     def get(self, request: Request, organization) -> Response:
         def data_fn(offset: int, limit: int):

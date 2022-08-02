@@ -2,12 +2,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
 
 
+@customer_silo_endpoint
 class ProjectGroupingConfigsEndpoint(ProjectEndpoint):
     """Retrieve available grouping configs with project-specific information
 

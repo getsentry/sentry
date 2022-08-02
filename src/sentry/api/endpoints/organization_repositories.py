@@ -2,6 +2,7 @@ from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -14,6 +15,7 @@ from sentry.utils.sdk import capture_exception
 UNMIGRATABLE_PROVIDERS = ("bitbucket", "github")
 
 
+@customer_silo_endpoint
 class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationIntegrationsPermission,)
     rate_limits = RateLimitConfig(

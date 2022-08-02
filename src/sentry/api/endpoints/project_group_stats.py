@@ -1,7 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import EnvironmentMixin, StatsMixin
+from sentry.api.base import EnvironmentMixin, StatsMixin, customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.app import tsdb
@@ -9,6 +9,7 @@ from sentry.models import Environment, Group
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
+@customer_silo_endpoint
 class ProjectGroupStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
     enforce_rate_limit = True
     rate_limits = {

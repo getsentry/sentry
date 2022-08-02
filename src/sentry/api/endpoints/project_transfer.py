@@ -8,6 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, options, roles
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.models import OrganizationMember
@@ -22,6 +23,7 @@ class RelaxedProjectPermission(ProjectPermission):
     scope_map = {"POST": ["project:admin"]}
 
 
+@customer_silo_endpoint
 class ProjectTransferEndpoint(ProjectEndpoint):
     permission_classes = [RelaxedProjectPermission]
 

@@ -5,10 +5,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import DetailedEventSerializer, serialize
 
 
+@customer_silo_endpoint
 class ProjectEventDetailsEndpoint(ProjectEndpoint):
     def get(self, request: Request, project, event_id) -> Response:
         """
@@ -75,6 +77,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 
+@customer_silo_endpoint
 class EventJsonEndpoint(ProjectEndpoint):
     def get(self, request: Request, project, event_id) -> Response:
         event = eventstore.get_event_by_id(project.id, event_id)

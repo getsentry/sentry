@@ -2,12 +2,13 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tagstore
-from sentry.api.base import EnvironmentMixin
+from sentry.api.base import EnvironmentMixin, customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.constants import DS_DENYLIST, PROTECTED_TAG_KEYS
 from sentry.models import Environment
 
 
+@customer_silo_endpoint
 class ProjectTagsEndpoint(ProjectEndpoint, EnvironmentMixin):
     def get(self, request: Request, project) -> Response:
         try:

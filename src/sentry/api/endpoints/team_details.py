@@ -5,6 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
@@ -28,6 +29,7 @@ class TeamSerializer(serializers.ModelSerializer):
         return value
 
 
+@customer_silo_endpoint
 class TeamDetailsEndpoint(TeamEndpoint):
     def get(self, request: Request, team) -> Response:
         """

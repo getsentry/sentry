@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
 from sentry.incidents.logic import subscribe_to_incident, unsubscribe_from_incident
 
@@ -16,6 +17,7 @@ class IncidentSubscriptionPermission(IncidentPermission):
     ]
 
 
+@customer_silo_endpoint
 class OrganizationIncidentSubscriptionIndexEndpoint(IncidentEndpoint):
     permission_classes = (IncidentSubscriptionPermission,)
 

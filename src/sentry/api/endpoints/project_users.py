@@ -2,12 +2,14 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.models import EventUser
 
 
+@customer_silo_endpoint
 class ProjectUsersEndpoint(ProjectEndpoint):
     def get(self, request: Request, project) -> Response:
         """

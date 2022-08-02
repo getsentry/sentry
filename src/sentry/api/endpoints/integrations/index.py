@@ -2,11 +2,13 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features, integrations
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import IntegrationProviderSerializer
 
 
+@customer_silo_endpoint
 class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization) -> Response:
         def is_provider_enabled(provider):

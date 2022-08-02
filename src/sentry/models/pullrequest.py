@@ -11,6 +11,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
+    customer_silo_model,
     sane_repr,
 )
 from sentry.utils.groupreference import find_referenced_groups
@@ -44,6 +45,7 @@ class PullRequestManager(BaseManager):
         return affected, created
 
 
+@customer_silo_model
 class PullRequest(Model):
     __include_in_export__ = False
 

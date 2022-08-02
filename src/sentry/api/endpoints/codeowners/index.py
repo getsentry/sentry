@@ -4,6 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import projectcodeowners as projectcodeowners_serializers
@@ -12,6 +13,7 @@ from sentry.models import Project, ProjectCodeOwners
 from . import ProjectCodeOwnerSerializer, ProjectCodeOwnersMixin
 
 
+@customer_silo_endpoint
 class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):  # type: ignore
     def get(self, request: Request, project: Project) -> Response:
         """

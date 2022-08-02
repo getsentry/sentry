@@ -949,8 +949,6 @@ SENTRY_FEATURES = {
     "organizations:advanced-search": True,
     # Use metrics as the dataset for crash free metric alerts
     "organizations:alert-crash-free-metrics": False,
-    # Workflow 2.0 notifications following a release
-    "organizations:alert-release-notification-workflow": False,
     # Alert wizard redesign version 3
     "organizations:alert-wizard-v3": True,
     "organizations:api-keys": False,
@@ -1160,6 +1158,8 @@ SENTRY_FEATURES = {
     "organizations:team-insights": True,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": False,
+    # Enable sending Active release notifications without creating an explicit rule in DB
+    "projects:active-release-monitor-default-on": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -2717,7 +2717,6 @@ MAX_REDIS_SNOWFLAKE_RETRY_COUNTER = 5
 SNOWFLAKE_VERSION_ID = 1
 SNOWFLAKE_REGION_ID = 0
 
-
 SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS = {
     "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
     "options": {"cluster": "default"},
@@ -2725,7 +2724,6 @@ SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS = {
 
 # maximum number of projects allowed to query snuba with for the organization_vitals_overview endpoint
 ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT = 300
-
 
 # Default string indexer cache options
 SENTRY_STRING_INDEXER_CACHE_OPTIONS = {

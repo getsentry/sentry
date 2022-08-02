@@ -1,7 +1,8 @@
-from sentry.db.models import FlexibleForeignKey, Model
+from sentry.db.models import FlexibleForeignKey, Model, customer_silo_model
 from sentry.db.models.fields.jsonfield import JSONField
 
 
+@customer_silo_model
 class ProjectIntegration(Model):
     """
     TODO(epurkhiser): This is deprecated and will be removed soon. Do not use

@@ -3,6 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import IntegrationIssueConfigSerializer
@@ -15,6 +16,7 @@ from sentry.types.activity import ActivityType
 MISSING_FEATURE_MESSAGE = "Your organization does not have access to this feature."
 
 
+@customer_silo_endpoint
 class GroupIntegrationDetailsEndpoint(GroupEndpoint):
     def _has_issue_feature(self, organization, user):
         has_issue_basic = features.has(

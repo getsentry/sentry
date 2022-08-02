@@ -1,12 +1,13 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import EnvironmentMixin
+from sentry.api.base import EnvironmentMixin, customer_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import Activity
 
 
+@customer_silo_endpoint
 class GroupActivitiesEndpoint(GroupEndpoint, EnvironmentMixin):
     def get(self, request: Request, group) -> Response:
         """

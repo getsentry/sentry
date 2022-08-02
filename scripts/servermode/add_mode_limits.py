@@ -125,13 +125,13 @@ def main():
         return False
 
     def customer_model_predicate(c: LimitedClass) -> bool:
-        return False
+        return c.name_contains_word("Alert", "Incident")
 
     def control_endpoint_predicate(c: LimitedClass) -> bool:
         return False
 
     def customer_endpoint_predicate(c: LimitedClass) -> bool:
-        return False
+        return c.name_contains_word("Organization", "Project", "Team", "Group", "Event", "Issue")
 
     ####################################################################
 

@@ -5,6 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationSearchPermission
 from sentry.api.serializers import serialize
 from sentry.models.savedsearch import SavedSearch, SortOptions
@@ -20,6 +21,7 @@ class OrganizationSearchSerializer(serializers.Serializer):
     )
 
 
+@customer_silo_endpoint
 class OrganizationSearchesEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationSearchPermission,)
 

@@ -6,7 +6,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.constants import MAX_EMAIL_FIELD_LENGTH
-from sentry.db.models import BoundedPositiveIntegerField, Model, sane_repr
+from sentry.db.models import BoundedPositiveIntegerField, Model, customer_silo_model, sane_repr
 from sentry.utils.datastructures import BidirectionalMapping
 from sentry.utils.hashlib import md5_text
 
@@ -20,6 +20,7 @@ KEYWORD_MAP = BidirectionalMapping(
 )
 
 
+@customer_silo_model
 class EventUser(Model):
     __include_in_export__ = False
 

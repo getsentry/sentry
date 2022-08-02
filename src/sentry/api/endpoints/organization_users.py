@@ -2,13 +2,14 @@ import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import EnvironmentMixin
+from sentry.api.base import EnvironmentMixin, customer_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import OrganizationMemberWithProjectsSerializer
 from sentry.models import OrganizationMember, OrganizationMemberTeam, ProjectTeam
 
 
+@customer_silo_endpoint
 class OrganizationUsersEndpoint(OrganizationEndpoint, EnvironmentMixin):
     def get(self, request: Request, organization) -> Response:
         """

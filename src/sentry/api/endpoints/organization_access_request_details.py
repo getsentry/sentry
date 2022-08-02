@@ -4,6 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -40,6 +41,7 @@ class AccessRequestSerializer(serializers.Serializer):
     isApproved = serializers.BooleanField()
 
 
+@customer_silo_endpoint
 class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
     permission_classes = [AccessRequestPermission]
 

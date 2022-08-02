@@ -7,6 +7,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
+    customer_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields import JSONField
@@ -70,6 +71,7 @@ class DashboardWidgetDisplayTypes(TypesClass):
     TYPE_NAMES = [t[1] for t in TYPES]
 
 
+@customer_silo_model
 class DashboardWidgetQuery(Model):
     """
     A query in a dashboard widget.
@@ -104,6 +106,7 @@ class DashboardWidgetQuery(Model):
     __repr__ = sane_repr("widget", "type", "name")
 
 
+@customer_silo_model
 class DashboardWidget(Model):
     """
     A dashboard widget.

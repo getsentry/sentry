@@ -4,7 +4,7 @@ from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import EnvironmentMixin
+from sentry.api.base import EnvironmentMixin, customer_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.models.deploy import Deploy
@@ -13,6 +13,7 @@ from sentry.models.release import Release
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
+@customer_silo_endpoint
 class GroupSuspectReleasesEndpoint(GroupEndpoint, EnvironmentMixin):
     private = True
     enforce_rate_limit = True

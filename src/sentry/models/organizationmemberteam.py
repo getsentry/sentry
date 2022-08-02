@@ -3,11 +3,18 @@ from typing import FrozenSet
 from django.db import models
 
 from sentry import features, roles
-from sentry.db.models import BaseModel, BoundedAutoField, FlexibleForeignKey, sane_repr
+from sentry.db.models import (
+    BaseModel,
+    BoundedAutoField,
+    FlexibleForeignKey,
+    customer_silo_model,
+    sane_repr,
+)
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
 
 
+@customer_silo_model
 class OrganizationMemberTeam(BaseModel):
     """
     Identifies relationships between organization members and the teams they are on.

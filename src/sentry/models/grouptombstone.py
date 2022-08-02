@@ -9,11 +9,13 @@ from sentry.db.models import (
     FlexibleForeignKey,
     GzippedDictField,
     Model,
+    customer_silo_model,
 )
 
 TOMBSTONE_FIELDS_FROM_GROUP = ("project_id", "level", "message", "culprit", "data")
 
 
+@customer_silo_model
 class GroupTombstone(Model):
     __include_in_export__ = False
 

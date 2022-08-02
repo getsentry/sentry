@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import DateTimePaginator
@@ -8,6 +9,7 @@ from sentry.api.serializers import serialize
 from sentry.models import Commit, Repository
 
 
+@customer_silo_endpoint
 class OrganizationRepositoryCommitsEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization, repo_id) -> Response:
         """

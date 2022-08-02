@@ -5,10 +5,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tagstore
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.snuba import discover
 
 
+@customer_silo_endpoint
 class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
     def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):

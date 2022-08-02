@@ -2,6 +2,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -10,6 +11,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
 
 
+@customer_silo_endpoint
 class EventIdLookupEndpoint(OrganizationEndpoint):
     enforce_rate_limit = True
     rate_limits = {

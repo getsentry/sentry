@@ -1,12 +1,14 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models import Commit
 
 
+@customer_silo_endpoint
 class ProjectCommitsEndpoint(ProjectEndpoint):
     private = True
     permission_classes = (ProjectReleasePermission,)

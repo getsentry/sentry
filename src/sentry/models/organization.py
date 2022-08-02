@@ -21,7 +21,13 @@ from sentry.constants import (
     RESERVED_ORGANIZATION_SLUGS,
     RESERVED_PROJECT_SLUGS,
 )
-from sentry.db.models import BaseManager, BoundedPositiveIntegerField, Model, sane_repr
+from sentry.db.models import (
+    BaseManager,
+    BoundedPositiveIntegerField,
+    Model,
+    customer_silo_model,
+    sane_repr,
+)
 from sentry.db.models.utils import slugify_instance
 from sentry.roles.manager import Role
 from sentry.utils.http import absolute_uri
@@ -110,6 +116,7 @@ class OrganizationManager(BaseManager):
         return [r.organization for r in results]
 
 
+@customer_silo_model
 class Organization(Model):
     """
     An organization represents a group of individuals which maintain ownership of projects.

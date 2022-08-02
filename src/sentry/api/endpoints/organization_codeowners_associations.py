@@ -1,6 +1,7 @@
 from rest_framework import status
 from rest_framework.request import Request
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.validators.project_codeowners import validate_codeowners_associations
 from sentry.constants import ObjectStatus
@@ -11,6 +12,7 @@ class OrganizationCodeOwnersAssociationsPermission(OrganizationPermission):
     scope_map = {"GET": ["org:integrations"]}
 
 
+@customer_silo_endpoint
 class OrganizationCodeOwnersAssociationsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationCodeOwnersAssociationsPermission,)
 

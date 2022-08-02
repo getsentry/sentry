@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
@@ -8,6 +9,7 @@ from sentry.integrations.mixins import RepositoryMixin
 from sentry.shared_integrations.exceptions import IntegrationError
 
 
+@customer_silo_endpoint
 class OrganizationIntegrationReposEndpoint(OrganizationIntegrationBaseEndpoint):
     def get(self, request: Request, organization, integration_id) -> Response:
         """

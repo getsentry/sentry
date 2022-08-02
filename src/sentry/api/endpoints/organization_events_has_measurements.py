@@ -7,6 +7,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.snuba import discover
 from sentry.utils.hashlib import md5_text
@@ -45,6 +46,7 @@ class EventsHasMeasurementsQuerySerializer(serializers.Serializer):
         return data
 
 
+@customer_silo_endpoint
 class OrganizationEventsHasMeasurementsEndpoint(OrganizationEventsV2EndpointBase):
     def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):

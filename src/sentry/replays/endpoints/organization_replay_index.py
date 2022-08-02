@@ -2,11 +2,13 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.replays.utils import proxy_replays_service
 
 
+@customer_silo_endpoint
 class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
     private = True
 

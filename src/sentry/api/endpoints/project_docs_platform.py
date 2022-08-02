@@ -2,6 +2,7 @@ from django.urls import reverse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import ProjectKey
@@ -35,6 +36,7 @@ def replace_keys(html, project_key):
     return html
 
 
+@customer_silo_endpoint
 class ProjectDocsPlatformEndpoint(ProjectEndpoint):
     def get(self, request: Request, project, platform) -> Response:
         data = load_doc(platform)

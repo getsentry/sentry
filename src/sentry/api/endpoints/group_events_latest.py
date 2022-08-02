@@ -2,12 +2,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api import client
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
+@customer_silo_endpoint
 class GroupEventsLatestEndpoint(GroupEndpoint):
     enforce_rate_limit = True
     rate_limits = {

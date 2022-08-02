@@ -26,6 +26,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
+    customer_silo_model,
     sane_repr,
 )
 from sentry.exceptions import InvalidSearchQuery
@@ -66,6 +67,7 @@ class ReleaseCommitError(Exception):
     pass
 
 
+@customer_silo_model
 class ReleaseProject(Model):
     __include_in_export__ = False
 
@@ -416,6 +418,7 @@ class ReleaseModelManager(BaseManager):
         return release_version or None
 
 
+@customer_silo_model
 class Release(Model):
     """
     A release is generally created when a new version is pushed into a
@@ -529,11 +532,14 @@ class Release(Model):
 
     @staticmethod
     def is_valid_version(value):
+        if any(c in value for c in BAD_RELEASE_CHARS):
+            return False
+
+        value_stripped = str(value).strip()
         return not (
-            not value
-            or any(c in value for c in BAD_RELEASE_CHARS)
-            or value in (".", "..")
-            or value.lower() == "latest"
+            not value_stripped
+            or value_stripped in (".", "..")
+            or value_stripped.lower() == "latest"
         )
 
     @property

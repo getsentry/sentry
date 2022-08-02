@@ -1,12 +1,14 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.incidents.logic import get_incident_activity
 
 
+@customer_silo_endpoint
 class OrganizationIncidentActivityIndexEndpoint(IncidentEndpoint):
     permission_classes = (IncidentPermission,)
 
