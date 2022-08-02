@@ -9,7 +9,10 @@ import {getInterval, getPreviousSeriesName} from 'sentry/components/charts/utils
 import {t} from 'sentry/locale';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
-import {QueryBatchNode} from 'sentry/utils/performance/contexts/genericQueryBatcher';
+import {
+  QueryBatchNode,
+  Transform,
+} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import withApi from 'sentry/utils/withApi';
@@ -44,7 +47,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
     () => ({
       fields: props.fields[0],
       component: provided => (
-        <QueryBatchNode batchProperty="yAxis">
+        <QueryBatchNode batchProperty="yAxis" transform={unmergeIntoIndividualResults}>
           {({queryBatching}) => (
             <EventsRequest
               {...pick(provided, eventsRequestQueryProps)}
@@ -165,3 +168,13 @@ export const HighlightNumber = styled('div')<{color?: string}>`
   color: ${p => p.color};
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
+
+const unmergeIntoIndividualResults: Transform = (response, queryDefinition) => {
+  const propertyName = Array.isArray(
+    queryDefinition.requestQueryObject.query[queryDefinition.batchProperty]
+  )
+    ? queryDefinition.requestQueryObject.query[queryDefinition.batchProperty][0]
+    : queryDefinition.requestQueryObject.query[queryDefinition.batchProperty];
+
+  return response[propertyName];
+};
