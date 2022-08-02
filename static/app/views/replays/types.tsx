@@ -11,7 +11,7 @@ export type ReplayRecord = {
   dist: null | string;
   duration: number;
   environment: null | string;
-  finished_at: Date; // API will send a string, needs to be hydrated
+  finished_at: Date;
   longest_transaction: number;
   platform: string;
   project_id: string;
@@ -20,7 +20,7 @@ export type ReplayRecord = {
   replay_id: string;
   sdk_name: string;
   sdk_version: string;
-  started_at: Date; // API will send a string, needs to be hydrated
+  started_at: Date;
   tags: Record<string, string>;
   title: string;
   trace_ids: string[];
@@ -31,6 +31,13 @@ export type ReplayRecord = {
     ip: null | string;
     name: null | string;
   };
+};
+
+export type ReplaySegment = {
+  date_added: string;
+  project_id: number;
+  replay_id: string;
+  segment_id: number;
 };
 
 export type ReplayDiscoveryListItem = {
