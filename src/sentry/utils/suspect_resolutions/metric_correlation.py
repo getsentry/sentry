@@ -14,7 +14,7 @@ def is_issue_error_rate_correlated(
     resolution_time = resolved_issue.resolved_at
 
     start_time = resolution_time - timedelta(hours=5)
-    end_time = resolution_time + timedelta(hours=5)
+    end_time = resolution_time + timedelta(hours=1)
 
     data = tsdb.get_range(
         model=tsdb.models.group,
