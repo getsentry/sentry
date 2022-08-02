@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {DataSection} from 'sentry/components/events/styles';
@@ -60,16 +59,14 @@ function EventTagsAndScreenshots({
           />
         </ScreenshotWrapper>
       )}
-      {showScreenshot && showTags && <VerticalDivider />}
+      {showScreenshot && (showTags || hasEventContext) && <VerticalDivider />}
       <TagWrapper hasEventContext={hasEventContext}>
         {hasEventContext && (
-          <Fragment>
-            <TagsHighlightWrapper showScreenshot={showScreenshot}>
-              <TagsHighlight event={event} />
-            </TagsHighlightWrapper>
-            <Divider />
-          </Fragment>
+          <TagsHighlightWrapper showScreenshot={showScreenshot}>
+            <TagsHighlight event={event} />
+          </TagsHighlightWrapper>
         )}
+        {hasEventContext && showTags && <HorizontalDivider />}
         {showTags && (
           <TagsHighlightWrapper showScreenshot={showScreenshot}>
             <Tags
@@ -122,6 +119,7 @@ const VerticalDivider = styled('div')`
 const ScreenshotWrapper = styled('div')`
   & > div {
     border: 0;
+    height: 100%;
   }
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
@@ -131,6 +129,7 @@ const ScreenshotWrapper = styled('div')`
 
 const TagWrapper = styled('div')<{hasEventContext: boolean}>`
   padding: ${p => (p.hasEventContext ? `${space(2)} 0` : '0')};
+  overflow: hidden;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     padding: ${p => (p.hasEventContext ? `${space(2)} 0` : '0')};
@@ -145,7 +144,7 @@ const TagsHighlightWrapper = styled('div')<{showScreenshot: boolean}>`
   }
 `;
 
-const Divider = styled('div')`
+const HorizontalDivider = styled('div')`
   height: 1px;
   width: 100%;
   background: ${p => p.theme.innerBorder};
