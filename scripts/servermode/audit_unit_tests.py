@@ -8,7 +8,7 @@ import subprocess
 from collections import defaultdict
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Callable, Iterable, List, Mapping
+from typing import Callable, Iterable, List, Mapping, Set, Tuple
 
 """Add server mode decorators to unit test cases en masse.
 
@@ -16,10 +16,6 @@ Unlike `audit_mode_limits`, this script can't really reflect on interpreted
 Python code in order to distinguish unit tests. It instead relies on an external
 `pytest` run to collect the list of test cases, and some does kludgey regex
 business in order to apply the decorators.
-
-It has no knowledge of whether decorators are already applied, and will write
-redundant decorators if you let it. If this becomes a problem, it's probably
-easiest just to clean them up with a global find-and-replace.
 
 
 Instructions for use:
@@ -95,6 +91,11 @@ class TopLevelTestCase:
     name: str
     is_class: bool
 
+    @property
+    def pattern(self):
+        decl = "class" if self.is_class else "def"
+        return re.compile(rf"(\n@\w+\s*)*\n{decl}\s+{self.name}\s*\(")
+
 
 class TestCaseMap:
     def __init__(self, cases: Iterable[TestCaseFunction]) -> None:
@@ -125,35 +126,54 @@ class TestCaseMap:
         return file_map
 
     @cached_property
-    def top_level_file_map(self):
+    def top_level_file_map(self) -> Mapping[TopLevelTestCase, Set[str]]:
         top_level_file_map = defaultdict(set)
         for (case, filenames) in self.file_map.items():
             for filename in filenames:
                 top_level_file_map[case.top_level].add(filename)
         return top_level_file_map
 
-    def decorate_all_top_level(
-        self, condition: Callable[[TopLevelTestCase], (str | None)] | None = None
-    ):
+    def find_all_case_matches(self) -> Iterable[TestCaseMatch]:
         for case in self.top_level_file_map:
-            decorator_name = condition(case)
-            if decorator_name:
-                self.decorate_top_level(case, decorator_name)
+            for path in self.top_level_file_map[case]:
+                with open(path) as f:
+                    src_code = f.read()
+                match = case.pattern.search(src_code)
+                if match:
+                    decorator_matches = re.findall(r"@(\w+)", match.group())
+                    decorators = tuple(str(m) for m in decorator_matches)
+                    yield TestCaseMatch(path, case, decorators)
 
-    def decorate_top_level(self, case: TopLevelTestCase, decorator_name: str):
-        for path in self.top_level_file_map[case]:
-            with open(path) as f:
-                src_code = f.read()
-            decl = "class" if case.is_class else "def"
-            new_code = re.sub(
-                rf"\n{decl}\s+{case.name}\s*\(",
-                rf"\n@{decorator_name}\g<0>",
-                src_code,
-            )
-            if new_code != src_code:
-                new_code = f"from sentry.testutils.servermode import {decorator_name}\n" + new_code
-                with open(path, mode="w") as f:
-                    f.write(new_code)
+    def add_decorators(
+        self, condition: Callable[[TestCaseMatch], (str | None)] | None = None
+    ) -> int:
+        count = 0
+        for match in self.find_all_case_matches():
+            decorator = condition(match)
+            if decorator:
+                result = match.add_decorator(decorator)
+                count += int(result)
+        return count
+
+
+@dataclass(frozen=True, eq=True)
+class TestCaseMatch:
+    path: str
+    case: TopLevelTestCase
+    decorators: Tuple[str]
+
+    def add_decorator(self, decorator: str) -> bool:
+        if decorator in self.decorators:
+            return False
+        with open(self.path) as f:
+            src_code = f.read()
+        new_code = self.case.pattern.sub(rf"\n@{decorator}\g<0>", src_code)
+        if new_code == src_code:
+            raise Exception(f"Failed to find case: {decorator=}; {self.path=}; {self.case=}")
+        new_code = f"from sentry.testutils.servermode import {decorator}\n{new_code}"
+        with open(self.path, mode="w") as f:
+            f.write(new_code)
+        return True
 
 
 # Do `pytest --collect-only > pytest-collect.txt` to speed up repeated local runs
@@ -170,16 +190,17 @@ def main(test_root="."):
 
     case_map = TestCaseMap(TestCaseFunction.parse(pytest_collection))
 
-    def condition(case: TopLevelTestCase) -> str | None:
-        if not case.is_class:
+    def condition(match: TestCaseMatch) -> str | None:
+        if not match.case.is_class:
             return None
         if any(
-            (word in case.name)
+            (word in match.case.name)
             for word in ("Organization", "Project", "Team", "Group", "Event", "Issue")
         ):
             return "customer_silo_test"
 
-    case_map.decorate_all_top_level(condition)
+    count = case_map.add_decorators(condition)
+    print(f"Decorated {count} case{'' if count == 1 else 's'}")  # noqa
 
 
 if __name__ == "__main__":
