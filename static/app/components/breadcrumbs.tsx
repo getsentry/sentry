@@ -139,6 +139,7 @@ const Breadcrumbs = ({crumbs, linkLastItem = false, ...props}: Props) => {
 
 const getBreadcrumbListItemStyles = (p: {theme: Theme}) => css`
   ${p.theme.overflowEllipsis}
+  font-size: ${p.theme.fontSizeLarge};
   color: ${p.theme.gray300};
   width: auto;
 

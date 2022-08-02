@@ -87,6 +87,7 @@ const Subtitle = styled('em')`
 const StyledStacktracePreview = styled(StackTracePreview)<{
   hasGroupingStacktraceUI: boolean;
 }>`
+  font-size: ${p => p.theme.fontSizeLarge};
   ${p =>
     p.hasGroupingStacktraceUI &&
     css`
