@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from sentry.integrations.message_builder import build_attachment_text
+from sentry.integrations.message_builder import (
+    build_attachment_text,
+    build_attachment_title,
+    get_title_link,
+)
 from sentry.integrations.msteams.card_builder import MSTEAMS_URL_FORMAT, ColumnSetBlock, TextBlock
 from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
 from sentry.models import Team, User
@@ -86,6 +90,16 @@ class MSTeamsIssueNotificationsMessageBuilder(MSTeamsNotificationsMessageBuilder
     ):
         super().__init__(notification, context, recipient)
         self.group = getattr(notification, "group", None)
+
+    def create_attachment_title_block(self) -> TextBlock:
+        title = build_attachment_title(self.group)
+        title_link = get_title_link(self.group, None, False, False, None, ExternalProviders.MSTEAMS)
+
+        return create_text_block(
+            MSTEAMS_URL_FORMAT.format(text=title, url=title_link),
+            size=TextSize.LARGE,
+            weight=TextWeight.BOLDER,
+        )
 
     def create_description_block(self) -> TextBlock | None:
         return (
