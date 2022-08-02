@@ -257,6 +257,8 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
       })
     ).toBeInTheDocument();
 
+    expect(screen.getByRole('button', {name: 'Next'})).toBeDisabled();
+
     // Enter valid specified client-sample rate
     userEvent.type(screen.getByRole('spinbutton'), '0.2{enter}');
 

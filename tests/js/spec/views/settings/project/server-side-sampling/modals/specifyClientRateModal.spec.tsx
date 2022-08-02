@@ -20,6 +20,7 @@ describe('Server-Side Sampling - Specify Client Rate Modal', function () {
     const {organization, project} = getMockData();
     const handleReadDocs = jest.fn();
     const handleGoNext = jest.fn();
+    const handleChange = jest.fn();
 
     const {container} = render(<GlobalModal />);
 
@@ -30,6 +31,8 @@ describe('Server-Side Sampling - Specify Client Rate Modal', function () {
         onReadDocs={handleReadDocs}
         projectId={project.id}
         onGoNext={handleGoNext}
+        value={undefined}
+        onChange={handleChange}
       />
     ));
 
@@ -67,13 +70,7 @@ describe('Server-Side Sampling - Specify Client Rate Modal', function () {
 
     // Enter valid specified client-sample rate
     userEvent.type(screen.getByRole('spinbutton'), '0.2{enter}');
-
-    // Next button is now enabled
-    expect(screen.getByRole('button', {name: 'Next'})).toBeEnabled();
-
-    // Click on next button
-    userEvent.click(screen.getByLabelText('Next'));
-    expect(handleGoNext).toHaveBeenCalled();
+    expect(handleChange).toHaveBeenCalled();
 
     // Click on the docs
     userEvent.click(screen.getByLabelText('Read Docs'));
