@@ -89,7 +89,7 @@ export function TraceEventDataSection({
 
   const [state, setState] = useState<State>({
     sortBy: recentFirst ? 'recent-first' : 'recent-last',
-    fullStackTrace,
+    fullStackTrace: !hasAppOnlyFrames ? true : fullStackTrace,
     display: [],
   });
 
@@ -215,6 +215,7 @@ export function TraceEventDataSection({
                     name="full-stack-trace-toggler"
                     label={t('Full stack trace')}
                     hideControlState
+                    disabled={!hasAppOnlyFrames}
                     value={state.fullStackTrace}
                     onChange={() =>
                       setState({

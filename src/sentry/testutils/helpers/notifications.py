@@ -43,3 +43,22 @@ class AnotherDummyNotification(DummyNotification):
     def __init__(self, organization, some_value) -> None:
         super().__init__(organization)
         self.some_value = some_value
+
+
+class DummyNotificationWithMoreFields(DummyNotification):
+    def get_notification_title(
+        self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
+    ) -> str:
+        some_value = context["some_field"]
+        return f"Notification Title with {some_value}"
+
+    def build_notification_footer(self, *args):
+        return "Notification Footer"
+
+    def get_message_description(self, recipient: User | Team, provider: ExternalProviders):
+        return "Message Description"
+
+    def get_title_link(self, *args):
+        from sentry.integrations.message_builder import get_title_link
+
+        return get_title_link(self.group, None, False, True, self)
