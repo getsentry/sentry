@@ -92,15 +92,19 @@ function NetworkList({replayRecord, networkSpans}: Props) {
       <Fragment key={index}>
         <Item>{<StatusPlaceHolder height="20px" />}</Item>
         <Item color="gray400">
-          <Tooltip
-            title={network.description}
-            isHoverable
-            overlayStyle={{
-              maxWidth: '500px !important',
-            }}
-          >
-            <Text>{network.description || <Placeholder height="24px" />}</Text>
-          </Tooltip>
+          {network.description ? (
+            <Tooltip
+              title={network.description}
+              isHoverable
+              overlayStyle={{
+                maxWidth: '500px !important',
+              }}
+            >
+              <Text>{network.description}</Text>
+            </Tooltip>
+          ) : (
+            <Placeholder height="24px" />
+          )}
         </Item>
         <Item>
           <Text>{network.op}</Text>
