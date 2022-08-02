@@ -50,7 +50,7 @@ const GroupReplays = ({group}: Props) => {
       ],
       projects: [+project.id],
       orderby: getQueryParamAsString(query.sort) || '-timestamp',
-      query: `issue.id:${groupId}`,
+      query: `issue.id:${groupId} has:replayId`,
     };
 
     return EventView.fromNewQueryWithLocation(eventQueryParams, location);
