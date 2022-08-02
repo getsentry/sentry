@@ -1,19 +1,25 @@
 import EventDataSection from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
-import Annotated from 'sentry/components/events/meta/annotated';
-import {getMeta} from 'sentry/components/events/meta/metaProxy';
+import AnnotatedText from 'sentry/components/events/meta/annotatedText';
 import {t} from 'sentry/locale';
+import {EntryType, Event} from 'sentry/types';
 import {objectIsEmpty} from 'sentry/utils';
 
 type Props = {
   data: {
-    formatted: string;
-    params?: Record<string, any> | any[];
+    formatted: string | null;
+    params?: Record<string, any> | any[] | null;
   };
+  event: Event;
 };
 
-const Message = ({data}: Props) => {
-  const renderParams = () => {
+export function Message({data, event}: Props) {
+  const messageEntryIndex = event.entries.findIndex(
+    entry => entry.type === EntryType.MESSAGE
+  );
+  const meta = event?._meta?.entries?.[messageEntryIndex] ?? {};
+
+  function renderParams() {
     const params = data?.params;
 
     if (!params || objectIsEmpty(params)) {
@@ -32,6 +38,7 @@ const Message = ({data}: Props) => {
           key,
           value,
           subject: key,
+          meta: meta?.data?.params?.[i]?.[''],
         };
       });
 
@@ -42,20 +49,20 @@ const Message = ({data}: Props) => {
       key,
       value,
       subject: key,
-      meta: getMeta(params, key),
+      meta: meta?.data?.params?.[key]?.[''],
     }));
 
     return <KeyValueList data={objectData} isSorted={false} isContextData />;
-  };
+  }
 
   return (
     <EventDataSection type="message" title={t('Message')}>
-      <Annotated object={data} objectKey="formatted">
-        {value => <pre className="plain">{value}</pre>}
-      </Annotated>
+      {meta?.data?.formatted?.[''] ? (
+        <AnnotatedText value={data.formatted} meta={meta?.data?.formatted?.['']} />
+      ) : (
+        <pre className="plain">{data.formatted}</pre>
+      )}
       {renderParams()}
     </EventDataSection>
   );
-};
-
-export default Message;
+}
