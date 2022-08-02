@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Callable, Dict, List, Mapping, Match, Optional, Set, Tuple, Union, cast
 
 import sentry_sdk
@@ -1635,8 +1635,8 @@ class MetricsQueryBuilder(QueryBuilder):
             self._custom_measurement_cache = get_custom_measurements(
                 project_ids=self.params["project_id"],
                 organization_id=self.organization_id,
-                start=self.start,
-                end=self.end,
+                start=datetime.today() - timedelta(days=90),
+                end=datetime.today(),
             )
         return self._custom_measurement_cache
 

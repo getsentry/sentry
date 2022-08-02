@@ -385,6 +385,29 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert meta["fields"] == {"time": "date", "sum_measurements_datacenter_memory": "size"}
         assert meta["units"] == {"time": None, "sum_measurements_datacenter_memory": "pebibyte"}
 
+    def test_does_not_fallback_if_custom_metric_is_out_of_request_time_range(self):
+        self.store_transaction_metric(
+            123,
+            timestamp=self.day_ago + timedelta(hours=1),
+            internal_metric="d:transactions/measurements.custom@kibibyte",
+            entity="metrics_distributions",
+        )
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "yAxis": "p99(measurements.custom)",
+                "dataset": "metricsEnhanced",
+            },
+        )
+        meta = response.data["meta"]
+        assert response.status_code == 200, response.content
+        assert response.data["isMetricsData"]
+        assert meta["isMetricsData"]
+        assert meta["fields"] == {"time": "date", "p99_measurements_custom": "size"}
+        assert meta["units"] == {"time": None, "p99_measurements_custom": "kibibyte"}
+
     def test_multi_yaxis_custom_measurement(self):
         self.store_transaction_metric(
             123,
