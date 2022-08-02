@@ -62,20 +62,18 @@ function EventTagsAndScreenshots({
       {showScreenshot && (showTags || hasEventContext) && <VerticalDivider />}
       <TagWrapper hasEventContext={hasEventContext}>
         {hasEventContext && (
-          <TagsHighlightWrapper showScreenshot={showScreenshot}>
+          <TagsHighlightWrapper>
             <TagsHighlight event={event} />
           </TagsHighlightWrapper>
         )}
         {hasEventContext && showTags && <HorizontalDivider />}
         {showTags && (
-          <TagsHighlightWrapper showScreenshot={showScreenshot}>
-            <Tags
-              organization={organization}
-              event={event}
-              projectSlug={projectSlug}
-              location={location}
-            />
-          </TagsHighlightWrapper>
+          <Tags
+            organization={organization}
+            event={event}
+            projectSlug={projectSlug}
+            location={location}
+          />
         )}
       </TagWrapper>
     </Wrapper>
@@ -97,11 +95,10 @@ const Wrapper = styled(DataSection)<{
   padding: 0;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
+    padding: 0;
     display: grid;
     grid-template-columns: ${p =>
       p.showScreenshot && p.showTags ? 'max-content auto 1fr' : '1fr'};
-    padding-top: 0;
-    padding-bottom: 0;
   }
 `;
 
@@ -121,10 +118,6 @@ const ScreenshotWrapper = styled('div')`
     border: 0;
     height: 100%;
   }
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    padding: 0 ${space(4)} ${space(1)} 0;
-  }
 `;
 
 const TagWrapper = styled('div')<{hasEventContext: boolean}>`
@@ -136,11 +129,11 @@ const TagWrapper = styled('div')<{hasEventContext: boolean}>`
   }
 `;
 
-const TagsHighlightWrapper = styled('div')<{showScreenshot: boolean}>`
+const TagsHighlightWrapper = styled('div')`
   overflow: hidden;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    padding: ${p => (p.showScreenshot ? `0 ${space(4)}` : '0')};
+    padding: 0 ${space(4)};
   }
 `;
 
