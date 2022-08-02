@@ -11,13 +11,17 @@ import {DeepPartial} from 'sentry/types/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
   decodeFlamegraphStateFromQueryParams,
+  DEFAULT_FLAMEGRAPH_STATE,
+  FLAMEGRAPH_LOCALSTORAGE_PREFERENCES_KEY,
   FlamegraphState,
+  FlamegraphStateLocalStorageSync,
   FlamegraphStateProvider,
   FlamegraphStateQueryParamSync,
 } from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/index';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -35,6 +39,13 @@ function ProfileFlamegraph(): React.ReactElement {
   const organization = useOrganization();
   const [profileGroup, setProfileGroup] = useProfileGroup();
 
+  const [storedPreferences] = useLocalStorageState<DeepPartial<FlamegraphState>>(
+    FLAMEGRAPH_LOCALSTORAGE_PREFERENCES_KEY,
+    {
+      preferences: {layout: DEFAULT_FLAMEGRAPH_STATE.preferences.layout},
+    }
+  );
+
   useEffect(() => {
     trackAdvancedAnalyticsEvent('profiling_views.profile_flamegraph', {
       organization,
@@ -46,7 +57,19 @@ function ProfileFlamegraph(): React.ReactElement {
   };
 
   const initialFlamegraphPreferencesState = useMemo((): DeepPartial<FlamegraphState> => {
-    return decodeFlamegraphStateFromQueryParams(location.query);
+    const queryStringState = decodeFlamegraphStateFromQueryParams(location.query);
+
+    return {
+      ...queryStringState,
+      preferences: {
+        ...storedPreferences.preferences,
+        ...queryStringState.preferences,
+        layout:
+          storedPreferences?.preferences?.layout ??
+          queryStringState.preferences?.layout ??
+          DEFAULT_FLAMEGRAPH_STATE.preferences.layout,
+      },
+    };
     // We only want to decode this when our component mounts
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -59,6 +82,7 @@ function ProfileFlamegraph(): React.ReactElement {
       <FlamegraphStateProvider initialState={initialFlamegraphPreferencesState}>
         <FlamegraphThemeProvider>
           <FlamegraphStateQueryParamSync />
+          <FlamegraphStateLocalStorageSync />
           <FlamegraphContainer>
             {profileGroup.type === 'errored' ? (
               <Alert type="error" showIcon>
