@@ -64,6 +64,8 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
     ],
     multiple: true,
     onChange: val => {
+      // This is a little hack to prevent this field from being empty.
+      // TODO(nisanthan): need to prevent showing the clearable on. the multi-select when its only 1 value.
       if (!val || val.length === 0) {
         throw Error('Invalid selection. Field cannot be empty.');
       }
