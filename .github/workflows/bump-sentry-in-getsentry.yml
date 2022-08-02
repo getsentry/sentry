@@ -34,7 +34,7 @@ jobs:
           cd getsentry
           python -m pip install -q "$(grep '^pip-tools==' requirements-dev-frozen.txt)"
 
-      - name: bump-sentry ${{ inputs.sentry_sha }}
+      - name: bump-sentry ${{ github.sha }}
         shell: bash
         run: |
           cd getsentry
