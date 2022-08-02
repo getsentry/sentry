@@ -98,7 +98,6 @@ class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
             transform_alias_to_input_format=True,
             referrer="dynamic-sampling.distribution.fetch-project-sdk-versions-info",
         )["data"]
-        # breakpoint()
         # Create a dictionary of the total count per project
         total_count_per_project: Dict[str, int] = {}
         # Create a dictionary of total count per sdk name per project
