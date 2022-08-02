@@ -33,13 +33,6 @@ class SeenInfo extends Component<Props> {
     return release?.version !== nextProps.release?.version || date !== nextProps.date;
   }
 
-  getReleaseTrackingUrl() {
-    const {organization, projectSlug} = this.props;
-    const orgSlug = organization.slug;
-
-    return `/settings/${orgSlug}/projects/${projectSlug}/release-tracking/`;
-  }
-
   render() {
     const {date, dateGlobal, environment, release, organization, projectSlug, projectId} =
       this.props;

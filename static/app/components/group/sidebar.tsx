@@ -6,6 +6,7 @@ import keyBy from 'lodash/keyBy';
 import pickBy from 'lodash/pickBy';
 
 import {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ExternalIssueList from 'sentry/components/group/externalIssuesList';
@@ -29,6 +30,7 @@ import {Event} from 'sentry/types/event';
 import withApi from 'sentry/utils/withApi';
 
 import SidebarSection from './sidebarSection';
+import SuspectReleases from './suspectReleases';
 
 type Props = {
   api: Client;
@@ -196,6 +198,10 @@ class BaseGroupSidebar extends Component<Props, State> {
           group={group}
           currentRelease={currentRelease}
         />
+
+        <Feature organization={organization} features={['active-release-monitor-alpha']}>
+          <SuspectReleases group={group} />
+        </Feature>
 
         {event && (
           <ErrorBoundary mini>
