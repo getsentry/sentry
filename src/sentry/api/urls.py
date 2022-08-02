@@ -7,6 +7,7 @@ from sentry.api.endpoints.organization_codeowners_associations import (
 from sentry.api.endpoints.organization_profiling_profiles import (
     OrganizationProfilingFiltersEndpoint,
     OrganizationProfilingProfilesEndpoint,
+    OrganizationProfilingStatsEndpoint,
     OrganizationProfilingTransactionsEndpoint,
 )
 from sentry.api.endpoints.organization_sentry_function import OrganizationSentryFunctionEndpoint
@@ -1667,6 +1668,11 @@ urlpatterns = [
                                 r"^transactions/$",
                                 OrganizationProfilingTransactionsEndpoint.as_view(),
                                 name="sentry-api-0-organization-profiling-transactions",
+                            ),
+                            url(
+                                r"^stats/$",
+                                OrganizationProfilingStatsEndpoint.as_view(),
+                                name="sentry-api-0-organization-profiling-stats",
                             ),
                         ],
                     ),
