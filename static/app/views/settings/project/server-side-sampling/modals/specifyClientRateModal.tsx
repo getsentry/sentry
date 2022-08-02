@@ -10,7 +10,7 @@ import {t, tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
-import {SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
+import {isValidSampleRate, SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
 
 import {FooterActions, Stepper, StyledNumberField} from './uniformRateModal';
 
@@ -57,7 +57,7 @@ export function SpecifyClientRateModal({
     onGoNext(currentClientInput);
   }
 
-  const isValid = !!currentClientInput && !isNaN(Number(currentClientInput));
+  const isValid = isValidSampleRate(currentClientInput);
 
   return (
     <Fragment>
