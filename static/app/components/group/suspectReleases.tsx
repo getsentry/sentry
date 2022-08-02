@@ -17,20 +17,13 @@ type Props = AsyncComponent['props'] & {
 };
 
 type State = AsyncComponent['state'] & {
-  suspectReleases: {suspectReleases: Release[]} | null;
+  suspectReleases: Release[] | null;
 };
 
 class SuspectReleases extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {group} = this.props;
     return [['suspectReleases', `/issues/${group.id}/suspect-releases/`]];
-  }
-
-  getDefaultState(): State {
-    return {
-      ...super.getDefaultState(),
-      suspectReleases: null,
-    };
   }
 
   renderLoading() {
@@ -44,7 +37,7 @@ class SuspectReleases extends AsyncComponent<Props, State> {
   renderBody() {
     return (
       <SidebarSection secondary title={t('Suspect Releases')}>
-        {this.state.suspectReleases?.suspectReleases?.map(release => (
+        {this.state.suspectReleases?.map(release => (
           <SuspectReleaseWrapper key={release.version}>
             <div>
               <StyledVersion version={release.version} />
