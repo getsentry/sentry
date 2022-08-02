@@ -53,10 +53,10 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification, abc.ABC
             context["inviter_name"] = self.pending_member.inviter.get_salutation_name
         return context
 
-    def get_message_actions(self, recipient: Team | User) -> Sequence[MessageAction]:
-        members_url = self.members_url + self.get_sentry_query_params(
-            ExternalProviders.SLACK, recipient
-        )
+    def get_message_actions(
+        self, recipient: Team | User, provider: ExternalProviders
+    ) -> Sequence[MessageAction]:
+        members_url = self.members_url + self.get_sentry_query_params(provider, recipient)
         return [
             MessageAction(
                 name="Approve",
