@@ -80,15 +80,15 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
   }, []);
 
   const onTableLeftClick = useCallback(() => {
-    dispatchFlamegraphPreferences({type: 'set layout', payload: 'table_left'});
+    dispatchFlamegraphPreferences({type: 'set layout', payload: 'table left'});
   }, [dispatchFlamegraphPreferences]);
 
   const onTableBottomClick = useCallback(() => {
-    dispatchFlamegraphPreferences({type: 'set layout', payload: 'table_bottom'});
+    dispatchFlamegraphPreferences({type: 'set layout', payload: 'table bottom'});
   }, [dispatchFlamegraphPreferences]);
 
   const onTableRightClick = useCallback(() => {
-    dispatchFlamegraphPreferences({type: 'set layout', payload: 'table_right'});
+    dispatchFlamegraphPreferences({type: 'set layout', payload: 'table right'});
   }, [dispatchFlamegraphPreferences]);
 
   return (
@@ -160,16 +160,16 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
           style={{
             flex: '1 1 100%',
             cursor:
-              flamegraphPreferences.layout === 'table_bottom' ? 'ns-resize' : undefined,
+              flamegraphPreferences.layout === 'table bottom' ? 'ns-resize' : undefined,
           }}
           onMouseDown={
-            flamegraphPreferences.layout === 'table_bottom' ? props.onResize : undefined
+            flamegraphPreferences.layout === 'table bottom' ? props.onResize : undefined
           }
         />
         <li>
           <LayoutSelectionContainer>
             <StyledButton
-              active={flamegraphPreferences.layout === 'table_left'}
+              active={flamegraphPreferences.layout === 'table left'}
               onClick={onTableLeftClick}
               size="xs"
               title={t('Table left')}
@@ -177,7 +177,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
               <IconPanel size="xs" direction="right" />
             </StyledButton>
             <StyledButton
-              active={flamegraphPreferences.layout === 'table_bottom'}
+              active={flamegraphPreferences.layout === 'table bottom'}
               onClick={onTableBottomClick}
               size="xs"
               title={t('Table bottom')}
@@ -185,7 +185,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
               <IconPanel size="xs" direction="down" />
             </StyledButton>
             <StyledButton
-              active={flamegraphPreferences.layout === 'table_right'}
+              active={flamegraphPreferences.layout === 'table right'}
               onClick={onTableRightClick}
               size="xs"
               title={t('Table right')}
@@ -202,8 +202,8 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
         tree={maybeFilteredOrInvertedTree ?? []}
         canvasPoolManager={props.canvasPoolManager}
       />
-      {flamegraphPreferences.layout === 'table_left' ||
-      flamegraphPreferences.layout === 'table_right' ? (
+      {flamegraphPreferences.layout === 'table left' ||
+      flamegraphPreferences.layout === 'table right' ? (
         <ResizableVerticalDrawer>
           {/* The border should be 1px, but we want the actual handler to be wider
           to improve the user experience and not have users have to click on the exact pixel */}
@@ -250,17 +250,17 @@ const FrameDrawer = styled('div')<{layout: FlamegraphPreferences['layout']}>`
   display: grid;
   grid-template-rows: auto 1fr;
   grid-template-columns: ${({layout}) =>
-    layout === 'table_left' ? '1fr auto' : layout === 'table_right' ? 'auto 1fr' : '1fr'};
+    layout === 'table left' ? '1fr auto' : layout === 'table right' ? 'auto 1fr' : '1fr'};
   /* false positive for grid layout */
   /* stylelint-disable */
   grid-template-areas: ${({layout}) =>
-    layout === 'table_bottom'
+    layout === 'table bottom'
       ? `
     'tabs'
     'table'
     'drawer'
     `
-      : layout === 'table_left'
+      : layout === 'table left'
       ? `
       'tabs drawer'
       'table drawer'

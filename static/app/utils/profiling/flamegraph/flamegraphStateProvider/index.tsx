@@ -5,6 +5,7 @@ import {Query} from 'history';
 import {DeepPartial} from 'sentry/types/utils';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {makeCombinedReducers} from 'sentry/utils/useCombinedReducer';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {
   UndoableReducer,
@@ -45,6 +46,12 @@ function isColorCoding(
   return values.includes(value as any);
 }
 
+function isLayout(
+  value: PossibleQuery['colorCoding'] | FlamegraphState['preferences']['colorCoding']
+): value is FlamegraphState['preferences']['layout'] {
+  return value === 'table right' || value === 'table bottom' || value === 'table left';
+}
+
 function isSorting(
   value: PossibleQuery['sorting'] | FlamegraphState['preferences']['sorting']
 ): value is FlamegraphState['preferences']['sorting'] {
@@ -78,6 +85,9 @@ export function decodeFlamegraphStateFromQueryParams(
     },
     position: {view: Rect.decode(query.fov) ?? Rect.Empty()},
     preferences: {
+      layout: isLayout(query.layout)
+        ? query.layout
+        : DEFAULT_FLAMEGRAPH_STATE.preferences.layout,
       colorCoding: isColorCoding(query.colorCoding)
         ? query.colorCoding
         : DEFAULT_FLAMEGRAPH_STATE.preferences.colorCoding,
@@ -144,6 +154,31 @@ export function FlamegraphStateQueryParamSync() {
   return null;
 }
 
+export const FLAMEGRAPH_LOCALSTORAGE_PREFERENCES_KEY = 'flamegraph-preferences';
+export function FlamegraphStateLocalStorageSync() {
+  const state = useFlamegraphStateValue();
+  const [_, setState] = useLocalStorageState<DeepPartial<FlamegraphState>>(
+    FLAMEGRAPH_LOCALSTORAGE_PREFERENCES_KEY,
+    {
+      preferences: {
+        layout: DEFAULT_FLAMEGRAPH_STATE.preferences.layout,
+      },
+    }
+  );
+
+  useEffect(() => {
+    setState({
+      preferences: {
+        layout: state.preferences.layout,
+      },
+    });
+    // We only want to sync the local storage when the state changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.preferences.layout]);
+
+  return null;
+}
+
 export type FlamegraphStateContextValue = [
   FlamegraphState,
   FlamegraphAction,
@@ -161,7 +196,7 @@ interface FlamegraphStateProviderProps {
   initialState?: DeepPartial<FlamegraphState>;
 }
 
-const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
+export const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
   profiles: {
     threadId: null,
     selectedRoot: null,
@@ -174,7 +209,7 @@ const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
     sorting: 'call order',
     view: 'top down',
     xAxis: 'standalone',
-    layout: 'table_bottom',
+    layout: 'table bottom',
   },
   search: {
     index: null,

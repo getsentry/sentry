@@ -11,7 +11,7 @@ export type FlamegraphAxisOptions = ['standalone', 'transaction'];
 
 export interface FlamegraphPreferences {
   colorCoding: FlamegraphColorCodings[number];
-  layout: 'table_right' | 'table_bottom' | 'table_left';
+  layout: 'table right' | 'table bottom' | 'table left';
   sorting: FlamegraphSorting[number];
   view: FlamegraphViewOptions[number];
   xAxis: FlamegraphAxisOptions[number];
