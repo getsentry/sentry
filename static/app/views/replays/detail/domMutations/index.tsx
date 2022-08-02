@@ -137,7 +137,7 @@ const IconWrapper = styled('div')<Required<Pick<SVGIconProps, 'color'>>>`
   color: ${p => p.theme.white};
   background: ${p => p.theme[p.color] ?? p.color};
   box-shadow: ${p => p.theme.dropShadowLightest};
-  z-index: 1; // over the step connector
+  z-index: 1;
 `;
 
 const UnstyledButton = styled('button')`
