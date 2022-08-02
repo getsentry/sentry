@@ -627,6 +627,8 @@ export class TokenConverter {
     const keyName = key.name.text;
 
     const checkAggregateKey = (check: (s: string) => boolean) => {
+      const definition = getFieldDefinition(keyName);
+
       if (check(keyName)) {
         if (key.args === null) {
           // Aggregate keys without args will rely on default values
@@ -637,31 +639,29 @@ export class TokenConverter {
         const aggregation = AGGREGATIONS[keyName];
         const validColumnTypes = (aggregation?.parameters?.find(p => p.kind === 'column')
           ?.columnTypes ?? null) as ValidateColumnTypes | null;
+        const dataType =
+          aggregation.parameters.find(p => p.kind === 'value')?.dataType ?? null;
 
         // Check each argument whether it is a valid parameter to this aggregation
         const invalidArgs = key.args.args.filter(arg => {
-          const argKey = arg?.value?.value;
-          if (!argKey) {
+          const argValue = arg?.value?.value;
+
+          if (!argValue) {
             return true;
           }
 
-          const fieldDef = getFieldDefinition(argKey);
-          if (!fieldDef?.valueType) {
-            return true;
-          }
+          // argValue can either be the key of a field/tag or a raw value (string/number)
+          const fieldDef = getFieldDefinition(argValue);
+          const valueType = (fieldDef?.valueType ?? getValueType(argValue)) as ColumnType;
 
-          return !validateAggregateType(
-            validColumnTypes,
-            argKey,
-            fieldDef.valueType as ColumnType
-          );
+          return !validateAggregateType(validColumnTypes, dataType, argValue, valueType);
         });
 
         if (invalidArgs.length > 0) {
           return {
             reason: getAggregateInvalidArgumentMessage(
               keyName,
-              validColumnTypes,
+              validColumnTypes ?? dataType,
               invalidArgs.map(arg => arg.value?.value ?? '')
             ),
           };
@@ -670,7 +670,6 @@ export class TokenConverter {
         return null;
       }
 
-      const definition = getFieldDefinition(keyName);
       return {
         reason: `'${keyName}' returns a ${
           `${definition?.valueType}` ?? 'different value type.'
@@ -776,6 +775,14 @@ export class TokenConverter {
     return null;
   };
 }
+
+const getValueType = (key: string) => {
+  if (!isNaN(parseFloat(key))) {
+    return FieldValueType.NUMBER as ColumnType;
+  }
+
+  return FieldValueType.STRING as ColumnType;
+};
 
 /**
  * Maps token conversion methods to their result types
@@ -964,10 +971,11 @@ export function joinQuery(
 
 const validateAggregateType = (
   columnTypes: ValidateColumnTypes | null,
+  dataType: ColumnType,
   argKey: string,
   argType: ColumnType
 ): boolean => {
-  if (!columnTypes) {
+  if (!columnTypes && !dataType) {
     return false;
   }
 
@@ -975,7 +983,7 @@ const validateAggregateType = (
     return columnTypes({name: argKey, dataType: argType});
   }
 
-  return (columnTypes as string[]).includes(argType);
+  return (columnTypes as string[] | null)?.includes(argType) || dataType === argType;
 };
 
 const getAggregateInvalidArgumentMessage = (
