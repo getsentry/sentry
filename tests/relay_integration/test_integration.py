@@ -238,7 +238,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
         # RedisQuota().get_quotas(self.project)[0].to_json()
         # {'scope': 'project', 'categories': ['default', 'error', 'security'], 'limit': 0, 'reasonCode': 'project_abuse_limit'}
         assert event.message == "hi"
-        
+
     def test_project_config_compression(self):
         # Populate redis cache with compressed config:
         invalidate_project_config(public_key=self.projectkey, trigger="test")
