@@ -1,6 +1,5 @@
 from datetime import timedelta
 
-from django.core.paginator import Paginator
 from django.utils import timezone
 
 from sentry.constants import VALID_PLATFORMS
@@ -8,16 +7,22 @@ from sentry.models import Group, Project, ProjectPlatform
 from sentry.tasks.base import instrumented_task
 
 
+def paginate_projects_by_id():
+    id_cursor = -1
+    while True:
+        queryset = Project.objects.filter(id__gt=id_cursor).order_by("id")
+        page = list(queryset[:1000])
+        if not page:
+            return
+        yield page
+        id_cursor = page[-1].id
+
+
 @instrumented_task(name="sentry.tasks.collect_project_platforms", queue="stats")
 def collect_project_platforms(**kwargs):
     now = timezone.now()
 
-    all_project_query = [p.id for p in Project.objects.using_replica().all()]
-    paginator = Paginator(all_project_query, 1000)
-
-    for i in paginator.page_range:
-        page_of_projects = paginator.get_page(i)
-
+    for page_of_projects in paginate_projects_by_id():
         queryset = (
             Group.objects.using_replica()
             .filter(
