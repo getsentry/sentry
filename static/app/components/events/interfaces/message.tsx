@@ -6,8 +6,8 @@ import {objectIsEmpty} from 'sentry/utils';
 
 type Props = {
   data: {
-    formatted: string;
-    params?: Record<string, any> | any[];
+    formatted: string | null;
+    params?: Record<string, any> | any[] | null;
   };
   meta?: Record<any, any>;
 };
