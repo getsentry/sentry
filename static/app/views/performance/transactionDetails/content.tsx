@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import Feature from 'sentry/components/acl/feature';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -251,16 +250,14 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                         </Fragment>
                       )}
                       <EventVitals event={event} />
-                      <Feature
-                        organization={organization}
-                        features={['organizations:dashboard-custom-measurement-widgets']}
-                      >
+                      {(organization.features.includes('dashboards-mep') ||
+                        organization.features.includes('mep-rollout-flag')) && (
                         <EventCustomPerformanceMetrics
                           event={event}
                           location={location}
                           organization={organization}
                         />
-                      </Feature>
+                      )}
                       <TagsTable
                         event={event}
                         query={query}
