@@ -96,6 +96,15 @@ function WidgetCardContextMenu({
       <WidgetViewerContext.Consumer>
         {({setData}) => (
           <ContextWrapper>
+            <Feature organization={organization} features={['dashboards-mep']}>
+              {isMetricsData === false && (
+                <SampledTag
+                  tooltipText={t('This widget is only applicable to indexed events.')}
+                >
+                  {t('Indexed')}
+                </SampledTag>
+              )}
+            </Feature>
             <StyledDropdownMenuControlV2
               items={[
                 {
