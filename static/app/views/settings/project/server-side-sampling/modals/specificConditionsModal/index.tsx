@@ -357,6 +357,7 @@ export function SpecificConditionsModal({
               }
             }}
             placeholder={'\u0025'}
+            step="10"
             value={samplePercentage}
             inline={false}
             hideControlState={!errors.sampleRate}

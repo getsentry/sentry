@@ -402,6 +402,7 @@ function UniformRateModal({
                 <StyledNumberField
                   name="recommended-client-sampling"
                   placeholder="%"
+                  step="10"
                   value={clientInput ?? null}
                   onChange={value => {
                     setClientInput(value === '' ? undefined : value);
@@ -416,6 +417,7 @@ function UniformRateModal({
                 <StyledNumberField
                   name="recommended-server-sampling"
                   placeholder="%"
+                  step="10"
                   value={serverInput ?? null}
                   onChange={value => {
                     setServerInput(value === '' ? undefined : value);
