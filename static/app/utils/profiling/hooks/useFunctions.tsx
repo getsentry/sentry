@@ -41,10 +41,12 @@ interface UseFunctionsOptions {
   sort: string;
   transaction: string;
   cursor?: string;
+  functionType?: 'application' | 'system' | 'all';
   selection?: PageFilters;
 }
 
 function useFunctions({
+  functionType,
   project,
   query,
   transaction,
@@ -67,6 +69,7 @@ function useFunctions({
     setRequestState({type: 'loading'});
 
     fetchFunctions(api, organization, {
+      functionType,
       projectSlug: project.slug,
       query,
       selection,
@@ -102,7 +105,17 @@ function useFunctions({
       });
 
     return () => api.clear();
-  }, [api, cursor, organization, project.slug, query, selection, sort, transaction]);
+  }, [
+    api,
+    cursor,
+    functionType,
+    organization,
+    project.slug,
+    query,
+    selection,
+    sort,
+    transaction,
+  ]);
 
   return requestState;
 }
@@ -112,6 +125,7 @@ function fetchFunctions(
   organization: Organization,
   {
     cursor,
+    functionType,
     projectSlug,
     query,
     selection,
@@ -119,6 +133,7 @@ function fetchFunctions(
     transaction,
   }: {
     cursor: string | undefined;
+    functionType: 'application' | 'system' | 'all' | undefined;
     projectSlug: Project['slug'];
     query: string;
     selection: PageFilters;
@@ -140,6 +155,12 @@ function fetchFunctions(
         ...normalizeDateTimeParams(selection.datetime),
         query: conditions.formatString(),
         sort,
+        is_application:
+          functionType === 'application'
+            ? '1'
+            : functionType === 'system'
+            ? '0'
+            : undefined,
       },
     }
   );
