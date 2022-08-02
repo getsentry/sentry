@@ -206,7 +206,11 @@ function useReplayData({eventSlug, orgId}: Options): Result {
 
       setState(prev => ({
         ...prev,
-        replayRecord: replayResponse.data,
+        replayRecord: {
+          ...replayResponse.data,
+          started_at: new Date(replayResponse.data.started_at),
+          finished_at: new Date(replayResponse.data.finished_at),
+        },
         fetchError: undefined,
         fetching: prev.isErrorsFetching || false,
         rrwebEvents: attachments.recording,
