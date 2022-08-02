@@ -1051,7 +1051,7 @@ function buildRoutes() {
     >
       <IndexRoute component={make(() => import('sentry/views/replays/replays'))} />
       <Route
-        path=":eventSlug/"
+        path=":replaySlug/"
         component={make(() => import('sentry/views/replays/details'))}
       />
     </Route>

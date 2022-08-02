@@ -2,8 +2,6 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {inflate} from 'pako';
 
-// import {IssueAttachment} from 'sentry/types';
-// import {EventTransaction} from 'sentry/types/event';
 import flattenListOfObjects from 'sentry/utils/replays/flattenListOfObjects';
 import useReplayErrors from 'sentry/utils/replays/hooks/useReplayErrors';
 import ReplayReader from 'sentry/utils/replays/replayReader';
@@ -57,14 +55,14 @@ type State = {
 
 type Options = {
   /**
-   * The projectSlug and eventId concatenated together
-   */
-  eventSlug: string;
-
-  /**
    * The organization slug
    */
+
   orgId: string;
+  /**
+   * The projectSlug and replayId concatenated together
+   */
+  replaySlug: string;
 };
 
 // Errors if it is an interface
@@ -126,31 +124,31 @@ const INITIAL_STATE: State = Object.freeze({
  * Front-end processing, filtering and re-mixing of the different data streams
  * must be delegated to the `ReplayReader` class.
  *
- * @param {orgId, eventSlug} Where to find the root replay event
+ * @param {orgId, replaySlug} Where to find the root replay event
  * @returns An object representing a unified result of the network requests. Either a single `ReplayReader` data object or fetch errors.
  */
-function useReplayData({eventSlug, orgId}: Options): Result {
-  const [projectId, eventId] = eventSlug.split(':');
+function useReplayData({replaySlug, orgId}: Options): Result {
+  const [projectId, replayId] = replaySlug.split(':');
 
   const api = useApi();
   const [state, setState] = useState<State>(INITIAL_STATE);
 
-  const fetchEvent = useCallback(() => {
+  const fetchReplay = useCallback(() => {
     return api.requestPromise(
-      `/projects/${orgId}/${projectId}/replays/${eventId}/`
+      `/projects/${orgId}/${projectId}/replays/${replayId}/`
     ) as Promise<{data: ReplayRecord}>;
-  }, [api, orgId, projectId, eventId]);
+  }, [api, orgId, projectId, replayId]);
 
   const fetchRRWebEvents = useCallback(async () => {
-    // can we use 'count_sequences' instead of making another (N) calls to list the segments available
+    // TODO(replay): can we use 'count_sequences' instead of making another (N) calls to list the segments available
     const segments = (await api.requestPromise(
-      `/projects/${orgId}/${projectId}/replays/${eventId}/recording-segments/`
+      `/projects/${orgId}/${projectId}/replays/${replayId}/recording-segments/`
     )) as {data: ReplaySegment[]};
 
     const attachments = await Promise.all(
       segments.data.map(async segment => {
         const response = await api.requestPromise(
-          `/projects/${orgId}/${projectId}/replays/${eventId}/recording-segments/${segment.segment_id}/?download`,
+          `/projects/${orgId}/${projectId}/replays/${replayId}/recording-segments/${segment.segment_id}/?download`,
           {
             includeAllArgs: true,
           }
@@ -178,10 +176,10 @@ function useReplayData({eventSlug, orgId}: Options): Result {
 
     // ReplayAttachment[] => ReplayAttachment (merge each key of ReplayAttachment)
     return flattenListOfObjects(attachments);
-  }, [api, eventId, orgId, projectId]);
+  }, [api, replayId, orgId, projectId]);
 
   const {isLoading: isErrorsFetching, data: errors} = useReplayErrors({
-    replayId: eventId,
+    replayId,
   });
 
   useEffect(() => {
@@ -200,7 +198,7 @@ function useReplayData({eventSlug, orgId}: Options): Result {
 
     try {
       const [replayResponse, attachments] = await Promise.all([
-        fetchEvent(),
+        fetchReplay(),
         fetchRRWebEvents(),
       ]);
 
@@ -225,7 +223,7 @@ function useReplayData({eventSlug, orgId}: Options): Result {
         fetching: false,
       });
     }
-  }, [fetchEvent, fetchRRWebEvents]);
+  }, [fetchReplay, fetchRRWebEvents]);
 
   useEffect(() => {
     loadEvents();

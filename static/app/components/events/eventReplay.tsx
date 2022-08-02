@@ -19,7 +19,7 @@ type Props = {
 
 export default function EventReplay({replayId, orgSlug, projectSlug}: Props) {
   const {fetching, replay} = useReplayData({
-    eventSlug: `${projectSlug}:${replayId}`,
+    replaySlug: `${projectSlug}:${replayId}`,
     orgId: orgSlug,
   });
 
