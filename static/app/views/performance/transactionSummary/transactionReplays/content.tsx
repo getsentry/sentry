@@ -112,6 +112,7 @@ function ReplaysContent(props: Props) {
           </SortLink>,
           t('Duration'),
           t('Errors'),
+          t('Interest'),
         ]}
       >
         <ReplayTable
@@ -125,7 +126,7 @@ function ReplaysContent(props: Props) {
 }
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: minmax(0, 1fr) max-content max-content max-content;
+  grid-template-columns: minmax(0, 1fr) max-content max-content max-content max-content;
 `;
 
 const SortLink = styled(Link)`
