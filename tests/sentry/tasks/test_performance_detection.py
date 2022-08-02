@@ -1,6 +1,5 @@
 from datetime import timedelta
-
-from mock import Mock, call, patch
+from unittest.mock import Mock, call, patch
 
 from sentry.tasks.performance_detection import _detect_performance_issue, detect_performance_issue
 from sentry.testutils import TestCase
