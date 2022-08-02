@@ -1,45 +1,30 @@
 from __future__ import annotations
 
 import argparse
-import json
-import os
 import re
-import urllib.request
+import subprocess
 from functools import lru_cache
 from typing import Sequence
-from urllib.error import HTTPError
 
 
 @lru_cache(maxsize=None)
-def get_sha(repo: str, ref: str, github_token: str) -> str:
+def get_sha(repo: str, ref: str) -> str:
     if len(ref) == 40:
         try:
             int(ref, 16)
-            return ref
         except ValueError:
             pass
+        else:
+            return ref
 
-    try:
-        resp = urllib.request.urlopen(
-            urllib.request.Request(
-                f"https://api.github.com/repos/{repo}/commits/{ref}",
-                method="GET",
-                headers={
-                    "Accept": "application/vnd.github+json",
-                    "Authorization": f"token {github_token}",
-                    # A user agent is required. Lol.
-                    "User-Agent": "python-requests/2.26.0",
-                },
-            )
-        )
-    except HTTPError as e:
-        print(f"Status {e.code} while resolving {ref} for {repo}.")
-        if e.code == 403:
-            print("You most likely didn't authorize your token for SAML to the getsentry org.")
-        return ref
-
-    data: dict[str, str] = json.load(resp)
-    return data["sha"]
+    cmd = ("git", "ls-remote", "--exit-code", f"https://github.com/{repo}", ref)
+    out = subprocess.check_output(cmd)
+    for line in out.decode().splitlines():
+        sha, refname = line.split()
+        if refname in (f"refs/tags/{ref}", f"refs/heads/{ref}"):
+            return sha
+    else:
+        raise AssertionError(f"unknown ref: {repo}@{ref}")
 
 
 def extract_repo(action: str) -> str:
@@ -55,10 +40,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("files", nargs="+", type=str, help="path to github actions file")
     args = parser.parse_args(argv)
 
-    GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
-    if not GITHUB_TOKEN:
-        raise SystemExit("GITHUB_TOKEN not set.")
-
     ACTION_VERSION_RE = re.compile(r"(?<=uses: )(?P<action>.*)@(?P<ref>.+?)\b")
     for fp in args.files:
         with open(fp, "r+") as f:
@@ -69,7 +50,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     newlines.append(line)
                     continue
                 d = m.groupdict()
-                sha = get_sha(extract_repo(d["action"]), ref=d["ref"], github_token=GITHUB_TOKEN)
+                sha = get_sha(extract_repo(d["action"]), ref=d["ref"])
                 if sha != d["ref"]:
                     line = ACTION_VERSION_RE.sub(rf"\1@{sha}  # \2", line)
                 newlines.append(line)
