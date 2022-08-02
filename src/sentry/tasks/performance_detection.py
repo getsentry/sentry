@@ -32,8 +32,8 @@ def detect_performance_issue(data: Event):
                 op="py.detect_performance_issue", description="none"
             ) as sdk_span:
                 _detect_performance_issue(data, sdk_span)
-    except Exception:
-        pass
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
 
 
 # Gets some of the thresholds to perform performance detection. Can be made configurable later.
