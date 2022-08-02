@@ -11,6 +11,7 @@ export class Frame extends WeightedNode {
   readonly is_application: boolean;
   readonly image?: string;
   readonly resource?: string;
+  readonly inline?: boolean;
   readonly threadId?: number;
 
   static Root = new Frame(
@@ -31,6 +32,7 @@ export class Frame extends WeightedNode {
     this.resource = frameInfo.resource;
     this.line = frameInfo.line;
     this.column = frameInfo.column;
+    this.inline = !!frameInfo.inline;
     this.is_application =
       type === 'web'
         ? frameInfo.line === undefined && frameInfo.column === undefined

@@ -246,7 +246,7 @@ export const makeColorMapByInlineCalls = (
   const colors = new Map<FlamegraphFrame['frame']['key'], ColorChannels>();
 
   const sortedFrames = [...frames]
-    .filter(f => f.inline)
+    .filter(f => f.frame.inline)
     .sort((a, b) => a.frame.name.localeCompare(b.frame.name));
 
   const colorsByName = new Map<FlamegraphFrame['frame']['key'], ColorChannels>();

@@ -153,9 +153,12 @@ describe('makeColorMap', () => {
     // Reverse order to ensure we actually sort
     const frames = [f(0, 'a'), f(1, 'a'), f(2, 'c'), f(3, 'b')];
 
-    frames[0].inline = true;
-    frames[1].inline = true;
-    frames[3].inline = true;
+    // @ts-ignore force reassign over readonly property
+    frames[0].frame.inline = true;
+    // @ts-ignore force reassign over readonly property
+    frames[1].frame.inline = true;
+    // @ts-ignore force reassign over readonly property
+    frames[3].frame.inline = true;
 
     const map = makeColorMapByInlineCalls(frames, makeColorBucketTheme(LCH_LIGHT));
 

@@ -42,6 +42,7 @@ declare namespace Profiling {
     is_application?: boolean;
     image?: string;
     resource?: string;
+    inline?: boolean;
     threadId?: number;
   };
 
