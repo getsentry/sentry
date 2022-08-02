@@ -193,58 +193,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
                 **serialized_alert_rule,
             )
 
-    @patch(
-        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
-        return_value=("#", None, True),
-    )
-    @patch("sentry.tasks.integrations.slack.find_channel_id_for_alert_rule.apply_async")
-    @patch("sentry.integrations.slack.utils.rule_status.uuid4")
-    def test_kicks_off_slack_async_job(
-        self,
-        mock_uuid4,
-        mock_find_channel_id_for_alert_rule,
-        mock_get_channel_id,
-    ):
-        mock_uuid4.return_value = self.get_mock_uuid()
-        self.integration = Integration.objects.create(
-            provider="slack",
-            name="Team A",
-            external_id="TXXXXXXX1",
-            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
-        )
-        self.integration.add_organization(self.organization, self.user)
-        test_params = self.valid_params.copy()
-        test_params["triggers"] = [
-            {
-                "label": "critical",
-                "alertThreshold": 200,
-                "actions": [
-                    {
-                        "type": "slack",
-                        "targetIdentifier": "my-channel",
-                        "targetType": "specific",
-                        "integration": self.integration.id,
-                    }
-                ],
-            },
-        ]
-
-        with self.feature("organizations:incidents"):
-            resp = self.get_response(
-                self.organization.slug, self.project.slug, self.alert_rule.id, **test_params
-            )
-
-        # A task with this uuid has been scheduled because there's a Slack channel async search
-        assert resp.data["uuid"] == "abc123"
-        kwargs = {
-            "organization_id": self.organization.id,
-            "uuid": "abc123",
-            "alert_rule_id": self.alert_rule.id,
-            "data": test_params,
-            "user_id": self.owner_user.id,
-        }
-        mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
-
     def _slack_setup_helper(self, channelName: str = None, channelID: str = None) -> Dict:
         self.integration = Integration.objects.create(
             provider="slack",
@@ -291,6 +239,55 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
                 self.organization.slug, self.project.slug, self.alert_rule.id, **params
             )
         return resp
+
+    @patch(
+        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
+        return_value=("#", None, True),
+    )
+    @patch("sentry.tasks.integrations.slack.find_channel_id_for_alert_rule.apply_async")
+    @patch("sentry.integrations.slack.utils.rule_status.uuid4")
+    def test_kicks_off_slack_async_job(
+        self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
+    ):
+        mock_uuid4.return_value = self.get_mock_uuid()
+        self.integration = Integration.objects.create(
+            provider="slack",
+            name="Team A",
+            external_id="TXXXXXXX1",
+            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+        )
+        self.integration.add_organization(self.organization, self.user)
+        test_params = self.valid_params.copy()
+        test_params["triggers"] = [
+            {
+                "label": "critical",
+                "alertThreshold": 200,
+                "actions": [
+                    {
+                        "type": "slack",
+                        "targetIdentifier": "my-channel",
+                        "targetType": "specific",
+                        "integration": self.integration.id,
+                    }
+                ],
+            },
+        ]
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_response(
+                self.organization.slug, self.project.slug, self.alert_rule.id, **test_params
+            )
+
+        # A task with this uuid has been scheduled because there's a Slack channel async search
+        assert resp.data["uuid"] == "abc123"
+        kwargs = {
+            "organization_id": self.organization.id,
+            "uuid": "abc123",
+            "alert_rule_id": self.alert_rule.id,
+            "data": test_params,
+            "user_id": self.owner_user.id,
+        }
+        mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
 
     @responses.activate
     def test_create_slack_alert_with_name_and_channel_id(self):
