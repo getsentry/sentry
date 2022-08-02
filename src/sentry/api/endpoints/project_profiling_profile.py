@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.exceptions import InvalidSearchQuery
@@ -33,6 +34,7 @@ class ProjectProfilingBaseEndpoint(ProjectEndpoint):  # type: ignore
         return params
 
 
+@customer_silo_endpoint
 class ProjectProfilingPaginatedBaseEndpoint(ProjectProfilingBaseEndpoint, ABC):
     DEFAULT_PER_PAGE = 50
     MAX_PER_PAGE = 500
@@ -63,6 +65,7 @@ class ProjectProfilingPaginatedBaseEndpoint(ProjectProfilingBaseEndpoint, ABC):
         )
 
 
+@customer_silo_endpoint
 class ProjectProfilingTransactionIDProfileIDEndpoint(ProjectProfilingBaseEndpoint):
     def get(self, request: Request, project: Project, transaction_id: str) -> StreamingHttpResponse:
         if not features.has("organizations:profiling", project.organization, actor=request.user):
@@ -76,6 +79,7 @@ class ProjectProfilingTransactionIDProfileIDEndpoint(ProjectProfilingBaseEndpoin
         return proxy_profiling_service(**kwargs)
 
 
+@customer_silo_endpoint
 class ProjectProfilingProfileEndpoint(ProjectProfilingBaseEndpoint):
     def get(self, request: Request, project: Project, profile_id: str) -> StreamingHttpResponse:
         if not features.has("organizations:profiling", project.organization, actor=request.user):
@@ -89,6 +93,7 @@ class ProjectProfilingProfileEndpoint(ProjectProfilingBaseEndpoint):
         return proxy_profiling_service(**kwargs)
 
 
+@customer_silo_endpoint
 class ProjectProfilingFunctionsEndpoint(ProjectProfilingPaginatedBaseEndpoint):
     DEFAULT_PER_PAGE = 5
     MAX_PER_PAGE = 50

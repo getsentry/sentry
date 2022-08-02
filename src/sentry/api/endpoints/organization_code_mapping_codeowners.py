@@ -4,6 +4,7 @@ from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.models import OrganizationIntegration, RepositoryProjectPathConfig
 from sentry.shared_integrations.exceptions import ApiError
@@ -18,6 +19,7 @@ def get_codeowner_contents(config):
     return install.get_codeowner_file(config.repository, ref=config.default_branch)
 
 
+@customer_silo_endpoint
 class OrganizationCodeMappingCodeOwnersEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationIntegrationsPermission,)
 

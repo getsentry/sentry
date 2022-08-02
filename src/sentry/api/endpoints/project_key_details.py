@@ -4,6 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -12,6 +13,7 @@ from sentry.loader.browsersdkversion import get_default_sdk_version_for_project
 from sentry.models import ProjectKey, ProjectKeyStatus
 
 
+@customer_silo_endpoint
 class ProjectKeyDetailsEndpoint(ProjectEndpoint):
     def get(self, request: Request, project, key_id) -> Response:
         try:

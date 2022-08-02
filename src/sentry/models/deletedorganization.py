@@ -1,9 +1,10 @@
 from django.db import models
 
-from sentry.db.models import sane_repr
+from sentry.db.models import customer_silo_model, sane_repr
 from sentry.models.deletedentry import DeletedEntry
 
 
+@customer_silo_model
 class DeletedOrganization(DeletedEntry):
     """
     This model tracks an intent to delete. If an org is marked pending_delete

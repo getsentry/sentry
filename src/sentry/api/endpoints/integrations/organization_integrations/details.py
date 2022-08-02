@@ -4,6 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import OrganizationIntegrationSerializer
@@ -18,6 +19,7 @@ class IntegrationSerializer(serializers.Serializer):
     domain = serializers.URLField(required=False, allow_blank=True)
 
 
+@customer_silo_endpoint
 class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint):
     def get(self, request: Request, organization, integration_id) -> Response:
         org_integration = self.get_organization_integration(organization, integration_id)

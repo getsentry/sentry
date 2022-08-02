@@ -3,11 +3,13 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.project import Project
 from sentry.replays.utils import proxy_replays_service
 
 
+@customer_silo_endpoint
 class ProjectReplayDetailsEndpoint(ProjectEndpoint):
     private = True
 

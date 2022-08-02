@@ -6,7 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, audit_log, features, options, roles
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, customer_silo_endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.paginator import DateTimePaginator, OffsetPaginator
 from sentry.api.serializers import serialize
@@ -42,6 +42,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return value
 
 
+@customer_silo_endpoint
 class OrganizationIndexEndpoint(Endpoint):
     permission_classes = (OrganizationPermission,)
 

@@ -2,6 +2,7 @@ from django.http.response import Http404
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
@@ -10,6 +11,7 @@ from sentry.models import Project, ProjectOption
 from sentry.plugins.base import plugins
 
 
+@customer_silo_endpoint
 class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization) -> Response:
 

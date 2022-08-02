@@ -6,7 +6,13 @@ from django.db import models
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
-from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, JSONField, sane_repr
+from sentry.db.models import (
+    DefaultFieldsModel,
+    FlexibleForeignKey,
+    JSONField,
+    customer_silo_model,
+    sane_repr,
+)
 from sentry.ownership.grammar import convert_codeowners_syntax, create_schema_from_issue_owners
 from sentry.utils.cache import cache
 
@@ -14,6 +20,7 @@ logger = logging.getLogger(__name__)
 READ_CACHE_DURATION = 3600
 
 
+@customer_silo_model
 class ProjectCodeOwners(DefaultFieldsModel):
 
     __include_in_export__ = False

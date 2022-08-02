@@ -2,6 +2,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -12,6 +13,7 @@ class ProjectEnvironmentSerializer(serializers.Serializer):
     isHidden = serializers.BooleanField()
 
 
+@customer_silo_endpoint
 class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
     def get(self, request: Request, project, environment) -> Response:
         try:

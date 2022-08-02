@@ -9,6 +9,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from typing_extensions import TypedDict
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.utils import InvalidParams as InvalidParamsApi
 from sentry.apidocs.constants import RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
@@ -126,6 +127,7 @@ class StatsApiResponse(TypedDict):
 
 
 @extend_schema(tags=["Organizations"])
+@customer_silo_endpoint
 class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
     enforce_rate_limit = True
     rate_limits = {

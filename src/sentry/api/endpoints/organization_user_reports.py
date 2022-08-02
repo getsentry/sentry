@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationUserReportsPermission
 from sentry.api.helpers.user_reports import user_reports_filter_to_unresolved
@@ -10,6 +11,7 @@ from sentry.api.serializers.models import UserReportWithGroupSerializer
 from sentry.models import UserReport
 
 
+@customer_silo_endpoint
 class OrganizationUserReportsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationUserReportsPermission,)
 

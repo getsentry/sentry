@@ -15,6 +15,7 @@ from snuba_sdk.function import Function, Identifier, Lambda
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry import eventstore, features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers.rest_framework import ListField
@@ -147,6 +148,7 @@ class SpansPerformanceSerializer(serializers.Serializer):  # type: ignore
         return span_groups
 
 
+@customer_silo_endpoint
 class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsSpansEndpointBase):
     def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(request, organization):
@@ -221,6 +223,7 @@ class SpanSerializer(serializers.Serializer):  # type: ignore
             raise serializers.ValidationError(str(e))
 
 
+@customer_silo_endpoint
 class OrganizationEventsSpansExamplesEndpoint(OrganizationEventsSpansEndpointBase):
     def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(request, organization):
@@ -303,6 +306,7 @@ class SpanExamplesPaginator:
         )
 
 
+@customer_silo_endpoint
 class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
     def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(request, organization):

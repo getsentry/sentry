@@ -8,6 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features, search
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import OrganizationEventPermission, OrganizationEventsEndpointBase
 from sentry.api.event_search import SearchFilter
 from sentry.api.helpers.group_index import (
@@ -134,6 +135,7 @@ def inbox_search(
     return results
 
 
+@customer_silo_endpoint
 class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
     permission_classes = (OrganizationEventPermission,)
     enforce_rate_limit = True

@@ -6,7 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import search
-from sentry.api.base import EnvironmentMixin
+from sentry.api.base import EnvironmentMixin, customer_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.event_search import parse_search_query
 from sentry.api.helpers.group_index import build_query_params_from_request
@@ -15,6 +15,7 @@ from sentry.api.serializers.models.group import GroupSerializer
 from sentry.snuba import discover
 
 
+@customer_silo_endpoint
 class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
     def get(self, request: Request, organization) -> Response:
         try:
@@ -36,6 +37,7 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
 UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')
 
 
+@customer_silo_endpoint
 class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, EnvironmentMixin):
     def get(self, request: Request, organization) -> Response:
         try:

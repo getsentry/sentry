@@ -2,6 +2,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import start_span
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.models import Organization
 from sentry.search.events.constants import METRIC_FUNCTION_LIST_BY_TYPE
@@ -9,6 +10,7 @@ from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics.datasource import get_custom_measurements
 
 
+@customer_silo_endpoint
 class OrganizationMeasurementsMeta(OrganizationEventsEndpointBase):  # type: ignore
     private = True
 

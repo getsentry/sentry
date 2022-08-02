@@ -5,6 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.constants import SentryAppStatus
 from sentry.incidents.endpoints.bases import OrganizationEndpoint
@@ -61,6 +62,7 @@ def build_action_response(
     return action_response
 
 
+@customer_silo_endpoint
 class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization) -> Response:
         """

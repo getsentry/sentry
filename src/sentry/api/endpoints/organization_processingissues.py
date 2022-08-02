@@ -1,11 +1,13 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.helpers.processing_issues import get_processing_issues
 from sentry.api.serializers import serialize
 
 
+@customer_silo_endpoint
 class OrganizationProcessingIssuesEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization) -> Response:
         """

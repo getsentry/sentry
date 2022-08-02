@@ -1,8 +1,10 @@
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.avatar import AvatarMixin
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models import OrganizationAvatar
 
 
+@customer_silo_endpoint
 class OrganizationAvatarEndpoint(AvatarMixin, OrganizationEndpoint):
     object_type = "organization"
     model = OrganizationAvatar

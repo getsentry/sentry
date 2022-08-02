@@ -4,6 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models import Organization
@@ -16,6 +17,7 @@ class SpanOp(TypedDict):
     count: int
 
 
+@customer_silo_endpoint
 class OrganizationEventsSpanOpsEndpoint(OrganizationEventsEndpointBase):  # type: ignore
     def has_feature(self, request: Request, organization: Organization) -> bool:
         return bool(

@@ -2,11 +2,13 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.endpoints.organization_dashboards import OrganizationDashboardsPermission
 from sentry.api.serializers.rest_framework import DashboardWidgetSerializer
 
 
+@customer_silo_endpoint
 class OrganizationDashboardWidgetDetailsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationDashboardsPermission,)
 

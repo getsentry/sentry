@@ -2,6 +2,7 @@ import jsonschema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import Release
@@ -14,6 +15,7 @@ from sentry.tasks.assemble import (
 from sentry.utils import json
 
 
+@customer_silo_endpoint
 class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
     def post(self, request: Request, organization, version) -> Response:
         """

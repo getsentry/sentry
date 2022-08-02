@@ -10,7 +10,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import experiments
-from sentry.api.base import ONE_HOUR
+from sentry.api.base import ONE_HOUR, customer_silo_endpoint
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.serializers.models.project import get_access_by_project
 from sentry.models import Organization, Project, ProjectStatus
@@ -112,6 +112,7 @@ def get_vital_data_for_org(organization: Organization, projects: Sequence[Projec
     return cache_value
 
 
+@customer_silo_endpoint
 class OrganizationVitalsOverviewEndpoint(OrganizationEventsEndpointBase):
     private = True
 

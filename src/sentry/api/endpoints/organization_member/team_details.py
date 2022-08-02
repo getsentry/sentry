@@ -5,6 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features, roles
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -59,6 +60,7 @@ class RelaxedOrganizationPermission(OrganizationPermission):
     }
 
 
+@customer_silo_endpoint
 class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
     permission_classes = [RelaxedOrganizationPermission]
 

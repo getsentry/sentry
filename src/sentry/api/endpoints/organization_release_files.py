@@ -3,12 +3,14 @@ import logging
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.endpoints.project_release_files import ReleaseFilesMixin
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import Release
 
 
+@customer_silo_endpoint
 class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseFilesMixin):
     def get(self, request: Request, organization, version) -> Response:
         """

@@ -4,7 +4,7 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, customer_silo_endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import ProjectWithOrganizationSerializer, serialize
@@ -15,6 +15,7 @@ from sentry.models.integrations.sentry_app_installation import SentryAppInstalla
 from sentry.search.utils import tokenize_query
 
 
+@customer_silo_endpoint
 class ProjectIndexEndpoint(Endpoint):
     permission_classes = (ProjectPermission,)
 

@@ -3,6 +3,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -12,6 +13,7 @@ from sentry.signals import comment_deleted, comment_updated
 from sentry.types.activity import ActivityType
 
 
+@customer_silo_endpoint
 class GroupNotesDetailsEndpoint(GroupEndpoint):
     # We explicitly don't allow a request with an ApiKey
     # since an ApiKey is bound to the Organization, not

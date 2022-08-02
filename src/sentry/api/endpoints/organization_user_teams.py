@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamWithProjectsSerializer
@@ -8,6 +9,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.models import Team, TeamStatus
 
 
+@customer_silo_endpoint
 class OrganizationUserTeamsEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization) -> Response:
         """

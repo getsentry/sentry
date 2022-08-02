@@ -1,12 +1,14 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import SentryAppInstallationBaseEndpoint
 from sentry.api.serializers import serialize
 from sentry.mediators.external_issues import IssueLinkCreator
 from sentry.models import Group, Project
 
 
+@customer_silo_endpoint
 class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBaseEndpoint):
     def post(self, request: Request, installation) -> Response:
         data = request.data.copy()

@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model, NodeField, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, NodeField, customer_silo_model, sane_repr
 from sentry.db.models.manager import BaseManager
 from sentry.utils.canonical import CanonicalKeyView
 
@@ -10,6 +10,7 @@ def ref_func(x):
     return x.project_id or x.project.id
 
 
+@customer_silo_model
 class RawEvent(Model):
     __include_in_export__ = False
 

@@ -4,7 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
-from sentry.api.base import EnvironmentMixin
+from sentry.api.base import EnvironmentMixin, customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -17,6 +17,7 @@ from sentry.types.activity import ActivityType
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
 
+@customer_silo_endpoint
 class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
     permission_classes = (ProjectReleasePermission,)
     rate_limits = RateLimitConfig(

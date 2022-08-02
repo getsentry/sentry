@@ -34,6 +34,10 @@ class LimitedClass:
     category: ClassCategory
     is_decorated: bool
 
+    def name_contains_word(self, *target_words: str) -> bool:
+        words_in_name = set(re.findall(r"[A-Z][a-z]*", self.name))
+        return any(word in words_in_name for word in target_words)
+
 
 def parse_audit(audit) -> Iterable[LimitedClass]:
     def split_qualname(value):
@@ -121,13 +125,13 @@ def main():
         return False
 
     def customer_model_predicate(c: LimitedClass) -> bool:
-        return False
+        return c.name_contains_word("Alert", "Incident")
 
     def control_endpoint_predicate(c: LimitedClass) -> bool:
         return False
 
     def customer_endpoint_predicate(c: LimitedClass) -> bool:
-        return False
+        return c.name_contains_word("Organization", "Project", "Team", "Group", "Event", "Issue")
 
     ####################################################################
 

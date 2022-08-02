@@ -26,6 +26,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
+    customer_silo_model,
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
@@ -98,6 +99,7 @@ class ProjectManager(BaseManager):
         return sorted(project_list, key=lambda x: x.name.lower())
 
 
+@customer_silo_model
 class Project(Model, PendingDeletionMixin):
     from sentry.models.projectteam import ProjectTeam
 

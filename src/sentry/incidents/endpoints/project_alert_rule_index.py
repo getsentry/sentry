@@ -5,6 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import (
@@ -24,6 +25,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.tasks.integrations.slack import find_channel_id_for_alert_rule
 
 
+@customer_silo_endpoint
 class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
     def get(self, request: Request, project) -> Response:
         """
@@ -52,6 +54,7 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
         )
 
 
+@customer_silo_endpoint
 class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
     permission_classes = (ProjectAlertRulePermission,)
 

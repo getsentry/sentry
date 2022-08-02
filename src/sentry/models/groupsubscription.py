@@ -10,6 +10,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
+    customer_silo_model,
     sane_repr,
 )
 from sentry.notifications.helpers import (
@@ -152,6 +153,7 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
         )
 
 
+@customer_silo_model
 class GroupSubscription(Model):  # type: ignore
     """
     Identifies a subscription relationship between a user and an issue.

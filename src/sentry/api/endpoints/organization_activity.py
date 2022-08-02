@@ -3,7 +3,7 @@ from functools import reduce
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import EnvironmentMixin
+from sentry.api.base import EnvironmentMixin, customer_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import OrganizationActivitySerializer, serialize
@@ -11,6 +11,7 @@ from sentry.models import Activity, OrganizationMemberTeam, Project
 from sentry.types.activity import ActivityType
 
 
+@customer_silo_endpoint
 class OrganizationActivityEndpoint(OrganizationMemberEndpoint, EnvironmentMixin):
     def get(self, request: Request, organization, member) -> Response:
         # There is an activity record created for both sides of the unmerge

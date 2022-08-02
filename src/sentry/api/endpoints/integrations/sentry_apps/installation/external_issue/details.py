@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import (
     SentryAppInstallationExternalIssueBaseEndpoint as ExternalIssueBaseEndpoint,
 )
@@ -8,6 +9,7 @@ from sentry.mediators import external_issues
 from sentry.models import PlatformExternalIssue
 
 
+@customer_silo_endpoint
 class SentryAppInstallationExternalIssueDetailsEndpoint(ExternalIssueBaseEndpoint):
     def delete(self, request: Request, installation, external_issue_id) -> Response:
         try:

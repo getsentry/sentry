@@ -4,6 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.rule import RuleSerializer
@@ -16,6 +17,7 @@ from sentry.tasks.integrations.slack import find_channel_id_for_rule
 from sentry.web.decorators import transaction_start
 
 
+@customer_silo_endpoint
 class ProjectRulesEndpoint(ProjectEndpoint):
     permission_classes = (ProjectAlertRulePermission,)
 

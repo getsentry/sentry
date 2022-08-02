@@ -2,6 +2,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
 from sentry.api.fields.actor import ActorField
 from sentry.api.serializers import serialize
@@ -20,6 +21,7 @@ class CommentSerializer(serializers.Serializer, MentionsMixin):
     external_id = serializers.CharField(allow_null=True, required=False)
 
 
+@customer_silo_endpoint
 class OrganizationIncidentCommentIndexEndpoint(IncidentEndpoint):
     permission_classes = (IncidentPermission,)
 

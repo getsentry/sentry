@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import OrganizationEventsV2EndpointBase
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models import Organization
@@ -72,6 +73,7 @@ ALLOWED_EVENTS_STATS_REFERRERS: Set[str] = {
 }
 
 
+@customer_silo_endpoint
 class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type: ignore
     def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:
         feature_names = [

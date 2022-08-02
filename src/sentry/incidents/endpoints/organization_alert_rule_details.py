@@ -2,6 +2,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer
 from sentry.auth.superuser import is_active_superuser
@@ -12,6 +13,7 @@ from sentry.models import OrganizationMemberTeam, SentryAppComponent, SentryAppI
 from sentry.models.actor import ACTOR_TYPES
 
 
+@customer_silo_endpoint
 class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
     def get(self, request: Request, organization, alert_rule) -> Response:
         """

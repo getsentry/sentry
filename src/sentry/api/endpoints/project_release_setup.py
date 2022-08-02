@@ -2,11 +2,13 @@ from django.core.cache import cache
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.models import Deploy, Group, ReleaseCommit, ReleaseProject, Repository
 from sentry.utils.hashlib import hash_values
 
 
+@customer_silo_endpoint
 class ProjectReleaseSetupCompletionEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 

@@ -1,6 +1,13 @@
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import (
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    Model,
+    customer_silo_model,
+    sane_repr,
+)
 
 
+@customer_silo_model
 class ReleaseCommit(Model):
     __include_in_export__ = False
 

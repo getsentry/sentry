@@ -6,7 +6,7 @@ from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import EnvironmentMixin
+from sentry.api.base import EnvironmentMixin, customer_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -22,6 +22,7 @@ from sentry.incidents.models import (
 from sentry.models import Project
 
 
+@customer_silo_endpoint
 class TeamAlertsTriggeredTotalsEndpoint(TeamEndpoint, EnvironmentMixin):  # type: ignore
     def get(self, request: Request, team) -> Response:
         """
@@ -113,6 +114,7 @@ class TriggeredAlertRuleSerializer(AlertRuleSerializer):
         return result
 
 
+@customer_silo_endpoint
 class TeamAlertsTriggeredIndexEndpoint(TeamEndpoint, EnvironmentMixin):  # type: ignore
     def get(self, request, team) -> Response:
         """

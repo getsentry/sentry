@@ -6,10 +6,17 @@ from django.utils import timezone
 
 from sentry.constants import ObjectStatus
 from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
-from sentry.db.models import BoundedPositiveIntegerField, JSONField, Model, sane_repr
+from sentry.db.models import (
+    BoundedPositiveIntegerField,
+    JSONField,
+    Model,
+    customer_silo_model,
+    sane_repr,
+)
 from sentry.signals import pending_delete
 
 
+@customer_silo_model
 class Repository(Model, PendingDeletionMixin):
     __include_in_export__ = True
 
