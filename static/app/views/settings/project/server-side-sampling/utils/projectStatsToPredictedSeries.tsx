@@ -62,7 +62,8 @@ export function projectStatsToPredictedSeries(
     let total = accepted + filtered + invalid + rateLimited + clientDiscard;
 
     if (defined(specifiedClientRate)) {
-      // Calculates the discard client (SDK) bucket according to the specified client rate
+      // We assume that the clientDiscard is 0 and
+      // calculate the discard client (SDK) bucket according to the specified client rate
       const newClientDiscard = total / specifiedClientRate - total;
       total += newClientDiscard;
     }

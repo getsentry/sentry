@@ -56,8 +56,9 @@ export function projectStatsToSeries(
     });
   });
 
-  // Calculates the discard client (SDK) bucket according to the specified client rate
   if (defined(specifiedClientRate)) {
+    // We assume that the clientDiscard is 0 and
+    // calculate the discard client (SDK) bucket according to the specified client rate
     seriesData.droppedClient = seriesData.droppedClient.map((bucket, index) => {
       const totalHitServer =
         seriesData.droppedServer[index].value + seriesData.accepted[index].value;

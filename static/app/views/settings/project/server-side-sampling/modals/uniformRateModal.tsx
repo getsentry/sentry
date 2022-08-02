@@ -247,7 +247,7 @@ function UniformRateModal({
     });
   }
 
-  if (activeStep === undefined) {
+  if (activeStep === undefined || loading) {
     return (
       <Fragment>
         <Header closeButton>
@@ -286,10 +286,9 @@ function UniformRateModal({
         onReadDocs={onReadDocs}
         organization={organization}
         projectId={project.id}
-        onGoNext={value => {
-          setSpecifiedClientRate(Number(value));
-          setActiveStep(Step.SET_UNIFORM_SAMPLE_RATE);
-        }}
+        value={specifiedClientRate}
+        onChange={setSpecifiedClientRate}
+        onGoNext={() => setActiveStep(Step.SET_UNIFORM_SAMPLE_RATE)}
       />
     );
   }
