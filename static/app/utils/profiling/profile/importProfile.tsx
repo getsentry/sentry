@@ -27,7 +27,6 @@ export interface ProfileGroup {
   name: string;
   profiles: Profile[];
   traceID: string;
-  loading?: boolean;
 }
 
 export function importProfile(
