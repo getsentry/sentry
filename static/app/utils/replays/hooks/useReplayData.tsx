@@ -137,9 +137,9 @@ function useReplayData({eventSlug, orgId}: Options): Result {
 
   const fetchEvent = useCallback(() => {
     return api.requestPromise(
-      `/organizations/${orgId}/replays/${eventSlug}/`
+      `/projects/${orgId}/${projectId}/replays/${eventId}`
     ) as Promise<{data: ReplayRecord}>;
-  }, [api, orgId, eventSlug]);
+  }, [api, orgId, projectId, eventId]);
 
   const fetchRRWebEvents = useCallback(async () => {
     // can we use 'count_sequences' instead of making another (N) calls to list the segments available
@@ -150,7 +150,7 @@ function useReplayData({eventSlug, orgId}: Options): Result {
     const attachments = await Promise.all(
       segments.data.map(async segment => {
         const response = await api.requestPromise(
-          `/api/0/projects/${orgId}/${projectId}/events/${eventId}/recording-segments/${segment.segment_id}/?download`,
+          `/projects/${orgId}/${projectId}/replays/${eventId}/recording-segments/${segment.segment_id}/?download`,
           {
             includeAllArgs: true,
           }
