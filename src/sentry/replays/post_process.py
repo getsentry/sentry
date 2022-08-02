@@ -14,6 +14,7 @@ def normalize_fields(response: List[Dict[str, Any]]) -> None:
     """For each payload in the response strip "agg_" prefixes."""
     for item in response:
         item["project_id"] = item.pop("agg_project_id")
+        item["environment"] = item.pop("agg_environment")
         item["tags"] = dict(zip(item.pop("tags.key") or [], item.pop("tags.value") or []))
         item["user"] = {
             "id": item.pop("user_id"),

@@ -39,7 +39,7 @@ def query_replays_collection(
     """Query aggregated replay collection."""
     conditions = []
     if environment:
-        conditions.append(Condition("environment"), Op.IN, environment)
+        conditions.append(Condition(Column("environment"), Op.IN, environment))
 
     sort_ordering = make_sort_ordering(sort)
     paginators = make_pagination_values(limit, offset)
@@ -48,7 +48,7 @@ def query_replays_collection(
         project_ids=project_ids,
         start=start,
         end=end,
-        where=[],
+        where=conditions,
         sorting=sort_ordering,
         pagination=paginators,
     )
@@ -128,7 +128,7 @@ def make_select_statement() -> List[Union[Column, Function]]:
         _grouped_unique_scalar_value(column_name="title"),
         _grouped_unique_scalar_value(column_name="project_id", alias="agg_project_id"),
         _grouped_unique_scalar_value(column_name="platform"),
-        _grouped_unique_scalar_value(column_name="environment"),
+        _grouped_unique_scalar_value(column_name="environment", alias="agg_environment"),
         _grouped_unique_scalar_value(column_name="release"),
         _grouped_unique_scalar_value(column_name="dist"),
         _grouped_unique_scalar_value(column_name="user_id"),
