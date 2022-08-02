@@ -11,7 +11,7 @@ from sentry.types.activity import ActivityType
     Mock(return_value="some_conversation_id"),
 )
 @patch("sentry.integrations.msteams.MsTeamsAbstractClient.send_card")
-class MSTeamsAssignedNotificationTest(MSTeamsActivityNotificationTest):
+class MSTeamsUnassignedNotificationTest(MSTeamsActivityNotificationTest):
     def test_unassigned(self, mock_send_card: MagicMock):
         """
         Test that the card for MS Teams notification is generated correctly for issue unassignment.
