@@ -2,8 +2,8 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {inflate} from 'pako';
 
-import {IssueAttachment} from 'sentry/types';
-import {EventTransaction} from 'sentry/types/event';
+// import {IssueAttachment} from 'sentry/types';
+// import {EventTransaction} from 'sentry/types/event';
 import flattenListOfObjects from 'sentry/utils/replays/flattenListOfObjects';
 import useReplayErrors from 'sentry/utils/replays/hooks/useReplayErrors';
 import ReplayReader from 'sentry/utils/replays/replayReader';
@@ -13,6 +13,8 @@ import type {
   RecordingEvent,
   ReplayCrumb,
   ReplayError,
+  ReplayRecord,
+  ReplaySegment,
   ReplaySpan,
 } from 'sentry/views/replays/types';
 
@@ -23,11 +25,6 @@ type State = {
    * List of errors that occurred during replay
    */
   errors: undefined | ReplayError[];
-
-  /**
-   * The root replay event
-   */
-  event: undefined | EventTransaction;
 
   /**
    * If any request returned an error then nothing is being returned
@@ -44,6 +41,11 @@ type State = {
    * Are errors currently being fetched
    */
   isErrorsFetching: boolean;
+
+  /**
+   * The root replay event
+   */
+  replayRecord: undefined | ReplayRecord;
 
   /**
    * The flattened list of rrweb events. These are stored as multiple attachments on the root replay object: the `event` prop.
@@ -78,11 +80,6 @@ interface Result extends Pick<State, 'fetchError' | 'fetching'> {
   replay: ReplayReader | null;
 }
 
-const IS_RRWEB_ATTACHMENT_FILENAME = /rrweb-[0-9]{13}.json/;
-
-function isRRWebEventAttachment(attachment: IssueAttachment) {
-  return IS_RRWEB_ATTACHMENT_FILENAME.test(attachment.name);
-}
 export function mapRRWebAttachments(unsortedReplayAttachments): ReplayAttachment {
   const replayAttachments: ReplayAttachment = {
     breadcrumbs: [],
@@ -104,14 +101,15 @@ export function mapRRWebAttachments(unsortedReplayAttachments): ReplayAttachment
 }
 
 const INITIAL_STATE: State = Object.freeze({
+  breadcrumbs: undefined,
   errors: undefined,
-  event: undefined,
+  // event: undefined,
   fetchError: undefined,
   fetching: true,
   isErrorsFetching: true,
+  replayRecord: undefined,
   rrwebEvents: undefined,
   spans: undefined,
-  breadcrumbs: undefined,
 });
 
 /**
@@ -140,19 +138,20 @@ function useReplayData({eventSlug, orgId}: Options): Result {
 
   const fetchEvent = useCallback(() => {
     return api.requestPromise(
-      `/organizations/${orgId}/events/${eventSlug}/`
-    ) as Promise<EventTransaction>;
+      `/organizations/${orgId}/replays/${eventSlug}/`
+    ) as Promise<{data: ReplayRecord}>;
   }, [api, orgId, eventSlug]);
 
   const fetchRRWebEvents = useCallback(async () => {
-    const attachmentIds = (await api.requestPromise(
-      `/projects/${orgId}/${projectId}/events/${eventId}/attachments/`
-    )) as IssueAttachment[];
-    const rrwebAttachmentIds = attachmentIds.filter(isRRWebEventAttachment);
+    // can we use 'count_sequences' instead of making another (N) calls to list the segments available
+    const segments = (await api.requestPromise(
+      `/projects/${orgId}/${projectId}/replays/${eventId}/recording-segments/`
+    )) as ReplaySegment[];
+
     const attachments = await Promise.all(
-      rrwebAttachmentIds.map(async attachment => {
+      segments.map(async segment => {
         const response = await api.requestPromise(
-          `/api/0/projects/${orgId}/${projectId}/events/${eventId}/attachments/${attachment.id}/?download`,
+          `/api/0/projects/${orgId}/${projectId}/events/${eventId}/recording-segments/${segment.segment_id}/?download`,
           {
             includeAllArgs: true,
           }
@@ -201,11 +200,14 @@ function useReplayData({eventSlug, orgId}: Options): Result {
     setState(INITIAL_STATE);
 
     try {
-      const [event, attachments] = await Promise.all([fetchEvent(), fetchRRWebEvents()]);
+      const [replayResponse, attachments] = await Promise.all([
+        fetchEvent(),
+        fetchRRWebEvents(),
+      ]);
 
       setState(prev => ({
         ...prev,
-        event,
+        replayRecord: replayResponse.data,
         fetchError: undefined,
         fetching: prev.isErrorsFetching || false,
         rrwebEvents: attachments.recording,
@@ -228,13 +230,19 @@ function useReplayData({eventSlug, orgId}: Options): Result {
 
   const replay = useMemo(() => {
     return ReplayReader.factory({
-      event: state.event,
+      replayRecord: state.replayRecord,
       errors: state.errors,
       rrwebEvents: state.rrwebEvents,
       breadcrumbs: state.breadcrumbs,
       spans: state.spans,
     });
-  }, [state.event, state.rrwebEvents, state.breadcrumbs, state.spans, state.errors]);
+  }, [
+    state.replayRecord,
+    state.rrwebEvents,
+    state.breadcrumbs,
+    state.spans,
+    state.errors,
+  ]);
 
   return {
     fetchError: state.fetchError,

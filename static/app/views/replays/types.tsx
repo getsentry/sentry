@@ -33,6 +33,8 @@ export type ReplayRecord = {
   };
 };
 
+export type ReplaySegment = any;
+
 export type ReplayDiscoveryListItem = {
   eventID: string;
   id: string;
