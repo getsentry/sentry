@@ -519,15 +519,6 @@ if (
       overlay: false,
     },
   };
-  appConfig.experiments = {
-    lazyCompilation: {
-      // enable lazy compilation for dynamic imports
-      imports: true,
-
-      // disable lazy compilation for entries
-      entries: false,
-    },
-  };
 
   // Speed up warm cache dev-ui startup time
   appConfig.cache = {

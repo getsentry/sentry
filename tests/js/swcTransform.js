@@ -16,6 +16,7 @@ module.exports = createTransformer({
     },
     experimental: {
       plugins: [
+        ['@swc/plugin-jest', {}],
         [
           '@swc/plugin-emotion',
           {
