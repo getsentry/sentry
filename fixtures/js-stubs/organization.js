@@ -1,3 +1,5 @@
+import {OrgRoleList, TeamRoleList} from './roleList';
+
 export function Organization(params = {}) {
   return {
     id: '3',
@@ -30,5 +32,8 @@ export function Organization(params = {}) {
     teams: [],
     projects: [],
     ...params,
+
+    orgRoleList: OrgRoleList(),
+    teamRoleList: TeamRoleList(),
   };
 }

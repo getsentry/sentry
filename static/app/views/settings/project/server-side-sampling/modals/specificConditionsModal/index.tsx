@@ -292,7 +292,7 @@ export function SpecificConditionsModal({
         <Fields>
           <Description>
             {t(
-              'Using a Trace ID, select all Transactions distributed across multiple projects/services which match your conditions.'
+              'Sample transactions under specific conditions. Multiple conditions are logically expressed as AND and OR for multiple values.'
             )}
           </Description>
           <StyledPanel>
@@ -357,6 +357,7 @@ export function SpecificConditionsModal({
               }
             }}
             placeholder={'\u0025'}
+            step="10"
             value={samplePercentage}
             inline={false}
             hideControlState={!errors.sampleRate}
