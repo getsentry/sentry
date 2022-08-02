@@ -39,7 +39,7 @@ jobs:
         run: |
           cd getsentry
 
-          python -S -m bin.bump_sentry ${{ inputs.sentry_sha }}
+          python -S -m bin.bump_sentry ${{ github.sha }}
 
           # If getsentry is pushed to by any other means while we were here,
           # we won't be able to push.
