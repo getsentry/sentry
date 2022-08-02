@@ -10,13 +10,18 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import DiscoverQuery, {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import {getAggregateAlias, WebVital} from 'sentry/utils/discover/fields';
-import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {getAggregateAlias} from 'sentry/utils/discover/fields';
+import {WebVital} from 'sentry/utils/fields';
+import {
+  canUseMetricsData,
+  useMEPSettingContext,
+} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
+import {UNPARAMETERIZED_TRANSACTION} from 'sentry/views/performance/utils';
 import {vitalDetailRouteWithQuery} from 'sentry/views/performance/vitalDetail/utils';
 import {_VitalChart} from 'sentry/views/performance/vitalDetail/vitalChart';
 
@@ -113,6 +118,11 @@ export function VitalWidget(props: PerformanceWidgetProps) {
           }));
 
           _eventView.sorts = [{kind: 'desc', field: sortField}];
+          if (canUseMetricsData(organization)) {
+            _eventView.additionalConditions.setFilterValues('!transaction', [
+              UNPARAMETERIZED_TRANSACTION,
+            ]);
+          }
 
           _eventView.fields = [
             {field: 'transaction'},
@@ -127,7 +137,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
               {...provided}
               eventView={_eventView}
               location={props.location}
-              limit={3}
+              limit={4}
               cursor="0:0:1"
               noPagination
               queryExtras={getMEPQueryParams(mepSetting)}
@@ -272,8 +282,8 @@ export function VitalWidget(props: PerformanceWidgetProps) {
             <SelectableList
               selectedIndex={selectedListIndex}
               setSelectedIndex={setSelectListIndex}
-              items={provided.widgetData.list.data.map(listItem => () => {
-                const transaction = listItem?.transaction as string;
+              items={provided.widgetData.list.data.slice(0, 3).map(listItem => () => {
+                const transaction = (listItem?.transaction as string | undefined) ?? '';
                 const _eventView = eventView.clone();
 
                 const initialConditions = new MutableSearch(_eventView.query);

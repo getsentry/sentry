@@ -57,4 +57,18 @@ describe('NotificationSettings', function () {
     const fields = wrapper.find('Field');
     expect(fields).toHaveLength(9);
   });
+  it('renders active release monitor', function () {
+    const wrapper = createWrapper(
+      {
+        alerts: {user: {me: {email: 'never', slack: 'never'}}},
+        deploy: {user: {me: {email: 'never', slack: 'never'}}},
+        workflow: {user: {me: {email: 'never', slack: 'never'}}},
+      },
+      {features: ['active-release-monitor-alpha']}
+    );
+
+    // There are 9 notification setting Selects/Toggles.
+    const fields = wrapper.find('Field');
+    expect(fields).toHaveLength(9);
+  });
 });

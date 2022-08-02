@@ -147,7 +147,9 @@ class ReleaseSummaryActivityNotification(ActivityNotification):
     def title(self) -> str:
         return self.get_subject()
 
-    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
+    def get_notification_title(
+        self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
+    ) -> str:
         # TODO(workflow): Pass all projects as query parameters to issues link
         project_query = ""
         if self.release:
@@ -161,27 +163,43 @@ class ReleaseSummaryActivityNotification(ActivityNotification):
             f"/organizations/{self.organization.slug}/issues/?query={quote(f'firstRelease:{self.version}')}{project_query}&referrer=release_summary"
         )
         new_issue_counts = sum(self.group_counts_by_project.get(p.id, 0) for p in self.projects)
-        message = f"Release <{release_link}|{escape_slack_text(self.version_parsed)}> has been deployed to {self.environment} for an hour"
-        message += f" with <{issues_link}|{new_issue_counts} issues> associated with it"
+        release_url_text = self.format_url(
+            text=escape_slack_text(self.version_parsed), url=release_link, provider=provider
+        )
+        issue_url_text = self.format_url(
+            text=f"{new_issue_counts} issues", url=issues_link, provider=provider
+        )
+        message = (
+            f"Release {release_url_text} has been deployed to {self.environment} for an hour"
+            f" with {issue_url_text} associated with it"
+        )
+
         return message
 
-    def get_message_actions(self, recipient: Team | User) -> Sequence[MessageAction]:
+    def get_message_actions(
+        self, recipient: Team | User, provider: ExternalProviders
+    ) -> Sequence[MessageAction]:
         return []
 
     def build_attachment_title(self, recipient: Team | User) -> str:
         return ""
 
-    def get_title_link(self, recipient: Team | User) -> str | None:
+    def get_title_link(self, recipient: Team | User, provider: ExternalProviders) -> str | None:
         return None
 
-    def build_notification_footer(self, recipient: Team | User) -> str:
-        # notification footer only used for Slack for now
-        settings_url = self.get_settings_url(recipient, ExternalProviders.SLACK)
+    def build_notification_footer(self, recipient: Team | User, provider: ExternalProviders) -> str:
+        settings_url = self.get_settings_url(recipient, provider)
 
         # no environment related to a deploy
+        footer = ""
         if self.release:
-            return f"{self.release.projects.all()[0].slug} | <{settings_url}|Notification Settings>"
-        return f"<{settings_url}|Notification Settings>"
+            footer += f"{self.release.projects.all()[0].slug} | "
+
+        footer += (
+            f"{self.format_url(text='Notification Settings', url=settings_url, provider=provider)}"
+        )
+
+        return footer
 
     def send(self) -> None:
         # Don't create a message when the Activity doesn't have a release and deploy.

@@ -148,7 +148,9 @@ class Symbolicator:
             event_id=str(event_id),
             timeout=settings.SYMBOLICATOR_POLL_TIMEOUT,
             sources=get_sources_for_project(project),
-            options=get_options_for_project(project),
+            options={
+                "dif_candidates": True,
+            },
         )
 
         self.task_id_cache_key = _task_id_cache_key_for_event(project.id, event_id)
@@ -399,13 +401,6 @@ def redact_source_secrets(config_sources: json.JSONData) -> json.JSONData:
                 source[secret] = {"hidden-secret": True}
 
     return redacted_sources
-
-
-def get_options_for_project(project):
-    return {
-        # Symbolicators who do not support options will ignore this field entirely.
-        "dif_candidates": features.has("organizations:images-loaded-v2", project.organization),
-    }
 
 
 def get_sources_for_project(project):

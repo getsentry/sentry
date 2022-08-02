@@ -115,6 +115,8 @@ class GroupEventToolbar extends Component<Props> {
       evt.dateReceived &&
       Math.abs(+moment(evt.dateReceived) - +moment(evt.dateCreated)) > latencyThreshold;
 
+    const isPerformanceIssue = !!evt.contexts?.performance_issue;
+
     return (
       <StyledDataSection>
         <StyledNavigationButtonGroup
@@ -168,6 +170,7 @@ class GroupEventToolbar extends Component<Props> {
           group={group}
           organization={organization}
           location={location}
+          isPerformanceIssue={isPerformanceIssue}
         />
       </StyledDataSection>
     );
@@ -182,7 +185,16 @@ const StyledDataSection = styled(DataSection)`
   /* Fixes tooltips in toolbar having lower z-index than .btn-group .btn.active */
   z-index: 3;
 
-  @media (max-width: 767px) {
+  /* Padding aligns with Layout.Body */
+  padding-left: ${space(4)};
+  padding-right: ${space(4)};
+
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    padding-left: ${space(2)};
+    padding-right: ${space(2)};
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: none;
   }
 `;

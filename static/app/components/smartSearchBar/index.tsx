@@ -51,6 +51,7 @@ import {ItemType, SearchGroup, SearchItem, Shortcut, ShortcutType} from './types
 import {
   addSpace,
   createSearchGroups,
+  filterKeysFromQuery,
   generateOperatorEntryMap,
   getSearchGroupWithItemMarkedActive,
   getTagItemsFromKeys,
@@ -164,10 +165,6 @@ type Props = WithRouterProps & {
    * as the stream view where it is a top level concept
    */
   excludeEnvironment?: boolean;
-  /**
-   * A function to get documentation for a field
-   */
-  getFieldDoc?: (key: string) => React.ReactNode;
   /**
    * List user's recent searches
    */
@@ -283,6 +280,7 @@ type State = {
    * autocompletion for.
    */
   searchTerm: string;
+
   /**
    * Boolean indicating if dropdown should be shown
    */
@@ -852,6 +850,47 @@ class SmartSearchBar extends Component<Props, State> {
     return this.searchInput.current.selectionStart ?? -1;
   }
 
+  /**
+   * Get the search term at the current cursor position
+   */
+  get cursorSearchTerm() {
+    const cursorPosition = this.cursorPosition;
+    const cursorToken = this.cursorToken;
+
+    if (!cursorToken) {
+      return null;
+    }
+
+    const LIMITER_CHARS = [' ', ':'];
+
+    const innerStart = cursorPosition - cursorToken.location.start.offset;
+
+    let tokenStart = innerStart;
+    while (tokenStart > 0 && !LIMITER_CHARS.includes(cursorToken.text[tokenStart - 1])) {
+      tokenStart--;
+    }
+    let tokenEnd = innerStart;
+    while (
+      tokenEnd < cursorToken.text.length &&
+      !LIMITER_CHARS.includes(cursorToken.text[tokenEnd])
+    ) {
+      tokenEnd++;
+    }
+
+    let searchTerm = cursorToken.text.slice(tokenStart, tokenEnd);
+
+    if (searchTerm.startsWith(NEGATION_OPERATOR)) {
+      tokenStart++;
+    }
+    searchTerm = searchTerm.replace(new RegExp(`^${NEGATION_OPERATOR}`), '');
+
+    return {
+      end: cursorToken.location.start.offset + tokenEnd,
+      searchTerm,
+      start: cursorToken.location.start.offset + tokenStart,
+    };
+  }
+
   get filterTokens(): TokenResult<Token.Filter>[] {
     return (this.state.parsedQuery?.filter(tok => tok.type === Token.Filter) ??
       []) as TokenResult<Token.Filter>[];
@@ -885,17 +924,17 @@ class SmartSearchBar extends Component<Props, State> {
   /**
    * Returns array of possible key values that substring match `query`
    */
-  getTagKeys(query: string): [SearchItem[], ItemType] {
-    const {prepareQuery, supportedTagType, getFieldDoc} = this.props;
+  getTagKeys(searchTerm: string): [SearchItem[], ItemType] {
+    const {prepareQuery, supportedTagType} = this.props;
 
     const supportedTags = this.props.supportedTags ?? {};
 
-    let tagKeys = Object.keys(supportedTags);
+    let tagKeys = Object.keys(supportedTags).sort((a, b) => a.localeCompare(b));
 
-    if (query) {
-      const preparedQuery =
-        typeof prepareQuery === 'function' ? prepareQuery(query) : query;
-      tagKeys = tagKeys.filter(key => key.indexOf(preparedQuery) > -1);
+    if (searchTerm) {
+      const preparedSearchTerm = prepareQuery ? prepareQuery(searchTerm) : searchTerm;
+
+      tagKeys = filterKeysFromQuery(tagKeys, preparedSearchTerm);
     }
 
     // If the environment feature is active and excludeEnvironment = true
@@ -904,7 +943,7 @@ class SmartSearchBar extends Component<Props, State> {
       tagKeys = tagKeys.filter(key => key !== 'environment');
     }
 
-    const tagItems = getTagItemsFromKeys(tagKeys, supportedTags, getFieldDoc);
+    const tagItems = getTagItemsFromKeys(tagKeys, supportedTags);
 
     return [tagItems, supportedTagType ?? ItemType.TAG_KEY];
   }
@@ -1247,7 +1286,9 @@ class SmartSearchBar extends Component<Props, State> {
         }
 
         if (cursor === this.cursorPosition) {
-          this.setState({searchTerm: tagName});
+          this.setState({
+            searchTerm: tagName,
+          });
           this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
         }
         return;
@@ -1259,13 +1300,16 @@ class SmartSearchBar extends Component<Props, State> {
       return;
     }
 
-    if (cursorToken.type === Token.FreeText) {
-      const lastToken = cursorToken.text.trim().split(' ').pop() ?? '';
-      const keyText = lastToken.replace(new RegExp(`^${NEGATION_OPERATOR}`), '');
-      const autocompleteGroups = [await this.generateTagAutocompleteGroup(keyText)];
+    const cursorSearchTerm = this.cursorSearchTerm;
+    if (cursorToken.type === Token.FreeText && cursorSearchTerm) {
+      const autocompleteGroups = [
+        await this.generateTagAutocompleteGroup(cursorSearchTerm.searchTerm),
+      ];
 
       if (cursor === this.cursorPosition) {
-        this.setState({searchTerm: keyText});
+        this.setState({
+          searchTerm: cursorSearchTerm.searchTerm,
+        });
         this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
       }
       return;
@@ -1437,12 +1481,10 @@ class SmartSearchBar extends Component<Props, State> {
       }
     }
 
-    if (cursorToken.type === Token.FreeText) {
-      const startPos = cursorToken.location.start.offset;
-      clauseStart = cursorToken.text.startsWith(NEGATION_OPERATOR)
-        ? startPos + 1
-        : startPos;
-      clauseEnd = cursorToken.location.end.offset;
+    const cursorSearchTerm = this.cursorSearchTerm;
+    if (cursorToken.type === Token.FreeText && cursorSearchTerm) {
+      clauseStart = cursorSearchTerm.start;
+      clauseEnd = cursorSearchTerm.end;
     }
 
     if (clauseStart !== null && clauseEnd !== null) {
@@ -1556,6 +1598,7 @@ class SmartSearchBar extends Component<Props, State> {
         ref={this.containerRef}
         className={className}
         inputHasFocus={inputHasFocus}
+        data-test-id="smart-search-bar"
       >
         <SearchHotkeysListener
           visibleShortcuts={visibleShortcuts}

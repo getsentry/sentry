@@ -1,5 +1,5 @@
 import {FC, Fragment, useEffect, useRef} from 'react';
-import {browserHistory} from 'react-router';
+import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -10,7 +10,6 @@ import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
-import {GlobalSdkUpdateAlert} from 'sentry/components/globalSdkUpdateAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -28,10 +27,14 @@ import EventView from 'sentry/utils/discover/eventView';
 import {generateAggregateFields} from 'sentry/utils/discover/fields';
 import {GenericQueryBatcher} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {
+  MEPConsumer,
+  MEPSettingProvider,
+  MEPState,
+} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useTeams from 'sentry/utils/useTeams';
 
@@ -44,6 +47,8 @@ import {BackendView} from './views/backendView';
 import {FrontendOtherView} from './views/frontendOtherView';
 import {FrontendPageloadView} from './views/frontendPageloadView';
 import {MobileView} from './views/mobileView';
+import {MetricsDataSwitcher} from './metricsDataSwitcher';
+import {MetricsDataSwitcherAlert} from './metricsDataSwitcherAlert';
 import SamplingModal, {modalCss} from './samplingModal';
 import {
   getDefaultDisplayForPlatform,
@@ -61,6 +66,7 @@ type Props = {
   onboardingProject: Project | undefined;
   organization: Organization;
   projects: Project[];
+  router: InjectedRouter;
   selection: PageFilters;
   setError: (msg: string | undefined) => void;
   withStaticFilters: boolean;
@@ -107,6 +113,7 @@ export function PerformanceLanding(props: Props) {
         },
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventView.project.join('.')]);
 
   useEffect(() => {
@@ -115,7 +122,11 @@ export function PerformanceLanding(props: Props) {
 
   const getFreeTextFromQuery = (query: string) => {
     const conditions = new MutableSearch(query);
-    return decodeScalar(conditions.freeText, '');
+    const transactionValues = conditions.getFilterValues('transaction');
+    if (transactionValues.length) {
+      return transactionValues[0];
+    }
+    return '';
   };
 
   const derivedQuery = getTransactionSearchQuery(location, eventView.query);
@@ -153,11 +164,13 @@ export function PerformanceLanding(props: Props) {
     pageFilters = <SearchContainerWithFilter>{pageFilters}</SearchContainerWithFilter>;
   }
 
-  const SearchFilterContainer =
-    organization.features.includes('performance-use-metrics') &&
-    !organization.features.includes('performance-transaction-name-only-search')
-      ? SearchContainerWithFilterAndMetrics
-      : SearchContainerWithFilter;
+  const SearchFilterContainer = organization.features.includes('performance-use-metrics')
+    ? SearchContainerWithFilterAndMetrics
+    : SearchContainerWithFilter;
+
+  const shouldShowTransactionNameOnlySearch = organization.features.includes(
+    'performance-transaction-name-only-search'
+  );
 
   return (
     <StyledPageContent data-test-id="performance-landing-v3">
@@ -210,72 +223,90 @@ export function PerformanceLanding(props: Props) {
             ))}
           </Layout.HeaderNavTabs>
         </Layout.Header>
-        <Layout.Body>
+        <Layout.Body data-test-id="performance-landing-body">
           <Layout.Main fullWidth>
-            <GlobalSdkUpdateAlert />
-            <PageErrorAlert />
-            {showOnboarding ? (
-              <Fragment>
-                {pageFilters}
-                <Onboarding organization={organization} project={onboardingProject} />
-              </Fragment>
-            ) : (
-              <Fragment>
-                <SearchFilterContainer>
-                  {pageFilters}
-                  <Feature
-                    features={['organizations:performance-transaction-name-only-search']}
-                  >
-                    {({hasFeature}) =>
-                      hasFeature ? (
-                        // TODO replace `handleSearch prop` with transaction name search once
-                        // transaction name search becomes the default search bar
-                        <TransactionNameSearchBar
-                          organization={organization}
-                          location={location}
-                          eventView={eventView}
-                          onSearch={handleSearch}
-                          query={searchQuery}
-                        />
-                      ) : (
-                        <SearchBar
-                          searchSource="performance_landing"
-                          organization={organization}
-                          projectIds={eventView.project}
-                          query={searchQuery}
-                          fields={generateAggregateFields(
-                            organization,
-                            [...eventView.fields, {field: 'tps()'}],
-                            ['epm()', 'eps()']
-                          )}
-                          onSearch={handleSearch}
-                          maxQueryLength={MAX_QUERY_LENGTH}
-                        />
-                      )
-                    }
-                  </Feature>
-                  <Feature
-                    features={['organizations:performance-transaction-name-only-search']}
-                  >
-                    {({hasFeature}) => !hasFeature && <MetricsEventsDropdown />}
-                  </Feature>
-                </SearchFilterContainer>
-                {initiallyLoaded ? (
-                  <TeamKeyTransactionManager.Provider
+            <MetricsDataSwitcher
+              organization={organization}
+              eventView={eventView}
+              location={location}
+            >
+              {metricsDataSide => (
+                <MEPSettingProvider
+                  location={location}
+                  forceTransactions={metricsDataSide.forceTransactionsOnly}
+                >
+                  <MetricsDataSwitcherAlert
                     organization={organization}
-                    teams={teams}
-                    selectedTeams={['myteams']}
-                    selectedProjects={eventView.project.map(String)}
-                  >
-                    <GenericQueryBatcher>
-                      <ViewComponent {...props} />
-                    </GenericQueryBatcher>
-                  </TeamKeyTransactionManager.Provider>
-                ) : (
-                  <LoadingIndicator />
-                )}
-              </Fragment>
-            )}
+                    eventView={eventView}
+                    projects={projects}
+                    location={location}
+                    router={props.router}
+                    {...metricsDataSide}
+                  />
+                  <PageErrorAlert />
+                  {showOnboarding ? (
+                    <Fragment>
+                      {pageFilters}
+                      <Onboarding
+                        organization={organization}
+                        project={onboardingProject}
+                      />
+                    </Fragment>
+                  ) : (
+                    <Fragment>
+                      <SearchFilterContainer>
+                        {pageFilters}
+                        <MEPConsumer>
+                          {({metricSettingState}) =>
+                            metricSettingState === MEPState.metricsOnly &&
+                            shouldShowTransactionNameOnlySearch ? (
+                              // TODO replace `handleSearch prop` with transaction name search once
+                              // transaction name search becomes the default search bar
+                              <TransactionNameSearchBar
+                                organization={organization}
+                                location={location}
+                                eventView={eventView}
+                                onSearch={handleSearch}
+                                query={searchQuery}
+                              />
+                            ) : (
+                              <SearchBar
+                                searchSource="performance_landing"
+                                organization={organization}
+                                projectIds={eventView.project}
+                                query={searchQuery}
+                                fields={generateAggregateFields(
+                                  organization,
+                                  [...eventView.fields, {field: 'tps()'}],
+                                  ['epm()', 'eps()']
+                                )}
+                                onSearch={handleSearch}
+                                maxQueryLength={MAX_QUERY_LENGTH}
+                              />
+                            )
+                          }
+                        </MEPConsumer>
+                        <MetricsEventsDropdown />
+                      </SearchFilterContainer>
+                      {initiallyLoaded ? (
+                        <TeamKeyTransactionManager.Provider
+                          organization={organization}
+                          teams={teams}
+                          selectedTeams={['myteams']}
+                          selectedProjects={eventView.project.map(String)}
+                        >
+                          <GenericQueryBatcher>
+                            <ViewComponent {...props} />
+                          </GenericQueryBatcher>
+                        </TeamKeyTransactionManager.Provider>
+                      ) : (
+                        <LoadingIndicator />
+                      )}
+                    </Fragment>
+                  )}
+                </MEPSettingProvider>
+              )}
+            </MetricsDataSwitcher>
           </Layout.Main>
         </Layout.Body>
       </PageErrorProvider>

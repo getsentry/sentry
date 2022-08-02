@@ -13,12 +13,13 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import EventView from 'sentry/utils/discover/eventView';
 import {Field} from 'sentry/utils/discover/fields';
 import {DisplayModes} from 'sentry/utils/discover/types';
+import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import useOrganization from 'sentry/utils/useOrganization';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import {GenericPerformanceWidgetDataType} from '../types';
-import {_setChartSetting, getChartSetting} from '../utils';
+import {_setChartSetting, filterAllowedChartsMetrics, getChartSetting} from '../utils';
 import {
   ChartDefinition,
   PerformanceWidgetSetting,
@@ -65,7 +66,6 @@ const _WidgetContainer = (props: Props) => {
     organization,
     index,
     chartHeight,
-    allowedCharts,
     rowChartSettings,
     setRowChartSettings,
     ...rest
@@ -77,6 +77,12 @@ const _WidgetContainer = (props: Props) => {
     performanceType,
     rest.defaultChartSetting,
     rest.forceDefaultChartSetting
+  );
+  const mepSetting = useMEPSettingContext();
+  const allowedCharts = filterAllowedChartsMetrics(
+    props.organization,
+    props.allowedCharts,
+    mepSetting
   );
 
   if (!allowedCharts.includes(_chartSetting)) {
@@ -103,7 +109,7 @@ const _WidgetContainer = (props: Props) => {
 
   useEffect(() => {
     setChartSettingState(_chartSetting);
-  }, [rest.defaultChartSetting]);
+  }, [rest.defaultChartSetting, _chartSetting]);
 
   const chartDefinition = WIDGET_DEFINITIONS({organization})[chartSetting];
 
@@ -119,7 +125,7 @@ const _WidgetContainer = (props: Props) => {
       <WidgetContainerActions
         {...containerProps}
         eventView={widgetEventView}
-        allowedCharts={props.allowedCharts}
+        allowedCharts={allowedCharts}
         chartSetting={chartSetting}
         setChartSetting={setChartSetting}
         rowChartSettings={rowChartSettings}

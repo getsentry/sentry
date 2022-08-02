@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
-import {measurementType, MobileVital, WebVital} from 'sentry/utils/discover/fields';
+import {measurementType} from 'sentry/utils/discover/fields';
+import {MobileVital, WebVital} from 'sentry/utils/fields';
 import {Vital} from 'sentry/utils/performance/vitals/types';
 
 export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {

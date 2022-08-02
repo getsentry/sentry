@@ -11,10 +11,11 @@ type Props = {
 };
 
 function Scrubber({className}: Props) {
-  const {currentHoverTime, currentTime, duration, setCurrentTime} = useReplayContext();
+  const {currentHoverTime, currentTime, replay, setCurrentTime} = useReplayContext();
+  const durationMs = replay?.getDurationMs();
 
-  const percentComplete = divide(currentTime, duration);
-  const hoverPlace = divide(currentHoverTime || 0, duration);
+  const percentComplete = divide(currentTime, durationMs);
+  const hoverPlace = divide(currentHoverTime || 0, durationMs);
 
   return (
     <Wrapper className={className}>
@@ -26,7 +27,7 @@ function Scrubber({className}: Props) {
         <Range
           name="replay-timeline"
           min={0}
-          max={duration}
+          max={durationMs}
           value={Math.round(currentTime)}
           onChange={value => setCurrentTime(value || 0)}
           showLabel={false}
@@ -68,13 +69,9 @@ const Range = styled(RangeSlider)`
   }
 `;
 
-const PlaybackTimeValue = styled(Progress.Value)`
-  background: ${p => p.theme.purple100};
-`;
-
-const MouseTrackingValue = styled(Progress.Value)`
-  background: ${p => p.theme.purple100};
-`;
+// Need the named value so we can target it separatly from PlaybackTimeValue
+const PlaybackTimeValue = styled(Progress.Value)``;
+const MouseTrackingValue = styled(Progress.Value)``;
 
 const Wrapper = styled('div')`
   position: relative;
@@ -85,24 +82,6 @@ const Wrapper = styled('div')`
     position: absolute;
     top: 0;
     left: 0;
-  }
-
-  ${MouseTrackingValue}:after {
-    content: '';
-    display: block;
-    width: ${space(0.5)};
-    height: ${space(1.5)};
-    pointer-events: none;
-    background: ${p => p.theme.purple200};
-    box-sizing: content-box;
-    position: absolute;
-    top: -${space(0.5)};
-    right: -1px;
-  }
-
-  :hover ${MouseTrackingValue}:after {
-    height: ${space(2)};
-    top: -${space(0.5)};
   }
 `;
 
@@ -116,26 +95,5 @@ export const PlayerScrubber = styled(Scrubber)`
   :hover {
     margin-block: -${space(0.25)};
     height: ${space(1)};
-  }
-  ${PlaybackTimeValue}:after {
-    content: '';
-    display: block;
-    width: ${space(2)};
-    height: ${space(2)}; /* equal to width */
-    z-index: ${p => p.theme.zIndex.initial};
-    pointer-events: none;
-    background: ${p => p.theme.purple300};
-    box-sizing: content-box;
-    border-radius: ${space(2)}; /* greater than or equal to width */
-    border: solid ${p => p.theme.white};
-    border-width: ${space(0.5)};
-    position: absolute;
-    top: -${space(1)}; /* Half the width */
-    right: -${space(1.5)}; /* Half of (width + borderWidth) */
-    opacity: 0;
-    transition: opacity 0.1s ease;
-  }
-  :hover ${PlaybackTimeValue}:after {
-    opacity: 1;
   }
 `;

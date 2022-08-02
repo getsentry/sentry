@@ -3,8 +3,8 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {openModal} from 'sentry/actionCreators/modal';
 import DebugImageDetails, {
   modalCss,
-} from 'sentry/components/events/interfaces/debugMeta-v2/debugImageDetails';
-import {getFileName} from 'sentry/components/events/interfaces/debugMeta-v2/utils';
+} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails';
+import {getFileName} from 'sentry/components/events/interfaces/debugMeta/utils';
 import GlobalModal from 'sentry/components/globalModal';
 
 describe('Debug Meta - Image Details Candidates', function () {

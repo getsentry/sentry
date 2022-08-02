@@ -2,10 +2,10 @@ import re
 
 import pytest
 
-from sentry.integrations.msteams.card_builder import build_group_card
 from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
 from sentry.integrations.msteams.card_builder.block import (
     ActionType,
+    ImageSize,
     TextSize,
     TextWeight,
     create_action_block,
@@ -31,10 +31,18 @@ from sentry.integrations.msteams.card_builder.installation import (
     build_personal_installation_message,
     build_welcome_card,
 )
+from sentry.integrations.msteams.card_builder.issues import MSTeamsIssueMessageBuilder
+from sentry.integrations.msteams.card_builder.notifications import (
+    MSTeamsNotificationsMessageBuilder,
+)
 from sentry.models import Integration, Organization, OrganizationIntegration, Rule
 from sentry.models.group import GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.notifications import (
+    DummyNotification,
+    DummyNotificationWithMoreFields,
+)
 from sentry.utils import json
 
 
@@ -185,6 +193,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert 1 == len(linked_card["body"])
         columns = linked_card["body"][0]["columns"]
         assert "Image" == columns[0]["items"][0]["type"]
+        assert ImageSize.LARGE == columns[0]["items"][0]["size"]
 
     def test_link_identity_message(self):
         url = "test-url"
@@ -214,9 +223,9 @@ class MSTeamsMessageBuilderTest(TestCase):
         self.group1.data["metadata"].update({"value": "some error"})
         self.event1.data["type"] = self.group1.data["type"] = "error"
 
-        issue_card = build_group_card(
+        issue_card = MSTeamsIssueMessageBuilder(
             group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
-        )
+        ).build_group_card()
 
         body = issue_card["body"]
         assert 4 == len(body)
@@ -272,7 +281,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         for action in actions:
             assert ActionType.SHOW_CARD == action["type"]
             card_body = action["card"]["body"]
-            assert 1 <= len(card_body)
+            assert 2 == len(card_body)
             assert "Input.ChoiceSet" == card_body[-1]["type"]
 
         resolve_action, ignore_action, assign_action = actions
@@ -280,22 +289,32 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert "Ignore" == ignore_action["title"]
         assert "Assign" == assign_action["title"]
 
+        body = ignore_action["card"]["body"]
+        assert 2 == len(body)
+        assert "Ignore until this happens again..." == body[0]["text"]
+        assert "Ignore" == ignore_action["card"]["actions"][0]["title"]
+
+        body = assign_action["card"]["body"]
+        assert 2 == len(body)
+        assert "Assign to..." == body[0]["text"]
+        assert "Assign" == assign_action["card"]["actions"][0]["title"]
+
         # Check if card is serializable to json
         card_json = json.dumps(issue_card)
         assert card_json[0] == "{" and card_json[-1] == "}"
 
     def test_issue_without_description(self):
-        issue_card = build_group_card(
+        issue_card = MSTeamsIssueMessageBuilder(
             group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
-        )
+        ).build_group_card()
 
         assert 3 == len(issue_card["body"])
 
     def test_issue_with_only_one_rule(self):
         one_rule = self.rules[:1]
-        issue_card = build_group_card(
+        issue_card = MSTeamsIssueMessageBuilder(
             group=self.group1, event=self.event1, rules=one_rule, integration=self.integration
-        )
+        ).build_group_card()
 
         issue_id_and_rule = issue_card["body"][1]["columns"][1]["items"][0]
 
@@ -306,9 +325,9 @@ class MSTeamsMessageBuilderTest(TestCase):
         self.group1.status = GroupStatus.RESOLVED
         self.group1.save()
 
-        issue_card = build_group_card(
+        issue_card = MSTeamsIssueMessageBuilder(
             group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
-        )
+        ).build_group_card()
 
         action_set = issue_card["body"][2]["items"][0]
 
@@ -319,9 +338,9 @@ class MSTeamsMessageBuilderTest(TestCase):
     def test_ignored_issue_message(self):
         self.group1.status = GroupStatus.IGNORED
 
-        issue_card = build_group_card(
+        issue_card = MSTeamsIssueMessageBuilder(
             group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
-        )
+        ).build_group_card()
 
         action_set = issue_card["body"][2]["items"][0]
 
@@ -332,9 +351,9 @@ class MSTeamsMessageBuilderTest(TestCase):
     def test_assigned_issue_message(self):
         GroupAssignee.objects.assign(self.group1, self.user)
 
-        issue_card = build_group_card(
+        issue_card = MSTeamsIssueMessageBuilder(
             group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
-        )
+        ).build_group_card()
 
         body = issue_card["body"]
         assert 4 == len(body)
@@ -348,3 +367,62 @@ class MSTeamsMessageBuilderTest(TestCase):
         assign_action = action_set["actions"][2]
         assert ActionType.SUBMIT == assign_action["type"]
         assert "Unassign" == assign_action["title"]
+
+
+class MSTeamsNotificationMessageBuilderTest(TestCase):
+    def setUp(self):
+        owner = self.create_user()
+        self.org = self.create_organization(owner=owner)
+
+        self.notification = DummyNotificationWithMoreFields(self.org)
+        self.project1 = self.create_project(organization=self.org)
+        self.group1 = self.create_group(project=self.project1)
+
+        self.notification.group = self.group1
+        self.context = {"some_field": "some_value"}
+        self.recipient = owner
+
+    def test_simple(self):
+        notification_card = MSTeamsNotificationsMessageBuilder(
+            self.notification,
+            self.context,
+            self.recipient,
+        ).build_notification_card()
+
+        body = notification_card["body"]
+        assert 4 == len(body)
+
+        title = body[0]
+        assert "Notification Title with some_value" == title["text"]
+
+        group_title = body[1]
+        assert "[My Title]" in group_title["text"]
+        assert TextSize.LARGE == group_title["size"]
+        assert TextWeight.BOLDER == group_title["weight"]
+
+        description = body[2]
+        assert "Message Description" in description["text"]
+        assert TextSize.MEDIUM == description["size"]
+
+        footer = body[3]
+        assert 2 == len(footer)
+
+        logo = footer["columns"][0]["items"][0]
+        assert "Image" == logo["type"]
+        assert "20px" == logo["height"]
+
+        footer_text = footer["columns"][1]["items"][0]
+        assert "Notification Footer" in footer_text["text"]
+        assert TextSize.SMALL == footer_text["size"]
+
+    def test_without_footer(self):
+        dummy_notification = DummyNotification(self.org)
+        dummy_notification.group = self.group1
+
+        notification_card = MSTeamsNotificationsMessageBuilder(
+            dummy_notification,
+            self.context,
+            self.recipient,
+        ).build_notification_card()
+
+        assert 3 == len(notification_card["body"])
