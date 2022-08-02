@@ -168,8 +168,6 @@ function ProjectPageFilter({
         onStepComplete={actions.open}
       >
         <PageFilterDropdownButton
-          detached
-          hideBottomBorder={false}
           isOpen={isOpen}
           highlighted={desyncedFilters.has('projects')}
           data-test-id="page-filter-project-selector"

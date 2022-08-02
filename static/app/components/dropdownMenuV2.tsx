@@ -15,9 +15,9 @@ import {mergeProps} from '@react-aria/utils';
 import {useTreeState} from '@react-stately/tree';
 import {Node} from '@react-types/shared';
 
-import MenuControl from 'sentry/components/dropdownMenuControlV2';
-import MenuItem, {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
-import MenuSection from 'sentry/components/dropdownMenuSectionV2';
+import MenuControl from 'sentry/components/dropdownMenuControl';
+import MenuItem, {MenuItemProps} from 'sentry/components/dropdownMenuItem';
+import MenuSection from 'sentry/components/dropdownMenuSection';
 import space from 'sentry/styles/space';
 
 type Props = {

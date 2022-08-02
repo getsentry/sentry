@@ -120,11 +120,11 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
 
-            self.browser.element('[aria-haspopup="true"]').click()
+            self.browser.element('[aria-label="Widget actions"]').click()
             self.browser.element('[data-test-id="duplicate-widget"]').click()
             self.page.wait_until_loaded()
 
-            self.browser.element('[aria-haspopup="true"]').click()
+            self.browser.element('[aria-label="Widget actions"]').click()
             self.browser.element('[data-test-id="duplicate-widget"]').click()
             self.page.wait_until_loaded()
 
@@ -134,7 +134,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
 
-            self.browser.element('[aria-haspopup="true"]').click()
+            self.browser.element('[aria-label="Widget actions"]').click()
             self.browser.element('[data-test-id="delete-widget"]').click()
             self.browser.element('[data-test-id="confirm-button"]').click()
 
@@ -507,11 +507,11 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
 
-            self.browser.element('[aria-haspopup="true"]').click()
+            self.browser.element('[aria-label="Widget actions"]').click()
             self.browser.element('[data-test-id="duplicate-widget"]').click()
             self.page.wait_until_loaded()
 
-            self.browser.element('[aria-haspopup="true"]').click()
+            self.browser.element('[aria-label="Widget actions"]').click()
             self.browser.element('[data-test-id="duplicate-widget"]').click()
             self.page.wait_until_loaded()
 
@@ -542,7 +542,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
 
-            self.browser.element('[aria-haspopup="true"]').click()
+            self.browser.element('[aria-label="Widget actions"]').click()
             self.browser.element('[data-test-id="delete-widget"]').click()
             self.browser.element('[data-test-id="confirm-button"]').click()
 
@@ -680,7 +680,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
         ):
             self.page.visit_dashboard_detail()
 
-            dropdown_trigger = self.browser.element('[aria-haspopup="true"]')
+            dropdown_trigger = self.browser.element('[aria-label="Widget actions"]')
             dropdown_trigger.click()
 
             delete_widget_menu_item = self.browser.element('[data-test-id="delete-widget"]')
@@ -734,7 +734,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.visit_dashboard_detail()
 
             # Open edit modal for first widget
-            dropdown_trigger = self.browser.element('[aria-haspopup="true"]')
+            dropdown_trigger = self.browser.element('[aria-label="Widget actions"]')
             dropdown_trigger.click()
             edit_widget_menu_item = self.browser.element('[data-test-id="edit-widget"]')
             edit_widget_menu_item.click()
@@ -784,7 +784,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.visit_dashboard_detail()
 
             # Open edit modal for first widget
-            dropdown_trigger = self.browser.element('[aria-haspopup="true"]')
+            dropdown_trigger = self.browser.element('[aria-label="Widget actions"]')
             dropdown_trigger.click()
             edit_widget_menu_item = self.browser.element('[data-test-id="edit-widget"]')
             edit_widget_menu_item.click()
@@ -834,7 +834,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.visit_dashboard_detail()
 
             # Open edit modal for first widget
-            dropdown_trigger = self.browser.element('[aria-haspopup="true"]')
+            dropdown_trigger = self.browser.element('[aria-label="Widget actions"]')
             dropdown_trigger.click()
             edit_widget_menu_item = self.browser.element('[data-test-id="edit-widget"]')
             edit_widget_menu_item.click()

@@ -5,7 +5,7 @@ import Access from 'sentry/components/acl/access';
 import Badge from 'sentry/components/badge';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import DropdownButtonV2 from 'sentry/components/dropdownButtonV2';
+import DropdownButton from 'sentry/components/dropdownButton';
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import {ControlProps} from 'sentry/components/forms/selectControl';
 import QueryCount from 'sentry/components/queryCount';
@@ -182,7 +182,7 @@ const StyledCompactSelect = styled(CompactSelect)<{isActive?: boolean}>`
   border-bottom-color: ${p => (p.isActive ? p.theme.active : 'transparent')};
 `;
 
-const StyledDropdownTrigger = styled(DropdownButtonV2)<{isActive?: boolean}>`
+const StyledDropdownTrigger = styled(DropdownButton)<{isActive?: boolean}>`
   display: flex;
   height: calc(1.25rem - 2px);
   align-items: center;

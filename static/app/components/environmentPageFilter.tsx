@@ -64,8 +64,6 @@ function EnvironmentPageFilter({
 
     return (
       <PageFilterDropdownButton
-        detached
-        hideBottomBorder={false}
         isOpen={isOpen}
         highlighted={desyncedFilters.has('environments')}
         data-test-id="page-filter-environment-selector"
