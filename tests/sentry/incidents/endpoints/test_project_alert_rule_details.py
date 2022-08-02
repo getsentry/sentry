@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+import pytest
 import responses
 from rest_framework.exceptions import ErrorDetail
 
@@ -336,7 +337,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         }
         # XXX: What message does the UI show?
 
-    @responses.activate
+    @pytest.skip
     def test_create_slack_alert_with_missing_channel_name(self):
         """
         TODO
