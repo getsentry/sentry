@@ -8,7 +8,7 @@ import {resetPageFilters} from 'sentry/actionCreators/pageFilters';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
-import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControl';
+import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Pagination from 'sentry/components/pagination';
@@ -104,7 +104,7 @@ class QueryList extends Component<Props> {
 
   renderDropdownMenu(items: MenuItemProps[]) {
     return (
-      <DropdownMenuControlV2
+      <DropdownMenuControl
         items={items}
         trigger={({props: triggerProps, ref: triggerRef}) => (
           <DropdownTrigger

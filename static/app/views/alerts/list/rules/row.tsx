@@ -9,7 +9,7 @@ import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownBubble from 'sentry/components/dropdownBubble';
-import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControl';
+import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Highlight from 'sentry/components/highlight';
@@ -392,7 +392,7 @@ function RuleListRow({
       <ActionsRow>
         <Access access={['alerts:write']}>
           {({hasAccess}) => (
-            <DropdownMenuControlV2
+            <DropdownMenuControl
               items={actions}
               placement="bottom right"
               triggerProps={{
