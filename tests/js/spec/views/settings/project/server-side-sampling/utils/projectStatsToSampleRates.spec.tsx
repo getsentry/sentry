@@ -3,8 +3,8 @@ import {projectStatsToSampleRates} from 'sentry/views/settings/project/server-si
 describe('projectStatsToSampleRates', function () {
   it('returns correct sample rates', function () {
     expect(projectStatsToSampleRates(TestStubs.Outcomes())).toEqual({
-      hoursOverLimit: 18,
-      maxSafeSampleRate: 0.3,
+      hoursOverLimit: 1,
+      maxSafeSampleRate: 0.95,
       trueSampleRate: 1,
     });
   });
