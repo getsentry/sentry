@@ -16,7 +16,7 @@ jobs:
       - name: checkout
         uses: actions/checkout@d0651293c4a5a52e711f25b41b05b2212f385d28  # v3
         with:
-          # For bin/bump-sentry, sentry needs to be at ../sentry relative to getsentry.
+          # For getsentry/bin/bump-sentry, sentry needs to be at ../sentry relative to getsentry.
           path: sentry
 
       - name: checkout getsentry
