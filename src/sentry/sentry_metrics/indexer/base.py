@@ -35,7 +35,7 @@ KR = TypeVar("KR", bound="KeyResult")
 
 @dataclass(frozen=True)
 class Metadata:
-    id: int
+    id: Optional[int]
     fetch_type: FetchType
     fetch_type_ext: Optional[FetchTypeExt] = None
 
@@ -44,7 +44,7 @@ class Metadata:
 class KeyResult:
     org_id: int
     string: str
-    id: int
+    id: Optional[int]
 
     @classmethod
     def from_string(cls: Type[KR], key: str, id: int) -> KR:
@@ -97,7 +97,7 @@ class KeyCollection:
 
 class KeyResults:
     def __init__(self) -> None:
-        self.results: MutableMapping[int, MutableMapping[str, int]] = defaultdict(dict)
+        self.results: MutableMapping[int, MutableMapping[str, Optional[int]]] = defaultdict(dict)
         self.meta: MutableMapping[int, MutableMapping[str, Metadata]] = defaultdict(dict)
 
     def add_key_result(
@@ -125,7 +125,7 @@ class KeyResults:
                     id=key_result.id, fetch_type=fetch_type, fetch_type_ext=fetch_type_ext
                 )
 
-    def get_mapped_results(self) -> Mapping[int, Mapping[str, int]]:
+    def get_mapped_results(self) -> Mapping[int, Mapping[str, Optional[int]]]:
         """
         Only return results that have org_ids with string/int mappings.
         """
@@ -186,7 +186,7 @@ class KeyResults:
         return new_results
 
     # For brevity, allow callers to address the mapping directly
-    def __getitem__(self, org_id: int) -> Mapping[str, int]:
+    def __getitem__(self, org_id: int) -> Mapping[str, Optional[int]]:
         return self.results[org_id]
 
 
@@ -205,7 +205,7 @@ class StringIndexer(Service):
     ) -> KeyResults:
         raise NotImplementedError()
 
-    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> int:
+    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
         """Store a string and return the integer ID generated for it
 
         With every call to this method, the lifetime of the entry will be
