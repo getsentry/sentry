@@ -578,9 +578,6 @@ class MetricsDatasetConfig(DatasetConfig):
 
     @cached_property
     def _resolve_project_threshold_config(self) -> SelectType:
-        """This is mostly duplicated code from the discover dataset version
-        TODO: try to make this more DRY with the discover version
-        """
         org_id = self.builder.params.get("organization_id")
         project_ids = self.builder.params.get("project_id")
 
@@ -590,7 +587,7 @@ class MetricsDatasetConfig(DatasetConfig):
                 project_id__in=project_ids,
             )
             .order_by("project_id")
-            .values_list("project_id", "threshold", "metric")
+            .values_list("project_id", "metric")
         )
 
         transaction_threshold_configs = (
@@ -599,7 +596,7 @@ class MetricsDatasetConfig(DatasetConfig):
                 project_id__in=project_ids,
             )
             .order_by("project_id")
-            .values_list("transaction", "project_id", "threshold", "metric")
+            .values_list("transaction", "project_id", "metric")
         )
 
         num_project_thresholds = project_threshold_configs.count()
@@ -629,36 +626,28 @@ class MetricsDatasetConfig(DatasetConfig):
         project_thresholds = {}
         project_threshold_config_keys = []
         project_threshold_config_values = []
-        for project_id, threshold, metric in project_threshold_configs:
+        for project_id, metric in project_threshold_configs:
             metric = TRANSACTION_METRICS[metric]
-            if (
-                threshold == constants.DEFAULT_PROJECT_THRESHOLD
-                and metric == constants.DEFAULT_PROJECT_THRESHOLD_METRIC
-            ):
+            if metric == constants.DEFAULT_PROJECT_THRESHOLD_METRIC:
                 # small optimization, if the configuration is equal to the default,
                 # we can skip it in the final query
                 continue
 
-            project_thresholds[project_id] = (metric, threshold)
+            project_thresholds[project_id] = metric
             project_threshold_config_keys.append(Function("toUInt64", [project_id]))
-            project_threshold_config_values.append((metric, threshold))
+            project_threshold_config_values.append(metric)
 
         project_threshold_override_config_keys = []
         project_threshold_override_config_values = []
-        for transaction, project_id, threshold, metric in transaction_threshold_configs:
+        for transaction, project_id, metric in transaction_threshold_configs:
             metric = TRANSACTION_METRICS[metric]
-            if (
-                project_id in project_thresholds
-                and threshold == project_thresholds[project_id][1]
-                and metric == project_thresholds[project_id][0]
-            ):
+            if project_id in project_thresholds and metric == project_thresholds[project_id][0]:
                 # small optimization, if the configuration is equal to the project
                 # configs, we can skip it in the final query
                 continue
 
             elif (
                 project_id not in project_thresholds
-                and threshold == constants.DEFAULT_PROJECT_THRESHOLD
                 and metric == constants.DEFAULT_PROJECT_THRESHOLD_METRIC
             ):
                 # small optimization, if the configuration is equal to the default
@@ -672,7 +661,7 @@ class MetricsDatasetConfig(DatasetConfig):
             project_threshold_override_config_keys.append(
                 (Function("toUInt64", [project_id]), (Function("toUInt64", [transaction_id])))
             )
-            project_threshold_override_config_values.append((metric, threshold))
+            project_threshold_override_config_values.append(metric)
 
         project_threshold_config_index: SelectType = Function(
             "indexOf",
@@ -704,10 +693,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                 0,
                             ],
                         ),
-                        (
-                            constants.DEFAULT_PROJECT_THRESHOLD_METRIC,
-                            constants.DEFAULT_PROJECT_THRESHOLD,
-                        ),
+                        constants.DEFAULT_PROJECT_THRESHOLD_METRIC,
                         Function(
                             "arrayElement",
                             [
@@ -720,9 +706,8 @@ class MetricsDatasetConfig(DatasetConfig):
                 )
 
             return Function(
-                "tuple",
-                [constants.DEFAULT_PROJECT_THRESHOLD_METRIC, constants.DEFAULT_PROJECT_THRESHOLD],
-                alias,
+                "toString",
+                [constants.DEFAULT_PROJECT_THRESHOLD_METRIC],
             )
 
         if project_threshold_override_config_keys and project_threshold_override_config_values:
@@ -762,10 +747,7 @@ class MetricsDatasetConfig(DatasetConfig):
                 Function(
                     "equals",
                     [
-                        Function(
-                            "tupleElement",
-                            [self.builder.resolve_field_alias("project_threshold_config"), 1],
-                        ),
+                        self.builder.resolve_field_alias("project_threshold_config"),
                         "lcp",
                     ],
                 ),
