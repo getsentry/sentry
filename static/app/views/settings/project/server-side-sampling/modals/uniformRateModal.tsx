@@ -106,9 +106,11 @@ function UniformRateModal({
     if (loading) {
       return;
     }
+
     const clientDiscard = projectStats30d?.groups.some(
       g => g.by.outcome === Outcome.CLIENT_DISCARD
     );
+
     setActiveStep(
       clientDiscard ? Step.SET_UNIFORM_SAMPLE_RATE : Step.SET_CURRENT_CLIENT_SAMPLE_RATE
     );
@@ -285,10 +287,9 @@ function UniformRateModal({
         onReadDocs={onReadDocs}
         organization={organization}
         projectId={project.id}
-        onGoNext={value => {
-          setSpecifiedClientRate(Number(value));
-          setActiveStep(Step.SET_UNIFORM_SAMPLE_RATE);
-        }}
+        value={specifiedClientRate}
+        onChange={setSpecifiedClientRate}
+        onGoNext={() => setActiveStep(Step.SET_UNIFORM_SAMPLE_RATE)}
       />
     );
   }

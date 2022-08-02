@@ -1,6 +1,4 @@
-import 'prism-sentry/index.css';
-
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -8,6 +6,7 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t, tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 import {isValidSampleRate, SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
@@ -15,10 +14,12 @@ import {isValidSampleRate, SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
 import {FooterActions, Stepper, StyledNumberField} from './uniformRateModal';
 
 export type RecommendedStepsModalProps = ModalRenderProps & {
-  onGoNext: (currentClientRate: string) => void;
+  onChange: (value: number | undefined) => void;
+  onGoNext: () => void;
   onReadDocs: () => void;
   organization: Organization;
   projectId: Project['id'];
+  value: number | undefined;
 };
 
 export function SpecifyClientRateModal({
@@ -30,11 +31,9 @@ export function SpecifyClientRateModal({
   onGoNext,
   organization,
   projectId,
+  value,
+  onChange,
 }: RecommendedStepsModalProps) {
-  const [currentClientInput, setCurrentClientInput] = useState<undefined | string>(
-    undefined
-  );
-
   function handleReadDocs() {
     trackAdvancedAnalyticsEvent('sampling.settings.modal.specify.client.rate_read_docs', {
       organization,
@@ -50,14 +49,14 @@ export function SpecifyClientRateModal({
       project_id: projectId,
     });
 
-    if (!currentClientInput) {
+    if (!defined(value)) {
       return;
     }
 
-    onGoNext(currentClientInput);
+    onGoNext();
   }
 
-  const isValid = isValidSampleRate(currentClientInput);
+  const isValid = isValidSampleRate(value);
 
   return (
     <Fragment>
@@ -75,9 +74,9 @@ export function SpecifyClientRateModal({
           type="number"
           name="current-client-sampling"
           placeholder="0.1"
-          value={currentClientInput ?? null}
-          onChange={value => {
-            setCurrentClientInput(value === '' ? undefined : value);
+          value={value ?? null}
+          onChange={newValue => {
+            onChange(newValue === '' ? undefined : newValue);
           }}
           stacked
           flexibleControlStateSize
