@@ -246,14 +246,14 @@ function getEventsTableFieldOptions(
     tagKeys: Object.values(tags ?? {}).map(({key}) => key),
     measurementKeys: Object.values(measurements).map(({key}) => key),
     spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
-    customMeasurements: organization.features.includes(
-      'dashboard-custom-measurement-widgets'
-    )
-      ? Object.values(customMeasurements ?? {}).map(({key, functions}) => ({
-          key,
-          functions,
-        }))
-      : undefined,
+    customMeasurements:
+      organization.features.includes('dashboards-mep') ||
+      organization.features.includes('mep-rollout-flag')
+        ? Object.values(customMeasurements ?? {}).map(({key, functions}) => ({
+            key,
+            functions,
+          }))
+        : undefined,
   });
 }
 
