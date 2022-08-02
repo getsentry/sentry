@@ -106,7 +106,6 @@ function UniformRateModal({
     if (loading) {
       return;
     }
-
     const clientDiscard = projectStats30d?.groups.some(
       g => g.by.outcome === Outcome.CLIENT_DISCARD
     );
@@ -402,6 +401,7 @@ function UniformRateModal({
                 <StyledNumberField
                   name="recommended-client-sampling"
                   placeholder="%"
+                  step="10"
                   value={clientInput ?? null}
                   onChange={value => {
                     setClientInput(value === '' ? undefined : value);
@@ -416,6 +416,7 @@ function UniformRateModal({
                 <StyledNumberField
                   name="recommended-server-sampling"
                   placeholder="%"
+                  step="10"
                   value={serverInput ?? null}
                   onChange={value => {
                     setServerInput(value === '' ? undefined : value);
