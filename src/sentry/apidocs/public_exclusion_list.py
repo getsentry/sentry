@@ -353,7 +353,10 @@ from sentry.api.endpoints.project_processingissues import (
     ProjectProcessingIssuesEndpoint,
     ProjectProcessingIssuesFixEndpoint,
 )
-from sentry.api.endpoints.project_profiling_profile import ProjectProfilingProfileEndpoint
+from sentry.api.endpoints.project_profiling_profile import (
+    ProjectProfilingProfileEndpoint,
+    ProjectProfilingRawProfileEndpoint,
+)
 from sentry.api.endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
 from sentry.api.endpoints.project_release_details import ProjectReleaseDetailsEndpoint
 from sentry.api.endpoints.project_release_file_details import ProjectReleaseFileDetailsEndpoint
@@ -613,6 +616,7 @@ __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
     OrganizationTransactionAnomalyDetectionEndpoint,
     OrganizationProfilingProfilesEndpoint,
     ProjectProfilingProfileEndpoint,
+    ProjectProfilingRawProfileEndpoint,
     JiraDescriptorEndpoint,
     JiraInstalledEndpoint,
     JiraUninstalledEndpoint,
