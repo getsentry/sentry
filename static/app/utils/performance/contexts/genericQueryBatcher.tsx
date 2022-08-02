@@ -10,6 +10,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {createDefinedContext} from './utils';
 
 type QueryObject = {
+  includeAllArgs: boolean;
   query: {
     [k: string]: any;
   };

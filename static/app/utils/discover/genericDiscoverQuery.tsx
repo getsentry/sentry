@@ -9,6 +9,7 @@ import EventView, {
   isAPIPayloadSimilar,
   LocationQuery,
 } from 'sentry/utils/discover/eventView';
+import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -77,6 +78,10 @@ type BaseDiscoverQueryProps = {
   /**
    * Extra query parameters to be added.
    */
+  /**
+   * A container for query batching data and functions.
+   */
+  queryBatching?: QueryBatching;
   queryExtras?: Record<string, string>;
   /**
    * Sets referrer parameter in the API Payload. Set of allowed referrers are defined
@@ -240,8 +245,17 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
   };
 
   fetchData = async () => {
-    const {api, beforeFetch, afterFetch, didFetch, eventView, orgSlug, route, setError} =
-      this.props;
+    const {
+      api,
+      queryBatching,
+      beforeFetch,
+      afterFetch,
+      didFetch,
+      eventView,
+      orgSlug,
+      route,
+      setError,
+    } = this.props;
 
     if (!eventView.isValid()) {
       return;
@@ -261,7 +275,13 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
     api.clear();
 
     try {
-      const [data, , resp] = await doDiscoverQuery<T>(api, url, apiPayload);
+      const [data, , resp] = await doDiscoverQuery<T>(
+        api,
+        url,
+        apiPayload,
+        queryBatching
+      );
+
       if (this.state.tableFetchID !== tableFetchID) {
         // invariant: a different request was initiated after this request
         return;
@@ -331,8 +351,16 @@ export type DiscoverQueryRequestParams = Partial<EventQuery & LocationQuery>;
 export function doDiscoverQuery<T>(
   api: Client,
   url: string,
-  params: DiscoverQueryRequestParams
+  params: DiscoverQueryRequestParams,
+  queryBatching?: QueryBatching
 ): Promise<[T, string | undefined, ResponseMeta<T> | undefined]> {
+  if (queryBatching?.batchRequest) {
+    return queryBatching.batchRequest(api, url, {
+      query: params,
+      includeAllArgs: true,
+    });
+  }
+
   return api.requestPromise(url, {
     method: 'GET',
     includeAllArgs: true,
