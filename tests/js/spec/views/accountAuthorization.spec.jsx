@@ -1,5 +1,3 @@
-import * as PropTypes from 'prop-types';
-
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
@@ -18,16 +16,7 @@ describe('AccountAuthorizations', function () {
     });
 
     const wrapper = render(<AccountAuthorizations />, {
-      context: {
-        context: {
-          location: TestStubs.location(),
-          router: TestStubs.router(),
-        },
-        childContextTypes: {
-          location: PropTypes.object,
-          router: PropTypes.object,
-        },
-      },
+      context: TestStubs.routerContext(),
     });
 
     expect(wrapper.container).toSnapshot();

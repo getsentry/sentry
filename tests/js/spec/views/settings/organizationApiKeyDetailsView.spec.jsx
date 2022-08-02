@@ -1,14 +1,6 @@
-import * as PropTypes from 'prop-types';
-
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationApiKeyDetails from 'sentry/views/settings/organizationApiKeys/organizationApiKeyDetails';
-
-const childContextTypes = {
-  organization: PropTypes.object,
-  router: PropTypes.object,
-  location: PropTypes.object,
-};
 
 describe('OrganizationApiKeyDetails', function () {
   beforeEach(function () {
@@ -21,19 +13,15 @@ describe('OrganizationApiKeyDetails', function () {
   });
 
   it('renders', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = render(
       <OrganizationApiKeyDetails params={{apiKey: 1, orgId: 'org-slug'}} />,
       {
-        context: {
-          router: TestStubs.router(),
-          organization: TestStubs.Organization(),
-          location: TestStubs.location(),
-        },
-        childContextTypes,
+        context: TestStubs.routerContext(),
+        organization: TestStubs.Organization(),
       }
     );
 
-    expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
-    expect(wrapper).toSnapshot();
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    expect(wrapper.container).toSnapshot();
   });
 });
