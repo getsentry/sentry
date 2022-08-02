@@ -21,12 +21,8 @@ import EventView, {
   isFieldSortable,
 } from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {
-  fieldAlignment,
-  getAggregateAlias,
-  Sort,
-  WebVital,
-} from 'sentry/utils/discover/fields';
+import {fieldAlignment, getAggregateAlias, Sort} from 'sentry/utils/discover/fields';
+import {WebVital} from 'sentry/utils/fields';
 import VitalsDetailsTableQuery, {
   TableData,
   TableDataRow,

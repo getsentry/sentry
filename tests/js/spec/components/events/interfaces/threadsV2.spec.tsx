@@ -302,7 +302,7 @@ describe('ThreadsV2', function () {
         expect(await screen.findByText('Display')).toBeInTheDocument();
 
         Object.entries(displayOptions).forEach(([key, value]) => {
-          if (key === 'minified') {
+          if (key === 'minified' || key === 'raw-stack-trace') {
             expect(screen.getByText(value)).toBeInTheDocument();
             return;
           }

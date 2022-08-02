@@ -16,11 +16,11 @@ type MaybeOnClickHandler = null | ((crumb: Crumb) => void);
 function splitCrumbs({
   crumbs,
   onClick,
-  startTimestamp,
+  startTimestampMs,
 }: {
   crumbs: BreadcrumbTypeNavigation[];
   onClick: MaybeOnClickHandler;
-  startTimestamp: number;
+  startTimestampMs: number;
 }) {
   const firstUrl = first(crumbs)?.data?.to;
   const summarizedCrumbs = crumbs.slice(1, -1) as Crumb[];
@@ -70,7 +70,7 @@ function splitCrumbs({
     <SummarySegment
       key="summary"
       crumbs={summarizedCrumbs}
-      startTimestamp={startTimestamp}
+      startTimestampMs={startTimestampMs}
       handleOnClick={onClick}
     />,
     <SingleLinkSegment
@@ -109,17 +109,17 @@ function SingleLinkSegment({
 function SummarySegment({
   crumbs,
   handleOnClick,
-  startTimestamp,
+  startTimestampMs,
 }: {
   crumbs: Crumb[];
   handleOnClick: MaybeOnClickHandler;
-  startTimestamp: number;
+  startTimestampMs: number;
 }) {
   const summaryItems = crumbs.map(crumb => (
     <BreadcrumbItem
       key={crumb.id}
       crumb={crumb}
-      startTimestamp={startTimestamp}
+      startTimestampMs={startTimestampMs}
       isHovered={false}
       isSelected={false}
       onClick={handleOnClick}

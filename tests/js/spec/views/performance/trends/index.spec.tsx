@@ -18,7 +18,7 @@ import {
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {WebVital} from 'sentry/utils/discover/fields';
+import {WebVital} from 'sentry/utils/fields';
 import TrendsIndex from 'sentry/views/performance/trends/';
 import {defaultTrendsSelectionDate} from 'sentry/views/performance/trends/content';
 import {
