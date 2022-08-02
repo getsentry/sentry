@@ -3,8 +3,8 @@ import {components, SingleValueProps} from 'react-select';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import Input, {InputProps} from 'sentry/components/forms/controls/input';
 import SelectControl, {ControlProps} from 'sentry/components/forms/selectControl';
+import Input, {InputProps} from 'sentry/components/input';
 import Tag from 'sentry/components/tag';
 import Tooltip from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
