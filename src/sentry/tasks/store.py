@@ -17,6 +17,7 @@ from sentry.eventstore.processing.base import Event
 from sentry.killswitches import killswitch_matches_context
 from sentry.models import Activity, Organization, Project, ProjectOption
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
+from sentry.tasks import performance_detection
 from sentry.tasks.base import instrumented_task
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
@@ -701,6 +702,8 @@ def _do_save_event(
                     data = dict(data.items())
                 with metrics.timer("tasks.store.do_save_event.write_processing_cache"):
                     processing.event_processing_store.store(data)
+                if event_type == "transaction":
+                    performance_detection.detect_performance_issue(data)
         except HashDiscarded:
             # Delete the event payload from cache since it won't show up in post-processing.
             if cache_key:
