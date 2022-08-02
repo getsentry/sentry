@@ -3,7 +3,7 @@ from typing import Mapping, Set
 import pytest
 
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.indexer.base import FetchType, KeyCollection, Metadata
+from sentry.sentry_metrics.indexer.base import FetchType, FetchTypeExt, KeyCollection, Metadata
 from sentry.sentry_metrics.indexer.cache import indexer_cache
 from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer, StringIndexer
 from sentry.sentry_metrics.indexer.postgres import PGStringIndexer
@@ -333,4 +333,3 @@ class PostgresIndexerV2Test(TestCase):
 
         assert len(rate_limited_strings2) == 1
         assert len(rate_limited_strings - rate_limited_strings2) == 2
-
