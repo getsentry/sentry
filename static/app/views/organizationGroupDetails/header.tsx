@@ -373,7 +373,7 @@ class GroupHeader extends Component<Props, State> {
                 isActive={() => currentTab === Tab.REPLAYS}
               >
                 {t('Replays')} <Badge text={replaysCount ?? ''} />
-                <ReplaysFeatureBadge />
+                <ReplaysFeatureBadge noTooltip />
               </ListLink>
             </Feature>
           </NavTabs>
