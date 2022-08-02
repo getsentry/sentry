@@ -667,6 +667,7 @@ CELERY_QUEUES = [
     Queue("update", routing_key="update"),
     Queue("profiles.process", routing_key="profiles.process"),
     Queue("release_health.duplex", routing_key="release_health.duplex"),
+    Queue("get_suspect_resolutions", routing_key="get_suspect_resolutions"),
 ]
 
 for queue in CELERY_QUEUES:
