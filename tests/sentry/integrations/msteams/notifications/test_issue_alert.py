@@ -54,7 +54,7 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
             == body[0]["text"]
         )
         assert (
-            f"[{event.title}](http://testserver/organizations/{self.organization.slug}/issues/{event.group_id}/?referrer=msteams)"
+            f"[{event.title}](http://testserver/organizations/{self.organization.slug}/issues/{event.group_id}/?referrer=issue_alert-msteams)"
             == body[1]["text"]
         )
         assert (
@@ -101,7 +101,7 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
             == body[0]["text"]
         )
         assert (
-            f"[{event.title}](http://testserver/organizations/{self.organization.slug}/issues/{event.group_id}/?referrer=msteams)"
+            f"[{event.title}](http://testserver/organizations/{self.organization.slug}/issues/{event.group_id}/?referrer=issue_alert-msteams)"
             == body[1]["text"]
         )
         assert (

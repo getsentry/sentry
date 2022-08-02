@@ -93,7 +93,9 @@ class MSTeamsIssueNotificationsMessageBuilder(MSTeamsNotificationsMessageBuilder
 
     def create_attachment_title_block(self) -> TextBlock:
         title = build_attachment_title(self.group)
-        title_link = get_title_link(self.group, None, False, False, None, ExternalProviders.MSTEAMS)
+        title_link = get_title_link(
+            self.group, None, False, True, self.notification, ExternalProviders.MSTEAMS
+        )
 
         return create_text_block(
             MSTEAMS_URL_FORMAT.format(text=title, url=title_link),
