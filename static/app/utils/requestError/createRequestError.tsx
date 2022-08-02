@@ -25,11 +25,11 @@ const ERROR_MAP = {
  */
 export default function createRequestError(
   resp: ResponseMeta,
-  stack: string | undefined,
+  cause: Error,
   method: 'POST' | 'GET' | 'DELETE' | 'PUT' | undefined,
   path: string
 ) {
-  const err = new RequestError(method, path);
+  const err = new RequestError(method, path, {cause});
 
   if (resp) {
     const errorName = ERROR_MAP[resp.status];
@@ -39,10 +39,6 @@ export default function createRequestError(
     }
 
     err.setResponse(resp);
-  }
-
-  if (stack) {
-    err.setStack(stack);
   }
 
   return err;
