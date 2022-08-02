@@ -415,7 +415,7 @@ export function hasUnsavedFilterChanges(
     start: normalizeDateTimeString(initialDashboard.start),
     end: normalizeDateTimeString(initialDashboard.end),
     filters: {
-      release: new Set(initialDashboard.filters.release),
+      release: new Set(initialDashboard.filters?.release),
     },
     utc: initialDashboard.utc,
   };

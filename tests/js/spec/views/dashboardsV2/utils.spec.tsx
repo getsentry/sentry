@@ -1,4 +1,9 @@
-import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {
+  DashboardDetails,
+  DisplayType,
+  Widget,
+  WidgetType,
+} from 'sentry/views/dashboardsV2/types';
 import {
   constructWidgetFromQuery,
   eventViewFromWidget,
@@ -8,6 +13,7 @@ import {
   getNumEquations,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
+  hasUnsavedFilterChanges,
   isCustomMeasurementWidget,
 } from 'sentry/views/dashboardsV2/utils';
 
@@ -339,6 +345,22 @@ describe('Dashboards util', () => {
         ],
       };
       expect(isCustomMeasurementWidget(widget)).toBe(true);
+    });
+  });
+
+  describe('hasUnsavedFilterChanges', function () {
+    it('ignores the order of projects', function () {
+      const initialDashboard = {
+        projects: [1, 2],
+      } as DashboardDetails;
+      const location = {
+        ...TestStubs.location(),
+        query: {
+          project: ['2', '1'],
+        },
+      };
+
+      expect(hasUnsavedFilterChanges(initialDashboard, location, {})).toBe(false);
     });
   });
 });
