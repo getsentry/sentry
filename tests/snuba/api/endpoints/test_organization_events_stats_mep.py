@@ -503,7 +503,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             [{"count": 0}],
         ]
 
-    def test_multiple_environments_filter(self):
+    def test_search_query_if_environment_does_not_exist_on_indexer(self):
         self.create_environment(self.project, name="prod")
         self.create_environment(self.project, name="dev")
         self.store_transaction_metric(
@@ -529,3 +529,4 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             [{"count": 0}],
             [{"count": 0}],
         ]
+        assert not response.data["isMetricsData"]

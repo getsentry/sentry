@@ -1934,6 +1934,13 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return Condition(lhs, Op(search_filter.operator), value)
 
+    def _resolve_environment_filter_value(self, value):
+        value_id = self.config.resolve_value(f"{value}")
+        if value_id is None:
+            raise IncompatibleMetricsQuery("Environment: {value} was not found")
+
+        return value_id
+
     def _environment_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         """All of this is copied from the parent class except for the addition of `resolve_value`
 
@@ -1945,8 +1952,7 @@ class MetricsQueryBuilder(QueryBuilder):
         values_set = set(value if isinstance(value, (list, tuple)) else [value])
         # sorted for consistency
         values = sorted(
-            self.config.resolve_value(f"{value}") if self.config.resolve_value(f"{value}") else 0
-            for value in values_set
+            self._resolve_environment_filter_value(value) if value else 0 for value in values_set
         )
         environment = self.column("environment")
         if len(values) == 1:
