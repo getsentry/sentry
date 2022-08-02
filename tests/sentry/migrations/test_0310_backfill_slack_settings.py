@@ -14,7 +14,6 @@ from sentry.types.integrations import ExternalProviders
 SETTINGS_TO_BACKFILL = [
     NotificationSettingTypes.DEPLOY,
     NotificationSettingTypes.ISSUE_ALERTS,
-    NotificationSettingTypes.ACTIVE_RELEASE,
     NotificationSettingTypes.WORKFLOW,
 ]
 

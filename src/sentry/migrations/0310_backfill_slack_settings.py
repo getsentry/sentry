@@ -89,7 +89,6 @@ class NotificationScopeType(Enum):
 SETTINGS_TO_BACKFILL = [
     NotificationSettingTypes.DEPLOY,
     NotificationSettingTypes.ISSUE_ALERTS,
-    NotificationSettingTypes.ACTIVE_RELEASE,
     NotificationSettingTypes.WORKFLOW,
 ]
 
