@@ -43,6 +43,7 @@ class EventAttachments extends Component<Props, State> {
   getInlineAttachmentRenderer(attachment: IssueAttachment) {
     switch (attachment.mimetype) {
       case 'text/plain':
+      case 'application/octet-stream':
         return attachment.size > 0 ? LogFileViewer : undefined;
       case 'text/json':
       case 'text/x-json':
