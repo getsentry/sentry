@@ -68,7 +68,7 @@ class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
 
         sample_rate_count_if = 'count_if(trace.client_sample_rate, notEquals, "")'
         avg_sample_rate_equation = f"{sample_rate_count_if} / count()"
-        transaction_source_count_if = 'count_if(transaction.source, Equals, "unknown")'
+        transaction_source_count_if = 'count_if(transaction.source, equals, "unknown")'
         avg_transaction_source_equation = f"{transaction_source_count_if} / count()"
 
         data = discover.query(
@@ -98,6 +98,7 @@ class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
             transform_alias_to_input_format=True,
             referrer="dynamic-sampling.distribution.fetch-project-sdk-versions-info",
         )["data"]
+        # breakpoint()
         # Create a dictionary of the total count per project
         total_count_per_project: Dict[str, int] = {}
         # Create a dictionary of total count per sdk name per project
