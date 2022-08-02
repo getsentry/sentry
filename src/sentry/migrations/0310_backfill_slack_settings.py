@@ -117,7 +117,7 @@ def backfill_one(apps, item_with_actor):
         # if we have a row it's set the default which we need to change
         if setting:
             setting.value = NotificationSettingOptionValues.NEVER.value
-            setting.save()
+            setting.save(update_fields=["value"])
         else:
             # otherwise create the backfill
             NotificationSetting.objects.create(
