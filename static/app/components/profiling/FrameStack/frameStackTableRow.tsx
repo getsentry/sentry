@@ -1,7 +1,8 @@
-import {forwardRef, useCallback} from 'react';
+import {forwardRef, Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {IconSettings, IconUser} from 'sentry/icons';
+import {IconLightning, IconSettings, IconUser} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
@@ -118,6 +119,12 @@ export const FrameStackTableRow = forwardRef<HTMLDivElement, FrameStackTableRowP
             >
               {node.node.children.length > 0 ? '\u203A' : null}
             </FrameChildrenIndicator>
+            {node.node.frame.inline ? (
+              <Fragment>
+                <IconLightning style={{width: 8, height: 8}} />
+                {t('inline ')}
+              </Fragment>
+            ) : null}
             <FrameName>{node.node.frame.name}</FrameName>
           </FrameNameContainer>
         </FrameCallersTableCell>

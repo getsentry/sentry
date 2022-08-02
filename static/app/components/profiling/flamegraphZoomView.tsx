@@ -2,6 +2,8 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
+import {IconLightning} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
@@ -14,6 +16,7 @@ import {
 } from 'sentry/utils/profiling/flamegraph/useFlamegraphState';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
 import {formatColorForFrame, Rect} from 'sentry/utils/profiling/gl/utils';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
@@ -24,8 +27,6 @@ import {SampleTickRenderer} from 'sentry/utils/profiling/renderers/sampleTickRen
 import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import usePrevious from 'sentry/utils/usePrevious';
-
-import {FlamegraphFrame} from '../../utils/profiling/flamegraphFrame';
 
 import {BoundTooltip} from './boundTooltip';
 import {FlamegraphOptionsContextMenu} from './flamegraphOptionsContextMenu';
@@ -706,6 +707,12 @@ function FlamegraphZoomView({
               <FrameColorIndicator
                 backgroundColor={formatColorForFrame(hoveredNode, flamegraphRenderer)}
               />
+              {hoveredNode.frame.inline ? (
+                <Fragment>
+                  <IconLightning style={{width: 10, height: 10}} />
+                  {t('inline ')}
+                </Fragment>
+              ) : null}
               {flamegraphRenderer.flamegraph.formatter(hoveredNode.node.totalWeight)}{' '}
               {formatWeightToProfileDuration(
                 hoveredNode.node,
