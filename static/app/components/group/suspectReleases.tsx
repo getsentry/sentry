@@ -35,6 +35,10 @@ class SuspectReleases extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
+    if (!this.state.suspectReleases) {
+      return null;
+    }
+
     return (
       <SidebarSection secondary title={t('Suspect Releases')}>
         {this.state.suspectReleases?.map(release => (
