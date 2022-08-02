@@ -13,6 +13,8 @@ class SuspectResolutionEvaluation(analytics.Event):
         analytics.Attribute("pearson_r_end_time"),
         analytics.Attribute("pearson_r_resolution_time"),
         analytics.Attribute("is_commit_correlated"),
+        analytics.Attribute("resolved_issue_release_ids"),
+        analytics.Attribute("candidate_issue_release_ids"),
     )
 
 

@@ -12,7 +12,7 @@ from sentry.utils.suspect_resolutions.get_suspect_resolutions import get_suspect
 class GetSuspectResolutionsTest(TestCase):
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_commit_correlated",
-        mock.Mock(return_value=True),
+        mock.Mock(return_value=(True, [], [])),
     )
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_error_rate_correlated",
@@ -35,13 +35,12 @@ class GetSuspectResolutionsTest(TestCase):
             project=project, group=resolved_issue, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
         )
         issue = self.create_group(project=project, status=GroupStatus.UNRESOLVED)
-        print(get_suspect_resolutions(resolved_issue))
 
         assert get_suspect_resolutions(resolved_issue) == [issue]
 
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_commit_correlated",
-        mock.Mock(return_value=False),
+        mock.Mock(return_value=(False, [], [])),
     )
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_error_rate_correlated",
@@ -66,7 +65,7 @@ class GetSuspectResolutionsTest(TestCase):
 
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_commit_correlated",
-        mock.Mock(return_value=True),
+        mock.Mock(return_value=(True, [], [])),
     )
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_error_rate_correlated",
@@ -91,7 +90,7 @@ class GetSuspectResolutionsTest(TestCase):
 
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_commit_correlated",
-        mock.Mock(return_value=False),
+        mock.Mock(return_value=(False, [], [])),
     )
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_error_rate_correlated",
@@ -116,7 +115,7 @@ class GetSuspectResolutionsTest(TestCase):
 
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_commit_correlated",
-        mock.Mock(return_value=False),
+        mock.Mock(return_value=(False, [], [])),
     )
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_error_rate_correlated",
@@ -139,7 +138,7 @@ class GetSuspectResolutionsTest(TestCase):
 
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_commit_correlated",
-        mock.Mock(return_value=False),
+        mock.Mock(return_value=(False, [], [])),
     )
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_error_rate_correlated",
@@ -162,7 +161,7 @@ class GetSuspectResolutionsTest(TestCase):
 
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_commit_correlated",
-        mock.Mock(return_value=False),
+        mock.Mock(return_value=(False, [], [])),
     )
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_error_rate_correlated",

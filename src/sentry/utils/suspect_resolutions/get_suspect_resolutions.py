@@ -7,7 +7,6 @@ from sentry.utils.suspect_resolutions.metric_correlation import is_issue_error_r
 
 
 def get_suspect_resolutions(resolved_issue: Group) -> Sequence[Group]:
-
     resolution_type = Activity.objects.filter(group=resolved_issue).values_list("type").first()
 
     if resolved_issue.status != GroupStatus.RESOLVED or resolution_type is None:
