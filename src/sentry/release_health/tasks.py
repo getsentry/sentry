@@ -1,6 +1,7 @@
 import logging
 from typing import Sequence
 
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.db.models import F, Q
 from django.utils import timezone
@@ -121,19 +122,29 @@ def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
                                     release = Release.objects.get(
                                         organization_id=org_id, version=release_version
                                     )
+                                except ValidationError:
+                                    release = None
+                                    logger.exception(
+                                        "sentry.tasks.process_projects_with_sessions.creating_rpe.ValidationError",
+                                        extra={
+                                            "org_id": org_id,
+                                            "release_version": release_version,
+                                        },
+                                    )
 
-                                release.add_project(Project.objects.get(id=project_id))
+                                if release:
+                                    release.add_project(Project.objects.get(id=project_id))
 
-                                ReleaseEnvironment.objects.get_or_create(
-                                    environment=env, organization_id=org_id, release=release
-                                )
+                                    ReleaseEnvironment.objects.get_or_create(
+                                        environment=env, organization_id=org_id, release=release
+                                    )
 
-                                rpe = ReleaseProjectEnvironment.objects.create(
-                                    project_id=project_id,
-                                    release_id=release.id,
-                                    environment=env,
-                                    adopted=timezone.now(),
-                                )
+                                    rpe = ReleaseProjectEnvironment.objects.create(
+                                        project_id=project_id,
+                                        release_id=release.id,
+                                        environment=env,
+                                        adopted=timezone.now(),
+                                    )
                             except (
                                 Project.DoesNotExist,
                                 Environment.DoesNotExist,

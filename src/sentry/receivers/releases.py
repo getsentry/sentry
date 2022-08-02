@@ -1,6 +1,7 @@
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models import F
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.utils import timezone
 
 from sentry import analytics, features
@@ -32,6 +33,13 @@ from sentry.signals import buffer_incr_complete, issue_resolved
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 from sentry.types.activity import ActivityType
 from sentry.types.releaseactivity import ReleaseActivityType
+
+
+def validate_release_empty_version(instance: Release, **kwargs):
+    if not Release.is_valid_version(instance.version):
+        raise ValidationError(
+            f"release_id({instance.id}) failed to save because of invalid version"
+        )
 
 
 def resolve_group_resolutions(instance, created, **kwargs):
@@ -234,6 +242,13 @@ def save_release_activity(instance: Release, created: bool, **kwargs):
                 date_added=instance.date_added,
             )
 
+
+pre_save.connect(
+    validate_release_empty_version,
+    sender=Release,
+    dispatch_uid="validate_release_empty_version",
+    weak=False,
+)
 
 post_save.connect(
     resolve_group_resolutions, sender=Release, dispatch_uid="resolve_group_resolutions", weak=False
