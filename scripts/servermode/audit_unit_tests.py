@@ -133,7 +133,9 @@ class TestCaseMap:
                 top_level_file_map[case.top_level].add(filename)
         return top_level_file_map
 
-    def find_all_case_matches(self) -> Iterable[TestCaseMatch]:
+    @cached_property
+    def case_matches(self) -> Iterable[TestCaseMatch]:
+        case_matches = []
         for case in self.top_level_file_map:
             for path in self.top_level_file_map[case]:
                 with open(path) as f:
@@ -142,13 +144,32 @@ class TestCaseMap:
                 if match:
                     decorator_matches = re.findall(r"@(\w+)", match.group())
                     decorators = tuple(str(m) for m in decorator_matches)
-                    yield TestCaseMatch(path, case, decorators)
+                    case_matches.append(TestCaseMatch(path, case, decorators))
+        return tuple(case_matches)
+
+    def report(
+        self, *decorators: str, classes_only: bool = False
+    ) -> Iterable[Tuple[(str | None), int]]:
+        for decorator in decorators:
+            count = sum(
+                1
+                for m in self.case_matches
+                if (decorator in m.decorators) and (m.case.is_class or not classes_only)
+            )
+            yield decorator, count
+        undecorated_count = sum(
+            1
+            for m in self.case_matches
+            if all(d not in m.decorators for d in decorators)
+            and (m.case.is_class or not classes_only)
+        )
+        yield None, undecorated_count
 
     def add_decorators(
         self, condition: Callable[[TestCaseMatch], (str | None)] | None = None
     ) -> int:
         count = 0
-        for match in self.find_all_case_matches():
+        for match in self.case_matches:
             decorator = condition(match)
             if decorator:
                 result = match.add_decorator(decorator)
@@ -190,9 +211,19 @@ def main(test_root="."):
 
     case_map = TestCaseMap(TestCaseFunction.parse(pytest_collection))
 
+    for (decorator, count) in case_map.report(
+        "control_silo_test", "customer_silo_test", classes_only=True
+    ):
+        print(f"{decorator or 'None'}: {count}")  # noqa
+
     def condition(match: TestCaseMatch) -> str | None:
         if not match.case.is_class:
             return None
+        if (
+            any((word in match.case.name) for word in ("User", "Auth", "Identity"))
+            and "customer_silo_test" not in match.decorators
+        ):
+            return "control_silo_test"
         if any(
             (word in match.case.name)
             for word in ("Organization", "Project", "Team", "Group", "Event", "Issue")
