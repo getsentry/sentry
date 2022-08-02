@@ -1,6 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 
-import pytz
+from django.test.utils import override_settings
+from django.utils import timezone
 
 from sentry.models import ExternalActor, Integration, NotificationSetting, Team, User
 from sentry.notifications.types import (
@@ -17,10 +18,6 @@ SETTINGS_TO_BACKFILL = [
     NotificationSettingTypes.WORKFLOW,
 ]
 
-START_DATE_DEFAULT_SLACK_NOTIFICAITON = datetime(2022, 6, 23, tzinfo=pytz.UTC)
-
-DEFAULT_JOIN_DATE = START_DATE_DEFAULT_SLACK_NOTIFICAITON - timedelta(days=1)
-
 
 def get_scope_type_from_entity(entity):
     if isinstance(entity, User):
@@ -30,6 +27,11 @@ def get_scope_type_from_entity(entity):
     raise Exception("Invalid type")
 
 
+START_DATE_DEFAULT_SLACK_NOTIFICATION = timezone.now() - timedelta(days=7)
+DEFAULT_JOIN_DATE = START_DATE_DEFAULT_SLACK_NOTIFICATION - timedelta(days=1)
+
+
+@override_settings(START_DATE_DEFAULT_SLACK_NOTIFICATION=START_DATE_DEFAULT_SLACK_NOTIFICATION)
 class TestBackfill(TestMigrations):
     migrate_from = "0309_fix_many_to_many_field"
     migrate_to = "0310_backfill_slack_settings"
@@ -50,7 +52,7 @@ class TestBackfill(TestMigrations):
         self.user2 = self.create_user(date_joined=DEFAULT_JOIN_DATE)
         self.user3 = self.create_user(date_joined=DEFAULT_JOIN_DATE)
         self.user4 = self.create_user(
-            date_joined=START_DATE_DEFAULT_SLACK_NOTIFICAITON + timedelta(days=1)
+            date_joined=START_DATE_DEFAULT_SLACK_NOTIFICATION + timedelta(days=1)
         )
         self.user5 = self.create_user(date_joined=DEFAULT_JOIN_DATE)
         self.orgA = self.create_organization(owner=self.user1)
