@@ -22,9 +22,9 @@ export function PerformanceIssueSection({issue, event, organization}: Props) {
         <h3>P75 Duration Change</h3>
         <DurationChart
           issue={issue}
-          event={event}
           location={location}
           organization={organization}
+          event={event}
         />
       </Section>
       <Section>
