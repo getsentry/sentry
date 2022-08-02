@@ -5,9 +5,11 @@ from django.utils import timezone
 
 from sentry.models import Commit, Integration, Repository
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 from sentry_plugins.github.testutils import PUSH_EVENT_EXAMPLE_INSTALLATION
 
 
+@customer_silo_test
 class InstallationPushEventWebhookTest(APITestCase):
     def test_simple(self):
         project = self.project  # force creation

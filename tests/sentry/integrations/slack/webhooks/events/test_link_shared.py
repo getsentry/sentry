@@ -5,11 +5,13 @@ from urllib.parse import parse_qsl
 import responses
 
 from sentry.integrations.slack.unfurl import Handler, make_type_coercer
+from sentry.testutils.servermode import customer_silo_test
 from sentry.utils import json
 
 from . import LINK_SHARED_EVENT, BaseEventTest
 
 
+@customer_silo_test
 class LinkSharedEventTest(BaseEventTest):
     @responses.activate
     @patch(

@@ -26,8 +26,10 @@ from sentry.models import (
 from sentry.snuba.models import SnubaQuery
 from sentry.tasks.deletion import run_deletion
 from sentry.testutils import TransactionTestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class DeleteOrganizationTest(TransactionTestCase):
     def test_simple(self):
         org = self.create_organization(name="test")

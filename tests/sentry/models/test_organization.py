@@ -35,9 +35,11 @@ from sentry.models import (
     User,
 )
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import customer_silo_test
 from sentry.utils.audit import create_system_audit_entry
 
 
+@customer_silo_test
 class OrganizationTest(TestCase):
     def test_slugify_on_new_orgs(self):
         org = Organization.objects.create(name="name", slug="---downtown_canada---")

@@ -25,6 +25,7 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.helpers.faux import DictContaining, faux
+from sentry.testutils.servermode import customer_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
 from sentry.utils import json
@@ -74,6 +75,7 @@ MockResponseInstance = MockResponse({}, {}, "", True, 200, raiseStatusFalse, Non
 MockResponse404 = MockResponse({}, {}, "", False, 404, raiseException, None)
 
 
+@customer_silo_test
 class TestSendAlertEvent(TestCase):
     def setUp(self):
         self.sentry_app = self.create_sentry_app(organization=self.organization)

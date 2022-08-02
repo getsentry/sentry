@@ -11,6 +11,7 @@ from sentry.api.helpers.group_index import (
 from sentry.api.issue_search import parse_search_query
 from sentry.models import GroupInbox, GroupInboxReason, GroupStatus, add_group_to_inbox
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
 class ValidateSearchFilterPermissionsTest(TestCase):
@@ -66,6 +67,7 @@ class ValidateSearchFilterPermissionsTest(TestCase):
         self.assert_analytics_recorded(mock_record)
 
 
+@customer_silo_test
 class UpdateGroupsTest(TestCase):
     @patch("sentry.signals.issue_unresolved.send_robust")
     @patch("sentry.signals.issue_ignored.send_robust")

@@ -3,8 +3,10 @@ from freezegun import freeze_time
 from sentry.api.helpers.processing_issues import get_processing_issues
 from sentry.models import EventError, EventProcessingIssue, ProcessingIssue, RawEvent
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class OrganizationProcessingIssuesTest(APITestCase):
     endpoint = "sentry-api-0-organization-processing-issues"
 

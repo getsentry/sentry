@@ -12,6 +12,7 @@ from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.cases import BaseMetricsTestCase
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.link_header import parse_link_header
+from sentry.testutils.servermode import customer_silo_test
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_timestamp
 
@@ -71,6 +72,7 @@ def make_session(project, **kwargs):
     )
 
 
+@customer_silo_test
 class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -1088,6 +1090,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
 
 @patch("sentry.api.endpoints.organization_sessions.release_health", MetricsReleaseHealthBackend())
+@customer_silo_test
 class OrganizationSessionsEndpointMetricsTest(
     BaseMetricsTestCase, OrganizationSessionsEndpointTest
 ):

@@ -25,6 +25,7 @@ from sentry.models import (
 )
 from sentry.signals import project_created
 from sentry.testutils import APITestCase, TwoFactorAPITestCase, pytest
+from sentry.testutils.servermode import customer_silo_test
 from sentry.utils import json
 
 # some relay keys
@@ -53,6 +54,7 @@ class OrganizationDetailsTestBase(APITestCase):
         self.login_as(self.user)
 
 
+@customer_silo_test
 class OrganizationDetailsTest(OrganizationDetailsTestBase):
     def test_simple(self):
         response = self.get_success_response(self.organization.slug)
@@ -211,6 +213,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             assert start_time < created < end_time
 
 
+@customer_silo_test
 class OrganizationUpdateTest(OrganizationDetailsTestBase):
     method = "put"
 
@@ -665,6 +668,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert b"storeCrashReports" in resp.content
 
 
+@customer_silo_test
 class OrganizationDeleteTest(OrganizationDetailsTestBase):
     method = "delete"
 
@@ -727,6 +731,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         ).exists()
 
 
+@customer_silo_test
 class OrganizationSettings2FATest(TwoFactorAPITestCase):
     endpoint = "sentry-api-0-organization-details"
 

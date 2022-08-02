@@ -3,8 +3,10 @@ from exam import fixture
 from sentry.api.serializers import serialize
 from sentry.incidents.models import IncidentActivity, IncidentActivityType, IncidentSubscription
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class OrganizationIncidentCommentCreateEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-incident-comments"
     method = "post"

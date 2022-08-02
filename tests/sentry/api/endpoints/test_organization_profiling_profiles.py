@@ -2,10 +2,12 @@ from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 PROFILING_FEATURES = {"organizations:profiling": True}
 
 
+@customer_silo_test
 class OrganizationProfilingProfilesTest(APITestCase):
     endpoint = "sentry-api-0-organization-profiling-profiles"
 
@@ -32,6 +34,7 @@ class OrganizationProfilingProfilesTest(APITestCase):
         assert response.data == []
 
 
+@customer_silo_test
 class OrganizationProfilingFiltersTest(APITestCase):
     endpoint = "sentry-api-0-organization-profiling-filters"
 
@@ -58,6 +61,7 @@ class OrganizationProfilingFiltersTest(APITestCase):
         assert response.data == []
 
 
+@customer_silo_test
 class OrganizationProfilingTransactionsTest(APITestCase):
     endpoint = "sentry-api-0-organization-profiling-transactions"
 

@@ -6,8 +6,10 @@ from rest_framework.exceptions import ParseError
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -179,6 +181,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
             assert len(mock_quantize.mock_calls) == 2
 
 
+@customer_silo_test
 class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

@@ -5,8 +5,10 @@ from django.urls import reverse
 from sentry.models import OrganizationMemberTeam
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.servermode import control_silo_test
 
 
+@control_silo_test
 class OrganizationUserIssuesSearchTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

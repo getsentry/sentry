@@ -1,8 +1,10 @@
 import pytest
 
 from sentry.testutils import PermissionTestCase, TestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class OrganizationIntegrationSetupPermissionTest(PermissionTestCase):
     def setUp(self):
         super().setUp()
@@ -19,6 +21,7 @@ class OrganizationIntegrationSetupPermissionTest(PermissionTestCase):
         self.assert_owner_can_access(self.path)
 
 
+@customer_silo_test
 class OrganizationIntegrationSetupTest(TestCase):
     def setUp(self):
         super().setUp()

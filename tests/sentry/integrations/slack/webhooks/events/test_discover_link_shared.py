@@ -6,6 +6,7 @@ import responses
 
 from sentry.integrations.slack.unfurl import Handler, LinkType, make_type_coercer
 from sentry.models import Identity, IdentityProvider, IdentityStatus
+from sentry.testutils.servermode import customer_silo_test
 from sentry.utils import json
 
 from . import LINK_SHARED_EVENT, BaseEventTest
@@ -33,6 +34,7 @@ LINK_SHARED_EVENT_NO_CHANNEL_NAME = """{
 }"""
 
 
+@customer_silo_test
 class DiscoverLinkSharedEvent(BaseEventTest):
     @responses.activate
     @patch(

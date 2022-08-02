@@ -6,8 +6,10 @@ from sentry import tagstore
 from sentry.tagstore import TagKeyStatus
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class ProjectTagKeyDetailsTest(APITestCase, SnubaTestCase):
     def test_simple(self):
         project = self.create_project()
@@ -41,6 +43,7 @@ class ProjectTagKeyDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["uniqueValues"] == 16
 
 
+@customer_silo_test
 class ProjectTagKeyDeleteTest(APITestCase):
     @mock.patch("sentry.eventstream")
     def test_simple(self, mock_eventstream):

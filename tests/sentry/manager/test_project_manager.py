@@ -1,7 +1,9 @@
 from sentry.models import Project, User
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class ProjectManagerTest(TestCase):
     def test_get_for_user(self):
         user = User.objects.create(username="foo")

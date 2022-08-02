@@ -2,8 +2,10 @@ from django.conf import settings
 
 from sentry.models import UserRole
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import control_silo_test
 
 
+@control_silo_test
 class UserRoleTest(TestCase):
     def test_permissions_for_user(self):
         user = self.create_user(email="a@example.com")

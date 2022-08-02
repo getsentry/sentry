@@ -19,9 +19,11 @@ from sentry.models import (
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import control_silo_test, customer_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
+@customer_silo_test
 class ProjectTest(TestCase):
     def test_member_set_simple(self):
         user = self.create_user()
@@ -198,6 +200,7 @@ class ProjectTest(TestCase):
         assert rule4.owner is not None
 
 
+@customer_silo_test
 class CopyProjectSettingsTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -292,6 +295,7 @@ class CopyProjectSettingsTest(TestCase):
         self.assert_other_project_settings_not_changed()
 
 
+@control_silo_test
 class FilterToSubscribedUsersTest(TestCase):
     def run_test(self, users: Iterable[User], expected_users: Iterable[User]):
         assert (

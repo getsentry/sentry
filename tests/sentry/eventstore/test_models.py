@@ -9,9 +9,11 @@ from sentry.grouping.enhancer import Enhancements
 from sentry.models import Environment
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.servermode import customer_silo_test
 from sentry.utils import snuba
 
 
+@customer_silo_test
 class EventTest(TestCase):
     def test_pickling_compat(self):
         event = self.store_event(
@@ -324,6 +326,7 @@ def test_renormalization(monkeypatch, factories, task_runner, default_project):
     assert len(normalize_mock_calls) == 1
 
 
+@customer_silo_test
 class EventNodeStoreTest(TestCase):
     def test_event_node_id(self):
         # Create an event without specifying node_id. A node_id should be generated

@@ -2,8 +2,10 @@ from sentry.identity import register
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.models import Identity, IdentityProvider
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import control_silo_test
 
 
+@control_silo_test
 class IdentityTestCase(TestCase):
     def test_get_provider(self):
         provider_model = IdentityProvider.objects.create(type="dummy", external_id="tester_id")

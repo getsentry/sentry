@@ -32,6 +32,7 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature, faux
+from sentry.testutils.servermode import control_silo_test, customer_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
@@ -107,6 +108,7 @@ def first_symbol_source_id(sources_json):
     return sources[0]["id"]
 
 
+@customer_silo_test
 class ProjectDetailsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
 
@@ -224,6 +226,7 @@ class ProjectDetailsTest(APITestCase):
         self.get_error_response(other_org.slug, "old_slug", status_code=403)
 
 
+@control_silo_test
 class ProjectUpdateTestTokenAuthenticated(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
@@ -348,6 +351,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         assert response.status_code == 403, response.content
 
 
+@customer_silo_test
 class ProjectUpdateTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
@@ -1129,6 +1133,7 @@ class ProjectUpdateTest(APITestCase):
             assert project.get_option("sentry:symbol_sources", json.dumps([source1]))
 
 
+@customer_silo_test
 class CopyProjectSettingsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
@@ -1323,6 +1328,7 @@ class CopyProjectSettingsTest(APITestCase):
         self.assert_other_project_settings_not_changed()
 
 
+@customer_silo_test
 class ProjectDeleteTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "delete"

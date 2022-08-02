@@ -3,9 +3,11 @@ from exam import fixture
 
 from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 from sentry.types.integrations import get_provider_string
 
 
+@customer_silo_test
 class OrganizationTeamsListTest(APITestCase):
     def test_simple(self):
         user = self.create_user()
@@ -141,6 +143,7 @@ class OrganizationTeamsListTest(APITestCase):
         assert len(response.data) == 2
 
 
+@customer_silo_test
 class OrganizationTeamsCreateTest(APITestCase):
     endpoint = "sentry-api-0-organization-teams"
     method = "post"

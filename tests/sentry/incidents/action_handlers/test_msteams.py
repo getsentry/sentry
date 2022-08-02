@@ -7,12 +7,14 @@ from sentry.incidents.action_handlers import MsTeamsActionHandler
 from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus
 from sentry.models import Integration
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import customer_silo_test
 from sentry.utils import json
 
 from . import FireTest
 
 
 @freeze_time()
+@customer_silo_test
 class MsTeamsActionHandlerTest(FireTest, TestCase):
     @responses.activate
     def run_test(self, incident, method):

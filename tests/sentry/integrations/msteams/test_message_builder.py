@@ -43,9 +43,11 @@ from sentry.testutils.helpers.notifications import (
     DummyNotification,
     DummyNotificationWithMoreFields,
 )
+from sentry.testutils.servermode import customer_silo_test
 from sentry.utils import json
 
 
+@customer_silo_test
 class MSTeamsMessageBuilderTest(TestCase):
     """
     Tests to ensure these cards can be created without errors.

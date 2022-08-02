@@ -2,9 +2,11 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.servermode import customer_silo_test
 from sentry.utils.retries import TimedRetryPolicy
 
 
+@customer_silo_test
 class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

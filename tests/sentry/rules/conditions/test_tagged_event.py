@@ -1,7 +1,9 @@
 from sentry.rules.conditions.tagged_event import MatchType, TaggedEventCondition
 from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class TaggedEventConditionTest(RuleTestCase):
     rule_cls = TaggedEventCondition
 

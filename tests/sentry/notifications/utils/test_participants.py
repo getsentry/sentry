@@ -13,6 +13,7 @@ from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.servermode import customer_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.cache import cache
 from tests.sentry.mail import make_event_data
@@ -66,6 +67,7 @@ class GetSendToMemberTest(TestCase):
         assert self.get_send_to_member(self.project, user_3.id) == {}
 
 
+@customer_silo_test
 class GetSendToTeamTest(TestCase):
     def get_send_to_team(
         self, project: Optional[Project] = None, team_id: Optional[int] = None

@@ -1,7 +1,9 @@
 from sentry.models import File, UserAvatar
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import control_silo_test
 
 
+@control_silo_test
 class UserAvatarTestCase(TestCase):
     def test_set_null(self):
         user = self.create_user("foo@example.com")

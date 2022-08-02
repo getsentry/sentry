@@ -9,8 +9,10 @@ from sentry import tsdb
 from sentry.models import Group, GroupSnooze
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class GroupSnoozeTest(TestCase, SnubaTestCase):
     sequence = itertools.count()  # generates unique values, class scope doesn't matter
 

@@ -13,8 +13,10 @@ from sentry.api.authentication import (
 )
 from sentry.models import ProjectKeyStatus, Relay
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import control_silo_test
 
 
+@control_silo_test
 class TestClientIdSecretAuthentication(TestCase):
     def setUp(self):
         super().setUp()
@@ -73,6 +75,7 @@ class TestClientIdSecretAuthentication(TestCase):
             self.auth.authenticate(request)
 
 
+@control_silo_test
 class TestDSNAuthentication(TestCase):
     def setUp(self):
         super().setUp()

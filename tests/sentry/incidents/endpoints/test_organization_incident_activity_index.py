@@ -7,8 +7,10 @@ from sentry.api.serializers import serialize
 from sentry.incidents.logic import create_incident_activity
 from sentry.incidents.models import IncidentActivityType
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class OrganizationIncidentActivityIndexTest(APITestCase):
     endpoint = "sentry-api-0-organization-incident-activity"
 

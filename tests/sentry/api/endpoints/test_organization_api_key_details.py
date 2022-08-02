@@ -1,5 +1,6 @@
 from sentry.models import ApiKey
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 DEFAULT_SCOPES = ["project:read", "event:read", "team:read", "org:read", "member:read"]
 
@@ -15,6 +16,7 @@ class OrganizationApiKeyDetailsBase(APITestCase):
         )
 
 
+@customer_silo_test
 class OrganizationApiKeyDetails(OrganizationApiKeyDetailsBase):
     def test_api_key_no_exist(self):
         self.get_error_response(self.organization.slug, 123456, status_code=404)
@@ -24,6 +26,7 @@ class OrganizationApiKeyDetails(OrganizationApiKeyDetailsBase):
         assert response.data.get("id") == str(self.api_key.id)
 
 
+@customer_silo_test
 class OrganizationApiKeyDetailsPut(OrganizationApiKeyDetailsBase):
     method = "put"
 
@@ -37,6 +40,7 @@ class OrganizationApiKeyDetailsPut(OrganizationApiKeyDetailsBase):
         assert api_key.allowed_origins == "sentry.io"
 
 
+@customer_silo_test
 class OrganizationApiKeyDetailsDelete(OrganizationApiKeyDetailsBase):
     method = "delete"
 

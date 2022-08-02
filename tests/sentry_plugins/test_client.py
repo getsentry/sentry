@@ -10,6 +10,7 @@ from sentry.shared_integrations.exceptions import (
     UnsupportedResponseType,
 )
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import control_silo_test
 from sentry_plugins.client import ApiClient, AuthApiClient
 
 
@@ -50,6 +51,7 @@ class ApiClientTest(TestCase):
         assert resp.status_code == 200
 
 
+@control_silo_test
 class AuthApiClientTest(TestCase):
     @responses.activate
     def test_without_authorization(self):

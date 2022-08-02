@@ -3,8 +3,10 @@ from django.urls import reverse
 
 from sentry.models import Authenticator
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import control_silo_test
 
 
+@control_silo_test
 class AuthenticatorIndex(APITestCase):
     def test_simple(self):
         user = self.create_user(email="a@example.com", is_superuser=True)

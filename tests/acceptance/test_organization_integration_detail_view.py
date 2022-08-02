@@ -6,8 +6,10 @@ from fixtures.page_objects.organization_integration_settings import (
 )
 from sentry.models import Integration
 from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class OrganizationIntegrationDetailView(AcceptanceTestCase):
     """
     As a developer, I can create an integration, install it, and uninstall it

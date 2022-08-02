@@ -3,8 +3,10 @@ from django.urls import reverse
 from sentry.models import ProjectOwnership
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class ProjectOwnershipEndpointTestCase(APITestCase):
     def setUp(self):
         self.login_as(user=self.user)

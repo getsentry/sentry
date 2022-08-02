@@ -5,8 +5,10 @@ from sentry.coreapi import APIUnauthorized
 from sentry.mediators.external_issues import IssueLinkCreator
 from sentry.models import PlatformExternalIssue
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class TestIssueLinkCreator(TestCase):
     def setUp(self):
         super().setUp()

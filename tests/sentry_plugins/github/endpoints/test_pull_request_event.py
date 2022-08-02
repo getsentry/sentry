@@ -2,6 +2,7 @@ from uuid import uuid4
 
 from sentry.models import OrganizationOption, PullRequest, Repository
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 from sentry_plugins.github.testutils import (
     PULL_REQUEST_CLOSED_EVENT_EXAMPLE,
     PULL_REQUEST_EDITED_EVENT_EXAMPLE,
@@ -9,6 +10,7 @@ from sentry_plugins.github.testutils import (
 )
 
 
+@customer_silo_test
 class PullRequestEventWebhook(APITestCase):
     def test_opened(self):
         project = self.project  # force creation

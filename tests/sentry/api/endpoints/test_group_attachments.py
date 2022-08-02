@@ -3,8 +3,10 @@ from urllib.parse import urlencode
 
 from sentry.models import EventAttachment, File
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class GroupEventAttachmentsTest(APITestCase):
     def create_attachment(self, type=None):
         if type is None:

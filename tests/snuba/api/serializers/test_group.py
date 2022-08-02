@@ -27,11 +27,13 @@ from sentry.models import (
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.servermode import customer_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
 
 
+@customer_silo_test
 class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -413,6 +415,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
             assert iso_format(start) == iso_format(before_now(days=expected))
 
 
+@customer_silo_test
 class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
     def test_environment(self):
         group = self.group

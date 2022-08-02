@@ -7,9 +7,11 @@ from django.urls import reverse
 import sentry.utils.auth
 from sentry.models import User
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import control_silo_test
 from sentry.utils.auth import EmailAuthBackend, SsoSession, get_login_redirect, login
 
 
+@control_silo_test
 class EmailAuthBackendTest(TestCase):
     def setUp(self):
         self.user = User(username="foo", email="baz@example.com")

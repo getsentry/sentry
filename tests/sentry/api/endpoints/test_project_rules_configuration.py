@@ -2,6 +2,7 @@ from unittest.mock import Mock, patch
 
 from sentry.rules.registry import RuleRegistry
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 EMAIL_ACTION = "sentry.mail.actions.NotifyEmailAction"
 APP_ACTION = "sentry.rules.actions.notify_event_service.NotifyEventServiceAction"
@@ -9,6 +10,7 @@ JIRA_ACTION = "sentry.integrations.jira.notify_action.JiraCreateTicketAction"
 SENTRY_APP_ALERT_ACTION = "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction"
 
 
+@customer_silo_test
 class ProjectRuleConfigurationTest(APITestCase):
     endpoint = "sentry-api-0-project-rules-configuration"
 

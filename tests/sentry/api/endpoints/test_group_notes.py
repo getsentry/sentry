@@ -8,9 +8,11 @@ from sentry.models import (
 )
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 from sentry.types.activity import ActivityType
 
 
+@customer_silo_test
 class GroupNoteTest(APITestCase):
     def test_simple(self):
         group = self.group
@@ -32,6 +34,7 @@ class GroupNoteTest(APITestCase):
         assert response.data[0]["id"] == str(activity.id)
 
 
+@customer_silo_test
 class GroupNoteCreateTest(APITestCase):
     def test_simple(self):
         group = self.group

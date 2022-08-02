@@ -31,10 +31,12 @@ from sentry.plugins.base import Notification
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import SlackActivityNotificationTest
 from sentry.testutils.helpers.slack import get_attachment, send_notification
+from sentry.testutils.servermode import customer_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
 
+@customer_silo_test
 class SlackIssueAlertNotificationTest(SlackActivityNotificationTest):
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)

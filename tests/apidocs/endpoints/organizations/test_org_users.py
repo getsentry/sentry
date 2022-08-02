@@ -2,8 +2,10 @@ from django.test.client import RequestFactory
 from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
+from sentry.testutils.servermode import control_silo_test
 
 
+@control_silo_test
 class OrganizationUsersDocs(APIDocsTestCase):
     def setUp(self):
         self.owner_user = self.create_user("foo@localhost", username="foo")

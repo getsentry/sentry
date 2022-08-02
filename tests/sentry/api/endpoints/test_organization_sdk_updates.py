@@ -6,8 +6,10 @@ from django.urls import reverse
 from sentry.sdk_updates import SdkIndexState
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

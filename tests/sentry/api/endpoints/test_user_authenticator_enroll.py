@@ -10,9 +10,11 @@ from sentry import audit_log
 from sentry.models import AuditLogEntry, Authenticator, Organization, OrganizationMember, UserEmail
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import override_options
+from sentry.testutils.servermode import control_silo_test, customer_silo_test
 from tests.sentry.api.endpoints.test_user_authenticator_details import assert_security_email_sent
 
 
+@control_silo_test
 class UserAuthenticatorEnrollTest(APITestCase):
     endpoint = "sentry-api-0-user-authenticator-enroll"
 
@@ -259,6 +261,7 @@ class UserAuthenticatorEnrollTest(APITestCase):
         )
 
 
+@customer_silo_test
 class AcceptOrganizationInviteTest(APITestCase):
     endpoint = "sentry-api-0-user-authenticator-enroll"
 

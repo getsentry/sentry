@@ -2,8 +2,10 @@ from django.urls import reverse
 
 from sentry.models import Environment, EnvironmentProject
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class ProjectEnvironmentsTest(APITestCase):
     def test_simple(self):
         project = self.create_project()

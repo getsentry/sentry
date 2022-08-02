@@ -9,8 +9,10 @@ from sentry.models import (
     Team,
 )
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class TeamTest(TestCase):
     def test_global_member(self):
         user = self.create_user()

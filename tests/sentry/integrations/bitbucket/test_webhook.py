@@ -9,6 +9,7 @@ from fixtures.bitbucket import PUSH_EVENT_EXAMPLE
 from sentry.integrations.bitbucket.webhook import PROVIDER_NAME
 from sentry.models import Commit, CommitAuthor, Repository
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 BAD_IP = "109.111.111.10"
 BITBUCKET_IP_IN_RANGE = "104.192.143.10"
@@ -106,6 +107,7 @@ class WebhookTest(WebhookBaseTest):
         )
 
 
+@customer_silo_test
 class PushEventWebhookTest(WebhookBaseTest):
     method = "post"
 

@@ -2,9 +2,11 @@ from django.utils import timezone
 
 from sentry.models import Activity
 from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.servermode import customer_silo_test
 from sentry.types.activity import ActivityType
 
 
+@customer_silo_test
 class OrganizationActivityTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()

@@ -1,8 +1,10 @@
 from sentry.models import Release
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class TeamReleaseCountTest(APITestCase):
     endpoint = "sentry-api-0-team-release-count"
 

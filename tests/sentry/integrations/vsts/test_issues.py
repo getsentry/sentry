@@ -24,6 +24,7 @@ from sentry.models import (
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.servermode import customer_silo_test
 from sentry.utils import json
 
 
@@ -113,6 +114,7 @@ class VstsIssueBase(TestCase):
         )
 
 
+@customer_silo_test
 class VstsIssueSyncTest(VstsIssueBase):
     def tearDown(self):
         responses.reset()
@@ -405,6 +407,7 @@ class VstsIssueSyncTest(VstsIssueBase):
         )
 
 
+@customer_silo_test
 class VstsIssueFormTest(VstsIssueBase):
     def setUp(self):
         super().setUp()

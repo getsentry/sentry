@@ -1,6 +1,7 @@
 from sentry.incidents.models import IncidentSubscription
 from sentry.models import GroupSubscription
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import customer_silo_test
 from sentry.utils.linksign import generate_signed_link
 
 
@@ -44,6 +45,7 @@ class UnsubscribeNotificationsBaseTest:
         assert resp.status_code == 404
 
 
+@customer_silo_test
 class UnsubscribeIssueNotificationsTest(UnsubscribeNotificationsBaseTest, TestCase):
     view_name = "sentry-account-email-unsubscribe-issue"
 

@@ -1,7 +1,9 @@
 from sentry.rules.conditions.event_attribute import EventAttributeCondition, MatchType
 from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class EventAttributeConditionTest(RuleTestCase):
     rule_cls = EventAttributeCondition
 

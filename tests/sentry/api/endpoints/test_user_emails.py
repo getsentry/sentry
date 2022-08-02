@@ -2,8 +2,10 @@ from django.urls import reverse
 
 from sentry.models import User, UserEmail, UserOption
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import control_silo_test
 
 
+@control_silo_test
 class UserEmailsTest(APITestCase):
     def setUp(self):
         super().setUp()

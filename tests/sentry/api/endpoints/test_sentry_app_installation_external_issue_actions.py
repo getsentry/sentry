@@ -3,8 +3,10 @@ from django.urls import reverse
 
 from sentry.models import PlatformExternalIssue
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
     def setUp(self):
         self.superuser = self.create_user(email="a@example.com", is_superuser=True)

@@ -9,8 +9,10 @@ from sentry.identity.oauth2 import OAuth2CallbackView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import control_silo_test
 
 
+@control_silo_test
 class OAuth2CallbackViewTest(TestCase):
     def setUp(self):
         sentry.identity.register(DummyProvider)

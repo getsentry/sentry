@@ -1,7 +1,9 @@
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class GroupEventsLatestEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

@@ -2,8 +2,10 @@ from django.urls import reverse
 
 from sentry.models import Project, Rule
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class TeamProjectIndexTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -23,6 +25,7 @@ class TeamProjectIndexTest(APITestCase):
         )
 
 
+@customer_silo_test
 class TeamProjectsListTest(APITestCase):
     def test_simple(self):
         user = self.create_user()
@@ -43,6 +46,7 @@ class TeamProjectsListTest(APITestCase):
         assert response.data[0]["id"] == str(project1.id)
 
 
+@customer_silo_test
 class TeamProjectsCreateTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)

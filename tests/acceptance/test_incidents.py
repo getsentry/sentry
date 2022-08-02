@@ -5,12 +5,14 @@ from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models import IncidentStatus, IncidentStatusMethod
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.servermode import customer_silo_test
 
 FEATURE_NAME = ["organizations:incidents", "organizations:performance-view"]
 
 event_time = before_now(days=3).replace(tzinfo=pytz.utc)
 
 
+@customer_silo_test
 class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

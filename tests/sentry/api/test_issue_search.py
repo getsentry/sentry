@@ -21,6 +21,7 @@ from sentry.api.issue_search import (
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import control_silo_test
 
 
 class ParseSearchQueryTest(unittest.TestCase):
@@ -215,6 +216,7 @@ class ConvertActorOrNoneValueTest(TestCase):
         )
 
 
+@control_silo_test
 class ConvertUserValueTest(TestCase):
     def test_me(self):
         assert convert_user_value(["me"], [self.project], self.user, None) == [self.user]

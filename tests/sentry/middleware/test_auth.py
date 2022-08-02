@@ -6,9 +6,11 @@ from exam import fixture
 from sentry.middleware.auth import AuthenticationMiddleware
 from sentry.models import ApiKey, ApiToken, UserIP
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import control_silo_test
 from sentry.utils.auth import login
 
 
+@control_silo_test
 class AuthenticationMiddlewareTestCase(TestCase):
     middleware = fixture(AuthenticationMiddleware)
 

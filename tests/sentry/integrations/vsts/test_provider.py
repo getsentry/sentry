@@ -9,9 +9,11 @@ from sentry.identity.vsts.provider import VSTSIdentityProvider, VSTSOAuth2Callba
 from sentry.integrations.vsts.integration import AccountConfigView, AccountForm
 from sentry.models import Identity, IdentityProvider
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import control_silo_test
 from sentry.utils.http import absolute_uri
 
 
+@control_silo_test
 class TestVSTSOAuthCallbackView(TestCase):
     @responses.activate
     def test_exchange_token(self):
@@ -165,6 +167,7 @@ class TestAccountConfigView(TestCase):
         assert mock_render_to_response.call_args[1]["context"] == {"no_accounts": True}
 
 
+@control_silo_test
 class VstsIdentityProviderTest(TestCase):
     def setUp(self):
         self.identity_provider_model = IdentityProvider.objects.create(type="vsts")

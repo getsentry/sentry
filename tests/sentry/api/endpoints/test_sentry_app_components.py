@@ -5,6 +5,7 @@ from sentry.constants import SentryAppInstallationStatus
 from sentry.coreapi import APIError
 from sentry.models import SentryApp
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
 def get_sentry_app_avatars(sentry_app: SentryApp):
@@ -46,6 +47,7 @@ class SentryAppComponentsTest(APITestCase):
         }
 
 
+@customer_silo_test
 class OrganizationSentryAppComponentsTest(APITestCase):
     endpoint = "sentry-api-0-org-sentry-app-components"
 

@@ -2,8 +2,10 @@ from django.urls import reverse
 
 from sentry.models import GroupHash, GroupTombstone
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class GroupTombstoneDetailsTest(APITestCase):
     def test_delete(self):
         self.user = self.create_user("foo@example.com")

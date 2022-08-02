@@ -10,6 +10,7 @@ from sentry.integrations.slack.webhooks.command import (
 )
 from sentry.models import OrganizationIntegration
 from sentry.testutils.helpers import get_response_text, link_user
+from sentry.testutils.servermode import customer_silo_test
 from sentry.utils import json
 from tests.sentry.integrations.slack.webhooks.commands import SlackCommandsTest
 
@@ -29,6 +30,7 @@ class SlackCommandsLinkTeamTestBase(SlackCommandsTest):
         )
 
 
+@customer_silo_test
 class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
     def test_link_another_team_to_channel(self):
         """
@@ -92,6 +94,7 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
         assert INSUFFICIENT_ROLE_MESSAGE in get_response_text(data)
 
 
+@customer_silo_test
 class SlackCommandsUnlinkTeamTest(SlackCommandsLinkTeamTestBase):
     def setUp(self):
         super().setUp()

@@ -3,8 +3,10 @@ from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
 from sentry.models import Commit, ReleaseCommit
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class ProjectReleaseCommitsListDocsTest(APIDocsTestCase):
     def setUp(self):
         project = self.create_project(name="foo")

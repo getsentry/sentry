@@ -4,8 +4,10 @@ from django.urls import reverse
 from exam import fixture
 
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import control_silo_test
 
 
+@control_silo_test
 class AuthLogoutTest(TestCase):
     @fixture
     def path(self):

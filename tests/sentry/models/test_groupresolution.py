@@ -4,8 +4,10 @@ from django.utils import timezone
 
 from sentry.models import GroupResolution
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class GroupResolutionTest(TestCase):
     def setUp(self):
         super().setUp()

@@ -3,6 +3,7 @@ from rest_framework import status
 from sentry.models import NotificationSetting
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import control_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
@@ -14,6 +15,7 @@ class UserNotificationSettingsTestBase(APITestCase):
         self.login_as(self.user)
 
 
+@control_silo_test
 class UserNotificationSettingsGetTest(UserNotificationSettingsTestBase):
     def test_simple(self):
         NotificationSetting.objects.update_settings(
@@ -100,6 +102,7 @@ class UserNotificationSettingsGetTest(UserNotificationSettingsTestBase):
         assert other_project.id not in response.data["workflow"]["project"]
 
 
+@control_silo_test
 class UserNotificationSettingsTest(UserNotificationSettingsTestBase):
     method = "put"
 

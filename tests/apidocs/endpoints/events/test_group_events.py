@@ -2,6 +2,7 @@ from django.test.client import RequestFactory
 
 from fixtures.apidocs_test_case import APIDocsTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.servermode import customer_silo_test
 
 
 class ProjectGroupEventBase(APIDocsTestCase):
@@ -27,6 +28,7 @@ class ProjectGroupEventBase(APIDocsTestCase):
         self.login_as(user=self.user)
 
 
+@customer_silo_test
 class ProjectGroupEventsDocs(ProjectGroupEventBase):
     def setUp(self):
         super().setUp()
@@ -39,6 +41,7 @@ class ProjectGroupEventsDocs(ProjectGroupEventBase):
         self.validate_schema(request, response)
 
 
+@customer_silo_test
 class ProjectGroupEventsLatestDocs(ProjectGroupEventBase):
     def setUp(self):
         super().setUp()
@@ -51,6 +54,7 @@ class ProjectGroupEventsLatestDocs(ProjectGroupEventBase):
         self.validate_schema(request, response)
 
 
+@customer_silo_test
 class ProjectGroupEventsOldestDocs(ProjectGroupEventBase):
     def setUp(self):
         super().setUp()

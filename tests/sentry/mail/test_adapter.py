@@ -50,6 +50,7 @@ from sentry.plugins.base import Notification
 from sentry.rules import EventState
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.servermode import control_silo_test, customer_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.releaseactivity import ReleaseActivityType
@@ -170,6 +171,7 @@ class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
         assert activity[0].data["group_id"]
 
 
+@control_silo_test
 class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
     def test_get_sendable_user_objects(self):
         user = self.create_user(email="foo@example.com", is_active=True)
@@ -563,6 +565,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         self.assert_notify(event, [user.email], ActionTargetType.MEMBER, str(user.id))
 
 
+@customer_silo_test
 class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
     def create_assert_delete_projectownership(
         self,

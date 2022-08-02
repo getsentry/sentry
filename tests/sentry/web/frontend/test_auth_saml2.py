@@ -15,6 +15,7 @@ from sentry.auth.providers.saml2.provider import HAS_SAML2, Attributes, SAML2Pro
 from sentry.models import AuditLogEntry, AuthProvider, Organization
 from sentry.testutils import AuthProviderTestCase
 from sentry.testutils.helpers import Feature
+from sentry.testutils.servermode import control_silo_test
 
 dummy_provider_config = {
     "idp": {
@@ -43,6 +44,7 @@ class DummySAML2Provider(SAML2Provider):
 
 
 @pytest.mark.skipif(not HAS_SAML2, reason="SAML2 library is not installed")
+@control_silo_test
 class AuthSAML2Test(AuthProviderTestCase):
     provider = DummySAML2Provider
     provider_name = "saml2_dummy"

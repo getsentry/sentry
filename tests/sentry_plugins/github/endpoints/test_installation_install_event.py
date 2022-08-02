@@ -2,9 +2,11 @@ from uuid import uuid4
 
 from sentry.models import Integration
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 from sentry_plugins.github.testutils import INSTALLATION_EVENT_EXAMPLE
 
 
+@customer_silo_test
 class InstallationInstallEventWebhookTest(APITestCase):
     def test_simple(self):
         url = "/plugins/github/installations/webhook/"

@@ -9,6 +9,7 @@ from sentry.models.transaction_threshold import TransactionMetric
 from sentry.snuba import discover
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.servermode import customer_silo_test
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import Dataset
 
@@ -440,6 +441,7 @@ class TimeseriesQueryTest(TimeseriesBase):
 
 
 @pytest.mark.skip("These tests are specific to json which we no longer use")
+@customer_silo_test
 class TopEventsTimeseriesQueryTest(TimeseriesBase):
     @patch("sentry.snuba.discover.raw_query")
     def test_project_filter_adjusts_filter(self, mock_query):

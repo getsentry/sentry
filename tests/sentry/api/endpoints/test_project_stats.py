@@ -2,8 +2,10 @@ from django.urls import reverse
 
 from sentry import tsdb
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class ProjectStatsTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)

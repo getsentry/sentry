@@ -8,8 +8,10 @@ from sentry.auth.providers.dummy import DummyProvider
 from sentry.models import AuthIdentity, AuthProvider, OrganizationMember
 from sentry.tasks.check_auth import AUTH_CHECK_INTERVAL, check_auth, check_auth_identity
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import control_silo_test
 
 
+@control_silo_test
 class CheckAuthTest(TestCase):
     @patch("sentry.tasks.check_auth.check_auth_identity")
     def test_simple(self, mock_check_auth_identity):
@@ -35,6 +37,7 @@ class CheckAuthTest(TestCase):
         )
 
 
+@control_silo_test
 class CheckAuthIdentityTest(TestCase):
     @patch("sentry.tasks.check_auth.check_auth_identity")
     def test_simple(self, mock_check_auth_identity):

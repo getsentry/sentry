@@ -1,8 +1,10 @@
 from unittest import TestCase
 
 from sentry.eventtypes import ErrorEvent
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class ErrorEventTest(TestCase):
     def test_get_metadata(self):
         inst = ErrorEvent()

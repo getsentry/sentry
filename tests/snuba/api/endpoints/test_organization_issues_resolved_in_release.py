@@ -2,8 +2,10 @@ from uuid import uuid1
 
 from sentry.models import Commit, GroupLink, GroupResolution, ReleaseCommit, Repository
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class OrganizationIssuesResolvedInReleaseEndpointTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-release-resolved"
     method = "get"

@@ -2,8 +2,10 @@ from sentry import roles
 from sentry.models import OrganizationMember, User
 from sentry.runner.commands.createuser import createuser
 from sentry.testutils import CliTestCase
+from sentry.testutils.servermode import control_silo_test
 
 
+@control_silo_test
 class CreateUserTest(CliTestCase):
     command = createuser
     default_args = ["--no-input"]

@@ -7,8 +7,10 @@ from sentry.eventstore.snuba import SnubaEventStorage
 from sentry.models import Deploy, Group, Release, Rule
 from sentry.rules.conditions.active_release import ActiveReleaseEventCondition
 from sentry.testutils import RuleTestCase, SnubaTestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class ActiveReleaseEventConditionTest(SnubaTestCase, RuleTestCase):
     rule_cls = ActiveReleaseEventCondition
 

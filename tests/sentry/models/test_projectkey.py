@@ -2,8 +2,10 @@ import pytest
 
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class ProjectKeyTest(TestCase):
     model = ProjectKey
 

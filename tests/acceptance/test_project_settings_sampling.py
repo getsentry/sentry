@@ -5,6 +5,7 @@ from selenium.webdriver.common.keys import Keys
 from sentry.api.endpoints.project_details import DynamicSamplingSerializer
 from sentry.models import ProjectOption
 from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.servermode import customer_silo_test
 
 FEATURE_NAME = "organizations:server-side-sampling"
 
@@ -50,6 +51,7 @@ specific_rule_with_all_current_trace_conditions = {
 }
 
 
+@customer_silo_test
 class ProjectSettingsSamplingTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()

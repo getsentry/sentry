@@ -1,7 +1,9 @@
 from sentry.auth.system import SystemToken, is_system_auth
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import control_silo_test
 
 
+@control_silo_test
 class TestSystemAuth(TestCase):
     def test_is_system_auth(self):
         token = SystemToken()

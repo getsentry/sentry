@@ -4,9 +4,11 @@ from fixtures.page_objects.organization_integration_settings import (
     OrganizationAbstractDetailViewPage,
 )
 from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.servermode import customer_silo_test
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 
 
+@customer_silo_test
 class OrganizationPluginDetailedView(AcceptanceTestCase):
     @fixture
     def plugin(self):

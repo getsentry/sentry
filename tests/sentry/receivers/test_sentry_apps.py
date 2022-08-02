@@ -4,6 +4,7 @@ from sentry.constants import SentryAppInstallationStatus
 from sentry.models import Activity, Commit, GroupAssignee, GroupLink, Release, Repository
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.faux import faux
+from sentry.testutils.servermode import customer_silo_test
 
 # This testcase needs to be an APITestCase because all of the logic to resolve
 # Issues and kick off side effects are just chillin in the endpoint code -_-
@@ -11,6 +12,7 @@ from sentry.types.activity import ActivityType
 
 
 @patch("sentry.tasks.sentry_apps.workflow_notification.delay")
+@customer_silo_test
 class TestIssueWorkflowNotifications(APITestCase):
     def setUp(self):
         self.issue = self.create_group(project=self.project)
@@ -153,6 +155,7 @@ class TestIssueWorkflowNotifications(APITestCase):
 
 
 @patch("sentry.tasks.sentry_apps.workflow_notification.delay")
+@customer_silo_test
 class TestIssueAssigned(APITestCase):
     def setUp(self):
         self.issue = self.create_group(project=self.project)

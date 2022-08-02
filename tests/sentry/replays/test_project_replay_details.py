@@ -1,10 +1,12 @@
 from django.urls import reverse
 
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 REPLAYS_FEATURES = {"organizations:session-replay": True}
 
 
+@customer_silo_test
 class OrganizationReplayDetailsTest(APITestCase):
     endpoint = "sentry-api-0-project-replay-details"
 

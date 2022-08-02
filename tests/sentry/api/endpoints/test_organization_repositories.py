@@ -7,8 +7,10 @@ from sentry.integrations.example import ExampleRepositoryProvider
 from sentry.models import Integration, OrganizationIntegration, Repository
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class OrganizationRepositoriesListTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -149,6 +151,7 @@ class OrganizationRepositoriesListTest(APITestCase):
             assert not f.called
 
 
+@customer_silo_test
 class OrganizationRepositoriesCreateTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -197,6 +200,7 @@ class OrganizationRepositoriesCreateTest(APITestCase):
         assert response.status_code == 403, (response.status_code, response.content)
 
 
+@customer_silo_test
 class OrganizationIntegrationRepositoriesCreateTest(APITestCase):
     def setUp(self):
         super().setUp()
