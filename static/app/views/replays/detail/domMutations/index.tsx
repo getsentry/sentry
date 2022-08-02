@@ -1,13 +1,16 @@
-import React from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
 import HTMLCode from 'sentry/components/htmlCode';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import PlayerRelativeTime from 'sentry/components/replays/playerRelativeTime';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import Truncate from 'sentry/components/truncate';
 import {SVGIconProps} from 'sentry/icons/svgIcon';
 import space from 'sentry/styles/space';
+import {Crumb} from 'sentry/types/breadcrumbs';
 import useExtractedCrumbHtml from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 
@@ -17,8 +20,51 @@ type Props = {
 
 function DomMutations({replay}: Props) {
   const {isLoading, actions} = useExtractedCrumbHtml({replay});
+  const {
+    setCurrentTime,
+    highlight,
+    setCurrentHoverTime,
+    clearAllHighlights,
+    removeHighlight,
+  } = useReplayContext();
 
   const startTimestampMs = replay.getReplay().started_at.getTime();
+
+  const handleMouseEnter = useCallback(
+    (item: Crumb) => {
+      if (startTimestampMs) {
+        setCurrentHoverTime(relativeTimeInMs(item.timestamp ?? '', startTimestampMs));
+      }
+
+      if (item.data && 'nodeId' in item.data) {
+        // XXX: Kind of hacky, but mouseLeave does not fire if you move from a
+        // crumb to a tooltip
+        clearAllHighlights();
+        highlight({nodeId: item.data.nodeId, annotation: item.data.label});
+      }
+    },
+    [setCurrentHoverTime, startTimestampMs, highlight, clearAllHighlights]
+  );
+
+  const handleMouseLeave = useCallback(
+    (item: Crumb) => {
+      setCurrentHoverTime(undefined);
+
+      if (item.data && 'nodeId' in item.data) {
+        removeHighlight({nodeId: item.data.nodeId});
+      }
+    },
+    [setCurrentHoverTime, removeHighlight]
+  );
+
+  const handleClick = useCallback(
+    (crumb: Crumb) => {
+      crumb.timestamp !== undefined
+        ? setCurrentTime(relativeTimeInMs(crumb.timestamp, startTimestampMs))
+        : null;
+    },
+    [setCurrentTime, startTimestampMs]
+  );
 
   if (isLoading) {
     return null;
@@ -27,7 +73,11 @@ function DomMutations({replay}: Props) {
   return (
     <MutationList>
       {actions.map((mutation, i) => (
-        <MutationListItem key={i}>
+        <MutationListItem
+          key={i}
+          onMouseEnter={() => handleMouseEnter(mutation.crumb)}
+          onMouseLeave={() => handleMouseLeave(mutation.crumb)}
+        >
           <StepConnector />
           <MutationItemContainer>
             <div>
@@ -35,10 +85,12 @@ function DomMutations({replay}: Props) {
                 <IconWrapper color={mutation.crumb.color}>
                   <BreadcrumbIcon type={mutation.crumb.type} />
                 </IconWrapper>
-                <PlayerRelativeTime
-                  relativeTimeMs={startTimestampMs}
-                  timestamp={mutation.crumb.timestamp}
-                />
+                <UnstyledButton onClick={() => handleClick(mutation.crumb)}>
+                  <PlayerRelativeTime
+                    relativeTimeMs={startTimestampMs}
+                    timestamp={mutation.crumb.timestamp}
+                  />
+                </UnstyledButton>
               </MutationMetadata>
               <MutationDetails>
                 <TitleContainer>
@@ -64,12 +116,19 @@ function DomMutations({replay}: Props) {
 const MutationList = styled('ul')`
   list-style: none;
   position: relative;
+  max-height: 100%;
+  overflow-y: auto;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  padding: ${space(2)};
+  margin-bottom: 0;
 `;
 
 const MutationListItem = styled('li')`
   display: flex;
   align-items: start;
-  gap: ${space(4)};
+  padding-top: ${space(1)};
+  padding-bottom: ${space(1)};
 `;
 
 const MutationItemContainer = styled('div')`
@@ -80,7 +139,7 @@ const MutationItemContainer = styled('div')`
 const MutationMetadata = styled('div')`
   display: flex;
   align-items: start;
-  gap: ${space(1)};
+  column-gap: ${space(1)};
 `;
 
 /**
@@ -97,6 +156,12 @@ const IconWrapper = styled('div')<Required<Pick<SVGIconProps, 'color'>>>`
   background: ${p => p.theme[p.color] ?? p.color};
   box-shadow: ${p => p.theme.dropShadowLightest};
   z-index: 1; // over the step connector
+`;
+
+const UnstyledButton = styled('button')`
+  background: none;
+  border: none;
+  padding: 0;
 `;
 
 const MutationDetails = styled('div')`
