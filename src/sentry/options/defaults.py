@@ -470,3 +470,21 @@ register("api.deprecation.brownout-duration", default="PT1M")
 
 # switch all metrics usage over to using strings for tag values
 register("sentry-metrics.performance.tags-values-are-strings", default=False)
+
+# Global and per-organization limits on the writes to the string indexer's DB.
+#
+# Format is a list of dictionaries of format {
+#   "window_seconds": ...,
+#   "granularity_seconds": ...,
+#   "limit": ...
+# }
+#
+# See sentry.ratelimiters.sliding_windows for an explanation of what each of
+# those terms mean.
+#
+# Note that changing either window or granularity_seconds of a limit will
+# effectively reset it, as the previous data can't/won't be converted.
+register("sentry-metrics.writes-limiter.limits.performance.per-org", default=[])
+register("sentry-metrics.writes-limiter.limits.releasehealth.per-org", default=[])
+register("sentry-metrics.writes-limiter.limits.performance.global", default=[])
+register("sentry-metrics.writes-limiter.limits.releasehealth.global", default=[])
