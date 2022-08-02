@@ -1,9 +1,10 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
+import CompactSelect from 'sentry/components/forms/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
 import {FunctionsTable} from 'sentry/components/profiling/functionsTable';
@@ -63,6 +64,10 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
     selection: props.selection,
   });
 
+  const [functionType, setFunctionType] = useState<'application' | 'system' | 'all'>(
+    'application'
+  );
+
   const functions = useFunctions({
     cursor: functionsCursor,
     project: props.project,
@@ -70,6 +75,7 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
     selection: props.selection,
     transaction: props.transaction,
     sort: functionsSort,
+    functionType,
   });
 
   const handleFunctionsCursor = useCallback((cursor, pathname, query) => {
@@ -106,7 +112,25 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
       ) : (
         <Fragment>
           <TableHeader>
-            <SectionHeading>{t('Suspect Functions')}</SectionHeading>
+            <CompactSelect
+              triggerProps={{prefix: t('Suspect Functions'), size: 'xs'}}
+              value={functionType}
+              options={[
+                {
+                  label: t('All'),
+                  value: 'all',
+                },
+                {
+                  label: t('Application'),
+                  value: 'application',
+                },
+                {
+                  label: t('System'),
+                  value: 'system',
+                },
+              ]}
+              onChange={({value}) => setFunctionType(value)}
+            />
             <StyledPagination
               pageLinks={
                 functions.type === 'resolved' && isFunctionsResultV2(functions.data)
