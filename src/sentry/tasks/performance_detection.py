@@ -133,7 +133,7 @@ class PerformanceDetector(ABC):
     """
 
     def __init__(self, settings: Dict[str, Any]):
-        self.settings = settings[self.settingsKey]
+        self.settings = settings[self.settings_key]
         self.init()
 
     @abstractmethod
@@ -142,7 +142,7 @@ class PerformanceDetector(ABC):
 
     @property
     @abstractmethod
-    def settingsKey(self) -> DetectorType:
+    def settings_key(self) -> DetectorType:
         raise NotImplementedError
 
     @abstractmethod
@@ -162,7 +162,7 @@ class DuplicateSpanDetector(PerformanceDetector):
 
     __slots__ = ("cumulative_durations", "duplicate_spans_involved", "stored_issues")
 
-    settingsKey = DetectorType.DUPLICATE_SPANS
+    settings_key = DetectorType.DUPLICATE_SPANS
 
     def init(self):
         self.cumulative_durations = {}
@@ -210,7 +210,7 @@ class SlowSpanDetector(PerformanceDetector):
 
     __slots__ = "stored_issues"
 
-    settingsKey = DetectorType.SLOW_SPAN
+    settings_key = DetectorType.SLOW_SPAN
 
     def init(self):
         self.stored_issues = {}
@@ -245,7 +245,7 @@ class SequentialSlowSpanDetector(PerformanceDetector):
 
     __slots__ = ("cumulative_durations", "stored_issues", "spans_involved", "last_span_seen")
 
-    settingsKey = DetectorType.SEQUENTIAL_SLOW_SPANS
+    settings_key = DetectorType.SEQUENTIAL_SLOW_SPANS
 
     def init(self):
         self.cumulative_durations = {}
