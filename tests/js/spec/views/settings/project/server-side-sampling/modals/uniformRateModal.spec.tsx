@@ -12,7 +12,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {UniformRateModal} from 'sentry/views/settings/project/server-side-sampling/modals/uniformRateModal';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
-import {getMockData} from '../utils';
+import {getMockData, outcomesWithoutClientDiscarded} from '../utils';
 
 jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
@@ -227,5 +227,60 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
         project_id: project.id,
       })
     );
+  });
+
+  it('display "Specify client rate modal" content as a first step', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/stats_v2/',
+      body: outcomesWithoutClientDiscarded,
+    });
+
+    const {organization, project} = getMockData();
+
+    render(<GlobalModal />);
+
+    openModal(modalProps => (
+      <UniformRateModal
+        {...modalProps}
+        organization={organization}
+        project={project}
+        projectStats={outcomesWithoutClientDiscarded}
+        rules={[]}
+        onSubmit={jest.fn()}
+        onReadDocs={jest.fn()}
+      />
+    ));
+
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Specify current client(SDK) sample rate',
+      })
+    ).toBeInTheDocument();
+
+    expect(screen.getByRole('button', {name: 'Next'})).toBeDisabled();
+
+    // Enter valid specified client-sample rate
+    userEvent.type(screen.getByRole('spinbutton'), '0.2{enter}');
+
+    userEvent.click(screen.getByRole('button', {name: 'Next'}));
+
+    expect(
+      await screen.findByRole('heading', {name: 'Set a global sample rate'})
+    ).toBeInTheDocument();
+
+    // Content
+    expect(screen.getByText('20%')).toBeInTheDocument(); // Current client-side sample rate
+    expect(screen.getByText('N/A')).toBeInTheDocument(); // Current server-side sample rate
+    expect(screen.getAllByRole('spinbutton')[0]).toHaveValue(100); // Suggested client-side sample rate
+    expect(screen.getAllByRole('spinbutton')[1]).toHaveValue(20); // Suggested server-side sample rate
+
+    // Footer
+    expect(screen.getByText('Step 2 of 3')).toBeInTheDocument();
+
+    // Go Back
+    userEvent.click(screen.getByRole('button', {name: 'Back'}));
+
+    // Specified sample rate has to still be there
+    expect(screen.getByRole('spinbutton')).toHaveValue(0.2);
   });
 });
