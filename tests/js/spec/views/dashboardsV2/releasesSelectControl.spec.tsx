@@ -1,9 +1,9 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ReleasesContext} from 'sentry/utils/releases/releasesProvider';
 import ReleasesSelectControl from 'sentry/views/dashboardsV2/releasesSelectControl';
 
-function renderReleasesSelect() {
+function renderReleasesSelect(onSearch?: (searchTerm: string) => void) {
   render(
     <ReleasesContext.Provider
       value={{
@@ -22,6 +22,7 @@ function renderReleasesSelect() {
           }),
         ],
         loading: false,
+        onSearch: onSearch ?? jest.fn(),
       }}
     >
       <ReleasesSelectControl selectedReleases={[]} />
@@ -57,5 +58,17 @@ describe('Dashboards > ReleasesSelectControl', function () {
 
     expect(screen.getByText('sentry-android-shop@1.2.0')).toBeInTheDocument();
     expect(screen.getByText('+1')).toBeInTheDocument();
+  });
+
+  it('calls onSearch when filtering by releases', async function () {
+    const mockOnSearch = jest.fn();
+    renderReleasesSelect(mockOnSearch);
+
+    expect(screen.getByText('All Releases')).toBeInTheDocument();
+
+    userEvent.click(screen.getByText('All Releases'));
+    userEvent.type(screen.getByText('Search\u2026'), 'se');
+
+    await waitFor(() => expect(mockOnSearch).toBeCalled());
   });
 });
