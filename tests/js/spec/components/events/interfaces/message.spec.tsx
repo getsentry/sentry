@@ -6,15 +6,25 @@ describe('Message entry', function () {
   it('display redacted data', async function () {
     const event = {
       ...TestStubs.Event(),
-      _meta: {
-        message: {
+      entries: [
+        {
+          type: 'message',
           data: {
-            formatted: {'': {rem: [['project:1', 'x']]}},
+            formatted: null,
+          },
+        },
+      ],
+      _meta: {
+        entries: {
+          0: {
+            data: {
+              formatted: {'': {rem: [['project:1', 'x']]}},
+            },
           },
         },
       },
     };
-    render(<Message data={{formatted: null}} meta={event._meta.message} />);
+    render(<Message data={{formatted: null}} event={event} />);
 
     expect(screen.getByText(/redacted/)).toBeInTheDocument();
 

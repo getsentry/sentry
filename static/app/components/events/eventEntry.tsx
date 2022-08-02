@@ -70,7 +70,7 @@ function EventEntry({
     }
     case EntryType.MESSAGE: {
       const {data} = entry;
-      return <Message data={data} meta={event._meta?.message ?? {}} />;
+      return <Message data={data} event={event} />;
     }
     case EntryType.REQUEST: {
       const {data, type} = entry;

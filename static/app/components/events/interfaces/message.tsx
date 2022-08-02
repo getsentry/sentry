@@ -2,6 +2,7 @@ import EventDataSection from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import AnnotatedText from 'sentry/components/events/meta/annotatedText';
 import {t} from 'sentry/locale';
+import {EntryType, Event} from 'sentry/types';
 import {objectIsEmpty} from 'sentry/utils';
 
 type Props = {
@@ -9,10 +10,15 @@ type Props = {
     formatted: string | null;
     params?: Record<string, any> | any[] | null;
   };
-  meta?: Record<any, any>;
+  event: Event;
 };
 
-export function Message({data, meta}: Props) {
+export function Message({data, event}: Props) {
+  const messageEntryIndex = event.entries.findIndex(
+    entry => entry.type === EntryType.MESSAGE
+  );
+  const meta = event?._meta?.entries?.[messageEntryIndex] ?? {};
+
   function renderParams() {
     const params = data?.params;
 
