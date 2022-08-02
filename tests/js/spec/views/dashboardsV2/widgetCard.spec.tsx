@@ -646,7 +646,7 @@ describe('Dashboards > WidgetCard', function () {
 
     await waitFor(() => {
       // Badge in the widget header
-      expect(screen.getByText('Sampled')).toBeInTheDocument();
+      expect(screen.getByText('Indexed')).toBeInTheDocument();
     });
 
     await waitFor(() => {
@@ -812,7 +812,7 @@ describe('Dashboards > WidgetCard', function () {
 
       await waitFor(() => {
         // Badge in the widget header
-        expect(screen.getByText('Sampled')).toBeInTheDocument();
+        expect(screen.getByText('Indexed')).toBeInTheDocument();
       });
 
       await waitFor(() => {

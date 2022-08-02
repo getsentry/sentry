@@ -246,9 +246,9 @@ function WidgetCardContextMenu({
           <Feature organization={organization} features={['dashboards-mep']}>
             {isMetricsData === false && (
               <SampledTag
-                tooltipText={t('This widget is only applicable to sampled events.')}
+                tooltipText={t('This widget is only applicable to indexed events.')}
               >
-                {t('Sampled')}
+                {t('Indexed')}
               </SampledTag>
             )}
           </Feature>
