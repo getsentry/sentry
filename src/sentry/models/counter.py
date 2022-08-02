@@ -69,8 +69,7 @@ def increment_project_counter(project, delta=1, using="default"):
 
             project_counter = cur.fetchone()[0]
 
-            if settings.SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT:
-                assert statement_timeout is not None
+            if statement_timeout is not None:
                 cur.execute(
                     "set local statement_timeout = %s",
                     [statement_timeout],
