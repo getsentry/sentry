@@ -220,6 +220,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
     if (!isEverythingDisabled(notificationType, notificationSettings)) {
       initialData.provider = getCurrentProviders(notificationType, notificationSettings);
     } else {
+      // NOTE: Change this when we want to make Slack also to be enabled by default.
       initialData.provider = ['email'];
     }
 
