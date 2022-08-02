@@ -15,16 +15,7 @@ from django.db.models import Func
 from django.utils.encoding import force_text
 from pytz import UTC
 
-from sentry import (
-    eventstore,
-    eventstream,
-    eventtypes,
-    features,
-    options,
-    quotas,
-    reprocessing2,
-    tsdb,
-)
+from sentry import eventstore, eventtypes, features, options, quotas, reprocessing2, tsdb
 from sentry.attachments import MissingAttachmentChunks, attachment_cache
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
@@ -34,6 +25,7 @@ from sentry.constants import (
 )
 from sentry.culprit import generate_culprit
 from sentry.eventstore.processing import event_processing_store
+from sentry.eventstream import errors, transactions
 from sentry.grouping.api import (
     BackgroundGroupingConfigLoader,
     GroupingConfigNotFound,
@@ -970,21 +962,36 @@ def _eventstream_insert_many(jobs):
                 tags={"event_type": job["event"].data.get("type") or "null"},
             )
 
-        eventstream.insert(
-            group=job["group"],
-            event=job["event"],
-            is_new=job["is_new"],
-            is_regression=job["is_regression"],
-            is_new_group_environment=job["is_new_group_environment"],
-            primary_hash=job["event"].get_primary_hash(),
-            received_timestamp=job["received_timestamp"],
-            # We are choosing to skip consuming the event back
-            # in the eventstream if it's flagged as raw.
-            # This means that we want to publish the event
-            # through the event stream, but we don't care
-            # about post processing and handling the commit.
-            skip_consume=job.get("raw", False),
-        )
+        if job["event"].data.get("type") == "transactions":
+            from sentry.eventstream.transactions.backend import TransactionsInsertData
+
+            transactions.insert(
+                data=TransactionsInsertData(
+                    event=job["event"],
+                    received_timestamp=job["received_timestamp"],
+                    skip_consume=job.get("raw", False),
+                ),
+            )
+        else:
+            from sentry.eventstream.errors.backend import ErrorsInsertData
+
+            errors.insert(
+                data=ErrorsInsertData(
+                    group=job["group"],
+                    event=job["event"],
+                    is_new=job["is_new"],
+                    is_regression=job["is_regression"],
+                    is_new_group_environment=job["is_new_group_environment"],
+                    primary_hash=job["event"].get_primary_hash(),
+                    received_timestamp=job["received_timestamp"],
+                    # We are choosing to skip consuming the event back
+                    # in the eventstream if it's flagged as raw.
+                    # This means that we want to publish the event
+                    # through the event stream, but we don't care
+                    # about post processing and handling the commit.
+                    skip_consume=job.get("raw", False),
+                ),
+            )
 
 
 @metrics.wraps("save_event.track_outcome_accepted_many")

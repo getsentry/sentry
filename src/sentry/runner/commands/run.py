@@ -346,12 +346,21 @@ def cron(**options):
 @log_options()
 @configuration
 def post_process_forwarder(**options):
-    from sentry import eventstream
+    from sentry.eventstream import errors, transactions
     from sentry.eventstream.base import ForwarderNotRequired
 
     try:
-        eventstream.run_post_process_forwarder(
-            entity=options["entity"],
+        mapping = {
+            "errors": errors,
+            "transactions": transactions,
+            # TODO: have an option to run "all",
+            # which is errors/transactions combined.
+            # Probs needs to be its own module.
+        }
+
+        evenstream_api = mapping[options["entity"]]
+
+        evenstream_api.run_post_process_forwarder(
             consumer_group=options["consumer_group"],
             commit_log_topic=options["commit_log_topic"],
             synchronize_commit_group=options["synchronize_commit_group"],

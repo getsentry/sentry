@@ -1450,6 +1450,14 @@ SENTRY_NEWSLETTER_OPTIONS = {}
 SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
 SENTRY_EVENTSTREAM_OPTIONS = {}
 
+SENTRY_ERRORS_EVENTSTREAM = "sentry.eventstream.errors.backend.SnubaErrorsEventStreamAPI"
+SENTRY_ERRORS_EVENTSTREAM_OPTIONS = {}
+
+SENTRY_TRANSACTIONS_EVENTSTREAM = (
+    "sentry.eventstream.transactions.backend.SnubaTransactionsEventStreamAPI"
+)
+SENTRY_TRANSACTIONS_EVENTSTREAM_OPTIONS = {}
+
 # rollups must be ordered from highest granularity to lowest
 SENTRY_TSDB_ROLLUPS = (
     # (time in seconds, samples to keep)
