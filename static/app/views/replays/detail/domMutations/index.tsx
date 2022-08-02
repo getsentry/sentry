@@ -96,7 +96,7 @@ function DomMutations({replay}: Props) {
 const MutationList = styled('ul')`
   list-style: none;
   position: relative;
-  max-height: 100%;
+  height: 100%;
   overflow-y: auto;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
