@@ -1,4 +1,4 @@
-import React, {useRef, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {browserHistory} from 'react-router';
 import Editor from '@monaco-editor/react';
 
@@ -34,7 +34,6 @@ class SentryFunctionFormModel extends FormModel {
     }
     data.events = events;
     const {...output} = data;
-    // console.log(output);
     return output;
   }
 }
@@ -93,6 +92,18 @@ function SentryFunctionDetails(props: Props) {
   const [onComment, setOnComment] = useState(
     !!sentryFunction?.events?.includes('comment')
   );
+
+  useEffect(() => {
+    if (onIssue) {
+      form.current.setValue('onIssue', true);
+    }
+    if (onError) {
+      form.current.setValue('onError', true);
+    }
+    if (onComment) {
+      form.current.setValue('onComment', true);
+    }
+  }, [onIssue, onError, onComment]);
 
   const handleSubmitError = err => {
     let errorMessage = t('Unknown Error');

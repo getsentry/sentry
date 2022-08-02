@@ -20,20 +20,15 @@ type Props = {
 };
 
 function SentryFunctionSubscriptions(props: Props) {
-  const {form, onComment, onError, onIssue, setOnComment, setOnError, setOnIssue} = props;
+  const {onComment, onError, onIssue, setOnComment, setOnError, setOnIssue} = props;
+
   function onChange(resource: Resource, checked: boolean) {
-    // TODO: talk to Steve about why the nots are needed
-    // right now, I'm assuming that checked is only true if the value of the box is *changed*,
-    // not actually when the box is checked.
     if (resource === 'issue') {
       setOnIssue(checked);
-      form.current.setValue('onIssue', !onIssue);
     } else if (resource === 'error') {
       setOnError(checked);
-      form.current.setValue('onError', !onError);
     } else if (resource === 'comment') {
       setOnComment(checked);
-      form.current.setValue('onComment', !onComment);
     }
   }
   return (
