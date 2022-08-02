@@ -1,10 +1,4 @@
-from .base import (  # NOQA
-    Feature,
-    OrganizationFeature,
-    ProjectFeature,
-    ProjectPluginFeature,
-    UserFeature,
-)
+from .base import OrganizationFeature, ProjectFeature, ProjectPluginFeature  # NOQA
 from .handler import *  # NOQA
 from .manager import *  # NOQA
 
@@ -209,7 +203,6 @@ default_manager.add("projects:similarity-view-v2", ProjectFeature)
 
 # Project plugin features
 default_manager.add("projects:plugins", ProjectPluginFeature)
-default_manager.add("users:notification-slack-automatic", UserFeature)
 
 # Workflow 2.0 Project features
 default_manager.add("projects:auto-associate-commits-to-release", ProjectFeature)
