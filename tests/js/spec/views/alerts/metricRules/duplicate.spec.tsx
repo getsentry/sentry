@@ -58,7 +58,7 @@ describe('Incident Rules Duplicate', function () {
     const {organization, project, router} = initializeOrg({
       organization: {
         access: ['alerts:write'],
-        features: ['alert-wizard-v3', 'duplicate-alert-rule'],
+        features: ['duplicate-alert-rule'],
       },
       router: {
         // we need this to be set to make sure org in context is same as

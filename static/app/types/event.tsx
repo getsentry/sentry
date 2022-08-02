@@ -1,13 +1,12 @@
-import type {DebugImage} from 'sentry/components/events/interfaces/debugMeta/types';
 import type {TraceContextType} from 'sentry/components/events/interfaces/spans/types';
 import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import type {PlatformKey} from 'sentry/data/platformCategories';
 
 import type {RawCrumb} from './breadcrumbs';
+import type {Image} from './debugImage';
 import type {IssueAttachment} from './group';
 import type {Release} from './release';
 import type {RawStacktrace, StackTraceMechanism, StacktraceType} from './stacktrace';
-
 // TODO(epurkhiser): objc and cocoa should almost definitely be moved into PlatformKey
 export type PlatformType = PlatformKey | 'objc' | 'cocoa';
 
@@ -215,7 +214,7 @@ export enum EntryType {
 
 type EntryDebugMeta = {
   data: {
-    images: Array<DebugImage>;
+    images: Array<Image | null>;
   };
   type: EntryType.DEBUGMETA;
 };
@@ -249,9 +248,10 @@ type EntrySpans = {
   type: EntryType.SPANS; // data is not used
 };
 
-type EntrySpanTree = {
-  data: any;
-  focusedSpanIds: string[];
+export type EntrySpanTree = {
+  data: {
+    focusedSpanIds: string[];
+  };
   type: EntryType.SPANTREE;
 };
 
@@ -339,11 +339,14 @@ type EventContexts = {
   client_os?: OSContext;
   device?: DeviceContext;
   os?: OSContext;
+  // TODO (udameli): add better types here
+  // once perf issue data shape is more clear
+  performance_issue?: any;
   runtime?: RuntimeContext;
   trace?: TraceContextType;
 };
 
-export type Measurement = {value: number};
+export type Measurement = {value: number; unit?: string};
 
 export type EventTag = {key: string; value: string};
 
@@ -385,6 +388,7 @@ type EventBase = {
     | EventOrGroupType.EXPECTSTAPLE
     | EventOrGroupType.HPKP;
   user: EventUser | null;
+  _meta?: Record<string, any>;
   context?: Record<string, any>;
   dateCreated?: string;
   device?: Record<string, any>;

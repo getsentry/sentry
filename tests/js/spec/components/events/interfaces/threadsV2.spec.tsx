@@ -302,7 +302,7 @@ describe('ThreadsV2', function () {
         expect(await screen.findByText('Display')).toBeInTheDocument();
 
         Object.entries(displayOptions).forEach(([key, value]) => {
-          if (key === 'minified') {
+          if (key === 'minified' || key === 'raw-stack-trace') {
             expect(screen.getByText(value)).toBeInTheDocument();
             return;
           }
@@ -744,6 +744,13 @@ describe('ThreadsV2', function () {
                   image_size: 49152,
                   image_vmaddr: '0x100000000',
                   type: 'macho',
+                  candidates: [],
+                  features: {
+                    has_debug_info: false,
+                    has_sources: false,
+                    has_symbols: false,
+                    has_unwind_info: false,
+                  },
                 },
                 {
                   code_file: '/System/Library/Frameworks/UIKit.framework/UIKit',
@@ -752,6 +759,13 @@ describe('ThreadsV2', function () {
                   image_size: 14315520,
                   image_vmaddr: '0x187769000',
                   type: 'macho',
+                  candidates: [],
+                  features: {
+                    has_debug_info: false,
+                    has_sources: false,
+                    has_symbols: false,
+                    has_unwind_info: false,
+                  },
                 },
                 {
                   code_file:
@@ -761,6 +775,13 @@ describe('ThreadsV2', function () {
                   image_size: 163840,
                   image_vmaddr: '0x0',
                   type: 'macho',
+                  candidates: [],
+                  features: {
+                    has_debug_info: false,
+                    has_sources: false,
+                    has_symbols: false,
+                    has_unwind_info: false,
+                  },
                 },
                 {
                   code_file:
@@ -770,6 +791,13 @@ describe('ThreadsV2', function () {
                   image_size: 163840,
                   image_vmaddr: '0x0',
                   type: 'macho',
+                  candidates: [],
+                  features: {
+                    has_debug_info: false,
+                    has_sources: false,
+                    has_symbols: false,
+                    has_unwind_info: false,
+                  },
                 },
               ],
             },

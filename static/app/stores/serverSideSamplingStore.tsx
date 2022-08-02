@@ -6,6 +6,7 @@ import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 import {CommonStoreDefinition} from './types';
 
 type State = {
+  fetching: boolean;
   samplingDistribution: SamplingDistribution;
   samplingSdkVersions: SamplingSdkVersion[];
 };
@@ -14,12 +15,14 @@ interface ServerSideSamplingStoreDefinition extends CommonStoreDefinition<State>
   loadSamplingDistributionSuccess(data: SamplingDistribution): void;
   loadSamplingSdkVersionsSuccess(data: SamplingSdkVersion[]): void;
   reset(): void;
+  setFetching(fetching: boolean): void;
 }
 
 const storeConfig: ServerSideSamplingStoreDefinition = {
   state: {
     samplingDistribution: {},
     samplingSdkVersions: [],
+    fetching: false,
   },
 
   reset() {
@@ -32,6 +35,11 @@ const storeConfig: ServerSideSamplingStoreDefinition = {
 
   getState() {
     return this.state;
+  },
+
+  setFetching(fetching: boolean) {
+    this.state.fetching = fetching;
+    this.trigger(this.state);
   },
 
   loadSamplingSdkVersionsSuccess(data: SamplingSdkVersion[]) {

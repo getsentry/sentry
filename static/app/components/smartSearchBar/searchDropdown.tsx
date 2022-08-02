@@ -8,7 +8,7 @@ import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
+import {FieldKind} from 'sentry/utils/fields';
 
 import Button from '../button';
 import HotkeysLabel from '../hotkeysLabel';
@@ -16,7 +16,10 @@ import Tag from '../tag';
 
 import {ItemType, SearchGroup, SearchItem, Shortcut} from './types';
 
-const getDropdownItemKey = (item: SearchItem) => item.value || item.desc || item.title;
+const getDropdownItemKey = (item: SearchItem) =>
+  `${item.value || item.desc || item.title}-${
+    item.children && item.children.length > 0 ? getDropdownItemKey(item.children[0]) : ''
+  }`;
 
 type Props = {
   items: SearchGroup[];
@@ -181,7 +184,7 @@ const ItemTitle = ({item, searchSubstring, isChild}: ItemTitleProps) => {
 
   const fullWord = item.title;
 
-  const words = item.kind !== FieldValueKind.FUNCTION ? fullWord.split('.') : [fullWord];
+  const words = item.kind !== FieldKind.FUNCTION ? fullWord.split('.') : [fullWord];
   const [firstWord, ...restWords] = words;
   const isFirstWordHidden = isChild;
 
@@ -235,35 +238,41 @@ const ItemTitle = ({item, searchSubstring, isChild}: ItemTitleProps) => {
   );
 };
 
-type KindTagProps = {kind: FieldValueKind};
+type KindTagProps = {kind: FieldKind; deprecated?: boolean};
 
-const KindTag = ({kind}: KindTagProps) => {
+const KindTag = ({kind, deprecated}: KindTagProps) => {
   let text, tagType;
   switch (kind) {
-    case FieldValueKind.FUNCTION:
+    case FieldKind.FUNCTION:
       text = 'f(x)';
       tagType = 'success';
       break;
-    case FieldValueKind.MEASUREMENT:
+    case FieldKind.MEASUREMENT:
       text = 'field';
       tagType = 'highlight';
       break;
-    case FieldValueKind.BREAKDOWN:
+    case FieldKind.BREAKDOWN:
       text = 'field';
       tagType = 'highlight';
       break;
-    case FieldValueKind.TAG:
+    case FieldKind.TAG:
       text = kind;
       tagType = 'warning';
       break;
-    case FieldValueKind.NUMERIC_METRICS:
+    case FieldKind.NUMERIC_METRICS:
       text = 'f(x)';
       tagType = 'success';
       break;
-    case FieldValueKind.FIELD:
+    case FieldKind.FIELD:
     default:
       text = kind;
   }
+
+  if (deprecated) {
+    text = 'deprecated';
+    tagType = 'error';
+  }
+
   return <Tag type={tagType}>{text}</Tag>;
 };
 
@@ -318,8 +327,15 @@ const DropdownItem = ({
       <Fragment>
         <ItemTitle item={item} isChild={isChild} searchSubstring={searchSubstring} />
         {item.desc && <Value hasDocs={!!item.documentation}>{item.desc}</Value>}
-        <Documentation>{item.documentation}</Documentation>
-        <TagWrapper>{item.kind && !isChild && <KindTag kind={item.kind} />}</TagWrapper>
+        <DropdownDocumentation
+          documentation={item.documentation}
+          searchSubstring={searchSubstring}
+        />
+        <TagWrapper>
+          {item.kind && !isChild && (
+            <KindTag kind={item.kind} deprecated={item.deprecated} />
+          )}
+        </TagWrapper>
       </Fragment>
     );
   }
@@ -350,6 +366,35 @@ const DropdownItem = ({
         ))}
     </Fragment>
   );
+};
+
+type DropdownDocumentationProps = {
+  searchSubstring: string;
+  documentation?: React.ReactNode;
+};
+
+const DropdownDocumentation = ({
+  documentation,
+  searchSubstring,
+}: DropdownDocumentationProps) => {
+  if (documentation && typeof documentation === 'string') {
+    const startIndex =
+      documentation.toLocaleLowerCase().indexOf(searchSubstring.toLocaleLowerCase()) ??
+      -1;
+    if (startIndex !== -1) {
+      const endIndex = startIndex + searchSubstring.length;
+
+      return (
+        <Documentation>
+          {documentation.slice(0, startIndex)}
+          <strong>{documentation.slice(startIndex, endIndex)}</strong>
+          {documentation.slice(endIndex)}
+        </Documentation>
+      );
+    }
+  }
+
+  return <Documentation>{documentation}</Documentation>;
 };
 
 type QueryItemProps = {item: SearchItem};
@@ -518,6 +563,8 @@ const Documentation = styled('span')`
   display: flex;
   flex: 2;
   padding: 0 ${space(1)};
+
+  white-space: pre;
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: none;

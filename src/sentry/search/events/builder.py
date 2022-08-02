@@ -41,12 +41,14 @@ from sentry.models.project import Project
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
     DRY_RUN_COLUMNS,
+    DURATION_UNITS,
     EQUALITY_OPERATORS,
     METRICS_GRANULARITIES,
     METRICS_MAX_LIMIT,
     NO_CONVERSION_FIELDS,
     PROJECT_THRESHOLD_CONFIG_ALIAS,
     QUERY_TIPS,
+    SIZE_UNITS,
     TAG_KEY_RE,
     TIMESTAMP_FIELDS,
     TREND_FUNCTION_TYPE_MAP,
@@ -974,11 +976,14 @@ class QueryBuilder:
         else:
             return [operator(conditions=combined_conditions)]
 
+    def resolve_aggregate_value(self, aggregate_filter: AggregateFilter) -> SearchValue:
+        return aggregate_filter.value
+
     def convert_aggregate_filter_to_condition(
         self, aggregate_filter: AggregateFilter
     ) -> Optional[WhereType]:
         name = aggregate_filter.key.name
-        value = aggregate_filter.value.value
+        value = self.resolve_aggregate_value(aggregate_filter).value
 
         value = (
             int(to_timestamp(value))
@@ -1628,7 +1633,8 @@ class MetricsQueryBuilder(QueryBuilder):
             from sentry.snuba.metrics.datasource import get_custom_measurements
 
             self._custom_measurement_cache = get_custom_measurements(
-                Project.objects.filter(id__in=self.params["project_id"]),
+                project_ids=self.params["project_id"],
+                organization_id=self.organization_id,
                 start=self.start,
                 end=self.end,
             )
@@ -1789,6 +1795,15 @@ class MetricsQueryBuilder(QueryBuilder):
         conditions.append(Condition(self.column("organization_id"), Op.EQ, self.organization_id))
         return conditions
 
+    def resolve_aggregate_value(self, aggregate_filter: AggregateFilter) -> SearchValue:
+        unit = self.get_function_result_type(aggregate_filter.key.name)
+        value = aggregate_filter.value.value
+        if unit in SIZE_UNITS:
+            return SearchValue(SIZE_UNITS[unit] * value)
+        elif unit in DURATION_UNITS:
+            return SearchValue(DURATION_UNITS[unit] * value)
+        return aggregate_filter.value
+
     def resolve_having(
         self, parsed_terms: ParsedTerms, use_aggregate_conditions: bool
     ) -> List[WhereType]:
@@ -1854,7 +1869,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 use_case_id = UseCaseKey.PERFORMANCE
             else:
                 use_case_id = UseCaseKey.RELEASE_HEALTH
-            result = indexer.resolve(self.organization_id, value, use_case_id=use_case_id)
+            result = indexer.resolve(self.organization_id, value, use_case_id=use_case_id)  # type: ignore
             self._indexer_cache[value] = result
 
         return self._indexer_cache[value]
@@ -1880,6 +1895,9 @@ class MetricsQueryBuilder(QueryBuilder):
         value = search_filter.value.value
 
         lhs = self.resolve_column(name)
+        # If this is an aliasedexpression, we don't need the alias here, just the expression
+        if isinstance(lhs, AliasedExpression):
+            lhs = lhs.exp
 
         # resolve_column will try to resolve this name with indexer, and if its a tag the Column will be tags[1]
         is_tag = isinstance(lhs, Column) and lhs.subscriptable == "tags"
@@ -1905,7 +1923,14 @@ class MetricsQueryBuilder(QueryBuilder):
                     "Filter on timestamp is outside of the selected date range."
                 )
 
-        # TODO(wmak): Need to handle `has` queries, basically check that tags.keys has the value?
+        # Handle checks for existence
+        if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
+            if is_tag:
+                return Condition(
+                    Function("has", [Column("tags.key"), self.resolve_metric_index(name)]),
+                    Op.EQ if search_filter.operator == "!=" else Op.NEQ,
+                    1,
+                )
 
         return Condition(lhs, Op(search_filter.operator), value)
 

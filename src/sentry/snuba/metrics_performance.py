@@ -5,7 +5,6 @@ import sentry_sdk
 from snuba_sdk import AliasedExpression
 
 from sentry.discover.arithmetic import categorize_columns
-from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events.builder import (
     HistogramMetricQueryBuilder,
     MetricsQueryBuilder,
@@ -133,81 +132,51 @@ def timeseries_query(
         metrics_compatible = True
 
     if metrics_compatible or dry_run:
-        try:
-            with sentry_sdk.start_span(op="mep", description="TimeseriesMetricQueryBuilder"):
-                metrics_query = TimeseriesMetricQueryBuilder(
-                    params,
-                    rollup,
-                    dataset=Dataset.PerformanceMetrics,
-                    query=query,
-                    selected_columns=columns,
-                    functions_acl=functions_acl,
-                    allow_metric_aggregates=allow_metric_aggregates,
-                    dry_run=dry_run,
-                )
-                if dry_run:
-                    metrics_referrer = referrer + ".dry-run"
-                else:
-                    metrics_referrer = referrer + ".metrics-enhanced"
-                result = metrics_query.run_query(metrics_referrer)
-                if dry_run:
-                    # Query has to reach here to be considered compatible
-                    sentry_sdk.set_tag("query.mep_compatible", True)
-                    return
-            with sentry_sdk.start_span(op="mep", description="query.transform_results"):
-                result = discover.transform_results(
-                    result, metrics_query.function_alias_map, {}, None
-                )
-                result["data"] = (
-                    discover.zerofill(
-                        result["data"],
-                        params["start"],
-                        params["end"],
-                        rollup,
-                        "time",
-                    )
-                    if zerofill_results
-                    else result["data"]
-                )
-                sentry_sdk.set_tag("performance.dataset", "metrics")
-                return SnubaTSResult(
-                    {"data": result["data"], "isMetricsData": True},
+        with sentry_sdk.start_span(op="mep", description="TimeseriesMetricQueryBuilder"):
+            metrics_query = TimeseriesMetricQueryBuilder(
+                params,
+                rollup,
+                dataset=Dataset.PerformanceMetrics,
+                query=query,
+                selected_columns=columns,
+                functions_acl=functions_acl,
+                allow_metric_aggregates=allow_metric_aggregates,
+                dry_run=dry_run,
+            )
+            if dry_run:
+                metrics_referrer = referrer + ".dry-run"
+            else:
+                metrics_referrer = referrer + ".metrics-enhanced"
+            result = metrics_query.run_query(metrics_referrer)
+            if dry_run:
+                # Query has to reach here to be considered compatible
+                sentry_sdk.set_tag("query.mep_compatible", True)
+                return
+        with sentry_sdk.start_span(op="mep", description="query.transform_results"):
+            result = discover.transform_results(result, metrics_query.function_alias_map, {}, None)
+            result["data"] = (
+                discover.zerofill(
+                    result["data"],
                     params["start"],
                     params["end"],
                     rollup,
+                    "time",
                 )
-        # raise Invalid Queries since the same thing will happen with discover
-        except InvalidSearchQuery as error:
-            if not dry_run:
-                raise error
-            else:
-                sentry_sdk.set_tag("performance.mep_incompatible", str(error))
-        # any remaining errors mean we should try again with discover
-        except IncompatibleMetricsQuery as error:
-            sentry_sdk.set_tag("performance.mep_incompatible", str(error))
-            metrics_compatible = False
-        except Exception as error:
-            if dry_run:
-                return
-            else:
-                raise error
-
-    if dry_run:
-        return {}
-
-    # This isn't a query we can enhance with metrics
-    if not metrics_compatible:
-        sentry_sdk.set_tag("performance.dataset", "discover")
-        return discover.timeseries_query(
-            selected_columns,
-            query,
-            params,
-            rollup,
-            referrer,
-            zerofill_results,
-            comparison_delta,
-            functions_acl,
-        )
+                if zerofill_results
+                else result["data"]
+            )
+            sentry_sdk.set_tag("performance.dataset", "metrics")
+            result["meta"]["isMetricsData"] = True
+            return SnubaTSResult(
+                {
+                    "data": result["data"],
+                    "isMetricsData": True,
+                    "meta": result["meta"],
+                },
+                params["start"],
+                params["end"],
+                rollup,
+            )
     return SnubaTSResult()
 
 

@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {withMeta} from 'sentry/components/events/meta/metaProxy';
 import {KeyValueTable} from 'sentry/components/keyValueTable';
 import {Panel as BasePanel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
@@ -11,14 +10,11 @@ import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
 
 function TagPanel() {
   const {replay} = useReplayContext();
-  const event = replay?.getEvent();
+  const replayRecord = replay?.getReplay();
 
-  if (!event) {
+  if (!replayRecord) {
     return <Placeholder height="100%" />;
   }
-
-  const eventWithMeta = withMeta(event);
-  const tags = eventWithMeta.tags;
 
   const query = '';
   const generateUrl = () => '';
@@ -27,10 +23,10 @@ function TagPanel() {
     <Panel>
       <FluidPanel>
         <KeyValueTable>
-          {tags.map(tag => (
+          {Object.entries(replayRecord.tags).map(([key, value]) => (
             <TagsTableRow
-              key={tag.key}
-              tag={tag}
+              key={key}
+              tag={{key, value}}
               query={query}
               generateUrl={generateUrl}
             />

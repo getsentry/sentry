@@ -3,14 +3,21 @@ import selectEvent from 'react-select-event';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import CustomResolutionModal from 'sentry/components/customResolutionModal';
+import ConfigStore from 'sentry/stores/configStore';
 
 describe('CustomResolutionModal', () => {
   let releasesMock;
   beforeEach(() => {
+    ConfigStore.init();
     releasesMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/releases/',
-      body: [TestStubs.Release()],
+      body: [TestStubs.Release({authors: [TestStubs.User()]})],
     });
+  });
+
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+    ConfigStore.teardown();
   });
 
   it('can select a version', async () => {
@@ -36,5 +43,24 @@ describe('CustomResolutionModal', () => {
     expect(onSelected).toHaveBeenCalledWith({
       inRelease: 'sentry-android-shop@1.2.0',
     });
+  });
+
+  it('indicates which releases had commits from the user', async () => {
+    const user = TestStubs.User();
+    ConfigStore.set('user', user);
+    render(
+      <CustomResolutionModal
+        Header={p => p.children}
+        Body={p => p.children}
+        Footer={p => p.children}
+        orgSlug="org-slug"
+        projectSlug="project-slug"
+        closeModal={jest.fn()}
+      />
+    );
+    expect(releasesMock).toHaveBeenCalled();
+
+    selectEvent.openMenu(screen.getByText('e.g. 1.0.4'));
+    expect(await screen.findByText(/You committed/)).toBeInTheDocument();
   });
 });

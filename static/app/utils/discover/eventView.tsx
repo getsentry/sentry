@@ -27,7 +27,6 @@ import {
   isEquation,
   isLegalYAxisType,
   Sort,
-  WebVital,
 } from 'sentry/utils/discover/fields';
 import {
   CHART_AXIS_OPTIONS,
@@ -47,12 +46,17 @@ import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transaction
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 
 import {statsPeriodToDays} from '../dates';
+import {WebVital} from '../fields';
 import {MutableSearch} from '../tokenizeSearch';
 
 import {getSortField} from './fieldRenderers';
 
 // Metadata mapping for discover results.
-export type MetaType = Record<string, ColumnType> & {isMetricsData?: boolean};
+export type MetaType = Record<string, ColumnType> & {
+  isMetricsData?: boolean;
+  tips?: {columns: string; query: string};
+  units?: Record<string, string>;
+};
 export type EventsMetaType = {fields: Record<string, ColumnType>} & {
   isMetricsData?: boolean;
 };

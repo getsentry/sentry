@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {
-  AggregationKey,
+  AggregationKeyWithAlias,
   AggregationRefinement,
   explodeFieldString,
   generateFieldAsString,
@@ -31,7 +31,12 @@ import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {getFieldOptionConfig} from './metricField';
 
 type WizardAggregateFunctionValue = {
-  function: [AggregationKey, string, AggregationRefinement, AggregationRefinement];
+  function: [
+    AggregationKeyWithAlias,
+    string,
+    AggregationRefinement,
+    AggregationRefinement
+  ];
   kind: 'function';
   alias?: string;
 };
@@ -190,7 +195,8 @@ export default function WizardField({
 
   return (
     <FormField {...fieldProps}>
-      {({onChange, value: aggregate, model, disabled}) => {
+      {({onChange, model, disabled}) => {
+        const aggregate = model.getValue('aggregate');
         const dataset: Dataset = model.getValue('dataset');
         const eventTypes = [...(model.getValue('eventTypes') ?? [])];
 

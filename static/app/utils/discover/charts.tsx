@@ -2,7 +2,7 @@ import {LegendComponentOption} from 'echarts';
 
 import {t} from 'sentry/locale';
 import {Series} from 'sentry/types/echarts';
-import {defined} from 'sentry/utils';
+import {defined, formatBytesBase2} from 'sentry/utils';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {
   DAY,
@@ -23,7 +23,20 @@ export function tooltipFormatter(value: number | null, seriesName: string = ''):
   if (!defined(value)) {
     return '\u2014';
   }
-  switch (aggregateOutputType(seriesName)) {
+  return tooltipFormatterUsingAggregateOutputType(value, aggregateOutputType(seriesName));
+}
+
+/**
+ * Formatter for chart tooltips that takes the aggregate output type directly
+ */
+export function tooltipFormatterUsingAggregateOutputType(
+  value: number | null,
+  type: string
+): string {
+  if (!defined(value)) {
+    return '\u2014';
+  }
+  switch (type) {
     case 'integer':
     case 'number':
       return value.toLocaleString();
@@ -31,6 +44,8 @@ export function tooltipFormatter(value: number | null, seriesName: string = ''):
       return formatPercentage(value, 2);
     case 'duration':
       return getDuration(value / 1000, 2, true);
+    case 'size':
+      return formatBytesBase2(value);
     default:
       return value.toString();
   }
@@ -46,7 +61,24 @@ export function axisLabelFormatter(
   abbreviation: boolean = false,
   durationUnit?: number
 ): string {
-  switch (aggregateOutputType(seriesName)) {
+  return axisLabelFormatterUsingAggregateOutputType(
+    value,
+    aggregateOutputType(seriesName),
+    abbreviation,
+    durationUnit
+  );
+}
+
+/**
+ * Formatter for chart axis labels that takes the aggregate output type directly
+ */
+export function axisLabelFormatterUsingAggregateOutputType(
+  value: number,
+  type: string,
+  abbreviation: boolean = false,
+  durationUnit?: number
+): string {
+  switch (type) {
     case 'integer':
     case 'number':
       return abbreviation ? formatAbbreviatedNumber(value) : value.toLocaleString();
@@ -54,6 +86,8 @@ export function axisLabelFormatter(
       return formatPercentage(value, 0);
     case 'duration':
       return axisDuration(value, durationUnit);
+    case 'size':
+      return formatBytesBase2(value, 0);
     default:
       return value.toString();
   }
@@ -111,8 +145,8 @@ export function findRangeOfMultiSeries(series: Series[], legend?: LegendComponen
   if (series[0]?.data) {
     let minSeries = series[0];
     let maxSeries;
-    series.forEach(({seriesName}, idx) => {
-      if (legend?.selected?.[seriesName] !== false) {
+    series.forEach(({seriesName, data}, idx) => {
+      if (legend?.selected?.[seriesName] !== false && data.length) {
         minSeries = series[idx];
         maxSeries ??= series[idx];
       }

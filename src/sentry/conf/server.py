@@ -336,6 +336,7 @@ INSTALLED_APPS = (
     "sentry.discover",
     "sentry.analytics.events",
     "sentry.nodestore",
+    "sentry.replays",
     "sentry.release_health",
     "sentry.search",
     "sentry.sentry_metrics.indexer",
@@ -1151,8 +1152,6 @@ SENTRY_FEATURES = {
     "organizations:sso-saml2": True,
     # Enable the server-side sampling feature (frontend, backend, relay)
     "organizations:server-side-sampling": False,
-    # Enable the new images loaded design and features
-    "organizations:images-loaded-v2": True,
     # Enable the mobile screenshots feature
     "organizations:mobile-screenshots": False,
     # Enable the release details performance section
@@ -1186,6 +1185,8 @@ SENTRY_FEATURES = {
     "projects:servicehooks": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
     "projects:kafka-ingest": False,
+    # Workflow 2.0 Auto associate commits to commit sha release
+    "projects:auto-associate-commits-to-release": False,
     # Automatically opt IN users to receiving Slack notifications.
     "users:notification-slack-automatic": False,
     # Don't add feature defaults down here! Please add them in their associated
@@ -1466,6 +1467,10 @@ SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefix
 SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres_v2.StaticStringsIndexerDecorator"
 SENTRY_METRICS_INDEXER_OPTIONS = {}
 SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
+SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS = {}
+SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS_PERFORMANCE = (
+    SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS
+)
 
 # Release Health
 SENTRY_RELEASE_HEALTH = "sentry.release_health.sessions.SessionsReleaseHealthBackend"
@@ -2374,6 +2379,10 @@ KAFKA_OUTCOMES = "outcomes"
 KAFKA_OUTCOMES_BILLING = "outcomes-billing"
 KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
 KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS = "transactions-subscription-results"
+KAFKA_GENERIC_METRICS_DISTRIBUTIONS_SUBSCRIPTIONS_RESULTS = (
+    "generic-metrics-distributions-subscription-results"
+)
+KAFKA_GENERIC_METRICS_SETS_SUBSCRIPTIONS_RESULTS = "generic-metrics-sets-subscription-results"
 KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS = "sessions-subscription-results"
 KAFKA_METRICS_SUBSCRIPTIONS_RESULTS = "metrics-subscription-results"
 KAFKA_INGEST_EVENTS = "ingest-events"
@@ -2384,10 +2393,13 @@ KAFKA_SNUBA_METRICS = "snuba-metrics"
 KAFKA_PROFILES = "profiles"
 KAFKA_INGEST_PERFORMANCE_METRICS = "ingest-performance-metrics"
 KAFKA_SNUBA_GENERIC_METRICS = "snuba-generic-metrics"
+KAFKA_INGEST_REPLAYS_RECORDINGS = "ingest-replay-recordings"
 
 KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
     "events": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
     "transactions": KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
+    "generic-metrics-sets": KAFKA_GENERIC_METRICS_SETS_SUBSCRIPTIONS_RESULTS,
+    "generic-metrics-distributions": KAFKA_GENERIC_METRICS_DISTRIBUTIONS_SUBSCRIPTIONS_RESULTS,
     "sessions": KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
     "metrics": KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
 }
@@ -2402,6 +2414,8 @@ KAFKA_TOPICS = {
     KAFKA_OUTCOMES_BILLING: None,
     KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
     KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
+    KAFKA_GENERIC_METRICS_SETS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
+    KAFKA_GENERIC_METRICS_DISTRIBUTIONS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
     KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
     KAFKA_METRICS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
     # Topic for receiving simple events (error events without attachments) from Relay
@@ -2418,6 +2432,7 @@ KAFKA_TOPICS = {
     KAFKA_PROFILES: {"cluster": "default"},
     KAFKA_INGEST_PERFORMANCE_METRICS: {"cluster": "default"},
     KAFKA_SNUBA_GENERIC_METRICS: {"cluster": "default"},
+    KAFKA_INGEST_REPLAYS_RECORDINGS: {"cluster": "default"},
 }
 
 
@@ -2486,6 +2501,7 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "nodestore",
     "sentry",
     "social_auth",
+    "sentry.replays",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
@@ -2654,9 +2670,6 @@ DEMO_DATA_QUICK_GEN_PARAMS = {}
 # adds an extra JS to HTML template
 INJECTED_SCRIPT_ASSETS = []
 
-# Sentry post process forwarder use batching consumer
-SENTRY_POST_PROCESS_FORWARDER_BATCHING = True
-
 # Whether badly behaving projects will be automatically
 # sent to the low priority queue
 SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE = False
@@ -2719,3 +2732,6 @@ SENTRY_STRING_INDEXER_CACHE_OPTIONS = {
     "version": 1,
     "cache_name": "default",
 }
+
+SERVER_COMPONENT_MODE = os.environ.get("SENTRY_SERVER_COMPONENT_MODE", None)
+FAIL_ON_UNAVAILABLE_API_CALL = False

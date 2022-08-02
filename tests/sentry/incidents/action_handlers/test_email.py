@@ -22,7 +22,8 @@ from sentry.incidents.models import (
 )
 from sentry.models import NotificationSetting, UserEmail, UserOption
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.snuba.models import QueryDatasets, SnubaQuery
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import SnubaQuery
 from sentry.testutils import TestCase
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
@@ -182,6 +183,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
                         "incident_id": incident.identifier,
                     },
                 )
+                + "?referrer=alert_email"
             ),
             "rule_link": absolute_uri(
                 reverse(
@@ -352,7 +354,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
     def test_metric_chart_mep(self, mock_generate_chart, mock_fetch_metric_alert_events_timeseries):
         trigger_status = TriggerStatus.ACTIVE
         alert_rule = self.create_alert_rule(
-            query_type=SnubaQuery.Type.PERFORMANCE, dataset=QueryDatasets.PERFORMANCE_METRICS
+            query_type=SnubaQuery.Type.PERFORMANCE, dataset=Dataset.PerformanceMetrics
         )
         incident = self.create_incident(alert_rule=alert_rule)
         action = self.create_alert_rule_trigger_action(triggered_for_incident=incident)

@@ -51,6 +51,15 @@ describe('Performance > Transaction Spans > Span Summary', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-spans-stats/',
         body: {
+          'percentileArray(spans_exclusive_time, 0.50)': {
+            data: [
+              [0, [{count: 0}]],
+              [10, [{count: 0}]],
+            ],
+            order: 2,
+            start: 0,
+            end: 10,
+          },
           'percentileArray(spans_exclusive_time, 0.75)': {
             data: [
               [0, [{count: 0}]],
@@ -145,6 +154,15 @@ describe('Performance > Transaction Spans > Span Summary', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-spans-stats/',
         body: {
+          'percentileArray(spans_exclusive_time, 0.50)': {
+            data: [
+              [0, [{count: 0}]],
+              [10, [{count: 0}]],
+            ],
+            order: 2,
+            start: 0,
+            end: 10,
+          },
           'percentileArray(spans_exclusive_time, 0.75)': {
             data: [
               [0, [{count: 0}]],
@@ -208,6 +226,15 @@ describe('Performance > Transaction Spans > Span Summary', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-spans-stats/',
         body: {
+          'percentileArray(spans_exclusive_time, 0.50)': {
+            data: [
+              [0, [{count: 0}]],
+              [10, [{count: 0}]],
+            ],
+            order: 2,
+            start: 0,
+            end: 10,
+          },
           'percentileArray(spans_exclusive_time, 0.75)': {
             data: [
               [0, [{count: 0}]],
@@ -265,6 +292,9 @@ describe('Performance > Transaction Spans > Span Summary', function () {
       expect(
         await within(percentilesHeader).findByText('Self Time Percentiles')
       ).toBeInTheDocument();
+      const p50Section = await within(percentilesHeader).findByTestId('section-p50');
+      expect(await within(p50Section).findByText('1.00ms')).toBeInTheDocument();
+      expect(await within(p50Section).findByText('p50')).toBeInTheDocument();
       const p75Section = await within(percentilesHeader).findByTestId('section-p75');
       expect(await within(p75Section).findByText('2.00ms')).toBeInTheDocument();
       expect(await within(p75Section).findByText('p75')).toBeInTheDocument();

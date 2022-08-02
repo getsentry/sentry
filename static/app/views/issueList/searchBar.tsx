@@ -10,11 +10,9 @@ import {
 import {ItemType, SearchItem} from 'sentry/components/smartSearchBar/types';
 import {t} from 'sentry/locale';
 import {Organization, SavedSearch, SavedSearchType, Tag} from 'sentry/types';
-import {getFieldDoc} from 'sentry/utils/discover/fields';
+import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
-
-import {FieldValueKind} from '../eventsV2/table/types';
 
 import {TagValueLoader} from './types';
 
@@ -51,6 +49,22 @@ const SEARCH_ITEMS: SearchItem[] = [
   },
 ];
 
+const getSupportedTags = (supportedTags: {[key: string]: Tag}) => {
+  const newTags = Object.fromEntries(
+    Object.keys(supportedTags).map(key => [
+      key,
+      {
+        ...supportedTags[key],
+        kind:
+          getFieldDefinition(key)?.kind ??
+          (supportedTags[key].predefined ? FieldKind.FIELD : FieldKind.TAG),
+      },
+    ])
+  );
+
+  return newTags;
+};
+
 type Props = React.ComponentProps<typeof SmartSearchBar> & {
   api: Client;
   onSidebarToggle: (e: React.MouseEvent) => void;
@@ -79,29 +93,11 @@ class IssueListSearchBar extends Component<Props, State> {
     supportedTags: {},
   };
 
-  componentDidMount() {
-    // Ideally, we would fetch on demand (e.g. when input gets focus)
-    // but `<SmartSearchBar>` is a bit complicated and this is the easiest route
-    this.getSupportedTags();
+  static getDerivedStateFromProps(props: Props) {
+    return {
+      supportedTags: getSupportedTags(props.supportedTags),
+    };
   }
-
-  getSupportedTags = () => {
-    const {supportedTags} = this.props;
-
-    const newTags = Object.fromEntries(
-      Object.keys(supportedTags).map(key => [
-        key,
-        {
-          ...supportedTags[key],
-          kind: supportedTags[key].predefined ? FieldValueKind.TAG : FieldValueKind.FIELD,
-        },
-      ])
-    );
-
-    this.setState({
-      supportedTags: newTags,
-    });
-  };
 
   /**
    * @returns array of tag values that substring match `query`
@@ -132,7 +128,6 @@ class IssueListSearchBar extends Component<Props, State> {
         {...props}
         maxMenuHeight={500}
         supportedTags={this.state.supportedTags}
-        getFieldDoc={getFieldDoc}
       />
     );
   }

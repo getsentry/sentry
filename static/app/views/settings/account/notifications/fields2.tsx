@@ -1,3 +1,6 @@
+import {Fragment} from 'react';
+
+import FeatureBadge from 'sentry/components/featureBadge';
 import {Field} from 'sentry/components/forms/type';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
@@ -13,6 +16,20 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
       ['never', t('Off')],
     ],
     help: t('Notifications sent from Alert rules that your team has set up.'),
+  },
+  activeRelease: {
+    name: 'activeRelease',
+    type: 'select',
+    label: (
+      <Fragment>
+        {t('Issues in My Releases')} <FeatureBadge type="alpha" />
+      </Fragment>
+    ),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ],
+    help: t('Get a notification when an issue happens shortly after your release.'),
   },
   workflow: {
     name: 'workflow',
@@ -31,7 +48,7 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
     label: t('Deploys'),
     choices: [
       ['always', t('On')],
-      ['committed_only', t('Only Committed Issues')],
+      ['committed_only', t('Releases with My Commits')],
       ['never', t('Off')],
     ],
     help: t('Release, environment, and commit overviews.'),

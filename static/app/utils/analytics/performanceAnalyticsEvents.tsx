@@ -24,6 +24,9 @@ export type PerformanceEventParameters = {
     operation: string;
   };
   'performance_views.event_details.search_query': {};
+  'performance_views.filter_dropdown.selection': {
+    action: string;
+  };
   'performance_views.landingv2.transactions.sort': {
     direction?: string;
     field?: string;
@@ -99,6 +102,7 @@ export type PerformanceEventParameters = {
   'performance_views.transaction_summary.status_breakdown_click': {
     status: string;
   };
+  'performance_views.transaction_summary.view': {};
   'performance_views.trends.change_duration': {
     value: string;
     widget_type: string;
@@ -109,6 +113,11 @@ export type PerformanceEventParameters = {
   'performance_views.trends.widget_pagination': {
     direction: string;
     widget_type: string;
+  };
+  'performance_views.vital_detail.comparison_viewed': {
+    count: number;
+    p75: number;
+    vital: string;
   };
   'performance_views.vital_detail.switch_vital': {
     from_vital: string;
@@ -185,4 +194,9 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
     'Performance Views: Event Details span anchored',
   'performance_views.event_details.json_button_click':
     'Performance Views: Event Details JSON button clicked',
+  'performance_views.transaction_summary.view':
+    'Performance Views: Transaction Summary View',
+  'performance_views.filter_dropdown.selection': 'Performance Views: Filter Dropdown',
+  'performance_views.vital_detail.comparison_viewed':
+    'Performance Views: Vital Detail Comparison Viewed',
 };
