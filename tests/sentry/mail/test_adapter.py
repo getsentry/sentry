@@ -149,10 +149,11 @@ class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
         assert notification_record == [
             mock.call(
                 "active_release_notification.sent",
+                None,
                 organization_id=self.organization.id,
                 project_id=new_project.id,
                 group_id=event.group.id,
-                provider="email",
+                providers="email",
                 release_version="2",
                 recipient_email="test@example.com",
                 recipient_username="foo",

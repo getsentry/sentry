@@ -3,8 +3,7 @@ from __future__ import annotations
 from typing import Any, Mapping, MutableMapping, Optional, Sequence, TypedDict
 from urllib.parse import quote, urlencode
 
-from sentry import analytics, features
-from sentry.eventstore.models import Event
+from sentry import features
 from sentry.models import (
     GroupOwner,
     GroupOwnerType,
@@ -36,6 +35,7 @@ class ActiveReleaseIssueNotification(AlertRuleNotification):
     metrics_key = "release_issue_alert"
     notification_setting_type = NotificationSettingTypes.ACTIVE_RELEASE
     template_path = "sentry/emails/release_alert"
+    analytics_event = "active_release_notification.sent"
 
     def __init__(  # type: ignore
         self,
@@ -89,26 +89,18 @@ class ActiveReleaseIssueNotification(AlertRuleNotification):
 
         shared_context = self.get_context()
         for provider, participants in participants_by_provider.items():
-            if self.target_type == ActionTargetType.RELEASE_MEMBERS:
-                last_release = shared_context.get("last_release", None)
-                release_version = last_release.version if last_release else None
-                event = shared_context.get("event", None)
-                for participant in participants:
-                    self.record_active_release_notification_sent(
-                        participant, event, provider, release_version
-                    )
-                if (
-                    features.has("organizations:active-release-monitor-alpha", self.organization)
-                    and last_release
-                ):
-                    ReleaseActivity.objects.create(
-                        type=ReleaseActivityType.ISSUE.value,
-                        data={
-                            "provider": EXTERNAL_PROVIDERS[provider],
-                            "group_id": self.group.id,
-                        },
-                        release=last_release,
-                    )
+            if (
+                features.has("organizations:active-release-monitor-alpha", self.organization)
+                and self.last_release
+            ):
+                ReleaseActivity.objects.create(
+                    type=ReleaseActivityType.ISSUE.value,
+                    data={
+                        "provider": EXTERNAL_PROVIDERS[provider],
+                        "group_id": self.group.id,
+                    },
+                    release=self.last_release,
+                )
             notify(provider, self, participants, shared_context)
 
     def get_context(self) -> MutableMapping[str, Any]:
@@ -154,42 +146,34 @@ class ActiveReleaseIssueNotification(AlertRuleNotification):
 
         return context
 
-    def record_active_release_notification_sent(
-        self,
-        participant: Team | User,
-        event: Event,
-        provider: ExternalProviders,
-        release_version: str,
-    ) -> None:
+    def get_custom_analytics_params(self, recipient: Team | User) -> Mapping[str, Any]:
         suspect_committer_ids = [
             go.owner_id()
             for go in GroupOwner.objects.filter(
                 group_id=self.group.id,
                 project=self.project.id,
-                organization_id=self.project.organization_id,
+                organization_id=self.project.organization.id,
                 type=GroupOwnerType.SUSPECT_COMMIT.value,
             )
         ]
-        code_owner_ids = [o.id for o in get_owners(self.project, event)]
+        code_owner_ids = [o.id for o in get_owners(self.project, self.event)]
         team_ids = (
-            [t.id for t in Team.objects.get_for_user(self.organization, participant)]
-            if type(participant) == User
+            [t.id for t in Team.objects.get_for_user(self.organization, recipient)]
+            if type(recipient) == User
             else None
         )
 
-        analytics.record(
-            "active_release_notification.sent",
-            organization_id=self.project.organization_id,
-            project_id=self.project.id,
-            group_id=self.group.id,
-            provider=EXTERNAL_PROVIDERS[provider],
-            release_version=release_version,
-            recipient_email=participant.email,
-            recipient_username=participant.username,
-            suspect_committer_ids=suspect_committer_ids,
-            code_owner_ids=code_owner_ids,
-            team_ids=team_ids,
-        )
+        return {
+            "organization_id": self.project.organization.id,
+            "project_id": self.project.id,
+            "group_id": self.group.id,
+            "release_version": self.last_release.version if self.last_release else None,
+            "recipient_email": recipient.email if type(recipient) == User else None,
+            "recipient_username": recipient.username if type(recipient) == User else None,
+            "suspect_committer_ids": suspect_committer_ids,
+            "code_owner_ids": code_owner_ids,
+            "team_ids": team_ids,
+        }
 
     @staticmethod
     def get_release_commits(release: Release) -> Sequence[CommitData]:
