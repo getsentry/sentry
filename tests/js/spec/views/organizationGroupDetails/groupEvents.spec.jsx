@@ -51,6 +51,7 @@ describe('groupEvents', function () {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
   });
 
   it('renders', function () {
@@ -90,8 +91,7 @@ describe('groupEvents', function () {
 
     for (const item of list) {
       userEvent.clear(input);
-      userEvent.paste(input, item.searchTerm);
-      userEvent.type(input, '{enter}');
+      userEvent.type(input, `${item.searchTerm}{enter}`);
 
       expect(browserHistory.push).toHaveBeenCalledWith(
         expect.objectContaining({
