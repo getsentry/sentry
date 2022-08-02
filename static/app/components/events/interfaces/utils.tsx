@@ -7,11 +7,10 @@ import * as qs from 'query-string';
 import {FILTER_MASK} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import {Frame, PlatformType} from 'sentry/types';
+import {Image} from 'sentry/types/debugImage';
 import {EntryRequest} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {fileExtensionToPlatform, getFileExtension} from 'sentry/utils/fileExtension';
-
-import {DebugImage} from './debugMeta/types';
 
 export function escapeQuotes(v: string) {
   return v.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
@@ -168,7 +167,7 @@ export function parseAddress(address?: string | null) {
   }
 }
 
-export function getImageRange(image: DebugImage) {
+export function getImageRange(image: Image) {
   // The start address is normalized to a `0x` prefixed hex string. The event
   // schema also allows ingesting plain numbers, but this is converted during
   // ingestion.

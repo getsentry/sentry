@@ -7,6 +7,7 @@ import {Client} from 'sentry/api';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
+import {GeneralSelectValue} from 'sentry/components/forms/selectControl';
 import {Field, FieldValue} from 'sentry/components/forms/type';
 import {t} from 'sentry/locale';
 import {replaceAtArrayIndex} from 'sentry/utils/replaceAtArrayIndex';
@@ -15,6 +16,7 @@ import withApi from 'sentry/utils/withApi';
 // 0 is a valid choice but empty string, undefined, and null are not
 const hasValue = value => !!value || value === 0;
 
+// See docs: https://docs.sentry.io/product/integrations/integration-platform/ui-components/formfield/
 export type FieldFromSchema = Omit<Field, 'choices' | 'type'> & {
   type: 'select' | 'textarea' | 'text';
   async?: boolean;
@@ -31,9 +33,16 @@ export type SchemaFormConfig = {
   required_fields?: FieldFromSchema[];
 };
 
+type SentryAppSetting = {
+  name: string;
+  value: any;
+  label?: string;
+};
+
 // only need required_fields and optional_fields
 type State = Omit<SchemaFormConfig, 'uri' | 'description'> & {
   optionsByField: Map<string, Array<{label: string; value: any}>>;
+  selectedOptions: {[name: string]: GeneralSelectValue};
 };
 
 type Props = {
@@ -59,7 +68,10 @@ type Props = {
   /**
    * Object containing reset values for fields if previously entered, in case this form is unmounted
    */
-  resetValues?: {[key: string]: any; settings?: {name: string; value: any}[]};
+  resetValues?: {
+    [key: string]: any;
+    settings?: SentryAppSetting[];
+  };
 };
 
 /**
@@ -71,7 +83,7 @@ type Props = {
  *  See (#28465) for more details.
  */
 export class SentryAppExternalForm extends Component<Props, State> {
-  state: State = {optionsByField: new Map()};
+  state: State = {optionsByField: new Map(), selectedOptions: {}};
 
   componentDidMount() {
     this.resetStateFromProps();
@@ -134,10 +146,32 @@ export class SentryAppExternalForm extends Component<Props, State> {
     }
   };
 
+  getDefaultOptions = (field: FieldFromSchema) => {
+    const savedOption = ((this.props.resetValues || {}).settings || []).find(
+      value => value.name === field.name
+    );
+    const currentOptions = (field.choices || []).map(([value, label]) => ({
+      value,
+      label,
+    }));
+
+    const shouldAddSavedOption =
+      // We only render saved options if they have preserved the label, otherwise it appears unselcted.
+      // The next time the user saves, the label should be preserved.
+      savedOption?.value &&
+      savedOption?.label &&
+      // The option isn't in the current options already
+      !currentOptions.some(option => option.value === savedOption?.value);
+
+    return shouldAddSavedOption
+      ? [{value: savedOption.value, label: savedOption.label}, ...currentOptions]
+      : currentOptions;
+  };
+
   getDefaultFieldValue = (field: FieldFromSchema) => {
     // Interpret the default if a getFieldDefault function is provided.
     const {resetValues, getFieldDefault} = this.props;
-    let defaultValue;
+    let defaultValue = field?.defaultValue;
 
     // Override this default if a reset value is provided
     if (field.default && getFieldDefault) {
@@ -190,9 +224,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
 
     const {choices} = await this.props.api.requestPromise(
       `/sentry-app-installations/${sentryAppInstallationUuid}/external-requests/`,
-      {
-        query,
-      }
+      {query}
     );
     return choices || [];
   };
@@ -263,6 +295,15 @@ export class SentryAppExternalForm extends Component<Props, State> {
     });
   };
 
+  createPreserveOptionFunction = (name: string) => (option, _event) => {
+    this.setState({
+      selectedOptions: {
+        ...this.state.selectedOptions,
+        [name]: option,
+      },
+    });
+  };
+
   renderField = (field: FieldFromSchema, required: boolean) => {
     // This function converts the field we get from the backend into
     // the field we need to pass down
@@ -273,33 +314,24 @@ export class SentryAppExternalForm extends Component<Props, State> {
       flexibleControlStateSize: true,
       required,
     };
-
-    // async only used for select components
-    const isAsync = typeof field.async === 'undefined' ? true : !!field.async; // default to true
-    if (fieldToPass.type === 'select') {
+    if (field?.uri && field?.async) {
+      fieldToPass.type = 'select_async';
+    }
+    if (['select', 'select_async'].includes(fieldToPass.type || '')) {
       // find the options from state to pass down
-      const defaultOptions = (field.choices || []).map(([value, label]) => ({
-        value,
-        label,
-      }));
+      const defaultOptions = this.getDefaultOptions(field);
       const options = this.state.optionsByField.get(field.name) || defaultOptions;
-      const allowClear = !required;
-      const defaultValue = this.getDefaultFieldValue(field);
-      // filter by what the user is typing
-      const filterOption = createFilter({});
+
       fieldToPass = {
         ...fieldToPass,
         options,
-        defaultValue,
         defaultOptions,
-        filterOption,
-        allowClear,
-      };
-      // default message for async select fields
-      if (isAsync) {
-        fieldToPass.noOptionsMessage = () => 'Type to search';
-      }
-
+        defaultValue: this.getDefaultFieldValue(field),
+        // filter by what the user is typing
+        filterOption: createFilter({}),
+        allowClear: !required,
+        placeholder: 'Type to search',
+      } as Field;
       if (field.depends_on) {
         // check if this is dependent on other fields which haven't been set yet
         const shouldDisable = field.depends_on.some(
@@ -321,12 +353,13 @@ export class SentryAppExternalForm extends Component<Props, State> {
     const extraProps = field.uri
       ? {
           loadOptions: (input: string) => this.getOptions(field, input),
-          async: isAsync,
+          async: field?.async ?? true,
           cache: false,
           onSelectResetsInput: false,
           onCloseResetsInput: false,
           onBlurResetsInput: false,
           autoload: false,
+          onChangeOption: this.createPreserveOptionFunction(field.name),
         }
       : {};
 
@@ -345,7 +378,16 @@ export class SentryAppExternalForm extends Component<Props, State> {
     if (this.model.validateForm()) {
       onSubmitSuccess({
         // The form data must be nested in 'settings' to ensure they don't overlap with any other field names.
-        settings: Object.entries(formData).map(([name, value]) => ({name, value})),
+        settings: Object.entries(formData).map(([name, value]) => {
+          const savedSetting: SentryAppSetting = {name, value};
+          const stateOption = this.state.selectedOptions[name];
+          // If the field is a SelectAsync, we need to preserve the label since the next time it's rendered,
+          // we can't be sure the options will contain this selection
+          if (stateOption?.value === value) {
+            savedSetting.label = `${stateOption?.label}`;
+          }
+          return savedSetting;
+        }),
         sentryAppInstallationUuid,
         // Used on the backend to explicitly associate with a different rule than those without a custom form.
         hasSchemaFormConfig: true,

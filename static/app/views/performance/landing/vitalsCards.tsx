@@ -25,8 +25,8 @@ import {
   Column,
   generateFieldAsString,
   getAggregateAlias,
-  WebVital,
 } from 'sentry/utils/discover/fields';
+import {WebVital} from 'sentry/utils/fields';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import VitalsCardsDiscoverQuery, {
   VitalData,

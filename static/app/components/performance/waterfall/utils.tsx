@@ -156,8 +156,8 @@ export const getDurationDisplay = ({
 
 export const getHumanDuration = (duration: number): string => {
   // note: duration is assumed to be in seconds
-  const durationMS = duration * 1000;
-  return `${durationMS.toLocaleString(undefined, {
+  const durationMs = duration * 1000;
+  return `${durationMs.toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}ms`;

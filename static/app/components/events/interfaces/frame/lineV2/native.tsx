@@ -135,7 +135,7 @@ function Native({
         {instructionAddr && (
           <TogglableAddress
             address={instructionAddr}
-            startingAddress={image ? image.image_addr : null}
+            startingAddress={image ? image.image_addr ?? null : null}
             isAbsolute={!!showingAbsoluteAddress}
             isFoundByStackScanning={isFoundByStackScanning}
             isInlineFrame={!!isInlineFrame}

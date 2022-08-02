@@ -48,6 +48,14 @@ describe('ProjectAlertsCreate', function () {
       url: `/projects/org-slug/project-slug/?expand=hasAlertIntegration`,
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/project-slug/ownership/`,
+      method: 'GET',
+      body: {
+        fallthrough: false,
+        autoAssignment: false,
+      },
+    });
   });
 
   afterEach(function () {
@@ -85,13 +93,19 @@ describe('ProjectAlertsCreate', function () {
     };
   };
 
-  it('redirects to wizard', function () {
+  it('adds default parameters if wizard was skipped', function () {
     const location = {query: {}};
     const wrapper = createWrapper(undefined, location);
 
-    expect(wrapper.router.replace).toHaveBeenCalledWith(
-      '/organizations/org-slug/alerts/project-slug/wizard'
-    );
+    expect(wrapper.router.replace).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/alerts/new/metric',
+      query: {
+        aggregate: 'count()',
+        dataset: 'events',
+        eventTypes: 'error',
+        project: 'project-slug',
+      },
+    });
   });
 
   describe('Issue Alert', function () {
@@ -112,7 +126,7 @@ describe('ProjectAlertsCreate', function () {
       });
 
       // Change name of alert rule
-      userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
+      userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'My Rule Name');
 
       // Add a filter and remove it
       await selectEvent.select(screen.getByText('Add optional filter...'), [
@@ -149,7 +163,7 @@ describe('ProjectAlertsCreate', function () {
       });
 
       // Change name of alert rule
-      userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
+      userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'My Rule Name');
 
       // Add a trigger and remove it
       await selectEvent.select(screen.getByText('Add optional trigger...'), [
@@ -196,7 +210,7 @@ describe('ProjectAlertsCreate', function () {
       });
 
       // Change name of alert rule
-      userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
+      userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'My Rule Name');
 
       // Add an action and remove it
       await selectEvent.select(screen.getByText('Add action...'), [
@@ -252,7 +266,7 @@ describe('ProjectAlertsCreate', function () {
         await selectEvent.select(allDropdowns[1], ['any']);
 
         // Change name of alert rule
-        userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
+        userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'My Rule Name');
 
         userEvent.click(screen.getByText('Save Rule'));
 
@@ -285,7 +299,7 @@ describe('ProjectAlertsCreate', function () {
         const wrapper = createWrapper();
 
         // Change name of alert rule
-        userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
+        userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'My Rule Name');
 
         // Add another condition
         await selectEvent.select(screen.getByText('Add optional filter...'), [
@@ -333,7 +347,7 @@ describe('ProjectAlertsCreate', function () {
         const wrapper = createWrapper();
 
         // Change name of alert rule
-        userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
+        userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'My Rule Name');
 
         // Add a new filter
         await selectEvent.select(screen.getByText('Add optional filter...'), [
@@ -378,7 +392,7 @@ describe('ProjectAlertsCreate', function () {
         const wrapper = createWrapper();
 
         // Change name of alert rule
-        userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
+        userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'My Rule Name');
 
         // Add a new action
         await selectEvent.select(screen.getByText('Add action...'), [

@@ -5,20 +5,19 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 import FeatureBadge from 'sentry/components/featureBadge';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {Event} from 'sentry/types/event';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
   orgId: string;
-  event?: Event;
+  replayRecord: ReplayRecord | undefined;
 };
 
-function DetailsPageBreadcrumbs({orgId, event}: Props) {
+function DetailsPageBreadcrumbs({orgId, replayRecord}: Props) {
   const labelTitle =
-    event?.user?.name ||
-    event?.user?.email ||
-    event?.user?.username ||
-    event?.user?.ip_address ||
-    event?.user?.id;
+    replayRecord?.user.name ||
+    replayRecord?.user.email ||
+    replayRecord?.user.ip ||
+    replayRecord?.user.id;
 
   return (
     <Breadcrumbs

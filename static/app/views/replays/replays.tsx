@@ -21,10 +21,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-
-import ReplaysFilters from './filters';
-import ReplayTable from './replayTable';
-import {Replay} from './types';
+import ReplaysFilters from 'sentry/views/replays/filters';
+import ReplayTable from 'sentry/views/replays/replayTable';
+import {ReplayDiscoveryListItem} from 'sentry/views/replays/types';
 
 const columns = [t('Session'), t('Project')];
 
@@ -152,13 +151,14 @@ function Replays() {
                       </SortLink>,
                       t('Duration'),
                       t('Errors'),
+                      t('Interest'),
                     ]}
                   >
                     {data.tableData ? (
                       <ReplayTable
                         idKey="id"
                         showProjectColumn
-                        replayList={data.tableData.data as Replay[]}
+                        replayList={data.tableData.data as ReplayDiscoveryListItem[]}
                       />
                     ) : null}
                   </StyledPanelTable>
@@ -185,10 +185,10 @@ const StyledPageContent = styled(PageContent)`
 `;
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: minmax(0, 1fr) max-content max-content max-content max-content;
+  grid-template-columns: minmax(0, 1fr) max-content max-content max-content max-content max-content;
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: minmax(0, 1fr) max-content max-content max-content;
+    grid-template-columns: minmax(0, 1fr) max-content max-content max-content max-content;
   }
 `;
 

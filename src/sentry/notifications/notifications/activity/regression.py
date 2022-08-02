@@ -6,6 +6,7 @@ from typing import Any, Mapping
 from sentry_relay import parse_release
 
 from sentry.models import Activity
+from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 
 from .base import GroupActivityNotification
@@ -34,7 +35,9 @@ class RegressionActivityNotification(GroupActivityNotification):
 
         return message, params, html_params
 
-    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
+    def get_notification_title(
+        self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
+    ) -> str:
         text = "Issue marked as regression"
         if self.version:
             text += f" in release {self.version_parsed}"

@@ -6,7 +6,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import type {EventTransaction} from 'sentry/types/event';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -19,6 +18,7 @@ import {
 import useApi from 'sentry/utils/useApi';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 import TraceView from 'sentry/views/performance/traceDetails/traceView';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type State = {
   /**
@@ -45,8 +45,8 @@ type State = {
 };
 
 interface Props {
-  event: EventTransaction;
   organization: Organization;
+  replayRecord: ReplayRecord;
 }
 
 const INITIAL_STATE = Object.freeze({
@@ -57,7 +57,7 @@ const INITIAL_STATE = Object.freeze({
   traces: null,
 });
 
-export default function Trace({event, organization}: Props) {
+export default function Trace({replayRecord, organization}: Props) {
   const [state, setState] = useState<State>(INITIAL_STATE);
   const api = useApi();
 
@@ -67,11 +67,11 @@ export default function Trace({event, organization}: Props) {
   } = useRouteContext();
   const [, eventId] = eventSlug.split(':');
 
+  const start = getUtcDateString(replayRecord.started_at.getTime());
+  const end = getUtcDateString(replayRecord.finished_at.getTime());
+
   useEffect(() => {
     async function loadTraces() {
-      const start = getUtcDateString(event.startTimestamp * 1000);
-      const end = getUtcDateString(event.endTimestamp * 1000);
-
       const eventView = EventView.fromSavedQuery({
         id: undefined,
         name: `Traces in replay ${eventId}`,
@@ -129,7 +129,7 @@ export default function Trace({event, organization}: Props) {
     loadTraces();
 
     return () => {};
-  }, [api, eventId, orgId, location, event.startTimestamp, event.endTimestamp]);
+  }, [api, eventId, orgId, location, start, end]);
 
   if (state.isLoading) {
     return <LoadingIndicator />;
