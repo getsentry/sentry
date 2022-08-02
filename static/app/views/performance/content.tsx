@@ -11,7 +11,6 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {PageFilters, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -38,7 +37,7 @@ type State = {
   error?: string;
 };
 
-function PerformanceContent({selection, location, demoMode}: Props) {
+function PerformanceContent({selection, location, demoMode, router}: Props) {
   const api = useApi();
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -148,37 +147,36 @@ function PerformanceContent({selection, location, demoMode}: Props) {
   return (
     <SentryDocumentTitle title={t('Performance')} orgSlug={organization.slug}>
       <PerformanceEventViewProvider value={{eventView}}>
-        <MEPSettingProvider location={location}>
-          <PageFiltersContainer
-            defaultSelection={{
-              datetime: {
-                start: null,
-                end: null,
-                utc: false,
-                period: DEFAULT_STATS_PERIOD,
-              },
-            }}
-          >
-            <PerformanceLanding
-              eventView={eventView}
-              setError={setError}
-              handleSearch={handleSearch}
-              handleTrendsClick={() =>
-                handleTrendsClick({
-                  location,
-                  organization,
-                  projectPlatforms: getSelectedProjectPlatforms(location, projects),
-                })
-              }
-              onboardingProject={onboardingProject}
-              organization={organization}
-              location={location}
-              projects={projects}
-              selection={selection}
-              withStaticFilters={withStaticFilters}
-            />
-          </PageFiltersContainer>
-        </MEPSettingProvider>
+        <PageFiltersContainer
+          defaultSelection={{
+            datetime: {
+              start: null,
+              end: null,
+              utc: false,
+              period: DEFAULT_STATS_PERIOD,
+            },
+          }}
+        >
+          <PerformanceLanding
+            router={router}
+            eventView={eventView}
+            setError={setError}
+            handleSearch={handleSearch}
+            handleTrendsClick={() =>
+              handleTrendsClick({
+                location,
+                organization,
+                projectPlatforms: getSelectedProjectPlatforms(location, projects),
+              })
+            }
+            onboardingProject={onboardingProject}
+            organization={organization}
+            location={location}
+            projects={projects}
+            selection={selection}
+            withStaticFilters={withStaticFilters}
+          />
+        </PageFiltersContainer>
       </PerformanceEventViewProvider>
     </SentryDocumentTitle>
   );

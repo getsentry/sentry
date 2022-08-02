@@ -346,10 +346,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       1,
       expect.anything(),
       expect.objectContaining({
-        query: expect.objectContaining({
-          metricsEnhanced: '1',
-          preventMetricAggregates: '1',
-        }),
+        query: expect.objectContaining({dataset: 'metricsEnhanced'}),
       })
     );
     expect(await screen.findByTestId('has-metrics-data-tag')).toHaveTextContent(
@@ -387,10 +384,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       1,
       expect.anything(),
       expect.objectContaining({
-        query: expect.objectContaining({
-          metricsEnhanced: '1',
-          preventMetricAggregates: '1',
-        }),
+        query: expect.objectContaining({dataset: 'metricsEnhanced'}),
       })
     );
   });
@@ -424,10 +418,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       1,
       expect.anything(),
       expect.objectContaining({
-        query: expect.objectContaining({
-          metricsEnhanced: '1',
-          preventMetricAggregates: '1',
-        }),
+        query: expect.objectContaining({dataset: 'metricsEnhanced'}),
       })
     );
     expect(await screen.findByTestId('has-metrics-data-tag')).toHaveTextContent(
@@ -541,11 +532,9 @@ describe('Performance > Widgets > WidgetContainer', function () {
           ],
           per_page: 4,
           project: ['-42'],
-          query: 'transaction.op:pageload',
+          query: 'transaction.op:pageload !transaction:"<< unparameterized >>"',
           sort: '-count_web_vitals(measurements.lcp, poor)',
           statsPeriod: '7d',
-          metricsEnhanced: '1',
-          preventMetricAggregates: '1',
         }),
       })
     );
@@ -897,8 +886,6 @@ describe('Performance > Widgets > WidgetContainer', function () {
           query: 'transaction.op:pageload epm():>0.01 avg(measurements.frames_slow):>0',
           sort: '-avg(measurements.frames_slow)',
           statsPeriod: '7d',
-          metricsEnhanced: '1',
-          preventMetricAggregates: '1',
         }),
       })
     );

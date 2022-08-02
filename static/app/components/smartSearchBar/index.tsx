@@ -1598,6 +1598,7 @@ class SmartSearchBar extends Component<Props, State> {
         ref={this.containerRef}
         className={className}
         inputHasFocus={inputHasFocus}
+        data-test-id="smart-search-bar"
       >
         <SearchHotkeysListener
           visibleShortcuts={visibleShortcuts}

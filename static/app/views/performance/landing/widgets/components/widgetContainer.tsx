@@ -13,6 +13,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import EventView from 'sentry/utils/discover/eventView';
 import {Field} from 'sentry/utils/discover/fields';
 import {DisplayModes} from 'sentry/utils/discover/types';
+import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import useOrganization from 'sentry/utils/useOrganization';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -77,9 +78,11 @@ const _WidgetContainer = (props: Props) => {
     rest.defaultChartSetting,
     rest.forceDefaultChartSetting
   );
+  const mepSetting = useMEPSettingContext();
   const allowedCharts = filterAllowedChartsMetrics(
     props.organization,
-    props.allowedCharts
+    props.allowedCharts,
+    mepSetting
   );
 
   if (!allowedCharts.includes(_chartSetting)) {

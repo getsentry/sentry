@@ -1,3 +1,7 @@
+import {
+  MetricsEnhancedSettingContext,
+  useMEPSettingContext,
+} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 
@@ -10,7 +14,10 @@ import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
 
 import {BasePerformanceViewProps} from './types';
 
-function getAllowedChartsSmall(props: BasePerformanceViewProps) {
+function getAllowedChartsSmall(
+  props: BasePerformanceViewProps,
+  mepSetting: MetricsEnhancedSettingContext
+) {
   const charts = [
     PerformanceWidgetSetting.APDEX_AREA,
     PerformanceWidgetSetting.TPM_AREA,
@@ -23,14 +30,18 @@ function getAllowedChartsSmall(props: BasePerformanceViewProps) {
     PerformanceWidgetSetting.DURATION_HISTOGRAM,
   ];
 
-  return filterAllowedChartsMetrics(props.organization, charts);
+  return filterAllowedChartsMetrics(props.organization, charts, mepSetting);
 }
 
 export function BackendView(props: BasePerformanceViewProps) {
+  const mepSetting = useMEPSettingContext();
   return (
     <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
       <div>
-        <TripleChartRow {...props} allowedCharts={getAllowedChartsSmall(props)} />
+        <TripleChartRow
+          {...props}
+          allowedCharts={getAllowedChartsSmall(props, mepSetting)}
+        />
         <DoubleChartRow
           {...props}
           allowedCharts={[
