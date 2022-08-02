@@ -106,7 +106,6 @@ function UniformRateModal({
     if (loading) {
       return;
     }
-
     const clientDiscard = projectStats30d?.groups.some(
       g => g.by.outcome === Outcome.CLIENT_DISCARD
     );
