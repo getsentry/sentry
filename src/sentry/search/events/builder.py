@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Callable, Dict, List, Mapping, Match, Optional, Set, Tuple, Union, cast
 
 import sentry_sdk
@@ -1633,9 +1633,10 @@ class MetricsQueryBuilder(QueryBuilder):
             from sentry.snuba.metrics.datasource import get_custom_measurements
 
             self._custom_measurement_cache = get_custom_measurements(
-                Project.objects.filter(id__in=self.params["project_id"]),
-                start=self.start,
-                end=self.end,
+                project_ids=self.params["project_id"],
+                organization_id=self.organization_id,
+                start=datetime.today() - timedelta(days=90),
+                end=datetime.today(),
             )
         return self._custom_measurement_cache
 
@@ -1894,6 +1895,9 @@ class MetricsQueryBuilder(QueryBuilder):
         value = search_filter.value.value
 
         lhs = self.resolve_column(name)
+        # If this is an aliasedexpression, we don't need the alias here, just the expression
+        if isinstance(lhs, AliasedExpression):
+            lhs = lhs.exp
 
         # resolve_column will try to resolve this name with indexer, and if its a tag the Column will be tags[1]
         is_tag = isinstance(lhs, Column) and lhs.subscriptable == "tags"

@@ -5,6 +5,7 @@ enum Tab {
   Events,
   Spans,
   Anomalies,
+  Replays,
 }
 
 export default Tab;

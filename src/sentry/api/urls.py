@@ -7,9 +7,13 @@ from sentry.api.endpoints.organization_codeowners_associations import (
 from sentry.api.endpoints.organization_profiling_profiles import (
     OrganizationProfilingFiltersEndpoint,
     OrganizationProfilingProfilesEndpoint,
+    OrganizationProfilingStatsEndpoint,
     OrganizationProfilingTransactionsEndpoint,
 )
 from sentry.api.endpoints.organization_sentry_function import OrganizationSentryFunctionEndpoint
+from sentry.api.endpoints.organization_sentry_function_details import (
+    OrganizationSentryFunctionDetailsEndpoint,
+)
 from sentry.api.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from sentry.api.endpoints.project_transaction_threshold_override import (
     ProjectTransactionThresholdOverrideEndpoint,
@@ -63,7 +67,12 @@ from sentry.incidents.endpoints.project_alert_rule_task_details import (
 )
 from sentry.replays.endpoints.organization_replay_index import OrganizationReplayIndexEndpoint
 from sentry.replays.endpoints.project_replay_details import ProjectReplayDetailsEndpoint
-from sentry.replays.endpoints.project_replay_recordings import ProjectReplayRecordingsEndpoint
+from sentry.replays.endpoints.project_replay_recording_segment_details import (
+    ProjectReplayRecordingSegmentDetailsEndpoint,
+)
+from sentry.replays.endpoints.project_replay_recording_segment_index import (
+    ProjectReplayRecordingSegmentIndexEndpoint,
+)
 from sentry.rules.history.endpoints.project_rule_group_history import (
     ProjectRuleGroupHistoryIndexEndpoint,
 )
@@ -142,6 +151,7 @@ from .endpoints.group_participants import GroupParticipantsEndpoint
 from .endpoints.group_reprocessing import GroupReprocessingEndpoint
 from .endpoints.group_similar_issues import GroupSimilarIssuesEndpoint
 from .endpoints.group_stats import GroupStatsEndpoint
+from .endpoints.group_suspect_releases import GroupSuspectReleasesEndpoint
 from .endpoints.group_tagkey_details import GroupTagKeyDetailsEndpoint
 from .endpoints.group_tagkey_values import GroupTagKeyValuesEndpoint
 from .endpoints.group_tags import GroupTagsEndpoint
@@ -248,6 +258,9 @@ from .endpoints.organization_events_meta import (
     OrganizationEventsRelatedIssuesEndpoint,
 )
 from .endpoints.organization_events_span_ops import OrganizationEventsSpanOpsEndpoint
+from .endpoints.organization_events_spans_count_histogram import (
+    OrganizationEventsSpansCountHistogramEndpoint,
+)
 from .endpoints.organization_events_spans_histogram import OrganizationEventsSpansHistogramEndpoint
 from .endpoints.organization_events_spans_performance import (
     OrganizationEventsSpansExamplesEndpoint,
@@ -267,7 +280,6 @@ from .endpoints.organization_events_trends import (
 from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
 from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from .endpoints.organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
-from .endpoints.organization_has_mobile_app_events import OrganizationHasMobileAppEvents
 from .endpoints.organization_index import OrganizationIndexEndpoint
 from .endpoints.organization_integration_repos import OrganizationIntegrationReposEndpoint
 from .endpoints.organization_integration_serverless_functions import (
@@ -501,6 +513,7 @@ GROUP_URLS = [
     url(r"^(?P<issue_id>[^\/]+)/events/$", GroupEventsEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/events/latest/$", GroupEventsLatestEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/events/oldest/$", GroupEventsOldestEndpoint.as_view()),
+    url(r"^(?P<issue_id>[^\/]+)/suspect-releases/$", GroupSuspectReleasesEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/(?:notes|comments)/$", GroupNotesEndpoint.as_view()),
     url(
         r"^(?P<issue_id>[^\/]+)/(?:notes|comments)/(?P<note_id>[^\/]+)/$",
@@ -1092,11 +1105,6 @@ urlpatterns = [
                     OrganizationSdkUpdatesEndpoint.as_view(),
                     name="sentry-api-0-organization-sdk-updates",
                 ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/has-mobile-app-events/$",
-                    OrganizationHasMobileAppEvents.as_view(),
-                    name="sentry-api-0-organization-has-mobile-events",
-                ),
                 # TODO add an alias for /organizations/:slug/events/ and deprecate eventsv2
                 url(
                     r"^(?P<organization_slug>[^\/]+)/eventsv2/$",
@@ -1172,6 +1180,14 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-spans-histogram/$",
                     OrganizationEventsSpansHistogramEndpoint.as_view(),
                     name="sentry-api-0-organization-events-spans-histogram",
+                ),
+                url(
+                    # TODO (@udameli): This is a temporary endpoint necessary for the performance issue experiment.
+                    # If the span count histogram proves to be valuable, then OrganizationEventsSpansHistogramEndpoint
+                    # functionality will be extended so it can return span count distribution data
+                    r"^(?P<organization_slug>[^\/]+)/events-spans-counts-histogram/$",
+                    OrganizationEventsSpansCountHistogramEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-spans-count-histogram",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-trends/$",
@@ -1562,6 +1578,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-sentry-functions",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/functions/(?P<function_slug>[^\/]+)/$",
+                    OrganizationSentryFunctionDetailsEndpoint.as_view(),
+                    name="sentry-api-0-organization-sentry-function-details",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/request-project-creation/$",
                     OrganizationRequestProjectCreation.as_view(),
                     name="sentry-api-0-organization-request-project-creation",
@@ -1641,6 +1662,11 @@ urlpatterns = [
                                 r"^transactions/$",
                                 OrganizationProfilingTransactionsEndpoint.as_view(),
                                 name="sentry-api-0-organization-profiling-transactions",
+                            ),
+                            url(
+                                r"^stats/$",
+                                OrganizationProfilingStatsEndpoint.as_view(),
+                                name="sentry-api-0-organization-profiling-stats",
                             ),
                         ],
                     ),
@@ -2047,9 +2073,14 @@ urlpatterns = [
                     name="sentry-api-0-project-replay-details",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/recordings/$",
-                    ProjectReplayRecordingsEndpoint.as_view(),
-                    name="sentry-api-0-project-replay-recordings",
+                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/recording-segments/$",
+                    ProjectReplayRecordingSegmentIndexEndpoint.as_view(),
+                    name="sentry-api-0-project-replay-recording-segment-index",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/recording-segments/(?P<segment_id>\d+)/$",
+                    ProjectReplayRecordingSegmentDetailsEndpoint.as_view(),
+                    name="sentry-api-0-project-replay-recording-segment-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/configuration/$",

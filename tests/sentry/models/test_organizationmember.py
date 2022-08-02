@@ -8,13 +8,8 @@ from django.utils import timezone
 from sentry import roles
 from sentry.auth import manager
 from sentry.exceptions import UnableToAcceptMemberInvitationException
-from sentry.models import (
-    INVITE_DAYS_VALID,
-    AuthProvider,
-    InviteStatus,
-    OrganizationMember,
-    OrganizationOption,
-)
+from sentry.models import INVITE_DAYS_VALID, InviteStatus, OrganizationMember, OrganizationOption
+from sentry.models.authprovider import AuthProvider
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
 
@@ -130,7 +125,7 @@ class OrganizationMemberTest(TestCase):
 
     def test_delete_expired_clear(self):
         organization = self.create_organization()
-        ninety_one_days = timezone.now() - timedelta(days=91)
+        ninety_one_days = timezone.now() - timedelta(days=1)
         member = OrganizationMember.objects.create(
             organization=organization,
             role="member",
@@ -143,8 +138,12 @@ class OrganizationMemberTest(TestCase):
 
     def test_delete_expired_SCIM_enabled(self):
         organization = self.create_organization()
+        org3 = self.create_organization()
         AuthProvider.objects.create(
             provider="saml2", organization=organization, flags=AuthProvider.flags["scim_enabled"]
+        )
+        AuthProvider.objects.create(
+            provider="saml2", organization=org3, flags=AuthProvider.flags["allow_unlinked"]
         )
         ninety_one_days = timezone.now() - timedelta(days=91)
         member = OrganizationMember.objects.create(
@@ -154,8 +153,16 @@ class OrganizationMemberTest(TestCase):
             token="abc-def",
             token_expires_at=ninety_one_days,
         )
+        member2 = OrganizationMember.objects.create(
+            organization=org3,
+            role="member",
+            email="test2@example.com",
+            token="abc-defg",
+            token_expires_at=ninety_one_days,
+        )
         OrganizationMember.objects.delete_expired(timezone.now())
         assert OrganizationMember.objects.filter(id=member.id).exists()
+        assert not OrganizationMember.objects.filter(id=member2.id).exists()
 
     def test_delete_expired_miss(self):
         organization = self.create_organization()

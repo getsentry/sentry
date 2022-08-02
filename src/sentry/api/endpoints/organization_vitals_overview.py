@@ -10,13 +10,16 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import experiments
-from sentry.api.base import ONE_DAY
+from sentry.api.base import ONE_HOUR
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.serializers.models.project import get_access_by_project
 from sentry.models import Organization, Project, ProjectStatus
 from sentry.snuba import discover
+from sentry.utils import json
 
 logger = logging.getLogger(__name__)
+
+CACHE_TIME = ONE_HOUR * 4
 
 # Web vitals: p75 for LCP and FCP
 # Mobile vitals: Cold Start and Warm Start
@@ -24,8 +27,8 @@ logger = logging.getLogger(__name__)
 NAME_MAPPING = {
     "p75_measurements_fcp": "FCP",
     "p75_measurements_lcp": "LCP",
-    "measurements.app_start_warm": "appStartWarm",
-    "measurements.app_start_cold": "appStartCold",
+    "p75_measurements_app_start_warm": "appStartWarm",
+    "p75_measurements_app_start_cold": "appStartCold",
     "count_if_measurements_fcp_greaterOrEquals_0": "fcpCount",
     "count_if_measurements_lcp_greaterOrEquals_0": "lcpCount",
     "count_if_measurements_app_start_warm_greaterOrEquals_0": "appWarmStartCount",
@@ -37,8 +40,8 @@ NAME_MAPPING = {
 BASIC_COLUMNS = [
     "p75(measurements.lcp)",
     "p75(measurements.fcp)",
-    "measurements.app_start_cold",
-    "measurements.app_start_warm",
+    "p75(measurements.app_start_cold)",
+    "p75(measurements.app_start_warm)",
     "count_if(measurements.lcp,greaterOrEquals,0)",
     "count_if(measurements.fcp,greaterOrEquals,0)",
     "count_if(measurements.app_start_cold,greaterOrEquals,0)",
@@ -77,11 +80,11 @@ def get_vital_data_for_org_no_cache(organization: Organization, projects: Sequen
         )
         logger.info(
             "get_discover_result",
-            {
+            extra={
                 "organization_id": organization.id,
                 "num_projects": len(projects),
-                "columns": columns,
-                "data": result["data"],
+                "columns": json.dumps(columns),
+                "data": json.dumps(result["data"]),
             },
         )
         return result["data"]
@@ -105,7 +108,7 @@ def get_vital_data_for_org(organization: Organization, projects: Sequence[Projec
     # cache miss, lookup and store value
     if cache_value is None:
         cache_value = get_vital_data_for_org_no_cache(organization, projects)
-        cache.set(cache_key, cache_value, ONE_DAY)
+        cache.set(cache_key, cache_value, CACHE_TIME)
     return cache_value
 
 
@@ -129,7 +132,7 @@ class OrganizationVitalsOverviewEndpoint(OrganizationEventsEndpointBase):
         if len(projects) >= settings.ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT:
             logger.info(
                 "too_many_projects",
-                {"organization_id": organization.id, "num_projects": len(projects)},
+                extra={"organization_id": organization.id, "num_projects": len(projects)},
             )
             return self.respond(NO_RESULT_RESPONSE)
 
@@ -140,7 +143,7 @@ class OrganizationVitalsOverviewEndpoint(OrganizationEventsEndpointBase):
             if not org_data:
                 logger.info(
                     "no_org_data",
-                    {"organization_id": organization.id},
+                    extra={"organization_id": organization.id},
                 )
                 return self.respond(NO_RESULT_RESPONSE)
 

@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from typing import List, Mapping, MutableMapping, NamedTuple, Optional, Sequence, Set, Tuple
+from typing import List, Mapping, MutableMapping, NamedTuple, Optional, Sequence, Set
 
 import rapidjson
 import sentry_sdk
@@ -9,7 +9,7 @@ from arroyo.types import Message
 
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.consumers.indexer.common import MessageBatch
-from sentry.sentry_metrics.indexer.base import FetchType
+from sentry.sentry_metrics.indexer.base import Metadata
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
@@ -52,9 +52,8 @@ class IndexerBatch:
         self.outer_message = outer_message
 
     @metrics.wraps("process_messages.parse_outer_message")
-    def extract_strings(self) -> Tuple[Mapping[int, Set[str]], Set[str]]:
+    def extract_strings(self) -> Mapping[int, Set[str]]:
         org_strings = defaultdict(set)
-        strings = set()
 
         self.skipped_offsets: Set[PartitionIdxOffset] = set()
         self.parsed_payloads_by_offset: MutableMapping[PartitionIdxOffset, json.JSONData] = {}
@@ -125,21 +124,19 @@ class IndexerBatch:
                 *tags.values(),
             }
             org_strings[org_id].update(parsed_strings)
-            strings.update(parsed_strings)
 
         string_count = 0
         for org_set in org_strings:
             string_count += len(org_strings[org_set])
         metrics.gauge("process_messages.lookups_per_batch", value=string_count)
-        metrics.incr("process_messages.total_strings_indexer_lookup", amount=len(strings))
 
-        return org_strings, strings
+        return org_strings
 
     @metrics.wraps("process_messages.reconstruct_messages")
     def reconstruct_messages(
         self,
-        mapping: Mapping[int, Mapping[str, int]],
-        bulk_record_meta: Mapping[str, Tuple[int, FetchType]],
+        mapping: Mapping[int, Mapping[str, Optional[int]]],
+        bulk_record_meta: Mapping[int, Mapping[str, Metadata]],
     ) -> List[Message[KafkaPayload]]:
         new_messages: List[Message[KafkaPayload]] = []
 
@@ -161,26 +158,95 @@ class IndexerBatch:
             used_tags.add(metric_name)
 
             new_tags: MutableMapping[str, int] = {}
+            exceeded_global_quotas = 0
+            exceeded_org_quotas = 0
+
             try:
                 for k, v in tags.items():
                     used_tags.update({k, v})
-                    new_tags[str(mapping[org_id][k])] = mapping[org_id][v]
+                    new_k = mapping[org_id][k]
+                    new_v = mapping[org_id][v]
+                    if new_k is None:
+                        metadata = bulk_record_meta[org_id].get(k)
+                        if (
+                            metadata
+                            and metadata.fetch_type_ext
+                            and metadata.fetch_type_ext.is_global
+                        ):
+                            exceeded_global_quotas += 1
+                        else:
+                            exceeded_org_quotas += 1
+                        continue
+
+                    if new_v is None:
+                        metadata = bulk_record_meta[org_id].get(v)
+                        if (
+                            metadata
+                            and metadata.fetch_type_ext
+                            and metadata.fetch_type_ext.is_global
+                        ):
+                            exceeded_global_quotas += 1
+                        else:
+                            exceeded_org_quotas += 1
+                        continue
+
+                    new_tags[str(new_k)] = new_v
             except KeyError:
                 logger.error("process_messages.key_error", extra={"tags": tags}, exc_info=True)
                 continue
 
+            if exceeded_org_quotas or exceeded_global_quotas:
+                metrics.incr(
+                    "sentry_metrics.indexer.process_messages.dropped_message",
+                    tags={
+                        "string_type": "tags",
+                    },
+                )
+                logger.error(
+                    "process_messages.dropped_message",
+                    extra={
+                        "string_type": "tags",
+                        "num_global_quotas": exceeded_global_quotas,
+                        "num_org_quotas": exceeded_org_quotas,
+                        "org_batch_size": len(mapping[org_id]),
+                    },
+                )
+                continue
+
             fetch_types_encountered = set()
             for tag in used_tags:
-                if tag in bulk_record_meta:
-                    int_id, fetch_type = bulk_record_meta[tag]
-                    fetch_types_encountered.add(fetch_type)
-                    output_message_meta[fetch_type.value][str(int_id)] = tag
+                if tag in bulk_record_meta[org_id]:
+                    metadata = bulk_record_meta[org_id][tag]
+                    fetch_types_encountered.add(metadata.fetch_type)
+                    output_message_meta[metadata.fetch_type.value][str(metadata.id)] = tag
 
             mapping_header_content = bytes(
-                "".join([t.value for t in fetch_types_encountered]), "utf-8"
+                "".join(sorted(t.value for t in fetch_types_encountered)), "utf-8"
             )
             new_payload_value["tags"] = new_tags
-            new_payload_value["metric_id"] = mapping[org_id][metric_name]
+            new_payload_value["metric_id"] = numeric_metric_id = mapping[org_id][metric_name]
+            if numeric_metric_id is None:
+                metadata = bulk_record_meta[org_id].get(metric_name)
+                metrics.incr(
+                    "sentry_metrics.indexer.process_messages.dropped_message",
+                    tags={
+                        "string_type": "metric_id",
+                    },
+                )
+                logger.error(
+                    "process_messages.dropped_message",
+                    extra={
+                        "string_type": "metric_id",
+                        "is_global_quota": bool(
+                            metadata
+                            and metadata.fetch_type_ext
+                            and metadata.fetch_type_ext.is_global
+                        ),
+                        "org_batch_size": len(mapping[org_id]),
+                    },
+                )
+                continue
+
             new_payload_value["retention_days"] = 90
             new_payload_value["mapping_meta"] = output_message_meta
             new_payload_value["use_case_id"] = self.use_case_id.value

@@ -385,6 +385,29 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert meta["fields"] == {"time": "date", "sum_measurements_datacenter_memory": "size"}
         assert meta["units"] == {"time": None, "sum_measurements_datacenter_memory": "pebibyte"}
 
+    def test_does_not_fallback_if_custom_metric_is_out_of_request_time_range(self):
+        self.store_transaction_metric(
+            123,
+            timestamp=self.day_ago + timedelta(hours=1),
+            internal_metric="d:transactions/measurements.custom@kibibyte",
+            entity="metrics_distributions",
+        )
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "yAxis": "p99(measurements.custom)",
+                "dataset": "metricsEnhanced",
+            },
+        )
+        meta = response.data["meta"]
+        assert response.status_code == 200, response.content
+        assert response.data["isMetricsData"]
+        assert meta["isMetricsData"]
+        assert meta["fields"] == {"time": "date", "p99_measurements_custom": "size"}
+        assert meta["units"] == {"time": None, "p99_measurements_custom": "kibibyte"}
+
     def test_multi_yaxis_custom_measurement(self):
         self.store_transaction_metric(
             123,
@@ -477,3 +500,28 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             },
         )
         assert response.status_code == 400, response.content
+
+    def test_title_filter(self):
+        self.store_transaction_metric(
+            123,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.day_ago + timedelta(minutes=30),
+        )
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "query": "title:foo_transaction",
+                "yAxis": [
+                    "sum(transaction.duration)",
+                ],
+                "dataset": "metricsEnhanced",
+            },
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert [attrs for time, attrs in data] == [
+            [{"count": 123}],
+            [{"count": 0}],
+        ]

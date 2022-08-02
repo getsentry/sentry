@@ -1,9 +1,9 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import Login from 'sentry/views/auth/login';
 
 describe('Login', function () {
-  afterAll(function () {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
   });
 
@@ -13,9 +13,9 @@ describe('Login', function () {
       body: {},
     });
 
-    const wrapper = mountWithTheme(<Login />);
+    render(<Login />);
 
-    expect(wrapper.find('LoadingIndicator').exists()).toBe(true);
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
   });
 
   it('renders an error if auth config cannot be loaded', async function () {
@@ -24,26 +24,23 @@ describe('Login', function () {
       statusCode: 500,
     });
 
-    const wrapper = mountWithTheme(<Login />);
+    render(<Login />);
 
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('LoadingError').exists()).toBe(true);
-    expect(wrapper.find('LoginForm').exists()).toBe(false);
+    expect(
+      await screen.findByText('Unable to load authentication configuration')
+    ).toBeInTheDocument();
   });
 
-  it('does not show register when disabled', function () {
+  it('does not show register when disabled', async function () {
     MockApiClient.addMockResponse({
       url: '/auth/config/',
       body: {canRegister: false},
     });
 
-    const wrapper = mountWithTheme(<Login />);
+    render(<Login />);
 
-    expect(wrapper.find('AuthNavTabs a').filter({children: 'Register'}).exists()).toBe(
-      false
-    );
+    expect(await screen.findByText('Lost your password?')).toBeInTheDocument();
+    expect(screen.queryByText('Register')).not.toBeInTheDocument();
   });
 
   it('shows register when canRegister is enabled', async function () {
@@ -52,14 +49,9 @@ describe('Login', function () {
       body: {canRegister: true},
     });
 
-    const wrapper = mountWithTheme(<Login />);
+    render(<Login />);
 
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('AuthNavTabs a').filter({children: 'Register'}).exists()).toBe(
-      true
-    );
+    expect(await screen.findByRole('link', {name: 'Register'})).toBeInTheDocument();
   });
 
   it('toggles between tabs', async function () {
@@ -68,20 +60,15 @@ describe('Login', function () {
       body: {canRegister: true},
     });
 
-    const wrapper = mountWithTheme(<Login />);
-
-    await tick();
-    wrapper.update();
-
-    const tabs = wrapper.find('AuthNavTabs a');
+    render(<Login />);
 
     // Default tab is login
-    expect(wrapper.find('LoginForm').exists()).toBe(true);
+    expect(await screen.findByPlaceholderText('username or email')).toBeInTheDocument();
 
-    tabs.filter({children: 'Single Sign-On'}).simulate('click');
-    expect(wrapper.find('SsoForm').exists()).toBe(true);
+    userEvent.click(screen.getByRole('link', {name: 'Single Sign-On'}));
+    expect(screen.getByRole('textbox', {name: 'Organization ID'})).toBeInTheDocument();
 
-    tabs.filter({children: 'Register'}).simulate('click');
-    expect(wrapper.find('RegisterForm').exists()).toBe(true);
+    userEvent.click(screen.getByRole('link', {name: 'Register'}));
+    expect(screen.getByRole('textbox', {name: 'Name'})).toBeInTheDocument();
   });
 });

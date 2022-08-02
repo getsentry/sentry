@@ -5,6 +5,8 @@ export function Member(params = {}) {
     id: '1',
     email: 'sentry1@test.com',
     name: 'Sentry 1 Name',
+    orgRole: 'member',
+    teamRoles: [],
     role: 'member',
     roleName: 'Member',
     pending: false,

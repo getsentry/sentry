@@ -173,7 +173,16 @@ def sync_integration_docs(
 
     key = get_integration_id(platform_id, integration_id)
 
-    dump_doc(key, {"id": key, "name": data["name"], "html": data["body"], "link": data["doc_link"]})
+    dump_doc(
+        key,
+        {
+            "id": key,
+            "name": data["name"],
+            "html": data["body"],
+            "link": data["doc_link"],
+            "wizard_setup": data.get("wizard_setup", None),
+        },
+    )
 
 
 def integration_doc_exists(integration_id: str) -> bool:

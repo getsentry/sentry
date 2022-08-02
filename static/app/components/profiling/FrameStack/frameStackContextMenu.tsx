@@ -34,7 +34,7 @@ export function FrameStackContextMenu(props: FrameStackContextMenuProps) {
             {...props.contextMenu.getMenuItemProps()}
             onClick={props.onZoomIntoFrameClick}
           >
-            {t('Scope view to this node')}
+            {t('Show in flamegraph')}
           </ProfilingContextMenuItem>
         </ProfilingContextMenuGroup>
       </ProfilingContextMenu>

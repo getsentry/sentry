@@ -13,9 +13,8 @@ import space from 'sentry/styles/space';
 import {Crumb} from 'sentry/types/breadcrumbs';
 import {getPrevBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
 import {useCurrentItemScroller} from 'sentry/utils/replays/hooks/useCurrentItemScroller';
+import BreadcrumbItem from 'sentry/views/replays/detail/breadcrumbs/breadcrumbItem';
 import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
-
-import BreadcrumbItem from './breadcrumbItem';
 
 function CrumbPlaceholder({number}: {number: number}) {
   return (
@@ -41,22 +40,22 @@ function Breadcrumbs({}: Props) {
     setCurrentTime,
   } = useReplayContext();
 
-  const event = replay?.getEvent();
+  const replayRecord = replay?.getReplay();
   const allCrumbs = replay?.getRawCrumbs();
 
   const crumbListContainerRef = useRef<HTMLDivElement>(null);
   useCurrentItemScroller(crumbListContainerRef);
 
-  const startTimestamp = event?.startTimestamp || 0;
+  const startTimestampMs = replayRecord?.started_at.getTime() || 0;
 
-  const isLoaded = Boolean(event);
+  const isLoaded = Boolean(replayRecord);
 
   const crumbs =
     allCrumbs?.filter(crumb => !['console'].includes(crumb.category || '')) || [];
 
   const currentUserAction = getPrevBreadcrumb({
     crumbs,
-    targetTimestampMs: startTimestamp * 1000 + currentTime,
+    targetTimestampMs: startTimestampMs + currentTime,
     allowExact: true,
   });
 
@@ -64,15 +63,15 @@ function Breadcrumbs({}: Props) {
     currentHoverTime !== undefined
       ? getPrevBreadcrumb({
           crumbs,
-          targetTimestampMs: startTimestamp * 1000 + (currentHoverTime ?? 0),
+          targetTimestampMs: startTimestampMs + (currentHoverTime ?? 0),
           allowExact: true,
         })
       : undefined;
 
   const handleMouseEnter = useCallback(
     (item: Crumb) => {
-      if (startTimestamp) {
-        setCurrentHoverTime(relativeTimeInMs(item.timestamp ?? '', startTimestamp));
+      if (startTimestampMs) {
+        setCurrentHoverTime(relativeTimeInMs(item.timestamp ?? '', startTimestampMs));
       }
 
       if (item.data && 'nodeId' in item.data) {
@@ -82,7 +81,7 @@ function Breadcrumbs({}: Props) {
         highlight({nodeId: item.data.nodeId, annotation: item.data.label});
       }
     },
-    [setCurrentHoverTime, startTimestamp, highlight, clearAllHighlights]
+    [setCurrentHoverTime, startTimestampMs, highlight, clearAllHighlights]
   );
 
   const handleMouseLeave = useCallback(
@@ -99,10 +98,10 @@ function Breadcrumbs({}: Props) {
   const handleClick = useCallback(
     (crumb: Crumb) => {
       crumb.timestamp !== undefined
-        ? setCurrentTime(relativeTimeInMs(crumb.timestamp, startTimestamp))
+        ? setCurrentTime(relativeTimeInMs(crumb.timestamp, startTimestampMs))
         : null;
     },
-    [setCurrentTime, startTimestamp]
+    [setCurrentTime, startTimestampMs]
   );
 
   const content = isLoaded ? (
@@ -111,7 +110,7 @@ function Breadcrumbs({}: Props) {
         <BreadcrumbItem
           key={crumb.id}
           crumb={crumb}
-          startTimestamp={startTimestamp}
+          startTimestampMs={startTimestampMs}
           isHovered={closestUserAction?.id === crumb.id}
           isSelected={currentUserAction?.id === crumb.id}
           onMouseEnter={handleMouseEnter}

@@ -115,6 +115,8 @@ class GroupEventToolbar extends Component<Props> {
       evt.dateReceived &&
       Math.abs(+moment(evt.dateReceived) - +moment(evt.dateCreated)) > latencyThreshold;
 
+    const isPerformanceIssue = !!evt.contexts?.performance_issue;
+
     return (
       <StyledDataSection>
         <StyledNavigationButtonGroup
@@ -168,6 +170,7 @@ class GroupEventToolbar extends Component<Props> {
           group={group}
           organization={organization}
           location={location}
+          isPerformanceIssue={isPerformanceIssue}
         />
       </StyledDataSection>
     );

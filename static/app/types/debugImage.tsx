@@ -169,6 +169,7 @@ export type Image = {
   debug_status?: ImageStatus | null;
   image_addr?: string;
   image_size?: number;
+  image_vmaddr?: string;
   unwind_status?: ImageStatus | null;
   uuid?: string;
 };

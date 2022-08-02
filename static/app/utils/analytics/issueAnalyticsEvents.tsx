@@ -15,6 +15,10 @@ export type IssueEventParameters = {
   'inbox_tab.issue_clicked': {
     group_id: string;
   };
+  'issue.quick_trace_status': {
+    is_performance_issue: boolean;
+    status: string;
+  };
   'issue.search_sidebar_clicked': {};
   'issue.shared_publicly': {};
   'issue_error_banner.viewed': {
@@ -61,4 +65,5 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue.shared_publicly': 'Issue Shared Publicly',
   resolve_issue: 'Resolve Issue',
   'tag.clicked': 'Tag: Clicked',
+  'issue.quick_trace_status': 'Issue Quick Trace Status',
 };

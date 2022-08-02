@@ -33,7 +33,7 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
             for provider, participants in participants_by_provider.items()
         }
 
-    def get_message_description(self, recipient: Team | User) -> str:
+    def get_message_description(self, recipient: Team | User, provider: ExternalProviders) -> str:
         return f"Some events failed to process in your project {self.project.slug}"
 
     def get_context(self) -> MutableMapping[str, Any]:
@@ -54,14 +54,16 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
     def title(self) -> str:
         return self.get_subject()
 
-    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
+    def get_notification_title(
+        self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
+    ) -> str:
         project_url = absolute_uri(
             f"/settings/{self.organization.slug}/projects/{self.project.slug}/processing-issues/"
         )
-        return f"Processing issues on <{project_url}|{self.project.slug}>"
+        return f"Processing issues on {self.format_url(text=self.project.slug, url=project_url, provider=provider)}"
 
     def build_attachment_title(self, recipient: Team | User) -> str:
         return self.get_subject()
 
-    def get_title_link(self, recipient: Team | User) -> str | None:
+    def get_title_link(self, recipient: Team | User, provider: ExternalProviders) -> str | None:
         return None
