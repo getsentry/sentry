@@ -35,7 +35,6 @@ import {
   isGroupedByProject,
   isSufficientlyComplex,
   mergeNotificationSettings,
-  providerListToString,
 } from 'sentry/views/settings/account/notifications/utils';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -211,23 +210,28 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
 
   /* Methods responsible for rendering the page. */
 
-  getInitialData(): {[key: string]: string} {
+  getInitialData(): {[key: string]: string | string[]} {
     const {notificationType} = this.props;
     const {notificationSettings} = this.state;
 
-    const initialData = {
-      [notificationType]: getCurrentDefault(notificationType, notificationSettings),
-    };
-    if (!isEverythingDisabled(notificationType, notificationSettings)) {
-      initialData.provider = providerListToString(
-        getCurrentProviders(notificationType, notificationSettings)
-      );
-    }
+    // NOTE: Update this when we want to enable Slack by default.
+    const provider = !isEverythingDisabled(notificationType, notificationSettings)
+      ? getCurrentProviders(notificationType, notificationSettings)
+      : ['email'];
+
     const childTypes: string[] = typeMappedChildren[notificationType] || [];
-    childTypes.forEach(childType => {
-      initialData[childType] = getCurrentDefault(childType, notificationSettings);
-    });
-    return initialData;
+    const childTypesDefaults = Object.fromEntries(
+      childTypes.map(childType => [
+        childType,
+        getCurrentDefault(childType, notificationSettings),
+      ])
+    );
+
+    return {
+      [notificationType]: getCurrentDefault(notificationType, notificationSettings),
+      provider,
+      ...childTypesDefaults,
+    };
   }
 
   getFields(): Field[] {

@@ -286,7 +286,9 @@ export const getStateToPutForProvider = (
   notificationSettings: NotificationSettingsObject,
   changedData: NotificationSettingsByProviderObject
 ): NotificationSettingsObject => {
-  const providerList: string[] = changedData.provider?.split('+') || [];
+  const providerList: string[] = changedData.provider
+    ? Object.values(changedData.provider)
+    : [];
   const fallbackValue = getFallBackValue(notificationType);
 
   // If the user has no settings, we need to create them.
