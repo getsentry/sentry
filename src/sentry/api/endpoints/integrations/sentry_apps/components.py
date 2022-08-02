@@ -23,7 +23,7 @@ class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
             request=request,
             queryset=sentry_app.components.all(),
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(x, request.user, errors=[]),
         )
 
 
