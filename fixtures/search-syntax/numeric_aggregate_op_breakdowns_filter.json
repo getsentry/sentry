@@ -1,6 +1,6 @@
 [
   {
-    "query": "min(spans.browser):3.1415",
+    "query": "min(transaction.duration):3.1415",
     "result": [
       {
         "type": "spaces",
@@ -24,7 +24,7 @@
                 "separator": "",
                 "value": {
                   "type": "keyAggregateParam",
-                  "value": "spans.browser",
+                  "value": "transaction.duration",
                   "quoted": false
                 }
               }
@@ -54,7 +54,7 @@
     ]
   },
   {
-    "query": "min(spans.browser):>3.1415",
+    "query": "min(transaction.duration):>3.1415",
     "result": [
       {
         "type": "spaces",
@@ -78,7 +78,7 @@
                 "separator": "",
                 "value": {
                   "type": "keyAggregateParam",
-                  "value": "spans.browser",
+                  "value": "transaction.duration",
                   "quoted": false
                 }
               }
@@ -108,7 +108,7 @@
     ]
   },
   {
-    "query": "min(spans.browser):<3.1415",
+    "query": "min(transaction.duration):<3.1415",
     "result": [
       {
         "type": "spaces",
@@ -132,7 +132,7 @@
                 "separator": "",
                 "value": {
                   "type": "keyAggregateParam",
-                  "value": "spans.browser",
+                  "value": "transaction.duration",
                   "quoted": false
                 }
               }
@@ -162,7 +162,7 @@
     ]
   },
   {
-    "query": "min(spans.browser):<3k",
+    "query": "min(timesSeen):<3k",
     "result": [
       {
         "type": "spaces",
@@ -186,7 +186,7 @@
                 "separator": "",
                 "value": {
                   "type": "keyAggregateParam",
-                  "value": "spans.browser",
+                  "value": "timesSeen",
                   "quoted": false
                 }
               }
@@ -216,8 +216,7 @@
     ]
   },
   {
-    "query": "min(spans.browser):2m",
-    "desc": "XXX: Questionable if this should actually be parsed as a duration? This is how it was written when moved from the original python test",
+    "query": "min(timesSeen):2m",
     "result": [
       {
         "type": "spaces",
@@ -225,7 +224,7 @@
       },
       {
         "type": "filter",
-        "filter": "aggregateDuration",
+        "filter": "aggregateNumeric",
         "negated": false,
         "key": {
           "type": "keyAggregate",
@@ -241,7 +240,7 @@
                 "separator": "",
                 "value": {
                   "type": "keyAggregateParam",
-                  "value": "spans.browser",
+                  "value": "timesSeen",
                   "quoted": false
                 }
               }
@@ -258,8 +257,9 @@
         },
         "operator": "",
         "value": {
-          "type": "valueDuration",
-          "value": 2,
+          "type": "valueNumber",
+          "value": "2",
+          "rawValue": 2000000,
           "unit": "m"
         }
       },

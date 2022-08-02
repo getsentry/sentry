@@ -546,6 +546,16 @@ export class TokenConverter {
 
     const {isNumeric, isDuration, isBoolean, isDate} = this.keyValidation;
 
+    const checkAggregate = (check: (s: string) => boolean) => {
+      const aggregateKey = key as FilterMap[AggregateFilter]['key'];
+
+      return (
+        isDuration(keyName) &&
+        (!aggregateKey.args?.args ||
+          aggregateKey.args?.args.some(arg => check(arg?.value?.value ?? '')))
+      );
+    };
+
     switch (type) {
       case FilterType.Numeric:
       case FilterType.NumericIn:
@@ -561,6 +571,9 @@ export class TokenConverter {
       case FilterType.RelativeDate:
       case FilterType.SpecificDate:
         return isDate(keyName);
+
+      case FilterType.AggregateDuration:
+        return checkAggregate(isDuration);
 
       default:
         return true;

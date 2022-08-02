@@ -19,7 +19,7 @@
     ]
   },
   {
-    "query": "issue.id:two",
+    "query": "issue:two",
     "result": [
       {"type": "spaces", "value": ""},
       {
@@ -30,7 +30,7 @@
           "reason": "Invalid number. Expected number then optional k, m, or b suffix (e.g. 500k)",
           "expectedType": ["numeric", "numericIn"]
         },
-        "key": {"type": "keySimple", "value": "issue.id", "quoted": false},
+        "key": {"type": "keySimple", "value": "issue", "quoted": false},
         "operator": "",
         "value": {"type": "valueText", "value": "two", "quoted": false}
       },
