@@ -438,7 +438,7 @@ def post_process_group(
                     plugin_slug=plugin.slug, event=event, is_new=is_new, is_regresion=is_regression
                 )
             if features.has(
-                "organizations:sentry-functions", event.organization, actor=event.actor
+                "organizations:sentry-functions", event.project.organization, actor=event.actor
             ):
 
                 from sentry.models import SentryFunction

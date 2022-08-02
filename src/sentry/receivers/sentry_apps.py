@@ -122,12 +122,11 @@ def send_workflow_webhooks(
             data=data,
         )
 
-    from sentry.models import SentryFunction
-
-    data["user"] = serialize(User.objects.get(id=user.id), user, UserSerializer())
-    data["issue"] = serialize(Group.objects.get(id=issue.id))
-
     if features.has("organizations:sentry-functions", organization, actor=user):
+        from sentry.models import SentryFunction
+
+        data["user"] = serialize(User.objects.get(id=user.id), user, UserSerializer())
+        data["issue"] = serialize(Group.objects.get(id=issue.id))
         for fn in SentryFunction.objects.filter(organization=organization).all():
             if "issue" not in fn.events:
                 continue
