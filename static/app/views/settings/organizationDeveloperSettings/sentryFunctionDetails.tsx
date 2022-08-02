@@ -19,6 +19,8 @@ import {t, tct} from 'sentry/locale';
 import {SentryFunction} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 
+import SentryFunctionSubscriptions from './sentryFunctionSubscriptions';
+
 class SentryFunctionFormModel extends FormModel {
   getTransformedData() {
     const data = super.getTransformedData() as Record<string, any>;
@@ -41,7 +43,6 @@ class SentryFunctionFormModel extends FormModel {
 type Props = {
   sentryFunction?: SentryFunction;
 } & WrapperProps;
-import SentryFunctionSubscriptions from './sentryFunctionSubscriptions';
 
 const formFields: Field[] = [
   {
@@ -87,23 +88,13 @@ function SentryFunctionDetails(props: Props) {
     res.status(200).send(message);
   };`;
 
-  const [onIssue, setOnIssue] = useState(!!sentryFunction?.events?.includes('issue'));
-  const [onError, setOnError] = useState(!!sentryFunction?.events?.includes('error'));
-  const [onComment, setOnComment] = useState(
-    !!sentryFunction?.events?.includes('comment')
-  );
+  const [events, setEvents] = useState(sentryFunction?.events || []);
 
   useEffect(() => {
-    if (onIssue) {
-      form.current.setValue('onIssue', true);
-    }
-    if (onError) {
-      form.current.setValue('onError', true);
-    }
-    if (onComment) {
-      form.current.setValue('onComment', true);
-    }
-  }, [onIssue, onError, onComment]);
+    form.current.setValue('onIssue', events.includes('issue'));
+    form.current.setValue('onError', events.includes('error'));
+    form.current.setValue('onComment', events.includes('comment'));
+  }, [events]);
 
   const handleSubmitError = err => {
     let errorMessage = t('Unknown Error');
@@ -161,24 +152,14 @@ function SentryFunctionDetails(props: Props) {
           }}
           initialData={{
             code: defaultCode,
-            onIssue,
-            onComment,
-            onError,
+            events,
             ...props.sentryFunction,
           }}
           onSubmitError={handleSubmitError}
           onSubmitSuccess={handleSubmitSuccess}
         >
           <JsonForm forms={[{title: t('Sentry Function Details'), fields: formFields}]} />
-          <SentryFunctionSubscriptions
-            form={form}
-            onIssue={onIssue}
-            setOnIssue={setOnIssue}
-            onError={onError}
-            setOnError={setOnError}
-            onComment={onComment}
-            setOnComment={setOnComment}
-          />
+          <SentryFunctionSubscriptions events={events} setEvents={setEvents} />
           <Panel>
             <PanelHeader>Write your Code Below</PanelHeader>
             <PanelBody>
