@@ -18,6 +18,7 @@ import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import withApi from 'sentry/utils/withApi';
@@ -27,6 +28,7 @@ type Props = {
   event: Event;
   location: Location;
   organization: Organization;
+  isPerformanceIssue?: boolean;
 };
 
 type State = {
@@ -101,7 +103,7 @@ class IssueQuickTrace extends Component<Props, State> {
   };
 
   renderQuickTrace(results) {
-    const {event, location, organization} = this.props;
+    const {event, location, organization, isPerformanceIssue} = this.props;
     const {shouldShow} = this.state;
     const {isLoading, error, trace, type} = results;
 
@@ -113,6 +115,12 @@ class IssueQuickTrace extends Component<Props, State> {
       if (!shouldShow) {
         return null;
       }
+
+      trackAdvancedAnalyticsEvent('issue.quick_trace_status', {
+        organization,
+        status: type === 'missing' ? 'transaction missing' : 'trace missing',
+        is_performance_issue: isPerformanceIssue ?? false,
+      });
 
       return (
         <StyledAlert
@@ -140,6 +148,12 @@ class IssueQuickTrace extends Component<Props, State> {
         </StyledAlert>
       );
     }
+
+    trackAdvancedAnalyticsEvent('issue.quick_trace_status', {
+      organization,
+      status: 'success',
+      is_performance_issue: isPerformanceIssue ?? false,
+    });
 
     return (
       <QuickTrace
