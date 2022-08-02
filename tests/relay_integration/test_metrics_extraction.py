@@ -1,4 +1,5 @@
 import uuid
+from unittest import skip
 
 import confluent_kafka as kafka
 
@@ -11,6 +12,7 @@ from sentry.utils import json
 
 
 class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
+    @skip("Requires https://github.com/getsentry/relay/pull/1373")
     def test_all_transaction_metrics_emitted(self):
         with Feature(
             {
