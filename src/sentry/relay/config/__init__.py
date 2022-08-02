@@ -420,7 +420,7 @@ ALL_MEASUREMENT_METRICS = frozenset(
         "d:transactions/measurements.frames_total@none",
         "d:transactions/measurements.stall_count@none",
         "d:transactions/measurements.stall_longest_time@millisecond",
-        "d:transactions/measurements.stall_percentage@percent",
+        "d:transactions/measurements.stall_percentage@ratio",
         "d:transactions/measurements.stall_total_time@millisecond",
         "d:transactions/measurements.ttfb@millisecond",
         "d:transactions/measurements.ttfb.requesttime@millisecond",
