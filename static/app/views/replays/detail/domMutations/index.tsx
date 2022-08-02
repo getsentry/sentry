@@ -20,13 +20,7 @@ type Props = {
 
 function DomMutations({replay}: Props) {
   const {isLoading, actions} = useExtractedCrumbHtml({replay});
-  const {
-    setCurrentTime,
-    highlight,
-    setCurrentHoverTime,
-    clearAllHighlights,
-    removeHighlight,
-  } = useReplayContext();
+  const {setCurrentTime, setCurrentHoverTime} = useReplayContext();
 
   const startTimestampMs = replay.getReplay().started_at.getTime();
 
@@ -35,29 +29,15 @@ function DomMutations({replay}: Props) {
       if (startTimestampMs) {
         setCurrentHoverTime(relativeTimeInMs(item.timestamp ?? '', startTimestampMs));
       }
-
-      if (item.data && 'nodeId' in item.data) {
-        // XXX: Kind of hacky, but mouseLeave does not fire if you move from a
-        // crumb to a tooltip
-        clearAllHighlights();
-        highlight({nodeId: item.data.nodeId, annotation: item.data.label});
-      }
     },
-    [setCurrentHoverTime, startTimestampMs, highlight, clearAllHighlights]
+    [setCurrentHoverTime, startTimestampMs]
   );
 
-  const handleMouseLeave = useCallback(
-    (item: Crumb) => {
-      setCurrentHoverTime(undefined);
+  const handleMouseLeave = useCallback(() => {
+    setCurrentHoverTime(undefined);
+  }, [setCurrentHoverTime]);
 
-      if (item.data && 'nodeId' in item.data) {
-        removeHighlight({nodeId: item.data.nodeId});
-      }
-    },
-    [setCurrentHoverTime, removeHighlight]
-  );
-
-  const handleClick = useCallback(
+  const handleTimestampClick = useCallback(
     (crumb: Crumb) => {
       crumb.timestamp !== undefined
         ? setCurrentTime(relativeTimeInMs(crumb.timestamp, startTimestampMs))
@@ -76,7 +56,7 @@ function DomMutations({replay}: Props) {
         <MutationListItem
           key={i}
           onMouseEnter={() => handleMouseEnter(mutation.crumb)}
-          onMouseLeave={() => handleMouseLeave(mutation.crumb)}
+          onMouseLeave={handleMouseLeave}
         >
           <StepConnector />
           <MutationItemContainer>
@@ -85,7 +65,7 @@ function DomMutations({replay}: Props) {
                 <IconWrapper color={mutation.crumb.color}>
                   <BreadcrumbIcon type={mutation.crumb.type} />
                 </IconWrapper>
-                <UnstyledButton onClick={() => handleClick(mutation.crumb)}>
+                <UnstyledButton onClick={() => handleTimestampClick(mutation.crumb)}>
                   <PlayerRelativeTime
                     relativeTimeMs={startTimestampMs}
                     timestamp={mutation.crumb.timestamp}
@@ -120,15 +100,17 @@ const MutationList = styled('ul')`
   overflow-y: auto;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(2)};
+  padding-left: 0;
   margin-bottom: 0;
 `;
 
 const MutationListItem = styled('li')`
   display: flex;
   align-items: start;
-  padding-top: ${space(1)};
-  padding-bottom: ${space(1)};
+  padding: ${space(2)};
+  &:hover {
+    background-color: ${p => p.theme.backgroundSecondary};
+  }
 `;
 
 const MutationItemContainer = styled('div')`
