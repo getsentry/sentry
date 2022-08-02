@@ -32,7 +32,7 @@ def detect_performance_issue(data: Event):
                 op="py.detect_performance_issue", description="none"
             ) as sdk_span:
                 _detect_performance_issue(data, sdk_span)
-    except BaseException:
+    except Exception:
         pass
 
 

@@ -1,9 +1,9 @@
+import unittest
 from datetime import timedelta
 
 from mock import Mock, call, patch
 
 from sentry.tasks.performance_detection import _detect_performance_issue, detect_performance_issue
-from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
 from tests.sentry.spans.grouping.test_strategy import SpanBuilder
 
@@ -21,7 +21,7 @@ def modify_span_start(obj, start):
     return obj
 
 
-class PerformanceDetectionTest(TestCase):
+class PerformanceDetectionTest(unittest.TestCase):
     @patch("sentry.tasks.performance_detection._detect_performance_issue")
     def test_options_disabled(self, mock):
         event = {}
