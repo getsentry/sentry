@@ -1,6 +1,4 @@
-import * as PropTypes from 'prop-types';
-
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import AccountSubscriptions from 'sentry/views/settings/account/accountSubscriptions';
@@ -17,16 +15,11 @@ describe('AccountSubscriptions', function () {
       url: ENDPOINT,
       body: [],
     });
-    const wrapper = mountWithTheme(<AccountSubscriptions />, {
-      context: {
-        router: TestStubs.router(),
-      },
-      childContextTypes: {
-        router: PropTypes.object,
-      },
+    const wrapper = render(<AccountSubscriptions />, {
+      context: TestStubs.routerContext(),
     });
 
-    expect(wrapper).toSnapshot();
+    expect(wrapper.container).toSnapshot();
   });
 
   it('renders list and can toggle', function () {
@@ -39,20 +32,15 @@ describe('AccountSubscriptions', function () {
       method: 'PUT',
     });
 
-    const wrapper = mountWithTheme(<AccountSubscriptions />, {
-      context: {
-        router: TestStubs.router(),
-      },
-      childContextTypes: {
-        router: PropTypes.object,
-      },
+    const wrapper = render(<AccountSubscriptions />, {
+      context: TestStubs.routerContext(),
     });
 
-    expect(wrapper).toSnapshot();
+    expect(wrapper.container).toSnapshot();
 
     expect(mock).not.toHaveBeenCalled();
 
-    wrapper.find('Switch').first().simulate('click');
+    userEvent.click(screen.getAllByTestId('switch')[0]);
 
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
