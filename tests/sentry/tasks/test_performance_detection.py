@@ -1,5 +1,4 @@
 import unittest
-from datetime import timedelta
 from unittest.mock import Mock, call, patch
 
 from sentry.tasks.performance_detection import _detect_performance_issue, detect_performance_issue
@@ -8,14 +7,14 @@ from tests.sentry.spans.grouping.test_strategy import SpanBuilder
 
 
 def modify_span_duration(obj, duration):
-    obj["start_timestamp"] = timedelta(milliseconds=0)
-    obj["timestamp"] = timedelta(milliseconds=duration)
+    obj["start_timestamp"] = 0.0
+    obj["timestamp"] = duration
     return obj
 
 
 def modify_span_start(obj, start):
     duration = obj["timestamp"] - obj["start_timestamp"]
-    obj["start_timestamp"] = timedelta(milliseconds=start)
+    obj["start_timestamp"] = start
     obj["timestamp"] = obj["start_timestamp"] + duration
     return obj
 
@@ -43,7 +42,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                     .with_op("db")
                     .with_description("SELECT count() FROM table WHERE id = %s")
                     .build(),
-                    100,
+                    100.0,
                 )
             ]
             * 4,
@@ -53,7 +52,7 @@ class PerformanceDetectionTest(unittest.TestCase):
             "spans": [
                 modify_span_duration(
                     SpanBuilder().with_op("random").with_description("example").build(),
-                    100,
+                    100.0,
                 )
             ]
             * 5,
@@ -67,7 +66,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                     .with_op("db")
                     .with_description("SELECT count() FROM table WHERE id = %s")
                     .build(),
-                    100,
+                    100.0,
                 )
             ]
             * 5,
@@ -76,16 +75,16 @@ class PerformanceDetectionTest(unittest.TestCase):
         sdk_span_mock = Mock()
 
         _detect_performance_issue(no_duplicate_event, sdk_span_mock)
-        assert sdk_span_mock.set_tag.call_count == 0
-        assert sdk_span_mock.set_measurement.call_count == 0
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
+        assert sdk_span_mock.containing_transaction.set_measurement.call_count == 0
 
         _detect_performance_issue(duplicate_not_allowed_op_event, sdk_span_mock)
-        assert sdk_span_mock.set_tag.call_count == 0
-        assert sdk_span_mock.set_measurement.call_count == 0
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
+        assert sdk_span_mock.containing_transaction.set_measurement.call_count == 0
 
         _detect_performance_issue(duplicate_event, sdk_span_mock)
-        assert sdk_span_mock.set_tag.call_count == 2
-        sdk_span_mock.set_tag.assert_has_calls(
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 2
+        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
                 call(
                     "_performance_issue_transaction_id",
@@ -97,7 +96,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                 ),
             ]
         )
-        assert sdk_span_mock.set_measurement.call_count == 1
+        assert sdk_span_mock.containing_transaction.set_measurement.call_count == 1
 
     def test_calls_detect_slow_span(self):
         no_slow_span_event = {
@@ -108,7 +107,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                     .with_op("db")
                     .with_description("SELECT count() FROM table WHERE id = %s")
                     .build(),
-                    499,
+                    499.0,
                 )
             ]
             * 1,
@@ -121,7 +120,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                     .with_op("db")
                     .with_description("SELECT count() FROM table WHERE id = %s")
                     .build(),
-                    501,
+                    501.0,
                 )
             ]
             * 1,
@@ -131,7 +130,7 @@ class PerformanceDetectionTest(unittest.TestCase):
             "spans": [
                 modify_span_duration(
                     SpanBuilder().with_op("random").with_description("example").build(),
-                    501,
+                    501.0,
                 )
             ]
             * 1,
@@ -140,16 +139,16 @@ class PerformanceDetectionTest(unittest.TestCase):
         sdk_span_mock = Mock()
 
         _detect_performance_issue(no_slow_span_event, sdk_span_mock)
-        assert sdk_span_mock.set_tag.call_count == 0
-        assert sdk_span_mock.set_measurement.call_count == 0
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
+        assert sdk_span_mock.containing_transaction.set_measurement.call_count == 0
 
         _detect_performance_issue(slow_not_allowed_op_span_event, sdk_span_mock)
-        assert sdk_span_mock.set_tag.call_count == 0
-        assert sdk_span_mock.set_measurement.call_count == 0
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
+        assert sdk_span_mock.containing_transaction.set_measurement.call_count == 0
 
         _detect_performance_issue(slow_span_event, sdk_span_mock)
-        assert sdk_span_mock.set_tag.call_count == 2
-        sdk_span_mock.set_tag.assert_has_calls(
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 2
+        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
                 call(
                     "_performance_issue_transaction_id",
@@ -161,7 +160,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                 ),
             ]
         )
-        assert sdk_span_mock.set_measurement.call_count == 1
+        assert sdk_span_mock.containing_transaction.set_measurement.call_count == 1
 
     def test_calls_detect_sequential(self):
         no_sequential_event = {
@@ -172,7 +171,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                     .with_op("db")
                     .with_description("SELECT count() FROM table WHERE id = %s")
                     .build(),
-                    499,
+                    499.0,
                 )
             ]
             * 4,
@@ -185,7 +184,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                     .with_op("db")
                     .with_description("SELECT count() FROM table WHERE id = %s")
                     .build(),
-                    499,
+                    499.0,
                 ),
             ]
             * 2
@@ -196,9 +195,9 @@ class PerformanceDetectionTest(unittest.TestCase):
                         .with_op("db")
                         .with_description("SELECT count() FROM table WHERE id = %s")
                         .build(),
-                        499,
+                        499.0,
                     ),
-                    1000,
+                    1000.0,
                 ),
                 modify_span_start(
                     modify_span_duration(
@@ -206,9 +205,9 @@ class PerformanceDetectionTest(unittest.TestCase):
                         .with_op("db")
                         .with_description("SELECT count() FROM table WHERE id = %s")
                         .build(),
-                        499,
+                        499.0,
                     ),
-                    2000,
+                    2000.0,
                 ),
                 modify_span_start(
                     modify_span_duration(
@@ -216,9 +215,9 @@ class PerformanceDetectionTest(unittest.TestCase):
                         .with_op("db")
                         .with_description("SELECT count() FROM table WHERE id = %s")
                         .build(),
-                        499,
+                        499.0,
                     ),
-                    3000,
+                    3000.0,
                 ),
             ],
         }
@@ -226,12 +225,12 @@ class PerformanceDetectionTest(unittest.TestCase):
         sdk_span_mock = Mock()
 
         _detect_performance_issue(no_sequential_event, sdk_span_mock)
-        assert sdk_span_mock.set_tag.call_count == 0
-        assert sdk_span_mock.set_measurement.call_count == 0
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
+        assert sdk_span_mock.containing_transaction.set_measurement.call_count == 0
 
         _detect_performance_issue(sequential_event, sdk_span_mock)
-        assert sdk_span_mock.set_tag.call_count == 3
-        sdk_span_mock.set_tag.assert_has_calls(
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 3
+        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
                 call(
                     "_performance_issue_transaction_id",
@@ -247,4 +246,4 @@ class PerformanceDetectionTest(unittest.TestCase):
                 ),
             ]
         )
-        assert sdk_span_mock.set_measurement.call_count == 1
+        assert sdk_span_mock.containing_transaction.set_measurement.call_count == 1
