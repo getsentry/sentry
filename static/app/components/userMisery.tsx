@@ -42,6 +42,15 @@ function UserMisery(props: Props) {
         userMisery: userMisery.toFixed(3),
       }
     );
+  } else if (defined(miserableUsers) && defined(totalUsers)) {
+    title = tct(
+      'User Misery score is [userMisery], because [miserableUsers] out of [totalUsers] unique users had a miserable experience.',
+      {
+        miserableUsers,
+        totalUsers,
+        userMisery: userMisery.toFixed(3),
+      }
+    );
   } else {
     title = tct('User Misery score is [userMisery].', {
       userMisery: userMisery.toFixed(3),
