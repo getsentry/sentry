@@ -283,7 +283,7 @@ class EventStorage(Service):
     ):
         """
         Same as get_unfetched_events but returns transactions.
-        Only the event ID, projectID, groupID and timestamp field will be present without
+        Only the event ID, projectID and timestamp field will be present without
         an additional fetch to nodestore.
 
         Used for fetching large volumes of transactions that do not need data
