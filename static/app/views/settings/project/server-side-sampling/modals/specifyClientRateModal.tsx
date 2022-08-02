@@ -74,6 +74,7 @@ export function SpecifyClientRateModal({
           type="number"
           name="current-client-sampling"
           placeholder="0.1"
+          step="0.1"
           value={value ?? null}
           onChange={newValue => {
             onChange(newValue === '' ? undefined : newValue);
