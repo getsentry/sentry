@@ -488,3 +488,6 @@ register("sentry-metrics.writes-limiter.limits.performance.per-org", default=[])
 register("sentry-metrics.writes-limiter.limits.releasehealth.per-org", default=[])
 register("sentry-metrics.writes-limiter.limits.performance.global", default=[])
 register("sentry-metrics.writes-limiter.limits.releasehealth.global", default=[])
+
+# A rate to apply during ingest to turn on performance detection (just detection, no storage of events or issues)
+register("store.use-ingest-performance-detection-only", default=0.0)
