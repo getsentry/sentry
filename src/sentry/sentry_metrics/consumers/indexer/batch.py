@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from typing import List, Mapping, MutableMapping, MutableSet, NamedTuple, Optional, Sequence, Set
+from typing import List, Mapping, MutableMapping, NamedTuple, Optional, Sequence, Set
 
 import rapidjson
 import sentry_sdk
