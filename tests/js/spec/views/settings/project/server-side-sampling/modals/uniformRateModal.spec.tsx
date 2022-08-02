@@ -214,8 +214,10 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
       />
     ));
 
+    await screen.findByRole('heading', {name: 'Set a global sample rate'});
+
     // Cancel
-    userEvent.click(await screen.findByRole('button', {name: 'Cancel'}));
+    userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
     await waitForElementToBeRemoved(() => screen.queryByLabelText('Cancel'));
 
     expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
