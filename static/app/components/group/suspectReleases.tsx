@@ -35,7 +35,7 @@ class SuspectReleases extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    if (!this.state.suspectReleases) {
+    if (!this.state.suspectReleases?.length) {
       return null;
     }
 
