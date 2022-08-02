@@ -103,7 +103,6 @@ export function mapRRWebAttachments(unsortedReplayAttachments): ReplayAttachment
 const INITIAL_STATE: State = Object.freeze({
   breadcrumbs: undefined,
   errors: undefined,
-  // event: undefined,
   fetchError: undefined,
   fetching: true,
   isErrorsFetching: true,
@@ -146,10 +145,10 @@ function useReplayData({eventSlug, orgId}: Options): Result {
     // can we use 'count_sequences' instead of making another (N) calls to list the segments available
     const segments = (await api.requestPromise(
       `/projects/${orgId}/${projectId}/replays/${eventId}/recording-segments/`
-    )) as ReplaySegment[];
+    )) as {data: ReplaySegment[]};
 
     const attachments = await Promise.all(
-      segments.map(async segment => {
+      segments.data.map(async segment => {
         const response = await api.requestPromise(
           `/api/0/projects/${orgId}/${projectId}/events/${eventId}/recording-segments/${segment.segment_id}/?download`,
           {
