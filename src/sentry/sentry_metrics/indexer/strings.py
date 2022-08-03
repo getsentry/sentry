@@ -51,7 +51,7 @@ TRANSACTION_METRICS_NAMES = {
     "d:transactions/measurements.frames_total@none": PREFIX + 113,
     "d:transactions/measurements.stall_count@none": PREFIX + 114,
     "d:transactions/measurements.stall_longest_time@millisecond": PREFIX + 115,
-    "d:transactions/measurements.stall_percentage@percent": PREFIX + 116,
+    "d:transactions/measurements.stall_percentage@ratio": PREFIX + 116,
     "d:transactions/measurements.stall_total_time@millisecond": PREFIX + 117,
     "d:transactions/measurements.ttfb@millisecond": PREFIX + 118,
     "d:transactions/measurements.ttfb.requesttime@millisecond": PREFIX + 119,
