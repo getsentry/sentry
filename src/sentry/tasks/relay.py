@@ -17,7 +17,6 @@ logger = logging.getLogger(__name__)
 @instrumented_task(
     name="sentry.tasks.relay.build_project_config",
     queue="relay_config",
-    acks_late=True,
     soft_time_limit=5,
     time_limit=10,  # Extra 5 seconds to remove the debounce key.
     expires=30,  # Relay stops waiting for this anyway.
@@ -191,7 +190,6 @@ def compute_projectkey_config(key):
 @instrumented_task(
     name="sentry.tasks.relay.invalidate_project_config",
     queue="relay_config_bulk",
-    acks_late=True,
     soft_time_limit=25 * 60,  # 25mins
     time_limit=25 * 60 + 5,
 )
