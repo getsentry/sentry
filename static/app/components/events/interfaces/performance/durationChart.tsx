@@ -55,7 +55,7 @@ export function DurationChart({issue, event, organization}: Props) {
       partial
       interval={interval}
       referrer="api.performance.performance-issue-poc.all-events"
-      currentSeriesNames={['All Events']}
+      currentSeriesNames={['p75(transaction.duration)']}
     >
       {({
         timeseriesData: allEvents,
@@ -74,7 +74,7 @@ export function DurationChart({issue, event, organization}: Props) {
           partial
           interval={interval}
           referrer="api.performance.performance-issue-poc.affected-events"
-          currentSeriesNames={['Affected Events']}
+          currentSeriesNames={['p75(transaction.duration)']}
         >
           {({
             timeseriesData: data,
@@ -104,9 +104,10 @@ function Content({allEvents, affectedEvents, start, end, loading, errored}) {
   ) : (
     <Chart
       grid={{left: '0', right: '0', top: '0', bottom: '0px'}}
-      router={{}}
+      // TODO (udameli): remove zooming and a router
+      router={{} as any}
       loading={loading}
-      statsPeriod="30d"
+      statsPeriod=""
       utc
       isLineChart
       data={affectedEvents}
