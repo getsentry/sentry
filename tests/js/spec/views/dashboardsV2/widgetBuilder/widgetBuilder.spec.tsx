@@ -2605,6 +2605,7 @@ describe('WidgetBuilder', function () {
       });
 
       it('makes the appropriate sessions call', async function () {
+        jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
         renderTestComponent({
           orgFeatures: releaseHealthFeatureFlags,
         });
@@ -2636,6 +2637,7 @@ describe('WidgetBuilder', function () {
       });
 
       it('calls the session endpoint with the right limit', async function () {
+        jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
         renderTestComponent({
           orgFeatures: releaseHealthFeatureFlags,
         });
@@ -2673,6 +2675,7 @@ describe('WidgetBuilder', function () {
       });
 
       it('calls sessions api when session.status is selected as a groupby', async function () {
+        jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
         renderTestComponent({
           orgFeatures: releaseHealthFeatureFlags,
         });
@@ -2736,6 +2739,7 @@ describe('WidgetBuilder', function () {
       });
 
       it('sets widgetType to release', async function () {
+        jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
         renderTestComponent({
           orgFeatures: releaseHealthFeatureFlags,
         });
@@ -2835,6 +2839,7 @@ describe('WidgetBuilder', function () {
       });
 
       it('adds a function when the only column chosen in a table is a tag', async function () {
+        jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
         renderTestComponent({
           orgFeatures: releaseHealthFeatureFlags,
         });
