@@ -73,7 +73,11 @@ function Screenshot({event, organization, screenshot, projectSlug, onDelete}: Pr
             onLoad={() => setLoadingImage(false)}
             onError={() => setLoadingImage(false)}
           />
-          {loadingImage && <StyledLoadingIndicator mini />}
+          {loadingImage && (
+            <StyledLoadingIndicator>
+              <LoadingIndicator mini />
+            </StyledLoadingIndicator>
+          )}
         </StyledPanelBody>
         <StyledPanelFooter>
           <StyledButtonbar gap={1}>
@@ -187,8 +191,12 @@ const StyledPanelFooter = styled(PanelFooter)`
   border-bottom-right-radius: ${p => p.theme.borderRadius};
 `;
 
-const StyledLoadingIndicator = styled(LoadingIndicator)`
+const StyledLoadingIndicator = styled('div')`
   position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
 `;
 
 const StyledImageVisualization = styled(ImageVisualization)`
