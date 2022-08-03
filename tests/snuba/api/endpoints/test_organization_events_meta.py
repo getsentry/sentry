@@ -1,13 +1,12 @@
-import pytest
 from unittest import mock
 
+import pytest
 from django.urls import reverse
 from pytz import utc
 from rest_framework.exceptions import ParseError
 
-from sentry.testutils import APITestCase, SnubaTestCase, MetricsEnhancedPerformanceTestCase
+from sentry.testutils import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -377,9 +376,7 @@ class OrganizationEventsMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
     def test_unparameterized_transactions(self):
         # Make current project incompatible
         self.store_transaction_metric(
-            1,
-            tags={"transaction": "<< unparameterized >>"},
-            timestamp=self.min_ago
+            1, tags={"transaction": "<< unparameterized >>"}, timestamp=self.min_ago
         )
         url = reverse(
             "sentry-api-0-organization-events-metrics-compatibility",
@@ -396,11 +393,7 @@ class OrganizationEventsMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
 
     def test_null_transaction(self):
         # Make current project incompatible
-        self.store_transaction_metric(
-            1,
-            tags={},
-            timestamp=self.min_ago
-        )
+        self.store_transaction_metric(1, tags={}, timestamp=self.min_ago)
         url = reverse(
             "sentry-api-0-organization-events-metrics-compatibility",
             kwargs={"organization_slug": self.project.organization.slug},
@@ -431,9 +424,7 @@ class OrganizationEventsMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
 
     def test_has_transaction(self):
         self.store_transaction_metric(
-            1,
-            tags={"transaction": "foo_transaction"},
-            timestamp=self.min_ago
+            1, tags={"transaction": "foo_transaction"}, timestamp=self.min_ago
         )
         url = reverse(
             "sentry-api-0-organization-events-metrics-compatibility",
@@ -456,15 +447,10 @@ class OrganizationEventsMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
         # Not setting DS, it shouldn't show up
         project4 = self.create_project()
         self.store_transaction_metric(
-            1,
-            tags={"transaction": "foo_transaction"},
-            timestamp=self.min_ago
+            1, tags={"transaction": "foo_transaction"}, timestamp=self.min_ago
         )
         self.store_transaction_metric(
-            1,
-            tags={"transaction": "foo_transaction"},
-            timestamp=self.min_ago,
-            project=project4.id
+            1, tags={"transaction": "foo_transaction"}, timestamp=self.min_ago, project=project4.id
         )
         self.store_transaction_metric(
             1,
@@ -490,7 +476,11 @@ class OrganizationEventsMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["compatible_projects"] == [self.project.id]
-        assert response.data["dynamic_sampling_projects"] == [self.project.id, project2.id, project3.id]
+        assert response.data["dynamic_sampling_projects"] == [
+            self.project.id,
+            project2.id,
+            project3.id,
+        ]
         # project 4 shouldn't show up in these sums
         assert response.data["sum"]["metrics"] == 3
         assert response.data["sum"]["metrics_unparam"] == 1
