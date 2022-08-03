@@ -74,7 +74,7 @@ function asSelectOption(
     label: project.name,
     value: project,
     disabled: options.disabled,
-    leadingItems: <PlatformIcon platform={project.platform} />,
+    leadingItems: project.platform ? <PlatformIcon platform={project.platform} /> : null,
   };
 }
 
