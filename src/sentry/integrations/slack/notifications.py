@@ -85,7 +85,7 @@ def _notify_recipient(
             "link_names": 1,
             "unfurl_links": False,
             "unfurl_media": False,
-            "text": notification.get_notification_title(shared_context),
+            "text": notification.get_notification_title(ExternalProviders.SLACK, shared_context),
             "attachments": json.dumps(local_attachments),
         }
 
@@ -119,6 +119,7 @@ def send_notification_as_slack(
         data = get_integrations_by_channel_by_recipient(
             notification.organization, recipients, ExternalProviders.SLACK
         )
+
     for recipient, integrations_by_channel in data.items():
         with sentry_sdk.start_span(op="notification.send_slack", description="send_one"):
             with sentry_sdk.start_span(op="notification.send_slack", description="gen_attachments"):

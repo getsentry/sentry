@@ -17,10 +17,10 @@ import {
   IconUser,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
 import {ItemType, SearchGroup, SearchItem, Shortcut, ShortcutType} from './types';
 import {Tag} from 'sentry/types';
+import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 
 export function addSpace(query = '') {
   if (query.length !== 0 && query[query.length - 1] !== ' ') {
@@ -297,7 +297,7 @@ export const shortcuts: Shortcut[] = [
     text: 'Delete',
     shortcutType: ShortcutType.Delete,
     hotkeys: {
-      actual: 'option+backspace',
+      actual: 'ctrl+option+backspace',
     },
     icon: <IconDelete size="xs" color="gray300" />,
     canRunShortcut: token => {
@@ -308,7 +308,7 @@ export const shortcuts: Shortcut[] = [
     text: 'Exclude',
     shortcutType: ShortcutType.Negate,
     hotkeys: {
-      actual: 'option+1',
+      actual: 'ctrl+option+1',
     },
     icon: <IconExclamation size="xs" color="gray300" />,
     canRunShortcut: token => {
@@ -319,7 +319,7 @@ export const shortcuts: Shortcut[] = [
     text: 'Include',
     shortcutType: ShortcutType.Negate,
     hotkeys: {
-      actual: 'option+1',
+      actual: 'ctrl+option+1',
     },
     icon: <IconExclamation size="xs" color="gray300" />,
     canRunShortcut: token => {
@@ -331,7 +331,7 @@ export const shortcuts: Shortcut[] = [
     text: 'Previous',
     shortcutType: ShortcutType.Previous,
     hotkeys: {
-      actual: 'option+left',
+      actual: 'ctrl+option+left',
     },
     icon: <IconArrow direction="left" size="xs" color="gray300" />,
     canRunShortcut: (token, count) => {
@@ -342,7 +342,7 @@ export const shortcuts: Shortcut[] = [
     text: 'Next',
     shortcutType: ShortcutType.Next,
     hotkeys: {
-      actual: 'option+right',
+      actual: 'ctrl+option+right',
     },
     icon: <IconArrow direction="right" size="xs" color="gray300" />,
     canRunShortcut: (token, count) => {
@@ -350,6 +350,15 @@ export const shortcuts: Shortcut[] = [
     },
   },
 ];
+
+const getItemTitle = (key: string, kind: FieldKind) => {
+  if (kind === FieldKind.FUNCTION) {
+    // Replace the function innards with ... for cleanliness
+    return key.replace(/\(.*\)/g, '(...)');
+  }
+
+  return key;
+};
 
 /**
  * Groups tag keys based on the "." character in their key.
@@ -360,64 +369,66 @@ export const getTagItemsFromKeys = (
   tagKeys: string[],
   supportedTags: {
     [key: string]: Tag;
-  },
-  getFieldDoc?: (key: string) => React.ReactNode
+  }
 ) => {
-  return [...tagKeys]
-    .sort((a, b) => a.localeCompare(b))
-    .reduce((groups, key) => {
-      const keyWithColon = `${key}:`;
-      const sections = key.split('.');
-      const kind = supportedTags[key]?.kind;
-      const documentation = getFieldDoc?.(key) || '-';
+  return [...tagKeys].reduce((groups, key) => {
+    const keyWithColon = `${key}:`;
+    const sections = key.split('.');
 
-      const item: SearchItem = {
-        value: keyWithColon,
-        title: key,
-        documentation,
-        kind,
-      };
+    const definition =
+      supportedTags[key]?.kind === FieldKind.FUNCTION
+        ? getFieldDefinition(key.split('(')[0])
+        : getFieldDefinition(key);
+    const kind = supportedTags[key]?.kind ?? definition?.kind ?? FieldKind.FIELD;
 
-      const lastGroup = groups.at(-1);
+    const item: SearchItem = {
+      value: keyWithColon,
+      title: getItemTitle(key, kind),
+      documentation: definition?.desc ?? '-',
+      kind,
+      deprecated: definition?.deprecated,
+    };
 
-      const [title] = sections;
+    const lastGroup = groups.at(-1);
 
-      if (kind !== FieldValueKind.FUNCTION && lastGroup) {
-        if (lastGroup.children && lastGroup.title === title) {
-          lastGroup.children.push(item);
-          return groups;
-        }
+    const [title] = sections;
 
-        if (lastGroup.title && lastGroup.title.split('.')[0] === title) {
-          if (lastGroup.title === title) {
-            return [
-              ...groups.slice(0, -1),
-              {
-                title,
-                value: lastGroup.value,
-                documentation: lastGroup.documentation,
-                kind: lastGroup.kind,
-                children: [item],
-              },
-            ];
-          }
+    if (kind !== FieldKind.FUNCTION && lastGroup) {
+      if (lastGroup.children && lastGroup.title === title) {
+        lastGroup.children.push(item);
+        return groups;
+      }
 
-          // Add a blank parent if the last group's full key is not the same as the title
+      if (lastGroup.title && lastGroup.title.split('.')[0] === title) {
+        if (lastGroup.title === title) {
           return [
             ...groups.slice(0, -1),
             {
               title,
-              value: null,
-              documentation: '-',
+              value: lastGroup.value,
+              documentation: lastGroup.documentation,
               kind: lastGroup.kind,
-              children: [lastGroup, item],
+              children: [item],
             },
           ];
         }
-      }
 
-      return [...groups, item];
-    }, [] as SearchItem[]);
+        // Add a blank parent if the last group's full key is not the same as the title
+        return [
+          ...groups.slice(0, -1),
+          {
+            title,
+            value: null,
+            documentation: '-',
+            kind: lastGroup.kind,
+            children: [lastGroup, item],
+          },
+        ];
+      }
+    }
+
+    return [...groups, item];
+  }, [] as SearchItem[]);
 };
 
 /**
@@ -459,3 +470,43 @@ export const getSearchGroupWithItemMarkedActive = (
     }),
   }));
 };
+
+/**
+ * Filter tag keys based on the query and the key, description, and associated keywords of each tag.
+ */
+export const filterKeysFromQuery = (tagKeys: string[], searchTerm: string): string[] =>
+  tagKeys
+    .flatMap(key => {
+      const keyWithoutFunctionPart = key.replaceAll(/\(.*\)/g, '');
+      const definition = getFieldDefinition(keyWithoutFunctionPart);
+      const lowerCasedSearchTerm = searchTerm.toLocaleLowerCase();
+
+      const combinedKeywords = [
+        ...(definition?.desc ? [definition.desc] : []),
+        ...(definition?.keywords ?? []),
+      ]
+        .join(' ')
+        .toLocaleLowerCase();
+
+      const matchedInKey = keyWithoutFunctionPart.includes(lowerCasedSearchTerm);
+      const matchedInKeywords = combinedKeywords.includes(lowerCasedSearchTerm);
+
+      if (!matchedInKey && !matchedInKeywords) {
+        return [];
+      }
+
+      return [{matchedInKey, matchedInKeywords, key}];
+    })
+    .sort((a, b) => {
+      // Sort by matched in key first, then by matched in keywords
+      if (a.matchedInKey && !b.matchedInKey) {
+        return -1;
+      }
+
+      if (b.matchedInKey && !a.matchedInKey) {
+        return 1;
+      }
+
+      return a.key < b.key ? -1 : 1;
+    })
+    .map(({key}) => key);

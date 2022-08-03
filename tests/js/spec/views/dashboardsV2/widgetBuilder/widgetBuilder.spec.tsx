@@ -23,7 +23,7 @@ const defaultOrgFeatures = [
   'new-widget-builder-experience-design',
   'dashboards-edit',
   'global-views',
-  'dashboard-custom-measurement-widgets',
+  'dashboards-mep',
 ];
 
 // Mocking worldMapChart to avoid act warnings
@@ -3719,6 +3719,39 @@ describe('WidgetBuilder', function () {
         });
 
         await screen.findByText('12.0 KiB');
+      });
+
+      it('displays custom performance metric in column select', async function () {
+        renderTestComponent({
+          query: {source: DashboardWidgetSource.DISCOVERV2},
+          dashboard: {
+            ...testDashboard,
+            widgets: [
+              {
+                title: 'Custom Measurement Widget',
+                interval: '1d',
+                id: '1',
+                widgetType: WidgetType.DISCOVER,
+                displayType: DisplayType.TABLE,
+                queries: [
+                  {
+                    conditions: '',
+                    name: '',
+                    fields: ['p99(measurements.custom.measurement)'],
+                    columns: [],
+                    aggregates: ['p99(measurements.custom.measurement)'],
+                    orderby: '-p99(measurements.custom.measurement)',
+                  },
+                ],
+              },
+            ],
+          },
+          params: {
+            widgetIndex: '0',
+          },
+          orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
+        });
+        await screen.findByText('measurements.custom.measurement');
       });
     });
   });

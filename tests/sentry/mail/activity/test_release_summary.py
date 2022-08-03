@@ -86,7 +86,7 @@ class ReleaseSummaryTestCase(ActivityTestCase):
             f"/organizations/{self.org.slug}/issues/?query={quote(f'firstRelease:{self.release.version}')}&project={self.project.id}&referrer=release_summary"
         )
 
-        slack_message = release_summary.get_notification_title()
+        slack_message = release_summary.get_notification_title(ExternalProviders.SLACK)
         assert (
             slack_message
             == f"Release <{release_link}|aaaaaaaaaaaa> has been deployed to production for an hour with <{issues_link}|0 issues> associated with it"

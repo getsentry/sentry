@@ -131,8 +131,15 @@ export type Member = {
     teamSlug: string;
   }[];
   teams: string[]; // # Deprecated, use teamRoles
-
   user: User;
+};
+
+/**
+ * Returned from TeamMembersEndpoint
+ */
+export type TeamMember = Member & {
+  teamRole?: string | null;
+  teamSlug?: string;
 };
 
 /**
@@ -235,6 +242,19 @@ export type EventsStats = {
 // API response format for multiple series
 export type MultiSeriesEventsStats = {
   [seriesName: string]: EventsStats;
+};
+
+export type EventsStatsSeries = {
+  data: {
+    axis: string;
+    values: number[];
+  }[];
+  meta: {
+    dataset: string;
+    end: number;
+    start: number;
+  };
+  timestamps: number[];
 };
 
 /**

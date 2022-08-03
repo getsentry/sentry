@@ -15,7 +15,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import ReplayTable from 'sentry/views/replays/replayTable';
-import {Replay} from 'sentry/views/replays/types';
+import {ReplayDiscoveryListItem} from 'sentry/views/replays/types';
 
 const DEFAULT_DISCOVER_LIMIT = 50;
 
@@ -107,12 +107,13 @@ const GroupReplays = ({group}: Props) => {
                     </SortLink>,
                     t('Duration'),
                     t('Errors'),
+                    t('Interest'),
                   ]}
                 >
                   {data.tableData ? (
                     <ReplayTable
                       idKey="replayId"
-                      replayList={data.tableData.data as Replay[]}
+                      replayList={data.tableData.data as ReplayDiscoveryListItem[]}
                     />
                   ) : null}
                 </StyledPanelTable>
@@ -127,7 +128,7 @@ const GroupReplays = ({group}: Props) => {
 };
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: minmax(0, 1fr) max-content max-content max-content;
+  grid-template-columns: minmax(0, 1fr) max-content max-content max-content max-content;
 `;
 
 const StyledPageContent = styled(PageContent)`

@@ -15,8 +15,6 @@ type Condition = React.ComponentProps<typeof Conditions>['conditions'][0];
 
 export function getMatchFieldPlaceholder(category: SamplingInnerName | string) {
   switch (category) {
-    case SamplingInnerName.TRACE_USER_SEGMENT:
-      return t('ex. paid, common (Multiline)');
     case SamplingInnerName.TRACE_ENVIRONMENT:
       return t('ex. prod, dev');
     case SamplingInnerName.TRACE_RELEASE:
@@ -43,9 +41,7 @@ export function getNewCondition(condition: Condition): SamplingConditionLogicalI
   return {
     op: SamplingInnerOperator.EQUAL,
     // TODO(sampling): remove the cast
-    name: condition.category as
-      | SamplingInnerName.TRACE_ENVIRONMENT
-      | SamplingInnerName.TRACE_USER_SEGMENT,
+    name: condition.category as SamplingInnerName.TRACE_ENVIRONMENT,
     value: newValue,
     options: {
       ignoreCase: true,
@@ -113,7 +109,6 @@ export function getTagKey(condition: Condition) {
 export const distributedTracesConditions = [
   SamplingInnerName.TRACE_RELEASE,
   SamplingInnerName.TRACE_ENVIRONMENT,
-  SamplingInnerName.TRACE_USER_SEGMENT,
 ];
 
 export function generateConditionCategoriesOptions(

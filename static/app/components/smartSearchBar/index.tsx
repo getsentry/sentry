@@ -51,6 +51,7 @@ import {ItemType, SearchGroup, SearchItem, Shortcut, ShortcutType} from './types
 import {
   addSpace,
   createSearchGroups,
+  filterKeysFromQuery,
   generateOperatorEntryMap,
   getSearchGroupWithItemMarkedActive,
   getTagItemsFromKeys,
@@ -160,10 +161,6 @@ type Props = WithRouterProps & {
    * as the stream view where it is a top level concept
    */
   excludeEnvironment?: boolean;
-  /**
-   * A function to get documentation for a field
-   */
-  getFieldDoc?: (key: string) => React.ReactNode;
   /**
    * List user's recent searches
    */
@@ -938,17 +935,17 @@ class SmartSearchBar extends Component<Props, State> {
   /**
    * Returns array of possible key values that substring match `query`
    */
-  getTagKeys(query: string): [SearchItem[], ItemType] {
-    const {prepareQuery, supportedTagType, getFieldDoc} = this.props;
+  getTagKeys(searchTerm: string): [SearchItem[], ItemType] {
+    const {prepareQuery, supportedTagType} = this.props;
 
     const supportedTags = this.props.supportedTags ?? {};
 
-    let tagKeys = Object.keys(supportedTags);
+    let tagKeys = Object.keys(supportedTags).sort((a, b) => a.localeCompare(b));
 
-    if (query) {
-      const preparedQuery =
-        typeof prepareQuery === 'function' ? prepareQuery(query) : query;
-      tagKeys = tagKeys.filter(key => key.indexOf(preparedQuery) > -1);
+    if (searchTerm) {
+      const preparedSearchTerm = prepareQuery ? prepareQuery(searchTerm) : searchTerm;
+
+      tagKeys = filterKeysFromQuery(tagKeys, preparedSearchTerm);
     }
 
     // If the environment feature is active and excludeEnvironment = true
@@ -957,7 +954,7 @@ class SmartSearchBar extends Component<Props, State> {
       tagKeys = tagKeys.filter(key => key !== 'environment');
     }
 
-    const tagItems = getTagItemsFromKeys(tagKeys, supportedTags, getFieldDoc);
+    const tagItems = getTagItemsFromKeys(tagKeys, supportedTags);
 
     return [tagItems, supportedTagType ?? ItemType.TAG_KEY];
   }
@@ -1609,6 +1606,7 @@ class SmartSearchBar extends Component<Props, State> {
         ref={this.containerRef}
         className={className}
         inputHasFocus={inputHasFocus}
+        data-test-id="smart-search-bar"
       >
         <SearchHotkeysListener
           visibleShortcuts={visibleShortcuts}

@@ -53,6 +53,7 @@ type Props = WithRouterProps & {
   widgetLimitReached: boolean;
   dashboardFilters?: DashboardFilters;
   draggableProps?: DraggableProps;
+  hasUnsavedFilters?: boolean;
   hideToolbar?: boolean;
   index?: string;
   isMobile?: boolean;
@@ -79,7 +80,7 @@ type State = {
 
 type SearchFilterKey = {key?: {value: string}};
 
-const METRICS_BACKED_SESSIONS_START_DATE = new Date('2022-04-12');
+const METRICS_BACKED_SESSIONS_START_DATE = new Date('2022-07-12');
 
 const ERROR_FIELDS = [
   'error.handled',
@@ -164,6 +165,7 @@ class WidgetCard extends Component<Props, State> {
       router,
       location,
       index,
+      hasUnsavedFilters,
     } = this.props;
 
     const {seriesData, tableData, pageLinks, totalIssuesCount} = this.state;
@@ -191,6 +193,7 @@ class WidgetCard extends Component<Props, State> {
         tableData={tableData}
         pageLinks={pageLinks}
         totalIssuesCount={totalIssuesCount}
+        hasUnsavedFilters={hasUnsavedFilters}
       />
     );
   }

@@ -1,4 +1,4 @@
-import {ChangeEvent, Fragment, ReactNode} from 'react';
+import {ChangeEvent, ReactNode} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import {components} from 'react-select';
 import styled from '@emotion/styled';
@@ -35,10 +35,15 @@ import {Panel, PanelBody} from 'sentry/components/panels';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import HookStore from 'sentry/stores/hookStore';
 import space from 'sentry/styles/space';
-import {Environment, OnboardingTaskKey, Organization, Project, Team} from 'sentry/types';
+import {
+  Environment,
+  IssueOwnership,
+  OnboardingTaskKey,
+  Organization,
+  Project,
+  Team,
+} from 'sentry/types';
 import {
   IssueAlertRule,
   IssueAlertRuleAction,
@@ -52,7 +57,6 @@ import {getDisplayName} from 'sentry/utils/environment';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import withExperiment from 'sentry/utils/withExperiment';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import {
@@ -111,9 +115,7 @@ type RuleTaskResponse = {
 type RouteParams = {orgId: string; projectId?: string; ruleId?: string};
 
 type Props = {
-  experimentAssignment: 0 | 1;
   location: Location;
-  logExperiment: () => void;
   organization: Organization;
   project: Project;
   projects: Project[];
@@ -135,6 +137,7 @@ type State = AsyncView['state'] & {
   project: Project;
   uuid: null | string;
   duplicateTargetRule?: UnsavedIssueAlertRule | IssueAlertRule | null;
+  ownership?: null | IssueOwnership;
   rule?: UnsavedIssueAlertRule | IssueAlertRule | null;
 };
 
@@ -146,58 +149,13 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   pollingTimeout: number | undefined = undefined;
 
   get isDuplicateRule(): boolean {
-    const {location, organization} = this.props;
+    const {location} = this.props;
     const createFromDuplicate = location?.query.createFromDuplicate === 'true';
-    const hasDuplicateAlertRules = organization.features.includes('duplicate-alert-rule');
-    return (
-      hasDuplicateAlertRules && createFromDuplicate && location?.query.duplicateRuleId
-    );
-  }
-
-  get hasAlertWizardV3(): boolean {
-    return this.props.organization.features.includes('alert-wizard-v3');
+    return createFromDuplicate && location?.query.duplicateRuleId;
   }
 
   componentWillUnmount() {
     window.clearTimeout(this.pollingTimeout);
-  }
-
-  componentDidMount() {
-    const {params, organization, experimentAssignment, logExperiment} = this.props;
-    // only new rules
-    if (params.ruleId) {
-      return;
-    }
-    // check if there is a callback registered
-    const callback = HookStore.get('callback:default-action-alert-rule')[0];
-    if (!callback) {
-      return;
-    }
-    // let hook decide when we want to select a default alert rule
-    callback((showDefaultAction: boolean) => {
-      if (showDefaultAction) {
-        const user = ConfigStore.get('user');
-        const {rule} = this.state;
-        // always log the experiment if we meet the basic requirements decided by the hook
-        logExperiment();
-        if (experimentAssignment) {
-          // this will add a default alert rule action
-          // to send notifications in
-          this.setState({
-            rule: {
-              ...rule,
-              actions: [
-                {
-                  id: 'sentry.mail.actions.NotifyEmailAction',
-                  targetIdentifier: user.id,
-                  targetType: 'Member',
-                } as any, // Need to fix IssueAlertRuleAction typing
-              ],
-            } as UnsavedIssueAlertRule,
-          });
-        }
-      }
-    }, organization);
   }
 
   componentDidUpdate(_prevProps: Props, prevState: State) {
@@ -242,13 +200,11 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {
-      organization,
       location: {query},
       params: {ruleId, orgId},
     } = this.props;
     // project in state isn't initialized when getEndpoints is first called
     const project = this.state?.project ?? this.props.project;
-    const hasDuplicateAlertRules = organization.features.includes('duplicate-alert-rule');
 
     const endpoints = [
       [
@@ -261,18 +217,14 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         },
       ],
       ['configs', `/projects/${orgId}/${project.slug}/rules/configuration/`],
+      ['ownership', `/projects/${orgId}/${project.slug}/ownership/`],
     ];
 
     if (ruleId) {
       endpoints.push(['rule', `/projects/${orgId}/${project.slug}/rules/${ruleId}/`]);
     }
 
-    if (
-      hasDuplicateAlertRules &&
-      !ruleId &&
-      query.createFromDuplicate &&
-      query.duplicateRuleId
-    ) {
+    if (!ruleId && query.createFromDuplicate && query.duplicateRuleId) {
       endpoints.push([
         'duplicateTargetRule',
         `/projects/${orgId}/${project.slug}/rules/${query.duplicateRuleId}/`,
@@ -437,7 +389,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         data: rule,
         query: {
           duplicateRule: this.isDuplicateRule ? 'true' : 'false',
-          wizardV3: this.hasAlertWizardV3 ? 'true' : 'false',
+          wizardV3: 'true',
         },
       });
 
@@ -704,21 +656,20 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
     return (
       <StyledField
-        hasAlertWizardV3={this.hasAlertWizardV3}
-        label={this.hasAlertWizardV3 ? null : t('Alert name')}
-        help={this.hasAlertWizardV3 ? null : t('Add a name for this alert')}
+        label={null}
+        help={null}
         error={detailedError?.name?.[0]}
         disabled={disabled}
         required
         stacked
-        flexibleControlStateSize={this.hasAlertWizardV3 ? true : undefined}
+        flexibleControlStateSize
       >
         <Input
           type="text"
           name="name"
           value={name}
           data-test-id="alert-name"
-          placeholder={this.hasAlertWizardV3 ? t('Enter Alert Name') : t('My Rule Name')}
+          placeholder={t('Enter Alert Name')}
           onChange={(event: ChangeEvent<HTMLInputElement>) =>
             this.handleChange('name', event.target.value)
           }
@@ -735,12 +686,11 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
     return (
       <StyledField
-        hasAlertWizardV3={this.hasAlertWizardV3}
         extraMargin
-        label={this.hasAlertWizardV3 ? null : t('Team')}
-        help={this.hasAlertWizardV3 ? null : t('The team that can edit this alert.')}
+        label={null}
+        help={null}
         disabled={disabled}
-        flexibleControlStateSize={this.hasAlertWizardV3 ? true : undefined}
+        flexibleControlStateSize
       >
         <TeamSelector
           value={this.getTeamId()}
@@ -915,16 +865,12 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         name="frequency"
         inline={false}
         style={{padding: 0, border: 'none'}}
-        flexibleControlStateSize={this.hasAlertWizardV3 ? true : undefined}
-        label={this.hasAlertWizardV3 ? null : t('Action Interval')}
-        help={
-          this.hasAlertWizardV3
-            ? null
-            : t('Perform these actions once this often for an issue')
-        }
+        label={null}
+        help={null}
         className={this.hasError('frequency') ? ' error' : ''}
         required
         disabled={disabled}
+        flexibleControlStateSize
       >
         {({onChange, onBlur}) => (
           <SelectControl
@@ -945,7 +891,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   renderBody() {
     const {organization} = this.props;
-    const {project, rule, detailedError, loading} = this.state;
+    const {project, rule, detailedError, loading, ownership} = this.state;
     const {actions, filters, conditions, frequency} = rule || {};
 
     const environment =
@@ -994,20 +940,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                 <List symbol="colored-numeric">
                   {loading && <SemiTransparentLoadingMask data-test-id="loading-mask" />}
                   <StyledListItem>{t('Add alert settings')}</StyledListItem>
-                  {this.hasAlertWizardV3 ? (
-                    <SettingsContainer>
-                      {this.renderEnvironmentSelect(disabled)}
-                      {this.renderProjectSelect(disabled)}
-                    </SettingsContainer>
-                  ) : (
-                    <Panel>
-                      <PanelBody>
-                        {this.renderEnvironmentSelect(disabled)}
-                        {this.renderTeamSelect(disabled)}
-                        {this.renderRuleName(disabled)}
-                      </PanelBody>
-                    </Panel>
-                  )}
+                  <SettingsContainer>
+                    {this.renderEnvironmentSelect(disabled)}
+                    {this.renderProjectSelect(disabled)}
+                  </SettingsContainer>
                   <SetConditionsListItem>
                     {t('Set conditions')}
                     <SetupAlertIntegrationButton
@@ -1188,6 +1124,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                               organization={organization}
                               project={project}
                               disabled={disabled}
+                              ownership={ownership}
                               error={
                                 this.hasError('actions') && (
                                   <StyledAlert type="error">
@@ -1207,20 +1144,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                       {t('Perform the actions above once this often for an issue')}
                     </StyledFieldHelp>
                   </StyledListItem>
-                  {this.hasAlertWizardV3 ? (
-                    this.renderActionInterval(disabled)
-                  ) : (
-                    <Panel>
-                      <PanelBody>{this.renderActionInterval(disabled)}</PanelBody>
-                    </Panel>
-                  )}
-                  {this.hasAlertWizardV3 && (
-                    <Fragment>
-                      <StyledListItem>{t('Establish ownership')}</StyledListItem>
-                      {this.renderRuleName(disabled)}
-                      {this.renderTeamSelect(disabled)}
-                    </Fragment>
-                  )}
+                  {this.renderActionInterval(disabled)}
+                  <StyledListItem>{t('Establish ownership')}</StyledListItem>
+                  {this.renderRuleName(disabled)}
+                  {this.renderTeamSelect(disabled)}
                 </List>
               </StyledForm>
             </Main>
@@ -1231,10 +1158,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 }
 
-export default withExperiment(withOrganization(withProjects(IssueRuleEditor)), {
-  experiment: 'DefaultIssueAlertActionExperiment',
-  injectLogExperiment: true,
-});
+export default withOrganization(withProjects(IssueRuleEditor));
 
 // TODO(ts): Understand why styled is not correctly inheriting props here
 const StyledForm = styled(Form)<Form['props']>`
@@ -1337,24 +1261,20 @@ const SettingsContainer = styled('div')`
   gap: ${space(1)};
 `;
 
-const StyledField = styled(Field)<{extraMargin?: boolean; hasAlertWizardV3?: boolean}>`
+const StyledField = styled(Field)<{extraMargin?: boolean}>`
   :last-child {
     padding-bottom: ${space(2)};
   }
 
-  ${p =>
-    p.hasAlertWizardV3 &&
-    `
-    border-bottom: none;
+  border-bottom: none;
+  padding: 0;
+
+  & > div {
     padding: 0;
+    width: 100%;
+  }
 
-    & > div {
-      padding: 0;
-      width: 100%;
-    }
-
-    margin-bottom: ${p.extraMargin ? '60px' : space(1)};
-  `}
+  margin-bottom: ${p => `${p.extraMargin ? '60px' : space(1)}`};
 `;
 
 const Main = styled(Layout.Main)`

@@ -75,7 +75,7 @@ export function SamplingSDKAlert({
       }
     >
       {t(
-        'To ensure you are properly monitoring the performance of all your other services, we require you update to the latest version of the following SDK(s):'
+        'To activate server-side sampling rules, it’s a requirement to update the following project SDK(s):'
       )}
       <Projects>
         {recommendedSdkUpgrades.map(recommendedSdkUpgrade => (
