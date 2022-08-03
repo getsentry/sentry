@@ -187,6 +187,8 @@ const FrameCallersRow = styled('div')<{isSelected: boolean}>`
   width: 100%;
   color: ${p => (p.isSelected ? p.theme.white : 'inherit')};
   scroll-margin-top: 24px;
+  font-size: ${p => p.theme.fontSizeSmall};
+  line-height: 24px;
 
   &:focus {
     outline: none;
