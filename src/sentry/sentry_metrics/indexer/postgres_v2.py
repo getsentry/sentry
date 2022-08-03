@@ -144,11 +144,19 @@ class PGStringIndexerV2(StringIndexer):
             filtered_db_write_keys = writes_limiter_state.accepted_keys
             del db_write_keys
 
+            rate_limited_write_results = writes_limiter_state.dropped_strings
+
+            db_write_key_results = KeyResults()
+            for dropped_string in rate_limited_write_results:
+                db_write_key_results.add_key_result(
+                    dropped_string.key_result,
+                    fetch_type=dropped_string.fetch_type,
+                    fetch_type_ext=dropped_string.fetch_type_ext,
+                )
+
             if filtered_db_write_keys.size == 0:
                 indexer_cache.set_many(new_results_to_cache, use_case_id.value)
-                return cache_key_results.merge(db_read_key_results)
-
-            rate_limited_write_results = writes_limiter_state.dropped_strings
+                return cache_key_results.merge(db_read_key_results).merge(db_write_key_results)
 
             new_records = []
             for write_pair in filtered_db_write_keys.as_tuples():
@@ -162,14 +170,6 @@ class PGStringIndexerV2(StringIndexer):
                 # records might have be created between when we queried in `bulk_record` and the
                 # attempt to create the rows down below.
                 self._table(use_case_id).objects.bulk_create(new_records, ignore_conflicts=True)
-
-        db_write_key_results = KeyResults()
-        for dropped_string in rate_limited_write_results:
-            db_write_key_results.add_key_result(
-                dropped_string.key_result,
-                fetch_type=dropped_string.fetch_type,
-                fetch_type_ext=dropped_string.fetch_type_ext,
-            )
 
         db_write_key_results.add_key_results(
             [
