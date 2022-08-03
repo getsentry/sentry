@@ -89,7 +89,12 @@ def send_notification_as_msteams(
 
                     client = MsTeamsClient(integration)
                     try:
-                        client.send_card(conversation_id, card)
+                        with sentry_sdk.start_span(
+                            op="notification.send_msteams", description="notify_recipient"
+                        ):
+                            client.send_card(conversation_id, card)
+
+                        notification.record_notification_sent(recipient, ExternalProviders.MSTEAMS)
                     except Exception as e:
                         logger.error(f"Exception occured while trying to send the notification {e}")
 
