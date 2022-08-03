@@ -2,14 +2,14 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Group, Organization} from 'sentry/types';
+import {EventError, Group, Organization} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import {DurationChart} from './durationChart';
 import {SpanCountChart} from './spanCountChart';
 
 interface Props {
-  event: any;
+  event: EventError;
   issue: Group;
   organization: Organization;
 }

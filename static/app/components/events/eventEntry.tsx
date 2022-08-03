@@ -14,7 +14,7 @@ import Template from 'sentry/components/events/interfaces/template';
 import Threads from 'sentry/components/events/interfaces/threads';
 import ThreadsV2 from 'sentry/components/events/interfaces/threadsV2';
 import {Group, Organization, Project, SharedViewOrganization} from 'sentry/types';
-import {Entry, EntryType, Event, EventTransaction} from 'sentry/types/event';
+import {Entry, EntryType, Event, EventError, EventTransaction} from 'sentry/types/event';
 
 import {EmbeddedSpanTree} from './interfaces/spans/embeddedSpanTree';
 import {FocusedSpanIDMap} from './interfaces/spans/types';
@@ -196,7 +196,7 @@ function EventEntry({
       return (
         <PerformanceIssueSection
           issue={group as Group}
-          event={event}
+          event={event as EventError}
           organization={organization as Organization}
         />
       );

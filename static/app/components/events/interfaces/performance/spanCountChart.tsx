@@ -1,23 +1,31 @@
 import {useRef} from 'react';
+import {Location} from 'history';
 
 import {BarChart} from 'sentry/components/charts/barChart';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {DateString, TagValue} from 'sentry/types';
+import {DateString, EventError, EventTag, Group, Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import SpanCountHistogramQuery from 'sentry/utils/performance/histogram/spanCountHistogramQuery';
 import {HistogramData} from 'sentry/utils/performance/histogram/types';
 import {formatHistogramData} from 'sentry/utils/performance/histogram/utils';
 import theme from 'sentry/utils/theme';
 
-export function SpanCountChart({issue, event, location, organization}: any) {
+interface Props {
+  event: EventError;
+  issue: Group;
+  location: Location;
+  organization: Organization;
+}
+
+export function SpanCountChart({issue, event, location, organization}: Props) {
   const transactionNameTag = event.tags.find(tag => tag.key === 'transaction');
   const transactionName = transactionNameTag ? transactionNameTag.value : '';
 
   const spanHashTag = event.tags.find(
-    (tag: TagValue) => tag.key === 'performance_issue.extra_spans'
+    (tag: EventTag) => tag.key === 'performance_issue.extra_spans'
   ) || {key: '', value: ''};
 
   const allEventsQuery = `event.type:transaction transaction:${transactionName}`;
