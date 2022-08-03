@@ -1,12 +1,10 @@
 import {memo, useState} from 'react';
 
-import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import EventDataSection from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
 import {Event} from 'sentry/types/event';
-import {defined} from 'sentry/utils';
 
-import {getEventExtraDataKnownData} from './getEventExtraDataKnownData';
+import EventDataContent from './eventDataContent';
 
 type Props = {
   event: Event;
@@ -22,12 +20,7 @@ const EventExtraData = memo(
         toggleRaw={() => setRaw(!raw)}
         raw={raw}
       >
-        {!defined(event.context) ? null : (
-          <ContextBlock
-            data={getEventExtraDataKnownData(event.context, event._meta?.context)}
-            raw={raw}
-          />
-        )}
+        <EventDataContent raw={raw} data={event.context} />
       </EventDataSection>
     );
   },
