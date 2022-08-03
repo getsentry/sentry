@@ -313,8 +313,25 @@ class PostgresIndexerV2Test(TestCase):
                 fetch_type_ext=FetchTypeExt(is_global=False),
             )
 
+        org_strings = {1: {"x", "y", "z"}}
+
+        # attempt to index even more strings, and assert that we can't get any indexed
+        with override_options(
+            {
+                "sentry-metrics.writes-limiter.limits.releasehealth.per-org": [
+                    {"window_seconds": 10, "granularity_seconds": 10, "limit": 1}
+                ],
+            }
+        ):
+            results = self.indexer.bulk_record(
+                use_case_id=self.use_case_id, org_strings=org_strings
+            )
+
+        assert results[1] == {}
+
         org_strings = {1: rate_limited_strings}
 
+        # assert that if we reconfigure limits, the quota resets
         with override_options(
             {
                 "sentry-metrics.writes-limiter.limits.releasehealth.global": [
