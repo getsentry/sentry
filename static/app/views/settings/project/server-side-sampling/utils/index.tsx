@@ -4,9 +4,8 @@ import {t} from 'sentry/locale';
 import {SamplingInnerName, SamplingRule, SamplingRuleType} from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
 
-// TODO: Update this link as soon as we have one for sampling
 export const SERVER_SIDE_SAMPLING_DOC_LINK =
-  'https://docs.sentry.io/product/data-management-settings/filtering/';
+  'https://docs.sentry.io/product/data-management-settings/server-side-sampling/';
 
 export function getInnerNameLabel(name: SamplingInnerName | string) {
   switch (name) {
