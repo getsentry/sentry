@@ -336,3 +336,43 @@ class SnubaEventStorage(EventStorage):
         return Event(
             event_id=event_id, group_id=group_id, project_id=project_id, snuba_data=snuba_data
         )
+
+    def get_unfetched_transactions(
+        self,
+        filter,
+        orderby=None,
+        limit=DEFAULT_LIMIT,
+        offset=DEFAULT_OFFSET,
+        referrer="eventstore.get_unfetched_transactions",
+    ):
+        """
+        Get transactions from Snuba, without node data loaded.
+        """
+        assert filter, "You must provide a filter"
+        cols = self.__get_columns()
+        orderby = orderby or DESC_ORDERING
+
+        result = snuba.aliased_query(
+            selected_columns=cols,
+            start=filter.start,
+            end=filter.end,
+            conditions=filter.conditions,
+            filter_keys=filter.filter_keys,
+            orderby=orderby,
+            limit=limit,
+            offset=offset,
+            referrer=referrer,
+            dataset=snuba.Dataset.Transactions,
+        )
+
+        if "error" not in result:
+            events = [self.__make_transaction(evt) for evt in result["data"]]
+            return events
+
+        return []
+
+    def __make_transaction(self, snuba_data):
+        event_id = snuba_data[Columns.EVENT_ID.value.event_name]
+        project_id = snuba_data[Columns.PROJECT_ID.value.event_name]
+
+        return Event(event_id=event_id, project_id=project_id, snuba_data=snuba_data)
