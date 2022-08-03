@@ -276,7 +276,10 @@ class QueryField extends Component<Props> {
     this.props.onChange(fieldValue);
   }
 
-  getFieldOrTagOrMeasurementValue(name: string | undefined): FieldValue | null {
+  getFieldOrTagOrMeasurementValue(
+    name: string | undefined,
+    functions: string[] = []
+  ): FieldValue | null {
     const {fieldOptions} = this.props;
     if (name === undefined) {
       return null;
@@ -311,9 +314,21 @@ class QueryField extends Component<Props> {
       return fieldOptions[tagName].value;
     }
 
-    // Likely a tag that was deleted but left behind in a saved query
-    // Cook up a tag option so select control works.
     if (name.length > 0) {
+      // Custom Measurement. Probably not appearing in field options because
+      // no metrics found within selected time range
+      if (name.startsWith('measurements.')) {
+        return {
+          kind: FieldValueKind.CUSTOM_MEASUREMENT,
+          meta: {
+            name,
+            dataType: 'number',
+            functions,
+          },
+        };
+      }
+      // Likely a tag that was deleted but left behind in a saved query
+      // Cook up a tag option so select control works.
       return {
         kind: FieldValueKind.TAG,
         meta: {
@@ -356,7 +371,8 @@ class QueryField extends Component<Props> {
         (param, index: number): ParameterDescription => {
           if (param.kind === 'column') {
             const fieldParameter = this.getFieldOrTagOrMeasurementValue(
-              fieldValue.function[1]
+              fieldValue.function[1],
+              [fieldValue.function[0]]
             );
             fieldOptions = this.appendFieldIfUnknown(fieldOptions, fieldParameter);
             return {
@@ -416,6 +432,12 @@ class QueryField extends Component<Props> {
       // Clone the options so we don't mutate other rows.
       fieldOptions = Object.assign({}, fieldOptions);
       fieldOptions[field.meta.name] = {label: field.meta.name, value: field};
+    } else if (field && field.kind === FieldValueKind.CUSTOM_MEASUREMENT) {
+      fieldOptions = Object.assign({}, fieldOptions);
+      fieldOptions[`measurement:${field.meta.name}`] = {
+        label: field.meta.name,
+        value: field,
+      };
     }
 
     return fieldOptions;

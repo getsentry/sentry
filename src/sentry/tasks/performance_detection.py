@@ -41,16 +41,16 @@ def get_detection_settings():
     return {
         DetectorType.DUPLICATE_SPANS: {
             "count": 5,
-            "cumulative_duration": 500,
+            "cumulative_duration": 500.0,
             "allowed_span_ops": ["db", "http"],
         },
         DetectorType.SEQUENTIAL_SLOW_SPANS: {
             "count": 3,
-            "cumulative_duration": 600,
+            "cumulative_duration": 600.0,
             "allowed_span_ops": ["db", "http", "ui"],
         },
         DetectorType.SLOW_SPAN: {
-            "duration_threshold": 500,
+            "duration_threshold": 500.0,
             "allowed_span_ops": ["db", "http"],
         },
     }
@@ -74,21 +74,21 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
     all_fingerprints = [i for _, d in detectors.items() for i in d.stored_issues]
 
     if all_fingerprints:
-        sdk_span.set_measurement("_performance_issue_count", len(all_fingerprints))
+        sdk_span.containing_transaction.set_tag("_pi_all_issue_count", len(all_fingerprints))
         if event_id:
-            sdk_span.set_tag("_performance_issue_transaction_id", event_id)
+            sdk_span.containing_transaction.set_tag("_pi_transaction", event_id)
 
     duplicate_performance_issues = detectors[DetectorType.DUPLICATE_SPANS].stored_issues
     duplicate_performance_fingerprints = list(duplicate_performance_issues.keys())
     if duplicate_performance_fingerprints:
         first_duplicate = duplicate_performance_issues[duplicate_performance_fingerprints[0]]
-        sdk_span.set_tag("_performance_issue_duplicate_spans", first_duplicate["span_id"])
+        sdk_span.containing_transaction.set_tag("_pi_duplicates", first_duplicate["span_id"])
 
     slow_span_performance_issues = detectors[DetectorType.SLOW_SPAN].stored_issues
     slow_performance_fingerprints = list(slow_span_performance_issues.keys())
     if slow_performance_fingerprints:
         first_slow_span = slow_span_performance_issues[slow_performance_fingerprints[0]]
-        sdk_span.set_tag("_performance_issue_slow_span", first_slow_span["span_id"])
+        sdk_span.containing_transaction.set_tag("_pi_slow_span", first_slow_span["span_id"])
 
     sequential_span_performance_issues = detectors[DetectorType.SEQUENTIAL_SLOW_SPANS].stored_issues
     sequential_performance_fingerprints = list(sequential_span_performance_issues.keys())
@@ -96,7 +96,7 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
         first_sequential_span = sequential_span_performance_issues[
             sequential_performance_fingerprints[0]
         ]
-        sdk_span.set_tag("_performance_issue_sequential_span", first_sequential_span["span_id"])
+        sdk_span.containing_transaction.set_tag("_pi_sequential", first_sequential_span["span_id"])
 
 
 # Creates a stable fingerprint given the same span details using sha1.
@@ -124,7 +124,9 @@ def fingerprint_span_op(span: Span):
 
 
 def get_span_duration(span: Span):
-    return span.get("timestamp", 0) - span.get("start_timestamp", 0)
+    return timedelta(milliseconds=span.get("timestamp", 0)) - timedelta(
+        milliseconds=span.get("start_timestamp", 0)
+    )
 
 
 class PerformanceDetector(ABC):
@@ -269,7 +271,7 @@ class SequentialSlowSpanDetector(PerformanceDetector):
             return
 
         span_duration = get_span_duration(span)
-        span_end = span.get("timestamp", 0)
+        span_end = timedelta(milliseconds=span.get("timestamp", 0))
 
         if fingerprint not in self.spans_involved:
             self.spans_involved[fingerprint] = []
@@ -282,7 +284,7 @@ class SequentialSlowSpanDetector(PerformanceDetector):
             return
 
         last_span_end = self.last_span_seen[fingerprint]
-        current_span_start = span.get("start_timestamp", 0)
+        current_span_start = timedelta(milliseconds=span.get("start_timestamp", 0))
 
         are_spans_overlapping = current_span_start <= last_span_end
         if are_spans_overlapping:

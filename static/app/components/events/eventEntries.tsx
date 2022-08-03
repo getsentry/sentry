@@ -19,7 +19,7 @@ import EventExtraData from 'sentry/components/events/eventExtraData/eventExtraDa
 import EventSdk from 'sentry/components/events/eventSdk';
 import {EventTags} from 'sentry/components/events/eventTags';
 import EventGroupingInfo from 'sentry/components/events/groupingInfo';
-import EventPackageData from 'sentry/components/events/packageData';
+import {EventPackageData} from 'sentry/components/events/packageData';
 import RRWebIntegration from 'sentry/components/events/rrwebIntegration';
 import EventSdkUpdates from 'sentry/components/events/sdkUpdates';
 import {DataSection} from 'sentry/components/events/styles';
