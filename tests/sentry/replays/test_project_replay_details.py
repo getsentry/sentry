@@ -63,7 +63,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
     def test_get_replay_schema(self):
         """Test replay schema is well-formed."""
         replay1_id = str(self.replay_id)
-        replay2_id = "44c586f7-bd12-4c1b-b609-189344a19e92"
+        replay2_id = str(uuid.uuid4())
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=25)
         seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=7)
         seq3_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=4)
@@ -79,6 +79,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                 self.project.id,
                 replay1_id,
                 trace_ids=["ffb5344a-41dd-4b21-9288-187a2cd1ad6d"],
+                url="http://localhost:3000/",
             )
         )
         self.store_replays(
@@ -88,11 +89,17 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                 replay1_id,
                 segment_id=1,
                 trace_ids=["2a0dcb0e-a1fb-4350-b266-47ae1aa57dfb"],
+                url="http://www.sentry.io/",
             )
         )
         self.store_replays(
             mock_replay(
-                seq3_timestamp, self.project.id, replay1_id, segment_id=2, sdk_version="16.8.2"
+                seq3_timestamp,
+                self.project.id,
+                replay1_id,
+                segment_id=2,
+                sdk_version="16.8.2",
+                url="http://www.sentry.io/next",
             )
         )
 
@@ -113,7 +120,11 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                     "ffb5344a-41dd-4b21-9288-187a2cd1ad6d",
                     "2a0dcb0e-a1fb-4350-b266-47ae1aa57dfb",
                 ],
-                urls=[],
+                urls=[
+                    "http://www.sentry.io/next",
+                    "http://www.sentry.io/",
+                    "http://localhost:3000/",
+                ],
                 count_segments=3,
             )
             assert_expected_response(response_data["data"], expected_response)

@@ -36,7 +36,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         """Test replays conform to the interchange format."""
         project = self.create_project(teams=[self.team])
 
-        replay1_id = "44c586f7-bd12-4c1b-b609-189344a19e92"
+        replay1_id = str(uuid.uuid4())
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
         seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
         self.store_replays(
@@ -45,6 +45,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 project.id,
                 replay1_id,
                 error_ids=[uuid.uuid4().hex, replay1_id],  # duplicate error-id
+                url="http://localhost:3000/",  # duplicate urls are okay
             )
         )
         self.store_replays(
@@ -53,6 +54,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 project.id,
                 replay1_id,
                 error_ids=[uuid.uuid4().hex, replay1_id],  # duplicate error-id
+                url="http://localhost:3000/",  # duplicate urls are okay
             )
         )
 
@@ -70,7 +72,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 replay1_id,
                 seq1_timestamp,
                 seq2_timestamp,
-                urls=[],
+                urls=["http://localhost:3000/", "http://localhost:3000/"],
                 count_segments=2,
                 count_errors=3,
             )
