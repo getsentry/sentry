@@ -330,9 +330,10 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         if "projects" in validated_data:
             if validated_data["projects"] == ALL_ACCESS_PROJECTS:
                 filters["all_projects"] = True
+                instance.projects.clear()
             else:
                 if instance.filters and instance.filters.get("all_projects"):
-                    instance.filters["all_projects"] = False
+                    filters["all_projects"] = False
                 instance.projects.set(validated_data["projects"])
 
         for key in page_filter_keys:
