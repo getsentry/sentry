@@ -12,7 +12,14 @@ def assert_expected_response(
     for key, value in expected_response.items():
         assert key in response, key
         response_value = response.pop(key)
-        assert response_value == value, f'"{response_value}" "{value}"'
+
+        if isinstance(response_value, list):
+            assert len(response_value) == len(value), f'"{response_value}" "{value}"'
+            for item in response_value:
+                assert item in value
+                value.remove(item)
+        else:
+            assert response_value == value, f'"{response_value}" "{value}"'
 
     # Ensure no lingering unexpected keys exist.
     assert list(response.keys()) == []
