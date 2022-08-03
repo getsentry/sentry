@@ -74,6 +74,7 @@ export function MetricsDataSwitcher(props: MetricDataSwitchProps) {
   const baseDiscoverProps = {
     location: props.location,
     orgSlug: props.organization.slug,
+    cursor: '0:0:0',
   };
 
   const metricsDiscoverProps = {
@@ -210,6 +211,9 @@ export function MetricsDataSwitcher(props: MetricDataSwitchProps) {
  */
 function checkIfNotEffectivelySampling(dataCounts: DataCounts) {
   const counts = extractCounts(dataCounts);
+  if (counts.metricsCount === 0) {
+    return true;
+  }
   return (
     counts.transactionsCount > 0 &&
     counts.metricsCount > counts.transactionsCount &&
@@ -258,17 +262,25 @@ function extractCounts({
   unparamData,
   nullData,
 }: DataCounts) {
-  const metricsCount = Number(metricsCountData.tableData?.data?.[0].count);
-  const transactionsCount = Number(transactionCountData.tableData?.data?.[0].count);
-  const unparamCount = Number(unparamData.tableData?.data?.[0].count);
-  const nullCount = Number(nullData.tableData?.data?.[0].count);
-
-  return {
-    metricsCount,
-    transactionsCount,
-    unparamCount,
-    nullCount,
-  };
+  try {
+    const metricsCount = Number(metricsCountData.tableData?.data?.[0].count);
+    const transactionsCount = Number(transactionCountData.tableData?.data?.[0].count);
+    const unparamCount = Number(unparamData.tableData?.data?.[0].count);
+    const nullCount = Number(nullData.tableData?.data?.[0].count);
+    return {
+      metricsCount,
+      transactionsCount,
+      unparamCount,
+      nullCount,
+    };
+  } catch (_) {
+    return {
+      metricsCount: 0,
+      transactionsCount: 0,
+      unparamCount: 0,
+      nullCount: 0,
+    };
+  }
 }
 
 /**
