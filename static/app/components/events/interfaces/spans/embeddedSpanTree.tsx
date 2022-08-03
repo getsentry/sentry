@@ -1,13 +1,15 @@
-import React from 'react';
+import React, {useContext} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import QuickTrace from 'sentry/components/quickTrace';
 import space from 'sentry/styles/space';
 import {Event, EventTransaction, Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import GenericDiscoverQuery from 'sentry/utils/discover/genericDiscoverQuery';
+import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -28,6 +30,7 @@ export function EmbeddedSpanTree(props: Props) {
   const {event, organization, projectSlug, focusedSpanIds} = props;
   const api = useApi();
   const location = useLocation();
+  const quickTrace = useContext(QuickTraceContext);
 
   const eventView = EventView.fromNewQueryWithLocation(
     {
@@ -78,7 +81,19 @@ export function EmbeddedSpanTree(props: Props) {
 
                   return (
                     <Wrapper>
-                      <h3>Span Tree</h3>
+                      <Header>
+                        <h3>Span Tree</h3>
+                        <QuickTrace
+                          event={event}
+                          quickTrace={quickTrace!}
+                          location={location}
+                          organization={organization}
+                          anchor="left"
+                          errorDest="issue"
+                          transactionDest="performance"
+                        />
+                      </Header>
+
                       <Section>
                         <TraceView
                           organization={organization}
@@ -126,6 +141,11 @@ export const Wrapper = styled('div')`
     margin-bottom: ${space(2)};
     text-transform: uppercase;
   }
+`;
+
+const Header = styled('div')`
+  display: flex;
+  justify-content: space-between;
 `;
 
 const Section = styled('div')`
