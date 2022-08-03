@@ -61,9 +61,7 @@
             "delete-install"
           ],
           "block": true,
-          "authenticate": [
-            "account"
-          ]
+          "authenticate": ["account"]
         }
       ],
       "preview": {
@@ -72,9 +70,7 @@
       "options": {
         "properties": {
           "account": {
-            "services": [
-              "sentry-qa-dcramer"
-            ],
+            "services": ["sentry-qa-dcramer"],
             "title": "Sentry Account",
             "type": "object",
             "order": 0,
@@ -152,9 +148,7 @@
           "title": "Sentry Organization"
         },
         "account": {
-          "services": [
-            "sentry-qa-dcramer"
-          ],
+          "services": ["sentry-qa-dcramer"],
           "title": "Sentry Account",
           "type": "object",
           "order": 0,
