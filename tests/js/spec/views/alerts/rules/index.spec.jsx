@@ -15,7 +15,6 @@ describe('AlertRulesList', () => {
   const {routerContext, organization, router} = initializeOrg({
     organization: {
       access: ['alerts:write'],
-      features: ['duplicate-alert-rule'],
     },
   });
   TeamStore.loadInitialData([TestStubs.Team()], false, null);

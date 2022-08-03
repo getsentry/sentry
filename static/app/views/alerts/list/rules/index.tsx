@@ -258,9 +258,6 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                         onOwnerChange={this.handleOwnerChange}
                         onDelete={this.handleDeleteRule}
                         userTeams={new Set(teams.map(team => team.id))}
-                        hasDuplicateAlertRules={organization.features.includes(
-                          'duplicate-alert-rule'
-                        )}
                         hasEditAccess={hasEditAccess}
                       />
                     ))
