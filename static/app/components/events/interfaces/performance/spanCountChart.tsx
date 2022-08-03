@@ -1,43 +1,37 @@
 import {useState} from 'react';
 
 import {BarChart} from 'sentry/components/charts/barChart';
-import BarChartZoom from 'sentry/components/charts/barChartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {DateString} from 'sentry/types';
+import {DateString, TagValue} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import SpanCountHistogramQuery from 'sentry/utils/performance/histogram/spanCountHistogramQuery';
 import {HistogramData} from 'sentry/utils/performance/histogram/types';
-import {
-  computeBuckets,
-  formatHistogramData,
-} from 'sentry/utils/performance/histogram/utils';
+import {formatHistogramData} from 'sentry/utils/performance/histogram/utils';
 import theme from 'sentry/utils/theme';
 
 export function SpanCountChart({issue, event, location, organization}: any) {
-  const [zoomError, setZoomError] = useState(false);
+  const transactionNameTag = event.tags.find(tag => tag.key === 'transaction');
+  const transactionName = transactionNameTag ? transactionNameTag.value : '';
 
-  const transactionName = event.culprit;
+  const spanHashTag = event.tags.find(
+    (tag: TagValue) => tag.key === 'performance_issue.extra_spans'
+  ) || {key: '', value: ''};
+
   const allEventsQuery = `event.type:transaction transaction:${transactionName}`;
+  const affectedEventsQuery = `${allEventsQuery} ${spanHashTag.key}:${spanHashTag.value}`;
+
   const [now] = useState<DateString>(new Date());
 
-  const query = allEventsQuery;
   const start = issue.firstSeen;
-  const end = now;
+  const end = now?.toString();
   const environment = [];
-  const project = [];
+  const project = [1];
   const spanOp = event.contexts.performance_issue.op;
 
-  function handleMouseOver() {
-    // Hide the zoom error tooltip on the next hover.
-    if (zoomError) {
-      setZoomError(false);
-    }
-  }
-
-  function renderChart(data: HistogramData, anotherData: HistogramData) {
+  function renderChart(data: HistogramData) {
     const xAxis = {
       type: 'category' as const,
       truncate: true,
@@ -47,83 +41,55 @@ export function SpanCountChart({issue, event, location, organization}: any) {
       },
     };
 
-    const colors = [theme.charts.previousPeriod, '#444674'];
-    // Use a custom tooltip formatter as we need to replace
-    // the tooltip content entirely when zooming is no longer available.
+    const colors = theme.charts.getColorPalette(4);
     const tooltip = {
       formatter(series) {
         const seriesData = Array.isArray(series) ? series : [series];
         let contents: string[] = [];
-        if (!zoomError) {
-          // Replicate the necessary logic from sentry/components/charts/components/tooltip.jsx
-          contents = seriesData.map(item => {
-            const label = item.seriesName;
-            const value = item.value[1].toLocaleString();
-            return [
-              '<div class="tooltip-series">',
-              `<div><span class="tooltip-label">${item.marker} <strong>${label}</strong></span> ${value}</div>`,
-              '</div>',
-            ].join('');
-          });
-          const seriesLabel = seriesData[0].value[0];
-          contents.push(`<div class="tooltip-date">${seriesLabel}</div>`);
-        } else {
-          contents = [
-            '<div class="tooltip-series tooltip-series-solo">',
-            t('Target zoom region too small'),
+
+        contents = seriesData.map(item => {
+          const label = item.seriesName;
+          const value = item.value[1].toLocaleString();
+          return [
+            '<div class="tooltip-series">',
+            `<div><span class="tooltip-label">${item.marker} <strong>${label}</strong></span> ${value}</div>`,
             '</div>',
-          ];
-        }
+          ].join('');
+        });
+        const seriesLabel = seriesData[0].value[0];
+        contents.push(`<div class="tooltip-date">${seriesLabel}</div>`);
+
         contents.push('<div class="tooltip-arrow"></div>');
         return contents.join('');
       },
     };
 
     const series = {
-      seriesName: t('All Events'),
+      seriesName: t('Transaction Count'),
       data: formatHistogramData(data, {type: 'number'}),
     };
 
-    const fakeSeries = {
-      seriesName: 'AffectedEvents',
-      data: formatHistogramData(anotherData, {type: 'number'}),
-    };
-
     return (
-      <BarChartZoom
-        minZoomWidth={100}
-        location={location}
-        paramStart="min"
-        paramEnd="max"
-        xAxisIndex={[0]}
-        buckets={computeBuckets(data)}
-        onDataZoomCancelled={() => setZoomError(true)}
-      >
-        {zoomRenderProps => (
-          <BarChart
-            grid={{left: '0', right: '0', top: '0', bottom: '0'}}
-            xAxis={xAxis}
-            yAxis={{type: 'value', show: false, axisLabel: {formatter: _ => ''}}}
-            series={[series, fakeSeries]}
-            tooltip={tooltip}
-            colors={colors}
-            onMouseOver={handleMouseOver}
-            height={200}
-            {...zoomRenderProps}
-          />
-        )}
-      </BarChartZoom>
+      <BarChart
+        grid={{left: '0', right: '0', top: '0', bottom: '0'}}
+        xAxis={xAxis}
+        yAxis={{type: 'value', show: false, axisLabel: {formatter: _ => ''}}}
+        series={[series]}
+        tooltip={tooltip}
+        colors={colors}
+        height={200}
+      />
     );
   }
 
-  const eventView = EventView.fromNewQueryWithLocation(
+  const affectedEventsEventView = EventView.fromNewQueryWithLocation(
     {
       id: undefined,
       version: 2,
       name: '',
       fields: ['transaction.duration'],
       projects: project,
-      query,
+      query: affectedEventsQuery,
       environment,
       start,
       end,
@@ -135,37 +101,26 @@ export function SpanCountChart({issue, event, location, organization}: any) {
     <SpanCountHistogramQuery
       location={location}
       orgSlug={organization.slug}
-      eventView={eventView}
-      numBuckets={100}
+      eventView={affectedEventsEventView}
+      numBuckets={50}
       spanOp={spanOp}
       dataFilter="exclude_outliers"
     >
-      {({histogram: allHistogram}) => (
-        <SpanCountHistogramQuery
-          location={location}
-          orgSlug={organization.slug}
-          eventView={eventView}
-          numBuckets={100}
-          spanOp={spanOp}
-          dataFilter="exclude_outliers"
-        >
-          {({histogram, isLoading, error}) => {
-            if (isLoading) {
-              return <LoadingPanel data-test-id="histogram-loading" />;
-            }
+      {({histogram, isLoading, error}) => {
+        if (isLoading) {
+          return <LoadingPanel data-test-id="histogram-loading" />;
+        }
 
-            if (error) {
-              return (
-                <ErrorPanel>
-                  <IconWarning color="gray300" size="lg" />
-                </ErrorPanel>
-              );
-            }
+        if (error) {
+          return (
+            <ErrorPanel>
+              <IconWarning color="gray300" size="lg" />
+            </ErrorPanel>
+          );
+        }
 
-            return renderChart(histogram || [], allHistogram || []);
-          }}
-        </SpanCountHistogramQuery>
-      )}
+        return renderChart(histogram || []);
+      }}
     </SpanCountHistogramQuery>
   );
 }

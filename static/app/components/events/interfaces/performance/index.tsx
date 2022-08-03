@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Group, Organization} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -19,7 +20,7 @@ export function PerformanceIssueSection({issue, event, organization}: Props) {
   return (
     <Wrapper>
       <Section>
-        <h3>P75 Duration Change</h3>
+        <h3>{t('P75 Duration Change')}</h3>
         <DurationChart
           issue={issue}
           location={location}
@@ -28,7 +29,7 @@ export function PerformanceIssueSection({issue, event, organization}: Props) {
         />
       </Section>
       <Section>
-        <h3>Span Change</h3>
+        <h3>{t('Span Count Distribution')}</h3>
         <SpanCountChart
           issue={issue}
           event={event}
