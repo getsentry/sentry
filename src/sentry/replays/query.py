@@ -171,7 +171,12 @@ def make_select_statement() -> List[Union[Column, Function]]:
             parameters=["second", Column("started_at"), Column("finished_at")],
             alias="duration",
         ),
-        Function("groupArray", parameters=[Column("url")], alias="urls"),
+        # Function("groupArray", parameters=[Column("url")], alias="urls"),
+        Function(
+            "groupArray",
+            parameters=[Function("tuple", parameters=[Column("segment_id"), Column("url")])],
+            alias="urls",
+        ),
         Function("count", parameters=[Column("url")], alias="count_urls"),
         Function("count", parameters=[Column("segment_id")], alias="count_segments"),
         Function(

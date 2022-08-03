@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 def process_raw_response(response: List[Dict[str, Any]], fields: List[str]) -> Dict[str, Any]:
     """Process the response further into the expected output."""
     normalize_fields(response)
-    add_trace_id_computed_fields(response)  # 2 queries
+    add_trace_id_computed_fields(response)
 
     restricted_response = restrict_response_by_fields(fields, response)
     return restricted_response
@@ -22,6 +22,9 @@ def normalize_fields(response: List[Dict[str, Any]]) -> None:
             "email": item.pop("user_email"),
             "ip_address": item.pop("user_ip_address"),
         }
+
+        # urls == [[2, url], [0, url], [1, url]]
+        item["urls"] = [item[1] for item in sorted(item.pop("urls"), key=lambda url: url[0])]
 
 
 def restrict_response_by_fields(

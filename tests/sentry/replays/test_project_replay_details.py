@@ -99,7 +99,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                 replay1_id,
                 segment_id=2,
                 sdk_version="16.8.2",
-                url="http://www.sentry.io/next",
+                url="http://localhost:3000/",
             )
         )
 
@@ -121,7 +121,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                     "2a0dcb0e-a1fb-4350-b266-47ae1aa57dfb",
                 ],
                 urls=[
-                    "http://www.sentry.io/next",
+                    "http://localhost:3000/",
                     "http://www.sentry.io/",
                     "http://localhost:3000/",
                 ],
