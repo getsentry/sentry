@@ -88,7 +88,12 @@ function UniformRateModal({
 
   const modalStore = useLegacyStore(ModalStore);
 
-  const {projectStats: projectStats30d, loading: loading30d} = useProjectStats({
+  const {
+    projectStats: projectStats30d,
+    // TODO(sampling): check how to render this error in the UI
+    error: _error30d,
+    loading: loading30d,
+  } = useProjectStats({
     orgSlug: organization.slug,
     projectId: project.id,
     interval: '1d',
@@ -103,17 +108,23 @@ function UniformRateModal({
   const loading = loading30d || !projectStats || fetchingRecommendedSdkUpgrades;
 
   useEffect(() => {
-    if (loading) {
+    if (loading || !projectStats30d) {
       return;
     }
-    const clientDiscard = projectStats30d?.groups.some(
+
+    if (!projectStats30d.groups.length) {
+      setActiveStep(Step.SET_UNIFORM_SAMPLE_RATE);
+      return;
+    }
+
+    const clientDiscard = projectStats30d.groups.some(
       g => g.by.outcome === Outcome.CLIENT_DISCARD
     );
 
     setActiveStep(
       clientDiscard ? Step.SET_UNIFORM_SAMPLE_RATE : Step.SET_CURRENT_CLIENT_SAMPLE_RATE
     );
-  }, [loading, projectStats30d?.groups]);
+  }, [loading, projectStats30d]);
 
   const shouldUseConservativeSampleRate =
     recommendedSdkUpgrades.length === 0 &&
