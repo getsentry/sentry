@@ -627,7 +627,14 @@ class SmartSearchBar extends Component<Props, State> {
     callIfFunction(this.props.onClose, this.state.query);
   };
 
-  onQueryFocus = () => this.setState({inputHasFocus: true, showDropdown: true});
+  open = () => {
+    this.setState({showDropdown: true});
+  };
+
+  onQueryFocus = () => {
+    this.open();
+    this.setState({inputHasFocus: true});
+  };
 
   onQueryBlur = (e: React.FocusEvent<HTMLTextAreaElement>) => {
     this.setState({inputHasFocus: false});
@@ -670,7 +677,10 @@ class SmartSearchBar extends Component<Props, State> {
     callIfFunction(this.props.onChange, mergedText, evt);
   };
 
-  onInputClick = () => this.updateAutoCompleteItems();
+  onInputClick = () => {
+    this.open();
+    this.updateAutoCompleteItems();
+  };
 
   /**
    * Handle keyboard navigation
@@ -683,6 +693,10 @@ class SmartSearchBar extends Component<Props, State> {
 
     const hasSearchGroups = this.state.searchGroups.length > 0;
     const isSelectingDropdownItems = this.state.activeSearchItem !== -1;
+
+    if (!this.state.showDropdown && key !== 'Escape') {
+      this.open();
+    }
 
     if ((key === 'ArrowDown' || key === 'ArrowUp') && hasSearchGroups) {
       evt.preventDefault();
