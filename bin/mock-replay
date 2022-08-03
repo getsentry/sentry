@@ -6,6 +6,7 @@ configure()
 import datetime
 import pathlib
 
+import click
 import requests
 from django.conf import settings
 
@@ -42,12 +43,12 @@ def main():
 
     if settings.SENTRY_SINGLE_ORGANIZATION:
         org = Organization.get_default()
-        print(f"Mocking org {org.name}")  # NOQA
+        click.echo(f"Mocking org {org.name}")
     else:
-        print("Mocking org {}".format("Default"))  # NOQA
+        click.echo("Mocking org {}".format("Default"))
         org, _ = Organization.objects.get_or_create(slug="default")
 
-    print(f"  > Mocking project {project_name}")  # NOQA
+    click.echo(f"  > Mocking project {project_name}")
     project, _ = Project.objects.get_or_create(
         name=project_name,
         defaults={
@@ -60,11 +61,11 @@ def main():
     seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
     seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
 
-    print("Creating Clickhouse entries...")  # NOQA
+    click.echo("Creating Clickhouse entries...")
     store_replay(mock_replay(seq1_timestamp, project.id, replay_id, segment_id=0))
     store_replay(mock_replay(seq2_timestamp, project.id, replay_id, segment_id=1))
 
-    print("Creating Postgres entries...")  # NOQA
+    click.echo("Creating Postgres entries...")
     create_recording_segment(replay_id, project.id, make_filename("rrweb-1658770770892.json"), 0)
     create_recording_segment(replay_id, project.id, make_filename("rrweb-1658770772903.json"), 1)
 
