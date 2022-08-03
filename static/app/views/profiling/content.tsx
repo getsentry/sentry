@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import DatePageFilter from 'sentry/components/datePageFilter';
@@ -14,6 +15,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
 import {ProfileTransactionsTable} from 'sentry/components/profiling/profileTransactionsTable';
+import {ProfilingOnboardingModal} from 'sentry/components/profiling/ProfilingOnboarding/profilingOnboardingModal';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
@@ -25,7 +27,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
 import {useProfiles} from 'sentry/utils/profiling/hooks/useProfiles';
 import {useProfileTransactions} from 'sentry/utils/profiling/hooks/useProfileTransactions';
-import {generateProfilingOnboardingRoute} from 'sentry/utils/profiling/routes';
+import {useProfilingOnboarding} from 'sentry/utils/profiling/hooks/useProfilingOnboarding';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -44,6 +46,8 @@ function ProfilingContent({location}: ProfilingContentProps) {
   const profileFilters = useProfileFilters({query: '', selection});
   const profiles = useProfiles({cursor, query, selection});
   const transactions = useProfileTransactions({cursor, query, selection});
+
+  const [onboardingRequestState, onOnboardingDismiss] = useProfilingOnboarding();
 
   useEffect(() => {
     trackAdvancedAnalyticsEvent('profiling_views.landing', {
@@ -65,9 +69,25 @@ function ProfilingContent({location}: ProfilingContentProps) {
     [location]
   );
 
+  // Check if we want to force open the modal in case the user has never seen it before
+  useEffect(() => {
+    if (onboardingRequestState.type !== 'resolved') {
+      return;
+    }
+
+    if (onboardingRequestState?.data?.dismissedTime === undefined) {
+      openModal(props => {
+        return <ProfilingOnboardingModal onDismiss={onOnboardingDismiss} {...props} />;
+      });
+    }
+  }, [onboardingRequestState, onOnboardingDismiss]);
+
+  // Open the modal on demand
   const onSetupProfilingClick = useCallback(() => {
-    browserHistory.push(generateProfilingOnboardingRoute({orgSlug: organization.slug}));
-  }, [organization.slug]);
+    openModal(props => {
+      return <ProfilingOnboardingModal onDismiss={onOnboardingDismiss} {...props} />;
+    });
+  }, [onOnboardingDismiss]);
 
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>

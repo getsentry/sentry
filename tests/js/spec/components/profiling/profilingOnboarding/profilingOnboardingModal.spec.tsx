@@ -1,15 +1,20 @@
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {ProfilingOnboardingModal} from 'sentry/components/profiling/ProfilingOnboarding/profilingOnboardingModal';
+import {
+  ProfilingOnboardingModal,
+  ProfilingOnboardingModalProps,
+} from 'sentry/components/profiling/ProfilingOnboarding/profilingOnboardingModal';
 import ProjectStore from 'sentry/stores/projectsStore';
 import {Project} from 'sentry/types/project';
 
-const MockRenderModalProps: ModalRenderProps = {
+const MockRenderModalProps: ProfilingOnboardingModalProps = {
   Body: ({children}) => <div>{children}</div>,
   Header: ({children}) => <div>{children}</div>,
   Footer: ({children}) => <div>{children}</div>,
-} as ModalRenderProps;
+  CloseButton: ({children}) => <div>{children}</div>,
+  closeModal: jest.fn(),
+  onDismiss: jest.fn(),
+} as unknown as ProfilingOnboardingModalProps;
 
 function selectProject(project: Project) {
   if (!project.name) {

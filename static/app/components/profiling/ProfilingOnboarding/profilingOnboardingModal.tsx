@@ -48,7 +48,15 @@ function useOnboardingRouter(initialStep: OnboardingStep): OnboardingRouterState
 // The wrapper component for all of the onboarding steps. Keeps track of the current step
 // and all state. This ensures that moving from step to step does not require users to redo their actions
 // and each step can just re-initialize with the values that the user has already selected.
-export function ProfilingOnboardingModal(props: ModalRenderProps) {
+export interface ProfilingOnboardingModalProps extends ModalRenderProps {
+  onDismiss: () => void;
+}
+
+export function ProfilingOnboardingModal({
+  onDismiss,
+  closeModal,
+  ...rest
+}: ProfilingOnboardingModalProps) {
   const [state, toStep] = useOnboardingRouter({
     previous: null,
     current: SelectProjectStep,
@@ -56,9 +64,15 @@ export function ProfilingOnboardingModal(props: ModalRenderProps) {
   });
   const [project, setProject] = useState<Project | null>(null);
 
+  const onCloseAndDismiss = useCallback(() => {
+    onDismiss();
+    closeModal();
+  }, [closeModal, onDismiss]);
+
   return (
     <state.current
-      {...props}
+      {...rest}
+      closeModal={onCloseAndDismiss}
       toStep={toStep}
       step={state}
       project={project}
