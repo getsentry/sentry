@@ -12,7 +12,7 @@ import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import useUrlParam from 'sentry/utils/replays/hooks/useUrlParams';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 import Layout from 'sentry/views/replays/detail/layout';
-import {handleDefaultLayout} from 'sentry/views/replays/detail/layout/utils';
+import {getDefaultLayout} from 'sentry/views/replays/detail/layout/utils';
 import Page from 'sentry/views/replays/detail/page';
 
 const LAYOUT_NAMES = ['topbar', 'sidebar_right', 'sidebar_left'];
@@ -72,7 +72,7 @@ function ReplayDetails() {
 }
 
 function LoadedDetails({orgId}: {orgId: string}) {
-  const {getParamValue} = useUrlParam('l_page', handleDefaultLayout());
+  const {getParamValue} = useUrlParam('l_page', getDefaultLayout());
   const {replay} = useReplayContext();
   const durationMs = replay?.getDurationMs();
 

@@ -1,7 +1,7 @@
 import theme from 'sentry/utils/theme';
 import {LayoutModes} from 'sentry/views/replays/detail/layout';
 
-export const handleDefaultLayout = (): LayoutModes => {
+export const getDefaultLayout = (): LayoutModes => {
   const {innerWidth} = window;
   const sidebarWidth = parseInt(theme.sidebar.expandedWidth, 10);
 
