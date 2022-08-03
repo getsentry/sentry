@@ -1,4 +1,4 @@
-import {useCallback, useRef} from 'react';
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -7,10 +7,8 @@ import {
 } from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Crumb} from 'sentry/types/breadcrumbs';
 import {getPrevBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {useCurrentItemScroller} from 'sentry/utils/replays/hooks/useCurrentItemScroller';
