@@ -130,7 +130,6 @@ class SharedGroupDetails extends Component<Props, State> {
                     api={api}
                     route={route}
                     router={router}
-                    isBorderless
                     isShare
                   />
                 </Container>
