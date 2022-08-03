@@ -171,7 +171,8 @@ class TestIssueWorkflowNotifications(APITestCase):
 
 @patch("sentry.receivers.sentry_apps.publish_message")
 class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
-    def setUp(self):
+    @patch("sentry.api.endpoints.organization_sentry_function.create_function")
+    def setUp(self, mock_func):
         super().setUp()
         self.create_organization(owner=self.user, name="RowdyTiger")
         self.login_as(user=self.user)
@@ -386,7 +387,8 @@ class TestIssueAssigned(APITestCase):
 
 @patch("sentry.receivers.sentry_apps.publish_message")
 class TestIssueAssignedSentryFunctions(APITestCase):
-    def setUp(self):
+    @patch("sentry.api.endpoints.organization_sentry_function.create_function")
+    def setUp(self, mock_func):
         super().setUp()
         self.create_organization(owner=self.user, name="RowdyTiger")
         self.login_as(user=self.user)
@@ -528,7 +530,8 @@ class TestComments(APITestCase):
 
 @patch("sentry.receivers.sentry_apps.publish_message")
 class TestCommentsSentryFunctions(APITestCase):
-    def setUp(self):
+    @patch("sentry.api.endpoints.organization_sentry_function.create_function")
+    def setUp(self, mock_func):
         super().setUp()
         self.issue = self.create_group(project=self.project)
         self.login_as(self.user)
