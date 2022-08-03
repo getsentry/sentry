@@ -121,14 +121,19 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
         <Fragment>
           {provided.widgetData?.overall?.hasData ? (
             <Fragment>
-              {props.fields.map(fieldName => (
-                <HighlightNumber key={fieldName} color={props.chartColor}>
-                  {axisLabelFormatter(
-                    provided.widgetData?.overall?.[fieldName],
-                    fieldName
-                  )}
-                </HighlightNumber>
-              ))}
+              {props.fields.map(fieldName => {
+                const value = provided.widgetData?.overall?.[fieldName];
+
+                if (!value) {
+                  return null;
+                }
+
+                return (
+                  <HighlightNumber key={fieldName} color={props.chartColor}>
+                    {axisLabelFormatter(value, fieldName)}
+                  </HighlightNumber>
+                );
+              })}
             </Fragment>
           ) : null}
           <ContainerActions {...provided.widgetData.chart} />
