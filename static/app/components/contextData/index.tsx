@@ -8,7 +8,6 @@ import AnnotatedText from 'sentry/components/events/meta/annotatedText';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Meta} from 'sentry/types';
 import {isUrl} from 'sentry/utils';
 
 import Toggle from './toggle';
@@ -20,7 +19,7 @@ type Props = React.HTMLAttributes<HTMLPreElement> & {
   data?: Value;
   jsonConsts?: boolean;
   maxDefaultDepth?: number;
-  meta?: Meta;
+  meta?: Record<any, any>;
   preserveQuotes?: boolean;
   withAnnotatedText?: boolean;
 };
@@ -112,7 +111,7 @@ function walk({
             preserveQuotes,
             withAnnotatedText,
             jsonConsts,
-            meta,
+            meta: meta?.[i]?.[''] ?? meta?.[i],
           })}
           {i < value.length - 1 ? <span className="val-array-sep">{', '}</span> : null}
         </span>
@@ -153,7 +152,7 @@ function walk({
             preserveQuotes,
             withAnnotatedText,
             jsonConsts,
-            meta,
+            meta: meta?.[key]?.[''] ?? meta?.[key],
           })}
           {i < keys.length - 1 ? <span className="val-dict-sep">{', '}</span> : null}
         </span>
