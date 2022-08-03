@@ -1934,8 +1934,8 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return Condition(lhs, Op(search_filter.operator), value)
 
-    def _resolve_environment_filter_value(self, value: str) -> Optional[int]:
-        value_id = self.config.resolve_value(f"{value}")
+    def _resolve_environment_filter_value(self, value: str) -> int:
+        value_id: Optional[int] = self.config.resolve_value(f"{value}")
         if value_id is None:
             raise IncompatibleMetricsQuery("Environment: {value} was not found")
 
