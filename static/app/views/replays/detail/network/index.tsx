@@ -90,7 +90,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
 
     return (
       <Fragment key={index}>
-        <Item>{<StatusPlaceHolder height="20px" />}</Item>
+        <Item center>{<StatusPlaceHolder height="20px" />}</Item>
         <Item color="gray400">
           {network.description ? (
             <Tooltip
@@ -103,7 +103,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
               <Text>{network.description}</Text>
             </Tooltip>
           ) : (
-            <Placeholder height="24px" />
+            <Text italic>{t('No description')}</Text>
           )}
         </Item>
         <Item>
@@ -131,11 +131,12 @@ function NetworkList({replayRecord, networkSpans}: Props) {
   );
 }
 
-const Item = styled('div')<{color?: string; numeric?: boolean}>`
+const Item = styled('div')<{center?: boolean; color?: string; numeric?: boolean}>`
   display: flex;
   align-items: center;
+  ${p => p.center && 'justify-content: center;'}
   max-height: 28px;
-  color: ${({theme, color}) => (color ? theme[color] || theme.subText : theme.subText)};
+  color: ${({theme, color}) => theme[color || ''] ?? theme.subText};
   border-radius: 0;
   padding: ${space(0.75)} ${space(1.5)};
   background-color: ${p => p.theme.background};
@@ -193,12 +194,13 @@ const StatusPlaceHolder = styled(Placeholder)`
   max-width: 40px;
 `;
 
-const Text = styled('p')`
+const Text = styled('p')<{italic?: boolean}>`
   padding: 0;
   margin: 0;
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
+  ${p => p.italic && 'font-style: italic;'}
 `;
 
 const SortItem = styled('span')`
