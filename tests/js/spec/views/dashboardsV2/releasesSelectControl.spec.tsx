@@ -69,6 +69,21 @@ describe('Dashboards > ReleasesSelectControl', function () {
     userEvent.click(screen.getByText('All Releases'));
     userEvent.type(screen.getByText('Search\u2026'), 'se');
 
-    await waitFor(() => expect(mockOnSearch).toBeCalled());
+    await waitFor(() => expect(mockOnSearch).toBeCalledWith('se'));
+  });
+
+  it('resets search on close', async function () {
+    const mockOnSearch = jest.fn();
+    renderReleasesSelect(mockOnSearch);
+
+    expect(screen.getByText('All Releases')).toBeInTheDocument();
+
+    userEvent.click(screen.getByText('All Releases'));
+    userEvent.type(screen.getByText('Search\u2026'), 'se');
+
+    await waitFor(() => expect(mockOnSearch).toBeCalledWith('se'));
+
+    userEvent.click(document.body);
+    await waitFor(() => expect(mockOnSearch).toBeCalledWith(''));
   });
 });
