@@ -134,10 +134,11 @@ function VitalsComparison(props: Props) {
         if (isLoading || !vitalsData) {
           return null;
         }
-        const {p75} = vitalsData[vital];
-        if (!p75) {
+        const data = vitalsData[vital];
+        if (!data || !data.p75) {
           return null;
         }
+        const {p75} = data;
         const lookupName = vital === 'measurements.fcp' ? 'FCP' : 'LCP';
         const sentryStandard = SENTRY_CUSTOMERS[lookupName];
         const industryStandard = INDUSTRY_STANDARDS[lookupName];
