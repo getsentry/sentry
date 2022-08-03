@@ -3,6 +3,7 @@ from sentry.rules import rules
 from .actions.form import *  # noqa: F401,F403
 from .actions.notification import *  # noqa: F401,F403
 from .actions.notification import MsTeamsNotifyServiceAction
+from .analytics import *  # noqa: F401,F403
 from .card_builder.base import *  # noqa: F401,F403
 from .card_builder.block import *  # noqa: F401,F403
 from .card_builder.help import *  # noqa: F401,F403
