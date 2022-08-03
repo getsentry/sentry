@@ -4,7 +4,7 @@ import CalendarStylesWrapper from './calendarStylesWrapper';
 
 export type DatePickerProps = CalendarProps;
 
-const DateRangePicker = (props: DatePickerProps) => {
+const DatePicker = (props: DatePickerProps) => {
   return (
     <CalendarStylesWrapper>
       <Calendar {...props} />
@@ -12,4 +12,4 @@ const DateRangePicker = (props: DatePickerProps) => {
   );
 };
 
-export default DateRangePicker;
+export default DatePicker;
