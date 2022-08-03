@@ -199,6 +199,7 @@ export type SentryAppInstallation = {
 };
 
 export type SentryAppComponent = {
+  error: boolean;
   schema: SentryAppSchemaStacktraceLink;
   sentryApp: {
     avatars: Avatar[];

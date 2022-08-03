@@ -7,6 +7,7 @@ import {deleteExternalIssue} from 'sentry/actionCreators/platformExternalIssues'
 import {Client} from 'sentry/api';
 import {IntegrationLink} from 'sentry/components/issueSyncListElement';
 import SentryAppComponentIcon from 'sentry/components/sentryAppComponentIcon';
+import Tooltip from 'sentry/components/tooltip';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -24,6 +25,7 @@ import SentryAppExternalIssueModal from './sentryAppExternalIssueModal';
 
 type Props = {
   api: Client;
+  disabled: boolean;
   event: Event;
   group: Group;
   sentryAppComponent: SentryAppComponent;
@@ -111,7 +113,7 @@ class SentryAppExternalIssueActions extends Component<Props, State> {
   };
 
   render() {
-    const {sentryAppComponent} = this.props;
+    const {sentryAppComponent, disabled} = this.props;
     const {externalIssue} = this.state;
     const name = sentryAppComponent.sentryApp.name;
 
@@ -127,11 +129,25 @@ class SentryAppExternalIssueActions extends Component<Props, State> {
       <IssueLinkContainer>
         <IssueLink>
           <StyledSentryAppComponentIcon sentryAppComponent={sentryAppComponent} />
-          <IntegrationLink onClick={this.doOpenModal} href={url}>
-            {displayName}
-          </IntegrationLink>
+          <Tooltip
+            title={tct('Unable to connect to [provider].', {
+              provider: sentryAppComponent.sentryApp.name,
+            })}
+            disabled={!disabled}
+          >
+            <StyledIntegrationLink
+              onClick={e => (disabled ? e.preventDefault() : this.doOpenModal())}
+              href={url}
+              disabled={disabled}
+            >
+              {displayName}
+            </StyledIntegrationLink>
+          </Tooltip>
         </IssueLink>
-        <StyledIcon onClick={this.onAddRemoveClick}>
+        <StyledIcon
+          disabled={disabled}
+          onClick={() => !disabled && this.onAddRemoveClick()}
+        >
           {!!externalIssue ? <IconClose /> : <IconAdd />}
         </StyledIcon>
       </IssueLinkContainer>
@@ -153,6 +169,10 @@ const IssueLink = styled('div')`
   min-width: 0;
 `;
 
+const StyledIntegrationLink = styled(IntegrationLink)<{disabled: boolean}>`
+  color: ${({disabled, theme}) => (disabled ? theme.disabled : theme.textColor)};
+`;
+
 const IssueLinkContainer = styled('div')`
   line-height: 0;
   display: flex;
@@ -161,8 +181,8 @@ const IssueLinkContainer = styled('div')`
   margin-bottom: 16px;
 `;
 
-const StyledIcon = styled('span')`
-  color: ${p => p.theme.textColor};
+const StyledIcon = styled('span')<{disabled: boolean}>`
+  color: ${({disabled, theme}) => (disabled ? theme.disabled : theme.textColor)};
   cursor: pointer;
 `;
 
