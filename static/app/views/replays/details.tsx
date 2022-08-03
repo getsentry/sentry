@@ -11,7 +11,8 @@ import {PageContent} from 'sentry/styles/organization';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import useUrlParam from 'sentry/utils/replays/hooks/useUrlParams';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
-import Layout, {LayoutModes} from 'sentry/views/replays/detail/layout';
+import Layout from 'sentry/views/replays/detail/layout';
+import {handleDefaultLayout} from 'sentry/views/replays/detail/layout/utils';
 import Page from 'sentry/views/replays/detail/page';
 
 const LAYOUT_NAMES = ['topbar', 'sidebar_right', 'sidebar_left'];
@@ -70,20 +71,8 @@ function ReplayDetails() {
   );
 }
 
-const handleLayout = (): LayoutModes => {
-  const {
-    screen: {height, width},
-  } = window;
-
-  if (height > width) {
-    return 'topbar';
-  }
-
-  return 'sidebar_left';
-};
-
 function LoadedDetails({orgId}: {orgId: string}) {
-  const {getParamValue} = useUrlParam('l_page', handleLayout());
+  const {getParamValue} = useUrlParam('l_page', handleDefaultLayout());
   const {replay} = useReplayContext();
   const durationMs = replay?.getDurationMs();
 

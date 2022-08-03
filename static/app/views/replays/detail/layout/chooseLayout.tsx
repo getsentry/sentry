@@ -1,6 +1,7 @@
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import {IconPanel} from 'sentry/icons';
 import useUrlParam from 'sentry/utils/replays/hooks/useUrlParams';
+import {handleDefaultLayout} from 'sentry/views/replays/detail/layout/utils';
 
 const LAYOUT_NAMES = ['topbar', 'sidebar_left', 'sidebar_right'];
 const layoutLabels = {
@@ -22,8 +23,7 @@ function getLayoutIcon(layout: string) {
 type Props = {};
 
 function ChooseLayout({}: Props) {
-  const {getParamValue, setParamValue} = useUrlParam('l_page', 'topbar');
-
+  const {getParamValue, setParamValue} = useUrlParam('l_page', handleDefaultLayout());
   return (
     <CompactSelect
       triggerProps={{
