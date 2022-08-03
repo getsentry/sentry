@@ -1,17 +1,14 @@
 import {browserHistory} from 'react-router';
-import * as PropTypes from 'prop-types';
 
-import {mountWithTheme, shallow} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import {GroupEvents} from 'sentry/views/organizationGroupDetails/groupEvents';
-
-const OrganizationGroupEvents = GroupEvents;
 
 describe('groupEvents', function () {
   let request;
 
-  const organization = TestStubs.Organization();
+  const {organization, routerContext} = initializeOrg();
 
   beforeEach(function () {
     request = MockApiClient.addMockResponse({
@@ -52,37 +49,36 @@ describe('groupEvents', function () {
     browserHistory.push = jest.fn();
   });
 
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
+  });
+
   it('renders', function () {
-    const component = mountWithTheme(
-      <OrganizationContext.Provider value={organization}>
-        <OrganizationGroupEvents
-          organization={organization}
-          api={new MockApiClient()}
-          group={TestStubs.Group()}
-          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-          location={{query: {}}}
-        />
-      </OrganizationContext.Provider>
+    const wrapper = render(
+      <GroupEvents
+        organization={organization}
+        api={new MockApiClient()}
+        group={TestStubs.Group()}
+        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+        location={{query: {}}}
+      />,
+      {context: routerContext, organization}
     );
 
-    expect(component).toSnapshot();
+    expect(wrapper.container).toSnapshot();
   });
 
   it('handles search', function () {
-    const component = shallow(
-      <OrganizationGroupEvents
+    render(
+      <GroupEvents
         organization={organization}
         api={new MockApiClient()}
         params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
         group={TestStubs.Group()}
         location={{query: {}}}
       />,
-      {
-        context: {...TestStubs.router()},
-        childContextTypes: {
-          router: PropTypes.object,
-        },
-      }
+      {context: routerContext, organization}
     );
 
     const list = [
@@ -91,31 +87,30 @@ describe('groupEvents', function () {
       {searchTerm: 'environment:production test', expectedQuery: 'test'},
     ];
 
-    list.forEach(item => {
-      component.instance().handleSearch(item.searchTerm);
+    const input = screen.getByPlaceholderText('Search events by id, message, or tags');
+
+    for (const item of list) {
+      userEvent.clear(input);
+      userEvent.type(input, `${item.searchTerm}{enter}`);
+
       expect(browserHistory.push).toHaveBeenCalledWith(
         expect.objectContaining({
           query: {query: item.expectedQuery},
         })
       );
-    });
+    }
   });
 
   it('handles environment filtering', function () {
-    shallow(
-      <OrganizationGroupEvents
+    render(
+      <GroupEvents
         organization={organization}
         api={new MockApiClient()}
         params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
         group={TestStubs.Group()}
         location={{query: {environment: ['prod', 'staging']}}}
       />,
-      {
-        context: {...TestStubs.router()},
-        childContextTypes: {
-          router: PropTypes.object,
-        },
-      }
+      {context: routerContext, organization}
     );
     expect(request).toHaveBeenCalledWith(
       '/issues/1/events/',
