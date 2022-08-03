@@ -12,6 +12,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Crumb} from 'sentry/types/breadcrumbs';
 import {getPrevBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
+import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {useCurrentItemScroller} from 'sentry/utils/replays/hooks/useCurrentItemScroller';
 import BreadcrumbItem from 'sentry/views/replays/detail/breadcrumbs/breadcrumbItem';
 import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
@@ -29,16 +30,7 @@ function CrumbPlaceholder({number}: {number: number}) {
 type Props = {};
 
 function Breadcrumbs({}: Props) {
-  const {
-    clearAllHighlights,
-    currentHoverTime,
-    currentTime,
-    highlight,
-    removeHighlight,
-    replay,
-    setCurrentHoverTime,
-    setCurrentTime,
-  } = useReplayContext();
+  const {currentHoverTime, currentTime, replay} = useReplayContext();
 
   const replayRecord = replay?.getReplay();
   const allCrumbs = replay?.getRawCrumbs();
@@ -47,6 +39,8 @@ function Breadcrumbs({}: Props) {
   useCurrentItemScroller(crumbListContainerRef);
 
   const startTimestampMs = replayRecord?.started_at.getTime() || 0;
+  const {handleMouseEnter, handleMouseLeave, handleClick} =
+    useCrumbHandlers(startTimestampMs);
 
   const isLoaded = Boolean(replayRecord);
 
@@ -67,42 +61,6 @@ function Breadcrumbs({}: Props) {
           allowExact: true,
         })
       : undefined;
-
-  const handleMouseEnter = useCallback(
-    (item: Crumb) => {
-      if (startTimestampMs) {
-        setCurrentHoverTime(relativeTimeInMs(item.timestamp ?? '', startTimestampMs));
-      }
-
-      if (item.data && 'nodeId' in item.data) {
-        // XXX: Kind of hacky, but mouseLeave does not fire if you move from a
-        // crumb to a tooltip
-        clearAllHighlights();
-        highlight({nodeId: item.data.nodeId, annotation: item.data.label});
-      }
-    },
-    [setCurrentHoverTime, startTimestampMs, highlight, clearAllHighlights]
-  );
-
-  const handleMouseLeave = useCallback(
-    (item: Crumb) => {
-      setCurrentHoverTime(undefined);
-
-      if (item.data && 'nodeId' in item.data) {
-        removeHighlight({nodeId: item.data.nodeId});
-      }
-    },
-    [setCurrentHoverTime, removeHighlight]
-  );
-
-  const handleClick = useCallback(
-    (crumb: Crumb) => {
-      crumb.timestamp !== undefined
-        ? setCurrentTime(relativeTimeInMs(crumb.timestamp, startTimestampMs))
-        : null;
-    },
-    [setCurrentTime, startTimestampMs]
-  );
 
   const content = isLoaded ? (
     <BreadcrumbContainer>
