@@ -8,6 +8,8 @@ import {SelectField} from 'sentry/components/forms';
 import {SelectFieldProps} from 'sentry/components/forms/selectField';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
+import Tag from 'sentry/components/tag';
+import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types/project';
@@ -226,6 +228,7 @@ function AndroidSendDebugFilesInstruction({
   Body: ModalBody,
   Header: ModalHeader,
   Footer: ModalFooter,
+  closeModal,
   toStep,
   step,
 }: OnboardingStepProps) {
@@ -234,6 +237,38 @@ function AndroidSendDebugFilesInstruction({
       <ModalHeader>
         <h3>{t('Setup Profiling')}</h3>
       </ModalHeader>
+      <p>
+        {t(`The most straightforward way to provide Sentry with debug information files is to
+        upload them using sentry-cli. Depending on your workflow, you may want to upload
+        as part of your build pipeline or when deploying and publishing your application.`)}{' '}
+        <ExternalLink href="@TODO">
+          {t('Learn more about Debug Information Files.')}
+        </ExternalLink>
+      </p>
+      <OptionsContainer>
+        <OptionTitleContainer>
+          <OptionTitle>{t('Option 1')}</OptionTitle> <Tag>{t('Recommended')}</Tag>
+        </OptionTitleContainer>
+        <OptionTitleContainer>
+          <OptionTitle>{t('Option 2')}</OptionTitle>
+        </OptionTitleContainer>
+      </OptionsContainer>
+      <OptionsContainer>
+        <Option>
+          <ExternalOptionTitle href="@TODO">
+            {t('Proguard and DexGuard')}
+            <IconOpen />
+          </ExternalOptionTitle>
+          <p>{t('Upload ProGuard files using our Gradle plugin.')}</p>
+        </Option>
+        <Option>
+          <ExternalOptionTitle href="@TODO">
+            {t('Sentry-cli')}
+            <IconOpen />
+          </ExternalOptionTitle>
+          <p>{t('Validate and upload debug files using our cli tool.')}</p>
+        </Option>
+      </OptionsContainer>
       <ModalFooter>
         <ModalActions>
           <DocsLink />
@@ -242,6 +277,9 @@ function AndroidSendDebugFilesInstruction({
             {step.previous ? (
               <PreviousStepButton onClick={() => toStep(step.previous)} />
             ) : null}
+            <Button priority="primary" onClick={closeModal}>
+              {t('Done')}
+            </Button>
           </div>
         </ModalActions>
       </ModalFooter>
@@ -253,6 +291,7 @@ function IOSSendDebugFilesInstruction({
   Body: ModalBody,
   Header: ModalHeader,
   Footer: ModalFooter,
+  closeModal,
   toStep,
   step,
 }: OnboardingStepProps) {
@@ -261,6 +300,40 @@ function IOSSendDebugFilesInstruction({
       <ModalHeader>
         <h3>{t('Setup Profiling')}</h3>
       </ModalHeader>
+      <p>
+        {t(`The most straightforward way to provide Sentry with debug information files is to
+        upload them using sentry-cli. Depending on your workflow, you may want to upload
+        as part of your build pipeline or when deploying and publishing your application.`)}{' '}
+        <ExternalLink href="@TODO">
+          {t('Learn more about Debug Information Files.')}
+        </ExternalLink>
+      </p>
+      <OptionsContainer>
+        <OptionTitleContainer>
+          <OptionTitle>{t('Option 1')}</OptionTitle> <Tag>{t('Recommended')}</Tag>
+        </OptionTitleContainer>
+        <OptionTitleContainer>
+          <OptionTitle>{t('Option 2')}</OptionTitle>
+        </OptionTitleContainer>
+      </OptionsContainer>
+      <OptionsContainer>
+        <Option>
+          <ExternalOptionTitle href="@TODO">
+            {t('Sentry-cli')}
+            <IconOpen />
+          </ExternalOptionTitle>
+          <p>{t('Validate and upload debug files using our cli tool.')}</p>
+        </Option>
+        <Option>
+          <ExternalOptionTitle href="@TODO">
+            {t('Symbol servers')}
+            <IconOpen />
+          </ExternalOptionTitle>
+          <p>
+            {t('Sentry downloads debug information files from external repositories.')}
+          </p>
+        </Option>
+      </OptionsContainer>
       <ModalFooter>
         <ModalActions>
           <DocsLink />
@@ -269,6 +342,9 @@ function IOSSendDebugFilesInstruction({
             {step.previous !== null ? (
               <PreviousStepButton onClick={() => toStep(step.previous)} />
             ) : null}
+            <Button priority="primary" onClick={closeModal}>
+              {t('Next')}
+            </Button>
           </div>
         </ModalActions>
       </ModalFooter>
@@ -302,6 +378,43 @@ interface ModalActionsProps {
 function ModalActions({children}: ModalActionsProps) {
   return <ModalActionsContainer>{children}</ModalActionsContainer>;
 }
+
+const OptionTitleContainer = styled('div')`
+  margin-bottom: ${space(0.5)};
+`;
+
+const OptionTitle = styled('span')`
+  font-weight: bold;
+`;
+
+const ExternalOptionTitle = styled(ExternalLink)`
+  font-weight: bold;
+  font-size: ${p => p.theme.fontSizeLarge};
+  display: flex;
+  align-items: center;
+  margin-bottom: ${space(0.5)};
+
+  svg {
+    margin-left: ${space(0.5)};
+  }
+`;
+
+const Option = styled('div')`
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.border};
+  padding: ${space(2)};
+  margin-top: ${space(1)};
+`;
+
+const OptionsContainer = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: ${space(2)};
+
+  > p {
+    margin: 0;
+  }
+`;
 
 const ModalActionsContainer = styled('div')`
   display: flex;
