@@ -379,8 +379,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         test_params = self._slack_setup_helper(channelName, channelID="")
 
         with self.feature("organizations:incidents"):
-            # Within validate_channel_id this error will be raised
-            # ValidationError("Channel not found. Invalid ID provided.")
             resp = self.get_response(
                 self.organization.slug, self.project.slug, self.alert_rule.id, **test_params
             )
