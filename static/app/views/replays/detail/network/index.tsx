@@ -103,9 +103,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
               <Text>{network.description}</Text>
             </Tooltip>
           ) : (
-            <Text italic dimmed>
-              ({t('No description')})
-            </Text>
+            <EmptyText>({t('No description')})</EmptyText>
           )}
         </Item>
         <Item>
@@ -196,14 +194,17 @@ const StatusPlaceHolder = styled(Placeholder)`
   max-width: 40px;
 `;
 
-const Text = styled('p')<{dimmed?: boolean; italic?: boolean}>`
+const Text = styled('p')`
   padding: 0;
   margin: 0;
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
-  ${p => p.italic && 'font-style: italic;'}
-  ${p => p.dimmed && `color: ${p.theme.subText};`}
+`;
+
+const EmptyText = styled(Text)`
+  font-style: italic;
+  color: ${p => p.theme.subText};
 `;
 
 const SortItem = styled('span')`
