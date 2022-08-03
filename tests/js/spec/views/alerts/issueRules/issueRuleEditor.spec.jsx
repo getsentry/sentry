@@ -327,7 +327,6 @@ describe('ProjectAlerts -> IssueRuleEditor', function () {
       createWrapper({
         organization: {
           access: ['alerts:write'],
-          features: [],
         },
         router: {
           location: {
