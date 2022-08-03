@@ -1624,7 +1624,7 @@ class SmartSearchBar extends Component<Props, State> {
             {parsedQuery !== null ? (
               <HighlightQuery
                 parsedQuery={parsedQuery}
-                cursorPosition={!this.state.showDropdown ? -1 : cursor}
+                cursorPosition={this.state.showDropdown ? cursor : -1}
               />
             ) : (
               query
