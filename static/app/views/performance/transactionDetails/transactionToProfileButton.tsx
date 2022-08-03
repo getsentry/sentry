@@ -6,7 +6,7 @@ import Button from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {RequestState} from 'sentry/types/core';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {generateProfileFlamegraphRoute} from 'sentry/utils/profiling/routes';
+import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -49,7 +49,7 @@ function TransactionToProfileButton({transactionId, orgId, projectId}: Props) {
     });
   }
 
-  const target = generateProfileFlamegraphRoute({
+  const target = generateProfileFlamechartRoute({
     orgSlug: orgId,
     projectSlug: projectId,
     profileId: profileIdState.data,

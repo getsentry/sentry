@@ -29,7 +29,7 @@ export function FrameStackContextMenu(props: FrameStackContextMenuProps) {
         }}
       >
         <ProfilingContextMenuGroup>
-          <ProfilingContextMenuHeading>{t('Flamegraph')}</ProfilingContextMenuHeading>
+          <ProfilingContextMenuHeading>{t('Actions')}</ProfilingContextMenuHeading>
           <ProfilingContextMenuItem
             {...props.contextMenu.getMenuItemProps()}
             onClick={props.onZoomIntoFrameClick}

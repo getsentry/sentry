@@ -5,7 +5,7 @@ import {Breadcrumb} from 'sentry/components/profiling/breadcrumb';
 import {t} from 'sentry/locale';
 import {
   generateProfileDetailsRouteWithQuery,
-  generateProfileFlamegraphRouteWithQuery,
+  generateProfileFlamechartRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -27,7 +27,7 @@ function ProfileHeader() {
           trails={[
             {type: 'landing'},
             {
-              type: 'flamegraph',
+              type: 'flamechart',
               payload: {
                 transaction:
                   profileGroup.type === 'resolved' ? profileGroup.data.name : '',
@@ -51,16 +51,16 @@ function ProfileHeader() {
             {t('Details')}
           </Link>
         </li>
-        <li className={location.pathname.endsWith('flamegraph/') ? 'active' : undefined}>
+        <li className={location.pathname.endsWith('flamechart/') ? 'active' : undefined}>
           <Link
-            to={generateProfileFlamegraphRouteWithQuery({
+            to={generateProfileFlamechartRouteWithQuery({
               orgSlug: organization.slug,
               projectSlug: params.projectId,
               profileId: params.eventId,
               location,
             })}
           >
-            {t('Flamegraph')}
+            {t('Flamechart')}
           </Link>
         </li>
       </Layout.HeaderNavTabs>

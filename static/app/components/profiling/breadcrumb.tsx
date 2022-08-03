@@ -6,7 +6,7 @@ import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {
-  generateProfileFlamegraphRouteWithQuery,
+  generateProfileFlamechartRouteWithQuery,
   generateProfileSummaryRouteWithQuery,
   generateProfilingRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
@@ -58,9 +58,9 @@ function trailToCrumb(
         preservePageFilters: true,
       };
     }
-    case 'flamegraph': {
+    case 'flamechart': {
       return {
-        to: generateProfileFlamegraphRouteWithQuery({
+        to: generateProfileFlamechartRouteWithQuery({
           location,
           orgSlug: organization.slug,
           projectSlug: trail.payload.projectSlug,
@@ -93,7 +93,7 @@ type FlamegraphTrail = {
     projectSlug: string;
     transaction: string;
   };
-  type: 'flamegraph';
+  type: 'flamechart';
 };
 
 type Trail = ProfilingTrail | ProfileSummaryTrail | FlamegraphTrail;
