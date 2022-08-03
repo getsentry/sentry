@@ -94,3 +94,11 @@ def delete_function(funcId):
             name="projects/hackweek-sentry-functions/locations/us-central1/functions/fn-" + funcId,
         ),
     )
+
+
+def publish_message(funcId, message):
+    publisher = PublisherClient()
+    publisher.publish(
+        topic=function_pubsub_name(funcId),
+        data=message,
+    )
