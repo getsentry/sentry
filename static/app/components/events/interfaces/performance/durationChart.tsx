@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import {Location} from 'history';
 import moment from 'moment';
@@ -35,16 +35,16 @@ export function DurationChart({issue, event, organization}: Props) {
   const allEventsApi = useApi();
   const affectedEventsApi = useApi();
 
-  const [now] = useState<DateString>(new Date());
+  const nowRef = useRef<DateString>(new Date());
 
   // TODO (udameli): Project ID is hardcoded to sentry for the experiment
   // because performance issues from sentry project are sent to a different project
   const PROJECT_ID = 1;
 
   const issueStart = issue.firstSeen;
-  const timeFromFirstSeen = moment(now).diff(issueStart);
+  const timeFromFirstSeen = moment(nowRef.current).diff(issueStart);
   const start = moment(issueStart).subtract(timeFromFirstSeen).format();
-  const interval = getInterval({start, end: now, utc: true});
+  const interval = getInterval({start, end: nowRef.current, utc: true});
 
   return (
     <EventsRequest
@@ -52,7 +52,7 @@ export function DurationChart({issue, event, organization}: Props) {
       project={[PROJECT_ID]}
       environment={[]}
       start={start}
-      end={now}
+      end={nowRef.current}
       query={allEventsQuery}
       organization={organization}
       yAxis={['p75(transaction.duration)']}
@@ -71,7 +71,7 @@ export function DurationChart({issue, event, organization}: Props) {
           project={[PROJECT_ID]}
           environment={[]}
           start={issueStart}
-          end={now}
+          end={nowRef.current}
           query={affectedEventsQuery}
           organization={organization}
           yAxis={['p75(transaction.duration)']}

@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useRef} from 'react';
 
 import {BarChart} from 'sentry/components/charts/barChart';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
@@ -23,10 +23,10 @@ export function SpanCountChart({issue, event, location, organization}: any) {
   const allEventsQuery = `event.type:transaction transaction:${transactionName}`;
   const affectedEventsQuery = `${allEventsQuery} ${spanHashTag.key}:${spanHashTag.value}`;
 
-  const [now] = useState<DateString>(new Date());
+  const nowRef = useRef<DateString>(new Date());
 
   const start = issue.firstSeen;
-  const end = now?.toString();
+  const end = nowRef.current?.toString();
   const environment = [];
   const project = [1];
   const spanOp = event.contexts.performance_issue.op;
