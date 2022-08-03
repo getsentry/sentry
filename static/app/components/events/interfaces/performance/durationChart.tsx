@@ -31,17 +31,16 @@ export function DurationChart({issue, event, organization}: Props) {
   const allEventsApi = useApi();
   const affectedEventsApi = useApi();
 
-  // TODO find a better way to grab current time
   const [now] = useState<DateString>(new Date());
 
   // TODO (udameli): Project ID is hardcoded to sentry for the experiment
   // because performance issues from sentry project are sent to a different project
   const PROJECT_ID = 1;
 
-  const diff = moment(now).diff(issue.firstSeen);
-  const start = moment(issue.firstSeen).subtract(diff).format();
-  const interval = getInterval({start, end: now, utc: true});
   const issueStart = issue.firstSeen;
+  const timeFromFirstSeen = moment(now).diff(issueStart);
+  const start = moment(issueStart).subtract(timeFromFirstSeen).format();
+  const interval = getInterval({start, end: now, utc: true});
 
   return (
     <EventsRequest
@@ -107,7 +106,7 @@ function Content({allEvents, affectedEvents, start, end, loading, errored}) {
       grid={{left: '0', right: '0', top: '0', bottom: '0px'}}
       router={{}}
       loading={loading}
-      statsPeriod=""
+      statsPeriod="30d"
       utc
       isLineChart
       data={affectedEvents}
