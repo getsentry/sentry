@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import DropdownButtonV2 from 'sentry/components/dropdownButtonV2';
+import DropdownButton from 'sentry/components/dropdownButton';
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import SearchBar from 'sentry/components/searchBar';
 import {t, tn} from 'sentry/locale';
@@ -121,7 +121,7 @@ const StyledSearchBar = styled(SearchBar)<{blendWithFilter?: boolean}>`
   }
 `;
 
-const StyledTrigger = styled(DropdownButtonV2)`
+const StyledTrigger = styled(DropdownButton)`
   border-radius: ${p => p.theme.borderRadiusLeft};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {

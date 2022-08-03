@@ -1,10 +1,10 @@
 import Breadcrumbs from 'sentry/components/events/interfaces/breadcrumbs';
-import Csp from 'sentry/components/events/interfaces/csp';
+import {Csp} from 'sentry/components/events/interfaces/csp';
 import DebugMeta from 'sentry/components/events/interfaces/debugMeta';
 import Exception from 'sentry/components/events/interfaces/exception';
 import ExceptionV2 from 'sentry/components/events/interfaces/exceptionV2';
 import {Generic} from 'sentry/components/events/interfaces/generic';
-import Message from 'sentry/components/events/interfaces/message';
+import {Message} from 'sentry/components/events/interfaces/message';
 import Request from 'sentry/components/events/interfaces/request';
 import Spans from 'sentry/components/events/interfaces/spans';
 import StackTrace from 'sentry/components/events/interfaces/stackTrace';
@@ -70,7 +70,7 @@ function EventEntry({
     }
     case EntryType.MESSAGE: {
       const {data} = entry;
-      return <Message data={data} />;
+      return <Message data={data} event={event} />;
     }
     case EntryType.REQUEST: {
       const {data, type} = entry;
@@ -104,6 +104,7 @@ function EventEntry({
     }
     case EntryType.CSP: {
       const {data} = entry;
+      console.log({meta: event._meta});
       return <Csp event={event} data={data} />;
     }
     case EntryType.EXPECTCT:

@@ -65,7 +65,9 @@ class DigestNotification(ProjectNotification):
 
         return get_digest_subject(context["group"], context["counts"], context["start"])
 
-    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
+    def get_notification_title(
+        self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
+    ) -> str:
         if not context:
             return "Digest Report"
 
@@ -80,7 +82,7 @@ class DigestNotification(ProjectNotification):
             date="{date_pretty}",
         )
 
-    def get_title_link(self, recipient: Team | User) -> str | None:
+    def get_title_link(self, recipient: Team | User, provider: ExternalProviders) -> str | None:
         return None
 
     def build_attachment_title(self, recipient: Team | User) -> str:

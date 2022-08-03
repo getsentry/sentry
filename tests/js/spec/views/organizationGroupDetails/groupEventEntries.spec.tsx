@@ -1,9 +1,7 @@
-import {act} from 'react-dom/test-utils';
-
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Error} from 'sentry/components/events/errors';
+import type {Error} from 'sentry/components/events/errors';
 import EventEntries from 'sentry/components/events/eventEntries';
 import {EntryType, Event} from 'sentry/types/event';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -13,7 +11,7 @@ const {organization, project} = initializeOrg();
 const api = new MockApiClient();
 
 async function renderComponent(event: Event, errors?: Array<Error>) {
-  const wrapper = mountWithTheme(
+  render(
     <OrganizationContext.Provider value={organization}>
       <EventEntries
         organization={organization}
@@ -25,22 +23,11 @@ async function renderComponent(event: Event, errors?: Array<Error>) {
     </OrganizationContext.Provider>
   );
 
-  await tick();
-  wrapper.update();
+  const alertSummaryInfo = await screen.findByTestId('event-error-alert');
+  userEvent.click(alertSummaryInfo);
+  const errorItems = await screen.findAllByTestId('event-error-item');
 
-  const eventErrors = wrapper.find('Errors');
-
-  const alert = eventErrors.find('StyledAlert');
-  const alertSummaryInfo = alert.find('Message');
-
-  alert.simulate('click');
-
-  await tick();
-  wrapper.update();
-
-  const errorItem = wrapper.find('ErrorItem');
-
-  return {alertSummaryInfoText: alertSummaryInfo.text(), errorItem};
+  return {alertSummaryInfo, errorItem: errorItems};
 }
 
 describe('GroupEventEntries', function () {
@@ -55,6 +42,10 @@ describe('GroupEventEntries', function () {
       url: `/projects/${organization.slug}/${project.slug}/files/dsyms/`,
       body: [],
     });
+  });
+
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
   });
 
   describe('EventError', function () {
@@ -76,14 +67,14 @@ describe('GroupEventEntries', function () {
         },
       ];
 
-      const {alertSummaryInfoText, errorItem} = await renderComponent(event, errors);
+      const {alertSummaryInfo, errorItem} = await renderComponent(event, errors);
 
-      expect(alertSummaryInfoText).toEqual(
+      expect(alertSummaryInfo).toHaveTextContent(
         `There were ${errors.length} problems processing this event`
       );
       expect(errorItem.length).toBe(2);
-      expect(errorItem.at(0).props().error).toEqual(errors[0]);
-      expect(errorItem.at(1).props().error).toEqual(errors[1]);
+      expect(screen.getByText(errors[0].data?.name!)).toBeInTheDocument();
+      expect(screen.getByText(errors[1].data?.name!)).toBeInTheDocument();
     });
 
     describe('Proguard erros', function () {
@@ -104,18 +95,20 @@ describe('GroupEventEntries', function () {
         };
 
         await act(async () => {
-          const {errorItem, alertSummaryInfoText} = await renderComponent(newEvent);
+          const {errorItem, alertSummaryInfo} = await renderComponent(newEvent);
 
-          expect(alertSummaryInfoText).toEqual(
+          expect(alertSummaryInfo).toHaveTextContent(
             'There was 1 problem processing this event'
           );
 
           expect(errorItem.length).toBe(1);
-          expect(errorItem.at(0).props().error).toEqual({
-            type: 'proguard_missing_mapping',
-            message: 'A proguard mapping file was missing.',
-            data: {mapping_uuid: proGuardUuid},
-          });
+          expect(
+            screen.getByText('A proguard mapping file was missing.')
+          ).toBeInTheDocument();
+
+          userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+
+          expect(await screen.findByText(proGuardUuid)).toBeInTheDocument();
         });
       });
 
@@ -140,16 +133,20 @@ describe('GroupEventEntries', function () {
           ],
         };
 
-        const {alertSummaryInfoText, errorItem} = await renderComponent(newEvent);
+        const {alertSummaryInfo, errorItem} = await renderComponent(newEvent);
 
-        expect(alertSummaryInfoText).toEqual('There was 1 problem processing this event');
+        expect(alertSummaryInfo).toHaveTextContent(
+          'There was 1 problem processing this event'
+        );
 
         expect(errorItem.length).toBe(1);
-        expect(errorItem.at(0).props().error).toEqual({
-          type: 'proguard_missing_mapping',
-          message: 'A proguard mapping file was missing.',
-          data: {mapping_uuid: proGuardUuid},
-        });
+        expect(
+          screen.getByText('A proguard mapping file was missing.')
+        ).toBeInTheDocument();
+
+        userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+
+        expect(await screen.findByText(proGuardUuid)).toBeInTheDocument();
       });
 
       describe('ProGuard Plugin seems to not be correctly configured', function () {
@@ -192,16 +189,20 @@ describe('GroupEventEntries', function () {
             ],
           };
 
-          const {alertSummaryInfoText, errorItem} = await renderComponent(newEvent);
+          const {alertSummaryInfo, errorItem} = await renderComponent(newEvent);
 
-          expect(alertSummaryInfoText).toEqual(
+          expect(alertSummaryInfo).toHaveTextContent(
             'There was 1 problem processing this event'
           );
 
           expect(errorItem.length).toBe(1);
-          const {type, message} = errorItem.at(0).props().error;
-          expect(type).toEqual('proguard_potentially_misconfigured_plugin');
-          expect(message).toBeTruthy();
+          expect(
+            screen.getByText('Some frames appear to be minified. Did you configure the')
+          ).toBeInTheDocument();
+
+          expect(
+            screen.getByText('No additional details are available for this frame.')
+          ).toBeInTheDocument();
         });
 
         it('find minified data in the threads entry', async function () {
@@ -266,16 +267,18 @@ describe('GroupEventEntries', function () {
             ],
           };
 
-          const {alertSummaryInfoText, errorItem} = await renderComponent(newEvent);
+          const {alertSummaryInfo, errorItem} = await renderComponent(newEvent);
 
-          expect(alertSummaryInfoText).toEqual(
+          expect(alertSummaryInfo).toHaveTextContent(
             'There was 1 problem processing this event'
           );
 
           expect(errorItem.length).toBe(1);
-          const {type, message} = errorItem.at(0).props().error;
-          expect(type).toEqual('proguard_potentially_misconfigured_plugin');
-          expect(message).toBeTruthy();
+          expect(
+            screen.getByText('Some frames appear to be minified. Did you configure the')
+          ).toBeInTheDocument();
+
+          expect(screen.getByText('Sentry Gradle Plugin')).toBeInTheDocument();
         });
       });
     });

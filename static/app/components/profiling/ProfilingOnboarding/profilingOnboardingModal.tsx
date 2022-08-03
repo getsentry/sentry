@@ -323,12 +323,12 @@ function AndroidSendDebugFilesInstruction({
         </ExternalLink>
       </p>
       <OptionsContainer>
-        <p>
+        <OptionTitleContainer>
           <OptionTitle>{t('Option 1')}</OptionTitle> <Tag>{t('Recommended')}</Tag>
-        </p>
-        <p>
+        </OptionTitleContainer>
+        <OptionTitleContainer>
           <OptionTitle>{t('Option 2')}</OptionTitle>
-        </p>
+        </OptionTitleContainer>
       </OptionsContainer>
       <OptionsContainer>
         <Option>
@@ -386,12 +386,12 @@ function IOSSendDebugFilesInstruction({
         </ExternalLink>
       </p>
       <OptionsContainer>
-        <p>
+        <OptionTitleContainer>
           <OptionTitle>{t('Option 1')}</OptionTitle> <Tag>{t('Recommended')}</Tag>
-        </p>
-        <p>
+        </OptionTitleContainer>
+        <OptionTitleContainer>
           <OptionTitle>{t('Option 2')}</OptionTitle>
-        </p>
+        </OptionTitleContainer>
       </OptionsContainer>
       <OptionsContainer>
         <Option>
@@ -458,6 +458,10 @@ interface ModalActionsProps {
 function ModalActions({children}: ModalActionsProps) {
   return <ModalActionsContainer>{children}</ModalActionsContainer>;
 }
+
+const OptionTitleContainer = styled('div')`
+  margin-bottom: ${space(0.5)};
+`;
 
 const OptionTitle = styled('span')`
   font-weight: bold;

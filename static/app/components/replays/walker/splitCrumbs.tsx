@@ -16,11 +16,11 @@ type MaybeOnClickHandler = null | ((crumb: Crumb) => void);
 function splitCrumbs({
   crumbs,
   onClick,
-  startTimestamp,
+  startTimestampMs,
 }: {
   crumbs: BreadcrumbTypeNavigation[];
   onClick: MaybeOnClickHandler;
-  startTimestamp: number;
+  startTimestampMs: number;
 }) {
   const firstUrl = first(crumbs)?.data?.to;
   const summarizedCrumbs = crumbs.slice(1, -1) as Crumb[];
@@ -36,22 +36,18 @@ function splitCrumbs({
     ];
   }
 
-  if (crumbs.length === 1) {
-    return [
-      <SingleLinkSegment
-        key="single"
-        path={firstUrl}
-        onClick={onClick ? () => onClick(first(crumbs) as Crumb) : null}
-      />,
-    ];
-  }
-
-  if (crumbs.length === 2) {
+  if (crumbs.length > 3) {
     return [
       <SingleLinkSegment
         key="first"
         path={firstUrl}
         onClick={onClick ? () => onClick(first(crumbs) as Crumb) : null}
+      />,
+      <SummarySegment
+        key="summary"
+        crumbs={summarizedCrumbs}
+        startTimestampMs={startTimestampMs}
+        handleOnClick={onClick}
       />,
       <SingleLinkSegment
         key="last"
@@ -61,24 +57,13 @@ function splitCrumbs({
     ];
   }
 
-  return [
+  return crumbs.map((crumb, i) => (
     <SingleLinkSegment
-      key="first"
+      key={i}
       path={firstUrl}
-      onClick={onClick ? () => onClick(first(crumbs) as Crumb) : null}
-    />,
-    <SummarySegment
-      key="summary"
-      crumbs={summarizedCrumbs}
-      startTimestamp={startTimestamp}
-      handleOnClick={onClick}
-    />,
-    <SingleLinkSegment
-      key="last"
-      path={lastUrl}
-      onClick={onClick ? () => onClick(last(crumbs) as Crumb) : null}
-    />,
-  ];
+      onClick={onClick ? () => onClick(crumb as Crumb) : null}
+    />
+  ));
 }
 
 function SingleLinkSegment({
@@ -109,17 +94,17 @@ function SingleLinkSegment({
 function SummarySegment({
   crumbs,
   handleOnClick,
-  startTimestamp,
+  startTimestampMs,
 }: {
   crumbs: Crumb[];
   handleOnClick: MaybeOnClickHandler;
-  startTimestamp: number;
+  startTimestampMs: number;
 }) {
   const summaryItems = crumbs.map(crumb => (
     <BreadcrumbItem
       key={crumb.id}
       crumb={crumb}
-      startTimestamp={startTimestamp}
+      startTimestampMs={startTimestampMs}
       isHovered={false}
       isSelected={false}
       onClick={handleOnClick}

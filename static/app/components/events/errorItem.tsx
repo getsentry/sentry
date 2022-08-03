@@ -86,7 +86,7 @@ export function ErrorItem({error, meta}: ErrorItemProps) {
   }, [error.data, meta]);
 
   return (
-    <StyledListItem>
+    <StyledListItem data-test-id="event-error-item">
       <OverallInfo>
         <div>
           {meta?.data?.name?.[''] ? (

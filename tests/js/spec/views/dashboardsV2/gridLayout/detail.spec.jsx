@@ -1032,6 +1032,42 @@ describe('Dashboards > Detail', function () {
       );
     });
 
+    it('does not render save and cancel buttons on templates', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/',
+        body: [
+          TestStubs.Release({
+            shortVersion: 'sentry-android-shop@1.2.0',
+            version: 'sentry-android-shop@1.2.0',
+          }),
+        ],
+      });
+      render(
+        <CreateDashboard
+          organization={{
+            ...initialData.organization,
+            features: [
+              ...initialData.organization.features,
+              'dashboards-top-level-filter',
+            ],
+          }}
+          params={{orgId: 'org-slug', templateId: 'default-template'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        {
+          context: initialData.routerContext,
+          organization: initialData.organization,
+        }
+      );
+
+      userEvent.click(await screen.findByText('24H'));
+      userEvent.click(screen.getByText('Last 7 days'));
+
+      expect(screen.queryByText('Cancel')).not.toBeInTheDocument();
+      expect(screen.queryByText('Save')).not.toBeInTheDocument();
+    });
+
     it('can save dashboard filters in existing dashboard', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
