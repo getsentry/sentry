@@ -15,6 +15,7 @@ from sentry.integrations.msteams.card_builder import (
     ItemBlock,
     TextBlock,
 )
+from sentry.integrations.msteams.card_builder.utils import escape_markdown_special_chars
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 
@@ -66,10 +67,10 @@ REQUIRED_ACTION_PARAM = {
 }
 
 
-def create_text_block(text: str, **kwargs: str | bool) -> TextBlock:
+def create_text_block(text: str | None, **kwargs: str | bool) -> TextBlock:
     return {
         "type": "TextBlock",
-        "text": text,
+        "text": escape_markdown_special_chars(text) if text else "",
         "wrap": True,
         **kwargs,
     }
@@ -147,3 +148,28 @@ def create_input_choice_set_block(
         "choices": [{"title": title, "value": value} for title, value in choices],
         **default_choice_arg,
     }
+
+
+# Utilities to build footer in notification cards.
+
+
+def create_footer_logo_block() -> ImageBlock:
+    return create_logo_block(height="20px")
+
+
+def create_footer_text_block(footer_text: str) -> TextBlock:
+    return create_text_block(
+        footer_text,
+        size=TextSize.SMALL,
+        weight=TextWeight.LIGHTER,
+        wrap=False,
+    )
+
+
+def create_footer_column_block(footer_text_block: TextBlock) -> ColumnBlock:
+    return create_column_block(
+        footer_text_block,
+        isSubtle=True,
+        spacing="none",
+        verticalContentAlignment=VerticalContentAlignment.CENTER,
+    )

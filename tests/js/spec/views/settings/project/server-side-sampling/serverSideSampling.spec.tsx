@@ -19,7 +19,7 @@ import {
   uniformRule,
 } from './utils';
 
-describe('Server-side Sampling', function () {
+describe('Server-Side Sampling', function () {
   let distributionMock: ReturnType<typeof MockApiClient.addMockResponse> | undefined =
     undefined;
   let sdkVersionsMock: ReturnType<typeof MockApiClient.addMockResponse> | undefined =
@@ -59,12 +59,12 @@ describe('Server-side Sampling', function () {
     );
 
     expect(
-      screen.getByRole('heading', {name: 'Server-side Sampling'})
+      screen.getByRole('heading', {name: 'Server-Side Sampling'})
     ).toBeInTheDocument();
 
     expect(
       screen.getByText(
-        'Server-side sampling lets you control what transactions Sentry retains by setting sample rules and rates so you see more of the transactions you want to explore further in Sentry – and less of the ones you don’t – without re-configuring the Sentry SDK and redeploying anything.'
+        'Enhance the performance monitoring experience by targeting which transactions are most valuable to your organization without the need for re-deployment.'
       )
     ).toBeInTheDocument();
 
@@ -72,12 +72,12 @@ describe('Server-side Sampling', function () {
     expect(await screen.findByText(samplingBreakdownTitle)).toBeInTheDocument();
 
     expect(
-      screen.getByRole('heading', {name: 'Set sample rules for your project'})
+      screen.getByRole('heading', {name: 'Sample for relevancy'})
     ).toBeInTheDocument();
 
     expect(
       screen.getByText(
-        'Because every project is different – some need more events from high converting pages, critical API endpoints, or just want to focus on latency issues from the latest release – set multiple sample rules with different sample rates per project so you can keep what you need and drop what you don’t.'
+        'Create rules to sample transactions under specific conditions, keeping what you need and dropping what you don’t.'
       )
     ).toBeInTheDocument();
 
@@ -211,7 +211,7 @@ describe('Server-side Sampling', function () {
 
     expect(
       within(recommendedSdkUpgradesAlert).getByText(
-        'To ensure you are properly monitoring the performance of all your other services, we require you update to the latest version of the following SDK(s):'
+        'To activate server-side sampling rules, it’s a requirement to update the following project SDK(s):'
       )
     ).toBeInTheDocument();
 
@@ -351,7 +351,7 @@ describe('Server-side Sampling', function () {
 
     expect(
       await screen.findByRole('heading', {
-        name: 'Define a global sample rate',
+        name: 'Set a global sample rate',
       })
     ).toBeInTheDocument();
   });

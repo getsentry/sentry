@@ -13,4 +13,11 @@ inputs:
 
 runs:
   using: "composite"
-  steps: []
+  steps:
+    - name: Upload to codecov
+      uses: codecov/codecov-action@81cd2dc8148241f03f5839d295e000b8f761e378  # v3.1.0
+      with:
+        flags: ${{ inputs.type }}
+        files: ${{ inputs.files }}
+        verbose: true
+      continue-on-error: true
