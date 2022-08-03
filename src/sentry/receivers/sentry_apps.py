@@ -22,8 +22,7 @@ from sentry.signals import (
     issue_resolved,
 )
 from sentry.tasks.sentry_apps import build_comment_webhook, workflow_notification
-from sentry.utils import json
-from sentry.utils.cloudfunctions import publish_message
+from sentry.tasks.sentry_functions import send_sentry_function_webhook
 
 
 @issue_assigned.connect(weak=False)
@@ -88,10 +87,17 @@ def send_comment_webhooks(organization, issue, user, event, data=None):
             data=data,
         )
     if features.has("organizations:sentry-functions", organization, actor=user):
-        data["user"] = serialize(User.objects.get(id=user.id), user, UserSerializer())
-        data["comment"] = serialize(Group.objects.get(id=issue.id))
+        if user:
+            try:
+                data["user"] = serialize(User.objects.get(id=user.id), user, UserSerializer())
+            except User.DoesNotExist:
+                pass
+        try:
+            data["comment"] = serialize(Group.objects.get(id=issue.id))
+        except Group.DoesNotExist:
+            pass
         for fn in SentryFunction.objects.get_sentry_functions(organization, "comment"):
-            publish_message(fn.external_id, json.dumps({"data": data, "type": event}).encode())
+            send_sentry_function_webhook.delay(fn.external_id, event, data)
 
 
 def send_workflow_webhooks(
@@ -113,10 +119,16 @@ def send_workflow_webhooks(
         )
     if features.has("organizations:sentry-functions", organization, actor=user):
         if user:
-            data["user"] = serialize(User.objects.get(id=user.id), user, UserSerializer())
-        data["issue"] = serialize(Group.objects.get(id=issue.id))
+            try:
+                data["user"] = serialize(User.objects.get(id=user.id), user, UserSerializer())
+            except User.DoesNotExist:
+                pass
+        try:
+            data["issue"] = serialize(Group.objects.get(id=issue.id))
+        except Group.DoesNotExist:
+            pass
         for fn in SentryFunction.objects.get_sentry_functions(organization, "issue"):
-            publish_message(fn.external_id, json.dumps({"data": data, "type": event}).encode())
+            send_sentry_function_webhook.delay(fn.external_id, event, data)
 
 
 def installations_to_notify(organization, event):

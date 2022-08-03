@@ -8,10 +8,10 @@ from sentry.exceptions import PluginError
 from sentry.killswitches import killswitch_matches_context
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.tasks.base import instrumented_task
+from sentry.tasks.sentry_functions import send_sentry_function_webhook
 from sentry.types.activity import ActivityType
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 from sentry.utils.cache import cache
-from sentry.utils.cloudfunctions import publish_message
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.manager import LockManager
@@ -442,16 +442,12 @@ def post_process_group(
                 "organizations:sentry-functions",
                 event.project.organization,
             ):
-
                 from sentry.models import SentryFunction
 
                 for sentry_function in SentryFunction.objects.get_sentry_functions(
                     event.organization, "error"
                 ):
-                    publish_message(
-                        sentry_function.external_id,
-                        json.dumps({"data": dict(event.data), "type": "error"}).encode(),
-                    )
+                    send_sentry_function_webhook.delay(sentry_function.external_id, event)
 
             from sentry import similarity
 
