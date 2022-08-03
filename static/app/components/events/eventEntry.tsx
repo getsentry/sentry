@@ -4,7 +4,7 @@ import DebugMeta from 'sentry/components/events/interfaces/debugMeta';
 import Exception from 'sentry/components/events/interfaces/exception';
 import ExceptionV2 from 'sentry/components/events/interfaces/exceptionV2';
 import {Generic} from 'sentry/components/events/interfaces/generic';
-import Message from 'sentry/components/events/interfaces/message';
+import {Message} from 'sentry/components/events/interfaces/message';
 import {PerformanceIssueSection} from 'sentry/components/events/interfaces/performance';
 import Request from 'sentry/components/events/interfaces/request';
 import Spans from 'sentry/components/events/interfaces/spans';
@@ -71,7 +71,7 @@ function EventEntry({
     }
     case EntryType.MESSAGE: {
       const {data} = entry;
-      return <Message data={data} />;
+      return <Message data={data} event={event} />;
     }
     case EntryType.REQUEST: {
       const {data, type} = entry;
