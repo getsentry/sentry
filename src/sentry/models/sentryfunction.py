@@ -4,6 +4,15 @@ from sentry.db.models import BaseManager, DefaultFieldsModel, FlexibleForeignKey
 from sentry.db.models.fields.array import ArrayField
 
 
+class SentryFunctionManager(BaseManager):
+    def get_sentry_functions(self, organization_id, event_type):
+        # TODO: check events
+        functions = self.filter(
+            organization_id=organization_id,
+        )
+        return filter(lambda fn: event_type in fn.events, list(functions))
+
+
 class SentryFunction(DefaultFieldsModel):
     __include_in_export__ = False
 
@@ -15,7 +24,7 @@ class SentryFunction(DefaultFieldsModel):
     overview = models.TextField(null=True)
     code = models.TextField(null=True)
     events = ArrayField(of=models.TextField, null=True)
-    objects = BaseManager()
+    objects = SentryFunctionManager()
 
     class Meta:
         app_label = "sentry"

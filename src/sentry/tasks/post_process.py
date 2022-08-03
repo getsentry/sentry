@@ -9,8 +9,9 @@ from sentry.killswitches import killswitch_matches_context
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.tasks.base import instrumented_task
 from sentry.types.activity import ActivityType
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.cache import cache
+from sentry.utils.cloudfunctions import publish_message
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.manager import LockManager
@@ -444,20 +445,11 @@ def post_process_group(
 
                 from sentry.models import SentryFunction
 
-                for fn in SentryFunction.objects.filter(organization=event.organization).all():
-                    if "error" not in fn.events:
-                        continue
-                    # call the function
-                    from google.cloud import pubsub_v1
-
-                    from sentry.utils import json
-
-                    google_pubsub_name = (
-                        "projects/hackweek-sentry-functions/topics/fn-" + fn.external_id
-                    )
-                    publisher = pubsub_v1.PublisherClient()
-                    publisher.publish(
-                        google_pubsub_name,
+                for sentry_function in SentryFunction.objects.get_sentry_functions(
+                    event.organization, "error"
+                ):
+                    publish_message(
+                        sentry_function.external_id,
                         json.dumps({"data": dict(event.data), "type": "error"}).encode(),
                     )
 
