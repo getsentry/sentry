@@ -15,6 +15,7 @@ from sentry.notifications.notifications.activity import (
     UnassignedActivityNotification,
 )
 from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.notify import register_notification_provider
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
@@ -31,6 +32,7 @@ SUPPORTED_NOTIFICATION_TYPES = [
     NoteActivityNotification,
     AssignedActivityNotification,
     UnassignedActivityNotification,
+    AlertRuleNotification,
 ]
 MESSAGE_BUILDERS = {
     "SlackNotificationsMessageBuilder": MSTeamsNotificationsMessageBuilder,

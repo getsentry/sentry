@@ -1748,6 +1748,12 @@ class MSTeamsActivityNotificationTest(ActivityTestCase):
             NotificationSettingOptionValues.ALWAYS,
             user=self.user,
         )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.MSTEAMS,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.ALWAYS,
+            user=self.user,
+        )
         UserOption.objects.create(user=self.user, key="self_notifications", value="1")
 
         self.tenant_id = "50cccd00-7c9c-4b32-8cda-58a084f9334a"
