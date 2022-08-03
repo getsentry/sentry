@@ -394,6 +394,7 @@ class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
         assert len(requests) == len(grants)
 
         keys_to_incr = {}
+        keys_ttl = {}
 
         for request, grant in zip(requests, grants):
             assert request.prefix == grant.prefix
@@ -402,16 +403,17 @@ class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
                 # Only incr most recent granule
                 granule = next(quota.iter_window(timestamp))
                 key = self._build_redis_key(request=request, quota=quota, granule=granule)
-                assert key not in keys_to_incr, "conflicting quotas specified"
-                keys_to_incr[key] = grant.granted, quota.window_seconds
+                keys_to_incr.setdefault(key, 0)
+                keys_to_incr[key] += grant.granted
+                keys_ttl[key] = quota.window_seconds
 
         with self.client.pipeline(transaction=False) as pipeline:
-            for key, (value, ttl) in keys_to_incr.items():
+            for key, value in keys_to_incr.items():
                 pipeline.incrby(key, value)
                 # Expire the key in `window_seconds`. Since the key has been
                 # recently incremented we know it represents a current
                 # timestamp. We could use expireat here, but in tests we use
                 # timestamps starting from 0 for convenience.
-                pipeline.expire(key, ttl)
+                pipeline.expire(key, keys_ttl[key])
 
             pipeline.execute()
