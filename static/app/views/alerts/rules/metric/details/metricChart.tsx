@@ -493,9 +493,10 @@ class MetricChart extends PureComponent<Props, State> {
       moment.utc(timePeriod.end).add(timeWindow, 'minutes')
     );
 
-    const queryExtras: Record<string, string> = organization.features.includes(
-      'metrics-performance-alerts'
-    )
+    const hasMetricDataset =
+      organization.features.includes('metrics-performance-alerts') ||
+      organization.features.includes('mep-rollout-flag');
+    const queryExtras: Record<string, string> = hasMetricDataset
       ? {dataset: getMEPAlertsDataset(dataset, false)}
       : {};
 

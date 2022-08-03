@@ -312,8 +312,11 @@ class TriggersChart extends PureComponent<Props, State> {
       organization.features.includes('change-alerts') && comparisonDelta
     );
 
+    const hasMetricDataset =
+      organization.features.includes('metrics-performance-alerts') ||
+      organization.features.includes('mep-rollout-flag');
     const queryExtras = {
-      ...(organization.features.includes('metrics-performance-alerts')
+      ...(hasMetricDataset
         ? {dataset: getMEPAlertsDataset(dataset, newAlertOrQuery)}
         : {}),
     };
