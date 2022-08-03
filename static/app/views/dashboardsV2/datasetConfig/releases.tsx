@@ -36,7 +36,6 @@ import {
   SESSIONS_TAGS,
   TAG_SORT_DENY_LIST,
 } from '../widgetBuilder/releaseWidget/fields';
-import {METRICS_BACKED_SESSIONS_START_DATE} from '../widgetCard';
 import {
   derivedMetricsToField,
   requiresCustomReleaseSorting,
@@ -60,6 +59,8 @@ const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   conditions: '',
   orderby: `-crash_free_rate(${SessionField.SESSION})`,
 };
+
+const METRICS_BACKED_SESSIONS_START_DATE = new Date('2022-07-12');
 
 export const ReleasesConfig: DatasetConfig<
   SessionApiResponse | MetricsApiResponse,

@@ -78,8 +78,6 @@ type State = {
 
 type SearchFilterKey = {key?: {value: string}};
 
-export const METRICS_BACKED_SESSIONS_START_DATE = new Date('2022-07-12');
-
 const ERROR_FIELDS = [
   'error.handled',
   'error.unhandled',
