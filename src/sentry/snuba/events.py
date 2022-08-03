@@ -459,7 +459,7 @@ class Columns(Enum):
         group_name=None,
         event_name=None,
         transaction_name="transaction_status",
-        discover_name="tags[transaction_source]",
+        discover_name="transaction_status",
         alias="transaction.status",
     )
     TRANSACTION_SOURCE = Column(
