@@ -62,7 +62,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
                 value = False
             return str(int(value))
 
-        # we stripe `None` values here so later in the pipeline they can be
+        # we strip `None` values here so later in the pipeline they can be
         # cleanly encoded without nullability checks
         def strip_none_values(value: Mapping[str, Optional[str]]) -> Mapping[str, str]:
             return {key: value for key, value in value.items() if value is not None}
