@@ -14,15 +14,11 @@ class SelectedFrameRenderer {
   // We allow for passing of different contexts, this allows us to use a
   // single instance of the renderer to draw overlays on multiple canvases
   draw(
-    frames: Rect | Rect[],
+    frames: Rect[],
     style: {BORDER_COLOR: string; BORDER_WIDTH: number},
     configViewToPhysicalSpace: mat3,
     context: CanvasRenderingContext2D = this.context
   ): void {
-    if (!Array.isArray(frames)) {
-      frames = [frames];
-    }
-
     context.strokeStyle = style.BORDER_COLOR;
     context.lineWidth = style.BORDER_WIDTH;
 

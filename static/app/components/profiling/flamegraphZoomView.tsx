@@ -386,12 +386,14 @@ function FlamegraphZoomView({
     const drawSelectedFrameBorder = () => {
       if (state.selectedNode) {
         selectedFrameRenderer.draw(
-          new Rect(
-            state.selectedNode.start,
-            state.selectedNode.depth,
-            state.selectedNode.end - state.selectedNode.start,
-            1
-          ),
+          [
+            new Rect(
+              state.selectedNode.start,
+              state.selectedNode.depth,
+              state.selectedNode.end - state.selectedNode.start,
+              1
+            ),
+          ],
           {
             BORDER_COLOR: flamegraphTheme.COLORS.SELECTED_FRAME_BORDER_COLOR,
             BORDER_WIDTH: flamegraphTheme.SIZES.FRAME_BORDER_WIDTH,
@@ -424,12 +426,14 @@ function FlamegraphZoomView({
     const drawHoveredFrameBorder = () => {
       if (hoveredNode) {
         selectedFrameRenderer.draw(
-          new Rect(
-            hoveredNode.start,
-            hoveredNode.depth,
-            hoveredNode.end - hoveredNode.start,
-            1
-          ),
+          [
+            new Rect(
+              hoveredNode.start,
+              hoveredNode.depth,
+              hoveredNode.end - hoveredNode.start,
+              1
+            ),
+          ],
           {
             BORDER_COLOR: flamegraphTheme.COLORS.HOVERED_FRAME_BORDER_COLOR,
             BORDER_WIDTH: flamegraphTheme.SIZES.HOVERED_FRAME_BORDER_WIDTH,
