@@ -4,6 +4,7 @@ from django.db.models.query import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.user import UserSerializer
+from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.models import (
     Dashboard,
     DashboardWidget,
@@ -157,6 +158,9 @@ class DashboardDetailsSerializer(Serializer):
         }
 
         if obj.filters is not None:
+            if obj.filters.get("all_projects"):
+                data["projects"] = list(ALL_ACCESS_PROJECTS)
+
             for key in page_filter_keys:
                 if obj.filters.get(key) is not None:
                     data[key] = obj.filters[key]
