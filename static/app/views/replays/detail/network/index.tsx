@@ -4,10 +4,11 @@ import styled from '@emotion/styled';
 import {PanelTable, PanelTableHeader} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {showPlayerTime} from 'sentry/components/replays/utils';
+import Tooltip from 'sentry/components/tooltip';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import theme from 'sentry/utils/theme';
+import {ColorOrAlias} from 'sentry/utils/theme';
 import {
   ISortConfig,
   NetworkSpan,
@@ -90,9 +91,23 @@ function NetworkList({replayRecord, networkSpans}: Props) {
 
     return (
       <Fragment key={index}>
-        <Item>{<StatusPlaceHolder height="20px" />}</Item>
-        <Item color={theme.gray400}>
-          <Text>{network.description || <Placeholder height="24px" />}</Text>
+        <Item center>
+          <StatusPlaceHolder height="20px" />
+        </Item>
+        <Item color="gray400">
+          {network.description ? (
+            <Tooltip
+              title={network.description}
+              isHoverable
+              overlayStyle={{
+                maxWidth: '500px !important',
+              }}
+            >
+              <Text>{network.description}</Text>
+            </Tooltip>
+          ) : (
+            <EmptyText>({t('Missing path')})</EmptyText>
+          )}
         </Item>
         <Item>
           <Text>{network.op}</Text>
@@ -119,16 +134,14 @@ function NetworkList({replayRecord, networkSpans}: Props) {
   );
 }
 
-const Item = styled('div')<{color?: string; numeric?: boolean}>`
+const Item = styled('div')<{center?: boolean; color?: ColorOrAlias; numeric?: boolean}>`
   display: flex;
   align-items: center;
+  ${p => p.center && 'justify-content: center;'}
   max-height: 28px;
-  color: ${p => p.color || p.theme.subText};
-  border-radius: 0;
+  color: ${p => p.theme[p.color || 'subText']};
   padding: ${space(0.75)} ${space(1.5)};
   background-color: ${p => p.theme.background};
-  min-width: 0;
-  line-height: 16px;
 
   ${p => p.numeric && 'font-variant-numeric: tabular-nums;'}
 `;
@@ -187,6 +200,11 @@ const Text = styled('p')`
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
+`;
+
+const EmptyText = styled(Text)`
+  font-style: italic;
+  color: ${p => p.theme.subText};
 `;
 
 const SortItem = styled('span')`
