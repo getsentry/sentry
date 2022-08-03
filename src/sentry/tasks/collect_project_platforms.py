@@ -7,27 +7,29 @@ from sentry.models import Group, Project, ProjectPlatform
 from sentry.tasks.base import instrumented_task
 
 
-def paginate_projects_by_id():
+def paginate_project_ids(paginate):
     id_cursor = -1
     while True:
-        queryset = Project.objects.filter(id__gt=id_cursor).order_by("id")
-        page = list(queryset[:1000])
+        queryset = (
+            Project.objects.filter(id__gt=id_cursor).order_by("id").values_list("id", flat=True)
+        )
+        page = list(queryset[:paginate])
         if not page:
             return
         yield page
-        id_cursor = page[-1].id
+        id_cursor = page[-1]
 
 
 @instrumented_task(name="sentry.tasks.collect_project_platforms", queue="stats")
-def collect_project_platforms(**kwargs):
+def collect_project_platforms(paginate=1000, **kwargs):
     now = timezone.now()
 
-    for page_of_projects in paginate_projects_by_id():
+    for page_of_project_ids in paginate_project_ids(paginate):
         queryset = (
             Group.objects.using_replica()
             .filter(
                 last_seen__gte=now - timedelta(days=1),
-                project_id__in=page_of_projects,
+                project_id__in=page_of_project_ids,
                 platform__isnull=False,
             )
             .values_list("platform", "project_id")
