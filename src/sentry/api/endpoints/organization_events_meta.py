@@ -5,7 +5,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, search
+from sentry import search
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.event_search import parse_search_query
@@ -67,6 +67,7 @@ class OrganizationEventsMetricsCompatiblity(OrganizationEventsEndpointBase):
         # None of the projects had DS rules, nothing is compat the sum & compat projects list is useless
         if len(data["dynamic_sampling_projects"]) == 0:
             return Response(data)
+        data["dynamic_sampling_projects"] = data["dynamic_sampling_projects"][:50]
         data["dynamic_sampling_projects"].sort()
 
         # Save ourselves some work, only query the projects that have DS rules
