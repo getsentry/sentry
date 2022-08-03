@@ -320,7 +320,7 @@ class TransactionHeader extends Component<Props> {
                 onClick={this.trackTabClick(Tab.Replays)}
               >
                 {t('Replays')}
-                <ReplaysFeatureBadge />
+                <ReplaysFeatureBadge noTooltip />
               </ListLink>
             </Feature>
           </StyledNavTabs>
