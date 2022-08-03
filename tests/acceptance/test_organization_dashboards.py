@@ -1,3 +1,4 @@
+import pytest
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -763,6 +764,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
                 "dashboards - change from big number to area chart increases widget to min height"
             )
 
+    @pytest.mark.skip(reason="flaky behaviour due to loading spinner")
     def test_changing_number_widget_larger_than_min_height_for_area_chart_keeps_height(
         self,
     ):
@@ -797,6 +799,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
 
             self.page.wait_until_loaded()
 
+            # This snapshot is flaky due to the loading spinner
             self.browser.snapshot(
                 "dashboards - change from big number to other chart of more than 2 rows keeps height"
             )
