@@ -327,7 +327,13 @@ class PostgresIndexerV2Test(TestCase):
                 use_case_id=self.use_case_id, org_strings=org_strings
             )
 
-        assert results[1] == {}
+        assert results[1] == {"x": None, "y": None, "z": None}
+        for letter in "xyz":
+            assert results.get_fetch_metadata()[1][letter] == Metadata(
+                id=None,
+                fetch_type=FetchType.RATE_LIMITED,
+                fetch_type_ext=FetchTypeExt(is_global=False),
+            )
 
         org_strings = {1: rate_limited_strings}
 
