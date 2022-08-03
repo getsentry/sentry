@@ -95,12 +95,11 @@ function UniformRateModal({
     statsPeriod: '30d',
   });
 
-  const {recommendedSdkUpgrades, fetching: fetchingRecommendedSdkUpgrades} =
-    useRecommendedSdkUpgrades({
-      orgSlug: organization.slug,
-    });
+  const {recommendedSdkUpgrades} = useRecommendedSdkUpgrades({
+    orgSlug: organization.slug,
+  });
 
-  const loading = loading30d || !projectStats || fetchingRecommendedSdkUpgrades;
+  const loading = loading30d || !projectStats;
 
   useEffect(() => {
     if (loading) {
