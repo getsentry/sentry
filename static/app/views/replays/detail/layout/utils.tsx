@@ -6,7 +6,11 @@ export const getDefaultLayout = (): LayoutModes => {
   const sidebarWidth = parseInt(theme.sidebar.expandedWidth, 10);
   const windowsWidth = innerWidth - sidebarWidth;
 
-  if (windowsWidth < 1024 || innerHeight > 950) {
+  if (innerHeight > 960 && windowsWidth < 1700) {
+    return 'topbar';
+  }
+
+  if (windowsWidth < 1024) {
     return 'topbar';
   }
 
