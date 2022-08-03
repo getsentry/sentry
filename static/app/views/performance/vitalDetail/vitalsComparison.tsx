@@ -16,9 +16,13 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/fields';
 import VitalsCardDiscoverQuery from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
-import {webVitalMeh, webVitalPoor} from 'sentry/views/performance/vitalDetail/utils';
-
-type Score = 'poor' | 'meh' | 'good';
+import useProjects from 'sentry/utils/useProjects';
+import {
+  VitalState,
+  vitalStateColors,
+  webVitalMeh,
+  webVitalPoor,
+} from 'sentry/views/performance/vitalDetail/utils';
 
 type ViewProps = Pick<
   EventView,
@@ -33,37 +37,26 @@ type Props = ViewProps & {
 
 const SUPPORTED_VITALS = ['measurements.fcp', 'measurements.lcp'];
 
-function getScore(vital: WebVital, value: number): Score {
+function getScore(vital: WebVital, value: number): VitalState {
   const poorScore = webVitalPoor[vital];
   const mehScore = webVitalMeh[vital];
   if (value > poorScore) {
-    return 'poor';
+    return VitalState.POOR;
   }
   if (value > mehScore) {
-    return 'meh';
+    return VitalState.MEH;
   }
-  return 'good';
+  return VitalState.GOOD;
 }
 
-function getIndicatorString(score: Score) {
+function getIndicatorString(score: VitalState) {
   switch (score) {
-    case 'poor':
+    case VitalState.POOR:
       return t('Poor');
-    case 'meh':
+    case VitalState.MEH:
       return t('Meh');
     default:
       return t('Good');
-  }
-}
-
-function getTagLevel(score: Score) {
-  switch (score) {
-    case 'poor':
-      return 'error';
-    case 'meh':
-      return 'warning';
-    default:
-      return 'success';
   }
 }
 
@@ -78,9 +71,9 @@ function MetricsCard({
   value: number;
   vital: WebVital;
 }) {
-  // round to 2 decimals if <10s, otherwise use just 1 decimal
   const score = getScore(vital, value);
-  const numDecimals = value >= 10_000 ? 1 : 2;
+  // TODO: use 2 decimials if less than 10 seconds once we fix the issue with mismatched data
+  const numDecimals = 1;
   const timeInSeconds = value / 1000.0;
   return (
     <MetricsCardWrapper>
@@ -90,7 +83,7 @@ function MetricsCard({
       <ScoreWrapper>
         <ScoreContent>{timeInSeconds.toFixed(numDecimals)}s</ScoreContent>
         <TagWrapper>
-          <StyledTag type={getTagLevel(score)}>{getIndicatorString(score)}</StyledTag>
+          <StyledTag score={score}>{getIndicatorString(score)}</StyledTag>
         </TagWrapper>
       </ScoreWrapper>
     </MetricsCardWrapper>
@@ -125,9 +118,16 @@ function VitalsComparison(props: Props) {
   const {location, vital: _vital, organization} = props;
   const vitals = Array.isArray(_vital) ? _vital : [_vital];
   const vital = vitals[0];
+  const projectQuery = location.query.project;
+  const {projects} = useProjects();
   if (!SUPPORTED_VITALS.includes(vital)) {
     return null;
   }
+  // to select multiple projects we must have multiple projects available
+  // and that we have to have page filters trying to select more than one project
+  const multipleProjectsSelected =
+    projects.length > 1 &&
+    (projectQuery === '-1' || (Array.isArray(projectQuery) && projectQuery.length > 1));
   return (
     <VitalsCardDiscoverQuery location={location} vitals={vitals}>
       {({isLoading, vitalsData}) => {
@@ -150,7 +150,9 @@ function VitalsComparison(props: Props) {
         return (
           <ContentWrapper {...{organization, vital, count, p75}}>
             <MetricsCard
-              title={t('Selected Projects')}
+              title={
+                multipleProjectsSelected ? t('Selected Projects') : t('Selected Project')
+              }
               vital={vital}
               value={p75}
               tooltip={tct(
@@ -163,7 +165,7 @@ function VitalsComparison(props: Props) {
               vital={vital}
               value={sentryStandard}
               tooltip={tct(
-                '20% of Sentry customers have a p75 [lookupName] lower than this.',
+                '20% of Sentry customers have a p75 [lookupName] across all web transactions per organization lower (better) than this.',
                 {lookupName}
               )}
             />
@@ -213,8 +215,15 @@ const MetricsCardWrapper = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const StyledTag = styled(Tag)`
+const StyledTag = styled(Tag)<{score: VitalState}>`
   margin-left: ${space(1)};
+
+  div {
+    background-color: ${p => p.theme[vitalStateColors[p.score]]};
+  }
+  span {
+    color: ${p => p.theme.white};
+  }
 `;
 
 const MetricsTitle = styled('span')`
