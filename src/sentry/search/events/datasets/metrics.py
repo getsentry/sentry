@@ -901,6 +901,35 @@ class MetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
+    def _resolve_count_if_function(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+    ):
+        metric_condition = Function(
+            "equals",
+            [
+                Column("metric_id"),
+                self.resolve_metric("transaction.duration"),
+            ],
+        )
+        # TODO: need a better way to handle this for metrics compatible
+        if args["typed_value"] == "null":
+            typed_value = 0
+        else:
+            typed_value = self.resolve_tag_value(args["typed_value"])
+        return self._resolve_count_if(
+            metric_condition,
+            Function(
+                args["condition"],
+                [
+                    args["column"],
+                    typed_value,
+                ],
+            ),
+            alias,
+        )
+
     def _resolve_apdex_function(
         self,
         args: Mapping[str, Union[str, Column, SelectType, int, float]],
