@@ -1,13 +1,17 @@
 import {useState} from 'react';
+import {useTheme} from '@emotion/react';
 import {Location} from 'history';
 import moment from 'moment';
 
 import EventsRequest from 'sentry/components/charts/eventsRequest';
+import {LineChart} from 'sentry/components/charts/lineChart';
+import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import {getInterval} from 'sentry/components/charts/utils';
 import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {DateString, EventError, Group, Organization} from 'sentry/types';
+import {getDurationUnit, tooltipFormatter} from 'sentry/utils/discover/charts';
 import useApi from 'sentry/utils/useApi';
-import Chart from 'sentry/views/performance/charts/chart';
 import {ErrorPanel} from 'sentry/views/performance/styles';
 
 interface Props {
@@ -55,7 +59,7 @@ export function DurationChart({issue, event, organization}: Props) {
       partial
       interval={interval}
       referrer="api.performance.performance-issue-poc.all-events"
-      currentSeriesNames={['p75(transaction.duration)']}
+      currentSeriesNames={[t('p75(transaction.duration)')]}
     >
       {({
         timeseriesData: allEvents,
@@ -74,7 +78,7 @@ export function DurationChart({issue, event, organization}: Props) {
           partial
           interval={interval}
           referrer="api.performance.performance-issue-poc.affected-events"
-          currentSeriesNames={['p75(transaction.duration)']}
+          currentSeriesNames={[t('p75(transaction.duration)')]}
         >
           {({
             timeseriesData: data,
@@ -82,8 +86,6 @@ export function DurationChart({issue, event, organization}: Props) {
             errored: affectedEventsErrored,
           }) => (
             <Content
-              start={start}
-              end={now}
               allEvents={allEvents}
               affectedEvents={data}
               loading={allEventsLoading || affectedEventsLoading}
@@ -96,26 +98,55 @@ export function DurationChart({issue, event, organization}: Props) {
   );
 }
 
-function Content({allEvents, affectedEvents, start, end, loading, errored}) {
+function Content({allEvents, affectedEvents, loading, errored}) {
+  const theme = useTheme();
+
+  if (!affectedEvents || affectedEvents.length === 0) {
+    return null;
+  }
+
+  if (loading) {
+    return <LoadingPanel />;
+  }
+
+  const durationUnit = getDurationUnit(affectedEvents);
+
+  const yAxis = {
+    show: false,
+    minInterval: durationUnit,
+    axisLabel: {
+      color: theme.chartLabel,
+      formatter() {
+        return '';
+      },
+    },
+  };
+
   return errored ? (
     <ErrorPanel>
       <IconWarning color="gray300" size="lg" />
     </ErrorPanel>
   ) : (
-    <Chart
-      grid={{left: '0', right: '0', top: '0', bottom: '0px'}}
-      // TODO (udameli): remove zooming and a router
-      router={{} as any}
-      loading={loading}
-      statsPeriod=""
-      utc
-      isLineChart
-      data={affectedEvents}
-      previousData={allEvents}
-      start={start}
-      end={end}
-      disableMultiAxis
+    <LineChart
+      grid={{left: '0', right: '0', top: '0', bottom: '0'}}
       height={200}
+      series={affectedEvents}
+      previousPeriod={allEvents}
+      xAxis={{type: 'time' as const}}
+      yAxis={yAxis}
+      isGroupedByDate
+      showTimeInTooltip
+      useShortDate
+      tooltip={{
+        valueFormatter: (value, seriesName) => {
+          return tooltipFormatter(
+            value,
+            affectedEvents && affectedEvents.length
+              ? affectedEvents[0].seriesName
+              : seriesName
+          );
+        },
+      }}
     />
   );
 }
