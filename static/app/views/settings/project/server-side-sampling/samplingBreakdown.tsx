@@ -76,7 +76,10 @@ export function SamplingBreakdown({orgSlug}: Props) {
         </TitleWrapper>
 
         {fetching ? (
-          <Placeholder height="49px" />
+          <Fragment>
+            <Placeholder height="16px" bottomGutter={1.5} />
+            <Placeholder height="21px" width="250px" />
+          </Fragment>
         ) : (
           <Fragment>
             <ColorBar
