@@ -36,22 +36,18 @@ function splitCrumbs({
     ];
   }
 
-  if (crumbs.length === 1) {
-    return [
-      <SingleLinkSegment
-        key="single"
-        path={firstUrl}
-        onClick={onClick ? () => onClick(first(crumbs) as Crumb) : null}
-      />,
-    ];
-  }
-
-  if (crumbs.length === 2) {
+  if (crumbs.length > 3) {
     return [
       <SingleLinkSegment
         key="first"
         path={firstUrl}
         onClick={onClick ? () => onClick(first(crumbs) as Crumb) : null}
+      />,
+      <SummarySegment
+        key="summary"
+        crumbs={summarizedCrumbs}
+        startTimestampMs={startTimestampMs}
+        handleOnClick={onClick}
       />,
       <SingleLinkSegment
         key="last"
@@ -61,24 +57,13 @@ function splitCrumbs({
     ];
   }
 
-  return [
+  return crumbs.map((crumb, i) => (
     <SingleLinkSegment
-      key="first"
+      key={i}
       path={firstUrl}
-      onClick={onClick ? () => onClick(first(crumbs) as Crumb) : null}
-    />,
-    <SummarySegment
-      key="summary"
-      crumbs={summarizedCrumbs}
-      startTimestampMs={startTimestampMs}
-      handleOnClick={onClick}
-    />,
-    <SingleLinkSegment
-      key="last"
-      path={lastUrl}
-      onClick={onClick ? () => onClick(last(crumbs) as Crumb) : null}
-    />,
-  ];
+      onClick={onClick ? () => onClick(crumb as Crumb) : null}
+    />
+  ));
 }
 
 function SingleLinkSegment({
