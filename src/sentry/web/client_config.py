@@ -11,7 +11,7 @@ from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.user import DetailedSelfUserSerializer
 from sentry.api.utils import generate_organization_url
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import ProjectKey
+from sentry.models import Organization, ProjectKey
 from sentry.utils import auth
 from sentry.utils.assets import get_frontend_app_asset_url
 from sentry.utils.email import is_smtp_enabled
@@ -140,6 +140,12 @@ def get_client_config(request=None):
     public_dsn = _get_public_dsn()
 
     last_organization = session["activeorg"] if session and "activeorg" in session else None
+    try:
+        Organization.objects.get_from_cache(slug=last_organization)
+    except Organization.DoesNotExist:
+        last_organization = None
+        if session and "activeorg" in session:
+            del session["activeorg"]
 
     context = {
         "singleOrganization": settings.SENTRY_SINGLE_ORGANIZATION,
