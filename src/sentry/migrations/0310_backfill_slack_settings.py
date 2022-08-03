@@ -137,11 +137,12 @@ def backfill_users(apps):
 
     # users joining after this date will have slack enabled by default for notifications
     # default to the current time for self-hosted users
-    START_DATE_DEFAULT_SLACK_NOTIFICATION = (
-        settings.START_DATE_DEFAULT_SLACK_NOTIFICATION
-        if settings.START_DATE_DEFAULT_SLACK_NOTIFICATION
-        else timezone.now()
-    )
+    START_DATE_DEFAULT_SLACK_NOTIFICATION = None
+    try:
+        START_DATE_DEFAULT_SLACK_NOTIFICATION = settings.START_DATE_DEFAULT_SLACK_NOTIFICATION
+    except AttributeError:
+        pass
+    START_DATE_DEFAULT_SLACK_NOTIFICATION = START_DATE_DEFAULT_SLACK_NOTIFICATION or timezone.now()
 
     for identity_provider in RangeQuerySetWrapperWithProgressBar(IdentityProvider.objects.all()):
         if identity_provider.type != "slack":
