@@ -11,7 +11,6 @@ import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import {HeaderTitle} from 'sentry/components/charts/styles';
-import DateTime from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel} from 'sentry/components/panels';
@@ -23,7 +22,6 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
-import {statsPeriodToDays} from 'sentry/utils/dates';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import withApi from 'sentry/utils/withApi';
@@ -79,8 +77,6 @@ type State = {
 };
 
 type SearchFilterKey = {key?: {value: string}};
-
-const METRICS_BACKED_SESSIONS_START_DATE = new Date('2022-07-12');
 
 const ERROR_FIELDS = [
   'error.handled',
@@ -233,24 +229,6 @@ class WidgetCard extends Component<Props, State> {
       dashboardFilters,
     } = this.props;
 
-    const {start, period} = selection.datetime;
-    let showIncompleteDataAlert: boolean = false;
-    if (widget.widgetType === WidgetType.RELEASE && showStoredAlert) {
-      if (start) {
-        let startDate: Date | undefined = undefined;
-        if (typeof start === 'string') {
-          startDate = new Date(start);
-        } else {
-          startDate = start;
-        }
-        showIncompleteDataAlert = startDate < METRICS_BACKED_SESSIONS_START_DATE;
-      } else if (period) {
-        const periodInDays = statsPeriodToDays(period);
-        const current = new Date();
-        const prior = new Date(new Date().setDate(current.getDate() - periodInDays));
-        showIncompleteDataAlert = prior < METRICS_BACKED_SESSIONS_START_DATE;
-      }
-    }
     if (widget.displayType === DisplayType.TOP_N) {
       const queries = widget.queries.map(query => ({
         ...query,
@@ -373,20 +351,6 @@ class WidgetCard extends Component<Props, State> {
                   return null;
                 }}
               </DashboardsMEPConsumer>
-            </Feature>
-            <Feature organization={organization} features={['dashboards-releases']}>
-              {showIncompleteDataAlert && (
-                <StoredDataAlert showIcon>
-                  {tct(
-                    'Releases data is only available from [date]. Data may be incomplete as a result.',
-                    {
-                      date: (
-                        <DateTime date={METRICS_BACKED_SESSIONS_START_DATE} dateOnly />
-                      ),
-                    }
-                  )}
-                </StoredDataAlert>
-              )}
             </Feature>
           </React.Fragment>
         )}
