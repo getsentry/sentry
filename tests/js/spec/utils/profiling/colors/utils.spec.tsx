@@ -96,6 +96,17 @@ describe('makeStackToColor', () => {
 });
 
 describe('makeColorMap', () => {
+  it('does not generate different colors for duplicate frames', () => {
+    // Reverse order to ensure we actually sort
+    const a = f(0, 'a');
+    const b = f(1, 'b');
+
+    b.frame = a.frame;
+    const frames = [a, b];
+
+    const map = makeColorMap(frames, makeColorBucketTheme(LCH_LIGHT));
+    expect(map.get(a.key)).toEqual(map.get(b.key));
+  });
   it('default colors by frame name', () => {
     // Reverse order to ensure we actually sort
     const frames = [f(1, 'c'), f(2, 'b'), f(3, 'a')];

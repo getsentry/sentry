@@ -32,8 +32,6 @@ export class Flamegraph {
   formatter: (value: number) => string;
   timelineFormatter: (value: number) => string;
 
-  frameIndex: Record<string, FlamegraphFrame> = {};
-
   static Empty(): Flamegraph {
     return new Flamegraph(Profile.Empty(), 0, {
       inverted: false,
