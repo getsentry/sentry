@@ -393,8 +393,8 @@ class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
     ) -> None:
         assert len(requests) == len(grants)
 
-        keys_to_incr = {}
-        keys_ttl = {}
+        keys_to_incr: MutableMapping[str, int] = {}
+        keys_ttl: MutableMapping[str, int] = {}
 
         for request, grant in zip(requests, grants):
             assert request.prefix == grant.prefix
