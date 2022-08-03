@@ -127,6 +127,7 @@ class EventStorage(Service):
         "get_earliest_event_id",
         "get_latest_event_id",
         "bind_nodes",
+        "get_unfetched_transactions",
     )
 
     # The minimal list of columns we need to get from snuba to bootstrap an
