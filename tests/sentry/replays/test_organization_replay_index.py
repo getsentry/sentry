@@ -44,7 +44,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 seq1_timestamp,
                 project.id,
                 replay1_id,
-                error_ids=[uuid.uuid4().hex, replay1_id],  # duplicate error-id
+                # error_ids=[uuid.uuid4().hex, replay1_id],  # duplicate error-id
                 url="http://localhost:3000/",  # duplicate urls are okay
             )
         )
@@ -53,7 +53,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 seq2_timestamp,
                 project.id,
                 replay1_id,
-                error_ids=[uuid.uuid4().hex, replay1_id],  # duplicate error-id
+                # error_ids=[uuid.uuid4().hex, replay1_id],  # duplicate error-id
                 url="http://localhost:3000/",  # duplicate urls are okay
             )
         )
@@ -74,7 +74,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 seq2_timestamp,
                 urls=["http://localhost:3000/", "http://localhost:3000/"],
                 count_segments=2,
-                count_errors=3,
+                # count_errors=3,
+                count_errors=0,
             )
             assert_expected_response(response_data["data"][0], expected_response)
 
