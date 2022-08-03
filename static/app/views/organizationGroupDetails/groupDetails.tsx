@@ -171,7 +171,6 @@ class GroupDetails extends Component<Props, State> {
       type: EntryType.SPANTREE,
     };
 
-    // create performance entry
     const performanceEntry = {
       data: {},
       type: EntryType.PERFORMANCE,
@@ -210,7 +209,6 @@ class GroupDetails extends Component<Props, State> {
         event.contexts.performance_issue
       ) {
         const updatedEvent = this.addPerformanceSpecificEntries(event);
-        // TODO (udameli): fix typing here
         event = updatedEvent as Event;
       }
 

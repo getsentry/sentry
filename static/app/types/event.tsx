@@ -256,6 +256,11 @@ export type EntrySpanTree = {
   type: EntryType.SPANTREE;
 };
 
+export type EntryPerformance = {
+  data: any; // data is not used
+  type: EntryType.PERFORMANCE;
+};
+
 type EntryMessage = {
   data: {
     formatted: string;
@@ -283,12 +288,6 @@ export type EntryRequest = {
   type: EntryType.REQUEST;
 };
 
-export type EntryPerformance = {
-  // TODO(udameli): update type here
-  data: any;
-  type: EntryType.PERFORMANCE;
-};
-
 type EntryTemplate = {
   data: Frame;
   type: EntryType.TEMPLATE;
@@ -312,12 +311,12 @@ export type Entry =
   | EntryStacktrace
   | EntrySpans
   | EntrySpanTree
+  | EntryPerformance
   | EntryMessage
   | EntryRequest
   | EntryTemplate
   | EntryCsp
-  | EntryGeneric
-  | EntryPerformance;
+  | EntryGeneric;
 
 // Contexts
 type RuntimeContext = {
