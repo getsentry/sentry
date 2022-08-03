@@ -35,7 +35,6 @@ import {CombinedAlertType, CombinedMetricIssueAlerts, IncidentStatus} from '../.
 import {isIssueAlert} from '../../utils';
 
 type Props = {
-  hasDuplicateAlertRules: boolean;
   hasEditAccess: boolean;
   onDelete: (projectId: string, rule: CombinedMetricIssueAlerts) => void;
   onOwnerChange: (
