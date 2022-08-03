@@ -407,6 +407,7 @@ from .endpoints.project_processingissues import (
 from .endpoints.project_profiling_profile import (
     ProjectProfilingFunctionsEndpoint,
     ProjectProfilingProfileEndpoint,
+    ProjectProfilingRawProfileEndpoint,
     ProjectProfilingTransactionIDProfileIDEndpoint,
 )
 from .endpoints.project_release_activity import ProjectReleaseActivityEndpoint
@@ -2293,6 +2294,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/profiles/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
                     ProjectProfilingProfileEndpoint.as_view(),
                     name="sentry-api-0-project-profiling-profile",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/raw_profiles/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
+                    ProjectProfilingRawProfileEndpoint.as_view(),
+                    name="sentry-api-0-project-profiling-raw-profile",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/transactions/(?P<transaction_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
