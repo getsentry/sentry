@@ -25,6 +25,7 @@ describe('Breadcrumb', function () {
               transaction: 'foo',
               profileId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
               projectSlug: 'bar',
+              tab: 'flamechart',
             },
           },
         ]}
