@@ -801,6 +801,7 @@ class DashboardDetail extends Component<Props, State> {
                     isEditingDashboard={
                       dashboardState !== DashboardState.CREATE && this.isEditing
                     }
+                    isPreview={this.isPreview}
                     filters={filters}
                     onDashboardFilterChange={this.handleChangeFilter}
                     onCancel={() => {
