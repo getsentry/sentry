@@ -2571,6 +2571,7 @@ describe('WidgetBuilder', function () {
       });
 
       it('does not allow sort on tags except release', async function () {
+        jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
         renderTestComponent({
           orgFeatures: releaseHealthFeatureFlags,
         });
