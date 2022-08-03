@@ -31,7 +31,7 @@ export function SpanCountChart({issue, event, location, organization}: any) {
   const project = [1];
   const spanOp = event.contexts.performance_issue.op;
 
-  function renderChart(data: HistogramData) {
+  function renderChart(data: HistogramData, _data: HistogramData) {
     const xAxis = {
       type: 'category' as const,
       truncate: true,
@@ -41,7 +41,7 @@ export function SpanCountChart({issue, event, location, organization}: any) {
       },
     };
 
-    const colors = theme.charts.getColorPalette(4);
+    const colors = [theme.charts.previousPeriod, ...theme.charts.getColorPalette(4)];
     const tooltip = {
       formatter(series) {
         const seriesData = Array.isArray(series) ? series : [series];
@@ -65,8 +65,13 @@ export function SpanCountChart({issue, event, location, organization}: any) {
     };
 
     const series = {
-      seriesName: t('Transaction Count'),
+      seriesName: t('Affected Transaction Count'),
       data: formatHistogramData(data, {type: 'number'}),
+    };
+
+    const _series = {
+      seriesName: t('All Transaction Count'),
+      data: formatHistogramData(_data, {type: 'number'}),
     };
 
     return (
@@ -74,13 +79,28 @@ export function SpanCountChart({issue, event, location, organization}: any) {
         grid={{left: '0', right: '0', top: '0', bottom: '0'}}
         xAxis={xAxis}
         yAxis={{type: 'value', show: false, axisLabel: {formatter: _ => ''}}}
-        series={[series]}
+        series={[_series, series]}
         tooltip={tooltip}
         colors={colors}
         height={200}
       />
     );
   }
+
+  const allEvents = EventView.fromNewQueryWithLocation(
+    {
+      id: undefined,
+      version: 2,
+      name: '',
+      fields: ['transaction.duration'],
+      projects: project,
+      query: allEventsQuery,
+      environment,
+      start,
+      end,
+    },
+    location
+  );
 
   const affectedEventsEventView = EventView.fromNewQueryWithLocation(
     {
@@ -101,26 +121,37 @@ export function SpanCountChart({issue, event, location, organization}: any) {
     <SpanCountHistogramQuery
       location={location}
       orgSlug={organization.slug}
-      eventView={affectedEventsEventView}
+      eventView={allEvents}
       numBuckets={50}
       spanOp={spanOp}
       dataFilter="exclude_outliers"
     >
-      {({histogram, isLoading, error}) => {
-        if (isLoading) {
-          return <LoadingPanel data-test-id="histogram-loading" />;
-        }
+      {({histogram: _histogram, isLoading: _isLoading, error: _error}) => (
+        <SpanCountHistogramQuery
+          location={location}
+          orgSlug={organization.slug}
+          eventView={affectedEventsEventView}
+          numBuckets={50}
+          spanOp={spanOp}
+          dataFilter="exclude_outliers"
+        >
+          {({histogram, isLoading, error}) => {
+            if (isLoading || _isLoading) {
+              return <LoadingPanel data-test-id="histogram-loading" />;
+            }
 
-        if (error) {
-          return (
-            <ErrorPanel>
-              <IconWarning color="gray300" size="lg" />
-            </ErrorPanel>
-          );
-        }
+            if (error || _error) {
+              return (
+                <ErrorPanel>
+                  <IconWarning color="gray300" size="lg" />
+                </ErrorPanel>
+              );
+            }
 
-        return renderChart(histogram || []);
-      }}
+            return renderChart(histogram || [], _histogram || []);
+          }}
+        </SpanCountHistogramQuery>
+      )}
     </SpanCountHistogramQuery>
   );
 }
