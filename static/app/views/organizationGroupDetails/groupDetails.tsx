@@ -171,9 +171,14 @@ class GroupDetails extends Component<Props, State> {
       type: EntryType.SPANTREE,
     };
 
+    const performanceEntry = {
+      data: {},
+      type: EntryType.PERFORMANCE,
+    };
+
     const updatedEvent = {
       ...event,
-      entries: [event.entries[0], spanTreeEntry, event.entries[1]],
+      entries: [performanceEntry, spanTreeEntry, ...event.entries],
     };
     return updatedEvent;
   }
@@ -198,12 +203,12 @@ class GroupDetails extends Component<Props, State> {
         projectId
       );
 
+      // add extra perf issue specific entries like span tree and duration and span count charts
       if (
         organization.features.includes('performance-extraneous-spans-poc') &&
         event.contexts.performance_issue
       ) {
         const updatedEvent = this.addPerformanceSpecificEntries(event);
-        // TODO (udameli): fix typing here
         event = updatedEvent as Event;
       }
 
