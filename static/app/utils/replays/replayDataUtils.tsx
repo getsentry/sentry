@@ -18,13 +18,13 @@ import type {
 } from 'sentry/views/replays/types';
 
 export function rrwebEventListFactory(
-  startTimestampMS: number,
-  endTimestampMS: number,
+  startTimestampMs: number,
+  endTimestampMs: number,
   rrwebEvents: RecordingEvent[]
 ) {
   const events = ([] as RecordingEvent[]).concat(rrwebEvents).concat({
     type: 5, // EventType.Custom,
-    timestamp: endTimestampMS,
+    timestamp: endTimestampMs,
     data: {
       tag: 'replay-end',
     },
@@ -33,7 +33,7 @@ export function rrwebEventListFactory(
 
   const firstRRWebEvent = first(events);
   if (firstRRWebEvent) {
-    firstRRWebEvent.timestamp = startTimestampMS;
+    firstRRWebEvent.timestamp = startTimestampMs;
   }
 
   return events;
@@ -153,10 +153,10 @@ export function replayTimestamps(
   const spanEndTimestamps = rawSpanData.map(span => span.endTimestamp * 1000);
 
   return {
-    startTimestampMS: Math.min(
+    startTimestampMs: Math.min(
       ...[...rrwebTimestamps, ...breadcrumbTimestamps, ...spanStartTimestamps]
     ),
-    endTimestampMS: Math.max(
+    endTimestampMs: Math.max(
       ...[...rrwebTimestamps, ...breadcrumbTimestamps, ...spanEndTimestamps]
     ),
   };

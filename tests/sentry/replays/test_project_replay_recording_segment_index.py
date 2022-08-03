@@ -25,19 +25,19 @@ class ProjectReplayRecordingSegmentTestCase(APITestCase):
         recording_segment = ReplayRecordingSegment.objects.create(
             replay_id=self.replay_id,
             project_id=self.project.id,
-            sequence_id=0,
+            segment_id=0,
             file_id=File.objects.create(name="hello.png", type="image/png").id,
         )
         ReplayRecordingSegment.objects.create(
             replay_id=self.replay_id,
             project_id=self.project.id,
-            sequence_id=1,
+            segment_id=1,
             file_id=File.objects.create(name="hello.png", type="image/png").id,
         )
         ReplayRecordingSegment.objects.create(
             replay_id=self.replay_id,
             project_id=self.project.id,
-            sequence_id=2,
+            segment_id=2,
             file_id=File.objects.create(name="hello.png", type="image/png").id,
         )
 
@@ -47,7 +47,7 @@ class ProjectReplayRecordingSegmentTestCase(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 3
         assert response.data["data"][0]["replay_id"] == recording_segment.replay_id
-        assert response.data["data"][0]["segment_id"] == recording_segment.sequence_id
+        assert response.data["data"][0]["segment_id"] == recording_segment.segment_id
         assert response.data["data"][0]["project_id"] == recording_segment.project_id
         assert response.data["data"][0]["date_added"] == recording_segment.date_added
 

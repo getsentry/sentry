@@ -63,6 +63,7 @@ class NotificationSetting(Model):
         choices=(
             (ExternalProviders.EMAIL, "email"),
             (ExternalProviders.SLACK, "slack"),
+            (ExternalProviders.MSTEAMS, "msteams"),
         ),
         null=False,
     )
