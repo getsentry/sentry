@@ -76,7 +76,7 @@ function ProfileFlamegraph(): React.ReactElement {
 
   return (
     <SentryDocumentTitle
-      title={t('Profiling \u2014 Flamegraph')}
+      title={t('Profiling \u2014 Flamechart')}
       orgSlug={organization.slug}
     >
       <FlamegraphStateProvider initialState={initialFlamegraphPreferencesState}>
