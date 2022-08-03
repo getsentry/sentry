@@ -63,11 +63,12 @@ class OrganizationEventsMetricsCompatiblity(OrganizationEventsEndpointBase):
             dynamic_sampling = project.get_option("sentry:dynamic_sampling")
             if dynamic_sampling is not None:
                 data["dynamic_sampling_projects"].append(project.id)
+                if len(data["dynamic_sampling_projects"]) > 50:
+                    break
 
         # None of the projects had DS rules, nothing is compat the sum & compat projects list is useless
         if len(data["dynamic_sampling_projects"]) == 0:
             return Response(data)
-        data["dynamic_sampling_projects"] = data["dynamic_sampling_projects"][:50]
         data["dynamic_sampling_projects"].sort()
 
         # Save ourselves some work, only query the projects that have DS rules
