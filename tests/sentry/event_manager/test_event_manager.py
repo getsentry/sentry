@@ -1043,6 +1043,14 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
         assert event1.transaction == "foobar"
         assert event1.culprit == "baz"
 
+    def test_release_with_empty_version(self):
+        cases = ["", " ", "\t", "\n"]
+        for case in cases:
+            event = self.make_release_event(case, self.project.id)
+            assert not event.group.first_release
+            assert Release.objects.filter(projects__in=[self.project.id]).count() == 0
+            assert Release.objects.filter(organization_id=self.project.organization_id).count() == 0
+
     def test_first_release(self):
         project_id = 1
         event = self.make_release_event("1.0", project_id)

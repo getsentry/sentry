@@ -6,7 +6,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import CustomIgnoreCountModal from 'sentry/components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from 'sentry/components/customIgnoreDurationModal';
-import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
+import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
 import Duration from 'sentry/components/duration';
 import Tooltip from 'sentry/components/tooltip';
 import {IconChevron, IconMute} from 'sentry/icons';
@@ -214,7 +214,7 @@ const IgnoreActions = ({
       >
         {t('Ignore')}
       </IgnoreButton>
-      <DropdownMenuControlV2
+      <DropdownMenuControl
         trigger={({props: triggerProps, ref: triggerRef}) => (
           <DropdownTrigger
             ref={triggerRef}

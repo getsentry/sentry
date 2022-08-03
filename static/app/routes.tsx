@@ -1719,8 +1719,8 @@ function buildRoutes() {
           component={make(() => import('sentry/views/profiling/profileDetails'))}
         />
         <Route
-          path="flamegraph/"
-          component={make(() => import('sentry/views/profiling/profileFlamegraph'))}
+          path="flamechart/"
+          component={make(() => import('sentry/views/profiling/profileFlamechart'))}
         />
       </Route>
     </Route>
