@@ -62,11 +62,8 @@ class KafkaEventStream(SnubaProtocolEventStream):
                 value = False
             return str(int(value))
 
-        # WARNING: We must remove all None headers. There is a bug in confluent-kafka-python
-        # (used by both Sentry and Snuba) that incorrectly decrements the reference count of
-        # Python's None on any attempt to read header values containing null values, leading
-        # None to eventually get deallocated and crash the interpreter. The bug exists in the
-        # version we are using (1.5) as well as in the latest (at the time of writing) 1.7 version.
+        # we stripe `None` values here so later in the pipeline they can be
+        # cleanly encoded without nullability checks
         def strip_none_values(value: Mapping[str, Optional[str]]) -> Mapping[str, str]:
             return {key: value for key, value in value.items() if value is not None}
 
