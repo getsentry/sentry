@@ -1,9 +1,17 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {PlatformIcon} from 'platformicons';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button, {ButtonPropsWithoutAriaLabel} from 'sentry/components/button';
+import {SelectField} from 'sentry/components/forms';
+import {SelectFieldProps} from 'sentry/components/forms/selectField';
+import ExternalLink from 'sentry/components/links/externalLink';
+import List from 'sentry/components/list';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Project} from 'sentry/types/project';
+import useProjects from 'sentry/utils/useProjects';
 
 // This is just a doubly linked list of steps
 interface OnboardingStep {
@@ -27,7 +35,7 @@ function useOnboardingRouter(initialStep: OnboardingStep): OnboardingRouterState
       // Add the edges between the old and the new step
       current.next = next;
       next.previous = current;
-      // Return the neext step
+      // Return the next step
       return next;
     });
   }, []);
@@ -35,20 +43,74 @@ function useOnboardingRouter(initialStep: OnboardingStep): OnboardingRouterState
   return [state, toStep];
 }
 
-interface ProfilingOnboardingModalProps extends ModalRenderProps {}
-export function ProfilingOnboardingModal(props: ProfilingOnboardingModalProps) {
+// The wrapper component for all of the onboarding steps. Keeps track of the current step
+// and all state. This ensures that moving from step to step does not require users to redo their actions
+// and each step can just re-initialize with the values that the user has already selected.
+export function ProfilingOnboardingModal(props: ModalRenderProps) {
   const [state, toStep] = useOnboardingRouter({
     previous: null,
     current: SelectProjectStep,
     next: null,
   });
-  return <state.current {...props} toStep={toStep} step={state} />;
+  const [project, setProject] = useState<Project | null>(null);
+
+  return (
+    <state.current
+      {...props}
+      toStep={toStep}
+      step={state}
+      project={project}
+      setProject={setProject}
+    />
+  );
+}
+
+// Generate an option for the select field from project
+function asSelectOption(
+  project: Project,
+  options: {disabled: boolean}
+): SelectFieldProps<Project>['options'][0]['options'] {
+  return {
+    label: project.name,
+    value: project,
+    disabled: options.disabled,
+    leadingItems: project.platform ? <PlatformIcon platform={project.platform} /> : null,
+  };
+}
+
+const platformToInstructionsMapping: Record<
+  string,
+  React.ComponentType<OnboardingStepProps>
+> = {
+  android: AndroidSendDebugFilesInstruction,
+  'apple-ios': IOSSendDebugFilesInstruction,
+};
+
+// Splits a list of projects into supported and unsuported list
+function splitProjectsByProfilingSupport(projects: Project[]): {
+  supported: Project[];
+  unsupported: Project[];
+} {
+  const supported: Project[] = [];
+  const unsupported: Project[] = [];
+
+  for (const project of projects) {
+    if (project.platform && platformToInstructionsMapping[project.platform]) {
+      supported.push(project);
+    } else {
+      unsupported.push(project);
+    }
+  }
+
+  return {supported, unsupported};
 }
 
 // Individual modal steps are defined here.
 // We proxy the modal props to each individaul modal component
 // so that each can build their own modal and they can remain independent.
 interface OnboardingStepProps extends ModalRenderProps {
+  project: Project | null;
+  setProject: React.Dispatch<React.SetStateAction<Project | null>>;
   step: OnboardingStep;
   toStep: OnboardingRouterState[1];
 }
@@ -57,35 +119,108 @@ function SelectProjectStep({
   Body: ModalBody,
   Header: ModalHeader,
   Footer: ModalFooter,
+  closeModal,
   toStep,
   step,
+  project,
+  setProject,
 }: OnboardingStepProps) {
-  const onNext = useCallback(
-    (platform: 'iOS' | 'Android') => {
+  const {projects} = useProjects();
+
+  const onFormSubmit = useCallback(
+    (evt: React.FormEvent) => {
+      evt.preventDefault();
+
+      if (!project?.platform) {
+        return;
+      }
+
+      const nextStep = platformToInstructionsMapping[project.platform];
+      if (nextStep === undefined) {
+        throw new TypeError(
+          "Platform doesn't have a onboarding step, user should not be able to select it"
+        );
+      }
+
       toStep({
         previous: step,
-        current:
-          platform === 'Android'
-            ? AndroidSendDebugFilesInstruction
-            : IOSSendDebugFilesInstruction,
+        current: nextStep,
         next: null,
       });
     },
-    [step, toStep]
+    [project, step, toStep]
   );
+
+  const projectSelectOptions = useMemo((): SelectFieldProps<Project>['options'] => {
+    const {supported: supportedProjects, unsupported: unsupporedProjects} =
+      splitProjectsByProfilingSupport(projects);
+
+    return [
+      {
+        label: t('Supported'),
+        options: supportedProjects.map(p => asSelectOption(p, {disabled: false})),
+      },
+      {
+        label: t('Unsupported'),
+        options: unsupporedProjects.map(p => asSelectOption(p, {disabled: true})),
+      },
+    ];
+  }, [projects]);
 
   return (
     <ModalBody>
-      <ModalHeader>Select a Project</ModalHeader>
-      <ModalFooter>
-        <ModalActions>
-          <NextStepButton onClick={() => onNext('Android')} />
-          <NextStepButton onClick={() => onNext('iOS')} />
-        </ModalActions>
-      </ModalFooter>
+      <ModalHeader>
+        <h3>{t('Setup Profiling')}</h3>
+      </ModalHeader>
+      <form onSubmit={onFormSubmit}>
+        <StyledList symbol="colored-numeric">
+          <li>
+            <StepTitle>
+              <label htmlFor="project-select">{t('Select a project')}</label>
+            </StepTitle>
+            <div>
+              <StyledSelectField
+                id="project-select"
+                name="select"
+                options={projectSelectOptions}
+                onChange={setProject}
+              />
+            </div>
+          </li>
+        </StyledList>
+        <ModalFooter>
+          <ModalActions>
+            <DocsLink />
+            <div>
+              <StepIndicator>{t('Step 1 of 2')}</StepIndicator>
+              <PreviousStepButton type="button" onClick={closeModal} />
+              <NextStepButton
+                disabled={
+                  !(project?.platform && platformToInstructionsMapping[project.platform])
+                }
+                type="submit"
+              />
+            </div>
+          </ModalActions>
+        </ModalFooter>
+      </form>
     </ModalBody>
   );
 }
+
+const StyledList = styled(List)`
+  position: relative;
+`;
+
+const StyledSelectField = styled(SelectField)`
+  padding: 0;
+  border-bottom: 0;
+
+  > div {
+    width: 100%;
+    padding-left: 0;
+  }
+`;
 
 function AndroidSendDebugFilesInstruction({
   Body: ModalBody,
@@ -96,12 +231,18 @@ function AndroidSendDebugFilesInstruction({
 }: OnboardingStepProps) {
   return (
     <ModalBody>
-      <ModalHeader>Send Debug Files For Android</ModalHeader>
+      <ModalHeader>
+        <h3>{t('Setup Profiling')}</h3>
+      </ModalHeader>
       <ModalFooter>
         <ModalActions>
-          {step.previous ? (
-            <PreviousStepButton onClick={() => toStep(step.previous)} />
-          ) : null}
+          <DocsLink />
+          <div>
+            <StepIndicator>{t('Step 2 of 2')}</StepIndicator>
+            {step.previous ? (
+              <PreviousStepButton onClick={() => toStep(step.previous)} />
+            ) : null}
+          </div>
         </ModalActions>
       </ModalFooter>
     </ModalBody>
@@ -115,15 +256,20 @@ function IOSSendDebugFilesInstruction({
   toStep,
   step,
 }: OnboardingStepProps) {
-  // Required as typescript cannot properly infer the previous step
   return (
     <ModalBody>
-      <ModalHeader>Send Debug Files For iOS</ModalHeader>
+      <ModalHeader>
+        <h3>{t('Setup Profiling')}</h3>
+      </ModalHeader>
       <ModalFooter>
         <ModalActions>
-          {step.previous !== null ? (
-            <PreviousStepButton onClick={() => toStep(step.previous)} />
-          ) : null}
+          <DocsLink />
+          <div>
+            <StepIndicator>{t('Step 2 of 2')}</StepIndicator>
+            {step.previous !== null ? (
+              <PreviousStepButton onClick={() => toStep(step.previous)} />
+            ) : null}
+          </div>
         </ModalActions>
       </ModalFooter>
     </ModalBody>
@@ -131,7 +277,8 @@ function IOSSendDebugFilesInstruction({
 }
 
 type StepButtonProps = Omit<ButtonPropsWithoutAriaLabel, 'children'>;
-// Common component definitions
+
+// A few common component definitions that are used in each step
 function NextStepButton(props: StepButtonProps) {
   return (
     <Button priority="primary" {...props}>
@@ -144,6 +291,11 @@ function PreviousStepButton(props: StepButtonProps) {
   return <Button {...props}>{t('Back')}</Button>;
 }
 
+function DocsLink() {
+  // @TODO docs requires public link
+  return <ExternalLink href="https://docs.sentry.io/">{t('Read Docs')}</ExternalLink>;
+}
+
 interface ModalActionsProps {
   children: React.ReactNode;
 }
@@ -154,4 +306,20 @@ function ModalActions({children}: ModalActionsProps) {
 const ModalActionsContainer = styled('div')`
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  flex: 1 1 100%;
+
+  button:not(:last-child) {
+    margin-right: ${space(1)};
+  }
+`;
+
+const StepTitle = styled('div')`
+  margin-bottom: ${space(2)};
+  font-weight: bold;
+`;
+
+const StepIndicator = styled('span')`
+  color: ${p => p.theme.subText};
+  margin-right: ${space(2)};
 `;
