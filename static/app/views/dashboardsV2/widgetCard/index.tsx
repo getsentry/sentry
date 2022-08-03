@@ -345,9 +345,11 @@ class WidgetCard extends Component<Props, State> {
                             'You have inputs that are incompatible with [customPerformanceMetrics: custom performance metrics]. See all compatible fields and functions [here: here]. Update your inputs or remove any custom performance metrics.',
                             {
                               customPerformanceMetrics: (
-                                <ExternalLink href="https://docs.sentry.io/" />
-                              ), // TODO(dashboards): Update the docs URL
-                              here: <ExternalLink href="https://docs.sentry.io/" />, // TODO(dashboards): Update the docs URL
+                                <ExternalLink href="https://docs.sentry.io/product/sentry-basics/metrics/#custom-performance-measurements" />
+                              ),
+                              here: (
+                                <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/searchable-properties/#properties-table" />
+                              ),
                             }
                           )}
                         </StoredDataAlert>
@@ -357,9 +359,11 @@ class WidgetCard extends Component<Props, State> {
                       return (
                         <StoredDataAlert showIcon>
                           {tct(
-                            "Your selection is only applicable to [storedData: stored event data]. We've automatically adjusted your results.",
+                            "Your selection is only applicable to [indexedData: indexed event data]. We've automatically adjusted your results.",
                             {
-                              storedData: <ExternalLink href="https://docs.sentry.io/" />, // TODO(dashboards): Update the docs URL
+                              indexedData: (
+                                <ExternalLink href="https://docs.sentry.io/product/dashboards/widget-builder/#errors--transactions" />
+                              ),
                             }
                           )}
                         </StoredDataAlert>
