@@ -1,9 +1,11 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 
 import Badge from 'sentry/components/badge';
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import TextOverflow from 'sentry/components/textOverflow';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useReleases} from 'sentry/utils/releases/releasesProvider';
@@ -23,8 +25,12 @@ function ReleasesSelectControl({
   className,
   isDisabled,
 }: Props) {
-  const {releases, loading} = useReleases();
+  const {releases, loading, onSearch} = useReleases();
   const [activeReleases, setActiveReleases] = useState<string[]>(selectedReleases);
+
+  function resetSearch() {
+    onSearch('');
+  }
 
   useEffect(() => {
     setActiveReleases(selectedReleases);
@@ -45,6 +51,9 @@ function ReleasesSelectControl({
       isLoading={loading}
       menuTitle={t('Filter Releases')}
       className={className}
+      onInputChange={debounce(val => {
+        onSearch(val);
+      }, DEFAULT_DEBOUNCE_DURATION)}
       options={
         releases.length
           ? releases.map(release => {
@@ -57,6 +66,7 @@ function ReleasesSelectControl({
       }
       onChange={opts => setActiveReleases(opts.map(opt => opt.value))}
       onClose={() => {
+        resetSearch();
         handleChangeFilter?.({[DashboardFilterKeys.RELEASE]: activeReleases});
       }}
       value={activeReleases}

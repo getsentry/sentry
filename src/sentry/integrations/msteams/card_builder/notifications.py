@@ -2,9 +2,15 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from sentry.integrations.message_builder import (
+    build_attachment_text,
+    build_attachment_title,
+    get_title_link,
+)
 from sentry.integrations.msteams.card_builder import MSTEAMS_URL_FORMAT, ColumnSetBlock, TextBlock
 from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
 from sentry.models import Team, User
+from sentry.notifications.notifications.activity.base import GroupActivityNotification
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.types.integrations import ExternalProviders
 
@@ -42,7 +48,7 @@ class MSTeamsNotificationsMessageBuilder(MSTeamsMessageBuilder):
 
         return None
 
-    def build_attachment_title_block(self) -> TextBlock:
+    def create_attachment_title_block(self) -> TextBlock:
         title = self.notification.build_attachment_title(self.recipient)
         title_link = self.notification.get_title_link(self.recipient, ExternalProviders.MSTEAMS)
 
@@ -52,22 +58,57 @@ class MSTeamsNotificationsMessageBuilder(MSTeamsMessageBuilder):
             weight=TextWeight.BOLDER,
         )
 
-    def build_notification_card(self):
-        title_block = create_text_block(
+    def create_title_block(self) -> TextBlock:
+        return create_text_block(
             self.notification.get_notification_title(ExternalProviders.MSTEAMS, self.context),
             size=TextSize.LARGE,
         )
 
-        description_block = create_text_block(
+    def create_description_block(self) -> TextBlock:
+        return create_text_block(
             self.notification.get_message_description(self.recipient, ExternalProviders.MSTEAMS),
             size=TextSize.MEDIUM,
         )
 
-        fields = [self.build_attachment_title_block(), description_block]
+    def build_notification_card(self):
+        fields = [self.create_attachment_title_block(), self.create_description_block()]
 
         # TODO: Add support for notification actions.
         return super().build(
-            title=title_block,
+            title=self.create_title_block(),
             fields=fields,
             footer=self.create_footer_block(),
+        )
+
+
+class MSTeamsIssueNotificationsMessageBuilder(MSTeamsNotificationsMessageBuilder):
+    def __init__(
+        self,
+        notification: GroupActivityNotification,
+        context: Mapping[str, Any],
+        recipient: Team | User,
+    ):
+        super().__init__(notification, context, recipient)
+        self.group = getattr(notification, "group", None)
+
+    def create_attachment_title_block(self) -> TextBlock:
+        title = build_attachment_title(self.group)
+        title_link = get_title_link(
+            self.group, None, False, True, self.notification, ExternalProviders.MSTEAMS
+        )
+
+        return create_text_block(
+            MSTEAMS_URL_FORMAT.format(text=title, url=title_link),
+            size=TextSize.LARGE,
+            weight=TextWeight.BOLDER,
+        )
+
+    def create_description_block(self) -> TextBlock | None:
+        return (
+            create_text_block(
+                build_attachment_text(self.group),
+                size=TextSize.MEDIUM,
+            )
+            if self.group
+            else None
         )

@@ -33,7 +33,6 @@ export interface SelectFieldProps<OptionType>
    * A label that is shown inside the select control.
    */
   inFieldLabel?: string;
-  small?: boolean;
 }
 
 function getChoices<T>(props: SelectFieldProps<T>): Choices {
@@ -91,38 +90,45 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
   };
 
   render() {
-    const {allowClear, confirm, multiple, small, ...otherProps} = this.props;
+    const {allowClear, confirm, multiple, ...otherProps} = this.props;
     return (
       <InputField
         {...otherProps}
-        alignRight={small}
         field={({onChange, onBlur, required: _required, ...props}) => (
           <SelectControl
             {...props}
             clearable={allowClear}
             multiple={multiple}
             onChange={val => {
-              if (!confirm) {
-                this.handleChange(onBlur, onChange, val);
-                return;
+              try {
+                if (!confirm) {
+                  this.handleChange(onBlur, onChange, val);
+                  return;
+                }
+
+                // Support 'confirming' selections. This only works with
+                // `val` objects that use the new-style options format
+                const previousValue = props.value?.toString();
+                // `val` may be null if clearing the select for an optional field
+                const newValue = val?.value?.toString();
+
+                // Value not marked for confirmation, or hasn't changed
+                if (!confirm[newValue] || previousValue === newValue) {
+                  this.handleChange(onBlur, onChange, val);
+                  return;
+                }
+
+                openConfirmModal({
+                  onConfirm: () => this.handleChange(onBlur, onChange, val),
+                  message: confirm[val?.value] ?? t('Continue with these changes?'),
+                });
+              } catch (e) {
+                // Swallow expected error to prevent bubbling up.
+                if (e.message === 'Invalid selection. Field cannot be empty.') {
+                  return;
+                }
+                throw e;
               }
-
-              // Support 'confirming' selections. This only works with
-              // `val` objects that use the new-style options format
-              const previousValue = props.value?.toString();
-              // `val` may be null if clearing the select for an optional field
-              const newValue = val?.value?.toString();
-
-              // Value not marked for confirmation, or hasn't changed
-              if (!confirm[newValue] || previousValue === newValue) {
-                this.handleChange(onBlur, onChange, val);
-                return;
-              }
-
-              openConfirmModal({
-                onConfirm: () => this.handleChange(onBlur, onChange, val),
-                message: confirm[val?.value] ?? t('Continue with these changes?'),
-              });
             }}
           />
         )}
