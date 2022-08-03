@@ -196,7 +196,7 @@ class Migration(CheckedMigration):
     atomic = False
 
     dependencies = [
-        ("sentry", "0309_fix_many_to_many_field"),
+        ("sentry", "0310_sentry_functions_add_webhooks"),
     ]
 
     operations = [

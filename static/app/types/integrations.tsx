@@ -532,5 +532,6 @@ export type SentryFunction = {
   code: string;
   name: string;
   slug: string;
+  events?: string[];
   overview?: string;
 };

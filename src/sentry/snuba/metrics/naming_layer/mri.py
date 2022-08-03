@@ -85,7 +85,7 @@ class TransactionMRI(Enum):
     MEASUREMENTS_FRAMES_TOTAL = "d:transactions/measurements.frames_total@none"
     MEASUREMENTS_STALL_COUNT = "d:transactions/measurements.stall_count@none"
     MEASUREMENTS_STALL_LONGEST_TIME = "d:transactions/measurements.stall_longest_time@millisecond"
-    MEASUREMENTS_STALL_PERCENTAGE = "d:transactions/measurements.stall_percentage@percent"
+    MEASUREMENTS_STALL_PERCENTAGE = "d:transactions/measurements.stall_percentage@ratio"
     MEASUREMENTS_STALL_TOTAL_TIME = "d:transactions/measurements.stall_total_time@millisecond"
     MEASUREMENTS_TTFB = "d:transactions/measurements.ttfb@millisecond"
     MEASUREMENTS_TTFB_REQUEST_TIME = "d:transactions/measurements.ttfb.requesttime@millisecond"

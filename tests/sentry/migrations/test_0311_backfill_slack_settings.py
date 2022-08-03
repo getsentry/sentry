@@ -33,8 +33,8 @@ DEFAULT_JOIN_DATE = START_DATE_DEFAULT_SLACK_NOTIFICATION - timedelta(days=1)
 
 @override_settings(START_DATE_DEFAULT_SLACK_NOTIFICATION=START_DATE_DEFAULT_SLACK_NOTIFICATION)
 class TestBackfill(TestMigrations):
-    migrate_from = "0309_fix_many_to_many_field"
-    migrate_to = "0310_backfill_slack_settings"
+    migrate_from = "0310_sentry_functions_add_webhooks"
+    migrate_to = "0311_backfill_slack_settings"
 
     def setup_before_migration(self, apps):
         self.slack_integration = Integration(
