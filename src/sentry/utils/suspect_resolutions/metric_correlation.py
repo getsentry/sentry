@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import timedelta
 from typing import List
 
@@ -5,11 +6,18 @@ from sentry import tsdb
 from sentry.models import Group
 
 
+@dataclass
+class MetricCorrelationResult:
+    candidate_suspect_resolution_id: int
+    is_correlated: bool
+    coefficient: float
+
+
 def is_issue_error_rate_correlated(
-    resolved_issue: Group, candidate_suspect_resolution: Group
-) -> bool:
-    if resolved_issue is None or candidate_suspect_resolution is None:
-        return False
+    resolved_issue: Group, candidate_suspect_resolutions: List[Group]
+) -> List[MetricCorrelationResult]:
+    if resolved_issue is None or len(candidate_suspect_resolutions) == 0:
+        return []
 
     resolution_time = resolved_issue.resolved_at
 
@@ -18,18 +26,27 @@ def is_issue_error_rate_correlated(
 
     data = tsdb.get_range(
         model=tsdb.models.group,
-        keys=[resolved_issue.id, candidate_suspect_resolution.id],
+        keys=[resolved_issue.id] + [csr.id for csr in candidate_suspect_resolutions],
         rollup=60,
         start=start_time,
         end=end_time,
     )
 
     x = [events for _, events in data[resolved_issue.id]]
-    y = [events for _, events in data[candidate_suspect_resolution.id]]
+    y = {csr.id: [events for _, events in data[csr.id]] for csr in candidate_suspect_resolutions}
 
-    coefficient = calculate_pearson_correlation_coefficient(x, y)
+    coefficients = {csr_id: calculate_pearson_correlation_coefficient(x, y[csr_id]) for csr_id in y}
 
-    return (coefficient > 0.4, coefficient, resolution_time, start_time, end_time)
+    results = [
+        MetricCorrelationResult(
+            candidate_suspect_resolution_id=csr_id,
+            is_correlated=coefficient > 0.4,
+            coefficient=coefficient,
+        )
+        for (csr_id, coefficient) in coefficients.items()
+    ]
+
+    return (results, resolution_time, start_time, end_time)
 
 
 def calculate_pearson_correlation_coefficient(x: List[int], y: List[int]) -> int:
