@@ -143,6 +143,11 @@ class PGStringIndexerV2(StringIndexer):
             # shouldn't consume quota.
             filtered_db_write_keys = writes_limiter_state.accepted_keys
             del db_write_keys
+
+            if filtered_db_write_keys.size == 0:
+                indexer_cache.set_many(new_results_to_cache, use_case_id.value)
+                return cache_key_results.merge(db_read_key_results)
+
             rate_limited_write_results = writes_limiter_state.dropped_strings
 
             new_records = []
