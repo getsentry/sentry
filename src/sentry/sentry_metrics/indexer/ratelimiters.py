@@ -106,7 +106,7 @@ class RateLimitState:
         """
         Consumes the rate limits returned by `check_write_limits`.
         """
-        if exc_type is not None:
+        if exc_type is None:
             self._writes_limiter._get_rate_limiter(self._use_case_id).use_quotas(
                 self._requests, self._grants, self._timestamp
             )
