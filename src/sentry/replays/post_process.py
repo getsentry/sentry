@@ -24,7 +24,13 @@ def normalize_fields(response: List[Dict[str, Any]]) -> None:
         }
 
         # urls == [[2, url], [0, url], [1, url]]
-        item["urls"] = [item[1] for item in sorted(item.pop("urls"), key=lambda url: url[0])]
+        urls = []
+        url_groups = [item[1] for item in sorted(item.pop("urls"), key=lambda url: url[0])]
+        for url_group in url_groups:
+            urls.extend(url_group)
+
+        item["urls"] = urls
+        item["count_urls"] = len(urls)
 
 
 def restrict_response_by_fields(
