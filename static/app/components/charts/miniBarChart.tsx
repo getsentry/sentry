@@ -16,6 +16,10 @@ type Marker = {
   name: string;
   value: string | number | Date;
   symbolSize?: number;
+  /**
+   * Use "value" to control the marker position, but tooltip value for the real value
+   */
+  tooltipValue?: string | number | Date;
 };
 
 type ChartProps = React.ComponentProps<typeof BaseChart>;
@@ -133,9 +137,14 @@ function MiniBarChart({
       show: true,
       trigger: 'item',
       formatter: ({data}) => {
-        const time = getFormattedDate(data.coord[0], 'MMM D, YYYY LT', {
-          local: !props.utc,
-        });
+        const time = getFormattedDate(
+          // To be safe fallback to the coordinates
+          data.tooltipValue ?? data.coord[0],
+          'MMM D, YYYY LT',
+          {
+            local: !props.utc,
+          }
+        );
         const name = truncationFormatter(data.name, props?.xAxis?.truncate);
         return [
           '<div class="tooltip-series">',
@@ -155,6 +164,7 @@ function MiniBarChart({
         name: marker.name,
         coord: [marker.value, 0],
         tooltip: markerTooltip,
+        tooltipValue: marker.tooltipValue ?? marker.value,
         symbol: 'circle',
         symbolSize: marker.symbolSize ?? 8,
         itemStyle: {
