@@ -37,27 +37,46 @@ def _get_superuser():
     return click.confirm("Should this user be a superuser?", default=False)
 
 
-def _set_user_permissions(user):
+def _set_superadmin(user):
+    """
+    superadmin role approximates superuser (model attribute) but leveraging
+    Sentry's role system.
+    """
     from sentry.models import UserRole, UserRoleUser
 
-    if click.confirm(
-        "Should this user have Super Admin role? (This grants them all permissions available)",
-        default=False,
-    ):
-        role = UserRole.objects.get(name="Super Admin")
-        UserRoleUser.objects.create(user=user, role=role)
+    role = UserRole.objects.get(name="Super Admin")
+    UserRoleUser.objects.create(user=user, role=role)
 
 
 @click.command()
 @click.option("--email")
 @click.option("--password")
-@click.option("--superuser/--no-superuser", default=None, is_flag=True)
+@click.option(
+    "--superuser/--no-superuser",
+    default=None,
+    is_flag=True,
+    help="Superusers have full access to Sentry, across all organizations.",
+)
+@click.option(
+    "--staff/--no-staff",
+    default=None,
+    is_flag=True,
+    help="Staff users have access to Django backend.",
+)
 @click.option("--no-password", default=False, is_flag=True)
 @click.option("--no-input", default=False, is_flag=True)
-@click.option("--force-update", default=False, is_flag=True)
+@click.option(
+    "--force-update", default=False, is_flag=True, help="If true, will update existing users."
+)
 @configuration
-def createuser(email, password, superuser, no_password, no_input, force_update):
+def createuser(email, password, superuser, staff, no_password, no_input, force_update):
     "Create a new user."
+
+    from django.conf import settings
+
+    if not (settings.SENTRY_SELF_HOSTED or settings.SENTRY_SINGLE_ORGANIZATION):
+        return
+
     if not no_input:
         if not email:
             email = _get_email()
@@ -71,20 +90,27 @@ def createuser(email, password, superuser, no_password, no_input, force_update):
     if superuser is None:
         superuser = False
 
+    # Prevent a user from being set to staff without superuser
+    if not superuser and staff:
+        click.echo("Non-superuser asked to be given staff access, correcting to staff=False")
+        staff = False
+
+    # Default staff to match the superuser setting
+    if staff is None:
+        click.echo("--staff/--no-staff not specified, matching superuser value.")
+        staff = superuser
+
     if not email:
         raise click.ClickException("Invalid or missing email address.")
 
-    # TODO(mattrobenolt): Accept password over stdin?
     if not no_password and not password:
         raise click.ClickException("No password set and --no-password not passed.")
-
-    from django.conf import settings
 
     from sentry import roles
     from sentry.models import User
 
     fields = dict(
-        email=email, username=email, is_superuser=superuser, is_staff=superuser, is_active=True
+        email=email, username=email, is_superuser=superuser, is_staff=staff, is_active=True
     )
 
     verb = None
@@ -93,6 +119,7 @@ def createuser(email, password, superuser, no_password, no_input, force_update):
     except User.DoesNotExist:
         user = None
 
+    # Update the user if they already exist.
     if user is not None:
         if force_update:
             user.update(**fields)
@@ -100,6 +127,7 @@ def createuser(email, password, superuser, no_password, no_input, force_update):
         else:
             click.echo(f"User: {email} exists, use --force-update to force")
             sys.exit(3)
+    # Create a new user if they don't already exist.
     else:
         user = User.objects.create(**fields)
         verb = "created"
@@ -126,8 +154,7 @@ def createuser(email, password, superuser, no_password, no_input, force_update):
         user.set_password(password)
         user.save()
 
-    # for self hosted to give superusers admin permissions
-    if superuser is True and settings.SENTRY_SELF_HOSTED and not no_input:
-        _set_user_permissions(user)
+    if superuser:
+        _set_superadmin(user)
 
     click.echo(f"User {verb}: {email}")
