@@ -5,7 +5,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import search, features
+from sentry import features, search
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.event_search import parse_search_query
@@ -40,6 +40,7 @@ class OrganizationEventsMetricsCompatiblity(OrganizationEventsEndpointBase):
     This endpoint will return projects that have perfect data along with the overall counts of projects so the
     frontend can make decisions about which projects to show and related info
     """
+
     private = True
 
     def get(self, request: Request, organization) -> Response:
@@ -72,9 +73,9 @@ class OrganizationEventsMetricsCompatiblity(OrganizationEventsEndpointBase):
         params["project_id"] = data["dynamic_sampling_projects"]
 
         with self.handle_query_errors():
-            count_unparam = 'count_unparameterized_transactions()'
-            count_has_txn = 'count_has_transaction_name()'
-            count_null = 'count_null_transactions()'
+            count_unparam = "count_unparameterized_transactions()"
+            count_has_txn = "count_has_transaction_name()"
+            count_null = "count_null_transactions()"
             compatible_results = metrics_performance.query(
                 selected_columns=[
                     "project.id",
@@ -87,7 +88,9 @@ class OrganizationEventsMetricsCompatiblity(OrganizationEventsEndpointBase):
                 functions_acl=["count_unparameterized_transactions", "count_has_transaction_name"],
                 use_aggregate_conditions=True,
             )
-            data["compatible_projects"] = sorted([row["project.id"] for row in compatible_results["data"]])
+            data["compatible_projects"] = sorted(
+                row["project.id"] for row in compatible_results["data"]
+            )
 
             sum_metrics = metrics_performance.query(
                 selected_columns=["count()"],
@@ -95,7 +98,9 @@ class OrganizationEventsMetricsCompatiblity(OrganizationEventsEndpointBase):
                 referrer="api.organization-events-metrics-compatibility.sum_metrics",
                 query="",
             )
-            data["sum"]["metrics"] = sum_metrics["data"][0].get("count") if len(sum_metrics["data"]) > 0 else 0
+            data["sum"]["metrics"] = (
+                sum_metrics["data"][0].get("count") if len(sum_metrics["data"]) > 0 else 0
+            )
 
             sum_unparameterized = metrics_performance.query(
                 selected_columns=[count_unparam, count_null],
@@ -106,10 +111,14 @@ class OrganizationEventsMetricsCompatiblity(OrganizationEventsEndpointBase):
                 use_aggregate_conditions=True,
             )
             data["sum"]["metrics_null"] = (
-                sum_unparameterized["data"][0].get(get_function_alias(count_null)) if len(sum_unparameterized["data"]) > 0 else 0
+                sum_unparameterized["data"][0].get(get_function_alias(count_null))
+                if len(sum_unparameterized["data"]) > 0
+                else 0
             )
             data["sum"]["metrics_unparam"] = (
-                sum_unparameterized["data"][0].get(get_function_alias(count_unparam)) if len(sum_unparameterized["data"]) > 0 else 0
+                sum_unparameterized["data"][0].get(get_function_alias(count_unparam))
+                if len(sum_unparameterized["data"]) > 0
+                else 0
             )
 
         return Response(data)
