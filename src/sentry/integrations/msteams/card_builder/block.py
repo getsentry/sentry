@@ -15,6 +15,7 @@ from sentry.integrations.msteams.card_builder import (
     ItemBlock,
     TextBlock,
 )
+from sentry.integrations.msteams.card_builder.utils import escape_markdown_special_chars
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 
@@ -66,10 +67,10 @@ REQUIRED_ACTION_PARAM = {
 }
 
 
-def create_text_block(text: str, **kwargs: str | bool) -> TextBlock:
+def create_text_block(text: str | None, **kwargs: str | bool) -> TextBlock:
     return {
         "type": "TextBlock",
-        "text": text,
+        "text": escape_markdown_special_chars(text) if text else "",
         "wrap": True,
         **kwargs,
     }

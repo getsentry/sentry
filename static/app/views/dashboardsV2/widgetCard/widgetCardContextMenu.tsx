@@ -6,8 +6,8 @@ import {openDashboardWidgetQuerySelectorModal} from 'sentry/actionCreators/modal
 import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
-import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
+import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
+import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
 import Tag from 'sentry/components/tag';
 import Tooltip from 'sentry/components/tooltip';
@@ -105,7 +105,7 @@ function WidgetCardContextMenu({
                 </SampledTag>
               )}
             </Feature>
-            <StyledDropdownMenuControlV2
+            <StyledDropdownMenuControl
               items={[
                 {
                   key: 'preview',
@@ -255,13 +255,13 @@ function WidgetCardContextMenu({
           <Feature organization={organization} features={['dashboards-mep']}>
             {isMetricsData === false && (
               <SampledTag
-                tooltipText={t('This widget is only applicable to sampled events.')}
+                tooltipText={t('This widget is only applicable to indexed events.')}
               >
-                {t('Sampled')}
+                {t('Indexed')}
               </SampledTag>
             )}
           </Feature>
-          <StyledDropdownMenuControlV2
+          <StyledDropdownMenuControl
             items={menuOptions}
             triggerProps={{
               'aria-label': t('Widget actions'),
@@ -310,7 +310,7 @@ const ContextWrapper = styled('div')`
   margin-left: ${space(1)};
 `;
 
-const StyledDropdownMenuControlV2 = styled(DropdownMenuControlV2)`
+const StyledDropdownMenuControl = styled(DropdownMenuControl)`
   & > button {
     z-index: auto;
   }

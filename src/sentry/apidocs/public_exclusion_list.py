@@ -206,7 +206,6 @@ from sentry.api.endpoints.organization_events_trends import (
 from sentry.api.endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
 from sentry.api.endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from sentry.api.endpoints.organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
-from sentry.api.endpoints.organization_has_mobile_app_events import OrganizationHasMobileAppEvents
 from sentry.api.endpoints.organization_index import OrganizationIndexEndpoint
 from sentry.api.endpoints.organization_integration_repos import OrganizationIntegrationReposEndpoint
 from sentry.api.endpoints.organization_integration_serverless_functions import (
@@ -353,7 +352,10 @@ from sentry.api.endpoints.project_processingissues import (
     ProjectProcessingIssuesEndpoint,
     ProjectProcessingIssuesFixEndpoint,
 )
-from sentry.api.endpoints.project_profiling_profile import ProjectProfilingProfileEndpoint
+from sentry.api.endpoints.project_profiling_profile import (
+    ProjectProfilingProfileEndpoint,
+    ProjectProfilingRawProfileEndpoint,
+)
 from sentry.api.endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
 from sentry.api.endpoints.project_release_details import ProjectReleaseDetailsEndpoint
 from sentry.api.endpoints.project_release_file_details import ProjectReleaseFileDetailsEndpoint
@@ -613,6 +615,7 @@ __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
     OrganizationTransactionAnomalyDetectionEndpoint,
     OrganizationProfilingProfilesEndpoint,
     ProjectProfilingProfileEndpoint,
+    ProjectProfilingRawProfileEndpoint,
     JiraDescriptorEndpoint,
     JiraInstalledEndpoint,
     JiraUninstalledEndpoint,
@@ -717,7 +720,6 @@ __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
     OrganizationConfigIntegrationsEndpoint,
     OrganizationConfigRepositoriesEndpoint,
     OrganizationSdkUpdatesEndpoint,
-    OrganizationHasMobileAppEvents,
     OrganizationEventsV2Endpoint,
     OrganizationEventDetailsEndpoint,
     OrganizationEventsStatsEndpoint,
