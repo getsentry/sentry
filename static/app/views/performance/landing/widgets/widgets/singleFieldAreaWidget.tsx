@@ -34,9 +34,6 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
   const globalSelection = props.eventView.getPageFilters();
   const pageError = usePageError();
   const mepSetting = useMEPSettingContext();
-  const useEvents = props.organization.features.includes(
-    'performance-frontend-use-events-endpoint'
-  );
 
   if (props.fields.length !== 1) {
     throw new Error(`Single field area can only accept a single field (${props.fields})`);
@@ -95,7 +92,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
             eventView={eventView}
             location={props.location}
             queryExtras={getMEPQueryParams(mepSetting)}
-            useEvents={useEvents}
+            useEvents
           />
         );
       },
