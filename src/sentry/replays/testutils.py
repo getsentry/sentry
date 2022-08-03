@@ -32,7 +32,7 @@ def mock_expected_response(
     finished_at: datetime.datetime,
     **kwargs: typing.Dict[str, typing.Any],
 ) -> typing.Dict[str, typing.Any]:
-    urls = kwargs.pop("urls", [""])  # TODO: Update when url consumer is merged
+    urls = kwargs.pop("urls", [])
     return {
         "replay_id": replay_id,
         "title": kwargs.pop("title", "Title"),
@@ -70,7 +70,7 @@ def mock_replay(
 ) -> typing.Dict[str, typing.Any]:
     return {
         "type": "replay_event",
-        "start_time": kwargs.pop("timestamp", int(timestamp.timestamp())),
+        "start_time": int(timestamp.timestamp()),
         "replay_id": replay_id,
         "project_id": project_id,
         "retention_days": 30,
@@ -85,11 +85,15 @@ def mock_replay(
                             "customtag": "is_set",
                             "transaction": kwargs.pop("title", "Title"),
                         },
+                        "urls": kwargs.pop("urls", []),
                         "error_ids": kwargs.pop("error_ids", []),
                         "trace_ids": kwargs.pop("trace_ids", []),
                         "dist": kwargs.pop("dist", "abc123"),
                         "platform": kwargs.pop("platform", "javascript"),
-                        "timestamp": kwargs.pop("timestamp", int(timestamp.timestamp())),
+                        "timestamp": int(timestamp.timestamp()),
+                        "replay_start_timestamp": kwargs.pop(
+                            "replay_start_timestamp", int(timestamp.timestamp())
+                        ),
                         "environment": kwargs.pop("environment", "production"),
                         "release": kwargs.pop("release", "version@1.3"),
                         "user": {
@@ -112,10 +116,8 @@ def mock_replay(
                             }
                         },
                         "request": {
-                            "url": kwargs.pop("url", "http://localhost:3000/"),
-                            "headers": {
-                                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
-                            },
+                            "url": "Doesn't matter not ingested.",
+                            "headers": {"User-Agent": kwargs.pop("user_agent", "Firefox")},
                         },
                         "extra": {},
                     }
