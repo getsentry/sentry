@@ -1,10 +1,13 @@
-import styled from '@emotion/styled';
-
-import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import CompactSelect from 'sentry/components/forms/compactSelect';
 import {IconPanel} from 'sentry/icons';
 import useUrlParam from 'sentry/utils/replays/hooks/useUrlParams';
 
 const LAYOUT_NAMES = ['topbar', 'sidebar_left', 'sidebar_right'];
+const layoutLabels = {
+  sidebar_right: 'Player Right',
+  sidebar_left: 'Player Left',
+  topbar: 'Player Top',
+};
 
 function getLayoutIcon(layout: string) {
   const layoutToDir = {
@@ -13,42 +16,31 @@ function getLayoutIcon(layout: string) {
     topbar: 'up',
   };
   const dir = layout in layoutToDir ? layoutToDir[layout] : 'up';
-  return <IconPanel color="gray500" size="sm" direction={dir} />;
+  return <IconPanel size="sm" direction={dir} />;
 }
 
 type Props = {};
 
 function ChooseLayout({}: Props) {
   const {getParamValue, setParamValue} = useUrlParam('l_page', 'topbar');
+
   return (
-    <RelativeContainer>
-      <DropdownControl
-        label={getLayoutIcon(getParamValue())}
-        buttonProps={{size: 'xs'}}
-        alwaysRenderMenu={false}
-        alignRight
-      >
-        {LAYOUT_NAMES.map(key => (
-          <DropdownItem
-            key={key}
-            href={`#${key}`}
-            onClick={() => {
-              setParamValue(key);
-            }}
-          >
-            <Icon>{getLayoutIcon(key)}</Icon>
-          </DropdownItem>
-        ))}
-      </DropdownControl>
-    </RelativeContainer>
+    <CompactSelect
+      triggerProps={{
+        size: 'xs',
+        icon: getLayoutIcon(getParamValue()),
+      }}
+      triggerLabel=""
+      value={getParamValue()}
+      placement="bottom right"
+      onChange={opt => setParamValue(opt?.value)}
+      options={LAYOUT_NAMES.map(key => ({
+        value: key,
+        label: layoutLabels[key],
+        leadingItems: getLayoutIcon(key),
+      }))}
+    />
   );
 }
-const RelativeContainer = styled('div')`
-  position: relative;
-`;
-
-const Icon = styled('div')`
-  text-align: center;
-`;
 
 export default ChooseLayout;
