@@ -98,7 +98,6 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                 self.project.id,
                 replay1_id,
                 segment_id=2,
-                sdk_version="16.8.2",
                 url="http://localhost:3000/",
             )
         )
@@ -115,7 +114,6 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                 replay1_id,
                 seq1_timestamp,
                 seq3_timestamp,
-                sdk_version="16.8.2",
                 trace_ids=[
                     "ffb5344a-41dd-4b21-9288-187a2cd1ad6d",
                     "2a0dcb0e-a1fb-4350-b266-47ae1aa57dfb",
