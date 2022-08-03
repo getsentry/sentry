@@ -25,11 +25,11 @@ import SentryAppExternalIssueModal from './sentryAppExternalIssueModal';
 
 type Props = {
   api: Client;
-  disabled: boolean;
   event: Event;
   group: Group;
   sentryAppComponent: SentryAppComponent;
   sentryAppInstallation: SentryAppInstallation;
+  disabled?: boolean;
   externalIssue?: PlatformExternalIssue;
 };
 
@@ -169,7 +169,7 @@ const IssueLink = styled('div')`
   min-width: 0;
 `;
 
-const StyledIntegrationLink = styled(IntegrationLink)<{disabled: boolean}>`
+const StyledIntegrationLink = styled(IntegrationLink)<{disabled?: boolean}>`
   color: ${({disabled, theme}) => (disabled ? theme.disabled : theme.textColor)};
 `;
 
@@ -181,7 +181,7 @@ const IssueLinkContainer = styled('div')`
   margin-bottom: 16px;
 `;
 
-const StyledIcon = styled('span')<{disabled: boolean}>`
+const StyledIcon = styled('span')<{disabled?: boolean}>`
   color: ${({disabled, theme}) => (disabled ? theme.disabled : theme.textColor)};
   cursor: pointer;
 `;

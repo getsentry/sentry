@@ -199,7 +199,6 @@ export type SentryAppInstallation = {
 };
 
 export type SentryAppComponent = {
-  error: boolean;
   schema: SentryAppSchemaStacktraceLink;
   sentryApp: {
     avatars: Avatar[];
@@ -209,6 +208,7 @@ export type SentryAppComponent = {
   };
   type: 'issue-link' | 'alert-rule-action' | 'issue-media' | 'stacktrace-link';
   uuid: string;
+  error?: boolean;
 };
 
 export type SentryAppWebhookRequest = {

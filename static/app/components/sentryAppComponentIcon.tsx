@@ -38,7 +38,7 @@ export default SentryAppComponentIcon;
 const SentryAppAvatarWrapper = styled('span')<{
   isDark: boolean;
   isDefault: boolean;
-  isDisabled: boolean;
+  isDisabled?: boolean;
 }>`
   color: ${({isDark, isDisabled, theme}) =>
     isDisabled ? theme.disabled : isDark ? 'white' : 'black'};

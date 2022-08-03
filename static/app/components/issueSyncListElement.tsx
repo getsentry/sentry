@@ -11,7 +11,7 @@ import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 
 type Props = {
-  disabled: boolean;
+  disabled?: boolean;
   externalIssueDisplayName?: string | null;
   externalIssueId?: string | null;
   externalIssueKey?: string | null;
@@ -139,7 +139,7 @@ export const IssueSyncListElementContainer = styled('div')`
   }
 `;
 
-export const IntegrationLink = styled('a')<{disabled: boolean}>`
+export const IntegrationLink = styled('a')<{disabled?: boolean}>`
   text-decoration: none;
   padding-bottom: ${space(0.25)};
   margin-left: ${space(1)};
