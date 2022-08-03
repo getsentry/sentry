@@ -103,7 +103,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
               <Text>{network.description}</Text>
             </Tooltip>
           ) : (
-            <Text italic>{t('No description')}</Text>
+            <Text italic>({t('No description')})</Text>
           )}
         </Item>
         <Item>
