@@ -47,6 +47,7 @@ function SearchBarAction({
     <Wrapper className={className}>
       {filterOptions && (
         <CompactSelect
+          size="sm"
           multiple
           maxMenuHeight={400}
           options={filterOptions}

@@ -33,7 +33,6 @@ export interface SelectFieldProps<OptionType>
    * A label that is shown inside the select control.
    */
   inFieldLabel?: string;
-  small?: boolean;
 }
 
 function getChoices<T>(props: SelectFieldProps<T>): Choices {
@@ -91,11 +90,10 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
   };
 
   render() {
-    const {allowClear, confirm, multiple, small, ...otherProps} = this.props;
+    const {allowClear, confirm, multiple, ...otherProps} = this.props;
     return (
       <InputField
         {...otherProps}
-        alignRight={small}
         field={({onChange, onBlur, required: _required, ...props}) => (
           <SelectControl
             {...props}

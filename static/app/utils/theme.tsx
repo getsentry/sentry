@@ -861,6 +861,7 @@ export type Color = keyof typeof lightColors;
 export type Aliases = typeof lightAliases;
 export type ColorOrAlias = keyof Aliases | Color;
 export type IconSize = keyof typeof iconSizes;
+export type FormSize = keyof Theme['form'];
 
 export default commonTheme;
 

@@ -358,6 +358,7 @@ CompactSelectField.parameters = {
   },
 };
 CompactSelectField.args = {
+  size: 'md',
   menuTitle: '',
   isSearchable: false,
   isDisabled: false,
@@ -392,6 +393,10 @@ CompactSelectField.argTypes = {
       'right top',
       'right bottom',
     ],
+    control: {type: 'radio'},
+  },
+  size: {
+    options: ['md', 'sm', 'xs'],
     control: {type: 'radio'},
   },
 };

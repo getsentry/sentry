@@ -24,7 +24,7 @@ function SelectOption(props: Props) {
     innerProps,
     innerRef,
   } = props;
-  const {showDividers} = selectProps;
+  const {showDividers, size} = selectProps;
   const {value, selectionMode, priority, ...itemProps} = data;
 
   const isMultiple = defined(selectionMode) ? selectionMode === 'multiple' : isMulti;
@@ -53,6 +53,7 @@ function SelectOption(props: Props) {
           isFocused={isFocused}
           showDivider={showDividers}
           priority={itemPriority}
+          size={size}
           innerWrapProps={{'data-test-id': value}}
           labelProps={{as: typeof label === 'string' ? 'p' : 'div'}}
           leadingItems={
