@@ -82,8 +82,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         """Test returned replays must have a substantive duration."""
         project = self.create_project(teams=[self.team])
 
-        replay1_id = "44c586f7-bd12-4c1b-b609-189344a19e92"
-        replay2_id = "6f959c5c-bc77-4683-8723-6e3367b0cfac"
+        replay1_id = str(uuid.uuid4())
+        replay2_id = str(uuid.uuid4())
         replay1_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=15)
         replay1_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=10)
         replay2_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=10)
@@ -106,7 +106,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         """Test returned replays can not partially fall outside of range."""
         project = self.create_project(teams=[self.team])
 
-        replay1_id = "44c586f7-bd12-4c1b-b609-189344a19e92"
+        replay1_id = str(uuid.uuid4())
         replay1_timestamp0 = datetime.datetime.now() - datetime.timedelta(days=365)
         replay1_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=10)
 
@@ -128,8 +128,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         self.create_environment(name="development", project=self.project)
         self.create_environment(name="production", project=self.project)
 
-        replay1_id = "44c586f7-bd12-4c1b-b609-189344a19e92"
-        replay2_id = "6f959c5c-bc77-4683-8723-6e3367b0cfac"
+        replay1_id = str(uuid.uuid4())
+        replay2_id = str(uuid.uuid4())
         timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=20)
         timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=10)
 
@@ -165,8 +165,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
     def test_get_replays_started_at_sorted(self):
         project = self.create_project(teams=[self.team])
 
-        replay1_id = "44c586f7-bd12-4c1b-b609-189344a19e92"
-        replay2_id = "6f959c5c-bc77-4683-8723-6e3367b0cfac"
+        replay1_id = str(uuid.uuid4())
+        replay2_id = str(uuid.uuid4())
         replay1_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=15)
         replay1_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=5)
         replay2_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=10)
@@ -193,8 +193,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
     def test_get_replays_finished_at_sorted(self):
         project = self.create_project(teams=[self.team])
 
-        replay1_id = "44c586f7-bd12-4c1b-b609-189344a19e92"
-        replay2_id = "6f959c5c-bc77-4683-8723-6e3367b0cfac"
+        replay1_id = str(uuid.uuid4())
+        replay2_id = str(uuid.uuid4())
         replay1_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=15)
         replay1_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=5)
         replay2_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=10)
@@ -222,8 +222,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         """Test replays can be sorted by duration."""
         project = self.create_project(teams=[self.team])
 
-        replay1_id = "44c586f7-bd12-4c1b-b609-189344a19e92"
-        replay2_id = "6f959c5c-bc77-4683-8723-6e3367b0cfac"
+        replay1_id = str(uuid.uuid4())
+        replay2_id = str(uuid.uuid4())
         replay1_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=15)
         replay1_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=10)
         replay2_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=9)
@@ -251,8 +251,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         """Test replays can be paginated."""
         project = self.create_project(teams=[self.team])
 
-        replay1_id = "44c586f7-bd12-4c1b-b609-189344a19e92"
-        replay2_id = "6f959c5c-bc77-4683-8723-6e3367b0cfac"
+        replay1_id = str(uuid.uuid4())
+        replay2_id = str(uuid.uuid4())
         replay1_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=15)
         replay1_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=5)
         replay2_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=10)

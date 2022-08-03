@@ -32,7 +32,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
     def test_get_one_replay(self):
         """Test only one replay returned."""
         replay1_id = str(self.replay_id)
-        replay2_id = "44c586f7-bd12-4c1b-b609-189344a19e92"
+        replay2_id = str(uuid.uuid4())
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
         seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
 
