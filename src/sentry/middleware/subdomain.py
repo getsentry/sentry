@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Callable
 
+from django.core.exceptions import DisallowedHost
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -30,7 +31,10 @@ class SubdomainMiddleware:
         if not self.base_hostname:
             return self.get_response(request)
 
-        host = request.get_host().lower()
+        try:
+            host = request.get_host().lower()
+        except DisallowedHost:
+            return self.get_response(request)
 
         if not host.endswith(f".{self.base_hostname}"):
             return self.get_response(request)
