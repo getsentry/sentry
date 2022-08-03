@@ -28,6 +28,10 @@ function ReleasesSelectControl({
   const {releases, loading, onSearch} = useReleases();
   const [activeReleases, setActiveReleases] = useState<string[]>(selectedReleases);
 
+  function resetSearch() {
+    onSearch('');
+  }
+
   useEffect(() => {
     setActiveReleases(selectedReleases);
   }, [selectedReleases]);
@@ -62,6 +66,7 @@ function ReleasesSelectControl({
       }
       onChange={opts => setActiveReleases(opts.map(opt => opt.value))}
       onClose={() => {
+        resetSearch();
         handleChangeFilter?.({[DashboardFilterKeys.RELEASE]: activeReleases});
       }}
       value={activeReleases}

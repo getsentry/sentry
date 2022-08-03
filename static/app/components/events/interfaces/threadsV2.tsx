@@ -1,5 +1,4 @@
 import {Fragment, useState} from 'react';
-import styled from '@emotion/styled';
 import isNil from 'lodash/isNil';
 
 import Pill from 'sentry/components/pill';
@@ -15,7 +14,7 @@ import {
   Thread,
 } from 'sentry/types';
 
-import {TraceEventDataSection} from '../traceEventDataSection';
+import {PermalinkTitle, TraceEventDataSection} from '../traceEventDataSection';
 
 import Exception from './crashContent/exception';
 import StackTrace from './crashContent/stackTrace';
@@ -186,28 +185,6 @@ function Threads({
     );
   }
 
-  function getTitle() {
-    if (hasMoreThanOneThread && activeThread) {
-      return (
-        <ThreadSelector
-          threads={threads}
-          activeThread={activeThread}
-          event={event}
-          onChange={thread => {
-            setState({
-              ...state,
-              activeThread: thread,
-            });
-          }}
-          exception={exception}
-          fullWidth
-        />
-      );
-    }
-
-    return <Title>{t('Stack Trace')}</Title>;
-  }
-
   const platform = getPlatform();
 
   return (
@@ -218,9 +195,26 @@ function Threads({
       eventId={event.id}
       recentFirst={isStacktraceNewestFirst()}
       fullStackTrace={stackView === STACK_VIEW.FULL}
-      title={getTitle()}
+      title={
+        hasMoreThanOneThread && activeThread ? (
+          <ThreadSelector
+            threads={threads}
+            activeThread={activeThread}
+            event={event}
+            onChange={thread => {
+              setState({
+                ...state,
+                activeThread: thread,
+              });
+            }}
+            exception={exception}
+            fullWidth
+          />
+        ) : (
+          <PermalinkTitle>{t('Stack Trace')}</PermalinkTitle>
+        )
+      }
       platform={platform}
-      showPermalink={!hasMoreThanOneThread}
       hasMinified={
         !!exception?.values?.find(value => value.rawStacktrace) ||
         !!activeThread?.rawStacktrace
@@ -275,7 +269,3 @@ function Threads({
 }
 
 export default Threads;
-
-const Title = styled('h3')`
-  margin-bottom: 0;
-`;
