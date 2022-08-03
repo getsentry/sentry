@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import {Event, Project, STACK_TYPE, STACK_VIEW, Thread} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
+import {PermalinkTitle} from '../../traceEventDataSection';
 import {isStacktraceNewestFirst} from '../utils';
 
 import findBestThread from './threadSelector/findBestThread';
@@ -133,12 +134,14 @@ function Threads({
             }
           />
         ) : (
-          <CrashTitle
-            title={t('Stack Trace')}
-            newestFirst={newestFirst}
-            hideGuide={hideGuide}
-            onChange={!stackTraceNotFound ? handleChangeNewestFirst : undefined}
-          />
+          <PermalinkTitle>
+            <CrashTitle
+              title={t('Stack Trace')}
+              newestFirst={newestFirst}
+              hideGuide={hideGuide}
+              onChange={!stackTraceNotFound ? handleChangeNewestFirst : undefined}
+            />
+          </PermalinkTitle>
         )
       }
       actions={
@@ -155,7 +158,6 @@ function Threads({
           />
         )
       }
-      showPermalink={!hasMoreThanOneThread}
       wrapTitle={false}
     >
       <Content

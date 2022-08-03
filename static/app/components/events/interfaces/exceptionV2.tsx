@@ -1,11 +1,9 @@
-import styled from '@emotion/styled';
-
 import {t} from 'sentry/locale';
 import {ExceptionType, Group, PlatformType, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
 
-import {TraceEventDataSection} from '../traceEventDataSection';
+import {PermalinkTitle, TraceEventDataSection} from '../traceEventDataSection';
 
 import CrashContentException from './crashContent/exception';
 import NoStackTraceMessage from './noStackTraceMessage';
@@ -59,7 +57,7 @@ function Exception({
 
   return (
     <TraceEventDataSection
-      title={<Title>{t('Exception')}</Title>}
+      title={<PermalinkTitle>{t('Exception')}</PermalinkTitle>}
       type={type}
       stackType={STACK_TYPE.ORIGINAL}
       projectId={projectId}
@@ -98,7 +96,6 @@ function Exception({
         !!data.values?.some(value => (value.stacktrace?.frames ?? []).length > 1)
       }
       stackTraceNotFound={stackTraceNotFound}
-      showPermalink
       wrapTitle={false}
     >
       {({recentFirst, display, fullStackTrace}) =>
@@ -131,7 +128,3 @@ function Exception({
 }
 
 export default Exception;
-
-const Title = styled('h3')`
-  margin-bottom: 0;
-`;

@@ -1,12 +1,10 @@
-import styled from '@emotion/styled';
-
 import CrashContent from 'sentry/components/events/interfaces/crashContent';
 import {t} from 'sentry/locale';
 import {Group, PlatformType, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
 
-import {TraceEventDataSection} from '../traceEventDataSection';
+import {PermalinkTitle, TraceEventDataSection} from '../traceEventDataSection';
 
 import CrashContentStackTrace from './crashContent/stackTrace';
 import NoStackTraceMessage from './noStackTraceMessage';
@@ -52,7 +50,7 @@ function StackTrace({
       stackTraceNotFound={stackTraceNotFound}
       recentFirst={isStacktraceNewestFirst()}
       fullStackTrace={!data.hasSystemFrames}
-      title={<Title>{t('Stack Trace')}</Title>}
+      title={<PermalinkTitle>{t('Stack Trace')}</PermalinkTitle>}
       wrapTitle={false}
       hasMinified={false}
       hasVerboseFunctionNames={
@@ -67,7 +65,6 @@ function StackTrace({
       hasAbsoluteAddresses={!!data.frames?.some(frame => !!frame.instructionAddr)}
       hasAppOnlyFrames={!!data.frames?.some(frame => frame.inApp !== true)}
       hasNewestFirst={(data.frames ?? []).length > 1}
-      showPermalink
     >
       {({recentFirst, display, fullStackTrace}) =>
         stackTraceNotFound ? (
@@ -96,7 +93,3 @@ function StackTrace({
 }
 
 export default StackTrace;
-
-const Title = styled('h3')`
-  margin-bottom: 0;
-`;
