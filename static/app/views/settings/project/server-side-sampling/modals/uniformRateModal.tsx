@@ -435,7 +435,10 @@ export function UniformRateModal({
               </ClientColumn>
               <ClientHelpOrWarningColumn>
                 {isEdited && !isValidSampleRate(percentageToRate(clientInput)) ? (
-                  <Tooltip title={t('Set a value between 0 and 100')}>
+                  <Tooltip
+                    title={t('Set a value between 0 and 100')}
+                    containerDisplayMode="inline-flex"
+                  >
                     <IconWarning
                       color="red300"
                       size="sm"
@@ -468,7 +471,10 @@ export function UniformRateModal({
               </ServerColumn>
               <ServerWarningColumn>
                 {isEdited && !isValidSampleRate(percentageToRate(serverInput)) && (
-                  <Tooltip title={t('Set a value between 0 and 100')}>
+                  <Tooltip
+                    title={t('Set a value between 0 and 100')}
+                    containerDisplayMode="inline-flex"
+                  >
                     <IconWarning
                       color="red300"
                       size="sm"
