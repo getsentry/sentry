@@ -1591,5 +1591,5 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         response = self.do_request(query)
         assert response.status_code == 200, response.content
-        assert len(response.data) == 1
-        assert response.data[0]["p50(measurements.frames_frozen_rate)"] == 0.4
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["p50(measurements.frames_frozen_rate)"] == 0.4
