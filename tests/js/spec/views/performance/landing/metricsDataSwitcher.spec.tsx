@@ -9,52 +9,26 @@ import {PerformanceLanding} from 'sentry/views/performance/landing';
 export function addMetricsDataMock(settings?: {
   metricsCount: number;
   nullCount: number;
-  transactionCount: number;
   unparamCount: number;
+  dynamicSampledProjects?: number[];
 }) {
-  const unparamPredicate = (_, options) =>
-    options.query?.query.includes('transaction:"<< unparameterized >>"');
-  const nullPredicate = (_, options) => options.query?.query.includes('transaction:""');
-  const metricsOnlyPredicate = (_, options) => options.query?.dataset === 'metrics';
-
   const metricsCount = settings?.metricsCount ?? 10;
   const unparamCount = settings?.unparamCount ?? 0;
   const nullCount = settings?.nullCount ?? 0;
-  const transactionCount = settings?.transactionCount ?? 0;
+  const dynamic_sampling_projects = settings?.dynamicSampledProjects ?? [1];
 
   MockApiClient.addMockResponse({
     method: 'GET',
-    url: `/organizations/org-slug/eventsv2/`,
-    body: {data: [{count: metricsCount}], meta: {count: 'integer', isMetricsData: true}},
-    match: [
-      (...args) =>
-        metricsOnlyPredicate(...args) &&
-        !unparamPredicate(...args) &&
-        !nullPredicate(...args),
-    ],
-  });
-
-  MockApiClient.addMockResponse({
-    method: 'GET',
-    url: `/organizations/org-slug/eventsv2/`,
-    body: {data: [{count: unparamCount}], meta: {count: 'integer', isMetricsData: true}},
-    match: [(...args) => metricsOnlyPredicate(...args) && unparamPredicate(...args)],
-  });
-
-  MockApiClient.addMockResponse({
-    method: 'GET',
-    url: `/organizations/org-slug/eventsv2/`,
-    body: {data: [{count: nullCount}], meta: {count: 'integer', isMetricsData: true}},
-    match: [(...args) => metricsOnlyPredicate(...args) && nullPredicate(...args)],
-  });
-  MockApiClient.addMockResponse({
-    method: 'GET',
-    url: `/organizations/org-slug/eventsv2/`,
+    url: `/organizations/org-slug/events-metrics-compatibility/`,
     body: {
-      data: [{count: transactionCount}],
-      meta: {count: 'integer', isMetricsData: false},
+      compatible_projects: [],
+      dynamic_sampling_projects,
+      sum: {
+        metrics: metricsCount,
+        metrics_unparam: unparamCount,
+        metrics_null: nullCount,
+      },
     },
-    match: [(...args) => !metricsOnlyPredicate(...args)],
   });
 }
 
@@ -163,6 +137,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
   });
 
   it('renders basic UI elements', function () {
+    addMetricsDataMock();
     const project = TestStubs.Project();
     const data = initializeData({
       project: project.id,
@@ -188,10 +163,26 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
     expect(await screen.findByTestId('transaction-search-bar')).toBeInTheDocument();
   });
 
-  it('renders with feature flag and dissimilar transactions and metrics counts', async function () {
+  it('renders with feature flag and no metrics data', async function () {
+    addMetricsDataMock({
+      metricsCount: 0,
+      nullCount: 0,
+      unparamCount: 0,
+    });
+    const project = TestStubs.Project();
+    const data = initializeData({
+      project: project.id,
+      projects: [project],
+      features,
+    });
+
+    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+    expect(await screen.findByTestId('smart-search-bar')).toBeInTheDocument();
+  });
+
+  it('renders with feature flag and checking dynamic sampled projects exist', async function () {
     addMetricsDataMock({
       metricsCount: 100,
-      transactionCount: 50,
       nullCount: 0,
       unparamCount: 0,
     });
@@ -207,47 +198,9 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
     expect(await screen.findByTestId('transaction-search-bar')).toBeInTheDocument();
   });
 
-  it('renders with feature flag and very similar transactions and metrics counts', async function () {
-    addMetricsDataMock({
-      metricsCount: 100,
-      transactionCount: 96,
-      nullCount: 0,
-      unparamCount: 0,
-    });
-    const project = TestStubs.Project();
-    const data = initializeData({
-      project: project.id,
-      projects: [project],
-      features,
-    });
-
-    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
-
-    expect(await screen.findByTestId('smart-search-bar')).toBeInTheDocument();
-  });
-
-  it('renders with feature flag and no metrics data', async function () {
-    addMetricsDataMock({
-      metricsCount: 0,
-      transactionCount: 50,
-      nullCount: 0,
-      unparamCount: 0,
-    });
-    const project = TestStubs.Project();
-    const data = initializeData({
-      project: project.id,
-      projects: [project],
-      features,
-    });
-
-    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
-    expect(await screen.findByTestId('smart-search-bar')).toBeInTheDocument();
-  });
-
   it('renders with feature flag and any incompatible data', async function () {
     addMetricsDataMock({
       metricsCount: 100,
-      transactionCount: 50,
       nullCount: 1,
       unparamCount: 0,
     });
@@ -268,7 +221,6 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
   it('renders with feature flag and any incompatible transactions on multiple projects', async function () {
     addMetricsDataMock({
       metricsCount: 100,
-      transactionCount: 50,
       nullCount: 1,
       unparamCount: 0,
     });
@@ -290,7 +242,6 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
   it('renders with feature flag and all other(unparam) transactions', async function () {
     addMetricsDataMock({
       metricsCount: 100,
-      transactionCount: 50,
       nullCount: 0,
       unparamCount: 100,
     });
@@ -311,7 +262,6 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
   it('renders with feature flag and partial other(unparam) transactions and platform with docs', async function () {
     addMetricsDataMock({
       metricsCount: 100,
-      transactionCount: 50,
       nullCount: 0,
       unparamCount: 1,
     });
@@ -333,7 +283,6 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
   it('renders with feature flag and partial other(unparam) transactions', async function () {
     addMetricsDataMock({
       metricsCount: 100,
-      transactionCount: 50,
       nullCount: 0,
       unparamCount: 1,
     });
