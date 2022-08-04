@@ -182,6 +182,10 @@ export function RecommendedStepsModal({
                   <span className="token function">init</span>
                   <span className="token punctuation">(</span>
                   <span className="token punctuation">{'{'}</span>
+                  <span className="token comment">
+                    {' // '}
+                    {t('JavaScript Example')}
+                  </span>
                   <br />
                   <span className="token punctuation">{'  ...'}</span>
                   <br />
