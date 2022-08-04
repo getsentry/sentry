@@ -565,6 +565,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       comparisonDelta,
       uuid,
       timeWindow,
+      eventTypes,
     } = this.state;
     // Remove empty warning trigger
     const sanitizedTriggers = triggers.filter(
@@ -612,7 +613,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
           aggregate,
           ...(hasMetricDataset ? {queryType: DatasetMEPAlertQueryTypes[dataset]} : {}),
           // Remove eventTypes as it is no longer requred for crash free
-          eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : rule.eventTypes,
+          eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : eventTypes,
           dataset,
         },
         {
