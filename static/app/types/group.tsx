@@ -1,4 +1,5 @@
 import type {PlatformKey} from 'sentry/data/platformCategories';
+import {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
 import type {Event, EventMetadata, EventOrGroupType, Level} from './event';
@@ -63,7 +64,10 @@ export type EventAttachment = Omit<IssueAttachment, 'event_id'>;
 export type Tag = {
   key: string;
   name: string;
+
   isInput?: boolean;
+
+  kind?: FieldKind;
   /**
    * How many values should be suggested in autocomplete.
    * Overrides SmartSearchBar's `maxSearchItems` prop.
@@ -138,6 +142,7 @@ export type SuggestedOwner = {
 
 export type IssueOwnership = {
   autoAssignment: boolean;
+  codeownersAutoSync: boolean;
   dateCreated: string;
   fallthrough: boolean;
   isActive: boolean;

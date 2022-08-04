@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import ActionLink from 'sentry/components/actions/actionLink';
 import IgnoreActions from 'sentry/components/actions/ignore';
 import {openConfirmModal} from 'sentry/components/confirm';
-import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
+import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
+import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
@@ -225,13 +225,13 @@ function ActionSet({
           {t('Merge')}
         </ActionLink>
       )}
-      <DropdownMenuControlV2
+      <DropdownMenuControl
         items={menuItems}
         triggerProps={{
           'aria-label': t('More issue actions'),
           icon: <IconEllipsis size="xs" />,
           showChevron: false,
-          size: 'xsmall',
+          size: 'xs',
         }}
         disabledKeys={disabledMenuItems}
         isDisabled={!anySelected}

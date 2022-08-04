@@ -14,11 +14,11 @@ import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Confirm from 'sentry/components/confirm';
-import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -68,12 +68,12 @@ type State = {
   error: string;
   errorCode: number;
   eventView: EventView;
-  incompatibleAlertNotice: React.ReactNode;
   needConfirmation: boolean;
   showTags: boolean;
   totalValues: null | number;
   savedQuery?: SavedQuery;
   showMetricsAlert?: boolean;
+  showUnparameterizedBanner?: boolean;
 };
 const SHOW_TAGS_STORAGE_KEY = 'discover2:show-tags';
 
@@ -117,7 +117,6 @@ class Results extends Component<Props, State> {
     showTags: readShowTagsState(),
     needConfirmation: false,
     confirmedQuery: false,
-    incompatibleAlertNotice: null,
   };
 
   componentDidMount() {
@@ -127,6 +126,13 @@ class Results extends Component<Props, State> {
       browserHistory.replace({
         ...location,
         query: {...location.query, fromMetric: undefined},
+      });
+    }
+    if (location.query.showUnparameterizedBanner) {
+      this.setState({showUnparameterizedBanner: true});
+      browserHistory.replace({
+        ...location,
+        query: {...location.query, showUnparameterizedBanner: undefined},
       });
     }
     loadOrganizationTags(this.tagsApi, organization.slug, selection);
@@ -439,28 +445,6 @@ class Results extends Component<Props, State> {
     return url;
   };
 
-  handleIncompatibleQuery: React.ComponentProps<
-    typeof CreateAlertFromViewButton
-  >['onIncompatibleQuery'] = (incompatibleAlertNoticeFn, errors) => {
-    const {organization} = this.props;
-    const {eventView} = this.state;
-    trackAnalyticsEvent({
-      eventKey: 'discover_v2.create_alert_clicked',
-      eventName: 'Discoverv2: Create alert clicked',
-      status: 'error',
-      query: eventView.query,
-      errors,
-      organization_id: organization.id,
-      url: window.location.href,
-    });
-
-    const incompatibleAlertNotice = incompatibleAlertNoticeFn(() =>
-      this.setState({incompatibleAlertNotice: null})
-    );
-
-    this.setState({incompatibleAlertNotice});
-  };
-
   renderError(error: string) {
     if (!error) {
       return null;
@@ -486,6 +470,20 @@ class Results extends Component<Props, State> {
         </Alert>
       );
     }
+    if (this.state.showUnparameterizedBanner) {
+      return (
+        <Alert type="info" showIcon>
+          {tct(
+            'These are unparameterized transactions. To better organize your transactions, [link:set transaction names manually].',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/configuration/integrations/react-router/#parameterized-transaction-names" />
+              ),
+            }
+          )}
+        </Alert>
+      );
+    }
     return null;
   }
 
@@ -497,7 +495,6 @@ class Results extends Component<Props, State> {
       errorCode,
       totalValues,
       showTags,
-      incompatibleAlertNotice,
       confirmedQuery,
       savedQuery,
     } = this.state;
@@ -517,12 +514,10 @@ class Results extends Component<Props, State> {
               organization={organization}
               location={location}
               eventView={eventView}
-              onIncompatibleAlertQuery={this.handleIncompatibleQuery}
               yAxis={yAxisArray}
               router={router}
             />
             <Layout.Body>
-              {incompatibleAlertNotice && <Top fullWidth>{incompatibleAlertNotice}</Top>}
               <Top fullWidth>
                 {this.renderMetricsFallbackBanner()}
                 {this.renderError(error)}

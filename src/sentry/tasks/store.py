@@ -17,6 +17,7 @@ from sentry.eventstore.processing.base import Event
 from sentry.killswitches import killswitch_matches_context
 from sentry.models import Activity, Organization, Project, ProjectOption
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
+from sentry.tasks import performance_detection
 from sentry.tasks.base import instrumented_task
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
@@ -36,7 +37,7 @@ class RetryProcessing(Exception):
     pass
 
 
-@metrics.wraps("should_process")  # type: ignore
+@metrics.wraps("should_process")
 def should_process(data: CanonicalKeyDict) -> bool:
     """Quick check if processing is needed at all."""
     return _should_process_inner(data)
@@ -688,7 +689,11 @@ def _do_save_event(
                 manager = EventManager(data)
                 # event.project.organization is populated after this statement.
                 manager.save(
-                    project_id, assume_normalized=True, start_time=start_time, cache_key=cache_key
+                    project_id,
+                    assume_normalized=True,
+                    start_time=start_time,
+                    cache_key=cache_key,
+                    auto_upgrade_grouping=event_type != "transaction",
                 )
                 # Put the updated event back into the cache so that post_process
                 # has the most recent data.
@@ -697,6 +702,8 @@ def _do_save_event(
                     data = dict(data.items())
                 with metrics.timer("tasks.store.do_save_event.write_processing_cache"):
                     processing.event_processing_store.store(data)
+                if event_type == "transaction":
+                    performance_detection.detect_performance_issue(data)
         except HashDiscarded:
             # Delete the event payload from cache since it won't show up in post-processing.
             if cache_key:

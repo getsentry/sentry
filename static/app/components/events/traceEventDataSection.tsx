@@ -1,4 +1,10 @@
-import {createContext, Fragment, useState} from 'react';
+import {
+  AnchorHTMLAttributes,
+  cloneElement,
+  createContext,
+  Fragment,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -54,9 +60,8 @@ type Props = {
   recentFirst: boolean;
   stackTraceNotFound: boolean;
   stackType: STACK_TYPE;
-  title: React.ReactNode;
+  title: React.ReactElement<any, any>;
   type: string;
-  showPermalink?: boolean;
   wrapTitle?: boolean;
 };
 
@@ -67,7 +72,6 @@ export const TraceEventDataSectionContext = createContext<ChildProps | undefined
 export function TraceEventDataSection({
   type,
   title,
-  showPermalink,
   wrapTitle,
   stackTraceNotFound,
   fullStackTrace,
@@ -89,7 +93,7 @@ export function TraceEventDataSection({
 
   const [state, setState] = useState<State>({
     sortBy: recentFirst ? 'recent-first' : 'recent-last',
-    fullStackTrace,
+    fullStackTrace: !hasAppOnlyFrames ? true : fullStackTrace,
     display: [],
   });
 
@@ -161,6 +165,10 @@ export function TraceEventDataSection({
         isDisabled: !hasMinified,
         tooltip: !hasMinified ? t('Minified version not available') : undefined,
       },
+      {
+        label: displayOptions['raw-stack-trace'],
+        value: 'raw-stack-trace',
+      },
     ];
   }
 
@@ -188,18 +196,7 @@ export function TraceEventDataSection({
       type={type}
       title={
         <Header>
-          <Title>
-            {showPermalink ? (
-              <div>
-                <Permalink href={'#' + type} className="permalink">
-                  <StyledIconAnchor />
-                  {title}
-                </Permalink>
-              </div>
-            ) : (
-              title
-            )}
-          </Title>
+          <Title>{cloneElement(title, {type})}</Title>
           {!stackTraceNotFound && (
             <Fragment>
               {!state.display.includes('raw-stack-trace') && (
@@ -211,6 +208,7 @@ export function TraceEventDataSection({
                     name="full-stack-trace-toggler"
                     label={t('Full stack trace')}
                     hideControlState
+                    disabled={!hasAppOnlyFrames}
                     value={state.fullStackTrace}
                     onChange={() =>
                       setState({
@@ -223,7 +221,7 @@ export function TraceEventDataSection({
               )}
               {state.display.includes('raw-stack-trace') && nativePlatform && (
                 <Button
-                  size="small"
+                  size="sm"
                   href={rawStackTraceDownloadLink}
                   title={t('Download raw stack trace file')}
                 >
@@ -234,7 +232,7 @@ export function TraceEventDataSection({
                 triggerLabel={t('Options')}
                 triggerProps={{
                   icon: <IconSliders />,
-                  size: 'small',
+                  size: 'sm',
                 }}
                 placement="bottom right"
                 sections={[
@@ -277,6 +275,21 @@ export function TraceEventDataSection({
   );
 }
 
+interface PermalinkTitleProps
+  extends React.DetailedHTMLProps<
+    AnchorHTMLAttributes<HTMLAnchorElement>,
+    HTMLAnchorElement
+  > {}
+
+export function PermalinkTitle(props: PermalinkTitleProps) {
+  return (
+    <Permalink {...props} href={'#' + props.type} className="permalink">
+      <StyledIconAnchor />
+      <h3>{props.children}</h3>
+    </Permalink>
+  );
+}
+
 const StyledIconAnchor = styled(IconAnchor)`
   display: none;
   position: absolute;
@@ -287,7 +300,8 @@ const StyledIconAnchor = styled(IconAnchor)`
 const Permalink = styled('a')`
   display: inline-flex;
   justify-content: flex-start;
-  :hover ${StyledIconAnchor} {
+
+  &:hover ${StyledIconAnchor} {
     display: block;
     color: ${p => p.theme.gray300};
   }

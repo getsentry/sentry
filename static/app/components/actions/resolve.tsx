@@ -7,7 +7,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import CustomCommitsResolutionModal from 'sentry/components/customCommitsResolutionModal';
 import CustomResolutionModal from 'sentry/components/customResolutionModal';
-import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
+import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
 import Tooltip from 'sentry/components/tooltip';
 import {IconCheckmark, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -110,7 +110,7 @@ class ResolveActions extends Component<Props> {
       >
         <Button
           priority="primary"
-          size="xsmall"
+          size="xs"
           icon={<IconCheckmark size="xs" />}
           aria-label={t('Unresolve')}
           disabled={isAutoResolved}
@@ -182,14 +182,14 @@ class ResolveActions extends Component<Props> {
     const isDisabled = !projectSlug ? disabled : disableDropdown;
 
     return (
-      <DropdownMenuControlV2
+      <DropdownMenuControl
         items={items}
         trigger={({props: triggerProps, ref: triggerRef}) => (
           <DropdownTrigger
             ref={triggerRef}
             {...triggerProps}
             aria-label={t('More resolve options')}
-            size="xsmall"
+            size="xs"
             icon={<IconChevron direction="down" size="xs" />}
             disabled={isDisabled}
           />
@@ -262,7 +262,7 @@ class ResolveActions extends Component<Props> {
       <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
         <ButtonBar merged>
           <ResolveButton
-            size="xsmall"
+            size="xs"
             title={t(
               'Resolves the issue. The issue will get unresolved if it happens again.'
             )}

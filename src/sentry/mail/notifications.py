@@ -8,6 +8,7 @@ from django.utils.encoding import force_text
 
 from sentry import options
 from sentry.models import Project, ProjectOption, Team, User
+from sentry.notifications.notifications.active_release import ActiveReleaseIssueNotification
 from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
 from sentry.notifications.notify import register_notification_provider
 from sentry.types.integrations import ExternalProviders
@@ -52,6 +53,10 @@ def get_subject_with_prefix(
     prefix = ""
     if isinstance(notification, ProjectNotification):
         prefix = f"{build_subject_prefix(notification.project).rstrip()} "
+
+    if isinstance(notification, ActiveReleaseIssueNotification):
+        prefix = f"**ARM** {prefix}"
+
     return f"{prefix}{notification.get_subject(context)}".encode()
 
 

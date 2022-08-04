@@ -13,6 +13,7 @@ import pytest
 import requests
 
 from sentry.runner.commands.devservices import get_docker_client
+from sentry.utils.pytest.sentry import TEST_REDIS_DB
 
 _log = logging.getLogger(__name__)
 
@@ -43,6 +44,8 @@ def _remove_container_if_exists(docker_client, container_name):
             container.remove()
         except Exception:
             pass  # could not remove the container nothing to do about it
+    finally:
+        docker_client.close()
 
 
 @pytest.fixture(scope="session")
@@ -76,11 +79,17 @@ def relay_server_setup(live_server, tmpdir_factory):
     # NOTE: if we ever need to start the test relay server at various ports here's where we need to change
     relay_port = 33331
 
+    redis_db = TEST_REDIS_DB
+    from sentry.relay import projectconfig_cache
+
+    assert redis_db == projectconfig_cache.backend.cluster.connection_pool.connection_kwargs["db"]
+
     template_vars = {
         "SENTRY_HOST": upstream_host,
         "RELAY_PORT": relay_port,
         "KAFKA_HOST": kafka_host,
         "REDIS_HOST": redis_host,
+        "REDIS_DB": redis_db,
     }
 
     for source in sources:
@@ -100,6 +109,8 @@ def relay_server_setup(live_server, tmpdir_factory):
     docker_client = get_docker_client()
     container_name = _relay_server_container_name()
     _remove_container_if_exists(docker_client, container_name)
+    docker_client.close()
+
     options = {
         "image": RELAY_TEST_IMAGE,
         "ports": {"%s/tcp" % relay_port: relay_port},
@@ -117,7 +128,9 @@ def relay_server_setup(live_server, tmpdir_factory):
 
     # cleanup
     shutil.rmtree(config_path)
-    _remove_container_if_exists(docker_client, container_name)
+    if not environ.get("RELAY_TEST_KEEP_CONTAINER", False):
+        docker_client = get_docker_client()
+        _remove_container_if_exists(docker_client, container_name)
 
 
 @pytest.fixture(scope="function")

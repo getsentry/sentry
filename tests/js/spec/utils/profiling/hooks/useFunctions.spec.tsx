@@ -42,18 +42,17 @@ describe('useFunctions', function () {
           project,
           query: '',
           transaction: '',
+          sort: '-p99',
         }),
       {wrapper: TestContext}
     );
     expect(hook.result.current).toEqual({type: 'initial'});
   });
 
-  it('fetches functions', async function () {
+  it('fetches functions legacy', async function () {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/${project.slug}/profiling/functions/`,
-      body: {
-        functions: [],
-      },
+      body: {functions: [{symbol: ''}]}, // only the legacy response contains symbol
     });
 
     const hook = reactHooks.renderHook(
@@ -63,6 +62,7 @@ describe('useFunctions', function () {
           query: '',
           transaction: '',
           selection,
+          sort: '-p99',
         }),
       {wrapper: TestContext}
     );
@@ -70,7 +70,138 @@ describe('useFunctions', function () {
     await hook.waitForNextUpdate();
     expect(hook.result.current).toEqual({
       type: 'resolved',
-      data: [],
+      data: {
+        functions: [{symbol: ''}],
+        version: 1,
+      },
     });
+  });
+
+  it('fetches functions', async function () {
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${project.slug}/profiling/functions/`,
+      body: {functions: []},
+    });
+
+    const hook = reactHooks.renderHook(
+      () =>
+        useFunctions({
+          project,
+          query: '',
+          transaction: '',
+          selection,
+          sort: '-p99',
+        }),
+      {wrapper: TestContext}
+    );
+    expect(hook.result.current).toEqual({type: 'loading'});
+    await hook.waitForNextUpdate();
+    expect(hook.result.current).toEqual({
+      type: 'resolved',
+      data: {
+        functions: [],
+        pageLinks: null,
+        version: 2,
+      },
+    });
+  });
+
+  it('fetches application functions', async function () {
+    const mock = MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${project.slug}/profiling/functions/`,
+      body: {functions: []},
+      match: [MockApiClient.matchQuery({is_application: '1'})],
+    });
+
+    const hook = reactHooks.renderHook(
+      () =>
+        useFunctions({
+          functionType: 'application',
+          project,
+          query: '',
+          transaction: '',
+          selection,
+          sort: '-p99',
+        }),
+      {wrapper: TestContext}
+    );
+    expect(hook.result.current).toEqual({type: 'loading'});
+    await hook.waitForNextUpdate();
+    expect(hook.result.current).toEqual({
+      type: 'resolved',
+      data: {
+        functions: [],
+        pageLinks: null,
+        version: 2,
+      },
+    });
+
+    expect(mock).toHaveBeenCalledTimes(1);
+  });
+
+  it('fetches system functions', async function () {
+    const mock = MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${project.slug}/profiling/functions/`,
+      body: {functions: []},
+      match: [MockApiClient.matchQuery({is_application: '0'})],
+    });
+
+    const hook = reactHooks.renderHook(
+      () =>
+        useFunctions({
+          functionType: 'system',
+          project,
+          query: '',
+          transaction: '',
+          selection,
+          sort: '-p99',
+        }),
+      {wrapper: TestContext}
+    );
+    expect(hook.result.current).toEqual({type: 'loading'});
+    await hook.waitForNextUpdate();
+    expect(hook.result.current).toEqual({
+      type: 'resolved',
+      data: {
+        functions: [],
+        pageLinks: null,
+        version: 2,
+      },
+    });
+
+    expect(mock).toHaveBeenCalledTimes(1);
+  });
+
+  it('fetches all functions', async function () {
+    const mock = MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${project.slug}/profiling/functions/`,
+      body: {functions: []},
+      match: [MockApiClient.matchQuery({is_application: undefined})],
+    });
+
+    const hook = reactHooks.renderHook(
+      () =>
+        useFunctions({
+          functionType: 'all',
+          project,
+          query: '',
+          transaction: '',
+          selection,
+          sort: '-p99',
+        }),
+      {wrapper: TestContext}
+    );
+    expect(hook.result.current).toEqual({type: 'loading'});
+    await hook.waitForNextUpdate();
+    expect(hook.result.current).toEqual({
+      type: 'resolved',
+      data: {
+        functions: [],
+        pageLinks: null,
+        version: 2,
+      },
+    });
+
+    expect(mock).toHaveBeenCalledTimes(1);
   });
 });

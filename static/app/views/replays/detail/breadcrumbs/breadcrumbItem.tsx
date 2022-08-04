@@ -15,17 +15,17 @@ interface Props {
   crumb: Crumb;
   isHovered: boolean;
   isSelected: boolean;
-  onClick: MouseCallback;
-  onMouseEnter: MouseCallback;
-  onMouseLeave: MouseCallback;
-  startTimestamp: number;
+  onClick: null | MouseCallback;
+  startTimestampMs: number;
+  onMouseEnter?: MouseCallback;
+  onMouseLeave?: MouseCallback;
 }
 
 function BreadcrumbItem({
   crumb,
   isHovered,
   isSelected,
-  startTimestamp,
+  startTimestampMs,
   onMouseEnter,
   onMouseLeave,
   onClick,
@@ -33,21 +33,21 @@ function BreadcrumbItem({
   const {title, description} = getDetails(crumb);
 
   const handleMouseEnter = useCallback(
-    (e: React.MouseEvent<HTMLElement>) => onMouseEnter(crumb, e),
+    (e: React.MouseEvent<HTMLElement>) => onMouseEnter && onMouseEnter(crumb, e),
     [onMouseEnter, crumb]
   );
   const handleMouseLeave = useCallback(
-    (e: React.MouseEvent<HTMLElement>) => onMouseLeave(crumb, e),
+    (e: React.MouseEvent<HTMLElement>) => onMouseLeave && onMouseLeave(crumb, e),
     [onMouseLeave, crumb]
   );
   const handleClick = useCallback(
-    (e: React.MouseEvent<HTMLElement>) => onClick(crumb, e),
+    (e: React.MouseEvent<HTMLElement>) => onClick?.(crumb, e),
     [onClick, crumb]
   );
 
   return (
     <CrumbItem
-      as="button"
+      as={onClick ? 'button' : 'span'}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={handleClick}
@@ -59,10 +59,16 @@ function BreadcrumbItem({
         <BreadcrumbIcon type={crumb.type} />
       </IconWrapper>
       <CrumbDetails>
-        <Title>{title}</Title>
+        <TitleContainer>
+          <Title>{title}</Title>
+          <PlayerRelativeTime
+            relativeTimeMs={startTimestampMs}
+            timestamp={crumb.timestamp}
+          />
+        </TitleContainer>
+
         <Description title={description}>{description}</Description>
       </CrumbDetails>
-      <PlayerRelativeTime relativeTime={startTimestamp} timestamp={crumb.timestamp} />
     </CrumbItem>
   );
 }
@@ -71,19 +77,28 @@ const CrumbDetails = styled('div')`
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  line-height: 1.2;
-  padding: ${space(1)} 0;
+`;
+
+const TitleContainer = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  gap: ${space(1)};
 `;
 
 const Title = styled('span')`
   ${p => p.theme.overflowEllipsis};
   text-transform: capitalize;
+  font-weight: 600;
+  color: ${p => p.theme.gray400};
+  line-height: ${p => p.theme.text.lineHeightBody};
 `;
 
 const Description = styled('span')`
   ${p => p.theme.overflowEllipsis};
   font-size: 0.7rem;
   font-variant-numeric: tabular-nums;
+  line-height: ${p => p.theme.text.lineHeightBody};
+  color: ${p => p.theme.subText};
 `;
 
 type CrumbItemProps = {
@@ -93,32 +108,43 @@ type CrumbItemProps = {
 
 const CrumbItem = styled(PanelItem)<CrumbItemProps>`
   display: grid;
-  grid-template-columns: max-content max-content auto max-content;
-  align-items: center;
+  grid-template-columns: max-content auto;
+  align-items: flex-start;
   gap: ${space(1)};
   width: 100%;
 
   font-size: ${p => p.theme.fontSizeMedium};
   background: transparent;
-  padding: 0;
-  padding-right: ${space(1)};
+  padding: ${space(1)};
   text-align: left;
-
   border: none;
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
-  ${p => p.isHovered && `background: ${p.theme.surface400};`}
+  position: relative;
+  ${p => p.isSelected && `background-color: ${p.theme.purple100};`}
+  ${p => p.isHovered && `background-color: ${p.theme.surface100};`}
+  border-radius: ${p => p.theme.borderRadius};
 
-  /* overrides PanelItem css */
-  &:last-child {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+  /* Draw a vertical line behind the breadcrumb icon. The line connects each row together, but is truncated for the first and last items */
+  &::after {
+    content: '';
+    position: absolute;
+    left: 19.5px;
+    width: 1px;
+    background: ${p => p.theme.gray200};
+    height: 100%;
   }
 
-  /* Selected state */
-  ::before {
-    content: '';
-    width: 4px;
-    height: 100%;
-    ${p => p.isSelected && `background-color: ${p.theme.purple300};`}
+  &:first-of-type::after {
+    top: ${space(1)};
+    bottom: 0;
+  }
+
+  &:last-of-type::after {
+    top: 0;
+    height: ${space(1)};
+  }
+
+  &:only-of-type::after {
+    height: 0;
   }
 `;
 
@@ -129,13 +155,14 @@ const IconWrapper = styled('div')<Required<Pick<SVGIconProps, 'color'>>>`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   color: ${p => p.theme.white};
   background: ${p => p.theme[p.color] ?? p.color};
   box-shadow: ${p => p.theme.dropShadowLightest};
   position: relative;
+  z-index: ${p => p.theme.zIndex.initial};
 `;
 
 const MemoizedBreadcrumbItem = memo(BreadcrumbItem);

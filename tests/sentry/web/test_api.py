@@ -3,6 +3,8 @@ from unittest import mock
 from django.urls import reverse
 from exam import fixture
 
+from sentry.models import Organization, OrganizationStatus, ScheduledDeletion
+from sentry.tasks.deletion import run_deletion
 from sentry.testutils import TestCase
 from sentry.utils import json
 
@@ -104,4 +106,214 @@ class ClientConfigViewTest(TestCase):
         assert data["isAuthenticated"]
         assert data["user"]
         assert data["user"]["email"] == user.email
-        assert data["user"]["isSuperuser"]
+        assert data["user"]["isSuperuser"] is True
+        assert data["lastOrganization"] is None
+        assert "activeorg" not in self.client.session
+
+        # Induce last active organization
+        resp = self.client.get(
+            reverse("sentry-api-0-organization-projects", args=[self.organization.slug])
+        )
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+        assert "activeorg" not in self.client.session
+
+        # lastOrganization is not set
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+
+        data = json.loads(resp.content)
+        assert data["lastOrganization"] is None
+        assert "activeorg" not in self.client.session
+
+    def test_organization_url_unauthenticated(self):
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+
+        data = json.loads(resp.content)
+        assert not data["isAuthenticated"]
+        assert data["user"] is None
+        assert data["lastOrganization"] is None
+        assert data["sentryUrl"] == "http://testserver"
+        assert data["organizationUrl"] is None
+
+    def test_organization_url_authenticated(self):
+        self.login_as(self.user)
+
+        # Induce last active organization
+        resp = self.client.get(
+            reverse("sentry-api-0-organization-projects", args=[self.organization.slug])
+        )
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+
+        data = json.loads(resp.content)
+
+        assert data["isAuthenticated"] is True
+        assert data["lastOrganization"] == self.organization.slug
+        assert data["sentryUrl"] == "http://testserver"
+        assert data["organizationUrl"] == f"http://{self.organization.slug}.us.testserver"
+
+    def test_organization_url_region(self):
+        self.login_as(self.user)
+
+        # Induce last active organization
+        resp = self.client.get(
+            reverse("sentry-api-0-organization-projects", args=[self.organization.slug])
+        )
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+
+        with self.options({"system.region": "eu"}):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "application/json"
+
+            data = json.loads(resp.content)
+
+            assert data["isAuthenticated"] is True
+            assert data["lastOrganization"] == self.organization.slug
+            assert data["sentryUrl"] == "http://testserver"
+            assert data["organizationUrl"] == f"http://{self.organization.slug}.eu.testserver"
+
+    def test_organization_url_organization_base_hostname(self):
+        self.login_as(self.user)
+
+        # Induce last active organization
+        resp = self.client.get(
+            reverse("sentry-api-0-organization-projects", args=[self.organization.slug])
+        )
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+
+        with self.options({"system.organization-base-hostname": "invalid"}):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "application/json"
+
+            data = json.loads(resp.content)
+
+            assert data["isAuthenticated"] is True
+            assert data["lastOrganization"] == self.organization.slug
+            assert data["sentryUrl"] == "http://testserver"
+            assert data["organizationUrl"] == "http://testserver"
+
+        with self.options({"system.organization-base-hostname": "{region}.{slug}.testserver"}):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "application/json"
+
+            data = json.loads(resp.content)
+
+            assert data["isAuthenticated"] is True
+            assert data["lastOrganization"] == self.organization.slug
+            assert data["sentryUrl"] == "http://testserver"
+            assert data["organizationUrl"] == f"http://us.{self.organization.slug}.testserver"
+
+    def test_organization_url_organization_url_template(self):
+        self.login_as(self.user)
+
+        # Induce last active organization
+        resp = self.client.get(
+            reverse("sentry-api-0-organization-projects", args=[self.organization.slug])
+        )
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+
+        with self.options({"system.organization-url-template": "invalid"}):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "application/json"
+
+            data = json.loads(resp.content)
+
+            assert data["isAuthenticated"] is True
+            assert data["lastOrganization"] == self.organization.slug
+            assert data["sentryUrl"] == "http://testserver"
+            assert data["organizationUrl"] == "invalid"
+
+        with self.options({"system.organization-url-template": None}):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "application/json"
+
+            data = json.loads(resp.content)
+
+            assert data["isAuthenticated"] is True
+            assert data["lastOrganization"] == self.organization.slug
+            assert data["sentryUrl"] == "http://testserver"
+            assert data["organizationUrl"] == "http://testserver"
+
+        with self.options({"system.organization-url-template": "ftp://{hostname}"}):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "application/json"
+
+            data = json.loads(resp.content)
+
+            assert data["isAuthenticated"] is True
+            assert data["lastOrganization"] == self.organization.slug
+            assert data["sentryUrl"] == "http://testserver"
+            assert data["organizationUrl"] == f"ftp://{self.organization.slug}.us.testserver"
+
+    def test_deleted_last_organization(self):
+        self.login_as(self.user)
+
+        # Check lastOrganization
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+
+        data = json.loads(resp.content)
+
+        assert data["isAuthenticated"] is True
+        assert data["lastOrganization"] is None
+        assert "activeorg" not in self.client.session
+
+        # Induce last active organization
+        resp = self.client.get(
+            reverse("sentry-api-0-organization-projects", args=[self.organization.slug])
+        )
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+
+        # Check lastOrganization
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+
+        data = json.loads(resp.content)
+
+        assert data["isAuthenticated"] is True
+        assert data["lastOrganization"] == self.organization.slug
+        assert self.client.session["activeorg"] == self.organization.slug
+
+        # Delete lastOrganization
+        assert Organization.objects.filter(slug=self.organization.slug).count() == 1
+        assert ScheduledDeletion.objects.count() == 0
+
+        self.organization.update(status=OrganizationStatus.PENDING_DELETION)
+        deletion = ScheduledDeletion.schedule(self.organization, days=0)
+        deletion.update(in_progress=True)
+
+        with self.tasks():
+            run_deletion(deletion.id)
+
+        assert Organization.objects.filter(slug=self.organization.slug).count() == 0
+
+        # Check lastOrganization
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+
+        data = json.loads(resp.content)
+
+        assert data["isAuthenticated"] is True
+        assert data["lastOrganization"] is None
+        assert "activeorg" not in self.client.session

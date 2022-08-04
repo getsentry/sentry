@@ -15,7 +15,7 @@ import {TagValueAutocomplete, TagValueAutocompleteProps} from './tagValueAutocom
 import {getMatchFieldPlaceholder, getTagKey} from './utils';
 
 export type Condition = {
-  category: SamplingInnerName | string; // string is used for custom tags
+  category: SamplingInnerName;
   match?: string;
 };
 
@@ -37,8 +37,7 @@ export function Conditions({conditions, orgSlug, projectId, onDelete, onChange}:
 
         const isAutoCompleteField =
           category === SamplingInnerName.TRACE_ENVIRONMENT ||
-          category === SamplingInnerName.TRACE_RELEASE ||
-          category === SamplingInnerName.TRACE_TRANSACTION;
+          category === SamplingInnerName.TRACE_RELEASE;
 
         return (
           <ConditionWrapper key={index}>

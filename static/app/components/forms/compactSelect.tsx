@@ -15,13 +15,14 @@ import {useMenuTriggerState} from '@react-stately/menu';
 
 import Badge from 'sentry/components/badge';
 import Button from 'sentry/components/button';
-import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButtonV2';
+import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import SelectControl, {
   ControlProps,
   GeneralSelectValue,
 } from 'sentry/components/forms/selectControl';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import space from 'sentry/styles/space';
+import {FormSize} from 'sentry/utils/theme';
 
 interface TriggerRenderingProps {
   props: Omit<DropdownButtonProps, 'children'>;
@@ -53,6 +54,10 @@ interface Props<OptionType>
    * Tag name for the outer wrap, defaults to `div`
    */
   renderWrapAs?: React.ElementType;
+  /**
+   * Affects the size of the trigger button and menu items.
+   */
+  size?: FormSize;
   /**
    * Optionally replace the trigger button with a different component. Note
    * that the replacement must have the `props` and `ref` (supplied in
@@ -206,10 +211,12 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
   trigger,
   triggerLabel,
   triggerProps,
+  size = 'md',
   className,
   renderWrapAs,
   closeOnSelect = true,
   menuTitle,
+  onClose,
   ...props
 }: Props<OptionType>) {
   // Manage the dropdown menu's open state
@@ -289,9 +296,10 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
     if (trigger) {
       return trigger({
         props: {
+          size,
+          isOpen: state.isOpen,
           ...triggerProps,
           ...buttonProps,
-          isOpen: state.isOpen,
         },
         ref: triggerRef,
       });
@@ -299,6 +307,7 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
     return (
       <DropdownButton
         ref={triggerRef}
+        size={size}
         isOpen={state.isOpen}
         {...triggerProps}
         {...buttonProps}
@@ -306,6 +315,11 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
         {triggerLabel ?? label}
       </DropdownButton>
     );
+  }
+
+  function onMenuClose() {
+    onClose?.();
+    state.close();
   }
 
   function renderMenu() {
@@ -316,7 +330,7 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
     return (
       <Menu
         targetRef={triggerRef}
-        onClose={state.close}
+        onClose={onMenuClose}
         minMenuWidth={triggerWidth}
         {...props}
       >
@@ -328,6 +342,7 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
             value={valueProp ?? internalValue}
             multiple={multiple}
             onChange={onValueChange}
+            size={size}
             menuTitle={menuTitle}
             placeholder={placeholder}
             isSearchable={isSearchable}

@@ -691,10 +691,11 @@ describe('getExpandedResults()', function () {
 });
 
 describe('downloadAsCsv', function () {
-  const messageColumn = {name: 'message'};
-  const environmentColumn = {name: 'environment'};
-  const countColumn = {name: 'count'};
-  const userColumn = {name: 'user'};
+  const messageColumn = {key: 'message', name: 'message'};
+  const environmentColumn = {key: 'environment', name: 'environment'};
+  const countColumn = {key: 'count', name: 'count'};
+  const userColumn = {key: 'user', name: 'user'};
+  const equationColumn = {key: 'equation| count() + count()', name: 'count() + count()'};
   it('handles raw data', function () {
     const result = {
       data: [
@@ -733,6 +734,14 @@ describe('downloadAsCsv', function () {
       encodeURIComponent(
         'message,user\r\ntest 0,name:baz\r\ntest 1,id:123\r\ntest 2,email:test@example.com\r\ntest 3,ip:127.0.0.1'
       )
+    );
+  });
+  it('handles equations', function () {
+    const result = {
+      data: [{'equation| count() + count()': 3}],
+    };
+    expect(downloadAsCsv(result, [equationColumn])).toContain(
+      encodeURIComponent('count() + count()\r\n3')
     );
   });
 });
@@ -792,7 +801,9 @@ describe('generateFieldOptions', function () {
     expect(
       generateFieldOptions({
         organization: initializeOrg().organization,
-        customMeasurementKeys: ['measurements.custom.measurement'],
+        customMeasurements: [
+          {functions: ['p99'], key: 'measurements.custom.measurement'},
+        ],
       })['measurement:measurements.custom.measurement']
     ).toEqual({
       label: 'measurements.custom.measurement',
@@ -800,6 +811,7 @@ describe('generateFieldOptions', function () {
         kind: 'custom_measurement',
         meta: {
           dataType: 'number',
+          functions: ['p99'],
           name: 'measurements.custom.measurement',
         },
       },

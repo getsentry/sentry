@@ -346,13 +346,12 @@ describe('Performance > Widgets > WidgetContainer', function () {
       1,
       expect.anything(),
       expect.objectContaining({
-        query: expect.objectContaining({
-          metricsEnhanced: '1',
-          preventMetricAggregates: '1',
-        }),
+        query: expect.objectContaining({dataset: 'metricsEnhanced'}),
       })
     );
-    expect(await screen.findByTestId('no-metrics-data-tag')).toBeInTheDocument();
+    expect(await screen.findByTestId('has-metrics-data-tag')).toHaveTextContent(
+      'metrics'
+    );
   });
 
   it('Widget with MEP enabled and metric meta set to undefined', async function () {
@@ -385,10 +384,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       1,
       expect.anything(),
       expect.objectContaining({
-        query: expect.objectContaining({
-          metricsEnhanced: '1',
-          preventMetricAggregates: '1',
-        }),
+        query: expect.objectContaining({dataset: 'metricsEnhanced'}),
       })
     );
   });
@@ -422,14 +418,11 @@ describe('Performance > Widgets > WidgetContainer', function () {
       1,
       expect.anything(),
       expect.objectContaining({
-        query: expect.objectContaining({
-          metricsEnhanced: '1',
-          preventMetricAggregates: '1',
-        }),
+        query: expect.objectContaining({dataset: 'metricsEnhanced'}),
       })
     );
     expect(await screen.findByTestId('has-metrics-data-tag')).toHaveTextContent(
-      'Sampled'
+      'transactions'
     );
   });
 
@@ -492,7 +485,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             'count_web_vitals(measurements.lcp, meh)',
             'count_web_vitals(measurements.lcp, good)',
           ],
-          per_page: 3,
+          per_page: 4,
           project: ['-42'],
           query: 'transaction.op:pageload',
           sort: '-count_web_vitals(measurements.lcp, poor)',
@@ -537,13 +530,11 @@ describe('Performance > Widgets > WidgetContainer', function () {
             'count_web_vitals(measurements.lcp, meh)',
             'count_web_vitals(measurements.lcp, good)',
           ],
-          per_page: 3,
+          per_page: 4,
           project: ['-42'],
-          query: 'transaction.op:pageload',
+          query: 'transaction.op:pageload !transaction:"<< unparameterized >>"',
           sort: '-count_web_vitals(measurements.lcp, poor)',
           statsPeriod: '7d',
-          metricsEnhanced: '1',
-          preventMetricAggregates: '1',
         }),
       })
     );
@@ -579,7 +570,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             'count_web_vitals(measurements.fcp, meh)',
             'count_web_vitals(measurements.fcp, good)',
           ],
-          per_page: 3,
+          per_page: 4,
           project: ['-42'],
           query: 'transaction.op:pageload',
           sort: '-count_web_vitals(measurements.fcp, poor)',
@@ -618,7 +609,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             'count_web_vitals(measurements.fid, meh)',
             'count_web_vitals(measurements.fid, good)',
           ],
-          per_page: 3,
+          per_page: 4,
           project: ['-42'],
           query: 'transaction.op:pageload',
           sort: '-count_web_vitals(measurements.fid, poor)',
@@ -895,8 +886,6 @@ describe('Performance > Widgets > WidgetContainer', function () {
           query: 'transaction.op:pageload epm():>0.01 avg(measurements.frames_slow):>0',
           sort: '-avg(measurements.frames_slow)',
           statsPeriod: '7d',
-          metricsEnhanced: '1',
-          preventMetricAggregates: '1',
         }),
       })
     );

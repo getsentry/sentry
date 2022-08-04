@@ -47,6 +47,7 @@ import {
 import Controls from './controls';
 import Dashboard from './dashboard';
 import {DEFAULT_STATS_PERIOD} from './data';
+import FiltersBar from './filtersBar';
 import {
   assignDefaultLayout,
   calculateColumnDepths,
@@ -55,6 +56,7 @@ import {
 import DashboardTitle from './title';
 import {
   DashboardDetails,
+  DashboardFilters,
   DashboardListItem,
   DashboardState,
   DashboardWidgetSource,
@@ -62,9 +64,19 @@ import {
   Widget,
   WidgetType,
 } from './types';
-import {cloneDashboard} from './utils';
+import {
+  cloneDashboard,
+  getCurrentPageFilters,
+  hasSavedPageFilters,
+  hasUnsavedFilterChanges,
+  resetPageFilters,
+} from './utils';
 
 const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
+
+export const UNSAVED_FILTERS_MESSAGE = t(
+  'You have unsaved dashboard filters. You can save or discard them.'
+);
 
 const HookHeader = HookOrDefault({hookName: 'component:dashboards-header'});
 
@@ -131,7 +143,8 @@ class DashboardDetail extends Component<Props, State> {
       location,
       router,
     } = this.props;
-    const {seriesData, tableData, pageLinks, totalIssuesCount} = this.state;
+    const {seriesData, tableData, pageLinks, totalIssuesCount, modifiedDashboard} =
+      this.state;
     if (isWidgetViewerPath(location.pathname)) {
       const widget =
         defined(widgetId) &&
@@ -184,6 +197,14 @@ class DashboardDetail extends Component<Props, State> {
               source: DashboardWidgetSource.DASHBOARDS,
             });
           },
+          disableEditWidget:
+            organization.features.includes('dashboards-top-level-filter') &&
+            hasUnsavedFilterChanges(
+              dashboard,
+              location,
+              (modifiedDashboard ?? dashboard).filters
+            ),
+          disabledEditMessage: UNSAVED_FILTERS_MESSAGE,
         });
         trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.open', {
           organization,
@@ -378,6 +399,18 @@ class DashboardDetail extends Component<Props, State> {
     });
   };
 
+  handleChangeFilter = (activeFilters: DashboardFilters) => {
+    const {dashboard} = this.props;
+    const {modifiedDashboard} = this.state;
+    const newModifiedDashboard = modifiedDashboard || dashboard;
+    this.setState({
+      modifiedDashboard: {
+        ...newModifiedDashboard,
+        filters: {...newModifiedDashboard.filters, ...activeFilters},
+      },
+    });
+  };
+
   handleUpdateWidgetList = (widgets: Widget[]) => {
     const {organization, dashboard, api, onDashboardUpdate, location} = this.props;
     const {modifiedDashboard} = this.state;
@@ -478,7 +511,19 @@ class DashboardDetail extends Component<Props, State> {
               was_previewed: true,
             });
           }
-          createDashboard(api, organization.slug, modifiedDashboard, this.isPreview).then(
+          let newModifiedDashboard = modifiedDashboard;
+          if (organization.features.includes('dashboards-top-level-filter')) {
+            newModifiedDashboard = {
+              ...cloneDashboard(modifiedDashboard),
+              ...getCurrentPageFilters(location),
+            };
+          }
+          createDashboard(
+            api,
+            organization.slug,
+            newModifiedDashboard,
+            this.isPreview
+          ).then(
             (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard created'));
               trackAnalyticsEvent({
@@ -605,6 +650,10 @@ class DashboardDetail extends Component<Props, State> {
             period: DEFAULT_STATS_PERIOD,
           },
         }}
+        skipLoadLastUsed={
+          organization.features.includes('dashboards-top-level-filter') &&
+          hasSavedPageFilters(dashboard)
+        }
       >
         <PageContent>
           <NoProjectMessage organization={organization}>
@@ -628,12 +677,12 @@ class DashboardDetail extends Component<Props, State> {
                 widgetLimitReached={widgetLimitReached}
               />
             </StyledPageHeader>
-            <DashboardPageFilterBar condensed>
+            <HookHeader organization={organization} />
+            <StyledPageFilterBar condensed>
               <ProjectPageFilter />
               <EnvironmentPageFilter />
               <DatePageFilter alignDropdown="left" />
-            </DashboardPageFilterBar>
-            <HookHeader organization={organization} />
+            </StyledPageFilterBar>
             <Dashboard
               paramDashboardId={dashboardId}
               dashboard={modifiedDashboard ?? dashboard}
@@ -643,6 +692,7 @@ class DashboardDetail extends Component<Props, State> {
               onUpdate={this.onUpdateWidget}
               handleUpdateWidgetList={this.handleUpdateWidgetList}
               handleAddCustomWidget={this.handleAddCustomWidget}
+              hasUnsavedFilters={false}
               isPreview={this.isPreview}
               router={router}
               location={location}
@@ -667,6 +717,7 @@ class DashboardDetail extends Component<Props, State> {
 
   renderDashboardDetail() {
     const {
+      api,
       organization,
       dashboard,
       dashboards,
@@ -675,10 +726,19 @@ class DashboardDetail extends Component<Props, State> {
       location,
       newWidget,
       onSetNewWidget,
+      onDashboardUpdate,
     } = this.props;
     const {modifiedDashboard, dashboardState, widgetLimitReached, seriesData, setData} =
       this.state;
     const {dashboardId} = params;
+
+    const {filters} = modifiedDashboard || dashboard;
+
+    const disableDashboardModifications =
+      organization.features.includes('dashboards-top-level-filter') &&
+      dashboard.id !== 'default-overview' &&
+      dashboardState !== DashboardState.CREATE &&
+      hasUnsavedFilterChanges(dashboard, location, filters);
 
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={organization.slug}>
@@ -691,6 +751,10 @@ class DashboardDetail extends Component<Props, State> {
               period: DEFAULT_STATS_PERIOD,
             },
           }}
+          skipLoadLastUsed={
+            organization.features.includes('dashboards-top-level-filter') &&
+            hasSavedPageFilters(dashboard)
+          }
         >
           <StyledPageContent>
             <NoProjectMessage organization={organization}>
@@ -719,6 +783,7 @@ class DashboardDetail extends Component<Props, State> {
                   <Controls
                     organization={organization}
                     dashboards={dashboards}
+                    hasUnsavedFilters={disableDashboardModifications}
                     onEdit={this.onEdit}
                     onCancel={this.onCancel}
                     onCommit={this.onCommit}
@@ -731,11 +796,43 @@ class DashboardDetail extends Component<Props, State> {
               </Layout.Header>
               <Layout.Body>
                 <Layout.Main fullWidth>
-                  <DashboardPageFilterBar condensed>
-                    <ProjectPageFilter />
-                    <EnvironmentPageFilter />
-                    <DatePageFilter alignDropdown="left" />
-                  </DashboardPageFilterBar>
+                  <FiltersBar
+                    hasUnsavedChanges={disableDashboardModifications}
+                    isEditingDashboard={
+                      dashboardState !== DashboardState.CREATE && this.isEditing
+                    }
+                    isPreview={this.isPreview}
+                    filters={filters}
+                    onDashboardFilterChange={this.handleChangeFilter}
+                    onCancel={() => {
+                      resetPageFilters(dashboard, location);
+                      this.setState({
+                        modifiedDashboard: {
+                          ...(modifiedDashboard ?? dashboard),
+                          filters: dashboard.filters,
+                        },
+                      });
+                    }}
+                    onSave={() => {
+                      const newModifiedDashboard = {
+                        ...cloneDashboard(modifiedDashboard ?? dashboard),
+                        ...getCurrentPageFilters(location),
+                      };
+                      updateDashboard(api, organization.slug, newModifiedDashboard).then(
+                        (newDashboard: DashboardDetails) => {
+                          if (onDashboardUpdate) {
+                            onDashboardUpdate(newDashboard);
+                            this.setState({
+                              modifiedDashboard: null,
+                            });
+                          }
+                          addSuccessMessage(t('Dashboard filters updated'));
+                        },
+                        () => undefined
+                      );
+                    }}
+                  />
+
                   <WidgetViewerContext.Provider value={{seriesData, setData}}>
                     <Dashboard
                       paramDashboardId={dashboardId}
@@ -751,6 +848,7 @@ class DashboardDetail extends Component<Props, State> {
                       newWidget={newWidget}
                       onSetNewWidget={onSetNewWidget}
                       isPreview={this.isPreview}
+                      hasUnsavedFilters={disableDashboardModifications}
                     />
                   </WidgetViewerContext.Provider>
                 </Layout.Main>
@@ -799,7 +897,7 @@ const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;
 
-const DashboardPageFilterBar = styled(PageFilterBar)`
+const StyledPageFilterBar = styled(PageFilterBar)`
   margin-bottom: ${space(2)};
 `;
 

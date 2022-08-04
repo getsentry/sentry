@@ -1,62 +1,53 @@
-import {Fragment, useCallback, useRef} from 'react';
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {
   Panel as BasePanel,
-  PanelBody as BasePanelBody,
   PanelHeader as BasePanelHeader,
 } from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Crumb} from 'sentry/types/breadcrumbs';
 import {getPrevBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
+import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {useCurrentItemScroller} from 'sentry/utils/replays/hooks/useCurrentItemScroller';
-
-import BreadcrumbItem from './breadcrumbItem';
+import BreadcrumbItem from 'sentry/views/replays/detail/breadcrumbs/breadcrumbItem';
+import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
 
 function CrumbPlaceholder({number}: {number: number}) {
   return (
-    <Fragment>
+    <BreadcrumbContainer>
       {[...Array(number)].map((_, i) => (
-        <PlaceholderMargin key={i} height="40px" />
+        <PlaceholderMargin key={i} height="53px" />
       ))}
-    </Fragment>
+    </BreadcrumbContainer>
   );
 }
 
 type Props = {};
 
 function Breadcrumbs({}: Props) {
-  const {
-    clearAllHighlights,
-    currentHoverTime,
-    currentTime,
-    highlight,
-    removeHighlight,
-    replay,
-    setCurrentHoverTime,
-    setCurrentTime,
-  } = useReplayContext();
+  const {currentHoverTime, currentTime, replay} = useReplayContext();
 
-  const event = replay?.getEvent();
+  const replayRecord = replay?.getReplay();
   const allCrumbs = replay?.getRawCrumbs();
 
   const crumbListContainerRef = useRef<HTMLDivElement>(null);
   useCurrentItemScroller(crumbListContainerRef);
 
-  const startTimestamp = event?.startTimestamp || 0;
+  const startTimestampMs = replayRecord?.started_at.getTime() || 0;
+  const {handleMouseEnter, handleMouseLeave, handleClick} =
+    useCrumbHandlers(startTimestampMs);
 
-  const isLoaded = Boolean(event);
+  const isLoaded = Boolean(replayRecord);
 
   const crumbs =
     allCrumbs?.filter(crumb => !['console'].includes(crumb.category || '')) || [];
 
   const currentUserAction = getPrevBreadcrumb({
     crumbs,
-    targetTimestampMs: startTimestamp * 1000 + currentTime,
+    targetTimestampMs: startTimestampMs + currentTime,
     allowExact: true,
   });
 
@@ -64,93 +55,67 @@ function Breadcrumbs({}: Props) {
     currentHoverTime !== undefined
       ? getPrevBreadcrumb({
           crumbs,
-          targetTimestampMs: startTimestamp * 1000 + (currentHoverTime ?? 0),
+          targetTimestampMs: startTimestampMs + (currentHoverTime ?? 0),
           allowExact: true,
         })
       : undefined;
 
-  const handleMouseEnter = useCallback(
-    (item: Crumb) => {
-      if (startTimestamp) {
-        setCurrentHoverTime(relativeTimeInMs(item.timestamp ?? '', startTimestamp));
-      }
-
-      if (item.data && 'nodeId' in item.data) {
-        // XXX: Kind of hacky, but mouseLeave does not fire if you move from a
-        // crumb to a tooltip
-        clearAllHighlights();
-        highlight({nodeId: item.data.nodeId, annotation: item.data.label});
-      }
-    },
-    [setCurrentHoverTime, startTimestamp, highlight, clearAllHighlights]
-  );
-
-  const handleMouseLeave = useCallback(
-    (item: Crumb) => {
-      setCurrentHoverTime(undefined);
-
-      if (item.data && 'nodeId' in item.data) {
-        removeHighlight({nodeId: item.data.nodeId});
-      }
-    },
-    [setCurrentHoverTime, removeHighlight]
-  );
-
-  const handleClick = useCallback(
-    (crumb: Crumb) => {
-      crumb.timestamp !== undefined
-        ? setCurrentTime(relativeTimeInMs(crumb.timestamp, startTimestamp))
-        : null;
-    },
-    [setCurrentTime, startTimestamp]
+  const content = isLoaded ? (
+    <BreadcrumbContainer>
+      {crumbs.map(crumb => (
+        <BreadcrumbItem
+          key={crumb.id}
+          crumb={crumb}
+          startTimestampMs={startTimestampMs}
+          isHovered={closestUserAction?.id === crumb.id}
+          isSelected={currentUserAction?.id === crumb.id}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          onClick={handleClick}
+        />
+      ))}
+    </BreadcrumbContainer>
+  ) : (
+    <CrumbPlaceholder number={4} />
   );
 
   return (
     <Panel>
-      <PanelHeader>{t('Breadcrumbs')}</PanelHeader>
-      <PanelBody ref={crumbListContainerRef}>
-        {!isLoaded && <CrumbPlaceholder number={4} />}
-        {isLoaded &&
-          crumbs.map(crumb => (
-            <BreadcrumbItem
-              key={crumb.id}
-              crumb={crumb}
-              startTimestamp={startTimestamp}
-              isHovered={closestUserAction?.id === crumb.id}
-              isSelected={currentUserAction?.id === crumb.id}
-              onMouseEnter={handleMouseEnter}
-              onMouseLeave={handleMouseLeave}
-              onClick={handleClick}
-            />
-          ))}
-      </PanelBody>
+      <FluidPanel
+        bodyRef={crumbListContainerRef}
+        title={<PanelHeader>{t('Breadcrumbs')}</PanelHeader>}
+      >
+        {content}
+      </FluidPanel>
     </Panel>
   );
 }
+
+const BreadcrumbContainer = styled('div')`
+  padding: ${space(0.5)};
+`;
 
 const Panel = styled(BasePanel)`
   width: 100%;
   height: 100%;
   overflow: hidden;
+  margin-bottom: 0;
 `;
 
 const PanelHeader = styled(BasePanelHeader)`
   background-color: ${p => p.theme.background};
-  border-bottom: none;
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.gray500};
   text-transform: capitalize;
-  padding: ${space(1.5)} ${space(2)} ${space(0.5)};
-`;
-
-const PanelBody = styled(BasePanelBody)`
-  overflow-y: auto;
-  max-height: calc(100% - 34px);
+  padding: ${space(1)} ${space(1.5)} ${space(1)};
+  font-weight: 600;
 `;
 
 const PlaceholderMargin = styled(Placeholder)`
-  margin: ${space(1)} ${space(1.5)};
+  margin-bottom: ${space(1)};
   width: auto;
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 export default Breadcrumbs;

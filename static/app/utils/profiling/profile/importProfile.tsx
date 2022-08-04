@@ -2,16 +2,16 @@ import * as Sentry from '@sentry/react';
 import {Transaction} from '@sentry/types';
 
 import {
-  isChromeTraceArrayFormat,
   isChromeTraceFormat,
   isChromeTraceObjectFormat,
   isEventedProfile,
   isJSProfile,
   isSampledProfile,
   isSchema,
+  isTypescriptChromeTraceArrayFormat,
 } from '../guards/profile';
 
-import {parseChromeTraceArrayFormat} from './chromeTraceProfile';
+import {parseTypescriptChromeTraceArrayFormat} from './chromeTraceProfile';
 import {EventedProfile} from './eventedProfile';
 import {JSSelfProfile} from './jsSelfProfile';
 import {Profile} from './profile';
@@ -100,8 +100,8 @@ function importChromeTrace(
     throw new Error('Chrometrace object format is not yet supported');
   }
 
-  if (isChromeTraceArrayFormat(input)) {
-    return parseChromeTraceArrayFormat(input, traceID, options);
+  if (isTypescriptChromeTraceArrayFormat(input)) {
+    return parseTypescriptChromeTraceArrayFormat(input, traceID, options);
   }
 
   throw new Error('Failed to parse trace input format');

@@ -6,10 +6,11 @@ import {openDashboardWidgetQuerySelectorModal} from 'sentry/actionCreators/modal
 import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
-import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
+import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
+import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
 import Tag from 'sentry/components/tag';
+import Tooltip from 'sentry/components/tooltip';
 import {IconEllipsis, IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -23,6 +24,7 @@ import {
   isCustomMeasurementWidget,
 } from 'sentry/views/dashboardsV2/utils';
 
+import {UNSAVED_FILTERS_MESSAGE} from '../detail';
 import {Widget, WidgetType} from '../types';
 import {WidgetViewerContext} from '../widgetViewer/widgetViewerContext';
 
@@ -35,6 +37,7 @@ type Props = {
   selection: PageFilters;
   widget: Widget;
   widgetLimitReached: boolean;
+  hasUnsavedFilters?: boolean;
   index?: string;
   isPreview?: boolean;
   onDelete?: () => void;
@@ -66,6 +69,7 @@ function WidgetCardContextMenu({
   tableData,
   pageLinks,
   totalIssuesCount,
+  hasUnsavedFilters,
 }: Props) {
   const {isMetricsData} = useDashboardsMEPContext();
   if (!showContextMenu) {
@@ -92,7 +96,16 @@ function WidgetCardContextMenu({
       <WidgetViewerContext.Consumer>
         {({setData}) => (
           <ContextWrapper>
-            <StyledDropdownMenuControlV2
+            <Feature organization={organization} features={['dashboards-mep']}>
+              {isMetricsData === false && (
+                <SampledTag
+                  tooltipText={t('This widget is only applicable to indexed events.')}
+                >
+                  {t('Indexed')}
+                </SampledTag>
+              )}
+            </Feature>
+            <StyledDropdownMenuControl
               items={[
                 {
                   key: 'preview',
@@ -103,7 +116,7 @@ function WidgetCardContextMenu({
               ]}
               triggerProps={{
                 'aria-label': t('Widget actions'),
-                size: 'xsmall',
+                size: 'xs',
                 borderless: true,
                 showChevron: false,
                 icon: <IconEllipsis direction="down" size="sm" />,
@@ -141,10 +154,27 @@ function WidgetCardContextMenu({
   ) {
     // Open Widget in Discover
     if (widget.queries.length) {
-      const discoverPath = getWidgetDiscoverUrl(widget, selection, organization);
+      const discoverPath = getWidgetDiscoverUrl(
+        widget,
+        selection,
+        organization,
+        0,
+        isMetricsData
+      );
       menuOptions.push({
         key: 'open-in-discover',
-        label: t('Open in Discover'),
+        label: usingCustomMeasurements ? (
+          <Tooltip
+            skipWrapper
+            title={t(
+              'Widget using custom performance metrics cannot be opened in Discover.'
+            )}
+          >
+            {t('Open in Discover')}
+          </Tooltip>
+        ) : (
+          t('Open in Discover')
+        ),
         to:
           !usingCustomMeasurements && widget.queries.length === 1
             ? discoverPath
@@ -163,7 +193,7 @@ function WidgetCardContextMenu({
               organization,
               widget_type: widget.displayType,
             });
-            openDashboardWidgetQuerySelectorModal({organization, widget});
+            openDashboardWidgetQuerySelectorModal({organization, widget, isMetricsData});
           }
         },
       });
@@ -185,6 +215,8 @@ function WidgetCardContextMenu({
       key: 'duplicate-widget',
       label: t('Duplicate Widget'),
       onAction: () => onDuplicate?.(),
+      tooltip: hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE,
+      tooltipOptions: {position: 'left'},
     });
     widgetLimitReached && disabledKeys.push('duplicate-widget');
 
@@ -192,6 +224,8 @@ function WidgetCardContextMenu({
       key: 'edit-widget',
       label: t('Edit Widget'),
       onAction: () => onEdit?.(),
+      tooltip: hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE,
+      tooltipOptions: {position: 'left'},
     });
 
     menuOptions.push({
@@ -205,6 +239,8 @@ function WidgetCardContextMenu({
           onConfirm: () => onDelete?.(),
         });
       },
+      tooltip: hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE,
+      tooltipOptions: {position: 'left'},
     });
   }
 
@@ -218,24 +254,29 @@ function WidgetCardContextMenu({
         <ContextWrapper>
           <Feature organization={organization} features={['dashboards-mep']}>
             {isMetricsData === false && (
-              <StoredTag
-                tooltipText={t('This widget is only applicable to stored event data.')}
+              <SampledTag
+                tooltipText={t('This widget is only applicable to indexed events.')}
               >
-                {t('Stored')}
-              </StoredTag>
+                {t('Indexed')}
+              </SampledTag>
             )}
           </Feature>
-          <StyledDropdownMenuControlV2
+          <StyledDropdownMenuControl
             items={menuOptions}
             triggerProps={{
               'aria-label': t('Widget actions'),
-              size: 'xsmall',
+              size: 'xs',
               borderless: true,
               showChevron: false,
               icon: <IconEllipsis direction="down" size="sm" />,
             }}
             placement="bottom right"
-            disabledKeys={disabledKeys}
+            disabledKeys={[
+              ...disabledKeys,
+              ...(hasUnsavedFilters
+                ? ['duplicate-widget', 'edit-widget', 'delete-widget']
+                : []),
+            ]}
           />
           {showWidgetViewerButton && (
             <OpenWidgetViewerButton
@@ -269,7 +310,7 @@ const ContextWrapper = styled('div')`
   margin-left: ${space(1)};
 `;
 
-const StyledDropdownMenuControlV2 = styled(DropdownMenuControlV2)`
+const StyledDropdownMenuControl = styled(DropdownMenuControl)`
   & > button {
     z-index: auto;
   }
@@ -285,6 +326,6 @@ const OpenWidgetViewerButton = styled(Button)`
   }
 `;
 
-const StoredTag = styled(Tag)`
+const SampledTag = styled(Tag)`
   margin-right: ${space(0.5)};
 `;

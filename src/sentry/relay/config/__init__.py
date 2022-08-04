@@ -1,7 +1,7 @@
 import logging
 import uuid
 from datetime import datetime
-from typing import Any, Collection, Mapping, Optional, Sequence, TypedDict
+from typing import Any, Collection, Literal, Mapping, Optional, Sequence, TypedDict
 
 import sentry_sdk
 from pytz import utc
@@ -172,13 +172,16 @@ def _get_project_config(project, full_config=True, project_keys=None):
             "projectId": project.id,  # XXX: Unused by Relay, required by Python store
         }
     allow_dynamic_sampling = features.has(
-        "organizations:filters-and-sampling",
+        "organizations:server-side-sampling",
         project.organization,
     )
     if allow_dynamic_sampling:
         dynamic_sampling = project.get_option("sentry:dynamic_sampling")
         if dynamic_sampling is not None:
-            cfg["config"]["dynamicSampling"] = dynamic_sampling
+            # filter out rules that do not have active set to True
+            cfg["config"]["dynamicSampling"] = {
+                "rules": [r for r in dynamic_sampling["rules"] if r.get("active")]
+            }
 
     if not full_config:
         # This is all we need for external Relay processors
@@ -385,6 +388,13 @@ def _filter_option_to_config_setting(flt, setting):
     return ret_val
 
 
+#: Version of the transaction metrics extraction.
+#: When you increment this version, outdated Relays will stop extracting
+#: transaction metrics.
+#: See https://github.com/getsentry/relay/blob/4f3e224d5eeea8922fe42163552e8f20db674e86/relay-server/src/metrics_extraction/transactions.rs#L71
+TRANSACTION_METRICS_EXTRACTION_VERSION = 1
+
+
 #: Top-level metrics for transactions
 TRANSACTION_METRICS = frozenset(
     [
@@ -400,14 +410,17 @@ ALL_MEASUREMENT_METRICS = frozenset(
         "d:transactions/measurements.lcp@millisecond",
         "d:transactions/measurements.app_start_cold@millisecond",
         "d:transactions/measurements.app_start_warm@millisecond",
-        "d:transactions/measurements.cls@millisecond",
+        "d:transactions/measurements.cls@none",
         "d:transactions/measurements.fid@millisecond",
         "d:transactions/measurements.fp@millisecond",
         "d:transactions/measurements.frames_frozen@none",
+        "d:transactions/measurements.frames_frozen_rate@ratio",
         "d:transactions/measurements.frames_slow@none",
+        "d:transactions/measurements.frames_slow_rate@ratio",
         "d:transactions/measurements.frames_total@none",
         "d:transactions/measurements.stall_count@none",
         "d:transactions/measurements.stall_longest_time@millisecond",
+        "d:transactions/measurements.stall_percentage@ratio",
         "d:transactions/measurements.stall_total_time@millisecond",
         "d:transactions/measurements.ttfb@millisecond",
         "d:transactions/measurements.ttfb.requesttime@millisecond",
@@ -422,10 +435,15 @@ class CustomMeasurementSettings(TypedDict):
     limit: int
 
 
+TransactionNameStrategy = Literal["strict", "clientBased"]
+
+
 class TransactionMetricsSettings(TypedDict):
+    version: int
     extractMetrics: Collection[str]
     extractCustomTags: Collection[str]
     customMeasurements: CustomMeasurementSettings
+    acceptTransactionNames: TransactionNameStrategy
 
 
 def _should_extract_transaction_metrics(project: Project) -> bool:
@@ -435,6 +453,11 @@ def _should_extract_transaction_metrics(project: Project) -> bool:
     ) and not killswitches.killswitch_matches_context(
         "relay.drop-transaction-metrics", {"project_id": project.id}
     )
+
+
+def _accept_transaction_names_strategy(project: Project) -> TransactionNameStrategy:
+    is_selected_org = sample_modulo("relay.transaction-names-client-based", project.organization_id)
+    return "clientBased" if is_selected_org else "strict"
 
 
 def get_transaction_metrics_settings(
@@ -463,7 +486,7 @@ def get_transaction_metrics_settings(
                 assert breakdown_config["type"] == "spanOperations"
 
                 for op_name in breakdown_config["matches"]:
-                    metrics.append(f"d:transactions/breakdowns.ops.{op_name}")
+                    metrics.append(f"d:transactions/breakdowns.span_ops.ops.{op_name}@millisecond")
         except Exception:
             capture_exception()
 
@@ -477,7 +500,9 @@ def get_transaction_metrics_settings(
         capture_exception()
 
     return {
+        "version": TRANSACTION_METRICS_EXTRACTION_VERSION,
         "extractMetrics": metrics,
         "extractCustomTags": custom_tags,
         "customMeasurements": {"limit": CUSTOM_MEASUREMENT_LIMIT},
+        "acceptTransactionNames": _accept_transaction_names_strategy(project),
     }

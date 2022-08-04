@@ -5,6 +5,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import NotFound from 'sentry/components/errors/notFound';
+import EventCustomPerformanceMetrics from 'sentry/components/events/eventCustomPerformanceMetrics';
 import {BorderlessEventEntries} from 'sentry/components/events/eventEntries';
 import EventMetadata from 'sentry/components/events/eventMetadata';
 import EventVitals from 'sentry/components/events/eventVitals';
@@ -229,7 +230,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                               api={this.api}
                               router={router}
                               route={route}
-                              isBorderless
                             />
                           </QuickTraceContext.Provider>
                         </SpanEntryContext.Provider>
@@ -249,6 +249,14 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                         </Fragment>
                       )}
                       <EventVitals event={event} />
+                      {(organization.features.includes('dashboards-mep') ||
+                        organization.features.includes('mep-rollout-flag')) && (
+                        <EventCustomPerformanceMetrics
+                          event={event}
+                          location={location}
+                          organization={organization}
+                        />
+                      )}
                       <TagsTable
                         event={event}
                         query={query}

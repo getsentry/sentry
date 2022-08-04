@@ -10,6 +10,7 @@ import DatePickerField from 'sentry/components/forms/datePickerField';
 import FileField from 'sentry/components/forms/fileField';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
+import MultipleCheckboxField from 'sentry/components/forms/MultipleCheckboxField';
 import RadioBooleanField from 'sentry/components/forms/radioBooleanField';
 import RadioField from 'sentry/components/forms/radioField';
 import SelectField from 'sentry/components/forms/selectField';
@@ -173,6 +174,28 @@ export const _CheckboxField = () => (
 
 _CheckboxField.storyName = 'Checkbox';
 
+export const _MultipleCheckboxField = () => (
+  <Form>
+    <MultipleCheckboxField
+      choices={[
+        {title: 'Checkbox', value: 0},
+        {title: 'Disabled Checkbox', value: 1},
+        {title: 'Checked Checkbox', value: 2, checked: true},
+        {title: 'Intermediate Checkbox', value: 3, intermediate: true},
+        {title: 'Disabled Checked Checkbox', value: 4, checked: true, disabled: true},
+        {
+          title: 'Disabled Intermediate Checkbox',
+          value: 5,
+          intermediate: true,
+          disabled: true,
+        },
+      ]}
+    />
+  </Form>
+);
+
+_MultipleCheckboxField.storyName = 'MultipleCheckbox';
+
 export const _DatePickerField = () => (
   <Form>
     <DatePickerField name="field" label="Date Picker Field" />
@@ -335,6 +358,7 @@ CompactSelectField.parameters = {
   },
 };
 CompactSelectField.args = {
+  size: 'md',
   menuTitle: '',
   isSearchable: false,
   isDisabled: false,
@@ -369,6 +393,10 @@ CompactSelectField.argTypes = {
       'right top',
       'right bottom',
     ],
+    control: {type: 'radio'},
+  },
+  size: {
+    options: ['md', 'sm', 'xs'],
     control: {type: 'radio'},
   },
 };

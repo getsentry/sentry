@@ -40,9 +40,9 @@ class OrganizationAuditLogsTest(APITestCase):
         )
 
         response = self.get_success_response(self.organization.slug)
-        assert len(response.data) == 2
-        assert response.data[0]["id"] == str(entry2.id)
-        assert response.data[1]["id"] == str(entry1.id)
+        assert len(response.data["rows"]) == 2
+        assert response.data["rows"][0]["id"] == str(entry2.id)
+        assert response.data["rows"][1]["id"] == str(entry1.id)
 
     def test_filter_by_event(self):
         now = timezone.now()
@@ -63,8 +63,8 @@ class OrganizationAuditLogsTest(APITestCase):
         response = self.get_success_response(
             self.organization.slug, qs_params={"event": "org.edit"}
         )
-        assert len(response.data) == 1
-        assert response.data[0]["id"] == str(entry1.id)
+        assert len(response.data["rows"]) == 1
+        assert response.data["rows"][0]["id"] == str(entry1.id)
 
     def test_filter_by_user(self):
         now = timezone.now()
@@ -86,8 +86,8 @@ class OrganizationAuditLogsTest(APITestCase):
         )
 
         response = self.get_success_response(org.slug, qs_params={"actor": self.user.id})
-        assert len(response.data) == 1
-        assert response.data[0]["id"] == str(entry1.id)
+        assert len(response.data["rows"]) == 1
+        assert response.data["rows"][0]["id"] == str(entry1.id)
 
     def test_filter_by_user_and_event(self):
         now = timezone.now()
@@ -117,8 +117,8 @@ class OrganizationAuditLogsTest(APITestCase):
         response = self.get_success_response(
             org.slug, qs_params={"event": "org.edit", "actor": self.user.id}
         )
-        assert len(response.data) == 1
-        assert response.data[0]["id"] == str(entry1.id)
+        assert len(response.data["rows"]) == 1
+        assert response.data["rows"][0]["id"] == str(entry1.id)
 
     def test_invalid_event(self):
         now = timezone.now()
@@ -131,7 +131,7 @@ class OrganizationAuditLogsTest(APITestCase):
         )
 
         response = self.get_success_response(self.organization.slug, qs_params={"event": "wrong"})
-        assert response.data == []
+        assert response.data["rows"] == []
 
     def test_user_out_of_bounds(self):
         now = timezone.now()
@@ -154,3 +154,18 @@ class OrganizationAuditLogsTest(APITestCase):
                 )
             ]
         }
+
+    def test_options_data_included(self):
+        now = timezone.now()
+
+        AuditLogEntry.objects.create(
+            organization=self.organization,
+            event=audit_log.get_event_id("ORG_EDIT"),
+            actor=self.user,
+            datetime=now,
+        )
+        audit_log_api_names = set(audit_log.get_api_names())
+
+        response = self.get_success_response(self.organization.slug)
+        assert len(response.data) == 2
+        assert set(response.data["options"]) == audit_log_api_names

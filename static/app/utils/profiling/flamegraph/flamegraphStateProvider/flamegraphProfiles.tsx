@@ -1,35 +1,50 @@
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
-type SetProfilesActiveIndex = {
+type SetFocusFrame = {
+  payload: {
+    name: string;
+    package: string;
+  };
+  type: 'set highlight frame name';
+};
+
+type SetProfilesThreadId = {
   payload: number;
   type: 'set thread id';
 };
 
-type SetSelectedNode = {
+type SetRootNode = {
   payload: FlamegraphFrame | null;
-  type: 'set selected node';
+  type: 'set selected root';
 };
 
-type FlamegraphProfilesAction = SetProfilesActiveIndex | SetSelectedNode;
+type FlamegraphProfilesAction = SetFocusFrame | SetProfilesThreadId | SetRootNode;
 
-type FlamegraphProfilesState = {
-  selectedNode: FlamegraphFrame | null;
+export type FlamegraphProfiles = {
+  focusFrame: SetFocusFrame['payload'] | null;
+  selectedRoot: FlamegraphFrame | null;
   threadId: number | null;
 };
 
 export function flamegraphProfilesReducer(
-  state: FlamegraphProfilesState,
+  state: FlamegraphProfiles,
   action: FlamegraphProfilesAction
-): FlamegraphProfilesState {
+): FlamegraphProfiles {
   switch (action.type) {
-    case 'set selected node': {
-      return {...state, selectedNode: action.payload};
+    case 'set highlight frame name': {
+      return {
+        ...state,
+        focusFrame: action.payload,
+      };
+    }
+    case 'set selected root': {
+      return {...state, selectedRoot: action.payload};
     }
     case 'set thread id': {
       // When the profile index changes, we want to drop the selected and hovered nodes
       return {
         ...state,
-        selectedNode: null,
+        selectedRoot: null,
         threadId: action.payload,
       };
     }

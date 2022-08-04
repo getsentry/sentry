@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 from datetime import datetime
 from time import sleep, time
-from typing import Any, MutableMapping, Optional
+from typing import Any, List, Mapping, MutableMapping, Optional
 
 import sentry_sdk
 from django.conf import settings
+from django.utils import timezone
 from pytz import UTC
 from symbolic import ProguardMapper  # type: ignore
 
@@ -16,9 +19,11 @@ from sentry.tasks.base import instrumented_task
 from sentry.tasks.symbolication import RetrySymbolication
 from sentry.utils import json, kafka_config, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
+from sentry.utils.profiling import get_from_profiling_service
 from sentry.utils.pubsub import KafkaPublisher
 
 Profile = MutableMapping[str, Any]
+CallTrees = Mapping[str, List[Any]]
 
 processed_profiles_publisher = None
 
@@ -45,21 +50,39 @@ def process_profile(
     organization = Organization.objects.get_from_cache(id=project.organization_id)
 
     _normalize(profile=profile, organization=organization)
-    _insert_eventstream(profile=profile)
-    _track_outcome(profile=profile, project=project, key_id=key_id)
+
+    if not _insert_vroom_profile(profile=profile):
+        _track_outcome(
+            profile=profile,
+            project=project,
+            outcome=Outcome.INVALID,
+            key_id=key_id,
+            reason="failed-vroom-insertion",
+        )
+        return
+
+    _initialize_publisher()
+    _insert_eventstream_call_tree(profile=profile)
+    _insert_eventstream_profile(profile=profile)
+
+    _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED, key_id=key_id)
+
+
+SHOULD_SYMBOLICATE = frozenset(["cocoa", "rust"])
+SHOULD_DEOBFUSCATE = frozenset(["android"])
 
 
 def _should_symbolicate(profile: Profile) -> bool:
     platform: str = profile["platform"]
-    return platform in {"cocoa", "rust"}
+    return platform in SHOULD_SYMBOLICATE
 
 
 def _should_deobfuscate(profile: Profile) -> bool:
     platform: str = profile["platform"]
-    return platform == "android"
+    return platform in SHOULD_DEOBFUSCATE
 
 
-@metrics.wraps("process_profile.normalize")  # type: ignore
+@metrics.wraps("process_profile.normalize")
 def _normalize(profile: Profile, organization: Organization) -> None:
     if profile["platform"] in {"cocoa", "android"}:
         classification_options = dict()
@@ -103,7 +126,7 @@ def _normalize(profile: Profile, organization: Organization) -> None:
     )
 
 
-@metrics.wraps("process_profile.symbolicate")  # type: ignore
+@metrics.wraps("process_profile.symbolicate")
 def _symbolicate(profile: Profile, project: Project) -> None:
     symbolicator = Symbolicator(project=project, event_id=profile["profile_id"])
     modules = profile["debug_meta"]["images"]
@@ -131,7 +154,15 @@ def _symbolicate(profile: Profile, project: Project) -> None:
                     frame.pop("context_line", None)
                     frame.pop("post_context", None)
 
-                original["frames"] = symbolicated["frames"]
+                # here we exclude the frames related to the profiler itself as we don't care to profile the profiler.
+                if (
+                    profile["platform"] == "rust"
+                    and len(symbolicated["frames"]) >= 2
+                    and symbolicated["frames"][0].get("function", "") == "perf_signal_handler"
+                ):
+                    original["frames"] = symbolicated["frames"][2:]
+                else:
+                    original["frames"] = symbolicated["frames"]
             break
         except RetrySymbolication as e:
             if (
@@ -157,7 +188,7 @@ def _symbolicate(profile: Profile, project: Project) -> None:
     profile["profile"] = profile.pop("sampled_profile")
 
 
-@metrics.wraps("process_profile.deobfuscate")  # type: ignore
+@metrics.wraps("process_profile.deobfuscate")
 def _deobfuscate(profile: Profile, project: Project) -> None:
     debug_file_id = profile.get("build_id")
     if debug_file_id is None or debug_file_id == "":
@@ -205,14 +236,20 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                 method["class_name"] = mapped
 
 
-@metrics.wraps("process_profile.track_outcome")  # type: ignore
-def _track_outcome(profile: Profile, project: Project, key_id: Optional[int]) -> None:
+@metrics.wraps("process_profile.track_outcome")
+def _track_outcome(
+    profile: Profile,
+    project: Project,
+    outcome: Outcome,
+    key_id: Optional[int],
+    reason: Optional[str] = None,
+) -> None:
     track_outcome(
         org_id=project.organization_id,
         project_id=project.id,
         key_id=key_id,
-        outcome=Outcome.ACCEPTED,
-        reason=None,
+        outcome=outcome,
+        reason=reason,
         timestamp=datetime.utcnow().replace(tzinfo=UTC),
         event_id=profile["transaction_id"],
         category=DataCategory.PROFILE,
@@ -220,14 +257,8 @@ def _track_outcome(profile: Profile, project: Project, key_id: Optional[int]) ->
     )
 
 
-@metrics.wraps("process_profile.insert_eventstream")  # type: ignore
-def _insert_eventstream(profile: Profile) -> None:
-    """
-    TODO: This function directly publishes the profile to kafka.
-    We'll want to look into the existing eventstream abstraction
-    so we can take advantage of nodestore at some point for single
-    profile access.
-    """
+@metrics.wraps("process_profile.initialize_publisher")
+def _initialize_publisher() -> None:
     global processed_profiles_publisher
 
     if processed_profiles_publisher is None:
@@ -236,7 +267,81 @@ def _insert_eventstream(profile: Profile) -> None:
             kafka_config.get_kafka_producer_cluster_options(config["cluster"]),
         )
 
+
+@metrics.wraps("process_profile.insert_eventstream.profile")
+def _insert_eventstream_profile(profile: Profile) -> None:
+    """
+    TODO: This function directly publishes the profile to kafka.
+    We'll want to look into the existing eventstream abstraction
+    so we can take advantage of nodestore at some point for single
+    profile access.
+    """
+
+    # just a guard as this should always be initialized already
+    if processed_profiles_publisher is None:
+        return
+
     processed_profiles_publisher.publish(
         "processed-profiles",
         json.dumps(profile),
     )
+
+
+@metrics.wraps("process_profile.insert_eventstream.call_tree")
+def _insert_eventstream_call_tree(profile: Profile) -> None:
+    # just a guard as this should always be initialized already
+    if processed_profiles_publisher is None:
+        return
+
+    try:
+        event = _get_event_instance(profile)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        return
+
+    processed_profiles_publisher.publish(
+        "profiles-call-tree",
+        json.dumps(event),
+    )
+
+
+@metrics.wraps("process_profile.get_event_instance")
+def _get_event_instance(profile: Profile) -> Any:
+    return {
+        "profile_id": profile["profile_id"],
+        "project_id": profile["project_id"],
+        "transaction_name": profile["transaction_name"],
+        "timestamp": profile["received"],
+        "platform": profile["platform"],
+        "environment": profile.get("environment"),
+        "release": f"{profile['version_name']} ({profile['version_code']})",
+        "os_name": profile["device_os_name"],
+        "os_version": profile["device_os_version"],
+        "retention_days": profile["retention_days"],
+        "call_trees": profile["call_trees"],
+    }
+
+
+@metrics.wraps("process_profile.insert_vroom_profile")
+def _insert_vroom_profile(profile: Profile) -> bool:
+    original_timestamp = profile["received"]
+
+    try:
+        profile["received"] = (
+            datetime.utcfromtimestamp(profile["received"]).replace(tzinfo=timezone.utc).isoformat()
+        )
+        response = get_from_profiling_service(method="POST", path="/profile", json_data=profile)
+
+        if response.status == 204:
+            profile["call_trees"] = {}
+        elif response.status == 200:
+            profile["call_trees"] = json.loads(response.data)["call_trees"]
+        else:
+            metrics.incr(
+                "profiling.insert_vroom_profile.error", tags={"platform": profile["platform"]}
+            )
+            return False
+        return True
+    finally:
+        profile["received"] = original_timestamp
+        profile["profile"] = ""

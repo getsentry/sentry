@@ -1,13 +1,23 @@
 import isEqual from 'lodash/isEqual';
 
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
-import {t} from 'sentry/locale';
 import {MetricsType, Organization, SelectValue} from 'sentry/types';
 import {assert} from 'sentry/types/utils';
 import {
   SESSIONS_FIELDS,
   SESSIONS_OPERATIONS,
 } from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
+
+import {
+  AGGREGATION_FIELDS,
+  AggregationKey,
+  DISCOVER_FIELDS,
+  FieldKey,
+  FIELDS,
+  FieldValueType,
+  MEASUREMENT_FIELDS,
+  WebVital,
+} from '../fields';
 
 export type Sort = {
   field: string;
@@ -23,16 +33,10 @@ export type Field = {
   width?: number;
 };
 
-export type ColumnType =
-  | 'boolean'
-  | 'date'
-  | 'duration'
-  | 'integer'
-  | 'number'
-  | 'percentage'
-  | 'string';
+// ColumnType is kept as a string literal union instead of an enum due to the countless uses of it and refactoring would take huge effort.
+export type ColumnType = `${Exclude<FieldValueType, FieldValueType.NEVER>}`;
 
-export type ColumnValueType = ColumnType | 'never'; // Matches to nothing
+export type ColumnValueType = ColumnType | `${FieldValueType.NEVER}`;
 
 export type ParsedFunction = {
   arguments: string[];
@@ -93,7 +97,12 @@ export type QueryFieldValue =
       alias?: string;
     }
   | {
-      function: [AggregationKey, string, AggregationRefinement, AggregationRefinement];
+      function: [
+        AggregationKeyWithAlias,
+        string,
+        AggregationRefinement,
+        AggregationRefinement
+      ];
       kind: 'function';
       alias?: string;
     };
@@ -149,41 +158,24 @@ const WEB_VITALS_QUALITY: SelectValue<string>[] = [
   },
 ];
 
-export enum WebVital {
-  FP = 'measurements.fp',
-  FCP = 'measurements.fcp',
-  LCP = 'measurements.lcp',
-  FID = 'measurements.fid',
-  CLS = 'measurements.cls',
-  TTFB = 'measurements.ttfb',
-  RequestTime = 'measurements.ttfb.requesttime',
-}
-
-export enum MobileVital {
-  AppStartCold = 'measurements.app_start_cold',
-  AppStartWarm = 'measurements.app_start_warm',
-  FramesTotal = 'measurements.frames_total',
-  FramesSlow = 'measurements.frames_slow',
-  FramesFrozen = 'measurements.frames_frozen',
-  FramesSlowRate = 'measurements.frames_slow_rate',
-  FramesFrozenRate = 'measurements.frames_frozen_rate',
-  StallCount = 'measurements.stall_count',
-  StallTotalTime = 'measurements.stall_total_time',
-  StallLongestTime = 'measurements.stall_longest_time',
-  StallPercentage = 'measurements.stall_percentage',
-}
+const getDocsAndOutputType = (key: AggregationKey) => {
+  return {
+    documentation: AGGREGATION_FIELDS[key].desc,
+    outputType: AGGREGATION_FIELDS[key].valueType as AggregationOutputType,
+  };
+};
 
 // Refer to src/sentry/search/events/fields.py
 // Try to keep functions logically sorted, ie. all the count functions are grouped together
 export const AGGREGATIONS = {
-  count: {
+  [AggregationKey.Count]: {
+    ...getDocsAndOutputType(AggregationKey.Count),
     parameters: [],
-    documentation: t('number of events'),
-    outputType: 'number',
     isSortable: true,
     multiPlotType: 'area',
   },
-  count_unique: {
+  [AggregationKey.CountUnique]: {
+    ...getDocsAndOutputType(AggregationKey.CountUnique),
     parameters: [
       {
         kind: 'column',
@@ -192,12 +184,11 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    documentation: t('unique number of events'),
-    outputType: 'integer',
     isSortable: true,
     multiPlotType: 'line',
   },
-  count_miserable: {
+  [AggregationKey.CountMiserable]: {
+    ...getDocsAndOutputType(AggregationKey.CountMiserable),
     getFieldOverrides({parameter}: DefaultValueInputs) {
       if (parameter.kind === 'column') {
         return {defaultValue: 'user'};
@@ -220,12 +211,11 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    documentation: t('miserable number of events'),
-    outputType: 'number',
     isSortable: true,
     multiPlotType: 'area',
   },
-  count_if: {
+  [AggregationKey.CountIf]: {
+    ...getDocsAndOutputType(AggregationKey.CountIf),
     parameters: [
       {
         kind: 'column',
@@ -250,12 +240,11 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    documentation: t('conditional number of events'),
-    outputType: 'number',
     isSortable: true,
     multiPlotType: 'area',
   },
-  count_web_vitals: {
+  [AggregationKey.CountWebVitals]: {
+    ...getDocsAndOutputType(AggregationKey.CountWebVitals),
     parameters: [
       {
         kind: 'column',
@@ -277,33 +266,29 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    documentation: t('events matching vital thresholds'),
-    outputType: 'number',
     isSortable: true,
     multiPlotType: 'area',
   },
-  eps: {
+  [AggregationKey.Eps]: {
+    ...getDocsAndOutputType(AggregationKey.Eps),
     parameters: [],
-    documentation: t('events per second'),
-    outputType: 'number',
     isSortable: true,
     multiPlotType: 'area',
   },
-  epm: {
+  [AggregationKey.Epm]: {
+    ...getDocsAndOutputType(AggregationKey.Epm),
     parameters: [],
-    documentation: t('events per minute'),
-    outputType: 'number',
     isSortable: true,
     multiPlotType: 'area',
   },
-  failure_count: {
+  [AggregationKey.FailureCount]: {
+    ...getDocsAndOutputType(AggregationKey.FailureCount),
     parameters: [],
-    documentation: t('number of failed events'),
-    outputType: 'number',
     isSortable: true,
     multiPlotType: 'line',
   },
-  min: {
+  [AggregationKey.Min]: {
+    ...getDocsAndOutputType(AggregationKey.Min),
     parameters: [
       {
         kind: 'column',
@@ -318,12 +303,11 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    documentation: t('minimum'),
-    outputType: null,
     isSortable: true,
     multiPlotType: 'line',
   },
-  max: {
+  [AggregationKey.Max]: {
+    ...getDocsAndOutputType(AggregationKey.Max),
     parameters: [
       {
         kind: 'column',
@@ -338,12 +322,11 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    documentation: t('maximum'),
-    outputType: null,
     isSortable: true,
     multiPlotType: 'line',
   },
-  sum: {
+  [AggregationKey.Sum]: {
+    ...getDocsAndOutputType(AggregationKey.Sum),
     parameters: [
       {
         kind: 'column',
@@ -352,12 +335,11 @@ export const AGGREGATIONS = {
         defaultValue: 'transaction.duration',
       },
     ],
-    documentation: t('total value'),
-    outputType: null,
     isSortable: true,
     multiPlotType: 'area',
   },
-  any: {
+  [AggregationKey.Any]: {
+    ...getDocsAndOutputType(AggregationKey.Any),
     parameters: [
       {
         kind: 'column',
@@ -366,11 +348,10 @@ export const AGGREGATIONS = {
         defaultValue: 'transaction.duration',
       },
     ],
-    documentation: t('pick any value'),
-    outputType: null,
     isSortable: true,
   },
-  p50: {
+  [AggregationKey.P50]: {
+    ...getDocsAndOutputType(AggregationKey.P50),
     parameters: [
       {
         kind: 'column',
@@ -379,12 +360,11 @@ export const AGGREGATIONS = {
         required: false,
       },
     ],
-    documentation: t('median'),
-    outputType: null,
     isSortable: true,
     multiPlotType: 'line',
   },
-  p75: {
+  [AggregationKey.P75]: {
+    ...getDocsAndOutputType(AggregationKey.P75),
     parameters: [
       {
         kind: 'column',
@@ -393,12 +373,11 @@ export const AGGREGATIONS = {
         required: false,
       },
     ],
-    documentation: t('75th percentile'),
-    outputType: null,
     isSortable: true,
     multiPlotType: 'line',
   },
-  p95: {
+  [AggregationKey.P95]: {
+    ...getDocsAndOutputType(AggregationKey.P95),
     parameters: [
       {
         kind: 'column',
@@ -407,13 +386,12 @@ export const AGGREGATIONS = {
         required: false,
       },
     ],
-    documentation: t('95th percentile'),
-    outputType: null,
     type: [],
     isSortable: true,
     multiPlotType: 'line',
   },
-  p99: {
+  [AggregationKey.P99]: {
+    ...getDocsAndOutputType(AggregationKey.P99),
     parameters: [
       {
         kind: 'column',
@@ -422,12 +400,11 @@ export const AGGREGATIONS = {
         required: false,
       },
     ],
-    documentation: t('99th percentile'),
-    outputType: null,
     isSortable: true,
     multiPlotType: 'line',
   },
-  p100: {
+  [AggregationKey.P100]: {
+    ...getDocsAndOutputType(AggregationKey.P100),
     parameters: [
       {
         kind: 'column',
@@ -436,12 +413,11 @@ export const AGGREGATIONS = {
         required: false,
       },
     ],
-    documentation: t('maximum'),
-    outputType: null,
     isSortable: true,
     multiPlotType: 'line',
   },
-  percentile: {
+  [AggregationKey.Percentile]: {
+    ...getDocsAndOutputType(AggregationKey.Percentile),
     parameters: [
       {
         kind: 'column',
@@ -456,12 +432,11 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    documentation: t('arbitrary percentile'),
-    outputType: null,
     isSortable: true,
     multiPlotType: 'line',
   },
-  avg: {
+  [AggregationKey.Avg]: {
+    ...getDocsAndOutputType(AggregationKey.Avg),
     parameters: [
       {
         kind: 'column',
@@ -470,12 +445,11 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    documentation: t('average'),
-    outputType: null,
     isSortable: true,
     multiPlotType: 'line',
   },
-  apdex: {
+  [AggregationKey.Apdex]: {
+    ...getDocsAndOutputType(AggregationKey.Apdex),
     parameters: [
       {
         kind: 'value',
@@ -484,12 +458,11 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    documentation: t('performance score, higher is better'),
-    outputType: 'number',
     isSortable: true,
     multiPlotType: 'line',
   },
-  user_misery: {
+  [AggregationKey.UserMisery]: {
+    ...getDocsAndOutputType(AggregationKey.UserMisery),
     parameters: [
       {
         kind: 'value',
@@ -498,35 +471,31 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    documentation: t('ratio of miserable users'),
-    outputType: 'number',
     isSortable: true,
     multiPlotType: 'line',
   },
-  failure_rate: {
+  [AggregationKey.FailureRate]: {
+    ...getDocsAndOutputType(AggregationKey.FailureRate),
     parameters: [],
-    documentation: t('failure_count()/count()'),
-    outputType: 'percentage',
     isSortable: true,
     multiPlotType: 'line',
   },
-  last_seen: {
+  [AggregationKey.LastSeen]: {
+    ...getDocsAndOutputType(AggregationKey.LastSeen),
     parameters: [],
-    documentation: t('largest timestamp'),
-    outputType: 'date',
     isSortable: true,
   },
 } as const;
 
 // TPM and TPS are aliases that are only used in Performance
 export const ALIASES = {
-  tpm: 'epm',
-  tps: 'eps',
+  tpm: AggregationKey.Epm,
+  tps: AggregationKey.Eps,
 };
 
-assert(AGGREGATIONS as Readonly<{[key in keyof typeof AGGREGATIONS]: Aggregation}>);
+assert(AGGREGATIONS as Readonly<{[key in AggregationKey]: Aggregation}>);
 
-export type AggregationKey = keyof typeof AGGREGATIONS | keyof typeof ALIASES | '';
+export type AggregationKeyWithAlias = `${AggregationKey}` | keyof typeof ALIASES | '';
 
 export type AggregationOutputType = Extract<
   ColumnType,
@@ -562,156 +531,6 @@ export type Aggregation = {
   multiPlotType?: PlotType;
 };
 
-enum FieldKey {
-  CULPRIT = 'culprit',
-  DEVICE_ARCH = 'device.arch',
-  DEVICE_BATTERY_LEVEL = 'device.battery_level',
-  DEVICE_BRAND = 'device.brand',
-  DEVICE_CHARGING = 'device.charging',
-  DEVICE_FAMILY = 'device.family',
-  DEVICE_LOCALE = 'device.locale',
-  DEVICE_NAME = 'device.name',
-  DEVICE_ONLINE = 'device.online',
-  DEVICE_ORIENTATION = 'device.orientation',
-  DEVICE_SIMULATOR = 'device.simulator',
-  DEVICE_UUID = 'device.uuid',
-  DIST = 'dist',
-  ENVIRONMENT = 'environment',
-  ERROR_HANDLED = 'error.handled',
-  ERROR_UNHANDLED = 'error.unhandled',
-  ERROR_MECHANISM = 'error.mechanism',
-  ERROR_TYPE = 'error.type',
-  ERROR_VALUE = 'error.value',
-  EVENT_TYPE = 'event.type',
-  GEO_CITY = 'geo.city',
-  GEO_COUNTRY_CODE = 'geo.country_code',
-  GEO_REGION = 'geo.region',
-  HTTP_METHOD = 'http.method',
-  HTTP_REFERER = 'http.referer',
-  HTTP_URL = 'http.url',
-  ID = 'id',
-  ISSUE = 'issue',
-  LEVEL = 'level',
-  LOCATION = 'location',
-  MESSAGE = 'message',
-  OS_BUILD = 'os.build',
-  OS_KERNEL_VERSION = 'os.kernel_version',
-  PLATFORM_NAME = 'platform.name',
-  PROJECT = 'project',
-  RELEASE = 'release',
-  SDK_NAME = 'sdk.name',
-  SDK_VERSION = 'sdk.version',
-  STACK_ABS_PATH = 'stack.abs_path',
-  STACK_COLNO = 'stack.colno',
-  STACK_FILENAME = 'stack.filename',
-  STACK_FUNCTION = 'stack.function',
-  STACK_IN_APP = 'stack.in_app',
-  STACK_LINENO = 'stack.lineno',
-  STACK_MODULE = 'stack.module',
-  STACK_PACKAGE = 'stack.package',
-  STACK_STACK_LEVEL = 'stack.stack_level',
-  TIMESTAMP = 'timestamp',
-  TIMESTAMP_TO_HOUR = 'timestamp.to_hour',
-  TIMESTAMP_TO_DAY = 'timestamp.to_day',
-  TITLE = 'title',
-  TRACE = 'trace',
-  TRACE_PARENT_SPAN = 'trace.parent_span',
-  TRACE_SPAN = 'trace.span',
-  TRANSACTION = 'transaction',
-  TRANSACTION_DURATION = 'transaction.duration',
-  TRANSACTION_OP = 'transaction.op',
-  TRANSACTION_STATUS = 'transaction.status',
-  USER = 'user',
-  USER_EMAIL = 'user.email',
-  USER_ID = 'user.id',
-  USER_IP = 'user.ip',
-  USER_USERNAME = 'user.username',
-  USER_DISPLAY = 'user.display',
-}
-
-/**
- * Refer to src/sentry/snuba/events.py, search for Columns
- */
-export const FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
-  [FieldKey.ID]: 'string',
-  // issue.id and project.id are omitted on purpose.
-  // Customers should use `issue` and `project` instead.
-  [FieldKey.TIMESTAMP]: 'date',
-  // time is omitted on purpose.
-  // Customers should use `timestamp` or `timestamp.to_hour`.
-  [FieldKey.TIMESTAMP_TO_HOUR]: 'date',
-  [FieldKey.TIMESTAMP_TO_DAY]: 'date',
-
-  [FieldKey.CULPRIT]: 'string',
-  [FieldKey.LOCATION]: 'string',
-  [FieldKey.MESSAGE]: 'string',
-  [FieldKey.PLATFORM_NAME]: 'string',
-  [FieldKey.ENVIRONMENT]: 'string',
-  [FieldKey.RELEASE]: 'string',
-  [FieldKey.DIST]: 'string',
-  [FieldKey.TITLE]: 'string',
-  [FieldKey.EVENT_TYPE]: 'string',
-  // tags.key and tags.value are omitted on purpose as well.
-
-  [FieldKey.TRANSACTION]: 'string',
-  [FieldKey.USER]: 'string',
-  [FieldKey.USER_ID]: 'string',
-  [FieldKey.USER_EMAIL]: 'string',
-  [FieldKey.USER_USERNAME]: 'string',
-  [FieldKey.USER_IP]: 'string',
-  [FieldKey.SDK_NAME]: 'string',
-  [FieldKey.SDK_VERSION]: 'string',
-  [FieldKey.HTTP_METHOD]: 'string',
-  [FieldKey.HTTP_REFERER]: 'string',
-  [FieldKey.HTTP_URL]: 'string',
-  [FieldKey.OS_BUILD]: 'string',
-  [FieldKey.OS_KERNEL_VERSION]: 'string',
-  [FieldKey.DEVICE_NAME]: 'string',
-  [FieldKey.DEVICE_BRAND]: 'string',
-  [FieldKey.DEVICE_LOCALE]: 'string',
-  [FieldKey.DEVICE_UUID]: 'string',
-  [FieldKey.DEVICE_ARCH]: 'string',
-  [FieldKey.DEVICE_FAMILY]: 'string',
-  [FieldKey.DEVICE_BATTERY_LEVEL]: 'number',
-  [FieldKey.DEVICE_ORIENTATION]: 'string',
-  [FieldKey.DEVICE_SIMULATOR]: 'boolean',
-  [FieldKey.DEVICE_ONLINE]: 'boolean',
-  [FieldKey.DEVICE_CHARGING]: 'boolean',
-  [FieldKey.GEO_COUNTRY_CODE]: 'string',
-  [FieldKey.GEO_REGION]: 'string',
-  [FieldKey.GEO_CITY]: 'string',
-  [FieldKey.ERROR_TYPE]: 'string',
-  [FieldKey.ERROR_VALUE]: 'string',
-  [FieldKey.ERROR_MECHANISM]: 'string',
-  [FieldKey.ERROR_HANDLED]: 'boolean',
-  [FieldKey.ERROR_UNHANDLED]: 'boolean',
-  [FieldKey.LEVEL]: 'string',
-  [FieldKey.STACK_ABS_PATH]: 'string',
-  [FieldKey.STACK_FILENAME]: 'string',
-  [FieldKey.STACK_PACKAGE]: 'string',
-  [FieldKey.STACK_MODULE]: 'string',
-  [FieldKey.STACK_FUNCTION]: 'string',
-  [FieldKey.STACK_IN_APP]: 'boolean',
-  [FieldKey.STACK_COLNO]: 'number',
-  [FieldKey.STACK_LINENO]: 'number',
-  [FieldKey.STACK_STACK_LEVEL]: 'number',
-  // contexts.key and contexts.value omitted on purpose.
-
-  // Transaction event fields.
-  [FieldKey.TRANSACTION_DURATION]: 'duration',
-  [FieldKey.TRANSACTION_OP]: 'string',
-  [FieldKey.TRANSACTION_STATUS]: 'string',
-
-  [FieldKey.TRACE]: 'string',
-  [FieldKey.TRACE_SPAN]: 'string',
-  [FieldKey.TRACE_PARENT_SPAN]: 'string',
-
-  // Field alises defined in src/sentry/api/event_search.py
-  [FieldKey.PROJECT]: 'string',
-  [FieldKey.ISSUE]: 'string',
-  [FieldKey.USER_DISPLAY]: 'string',
-};
-
 export const DEPRECATED_FIELDS: string[] = [FieldKey.CULPRIT];
 
 export type FieldTag = {
@@ -720,25 +539,25 @@ export type FieldTag = {
 };
 
 export const FIELD_TAGS = Object.freeze(
-  Object.fromEntries(Object.keys(FIELDS).map(item => [item, {key: item, name: item}]))
+  Object.fromEntries(DISCOVER_FIELDS.map(item => [item, {key: item, name: item}]))
 );
 
 export const SEMVER_TAGS = {
-  'release.version': {
-    key: 'release.version',
-    name: 'release.version',
+  [FieldKey.RELEASE_VERSION]: {
+    key: FieldKey.RELEASE_VERSION,
+    name: FieldKey.RELEASE_VERSION,
   },
-  'release.build': {
-    key: 'release.build',
-    name: 'release.build',
+  [FieldKey.RELEASE_BUILD]: {
+    key: FieldKey.RELEASE_BUILD,
+    name: FieldKey.RELEASE_BUILD,
   },
-  'release.package': {
-    key: 'release.package',
-    name: 'release.package',
+  [FieldKey.RELEASE_PACKAGE]: {
+    key: FieldKey.RELEASE_PACKAGE,
+    name: FieldKey.RELEASE_PACKAGE,
   },
-  'release.stage': {
-    key: 'release.stage',
-    name: 'release.stage',
+  [FieldKey.RELEASE_STAGE]: {
+    key: FieldKey.RELEASE_STAGE,
+    name: FieldKey.RELEASE_STAGE,
     predefined: true,
     values: RELEASE_ADOPTION_STAGES,
   },
@@ -763,28 +582,11 @@ export function formatTagKey(key: string): string {
 // Allows for a less strict field key definition in cases we are returning custom strings as fields
 export type LooseFieldKey = FieldKey | string | '';
 
-export type MeasurementType = 'duration' | 'number' | 'integer' | 'percentage';
-
-const MEASUREMENTS: Readonly<Record<WebVital | MobileVital, MeasurementType>> = {
-  [WebVital.FP]: 'duration',
-  [WebVital.FCP]: 'duration',
-  [WebVital.LCP]: 'duration',
-  [WebVital.FID]: 'duration',
-  [WebVital.CLS]: 'number',
-  [WebVital.TTFB]: 'duration',
-  [WebVital.RequestTime]: 'duration',
-  [MobileVital.AppStartCold]: 'duration',
-  [MobileVital.AppStartWarm]: 'duration',
-  [MobileVital.FramesTotal]: 'integer',
-  [MobileVital.FramesSlow]: 'integer',
-  [MobileVital.FramesFrozen]: 'integer',
-  [MobileVital.FramesSlowRate]: 'percentage',
-  [MobileVital.FramesFrozenRate]: 'percentage',
-  [MobileVital.StallCount]: 'integer',
-  [MobileVital.StallTotalTime]: 'duration',
-  [MobileVital.StallLongestTime]: 'duration',
-  [MobileVital.StallPercentage]: 'percentage',
-};
+export type MeasurementType =
+  | FieldValueType.DURATION
+  | FieldValueType.NUMBER
+  | FieldValueType.INTEGER
+  | FieldValueType.PERCENTAGE;
 
 export function isSpanOperationBreakdownField(field: string) {
   return field.startsWith('spans.');
@@ -801,29 +603,30 @@ export const SPAN_OP_BREAKDOWN_FIELDS = [
   'spans.db',
   'spans.browser',
   'spans.resource',
+  'spans.ui',
 ];
 
 // This list contains fields/functions that are available with performance-view feature.
 export const TRACING_FIELDS = [
-  'avg',
-  'sum',
-  'transaction.duration',
-  'transaction.op',
-  'transaction.status',
-  'p50',
-  'p75',
-  'p95',
-  'p99',
-  'p100',
-  'percentile',
-  'failure_rate',
-  'apdex',
-  'count_miserable',
-  'user_misery',
-  'eps',
-  'epm',
+  AggregationKey.Avg,
+  AggregationKey.Sum,
+  FieldKey.TRANSACTION_DURATION,
+  FieldKey.TRANSACTION_OP,
+  FieldKey.TRANSACTION_STATUS,
+  AggregationKey.P50,
+  AggregationKey.P75,
+  AggregationKey.P95,
+  AggregationKey.P99,
+  AggregationKey.P100,
+  AggregationKey.Percentile,
+  AggregationKey.FailureRate,
+  AggregationKey.Apdex,
+  AggregationKey.CountMiserable,
+  AggregationKey.UserMisery,
+  AggregationKey.Eps,
+  AggregationKey.Epm,
   'team_key_transaction',
-  ...Object.keys(MEASUREMENTS),
+  ...Object.keys(MEASUREMENT_FIELDS),
   ...SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 ];
@@ -837,10 +640,11 @@ export function isMeasurement(field: string): boolean {
 }
 
 export function measurementType(field: string): MeasurementType {
-  if (MEASUREMENTS.hasOwnProperty(field)) {
-    return MEASUREMENTS[field];
+  if (MEASUREMENT_FIELDS.hasOwnProperty(field)) {
+    return MEASUREMENT_FIELDS[field].valueType as MeasurementType;
   }
-  return 'number';
+
+  return FieldValueType.NUMBER;
 }
 
 export function getMeasurementSlug(field: string): string | null {
@@ -1122,106 +926,6 @@ export function isNumericMetrics(field: string): boolean {
   ].includes(field);
 }
 
-export const FIELDS_DOCS: Readonly<Record<string, string>> = {
-  has: t('check field exists'),
-  'release.version': t('semantic version'),
-  'release.stage': t('adoption stage'),
-  'release.package': t('semantic package'),
-  'release.build': t('semantic build number'),
-  [FieldKey.CULPRIT]: t('deprecated'),
-  [FieldKey.DEVICE_ARCH]: t('cpu architecture'),
-  [FieldKey.DEVICE_FAMILY]: t('common part of name'),
-  [FieldKey.DEVICE_BATTERY_LEVEL]: t('0-100 of level'),
-  [FieldKey.DEVICE_BRAND]: t('brand of device'),
-  [FieldKey.DEVICE_CHARGING]: t('True or False'),
-  [FieldKey.DEVICE_LOCALE]: t('deprecated'),
-  [FieldKey.DEVICE_NAME]: t('details of device'),
-  [FieldKey.DEVICE_ONLINE]: t('True or False'),
-  [FieldKey.DEVICE_ORIENTATION]: t('portrait or landscape'),
-  [FieldKey.DEVICE_SIMULATOR]: t('True or False'),
-  [FieldKey.DEVICE_UUID]: t('uuid'),
-  [FieldKey.DIST]: t('build or variant'),
-  [FieldKey.ENVIRONMENT]: t('deployment name'),
-  [FieldKey.ERROR_HANDLED]: t('True or False'),
-  [FieldKey.ERROR_MECHANISM]: t('created error'),
-  [FieldKey.ERROR_TYPE]: t('exception type'),
-  [FieldKey.ERROR_UNHANDLED]: t('True or False'),
-  [FieldKey.ERROR_VALUE]: t('error value'),
-  [FieldKey.EVENT_TYPE]: t('type of event'),
-  [FieldKey.GEO_CITY]: t('full name'),
-  [FieldKey.GEO_COUNTRY_CODE]: t('ISO 3166-1'),
-  [FieldKey.GEO_REGION]: t('full name'),
-  [FieldKey.HTTP_METHOD]: t('method of request'),
-  [FieldKey.HTTP_REFERER]: t('referer of request'),
-  [FieldKey.HTTP_URL]: t('url of request'),
-  [FieldKey.ID]: t('event identifier'),
-  [FieldKey.ISSUE]: t('issue short id'),
-  [FieldKey.LEVEL]: t('string'),
-  [FieldKey.LOCATION]: t('where error happened'),
-  [FieldKey.MESSAGE]: t('title or name'),
-  [FieldKey.OS_BUILD]: t('internal build revision'),
-  [FieldKey.OS_KERNEL_VERSION]: t('kernel string'),
-  [FieldKey.PLATFORM_NAME]: t('name of platform'),
-  [FieldKey.PROJECT]: t('project name'),
-  [FieldKey.RELEASE]: t('code version'),
-  [FieldKey.SDK_NAME]: t('sentry sdk name'),
-  [FieldKey.SDK_VERSION]: t('sentry sdk version'),
-  [FieldKey.STACK_ABS_PATH]: t('absolute path'),
-  [FieldKey.STACK_COLNO]: t('column number'),
-  [FieldKey.STACK_FILENAME]: t('source file'),
-  [FieldKey.STACK_FUNCTION]: t('function called'),
-  [FieldKey.STACK_IN_APP]: t('True or False'),
-  [FieldKey.STACK_LINENO]: t('line number'),
-  [FieldKey.STACK_MODULE]: t('platform specific'),
-  [FieldKey.STACK_PACKAGE]: t('package of frame'),
-  [FieldKey.STACK_STACK_LEVEL]: t('number'),
-  [FieldKey.TIMESTAMP]: t('time event occurred'),
-  [FieldKey.TIMESTAMP_TO_DAY]: t('rounded timestamp'),
-  [FieldKey.TIMESTAMP_TO_HOUR]: t('rounded timestamp'),
-  [FieldKey.TITLE]: t('title or name'),
-  [FieldKey.TRACE]: t('uuid'),
-  [FieldKey.TRACE_PARENT_SPAN]: t('span for parent trace'),
-  [FieldKey.TRACE_SPAN]: t('span for trace'),
-  [FieldKey.TRANSACTION]: t('transaction name'),
-  [FieldKey.TRANSACTION_DURATION]: t('duration'),
-  [FieldKey.TRANSACTION_OP]: t('short code'),
-  [FieldKey.TRANSACTION_STATUS]: t('final status'),
-  [FieldKey.USER]: t('unparsed user field'),
-  [FieldKey.USER_DISPLAY]: t('email>username>id>ip'),
-  [FieldKey.USER_EMAIL]: t('email'),
-  [FieldKey.USER_ID]: t('identifier'),
-  [FieldKey.USER_IP]: t('ip address'),
-  [FieldKey.USER_USERNAME]: t('username'),
-  [MobileVital.AppStartCold]: t('first launch duration'),
-  [MobileVital.AppStartWarm]: t('subsequent launch duration'),
-  [MobileVital.FramesFrozenRate]: t('frames_frozen/frames_total'),
-  [MobileVital.FramesFrozen]: t('framse slower than 700ms'),
-  [MobileVital.FramesSlowRate]: t('frames_slow/frames_total'),
-  [MobileVital.FramesSlow]: t('frames slower than 16ms'),
-  [MobileVital.FramesTotal]: t('number of frames'),
-  [MobileVital.StallCount]: t('stalled event loops'),
-  [MobileVital.StallLongestTime]: t('largest stalled event loop'),
-  [MobileVital.StallPercentage]: t('stall_total_time/duration'),
-  [MobileVital.StallTotalTime]: t('duration of stall'),
-  [WebVital.CLS]: t('cumulative layout shift'),
-  [WebVital.FCP]: t('first contentful paint'),
-  [WebVital.FID]: t('first input delay'),
-  [WebVital.FP]: t('first paint'),
-  [WebVital.LCP]: t('largest contentful paint'),
-  [WebVital.RequestTime]: t('time until response start'),
-  [WebVital.TTFB]: t('time to first byte'),
-};
-export function getFieldDoc(field: string): React.ReactNode {
-  if (FIELDS_DOCS.hasOwnProperty(field)) {
-    return FIELDS_DOCS[field];
-  }
-  const parsed = parseFunction(field);
-  if (parsed && AGGREGATIONS.hasOwnProperty(parsed.name)) {
-    return AGGREGATIONS[parsed.name].documentation;
-  }
-  return '';
-}
-
 export function getAggregateFields(fields: string[]): string[] {
   return fields.filter(
     field =>
@@ -1321,7 +1025,7 @@ export function aggregateFunctionOutputType(
   // If the function is an inherit type it will have a field as
   // the first parameter and we can use that to get the type.
   if (firstArg && FIELDS.hasOwnProperty(firstArg)) {
-    return FIELDS[firstArg];
+    return FIELDS[firstArg].valueType as AggregationOutputType;
   }
 
   if (firstArg && isMeasurement(firstArg)) {
@@ -1357,7 +1061,7 @@ export function errorsAndTransactionsAggregateFunctionOutputType(
   // If the function is an inherit type it will have a field as
   // the first parameter and we can use that to get the type.
   if (firstArg && FIELDS.hasOwnProperty(firstArg)) {
-    return FIELDS[firstArg];
+    return FIELDS[firstArg].valueType as AggregationOutputType;
   }
 
   if (firstArg && isMeasurement(firstArg)) {
@@ -1498,7 +1202,7 @@ export function getColumnType(column: Column): ColumnType {
     }
   } else if (column.kind === 'field') {
     if (FIELDS.hasOwnProperty(column.field)) {
-      return FIELDS[column.field];
+      return FIELDS[column.field].valueType as ColumnType;
     }
     if (isMeasurement(column.field)) {
       return measurementType(column.field);

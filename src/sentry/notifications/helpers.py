@@ -45,8 +45,10 @@ def _get_notification_setting_default(
     """
     from sentry.models import User
 
-    if isinstance(recipient, User) and features.has(
-        "users:notification-slack-automatic", recipient, actor=recipient
+    if (
+        isinstance(recipient, User)
+        and features.has("users:notification-slack-automatic", recipient, actor=recipient)
+        and provider == ExternalProviders.SLACK
     ):
         return NOTIFICATION_SETTINGS_ALL_SOMETIMES[type]
     return NOTIFICATION_SETTING_DEFAULTS[provider][type]
@@ -256,7 +258,11 @@ def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType:
     ]:
         return NotificationScopeType.ORGANIZATION
 
-    if type in [NotificationSettingTypes.WORKFLOW, NotificationSettingTypes.ISSUE_ALERTS]:
+    if type in [
+        NotificationSettingTypes.WORKFLOW,
+        NotificationSettingTypes.ISSUE_ALERTS,
+        NotificationSettingTypes.ACTIVE_RELEASE,
+    ]:
         return NotificationScopeType.PROJECT
 
     raise Exception(

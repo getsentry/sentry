@@ -24,7 +24,7 @@ import IgnoreActions from 'sentry/components/actions/ignore';
 import ResolveActions from 'sentry/components/actions/resolve';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
-import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
+import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
 import Tooltip from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -422,12 +422,12 @@ class Actions extends Component<Props, State> {
         />
         <Access organization={organization} access={['event:admin']}>
           {({hasAccess}) => (
-            <DropdownMenuControlV2
+            <DropdownMenuControl
               triggerProps={{
                 'aria-label': t('More Actions'),
                 icon: <IconEllipsis size="xs" />,
                 showChevron: false,
-                size: 'xsmall',
+                size: 'xs',
               }}
               items={[
                 {

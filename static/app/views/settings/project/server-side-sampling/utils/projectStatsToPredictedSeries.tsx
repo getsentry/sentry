@@ -6,21 +6,21 @@ import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import commonTheme from 'sentry/utils/theme';
 import {Outcome} from 'sentry/views/organizationStats/types';
-import {
-  COLOR_DROPPED,
-  COLOR_TRANSACTIONS,
-} from 'sentry/views/organizationStats/usageChart';
 
 import {quantityField} from '.';
 
 export function projectStatsToPredictedSeries(
   projectStats?: SeriesApi,
-  clientRate?: number,
-  serverRate?: number
+  client?: number,
+  server?: number,
+  specifiedClientRate?: number
 ): Series[] {
-  if (!projectStats || !defined(clientRate) || !defined(serverRate)) {
+  if (!projectStats || !defined(client) || !defined(server)) {
     return [];
   }
+
+  const clientRate = Math.max(Math.min(client, 1), 0);
+  let serverRate = Math.max(Math.min(server, 1), 0);
 
   const commonSeriesConfig = {
     barMinHeight: 1,
@@ -50,18 +50,29 @@ export function projectStatsToPredictedSeries(
       accepted = 0,
       filtered = 0,
       invalid = 0,
-      dropped = 0,
       rate_limited: rateLimited = 0,
       client_discard: clientDiscard = 0,
       interval,
     } = bucket;
 
-    const total = accepted + filtered + invalid + dropped + rateLimited + clientDiscard;
-    const newSentClient = clientRate * total;
-    const droppedClient = total - newSentClient;
-    const validEvents = newSentClient - (filtered + invalid + rateLimited);
-    const newAccepted = serverRate * validEvents;
-    const droppedServer = newSentClient - newAccepted;
+    if (clientRate < serverRate!) {
+      serverRate = clientRate;
+    }
+
+    let total = accepted + filtered + invalid + rateLimited + clientDiscard;
+
+    if (defined(specifiedClientRate)) {
+      // We assume that the clientDiscard is 0 and
+      // calculate the discard client (SDK) bucket according to the specified client rate
+      const newClientDiscard = total / specifiedClientRate - total;
+      total += newClientDiscard;
+    }
+
+    const newSentClient = total * clientRate;
+    const newDroppedClient = total - newSentClient;
+
+    const newAccepted = clientRate === 0 ? 0 : newSentClient * (serverRate! / clientRate);
+    const newDroppedServer = newSentClient - newAccepted;
 
     const name = moment(interval).valueOf();
     seriesData.accepted[index] = {
@@ -70,30 +81,30 @@ export function projectStatsToPredictedSeries(
     };
     seriesData.droppedServer[index] = {
       name,
-      value: Math.round(droppedServer),
+      value: Math.round(newDroppedServer),
     };
     seriesData.droppedClient[index] = {
       name,
-      value: Math.round(droppedClient),
+      value: Math.round(newDroppedClient),
     };
   });
 
   return [
     {
-      seriesName: t('Accepted'),
-      color: COLOR_TRANSACTIONS,
+      seriesName: t('Indexed and Processed'),
+      color: commonTheme.green300,
       ...commonSeriesConfig,
       data: seriesData.accepted,
     },
     {
-      seriesName: t('Dropped (Server)'),
-      color: COLOR_DROPPED,
+      seriesName: t('Processed'),
+      color: commonTheme.yellow300,
       data: seriesData.droppedServer,
       ...commonSeriesConfig,
     },
     {
-      seriesName: t('Dropped (Client)'),
-      color: commonTheme.yellow300,
+      seriesName: t('Discarded'),
+      color: commonTheme.red300,
       data: seriesData.droppedClient,
       ...commonSeriesConfig,
     },

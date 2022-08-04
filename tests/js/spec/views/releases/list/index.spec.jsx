@@ -135,9 +135,7 @@ describe('ReleasesList', () => {
       }
     );
 
-    expect(
-      await screen.findByText('Configure Releases with the CLI')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Set up Releases')).toBeInTheDocument();
     expect(screen.queryByTestId('release-panel')).not.toBeInTheDocument();
 
     // has releases set up and no releases
@@ -563,7 +561,7 @@ describe('ReleasesList', () => {
     fireEvent.submit(smartSearchBar);
 
     const autocompleteItems = await screen.findAllByTestId('search-autocomplete-item');
-    expect(autocompleteItems.at(0)).toHaveTextContent('release:');
+    expect(autocompleteItems.at(0)).toHaveTextContent('release');
 
     userEvent.clear(smartSearchBar);
     fireEvent.change(smartSearchBar, {target: {value: 'release.version:'}});

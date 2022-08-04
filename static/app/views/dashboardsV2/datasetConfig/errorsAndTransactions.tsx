@@ -15,6 +15,7 @@ import {
   TagCollection,
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
+import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {MetaType} from 'sentry/utils/discover/eventView';
 import {
@@ -23,6 +24,7 @@ import {
 } from 'sentry/utils/discover/fieldRenderers';
 import {
   errorsAndTransactionsAggregateFunctionOutputType,
+  getAggregateAlias,
   isEquation,
   isEquationAlias,
   isLegalYAxisType,
@@ -41,10 +43,7 @@ import {
   generateEventSlug,
 } from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
-import {
-  getMeasurements,
-  MeasurementCollection,
-} from 'sentry/utils/measurements/measurements';
+import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
@@ -153,6 +152,8 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   transformSeries: transformEventsResponseToSeries,
   transformTable: transformEventsResponseToTable,
   filterTableOptions,
+  filterAggregateParams,
+  getSeriesResultType,
 };
 
 function getTableSortOptions(_organization: Organization, widgetQuery: WidgetQuery) {
@@ -236,7 +237,7 @@ function getTimeseriesSortOptions(
 function getEventsTableFieldOptions(
   organization: Organization,
   tags?: TagCollection,
-  customMeasurements?: MeasurementCollection
+  customMeasurements?: CustomMeasurementCollection
 ) {
   const measurements = getMeasurements();
 
@@ -244,12 +245,15 @@ function getEventsTableFieldOptions(
     organization,
     tagKeys: Object.values(tags ?? {}).map(({key}) => key),
     measurementKeys: Object.values(measurements).map(({key}) => key),
-    customMeasurementKeys: organization.features.includes(
-      'dashboard-custom-measurement-widgets'
-    )
-      ? Object.values(customMeasurements ?? {}).map(({key}) => key)
-      : undefined,
     spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
+    customMeasurements:
+      organization.features.includes('dashboards-mep') ||
+      organization.features.includes('mep-rollout-flag')
+        ? Object.values(customMeasurements ?? {}).map(({key, functions}) => ({
+            key,
+            functions,
+          }))
+        : undefined,
   });
 }
 
@@ -264,10 +268,10 @@ function transformEventsResponseToTable(
   );
   // events api uses a different response format so we need to construct tableData differently
   if (shouldUseEvents) {
-    const fieldsMeta = (data as EventsTableData).meta?.fields;
+    const {fields, ...otherMeta} = (data as EventsTableData).meta ?? {};
     tableData = {
       ...data,
-      meta: {...fieldsMeta, isMetricsData: data.meta?.isMetricsData},
+      meta: {...fields, ...otherMeta},
     } as TableData;
   }
   return tableData as TableData;
@@ -357,7 +361,10 @@ function transformEventsResponseToSeries(
       seriesWithOrdering = Object.keys(data).map((seriesName: string) => {
         const prefixedName = queryAlias ? `${queryAlias} : ${seriesName}` : seriesName;
         const seriesData: EventsStats = data[seriesName];
-        return [seriesData.order || 0, transformSeries(seriesData, prefixedName)];
+        return [
+          seriesData.order || 0,
+          transformSeries(seriesData, prefixedName, seriesName),
+        ];
       });
     }
 
@@ -369,11 +376,24 @@ function transformEventsResponseToSeries(
   } else {
     const field = widgetQuery.aggregates[0];
     const prefixedName = queryAlias ? `${queryAlias} : ${field}` : field;
-    const transformed = transformSeries(data, prefixedName);
+    const transformed = transformSeries(data, prefixedName, field);
     output.push(transformed);
   }
 
   return output;
+}
+
+// Get the series result type from the EventsStats meta
+function getSeriesResultType(
+  data: EventsStats | MultiSeriesEventsStats,
+  widgetQuery: WidgetQuery
+) {
+  const field = widgetQuery.aggregates[0];
+  // Need to use getAggregateAlias since events-stats still uses aggregate alias format
+  if (isMultiSeriesStats(data)) {
+    return data[Object.keys(data)[0]].meta?.fields[getAggregateAlias(field)];
+  }
+  return data.meta?.fields[getAggregateAlias(field)];
 }
 
 function renderEventIdAsLinkable(data, {eventView, organization}: RenderFunctionBaggage) {
@@ -503,6 +523,7 @@ function getEventsSeriesRequest(
       field: [...widgetQuery.columns, ...widgetQuery.aggregates],
       queryExtras: getDashboardsMEPQueryParams(isMEPEnabled),
       includeAllArgs: true,
+      topEvents: TOP_N,
     };
     if (widgetQuery.orderby) {
       requestData.orderby = widgetQuery.orderby;
@@ -568,4 +589,17 @@ function getEventsSeriesRequest(
 // Custom Measurements aren't selectable as columns/yaxis without using an aggregate
 function filterTableOptions(option: FieldValueOption) {
   return option.value.kind !== FieldValueKind.CUSTOM_MEASUREMENT;
+}
+
+// Checks fieldValue to see what function is being used and only allow supported custom measurements
+function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryFieldValue) {
+  if (
+    option.value.kind === FieldValueKind.CUSTOM_MEASUREMENT &&
+    fieldValue?.kind === 'function' &&
+    fieldValue?.function &&
+    !option.value.meta.functions.includes(fieldValue.function[0])
+  ) {
+    return false;
+  }
+  return true;
 }

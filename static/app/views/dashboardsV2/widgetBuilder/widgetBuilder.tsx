@@ -277,7 +277,12 @@ function WidgetBuilder({
     });
 
     if (objectIsEmpty(tags)) {
-      loadOrganizationTags(api, organization.slug, selection);
+      loadOrganizationTags(api, organization.slug, {
+        ...selection,
+        // Pin the request to 14d to avoid timeouts, see DD-967 for
+        // more information
+        datetime: {period: '14d', start: null, end: null, utc: null},
+      });
     }
 
     if (isEditing && isValidWidgetIndex) {
@@ -722,7 +727,7 @@ function WidgetBuilder({
         });
         let orderOption: string;
         // If no orderby options are available because of DISABLED_SORTS
-        if (!!!orderOptions.length && state.dataSet === DataSet.RELEASES) {
+        if (!!!orderOptions.length) {
           newQuery.orderby = '';
         } else {
           orderOption = orderOptions[0].value;
@@ -1047,14 +1052,17 @@ function WidgetBuilder({
               <Body>
                 <MainWrapper>
                   <Main>
-                    <StyledPageFilterBar condensed>
-                      <ProjectPageFilter />
-                      <EnvironmentPageFilter />
-                      <DatePageFilter alignDropdown="left" />
-                    </StyledPageFilterBar>
+                    {!!!organization.features.includes('dashboards-top-level-filter') && (
+                      <StyledPageFilterBar condensed>
+                        <ProjectPageFilter />
+                        <EnvironmentPageFilter />
+                        <DatePageFilter alignDropdown="left" />
+                      </StyledPageFilterBar>
+                    )}
                     <BuildSteps symbol="colored-numeric">
                       <VisualizationStep
                         widget={currentWidget}
+                        dashboardFilters={dashboard.filters}
                         organization={organization}
                         pageFilters={pageFilters}
                         displayType={state.displayType}
@@ -1109,6 +1117,7 @@ function WidgetBuilder({
                         onQueryRemove={handleQueryRemove}
                         selection={pageFilters}
                         widgetType={widgetType}
+                        dashboardFilters={dashboard.filters}
                       />
                       {widgetBuilderNewDesign && isTimeseriesChart && (
                         <GroupByStep

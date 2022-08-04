@@ -86,6 +86,32 @@ FUNCTION_PATTERN = re.compile(
 DURATION_PATTERN = re.compile(r"(\d+\.?\d?)(\D{1,3})")
 
 RESULT_TYPES = {"duration", "string", "number", "integer", "percentage", "date"}
+# event_search normalizes to bytes
+SIZE_UNITS = {
+    "bit": 8,
+    "byte": 1,
+    "kibibyte": 1 / 1024,
+    "mebibyte": 1 / 1024**2,
+    "gibibyte": 1 / 1024**3,
+    "tebibyte": 1 / 1024**4,
+    "pebibyte": 1 / 1024**5,
+    "exbibyte": 1 / 1024**6,
+}
+# event_search normalizes to seconds
+DURATION_UNITS = {
+    "nanosecond": 1000**2,
+    "microsecond": 1000,
+    "millisecond": 1,
+    "second": 1 / 1000,
+    "minute": 1 / (1000 * 60),
+    "hour": 1 / (1000 * 60 * 60),
+    "day": 1 / (1000 * 60 * 60 * 24),
+    "week": 1 / (1000 * 60 * 60 * 24 * 7),
+}
+RESULT_TYPES = RESULT_TYPES.union(SIZE_UNITS.keys())
+RESULT_TYPES = RESULT_TYPES.union(DURATION_UNITS.keys())
+PERCENT_UNITS = {"ratio", "percent"}
+
 NO_CONVERSION_FIELDS = {"start", "end"}
 EQUALITY_OPERATORS = frozenset(["=", "IN"])
 INEQUALITY_OPERATORS = frozenset(["!=", "NOT IN"])
@@ -170,7 +196,7 @@ FUNCTION_ALIASES = {
 METRICS_MAP = {
     "measurements.app_start_cold": "d:transactions/measurements.app_start_cold@millisecond",
     "measurements.app_start_warm": "d:transactions/measurements.app_start_warm@millisecond",
-    "measurements.cls": "d:transactions/measurements.cls@millisecond",
+    "measurements.cls": "d:transactions/measurements.cls@none",
     "measurements.fcp": "d:transactions/measurements.fcp@millisecond",
     "measurements.fid": "d:transactions/measurements.fid@millisecond",
     "measurements.fp": "d:transactions/measurements.fp@millisecond",
@@ -183,21 +209,22 @@ METRICS_MAP = {
     "measurements.stall_stall_total_time": "d:transactions/measurements.stall_total_time@millisecond",
     "measurements.ttfb": "d:transactions/measurements.ttfb@millisecond",
     "measurements.ttfb.requesttime": "d:transactions/measurements.ttfb.requesttime@millisecond",
-    "spans.browser": "d:transactions/breakdowns.span_ops.browser@millisecond",
-    "spans.db": "d:transactions/breakdowns.span_ops.db@millisecond",
-    "spans.http": "d:transactions/breakdowns.span_ops.http@millisecond",
-    "spans.resource": "d:transactions/breakdowns.span_ops.resource@millisecond",
+    "spans.browser": "d:transactions/breakdowns.span_ops.ops.browser@millisecond",
+    "spans.db": "d:transactions/breakdowns.span_ops.ops.db@millisecond",
+    "spans.http": "d:transactions/breakdowns.span_ops.ops.http@millisecond",
+    "spans.resource": "d:transactions/breakdowns.span_ops.ops.resource@millisecond",
     "transaction.duration": "d:transactions/duration@millisecond",
     "user": "s:transactions/user@none",
 }
 # 50 to match the size of tables in the UI + 1 for pagination reasons
 METRICS_MAX_LIMIT = 101
-METRICS_GRANULARITIES = [86400, 3600, 60, 10]
-METRIC_TOLERATED_TAG_KEY = "is_tolerated"
-METRIC_SATISFIED_TAG_KEY = "is_satisfied"
-METRIC_MISERABLE_TAG_KEY = "is_user_miserable"
-METRIC_TRUE_TAG_VALUE = "true"
-METRIC_FALSE_TAG_VALUE = "false"
+
+METRICS_GRANULARITIES = [86400, 3600, 60]
+METRIC_TOLERATED_TAG_VALUE = "tolerated"
+METRIC_SATISFIED_TAG_VALUE = "satisfied"
+METRIC_FRUSTRATED_TAG_VALUE = "frustrated"
+METRIC_SATISFACTION_TAG_KEY = "satisfaction"
+
 # Only the metrics that are on the distributions & are in milliseconds
 METRIC_DURATION_COLUMNS = {
     key
@@ -206,11 +233,10 @@ METRIC_DURATION_COLUMNS = {
 }
 # So we can dry run some queries to see how often they'd be compatible
 DRY_RUN_COLUMNS = {
-    METRIC_TOLERATED_TAG_KEY,
-    METRIC_SATISFIED_TAG_KEY,
-    METRIC_MISERABLE_TAG_KEY,
-    METRIC_TRUE_TAG_VALUE,
-    METRIC_FALSE_TAG_VALUE,
+    METRIC_TOLERATED_TAG_VALUE,
+    METRIC_SATISFIED_TAG_VALUE,
+    METRIC_FRUSTRATED_TAG_VALUE,
+    METRIC_SATISFACTION_TAG_KEY,
     "environment",
     "http.method",
     "measurement_rating",
@@ -235,7 +261,7 @@ METRIC_PERCENTILES = {
 
 CUSTOM_MEASUREMENT_PATTERN = re.compile(r"^measurements\..+$")
 METRIC_FUNCTION_LIST_BY_TYPE = {
-    "distribution": [
+    "generic_distribution": [
         "apdex",
         "avg",
         "p50",
@@ -249,10 +275,10 @@ METRIC_FUNCTION_LIST_BY_TYPE = {
         "sum",
         "percentile",
     ],
-    "set": [
+    "generic_set": [
         "count_miserable",
         "user_misery",
         "count_unique",
     ],
-    "counter": [],
+    "generic_counter": [],
 }

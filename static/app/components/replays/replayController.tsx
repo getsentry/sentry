@@ -1,23 +1,26 @@
-import React from 'react';
+import React, {useCallback, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useResizeObserver} from '@react-aria/utils';
 
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
-import CompactSelect from 'sentry/components/forms/compactSelect';
+import CompositeSelect from 'sentry/components/forms/compositeSelect';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {formatTime, relativeTimeInMs} from 'sentry/components/replays/utils';
 import {
-  IconArrow,
+  IconContract,
+  IconExpand,
   IconNext,
   IconPause,
   IconPlay,
   IconPrevious,
-  IconRefresh,
-  IconResize,
+  IconRewind10,
+  IconSettings,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {SelectValue} from 'sentry/types';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {getNextBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
 import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
@@ -37,7 +40,7 @@ interface Props {
   toggleFullscreen?: () => void;
 }
 
-function ReplayPlayPauseBar() {
+function ReplayPlayPauseBar({isCompact}: {isCompact: boolean}) {
   const {
     currentTime,
     isFinished,
@@ -50,82 +53,116 @@ function ReplayPlayPauseBar() {
 
   return (
     <ButtonBar merged>
-      <Button
-        size="xsmall"
-        title={t('Go back 10 seconds')}
-        icon={<IconRefresh size="sm" />}
-        onClick={() => setCurrentTime(currentTime - 10 * SECOND)}
-        aria-label={t('Go back 10 seconds')}
-      />
+      {!isCompact && (
+        <Button
+          size="sm"
+          title={t('Rewind 10s')}
+          icon={<IconRewind10 size="sm" />}
+          onClick={() => setCurrentTime(currentTime - 10 * SECOND)}
+          aria-label={t('Rewind 10 seconds')}
+        />
+      )}
       {isFinished ? (
         <Button
-          size="xsmall"
+          size="sm"
           title={t('Restart Replay')}
           icon={<IconPrevious size="sm" />}
           onClick={restart}
-          aria-label={t('Restart the Replay')}
+          aria-label={t('Restart Replay')}
         />
       ) : (
         <Button
-          size="xsmall"
-          title={isPlaying ? t('Pause the Replay') : t('Play the Replay')}
+          size="sm"
+          title={isPlaying ? t('Pause') : t('Play')}
           icon={isPlaying ? <IconPause size="sm" /> : <IconPlay size="sm" />}
           onClick={() => togglePlayPause(!isPlaying)}
-          aria-label={isPlaying ? t('Pause the Replay') : t('Play the Replay')}
+          aria-label={isPlaying ? t('Pause') : t('Play')}
         />
       )}
-      <Button
-        size="xsmall"
-        title={t('Jump to next event')}
-        icon={<IconNext size="sm" />}
-        onClick={() => {
-          const startTimestampSec = replay?.getEvent().startTimestamp;
-          if (!startTimestampSec) {
-            return;
-          }
-          const transformedCrumbs = transformCrumbs(replay?.getRawCrumbs() || []);
-          const next = getNextBreadcrumb({
-            crumbs: transformedCrumbs.filter(crumb => USER_ACTIONS.includes(crumb.type)),
-            targetTimestampMs: startTimestampSec * 1000 + currentTime,
-          });
+      {!isCompact && (
+        <Button
+          size="sm"
+          title={t('Next breadcrumb')}
+          icon={<IconNext size="sm" />}
+          onClick={() => {
+            const startTimestampMs = replay?.getReplay().started_at?.getTime();
+            if (!startTimestampMs) {
+              return;
+            }
+            const transformedCrumbs = transformCrumbs(replay?.getRawCrumbs() || []);
+            const next = getNextBreadcrumb({
+              crumbs: transformedCrumbs.filter(crumb =>
+                USER_ACTIONS.includes(crumb.type)
+              ),
+              targetTimestampMs: startTimestampMs + currentTime,
+            });
 
-          if (startTimestampSec !== undefined && next?.timestamp) {
-            setCurrentTime(relativeTimeInMs(next.timestamp, startTimestampSec));
-          }
-        }}
-        aria-label={t('Jump to next event')}
-      />
+            if (startTimestampMs !== undefined && next?.timestamp) {
+              setCurrentTime(relativeTimeInMs(next.timestamp, startTimestampMs));
+            }
+          }}
+          aria-label={t('Fast-forward to next breadcrumb')}
+        />
+      )}
     </ButtonBar>
   );
 }
 
 function ReplayCurrentTime() {
-  const {currentTime, duration} = useReplayContext();
+  const {currentTime, replay} = useReplayContext();
+  const durationMs = replay?.getDurationMs();
 
   return (
     <span>
-      {formatTime(currentTime)} / {duration ? formatTime(duration) : '??:??'}
+      {formatTime(currentTime)} / {durationMs ? formatTime(durationMs) : '??:??'}
     </span>
   );
 }
 
-function ReplayPlaybackSpeed({speedOptions}: {speedOptions: number[]}) {
-  const {setSpeed, speed} = useReplayContext();
+function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
+  const {setSpeed, speed, isSkippingInactive, toggleSkipInactive} = useReplayContext();
+  const SKIP_OPTION_VALUE = 'skip';
+
   return (
-    <CompactSelect
-      triggerProps={{
-        size: 'xsmall',
-        prefix: t('Speed'),
-      }}
-      value={speed}
-      options={speedOptions.map(speedOption => ({
-        value: speedOption,
-        label: `${speedOption}x`,
-        disabled: speedOption === speed,
-      }))}
-      onChange={opt => {
-        setSpeed(opt.value);
-      }}
+    <CompositeSelect<SelectValue<string | number>>
+      placement="bottom"
+      trigger={({props, ref}) => (
+        <Button
+          ref={ref}
+          {...props}
+          size="sm"
+          title={t('Settings')}
+          aria-label={t('Settings')}
+          icon={<IconSettings size="sm" />}
+        />
+      )}
+      sections={[
+        {
+          defaultValue: speed,
+          label: t('Playback Speed'),
+          value: 'playback_speed',
+          onChange: setSpeed,
+          options: speedOptions.map(option => ({
+            label: `${option}x`,
+            value: option,
+          })),
+        },
+        {
+          multiple: true,
+          defaultValue: isSkippingInactive ? SKIP_OPTION_VALUE : undefined,
+          label: '',
+          value: 'fast_forward',
+          onChange: (value: typeof SKIP_OPTION_VALUE[]) => {
+            toggleSkipInactive(value.length > 0);
+          },
+          options: [
+            {
+              label: t('Fast-forward inactivity'),
+              value: SKIP_OPTION_VALUE,
+            },
+          ],
+        },
+      ]}
     />
   );
 }
@@ -134,32 +171,37 @@ const ReplayControls = ({
   toggleFullscreen = () => {},
   speedOptions = [0.1, 0.25, 0.5, 1, 2, 4],
 }: Props) => {
+  const barRef = useRef<HTMLDivElement>(null);
+  const [compactLevel, setCompactLevel] = useState(0);
   const {isFullscreen} = useFullscreen();
-  const {isSkippingInactive, toggleSkipInactive} = useReplayContext();
+
+  const updateCompactLevel = useCallback(() => {
+    const {width} = barRef.current?.getBoundingClientRect() ?? {width: 500};
+    if (width < 400) {
+      setCompactLevel(1);
+    } else {
+      setCompactLevel(0);
+    }
+  }, []);
+
+  useResizeObserver({
+    ref: barRef,
+    onResize: updateCompactLevel,
+  });
+  useLayoutEffect(() => updateCompactLevel, [updateCompactLevel]);
 
   return (
-    <ButtonGrid>
-      <ReplayPlayPauseBar />
+    <ButtonGrid ref={barRef}>
+      <ReplayPlayPauseBar isCompact={compactLevel > 0} />
       <ReplayCurrentTime />
 
-      {/* TODO(replay): Need a better icon for the FastForward toggle */}
-      <Button
-        size="xsmall"
-        title={t('Fast-forward idle moments')}
-        aria-label={t('Fast-forward idle moments')}
-        icon={<IconArrow size="sm" direction="right" />}
-        priority={isSkippingInactive ? 'primary' : undefined}
-        onClick={() => toggleSkipInactive(!isSkippingInactive)}
-      />
-
-      <ReplayPlaybackSpeed speedOptions={speedOptions} />
+      <ReplayOptionsMenu speedOptions={speedOptions} />
 
       <Button
-        size="xsmall"
-        title={isFullscreen ? t('Exit full screen') : t('View in full screen')}
-        aria-label={isFullscreen ? t('Exit full screen') : t('View in full screen')}
-        icon={<IconResize size="sm" />}
-        priority={isFullscreen ? 'primary' : undefined}
+        size="sm"
+        title={isFullscreen ? t('Exit full screen') : t('Enter full screen')}
+        aria-label={isFullscreen ? t('Exit full screen') : t('Enter full screen')}
+        icon={isFullscreen ? <IconContract size="sm" /> : <IconExpand size="sm" />}
         onClick={toggleFullscreen}
       />
     </ButtonGrid>
@@ -169,7 +211,7 @@ const ReplayControls = ({
 const ButtonGrid = styled('div')`
   display: grid;
   grid-column-gap: ${space(1)};
-  grid-template-columns: max-content auto max-content max-content max-content;
+  grid-template-columns: max-content auto max-content max-content;
   align-items: center;
 `;
 

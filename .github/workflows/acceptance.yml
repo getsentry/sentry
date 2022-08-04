@@ -23,10 +23,10 @@ jobs:
       acceptance: ${{ steps.changes.outputs.acceptance }}
       backend: ${{ steps.changes.outputs.backend }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
 
       - name: Check for backend file changes
-        uses: getsentry/paths-filter@v2
+        uses: getsentry/paths-filter@66f7f1844185eb7fb6738ea4ea59d74bb99199e5  # v2
         id: changes
         with:
           token: ${{ github.token }}
@@ -49,7 +49,7 @@ jobs:
     env:
       VISUAL_HTML_ENABLE: 1
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
         name: Checkout sentry
 
         with:
@@ -78,20 +78,20 @@ jobs:
           JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
 
       - name: Save HTML artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@82c141cc518b40d92cc801eee768e7aafc9c2fa2  # v2
         with:
           retention-days: 14
           name: jest-html
           path: .artifacts/visual-snapshots/jest
 
       - name: Create Images from HTML
-        uses: getsentry/action-html-to-image@main
+        uses: getsentry/action-html-to-image@dc153dae538e6e1138f77156d8e62e3b2b897f41  # main
         with:
           base-path: .artifacts/visual-snapshots/jest
           css-path: src/sentry/static/sentry/dist/entrypoints/sentry.css
 
       - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@main
+        uses: getsentry/action-visual-snapshot@e832d70549c14886ddc2ab809b436ba72e30e19b  # main
         with:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
@@ -107,13 +107,12 @@ jobs:
     needs: files-changed
     name: acceptance
     runs-on: ubuntu-20.04
-    timeout-minutes: 20
+    timeout-minutes: 25
     strategy:
       # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
       fail-fast: false
       matrix:
-        python-version: [3.8.12]
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
         instance: [0, 1, 2, 3]
         pg-version: ['9.6']
@@ -124,7 +123,7 @@ jobs:
       TEST_GROUP_STRATEGY: roundrobin
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
         name: Checkout sentry
 
       - uses: ./.github/actions/setup-volta
@@ -134,7 +133,7 @@ jobs:
         run: echo "::set-output name=webpack-path::.webpack_cache"
 
       - name: webpack cache
-        uses: actions/cache@v3
+        uses: actions/cache@0865c47f36e68161719c5b124609996bb5c40129  # v3
         with:
           path: ${{ steps.config.outputs.webpack-path }}
           key: ${{ runner.os }}-v2-webpack-cache-${{ hashFiles('webpack.config.ts') }}
@@ -152,12 +151,10 @@ jobs:
         run: |
           yarn build-acceptance
 
-      - name: Setup sentry env (python ${{ matrix.python-version }})
+      - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          python-version: ${{ matrix.python-version }}
-          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
           pg-version: ${{ matrix.pg-version }}
 
@@ -172,7 +169,7 @@ jobs:
           USE_SNUBA: 1
 
       - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@main
+        uses: getsentry/action-visual-snapshot@e832d70549c14886ddc2ab809b436ba72e30e19b  # main
         with:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
@@ -192,7 +189,6 @@ jobs:
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
       fail-fast: false
       matrix:
-        python-version: [3.8.12]
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
         instance: [0]
     env:
@@ -202,22 +198,20 @@ jobs:
       VISUAL_SNAPSHOT_ENABLE: 1
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
         with:
           # Avoid codecov error message related to SHA resolution:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
-      - name: Setup sentry env (python ${{ matrix.python-version }})
+      - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          python-version: ${{ matrix.python-version }}
-          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           chartcuterie: true
 
       - name: yarn cache
-        uses: actions/cache@v3
+        uses: actions/cache@0865c47f36e68161719c5b124609996bb5c40129  # v3
         with:
           path: ${{ steps.setup.outputs.yarn-cache-dir }}
           key: ${{ runner.os }}-v2-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
@@ -238,7 +232,7 @@ jobs:
           PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
 
       - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@main
+        uses: getsentry/action-visual-snapshot@e832d70549c14886ddc2ab809b436ba72e30e19b  # main
         with:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
@@ -264,11 +258,10 @@ jobs:
           echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
 
       - name: Diff snapshots
-        id: visual-snapshots-diff-odiff
-        uses: getsentry/action-visual-snapshot@905b7e3a7fdd913189b9a35dcef51b6b927f9598
+        uses: getsentry/action-visual-snapshot@e832d70549c14886ddc2ab809b436ba72e30e19b  # main
         # Run this step only if there are acceptance related code changes
         # Forks are handled in visual-diff.yml
-        if: steps.snapshot_ref.outputs.ref == 'odiff' && needs.files-changed.outputs.acceptance == 'true' && github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
+        if: needs.files-changed.outputs.acceptance == 'true' && github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
         with:
           api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
           gcs-bucket: 'sentry-visual-snapshots'

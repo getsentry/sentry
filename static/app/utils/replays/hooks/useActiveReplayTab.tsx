@@ -5,11 +5,10 @@ import useUrlParams from 'sentry/utils/replays/hooks/useUrlParams';
 
 export const ReplayTabs = {
   console: t('Console'),
-  network: t('Network Waterfall'),
-  network_table: t('Network Table'),
+  dom: t('DOM Events'),
+  network: t('Network'),
   trace: t('Trace'),
   issues: t('Issues'),
-  tags: t('Tags'),
   memory: t('Memory'),
 };
 

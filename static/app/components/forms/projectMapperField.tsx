@@ -162,7 +162,7 @@ export class RenderField extends Component<RenderProps, State> {
             <Button
               onClick={() => handleDelete(index)}
               icon={<IconDelete color="gray300" />}
-              size="small"
+              size="sm"
               type="button"
               aria-label={t('Delete')}
             />
@@ -265,7 +265,7 @@ export class RenderField extends Component<RenderProps, State> {
             <Button
               type="button"
               disabled={!selectedSentryProjectId || !selectedMappedValue}
-              size="small"
+              size="sm"
               priority="primary"
               onClick={handleAdd}
               icon={<IconAdd />}
@@ -287,7 +287,7 @@ export class RenderField extends Component<RenderProps, State> {
               {nextDescription ?? ''}
               <Button
                 type="button"
-                size="small"
+                size="sm"
                 priority="primary"
                 icon={<IconOpen size="xs" />}
                 disabled={!existingValues.length}

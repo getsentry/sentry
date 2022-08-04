@@ -16,14 +16,15 @@ import EventCause from 'sentry/components/events/eventCause';
 import EventCauseEmpty from 'sentry/components/events/eventCauseEmpty';
 import EventDataSection from 'sentry/components/events/eventDataSection';
 import EventExtraData from 'sentry/components/events/eventExtraData/eventExtraData';
-import EventSdk from 'sentry/components/events/eventSdk';
-import EventTags from 'sentry/components/events/eventTags/eventTags';
+import {EventSdk} from 'sentry/components/events/eventSdk';
+import {EventTags} from 'sentry/components/events/eventTags';
 import EventGroupingInfo from 'sentry/components/events/groupingInfo';
-import EventPackageData from 'sentry/components/events/packageData';
+import {EventPackageData} from 'sentry/components/events/packageData';
 import RRWebIntegration from 'sentry/components/events/rrwebIntegration';
 import EventSdkUpdates from 'sentry/components/events/sdkUpdates';
 import {DataSection} from 'sentry/components/events/styles';
 import EventUserFeedback from 'sentry/components/events/userFeedback';
+import LazyLoad from 'sentry/components/lazyLoad';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -69,7 +70,6 @@ type Props = Pick<React.ComponentProps<typeof EventEntry>, 'route' | 'router'> &
   className?: string;
   event?: Event;
   group?: Group;
-  isBorderless?: boolean;
   isShare?: boolean;
   showExampleCommit?: boolean;
   showTagSummary?: boolean;
@@ -89,7 +89,6 @@ const EventEntries = memo(
     isShare = false,
     showExampleCommit = false,
     showTagSummary = true,
-    isBorderless = false,
   }: Props) => {
     const [isLoading, setIsLoading] = useState(true);
     const [proGuardErrors, setProGuardErrors] = useState<ProGuardErrors>([]);
@@ -100,6 +99,7 @@ const EventEntries = memo(
     const orgFeatures = organization?.features ?? [];
 
     const hasEventAttachmentsFeature = orgFeatures.includes('event-attachments');
+    const replayId = event?.tags?.find(({key}) => key === 'replayId')?.value;
 
     useEffect(() => {
       checkProGuardError();
@@ -388,7 +388,6 @@ const EventEntries = memo(
               location={location}
               isShare={isShare}
               hasContext={hasContext}
-              isBorderless={isBorderless}
               attachments={attachments}
               onDeleteScreenshot={handleDeleteAttachment}
             />
@@ -420,7 +419,9 @@ const EventEntries = memo(
             onDeleteAttachment={handleDeleteAttachment}
           />
         )}
-        {event.sdk && !objectIsEmpty(event.sdk) && <EventSdk sdk={event.sdk} />}
+        {event.sdk && !objectIsEmpty(event.sdk) && (
+          <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
+        )}
         {!isShare && event?.sdkUpdates && event.sdkUpdates.length > 0 && (
           <EventSdkUpdates event={{sdkUpdates: event.sdkUpdates, ...event}} />
         )}
@@ -431,7 +432,7 @@ const EventEntries = memo(
             showGroupingConfig={orgFeatures.includes('set-grouping-config')}
           />
         )}
-        {!isShare && hasEventAttachmentsFeature && (
+        {!isShare && !replayId && hasEventAttachmentsFeature && (
           <RRWebIntegration
             event={event}
             orgId={orgSlug}
@@ -441,6 +442,14 @@ const EventEntries = memo(
                 {children}
               </StyledReplayEventDataSection>
             )}
+          />
+        )}
+        {!isShare && replayId && orgFeatures.includes('session-replay') && (
+          <LazyLoad
+            component={() => import('./eventReplay')}
+            replayId={replayId}
+            orgSlug={orgSlug}
+            projectSlug={projectSlug}
           />
         )}
       </div>

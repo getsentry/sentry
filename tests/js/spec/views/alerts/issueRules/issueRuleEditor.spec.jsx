@@ -128,6 +128,14 @@ describe('ProjectAlerts -> IssueRuleEditor', function () {
       url: `/projects/org-slug/project-slug/?expand=hasAlertIntegration`,
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/project-slug/ownership/`,
+      method: 'GET',
+      body: {
+        fallthrough: false,
+        autoAssignment: false,
+      },
+    });
   });
 
   afterEach(function () {
@@ -319,7 +327,6 @@ describe('ProjectAlerts -> IssueRuleEditor', function () {
       createWrapper({
         organization: {
           access: ['alerts:write'],
-          features: ['alert-wizard-v3', 'duplicate-alert-rule'],
         },
         router: {
           location: {

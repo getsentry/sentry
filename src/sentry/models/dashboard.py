@@ -3,6 +3,19 @@ from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
+from sentry.db.models.fields.jsonfield import JSONField
+
+
+class DashboardProject(Model):
+    __include_in_export__ = False
+
+    project = FlexibleForeignKey("sentry.Project")
+    dashboard = FlexibleForeignKey("sentry.Dashboard")
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_dashboardproject"
+        unique_together = (("project", "dashboard"),)
 
 
 class Dashboard(Model):
@@ -18,6 +31,8 @@ class Dashboard(Model):
     date_added = models.DateTimeField(default=timezone.now)
     visits = BoundedBigIntegerField(null=True, default=1)
     last_visited = models.DateTimeField(null=True, default=timezone.now)
+    projects = models.ManyToManyField("sentry.Project", through=DashboardProject)
+    filters = JSONField(null=True)
 
     class Meta:
         app_label = "sentry"
@@ -87,6 +102,7 @@ PREBUILT_DASHBOARDS = {
                     "title": "Number of Errors",
                     "displayType": "big_number",
                     "interval": "5m",
+                    "widgetType": "discover",
                     "queries": [
                         {
                             "name": "",
@@ -102,6 +118,7 @@ PREBUILT_DASHBOARDS = {
                     "title": "Number of Issues",
                     "displayType": "big_number",
                     "interval": "5m",
+                    "widgetType": "discover",
                     "queries": [
                         {
                             "name": "",
@@ -117,6 +134,7 @@ PREBUILT_DASHBOARDS = {
                     "title": "Events",
                     "displayType": "line",
                     "interval": "5m",
+                    "widgetType": "discover",
                     "queries": [
                         {
                             "name": "Events",
@@ -132,6 +150,7 @@ PREBUILT_DASHBOARDS = {
                     "title": "Affected Users",
                     "displayType": "line",
                     "interval": "5m",
+                    "widgetType": "discover",
                     "queries": [
                         {
                             "name": "Known Users",
@@ -155,6 +174,7 @@ PREBUILT_DASHBOARDS = {
                     "title": "Handled vs. Unhandled",
                     "displayType": "line",
                     "interval": "5m",
+                    "widgetType": "discover",
                     "queries": [
                         {
                             "name": "Handled",
@@ -178,6 +198,7 @@ PREBUILT_DASHBOARDS = {
                     "title": "Errors by Country",
                     "displayType": "world_map",
                     "interval": "5m",
+                    "widgetType": "discover",
                     "queries": [
                         {
                             "name": "Error counts",
@@ -193,6 +214,7 @@ PREBUILT_DASHBOARDS = {
                     "title": "Errors by Browser",
                     "displayType": "table",
                     "interval": "5m",
+                    "widgetType": "discover",
                     "queries": [
                         {
                             "name": "",
@@ -208,6 +230,7 @@ PREBUILT_DASHBOARDS = {
                     "title": "High Throughput Transactions",
                     "displayType": "table",
                     "interval": "5m",
+                    "widgetType": "discover",
                     "queries": [
                         {
                             "name": "",
@@ -223,6 +246,7 @@ PREBUILT_DASHBOARDS = {
                     "title": "Overall User Misery",
                     "displayType": "big_number",
                     "interval": "5m",
+                    "widgetType": "discover",
                     "queries": [
                         {
                             "name": "",
@@ -238,6 +262,7 @@ PREBUILT_DASHBOARDS = {
                     "title": "High Throughput Transactions",
                     "displayType": "top_n",
                     "interval": "5m",
+                    "widgetType": "discover",
                     "queries": [
                         {
                             "name": "",
@@ -269,6 +294,7 @@ PREBUILT_DASHBOARDS = {
                     "title": "Transactions Ordered by Misery",
                     "displayType": "table",
                     "interval": "5m",
+                    "widgetType": "discover",
                     "queries": [
                         {
                             "name": "",

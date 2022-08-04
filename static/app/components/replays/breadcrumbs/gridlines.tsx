@@ -2,14 +2,14 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import * as Timeline from 'sentry/components/replays/breadcrumbs/timeline';
-
-import {countColumns, formatTime} from '../utils';
+import {countColumns, formatTime} from 'sentry/components/replays/utils';
 
 type LineStyle = 'dotted' | 'solid' | 'none';
 
 const Line = styled(Timeline.Col)<{lineStyle: LineStyle}>`
   border-right: 1px ${p => p.lineStyle} ${p => p.theme.gray100};
   text-align: right;
+  line-height: 14px;
 `;
 
 function Gridlines({
@@ -35,13 +35,13 @@ function Gridlines({
 }
 
 type Props = {
-  duration: number;
+  durationMs: number;
   width: number;
   minWidth?: number;
 };
 
-export function MajorGridlines({duration, minWidth = 50, width}: Props) {
-  const {timespan, cols, remaining} = countColumns(duration, width, minWidth);
+export function MajorGridlines({durationMs, minWidth = 50, width}: Props) {
+  const {timespan, cols, remaining} = countColumns(durationMs, width, minWidth);
 
   return (
     <Gridlines cols={cols} lineStyle="solid" remaining={remaining}>
@@ -50,12 +50,13 @@ export function MajorGridlines({duration, minWidth = 50, width}: Props) {
   );
 }
 
-export function MinorGridlines({duration, minWidth = 20, width}: Props) {
-  const {cols, remaining} = countColumns(duration, width, minWidth);
+export function MinorGridlines({durationMs, minWidth = 20, width}: Props) {
+  const {cols, remaining} = countColumns(durationMs, width, minWidth);
 
   return <Gridlines cols={cols} lineStyle="dotted" remaining={remaining} />;
 }
 
 const Label = styled('small')`
   font-variant-numeric: tabular-nums;
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
