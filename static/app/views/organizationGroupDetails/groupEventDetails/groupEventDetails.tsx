@@ -221,7 +221,7 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
       groupReprocessingStatus,
     } = this.props;
 
-    const eventWithMeta = withMeta(event) as Event;
+    const eventWithMeta = withMeta(event);
 
     // Reprocessing
     const hasReprocessingV2Feature = organization.features?.includes('reprocessing-v2');
@@ -242,48 +242,46 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
             />
           ) : (
             <Fragment>
-              {eventWithMeta && (
-                <QuickTraceQuery
-                  event={eventWithMeta}
-                  location={location}
-                  orgSlug={organization.slug}
-                >
-                  {results => {
-                    return (
-                      <StyledLayoutMain>
-                        {results && (
-                          <QuickTraceContext.Provider value={results}>
-                            <GroupEventToolbar
-                              group={group}
-                              event={eventWithMeta}
-                              organization={organization}
-                              location={location}
-                              project={project}
-                            />
-                            <Wrapper>
-                              {group.status === 'ignored' && (
-                                <MutedBox statusDetails={group.statusDetails} />
-                              )}
-                              {group.status === 'resolved' && (
-                                <ResolutionBox
-                                  statusDetails={group.statusDetails}
-                                  activities={activities}
-                                  projectId={project.id}
-                                />
-                              )}
-                              {this.renderReprocessedBox(
-                                groupReprocessingStatus,
-                                mostRecentActivity as GroupActivityReprocess
-                              )}
-                            </Wrapper>
-                            {this.renderContent(eventWithMeta)}
-                          </QuickTraceContext.Provider>
+              <QuickTraceQuery
+                event={eventWithMeta}
+                location={location}
+                orgSlug={organization.slug}
+              >
+                {results => {
+                  return (
+                    <StyledLayoutMain>
+                      <QuickTraceContext.Provider value={results}>
+                        {eventWithMeta && (
+                          <GroupEventToolbar
+                            group={group}
+                            event={eventWithMeta}
+                            organization={organization}
+                            location={location}
+                            project={project}
+                          />
                         )}
-                      </StyledLayoutMain>
-                    );
-                  }}
-                </QuickTraceQuery>
-              )}
+                        <Wrapper>
+                          {group.status === 'ignored' && (
+                            <MutedBox statusDetails={group.statusDetails} />
+                          )}
+                          {group.status === 'resolved' && (
+                            <ResolutionBox
+                              statusDetails={group.statusDetails}
+                              activities={activities}
+                              projectId={project.id}
+                            />
+                          )}
+                          {this.renderReprocessedBox(
+                            groupReprocessingStatus,
+                            mostRecentActivity as GroupActivityReprocess
+                          )}
+                        </Wrapper>
+                        {this.renderContent(eventWithMeta)}
+                      </QuickTraceContext.Provider>
+                    </StyledLayoutMain>
+                  );
+                }}
+              </QuickTraceQuery>
 
               <StyledLayoutSide>
                 <GroupSidebar
