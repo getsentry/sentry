@@ -486,6 +486,7 @@ export function UniformRateModal({
               <RefreshRatesColumn>
                 {isEdited && (
                   <Button
+                    title={t('Reset to suggested values')}
                     icon={<IconRefresh size="sm" />}
                     aria-label={t('Reset to suggested values')}
                     onClick={() => {
