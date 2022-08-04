@@ -1,14 +1,15 @@
+import {useTheme} from '@emotion/react';
+
+import type {BarChartSeries} from 'sentry/components/charts/barChart';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import Count from 'sentry/components/count';
 import {t} from 'sentry/locale';
 import type {Group, Release, TimeseriesValue} from 'sentry/types';
-import type {Series} from 'sentry/types/echarts';
+import {getFormattedDate} from 'sentry/utils/dates';
 import {formatVersion} from 'sentry/utils/formatters';
-import theme from 'sentry/utils/theme';
+import type {Theme} from 'sentry/utils/theme';
 
 import SidebarSection from './sidebarSection';
-
-type Markers = React.ComponentProps<typeof MiniBarChart>['markers'];
 
 /**
  * Stats are provided indexed by statsPeriod strings.
@@ -29,12 +30,20 @@ interface Props {
   releaseStats?: StatsGroup;
 }
 
+type Marker = {
+  color: string;
+  displayValue: string | number | Date;
+  name: string;
+  value: string | number | Date;
+};
+
 export function getGroupReleaseChartMarkers(
+  theme: Theme,
   stats: TimeseriesValue[],
   firstSeen?: string,
   lastSeen?: string
-): NonNullable<Markers> {
-  const markers: Markers = [];
+): BarChartSeries['markPoint'] {
+  const markers: Marker[] = [];
   // Get the timestamp of the first point.
   const firstGraphTime = stats[0][0] * 1000;
 
@@ -49,14 +58,14 @@ export function getGroupReleaseChartMarkers(
     if (firstBucket > 0) {
       // The size of the data interval in ms
       const halfBucketSize = ((stats[1][0] - stats[0][0]) * 1000) / 2;
-      // Display the marker closer to the front of the bucket
+      // Display the marker in front of the first bucket
       bucketStart = stats[firstBucket - 1][0] * 1000 - halfBucketSize;
     }
 
     markers.push({
       name: t('First seen'),
       value: bucketStart ?? firstSeenX,
-      tooltipValue: firstSeenX,
+      displayValue: firstSeenX,
       color: theme.pink300,
     });
   }
@@ -65,11 +74,41 @@ export function getGroupReleaseChartMarkers(
     markers.push({
       name: t('Last seen'),
       value: lastSeenX,
+      displayValue: lastSeenX,
       color: theme.green300,
     });
   }
 
-  return markers;
+  const markerTooltip = {
+    show: true,
+    trigger: 'item',
+    formatter: ({data}) => {
+      const time = getFormattedDate(data.displayValue, 'MMM D, YYYY LT');
+      return [
+        '<div class="tooltip-series">',
+        `<div><span class="tooltip-label"><strong>${data.name}</strong></span></div>`,
+        '</div>',
+        `<div class="tooltip-date">${time}</div>`,
+        '</div>',
+        '<div class="tooltip-arrow"></div>',
+      ].join('');
+    },
+  };
+
+  return {
+    data: markers.map(marker => ({
+      name: marker.name,
+      coord: [marker.value, 0],
+      tooltip: markerTooltip,
+      displayValue: marker.displayValue,
+      symbol: 'circle',
+      symbolSize: 8,
+      itemStyle: {
+        color: marker.color,
+        borderColor: theme.background,
+      },
+    })),
+  };
 }
 
 function GroupReleaseChart(props: Props) {
@@ -86,6 +125,7 @@ function GroupReleaseChart(props: Props) {
     environmentStats,
     title,
   } = props;
+  const theme = useTheme();
 
   const stats = group.stats[statsPeriod];
   const environmentPeriodStats = environmentStats?.[statsPeriod];
@@ -93,7 +133,7 @@ function GroupReleaseChart(props: Props) {
     return null;
   }
 
-  const series: Series[] = [];
+  const series: BarChartSeries[] = [];
 
   if (environment) {
     // Add all events.
@@ -124,7 +164,7 @@ function GroupReleaseChart(props: Props) {
   const totalSeries =
     environment && environmentStats ? environmentStats[statsPeriod] : stats;
   const totalEvents = totalSeries.reduce((acc, current) => acc + current[1], 0);
-  const markers = getGroupReleaseChartMarkers(stats, firstSeen, lastSeen);
+  series[0].markPoint = getGroupReleaseChartMarkers(theme, stats, firstSeen, lastSeen);
 
   return (
     <SidebarSection secondary title={title} className={className}>
@@ -134,10 +174,16 @@ function GroupReleaseChart(props: Props) {
       <MiniBarChart
         isGroupedByDate
         showTimeInTooltip
+        showMarkLineLabel
         height={42}
         colors={environment ? undefined : [theme.purple300, theme.purple300]}
         series={series}
-        markers={markers}
+        grid={{
+          top: 6,
+          bottom: 4,
+          left: 4,
+          right: 0,
+        }}
       />
     </SidebarSection>
   );
