@@ -14,14 +14,9 @@ type ChartProps = React.ComponentProps<typeof BaseChart>;
 
 interface Props extends Omit<ChartProps, 'css' | 'colors' | 'series' | 'height'> {
   /**
-   * Override the default grid padding
-   */
-  grid: GridComponentOption;
-  /**
    * Chart height
    */
   height: number;
-
   /**
    * Colors to use on the chart.
    */
@@ -33,6 +28,11 @@ interface Props extends Omit<ChartProps, 'css' | 'colors' | 'series' | 'height'>
    * You can use this prop to also shift colors on hover.
    */
   emphasisColors?: string[];
+
+  /**
+   * Override the default grid padding
+   */
+  grid?: GridComponentOption;
 
   /**
    * Delay time for hiding tooltip, in ms.
