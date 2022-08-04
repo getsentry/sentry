@@ -56,7 +56,7 @@ export function Rule({
 }: Props) {
   const isUniform = isUniformRule(rule);
   const canDelete = !noPermission && !isUniform;
-  const canActivate = true; // TODO(sampling): Enabling this for demo purposes, change this back to `!upgradeSdkForProjects.length;` for LA
+  const canActivate = !noPermission && !upgradeSdkForProjects.length;
   const canDrag = !isUniform && !noPermission;
 
   return (
