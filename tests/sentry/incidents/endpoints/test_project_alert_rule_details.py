@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 import responses
+from requests import Request
 from rest_framework.exceptions import ErrorDetail
 
 from sentry import audit_log
@@ -13,11 +14,11 @@ from sentry.incidents.models import (
     Incident,
     IncidentStatus,
 )
+from sentry.integrations.slack.client import SlackClient
 from sentry.models import AuditLogEntry, Integration
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.testutils import APITestCase
 from sentry.utils import json
-from sentry.utils.types import Dict
 
 
 class AlertRuleDetailsBase(APITestCase):
@@ -193,25 +194,29 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
                 **serialized_alert_rule,
             )
 
-    def _slack_setup_helper(self, channelName: str = None, channelID: str = None) -> Dict:
-        self.integration = Integration.objects.create(
-            provider="slack",
-            name="Team A",
+    def _project_alert_rule_api_call(
+        self,
+        channelName: str = None,
+        channelID: str = None,
+    ) -> Request:
+        """
+        Call the project alert rule API but do some Slack integration set up before doing so
+        """
+        # Set up the Slack integration
+        self.integration = self.create_slack_integration(
+            self.organization,
             external_id="TXXXXXXX1",
-            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+            user=self.user,
         )
-        self.integration.add_organization(self.organization, self.user)
+
+        # Prep steps for the API call
         test_params = self.valid_params.copy()
         test_params["triggers"] = [
             {
                 "label": "critical",
                 "alertThreshold": 200,
                 "actions": [
-                    {
-                        "type": "slack",
-                        "targetType": "specific",
-                        "integration": self.integration.id,
-                    }
+                    {"type": "slack", "targetType": "specific", "integration": self.integration.id}
                 ],
             },
         ]
@@ -220,23 +225,10 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         if channelID:
             # The trigger code would accept channelId to be a string and that is why I don't cast it to an int
             test_params["triggers"][0]["actions"][0]["inputChannelId"] = channelID
-        return test_params
 
-    def _slack_response_mocking(
-        self, url: str, body: Dict, params: Dict, status: int = 200
-    ) -> responses.Response:
-        # validate_channel_id will call the Slack API once we call the api
-        # Running pytest with --cov=src/sentry/integrations/slack --cov-report=html shows that validate_channel_id will have coverage
-        responses.add(
-            method=responses.GET,
-            url=url,
-            status=status,
-            content_type="application/json",
-            body=json.dumps(body),
-        )
         with self.feature("organizations:incidents"):
             resp = self.get_response(
-                self.organization.slug, self.project.slug, self.alert_rule.id, **params
+                self.organization.slug, self.project.slug, self.alert_rule.id, **test_params
             )
         return resp
 
@@ -297,14 +289,15 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         channelName = "my-channel"
         # Specifying an inputChannelID will cause the validate_channel_id logic to be triggered
         channelID = 123
-        test_params = self._slack_setup_helper(channelName, channelID)
-
-        resp = self._slack_response_mocking(
+        responses.add(
+            method=responses.GET,
             url=f"https://slack.com/api/conversations.info?channel={channelID}",
-            body={"ok": "true", "channel": {"name": channelName}},
-            params=test_params,
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": "true", "channel": {"name": channelName}}),
         )
-        # XXX: Should we assert that the validation function got triggered?
+        resp = self._project_alert_rule_api_call(channelName, channelID)
+
         stored_action = resp.data["triggers"][0]["actions"][0]
         assert stored_action["inputChannelId"] == str(channelID)
         assert stored_action["targetIdentifier"] == channelName
@@ -314,17 +307,20 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         """
         The user specifies the Slack channel and channel ID but they do not match.
         """
+        associated_channel_name = "some-other-channel"
         channelName = "my-channel"
         # Specifying an inputChannelID will cause the validate_channel_id logic to be triggered
         channelID = 123
-        associated_channel_name = "some-other-channel"
-        test_params = self._slack_setup_helper(channelName, channelID)
 
-        resp = self._slack_response_mocking(
+        responses.add(
+            method=responses.GET,
             url=f"https://slack.com/api/conversations.info?channel={channelID}",
-            body={"ok": "true", "channel": {"name": associated_channel_name}},
-            params=test_params,
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": "true", "channel": {"name": associated_channel_name}}),
         )
+        resp = self._project_alert_rule_api_call(channelName, channelID)
+
         assert resp.status_code == 400
         assert resp.data == {
             "nonFieldErrors": [
@@ -334,28 +330,20 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
                 )
             ]
         }
-        # XXX: What message does the UI show?
 
+    # An incorrect channelID will raise an ApiError in the Slack client
+    @patch.object(SlackClient, "get", side_effect=ApiError(text="channel_not_found"))
     @responses.activate
-    def test_create_slack_alert_with_non_existent_channel_id(self):
+    def test_create_slack_alert_with_non_existent_channel_id(self, mock_slack_client):
         """
         The user specifies a bad Slack channel ID.
         """
         channelName = "my-channel"
         # Specifying an inputChannelID will cause the validate_channel_id logic to be triggered
         channelID = 123
-        test_params = self._slack_setup_helper(channelName, channelID)
 
-        from sentry.integrations.slack.client import SlackClient
+        resp = self._project_alert_rule_api_call(channelName, channelID)
 
-        # An incorrect channelID will raise an ApiError in the Slack client
-        with patch.object(SlackClient, "get", side_effect=ApiError(text="channel_not_found")):
-            with self.feature("organizations:incidents"):
-                # Within validate_channel_id this error will be raised
-                # ValidationError("Channel not found. Invalid ID provided.")
-                resp = self.get_response(
-                    self.organization.slug, self.project.slug, self.alert_rule.id, **test_params
-                )
         assert resp.status_code == 400
         assert resp.data == {
             "nonFieldErrors": [
@@ -376,23 +364,11 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         mock_uuid4.return_value = self.get_mock_uuid()
         channelName = "my-channel"
         # Because channel ID is an empty string it will be converted to an async request for the channel name
-        test_params = self._slack_setup_helper(channelName, channelID="")
+        resp = self._project_alert_rule_api_call(channelName, channelID="")
 
-        with self.feature("organizations:incidents"):
-            resp = self.get_response(
-                self.organization.slug, self.project.slug, self.alert_rule.id, **test_params
-            )
         # A task with this uuid has been scheduled because there's a Slack channel async search
         assert resp.status_code == 202
         assert resp.data == {"uuid": "abc123"}
-        kwargs = {
-            "organization_id": self.organization.id,
-            "uuid": "abc123",
-            "alert_rule_id": self.alert_rule.id,
-            "data": test_params,
-            "user_id": self.owner_user.id,
-        }
-        mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
 
     @patch(
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
