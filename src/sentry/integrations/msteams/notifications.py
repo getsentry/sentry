@@ -9,20 +9,34 @@ from sentry.integrations.msteams.card_builder import AdaptiveCard
 from sentry.integrations.msteams.utils import get_user_conversation_id
 from sentry.integrations.notifications import get_context, get_integrations_by_channel_by_recipient
 from sentry.models import Team, User
-from sentry.notifications.notifications.activity.note import NoteActivityNotification
+from sentry.notifications.notifications.activity import (
+    AssignedActivityNotification,
+    NoteActivityNotification,
+    UnassignedActivityNotification,
+)
 from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.notify import register_notification_provider
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 
-from .card_builder.notifications import MSTeamsNotificationsMessageBuilder
+from .card_builder.notifications import (
+    MSTeamsIssueNotificationsMessageBuilder,
+    MSTeamsNotificationsMessageBuilder,
+)
 from .client import MsTeamsClient
 
 logger = logging.getLogger("sentry.notifications.msteams")
 
-SUPPORTED_NOTIFICATION_TYPES = [NoteActivityNotification]
+SUPPORTED_NOTIFICATION_TYPES = [
+    NoteActivityNotification,
+    AssignedActivityNotification,
+    UnassignedActivityNotification,
+    AlertRuleNotification,
+]
 MESSAGE_BUILDERS = {
     "SlackNotificationsMessageBuilder": MSTeamsNotificationsMessageBuilder,
+    "IssueNotificationMessageBuilder": MSTeamsIssueNotificationsMessageBuilder,
 }
 
 
@@ -77,9 +91,16 @@ def send_notification_as_msteams(
 
                     client = MsTeamsClient(integration)
                     try:
-                        client.send_card(conversation_id, card)
+                        with sentry_sdk.start_span(
+                            op="notification.send_msteams", description="notify_recipient"
+                        ):
+                            client.send_card(conversation_id, card)
+
+                        notification.record_notification_sent(recipient, ExternalProviders.MSTEAMS)
                     except Exception as e:
-                        logger.error(f"Exception occured while trying to send the notification {e}")
+                        logger.error(
+                            "Exception occured while trying to send the notification", exc_info=e
+                        )
 
     metrics.incr(
         f"{notification.metrics_key}.notifications.sent",
