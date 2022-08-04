@@ -17,7 +17,7 @@ type Marker = {
   value: string | number | Date;
   symbolSize?: number;
   /**
-   * Use "value" to control the marker position, but tooltip value for the real value
+   * Override the value with a different datetime to display
    */
   tooltipValue?: string | number | Date;
 };
