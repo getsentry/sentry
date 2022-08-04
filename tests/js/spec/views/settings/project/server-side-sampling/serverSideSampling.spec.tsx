@@ -62,11 +62,7 @@ describe('Server-Side Sampling', function () {
       screen.getByRole('heading', {name: 'Server-Side Sampling'})
     ).toBeInTheDocument();
 
-    expect(
-      screen.getByText(
-        'Enhance the performance monitoring experience by targeting which transactions are most valuable to your organization without the need for re-deployment.'
-      )
-    ).toBeInTheDocument();
+    expect(screen.getByText(/enhance the performance monitoring/i)).toBeInTheDocument();
 
     // Assert that project breakdown is there
     expect(await screen.findByText(samplingBreakdownTitle)).toBeInTheDocument();
