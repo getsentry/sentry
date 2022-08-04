@@ -8,7 +8,7 @@ import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 import {RecommendedStepsModalProps} from './modals/recommendedStepsModal';
-import {getClientSampleRates} from './utils';
+import {getClientSampleRates, SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
 
 type Props = Pick<RecommendedStepsModalProps, 'onReadDocs'> & {
   organization: Organization;
@@ -47,7 +47,13 @@ export function SamplingSDKClientRateChangeAlert({
       type="info"
       showIcon
       trailingItems={
-        <Button onClick={onReadDocs} priority="link" borderless>
+        <Button
+          href={SERVER_SIDE_SAMPLING_DOC_LINK} // TODO(sampling): check if we should use other link here
+          onClick={onReadDocs}
+          priority="link"
+          borderless
+          external
+        >
           {t('Learn More')}
         </Button>
       }
