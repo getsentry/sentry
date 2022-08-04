@@ -79,7 +79,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                 self.project.id,
                 replay1_id,
                 trace_ids=["ffb5344a-41dd-4b21-9288-187a2cd1ad6d"],
-                url="http://localhost:3000/",
+                urls=["http://localhost:3000/"],
             )
         )
         self.store_replays(
@@ -89,7 +89,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                 replay1_id,
                 segment_id=1,
                 trace_ids=["2a0dcb0e-a1fb-4350-b266-47ae1aa57dfb"],
-                url="http://www.sentry.io/",
+                urls=["http://www.sentry.io/"],
             )
         )
         self.store_replays(
@@ -98,7 +98,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                 self.project.id,
                 replay1_id,
                 segment_id=2,
-                url="http://localhost:3000/",
+                urls=["http://localhost:3000/"],
             )
         )
 
