@@ -21,12 +21,11 @@ import {RichHttpContentClippedBoxKeyValueList} from './richHttpContentClippedBox
 type Props = {
   data: EntryRequest['data'];
   event: Event;
-  type: string;
 };
 
 type View = 'formatted' | 'curl';
 
-export function Request({data, event, type}: Props) {
+export function Request({data, event}: Props) {
   const requestEntryIndex = event.entries.findIndex(
     entry => entry.type === EntryType.REQUEST
   );
@@ -86,7 +85,7 @@ export function Request({data, event, type}: Props) {
 
   return (
     <EventDataSection
-      type={type}
+      type={EntryType.REQUEST}
       title={title}
       actions={actions}
       wrapTitle={false}

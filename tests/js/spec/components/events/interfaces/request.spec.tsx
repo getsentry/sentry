@@ -1,6 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Request} from 'sentry/components/events/interfaces/request';
+import {EntryRequest, EntryType} from 'sentry/types/event';
 
 describe('Request entry', function () {
   it('display redacted data', async function () {
@@ -157,7 +158,7 @@ describe('Request entry', function () {
       },
     };
 
-    render(<Request type="request" event={event} data={event.entries[0].data} />);
+    render(<Request event={event} data={event.entries[0].data} />);
 
     expect(screen.getAllByText(/redacted/)).toHaveLength(5);
 
@@ -170,5 +171,153 @@ describe('Request entry', function () {
     expect(
       await screen.findByText('Replaced because of PII rule "project:3"')
     ).toBeInTheDocument(); // tooltip description
+  });
+
+  describe('getBodySection', function () {
+    it('should return plain-text when given unrecognized inferred Content-Type', function () {
+      const data: EntryRequest['data'] = {
+        query: [],
+        data: 'helloworld',
+        headers: [],
+        cookies: [],
+        env: {},
+        inferredContentType: null,
+        method: 'POST',
+        url: '/Home/PostIndex',
+        fragment: null,
+      };
+
+      const event = {
+        ...TestStubs.Event(),
+        entries: [
+          {
+            type: EntryType.REQUEST,
+            data,
+          },
+        ],
+      };
+
+      render(<Request event={event} data={event.entries[0].data} />);
+
+      expect(
+        screen.getByTestId('rich-http-content-body-section-pre')
+      ).toBeInTheDocument();
+    });
+
+    it('should return a KeyValueList element when inferred Content-Type is x-www-form-urlencoded', function () {
+      const data: EntryRequest['data'] = {
+        query: [],
+        data: {foo: ['bar'], bar: ['baz']},
+        headers: [],
+        cookies: [],
+        env: {},
+        inferredContentType: 'application/x-www-form-urlencoded',
+        method: 'POST',
+        url: '/Home/PostIndex',
+        fragment: null,
+      };
+
+      const event = {
+        ...TestStubs.Event(),
+        entries: [
+          {
+            type: EntryType.REQUEST,
+            data,
+          },
+        ],
+      };
+
+      render(<Request event={event} data={event.entries[0].data} />);
+
+      expect(
+        screen.getByTestId('rich-http-content-body-key-value-list')
+      ).toBeInTheDocument();
+    });
+
+    it('should return a ContextData element when inferred Content-Type is application/json', function () {
+      const data: EntryRequest['data'] = {
+        query: [],
+        data: {foo: 'bar'},
+        headers: [],
+        cookies: [],
+        env: {},
+        inferredContentType: 'application/json',
+        method: 'POST',
+        url: '/Home/PostIndex',
+        fragment: null,
+      };
+
+      const event = {
+        ...TestStubs.Event(),
+        entries: [
+          {
+            type: EntryType.REQUEST,
+            data,
+          },
+        ],
+      };
+
+      render(<Request event={event} data={event.entries[0].data} />);
+
+      expect(
+        screen.getByTestId('rich-http-content-body-context-data')
+      ).toBeInTheDocument();
+    });
+
+    it('should not blow up in a malformed uri', function () {
+      // > decodeURIComponent('a%AFc')
+      // URIError: URI malformed
+      const data: EntryRequest['data'] = {
+        query: 'a%AFc',
+        data: '',
+        headers: [],
+        cookies: [],
+        env: {},
+        method: 'POST',
+        url: '/Home/PostIndex',
+        fragment: null,
+      };
+
+      const event = {
+        ...TestStubs.Event(),
+        entries: [
+          {
+            type: EntryType.REQUEST,
+            data,
+          },
+        ],
+      };
+
+      expect(() =>
+        render(<Request event={event} data={event.entries[0].data} />)
+      ).not.toThrow();
+    });
+
+    it("should not cause an invariant violation if data.data isn't a string", function () {
+      const data: EntryRequest['data'] = {
+        query: [],
+        data: [{foo: 'bar', baz: 1}],
+        headers: [],
+        cookies: [],
+        env: {},
+        method: 'POST',
+        url: '/Home/PostIndex',
+        fragment: null,
+      };
+
+      const event = {
+        ...TestStubs.Event(),
+        entries: [
+          {
+            type: EntryType.REQUEST,
+            data,
+          },
+        ],
+      };
+
+      expect(() =>
+        render(<Request event={event} data={event.entries[0].data} />)
+      ).not.toThrow();
+    });
   });
 });

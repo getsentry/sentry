@@ -70,12 +70,10 @@ function EventEntry({
       );
     }
     case EntryType.MESSAGE: {
-      const {data} = entry;
-      return <Message data={data} event={event} />;
+      return <Message event={event} data={entry.data} />;
     }
     case EntryType.REQUEST: {
-      const {data, type} = entry;
-      return <Request type={type} event={event} data={data} />;
+      return <Request event={event} data={entry.data} />;
     }
     case EntryType.STACKTRACE: {
       const {data, type} = entry;
