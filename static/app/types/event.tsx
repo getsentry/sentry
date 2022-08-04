@@ -276,14 +276,14 @@ export type EntryRequest = {
     cookies?: [key: string, value: string][];
     data?: string | null | Record<string, any> | [key: string, value: any][];
     env?: Record<string, string>;
-    fragment?: string;
+    fragment?: string | null;
     headers?: [key: string, value: string][];
     inferredContentType?:
       | null
       | 'application/json'
       | 'application/x-www-form-urlencoded'
       | 'multipart/form-data';
-    query?: [key: string, value: string][];
+    query?: [key: string, value: string][] | string;
   };
   type: EntryType.REQUEST;
 };

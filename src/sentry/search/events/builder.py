@@ -1883,7 +1883,7 @@ class MetricsQueryBuilder(QueryBuilder):
             return -1
         result = self.resolve_metric_index(value)
         if result is None:
-            raise InvalidSearchQuery("Tag value was not found")
+            raise IncompatibleMetricsQuery("Tag value was not found")
         return result
 
     def _default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:

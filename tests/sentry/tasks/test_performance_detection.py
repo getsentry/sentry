@@ -6,15 +6,17 @@ from sentry.testutils.helpers import override_options
 from tests.sentry.spans.grouping.test_strategy import SpanBuilder
 
 
+# Duration is in ms
 def modify_span_duration(obj, duration):
     obj["start_timestamp"] = 0.0
-    obj["timestamp"] = duration
+    obj["timestamp"] = duration / 1000.0
     return obj
 
 
+# Start is in ms
 def modify_span_start(obj, start):
     duration = obj["timestamp"] - obj["start_timestamp"]
-    obj["start_timestamp"] = start
+    obj["start_timestamp"] = start / 1000.0
     obj["timestamp"] = obj["start_timestamp"] + duration
     return obj
 
