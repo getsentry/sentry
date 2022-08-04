@@ -19,10 +19,7 @@ type TagValue = Pick<
 >;
 
 export interface TagValueAutocompleteProps {
-  category:
-    | SamplingInnerName.TRACE_ENVIRONMENT
-    | SamplingInnerName.TRACE_RELEASE
-    | string;
+  category: SamplingInnerName.TRACE_ENVIRONMENT | SamplingInnerName.TRACE_RELEASE;
   onChange: (value: string) => void;
   orgSlug: Organization['slug'];
   projectId: Project['id'];
