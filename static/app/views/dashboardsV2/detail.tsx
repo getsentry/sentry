@@ -804,6 +804,7 @@ class DashboardDetail extends Component<Props, State> {
               <Layout.Body>
                 <Layout.Main fullWidth>
                   <FiltersBar
+                    location={location}
                     hasUnsavedChanges={disableDashboardModifications}
                     isEditingDashboard={
                       dashboardState !== DashboardState.CREATE && this.isEditing

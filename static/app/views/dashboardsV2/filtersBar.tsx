@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
@@ -12,7 +13,6 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
@@ -23,6 +23,7 @@ type FiltersBarProps = {
   hasUnsavedChanges: boolean;
   isEditingDashboard: boolean;
   isPreview: boolean;
+  location: Location;
   onCancel: () => void;
   onDashboardFilterChange: (activeFilters: DashboardFilters) => void;
   onSave: () => void;
@@ -32,15 +33,15 @@ export default function FiltersBar({
   hasUnsavedChanges,
   isEditingDashboard,
   isPreview,
+  location,
   onCancel,
   onDashboardFilterChange,
   onSave,
 }: FiltersBarProps) {
   const {selection} = usePageFilters();
   const organization = useOrganization();
-  const location = useLocation();
 
-  const selectedReleases = !defined(location.query.release)
+  const selectedReleases = !defined(location.query?.release)
     ? []
     : Array.isArray(location.query.release)
     ? location.query.release
