@@ -1567,3 +1567,29 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             response = self.do_request(query)
             assert response.status_code == 400, function
             assert b"threshold parameter" in response.content, function
+
+    def test_mobile_metrics(self):
+        self.store_transaction_metric(
+            0.4,
+            "measurements.frames_frozen_rate",
+            tags={
+                "transaction": "bar_transaction",
+            },
+            timestamp=self.min_ago,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "field": [
+                "transaction",
+                "p50(measurements.frames_frozen_rate)",
+            ],
+            "statsPeriod": "24h",
+            "dataset": "metrics",
+            "per_page": 50,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["p50(measurements.frames_frozen_rate)"] == 0.4
