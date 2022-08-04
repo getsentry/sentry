@@ -122,22 +122,23 @@ customer_silo_test = ServerModeTest(ServerComponentMode.CUSTOMER)
 
 
 @contextmanager
-def mode_exempt_setup() -> Generator[None, None, None]:
-    """Enclose test code to exempt from the server mode.
+def exempt_from_mode_limits() -> Generator[None, None, None]:
+    """Exempt test setup code from server mode checks.
 
-    This context manager should be used to enclose code within a test method
-    that sets up a test case by writing data to a silo that wouldn't be allowed
-    in one of the tested server modes. Such setup code should ideally be moved
-    to the test class's `setUp` method where possible, but this is available as
-    a kludge when that's too inconvenient.
+    This can be used to decorate functions that are used exclusively in setting
+    up test cases, so that those functions don't produce false exceptions from
+    writing to tables that wouldn't be allowed in a certain ServerModeTest case.
 
-    For example:
+    It can also be used as a context manager to enclose setup code within a test
+    method. Such setup code would ideally be moved to the test class's `setUp`
+    method or a helper function where possible, but this is available as a
+    kludge when that's too inconvenient. For example:
 
     ```
     @ServerModeTest(ServerComponentMode.CUSTOMER)
     class MyTest(TestCase):
         def test_something(self):
-            with mode_exempt_setup():
+            with exempt_from_mode_limits():
                 org = self.create_organization()  # would be wrong if under test
             do_something(org)  # the actual code under test
     ```
