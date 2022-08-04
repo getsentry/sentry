@@ -45,7 +45,10 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 project.id,
                 replay1_id,
                 # error_ids=[uuid.uuid4().hex, replay1_id],  # duplicate error-id
-                urls=["http://localhost:3000/"],  # duplicate urls are okay
+                urls=[
+                    "http://localhost:3000/",
+                    "http://localhost:3000/login",
+                ],  # duplicate urls are okay
             )
         )
         self.store_replays(
@@ -72,7 +75,11 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 replay1_id,
                 seq1_timestamp,
                 seq2_timestamp,
-                urls=["http://localhost:3000/", "http://localhost:3000/"],
+                urls=[
+                    "http://localhost:3000/",
+                    "http://localhost:3000/login",
+                    "http://localhost:3000/",
+                ],
                 count_segments=2,
                 # count_errors=3,
                 count_errors=0,

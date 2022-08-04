@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Generator, List, Optional, Tuple
 
 
 def process_raw_response(response: List[Dict[str, Any]], fields: List[str]) -> Dict[str, Any]:
@@ -23,14 +23,8 @@ def normalize_fields(response: List[Dict[str, Any]]) -> None:
             "ip_address": item.pop("user_ip_address"),
         }
 
-        # urls == [[2, url], [0, url], [1, url]]
-        urls = []
-        url_groups = [item[1] for item in sorted(item.pop("urls"), key=lambda url: url[0])]
-        for url_group in url_groups:
-            urls.extend(url_group)
-
-        item["urls"] = urls
-        item["count_urls"] = len(urls)
+        item["urls"] = list(generate_sorted_urls(item.pop("agg_urls")))
+        item["count_urls"] = len(item["urls"])
 
 
 def restrict_response_by_fields(
@@ -67,3 +61,9 @@ def _make_performance_metrics_object(trace_ids: List[str]) -> Dict[str, int]:
     """Return a map of trace_id => time in milliseconds."""
     # TODO: How do we look up performance metrics?
     return {}
+
+
+def generate_sorted_urls(url_groups: List[Tuple[int, List[str]]]) -> Generator[None, None, str]:
+    """Return a flat list of ordered urls."""
+    for _, url_group in sorted(url_groups, key=lambda item: item[0]):
+        yield from url_group

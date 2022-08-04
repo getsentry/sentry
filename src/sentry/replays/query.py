@@ -174,7 +174,7 @@ def make_select_statement() -> List[Union[Column, Function]]:
         Function(
             "groupArray",
             parameters=[Function("tuple", parameters=[Column("segment_id"), Column("urls")])],
-            alias="urls",
+            alias="agg_urls",
         ),
         Function("count", parameters=[Column("segment_id")], alias="count_segments"),
         Function(
