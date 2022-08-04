@@ -35,8 +35,6 @@ import {Panel, PanelBody} from 'sentry/components/panels';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import HookStore from 'sentry/stores/hookStore';
 import space from 'sentry/styles/space';
 import {
   Environment,
@@ -59,7 +57,6 @@ import {getDisplayName} from 'sentry/utils/environment';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import withExperiment from 'sentry/utils/withExperiment';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import {
@@ -118,9 +115,7 @@ type RuleTaskResponse = {
 type RouteParams = {orgId: string; projectId?: string; ruleId?: string};
 
 type Props = {
-  experimentAssignment: 0 | 1;
   location: Location;
-  logExperiment: () => void;
   organization: Organization;
   project: Project;
   projects: Project[];
@@ -154,54 +149,13 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   pollingTimeout: number | undefined = undefined;
 
   get isDuplicateRule(): boolean {
-    const {location, organization} = this.props;
+    const {location} = this.props;
     const createFromDuplicate = location?.query.createFromDuplicate === 'true';
-    const hasDuplicateAlertRules = organization.features.includes('duplicate-alert-rule');
-    return (
-      hasDuplicateAlertRules && createFromDuplicate && location?.query.duplicateRuleId
-    );
+    return createFromDuplicate && location?.query.duplicateRuleId;
   }
 
   componentWillUnmount() {
     window.clearTimeout(this.pollingTimeout);
-  }
-
-  componentDidMount() {
-    const {params, organization, experimentAssignment, logExperiment} = this.props;
-    // only new rules
-    if (params.ruleId) {
-      return;
-    }
-    // check if there is a callback registered
-    const callback = HookStore.get('callback:default-action-alert-rule')[0];
-    if (!callback) {
-      return;
-    }
-    // let hook decide when we want to select a default alert rule
-    callback((showDefaultAction: boolean) => {
-      if (showDefaultAction) {
-        const user = ConfigStore.get('user');
-        const {rule} = this.state;
-        // always log the experiment if we meet the basic requirements decided by the hook
-        logExperiment();
-        if (experimentAssignment) {
-          // this will add a default alert rule action
-          // to send notifications in
-          this.setState({
-            rule: {
-              ...rule,
-              actions: [
-                {
-                  id: 'sentry.mail.actions.NotifyEmailAction',
-                  targetIdentifier: user.id,
-                  targetType: 'Member',
-                } as any, // Need to fix IssueAlertRuleAction typing
-              ],
-            } as UnsavedIssueAlertRule,
-          });
-        }
-      }
-    }, organization);
   }
 
   componentDidUpdate(_prevProps: Props, prevState: State) {
@@ -246,13 +200,11 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {
-      organization,
       location: {query},
       params: {ruleId, orgId},
     } = this.props;
     // project in state isn't initialized when getEndpoints is first called
     const project = this.state?.project ?? this.props.project;
-    const hasDuplicateAlertRules = organization.features.includes('duplicate-alert-rule');
 
     const endpoints = [
       [
@@ -272,12 +224,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       endpoints.push(['rule', `/projects/${orgId}/${project.slug}/rules/${ruleId}/`]);
     }
 
-    if (
-      hasDuplicateAlertRules &&
-      !ruleId &&
-      query.createFromDuplicate &&
-      query.duplicateRuleId
-    ) {
+    if (!ruleId && query.createFromDuplicate && query.duplicateRuleId) {
       endpoints.push([
         'duplicateTargetRule',
         `/projects/${orgId}/${project.slug}/rules/${query.duplicateRuleId}/`,
@@ -1211,10 +1158,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 }
 
-export default withExperiment(withOrganization(withProjects(IssueRuleEditor)), {
-  experiment: 'DefaultIssueAlertActionExperiment',
-  injectLogExperiment: true,
-});
+export default withOrganization(withProjects(IssueRuleEditor));
 
 // TODO(ts): Understand why styled is not correctly inheriting props here
 const StyledForm = styled(Form)<Form['props']>`

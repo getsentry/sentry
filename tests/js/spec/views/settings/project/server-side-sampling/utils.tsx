@@ -8,6 +8,7 @@ import {
   RecommendedSdkUpgrade,
   SamplingConditionOperator,
   SamplingDistribution,
+  SamplingInnerName,
   SamplingInnerOperator,
   SamplingRule,
   SamplingRuleType,
@@ -47,7 +48,7 @@ export const specificRule: SamplingRule = {
     inner: [
       {
         op: SamplingInnerOperator.GLOB_MATCH,
-        name: 'trace.release',
+        name: SamplingInnerName.TRACE_RELEASE,
         value: ['1.2.2'],
       },
     ],
@@ -92,12 +93,21 @@ export const mockedSamplingSdkVersions: SamplingSdkVersion[] = [
     latestSDKVersion: '1.0.3',
     latestSDKName: 'sentry.javascript.react',
     isSendingSampleRate: true,
+    isSendingSource: true,
   },
   {
     project: mockedProjects[1].slug,
     latestSDKVersion: '1.0.2',
     latestSDKName: 'sentry.python',
     isSendingSampleRate: false,
+    isSendingSource: false,
+  },
+  {
+    project: 'java',
+    latestSDKVersion: '1.0.2',
+    latestSDKName: 'sentry.java',
+    isSendingSampleRate: true,
+    isSendingSource: false,
   },
 ];
 
