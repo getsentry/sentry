@@ -8,7 +8,6 @@ from sentry.exceptions import PluginError
 from sentry.killswitches import killswitch_matches_context
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.tasks.base import instrumented_task
-from sentry.tasks.sentry_functions import send_sentry_function_webhook
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -438,21 +437,6 @@ def post_process_group(
                 plugin_post_process_group(
                     plugin_slug=plugin.slug, event=event, is_new=is_new, is_regresion=is_regression
                 )
-            try:
-                if features.has(
-                    "organizations:sentry-functions",
-                    event.project.organization,
-                ):
-                    if event.get_event_type() == "error":
-                        from sentry.models import SentryFunction
-
-                        for sentry_function in SentryFunction.objects.get_sentry_functions(
-                            event.organization, "error"
-                        ):
-                            send_sentry_function_webhook.delay(sentry_function.external_id, event)
-            except Exception:
-                pass
-
             from sentry import similarity
 
             with sentry_sdk.start_span(op="tasks.post_process_group.similarity"):
