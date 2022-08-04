@@ -5,6 +5,8 @@ from enum import Enum
 from typing import Optional
 
 from django.conf import settings
+from django.http import HttpResponse
+from rest_framework.status import HTTP_429_TOO_MANY_REQUESTS
 
 
 # Fixed set of rate limit categories
@@ -66,3 +68,7 @@ class RateLimitMeta:
         if self.concurrent_limit is not None and self.concurrent_requests is not None:
             return self.concurrent_limit - self.concurrent_requests
         return None
+
+
+class HttpResponseRateLimited(HttpResponse):
+    status_code = HTTP_429_TOO_MANY_REQUESTS

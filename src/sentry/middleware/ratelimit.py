@@ -5,7 +5,7 @@ import uuid
 from typing import Callable
 
 from django.conf import settings
-from rest_framework.exceptions import APIException, Throttled
+from rest_framework.exceptions import APIException
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -17,12 +17,18 @@ from sentry.ratelimits import (
     get_rate_limit_value,
 )
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.types.ratelimit import RateLimitCategory, RateLimitMeta, RateLimitType
+from sentry.types.ratelimit import (
+    HttpResponseRateLimited,
+    RateLimitCategory,
+    RateLimitMeta,
+    RateLimitType,
+)
 from sentry.utils import metrics
 
 DEFAULT_ERROR_MESSAGE = (
     "You are attempting to use this endpoint too frequently. Limit is "
-    "{limit} requests in {window} seconds."
+    "{limit} requests in {window} seconds. Wait at least {wait} second(s) before issuing another "
+    "request"
 )
 
 
@@ -91,12 +97,12 @@ class RatelimitMiddleware:
                     request.will_be_rate_limited = True
                     enforce_rate_limit = getattr(view_class, "enforce_rate_limit", False)
                     if enforce_rate_limit:
-                        raise Throttled(
-                            detail=DEFAULT_ERROR_MESSAGE.format(
+                        return HttpResponseRateLimited(
+                            DEFAULT_ERROR_MESSAGE.format(
                                 limit=request.rate_limit_metadata.limit,
                                 window=request.rate_limit_metadata.window,
+                                wait=request.rate_limit_metadata.seconds_left_in_window,
                             ),
-                            wait=request.rate_limit_metadata.seconds_left_in_window,
                         )
             except Exception as exc:
                 if not isinstance(exc, APIException):
