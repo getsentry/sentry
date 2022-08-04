@@ -10,7 +10,9 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
@@ -18,7 +20,6 @@ import ReleasesSelectControl from './releasesSelectControl';
 import {DashboardFilters} from './types';
 
 type FiltersBarProps = {
-  filters: DashboardFilters;
   hasUnsavedChanges: boolean;
   isEditingDashboard: boolean;
   isPreview: boolean;
@@ -28,7 +29,6 @@ type FiltersBarProps = {
 };
 
 export default function FiltersBar({
-  filters,
   hasUnsavedChanges,
   isEditingDashboard,
   isPreview,
@@ -38,7 +38,13 @@ export default function FiltersBar({
 }: FiltersBarProps) {
   const {selection} = usePageFilters();
   const organization = useOrganization();
+  const location = useLocation();
 
+  const selectedReleases = !defined(location.query.release)
+    ? []
+    : Array.isArray(location.query.release)
+    ? location.query.release
+    : ([location.query.release] as string[]);
   return (
     <Wrapper>
       <PageFilterBar condensed>
@@ -53,7 +59,7 @@ export default function FiltersBar({
               <ReleasesProvider organization={organization} selection={selection}>
                 <ReleasesSelectControl
                   handleChangeFilter={onDashboardFilterChange}
-                  selectedReleases={filters?.release || []}
+                  selectedReleases={selectedReleases ?? []}
                   isDisabled={isEditingDashboard}
                 />
               </ReleasesProvider>

@@ -121,6 +121,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
             start: data.start,
             end: data.end,
             utc: data.utc,
+            ...data.filters,
           },
         });
       }

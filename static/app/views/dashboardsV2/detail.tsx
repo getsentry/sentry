@@ -809,7 +809,6 @@ class DashboardDetail extends Component<Props, State> {
                       dashboardState !== DashboardState.CREATE && this.isEditing
                     }
                     isPreview={this.isPreview}
-                    filters={filters}
                     onDashboardFilterChange={this.handleChangeFilter}
                     onCancel={() => {
                       resetPageFilters(dashboard, location);
