@@ -2,6 +2,7 @@ import {ComponentProps, useEffect} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
+import PanelAlert from 'sentry/components/panels/panelAlert';
 import {Organization} from 'sentry/types';
 import theme from 'sentry/utils/theme';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -87,6 +88,13 @@ function SortableWidget(props: Props) {
     index,
     dashboardFilters,
     hasUnsavedFilters,
+    renderErrorMessage: errorMessage => {
+      return (
+        typeof errorMessage === 'string' && (
+          <PanelAlert type="error">{errorMessage}</PanelAlert>
+        )
+      );
+    },
   };
 
   if (organization.features.includes('dashboard-grid-layout')) {
