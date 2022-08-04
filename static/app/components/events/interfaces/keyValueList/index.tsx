@@ -22,6 +22,7 @@ function KeyValueList({
   raw = false,
   longKeys = false,
   onClick,
+  ...props
 }: Props) {
   if (!defined(data) || data.length === 0) {
     return null;
@@ -30,7 +31,7 @@ function KeyValueList({
   const keyValueData = isSorted ? sortBy(data, [({key}) => key.toLowerCase()]) : data;
 
   return (
-    <table className="table key-value" onClick={onClick}>
+    <table className="table key-value" onClick={onClick} {...props}>
       <tbody>
         {keyValueData.map(
           ({

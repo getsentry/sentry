@@ -355,6 +355,7 @@ class OrganizationEndpoint(Endpoint):
             "start": start,
             "end": end,
             "project_id": [p.id for p in projects],
+            "project_objects": projects,
             "organization_id": organization.id,
         }
 
