@@ -16,6 +16,7 @@ import {
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import FeatureBadge from 'sentry/components/featureBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelFooter, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -401,11 +402,18 @@ export function ServerSideSampling({project}: Props) {
   return (
     <SentryDocumentTitle title={t('Server-Side Sampling')}>
       <Fragment>
-        <SettingsPageHeader title={t('Server-Side Sampling')} />
+        <SettingsPageHeader
+          title={
+            <Fragment>
+              {t('Server-Side Sampling')} <FeatureBadge type="beta" />
+            </Fragment>
+          }
+        />
         <TextBlock>
           {tct(
-            'Enhance the performance monitoring experience by targeting which transactions are most valuable to your organization without the need for re-deployment. To learn more about server-side sampling, [docsLink:read the docs].',
+            'Enhance the Performance monitoring experience by targeting which transactions are most valuable to your organization. To learn more about our beta program, [faqLink: visit our FAQ], for more general information, [docsLink: read our docs].',
             {
+              faqLink: <ExternalLink href="https://help.sentry.io/product-features/" />, // TODO(sampling): replace with better link once we have it
               docsLink: <ExternalLink href={SERVER_SIDE_SAMPLING_DOC_LINK} />,
             }
           )}
