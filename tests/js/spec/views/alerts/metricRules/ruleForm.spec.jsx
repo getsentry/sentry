@@ -242,6 +242,29 @@ describe('Incident Rules Form', () => {
         })
       );
     });
+
+    it('switches event type from error to default', async () => {
+      createWrapper({
+        ruleId: rule.id,
+        rule: {
+          ...rule,
+          eventTypes: ['error', 'default'],
+        },
+      });
+
+      userEvent.click(screen.getByText('event.type:error OR event.type:default'));
+      userEvent.click(await screen.findByText('event.type:default'));
+      userEvent.click(screen.getByLabelText('Save Rule'));
+
+      expect(editRule).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            eventTypes: ['default'],
+          }),
+        })
+      );
+    });
   });
 
   describe('Slack async lookup', () => {
