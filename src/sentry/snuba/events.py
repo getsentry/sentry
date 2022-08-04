@@ -463,7 +463,7 @@ class Columns(Enum):
         alias="transaction.status",
     )
     TRANSACTION_SOURCE = Column(
-        group_name="events.transaction",
+        group_name=None,
         event_name=None,
         transaction_name="transaction_source",
         discover_name="transaction_source",
