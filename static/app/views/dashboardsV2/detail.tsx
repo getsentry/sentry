@@ -45,6 +45,7 @@ import {
   getCurrentPageFilters,
   hasSavedPageFilters,
   hasUnsavedFilterChanges,
+  isWidgetUsingTransactionName,
   resetPageFilters,
 } from 'sentry/views/dashboardsV2/utils';
 import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metricsDataSwitcherAlert';
@@ -749,6 +750,10 @@ class DashboardDetail extends Component<Props, State> {
 
     const eventView = generatePerformanceEventView(location, projects);
 
+    const isDashboardUsingTransaction = dashboard.widgets.some(
+      isWidgetUsingTransactionName
+    );
+
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={organization.slug}>
         <PageFiltersContainer
@@ -805,8 +810,9 @@ class DashboardDetail extends Component<Props, State> {
               </Layout.Header>
               <Layout.Body>
                 <Layout.Main fullWidth>
-                  {organization.features.includes('dashboards-mep') ||
-                  organization.features.includes('mep-rollout-flag') ? (
+                  {(organization.features.includes('dashboards-mep') ||
+                    organization.features.includes('mep-rollout-flag')) &&
+                  isDashboardUsingTransaction ? (
                     <MetricsDataSwitcher
                       organization={organization}
                       eventView={eventView}
