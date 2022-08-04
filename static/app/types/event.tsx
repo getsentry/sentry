@@ -210,6 +210,7 @@ export enum EntryType {
   DEBUGMETA = 'debugmeta',
   SPANS = 'spans',
   SPANTREE = 'spantree',
+  PERFORMANCE = 'performance',
 }
 
 type EntryDebugMeta = {
@@ -253,6 +254,11 @@ export type EntrySpanTree = {
     focusedSpanIds: string[];
   };
   type: EntryType.SPANTREE;
+};
+
+export type EntryPerformance = {
+  data: any; // data is not used
+  type: EntryType.PERFORMANCE;
 };
 
 type EntryMessage = {
@@ -305,6 +311,7 @@ export type Entry =
   | EntryStacktrace
   | EntrySpans
   | EntrySpanTree
+  | EntryPerformance
   | EntryMessage
   | EntryRequest
   | EntryTemplate
@@ -429,6 +436,8 @@ export type EventError = Omit<EventBase, 'entries' | 'type'> & {
     | EntryRequest
     | EntryThreads
     | EntryDebugMeta
+    | EntryPerformance
+    | EntrySpanTree
   )[];
   type: EventOrGroupType.ERROR;
 };

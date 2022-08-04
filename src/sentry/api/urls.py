@@ -7,6 +7,7 @@ from sentry.api.endpoints.organization_codeowners_associations import (
 from sentry.api.endpoints.organization_profiling_profiles import (
     OrganizationProfilingFiltersEndpoint,
     OrganizationProfilingProfilesEndpoint,
+    OrganizationProfilingStatsEndpoint,
     OrganizationProfilingTransactionsEndpoint,
 )
 from sentry.api.endpoints.organization_sentry_function import OrganizationSentryFunctionEndpoint
@@ -279,7 +280,6 @@ from .endpoints.organization_events_trends import (
 from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
 from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from .endpoints.organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
-from .endpoints.organization_has_mobile_app_events import OrganizationHasMobileAppEvents
 from .endpoints.organization_index import OrganizationIndexEndpoint
 from .endpoints.organization_integration_repos import OrganizationIntegrationReposEndpoint
 from .endpoints.organization_integration_serverless_functions import (
@@ -407,6 +407,7 @@ from .endpoints.project_processingissues import (
 from .endpoints.project_profiling_profile import (
     ProjectProfilingFunctionsEndpoint,
     ProjectProfilingProfileEndpoint,
+    ProjectProfilingRawProfileEndpoint,
     ProjectProfilingTransactionIDProfileIDEndpoint,
 )
 from .endpoints.project_release_activity import ProjectReleaseActivityEndpoint
@@ -1105,11 +1106,6 @@ urlpatterns = [
                     OrganizationSdkUpdatesEndpoint.as_view(),
                     name="sentry-api-0-organization-sdk-updates",
                 ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/has-mobile-app-events/$",
-                    OrganizationHasMobileAppEvents.as_view(),
-                    name="sentry-api-0-organization-has-mobile-events",
-                ),
                 # TODO add an alias for /organizations/:slug/events/ and deprecate eventsv2
                 url(
                     r"^(?P<organization_slug>[^\/]+)/eventsv2/$",
@@ -1667,6 +1663,11 @@ urlpatterns = [
                                 r"^transactions/$",
                                 OrganizationProfilingTransactionsEndpoint.as_view(),
                                 name="sentry-api-0-organization-profiling-transactions",
+                            ),
+                            url(
+                                r"^stats/$",
+                                OrganizationProfilingStatsEndpoint.as_view(),
+                                name="sentry-api-0-organization-profiling-stats",
                             ),
                         ],
                     ),
@@ -2293,6 +2294,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/profiles/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
                     ProjectProfilingProfileEndpoint.as_view(),
                     name="sentry-api-0-project-profiling-profile",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/raw_profiles/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
+                    ProjectProfilingRawProfileEndpoint.as_view(),
+                    name="sentry-api-0-project-profiling-raw-profile",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/transactions/(?P<transaction_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",

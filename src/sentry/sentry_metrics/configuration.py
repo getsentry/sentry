@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import MutableMapping, Optional
+from typing import Any, Mapping, MutableMapping, Optional
 
 from django.conf import settings
 
@@ -31,6 +31,7 @@ class MetricsIngestConfiguration:
     output_topic: str
     use_case_id: UseCaseKey
     internal_metrics_tag: Optional[str]
+    writes_limiter_cluster_options: Mapping[str, Any]
 
 
 _METRICS_INGEST_CONFIG_BY_USE_CASE: MutableMapping[UseCaseKey, MetricsIngestConfiguration] = dict()
@@ -47,6 +48,7 @@ _register_ingest_config(
         output_topic=settings.KAFKA_SNUBA_METRICS,
         use_case_id=UseCaseKey.RELEASE_HEALTH,
         internal_metrics_tag="release-health",
+        writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS,
     )
 )
 _register_ingest_config(
@@ -56,6 +58,7 @@ _register_ingest_config(
         output_topic=settings.KAFKA_SNUBA_GENERIC_METRICS,
         use_case_id=UseCaseKey.PERFORMANCE,
         internal_metrics_tag="perf",
+        writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS_PERFORMANCE,
     )
 )
 

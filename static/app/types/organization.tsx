@@ -244,6 +244,19 @@ export type MultiSeriesEventsStats = {
   [seriesName: string]: EventsStats;
 };
 
+export type EventsStatsSeries = {
+  data: {
+    axis: string;
+    values: number[];
+  }[];
+  meta: {
+    dataset: string;
+    end: number;
+    start: number;
+  };
+  timestamps: number[];
+};
+
 /**
  * Session API types.
  */

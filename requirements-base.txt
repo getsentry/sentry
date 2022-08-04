@@ -29,7 +29,7 @@ isodate>=0.6.1
 jsonschema>=3.2.0
 lxml>=4.6.5
 maxminddb>=2.0.3
-mistune>=2.0.2
+mistune>=2.0.3
 mmh3>=3.0.0
 packaging>=21.3
 parsimonious>=0.8.0
@@ -84,8 +84,7 @@ kombu>=4.6.11
 # Note, grpcio>1.30.0 requires setting GRPC_POLL_STRATEGY=epoll1
 # See https://github.com/grpc/grpc/issues/23796 and
 # https://github.com/grpc/grpc/blob/v1.35.x/doc/core/grpc-polling-engines.md#polling-engine-implementations-in-grpc
-# Please leave it at 1.40.0 if you can, otherwise this will require canary testing to make sure ingestion doesn't blow up.
-grpcio>=1.40.0
+grpcio>=1.47.0
 
 # not directly used, but provides a speedup for redis
 hiredis>=0.3.1

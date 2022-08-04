@@ -12,6 +12,7 @@ import MenuListItem, {
   MenuListItemProps,
 } from 'sentry/components/menuListItem';
 import {IconChevron} from 'sentry/icons';
+import usePrevious from 'sentry/utils/usePrevious';
 
 export type MenuItemProps = MenuListItemProps & {
   /**
@@ -108,11 +109,11 @@ const MenuItem = ({
   renderAs = 'li' as React.ElementType,
   ...submenuTriggerProps
 }: Props) => {
-  const [isHovering, setIsHovering] = useState(false);
   const ourRef = useRef(null);
   const isDisabled = state.disabledKeys.has(node.key);
   const isFocused = state.selectionManager.focusedKey === node.key;
   const {key, onAction, to, label, showDividers, ...itemProps} = node.value;
+  const {size} = node.props;
 
   const ref = submenuTriggerRef ?? ourRef;
 
@@ -128,8 +129,15 @@ const MenuItem = ({
   };
 
   // Open submenu on hover
+  const [isHovering, setIsHovering] = useState(false);
   const {hoverProps} = useHover({onHoverChange: setIsHovering});
+  const prevIsHovering = usePrevious(isHovering);
+  const prevIsFocused = usePrevious(isFocused);
   useEffect(() => {
+    if (isHovering === prevIsHovering && isFocused === prevIsFocused) {
+      return;
+    }
+
     if (isHovering && isFocused) {
       if (isSubmenuTrigger) {
         state.selectionManager.select(node.key);
@@ -137,7 +145,15 @@ const MenuItem = ({
       }
       state.selectionManager.clearSelection();
     }
-  }, [isHovering, isFocused]);
+  }, [
+    isHovering,
+    isFocused,
+    prevIsHovering,
+    prevIsFocused,
+    isSubmenuTrigger,
+    node.key,
+    state.selectionManager,
+  ]);
 
   // Open submenu on arrow right key press
   const {keyboardProps} = useKeyboard({
@@ -193,6 +209,7 @@ const MenuItem = ({
       innerWrapProps={innerWrapProps}
       labelProps={labelProps}
       detailsProps={descriptionProps}
+      size={size}
       {...props}
       {...itemProps}
       {...(isSubmenuTrigger && {
