@@ -409,19 +409,27 @@ export function hasUnsavedFilterChanges(
   newDashboardFilters: DashboardFilters
 ) {
   const savedFilters = {
-    projects: initialDashboard.projects,
-    environment: initialDashboard.environment,
+    projects: new Set(initialDashboard.projects),
+    environment: new Set(initialDashboard.environment),
     period: initialDashboard.period,
     start: normalizeDateTimeString(initialDashboard.start),
     end: normalizeDateTimeString(initialDashboard.end),
-    filters: initialDashboard.filters,
+    filters: {
+      release: new Set(initialDashboard.filters?.release),
+    },
     utc: initialDashboard.utc,
   };
   const currentFilters = {
     ...getCurrentPageFilters(location),
-    filters: newDashboardFilters,
+    filters: {
+      release: new Set(newDashboardFilters.release),
+    },
   };
-  return !isEqual(savedFilters, currentFilters);
+  return !isEqual(savedFilters, {
+    ...currentFilters,
+    projects: new Set(currentFilters.projects),
+    environment: new Set(currentFilters.environment),
+  });
 }
 
 export function getSavedFiltersAsPageFilters(dashboard: DashboardDetails): PageFilters {
