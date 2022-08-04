@@ -1841,7 +1841,7 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
     def setUp(self):
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user)
-        team = self.create_team(organization=org)
+        team = self.create_team(organization=org, members=[self.user])
         project1 = self.create_project(organization=org, teams=[team], name="foo")
         project2 = self.create_project(organization=org, teams=[team], name="bar")
 
