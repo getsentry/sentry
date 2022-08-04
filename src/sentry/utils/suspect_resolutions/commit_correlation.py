@@ -30,7 +30,9 @@ def get_files_changed(issue: Group, project: Project) -> Set:
                 commit_id__in=ReleaseCommit.objects.filter(release__in=releases).values_list(
                     "commit_id", flat=True
                 )
-            ).values_list("filename", flat=True)
+            )
+            .values_list("filename", flat=True)
+            .distinct()
         )
     else:
         return set()

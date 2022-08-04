@@ -1,6 +1,6 @@
 from dataclasses import dataclass
-from datetime import timedelta
-from typing import List
+from datetime import datetime, timedelta
+from typing import List, Tuple
 
 from sentry import tsdb
 from sentry.models import Group
@@ -15,8 +15,12 @@ class MetricCorrelationResult:
 
 def is_issue_error_rate_correlated(
     resolved_issue: Group, candidate_suspect_resolutions: List[Group]
-) -> List[MetricCorrelationResult]:
-    if resolved_issue is None or len(candidate_suspect_resolutions) == 0:
+) -> Tuple[List[MetricCorrelationResult], datetime, datetime, datetime]:
+    if (
+        resolved_issue is None
+        or resolved_issue.resolved_at is None
+        or len(candidate_suspect_resolutions) == 0
+    ):
         return []
 
     resolution_time = resolved_issue.resolved_at
@@ -46,7 +50,7 @@ def is_issue_error_rate_correlated(
         for (csr_id, coefficient) in coefficients.items()
     ]
 
-    return (results, resolution_time, start_time, end_time)
+    return results, resolution_time, start_time, end_time
 
 
 def calculate_pearson_correlation_coefficient(x: List[int], y: List[int]) -> int:

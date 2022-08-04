@@ -7,6 +7,7 @@ from django.utils import timezone
 from sentry.models import GroupStatus
 from sentry.testutils import TestCase
 from sentry.utils.suspect_resolutions.metric_correlation import (
+    MetricCorrelationResult,
     calculate_pearson_correlation_coefficient,
     is_issue_error_rate_correlated,
 )
@@ -52,7 +53,25 @@ class MetricCorrelationTest(TestCase):
 
         mock_get_range.return_value = {group1.id: group1_events, group2.id: group2_events}
 
-        assert is_issue_error_rate_correlated(group1, group2)
+        group1_pearson_values = [events for _, events in group1_events]
+        group2_pearson_values = [events for _, events in group2_events]
+
+        coefficient = calculate_pearson_correlation_coefficient(
+            group1_pearson_values, group2_pearson_values
+        )
+
+        results, resolution_time, start_time, end_time = is_issue_error_rate_correlated(
+            group1, [group2]
+        )
+
+        assert results == [
+            MetricCorrelationResult(
+                candidate_suspect_resolution_id=group2.id,
+                is_correlated=True,
+                coefficient=coefficient,
+            )
+        ]
+        assert resolution_time == group1.resolved_at
 
     @mock.patch("sentry.tsdb.get_range")
     def test_uncorrelated_issues(self, mock_get_range):
@@ -65,9 +84,25 @@ class MetricCorrelationTest(TestCase):
 
         mock_get_range.return_value = {group1.id: group1_events, group2.id: group2_events}
 
-        result = is_issue_error_rate_correlated(group1, group2)[0]
+        group1_pearson_values = [events for _, events in group1_events]
+        group2_pearson_values = [events for _, events in group2_events]
 
-        assert not result
+        coefficient = calculate_pearson_correlation_coefficient(
+            group1_pearson_values, group2_pearson_values
+        )
+
+        results, resolution_time, start_time, end_time = is_issue_error_rate_correlated(
+            group1, [group2]
+        )
+
+        assert results == [
+            MetricCorrelationResult(
+                candidate_suspect_resolution_id=group2.id,
+                is_correlated=False,
+                coefficient=coefficient,
+            )
+        ]
+        assert resolution_time == group1.resolved_at
 
     @mock.patch("sentry.tsdb.get_range")
     def test_perfect_correlation(self, mock_get_range):
@@ -79,7 +114,88 @@ class MetricCorrelationTest(TestCase):
 
         mock_get_range.return_value = {group1.id: group1_events, group2.id: group1_events}
 
-        assert is_issue_error_rate_correlated(group1, group2)
+        group1_pearson_values = [events for _, events in group1_events]
+        group2_pearson_values = [events for _, events in group1_events]
+
+        coefficient = calculate_pearson_correlation_coefficient(
+            group1_pearson_values, group2_pearson_values
+        )
+
+        results, resolution_time, start_time, end_time = is_issue_error_rate_correlated(
+            group1, [group2]
+        )
+
+        assert results == [
+            MetricCorrelationResult(
+                candidate_suspect_resolution_id=group2.id,
+                is_correlated=True,
+                coefficient=coefficient,
+            )
+        ]
+        assert resolution_time == group1.resolved_at
+
+    @mock.patch("sentry.tsdb.get_range")
+    def test_multiple_groups(self, mock_get_range):
+        start, end = self.generate_timestamps()
+        group1 = self.create_group(status=GroupStatus.RESOLVED, resolved_at=timezone.now())
+        group2 = self.create_group()
+        group3 = self.create_group()
+        group4 = self.create_group()
+
+        group1_data = self.generate_random_issue_events(start, end, WINDOW)
+        group2_data = self.generate_random_issue_events(start, end, WINDOW)
+        group3_data = self.generate_random_issue_events(start, end, WINDOW)
+        group4_data = self.generate_random_issue_events(start, end, WINDOW)
+
+        group1_events = self.generate_empty_issue_events(start, end, group1_data)
+        group2_events = self.generate_empty_issue_events(start, end, group2_data)
+        group3_events = self.generate_empty_issue_events(start, end, group3_data)
+        group4_events = self.generate_empty_issue_events(start, end, group4_data)
+
+        mock_get_range.return_value = {
+            group1.id: group1_events,
+            group2.id: group2_events,
+            group3.id: group3_events,
+            group4.id: group4_events,
+        }
+
+        group1_pearson_values = [events for _, events in group1_events]
+        group2_pearson_values = [events for _, events in group2_events]
+        group3_pearson_values = [events for _, events in group3_events]
+        group4_pearson_values = [events for _, events in group4_events]
+
+        coefficient_group2 = calculate_pearson_correlation_coefficient(
+            group1_pearson_values, group2_pearson_values
+        )
+        coefficient_group3 = calculate_pearson_correlation_coefficient(
+            group1_pearson_values, group3_pearson_values
+        )
+        coefficient_group4 = calculate_pearson_correlation_coefficient(
+            group1_pearson_values, group4_pearson_values
+        )
+
+        results, resolution_time, start_time, end_time = is_issue_error_rate_correlated(
+            group1, [group2, group3, group4]
+        )
+
+        assert results == [
+            MetricCorrelationResult(
+                candidate_suspect_resolution_id=group2.id,
+                is_correlated=True,
+                coefficient=coefficient_group2,
+            ),
+            MetricCorrelationResult(
+                candidate_suspect_resolution_id=group3.id,
+                is_correlated=True,
+                coefficient=coefficient_group3,
+            ),
+            MetricCorrelationResult(
+                candidate_suspect_resolution_id=group4.id,
+                is_correlated=True,
+                coefficient=coefficient_group4,
+            ),
+        ]
+        assert resolution_time == group1.resolved_at
 
     def test_custom_calculation_against_pearsonr(self):
         group1_events = [
