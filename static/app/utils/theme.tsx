@@ -769,6 +769,30 @@ const commonTheme = {
     },
   },
 
+  /**
+   * Padding for form inputs
+   */
+  formPadding: {
+    md: {
+      paddingLeft: 16,
+      paddingRight: 10,
+      paddingTop: 10,
+      paddingBottom: 10,
+    },
+    sm: {
+      paddingLeft: 12,
+      paddingRight: 8,
+      paddingTop: 8,
+      paddingBottom: 8,
+    },
+    xs: {
+      paddingLeft: 8,
+      paddingRight: 6,
+      paddingTop: 6,
+      paddingBottom: 6,
+    },
+  },
+
   dataCategory,
 
   tag: generateTagTheme(lightColors),
