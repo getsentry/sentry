@@ -66,7 +66,7 @@ export const MEPTag = () => {
     return <span data-test-id="no-metrics-data-tag" />;
   }
 
-  const tagText = isMetricsData ? 'metrics' : 'transactions';
+  const tagText = isMetricsData ? 'processed' : 'indexed';
 
   return <Tag data-test-id="has-metrics-data-tag">{tagText}</Tag>;
 };

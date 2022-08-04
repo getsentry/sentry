@@ -36,12 +36,12 @@ function getOptions(mepContext: MetricsEnhancedSettingContext): MetricsEventsOpt
     {
       value: MEPState.metricsOnly,
       prefix,
-      label: t('Metrics'),
+      label: t('Processed'),
     },
     {
       value: MEPState.transactionsOnly,
       prefix,
-      label: t('Transactions'),
+      label: t('Indexed'),
     },
   ];
 }

@@ -3,8 +3,6 @@ import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {openModal} from 'sentry/actionCreators/modal';
-import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
@@ -18,7 +16,6 @@ import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
-import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
@@ -27,6 +24,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {generateAggregateFields} from 'sentry/utils/discover/fields';
 import {GenericQueryBatcher} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {
+  canUseMetricsData,
   MEPConsumer,
   MEPSettingProvider,
   MEPState,
@@ -49,7 +47,6 @@ import {FrontendPageloadView} from './views/frontendPageloadView';
 import {MobileView} from './views/mobileView';
 import {MetricsDataSwitcher} from './metricsDataSwitcher';
 import {MetricsDataSwitcherAlert} from './metricsDataSwitcherAlert';
-import SamplingModal, {modalCss} from './samplingModal';
 import {
   getDefaultDisplayForPlatform,
   getLandingDisplayFromParam,
@@ -60,7 +57,7 @@ import {
 
 type Props = {
   eventView: EventView;
-  handleSearch: (searchQuery: string) => void;
+  handleSearch: (searchQuery: string, currentMEPState?: MEPState) => void;
   handleTrendsClick: () => void;
   location: Location;
   onboardingProject: Project | undefined;
@@ -89,7 +86,6 @@ export function PerformanceLanding(props: Props) {
     handleSearch,
     handleTrendsClick,
     onboardingProject,
-    withStaticFilters,
   } = props;
 
   const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
@@ -130,27 +126,8 @@ export function PerformanceLanding(props: Props) {
   };
 
   const derivedQuery = getTransactionSearchQuery(location, eventView.query);
-  const searchQuery = withStaticFilters
-    ? getFreeTextFromQuery(derivedQuery)
-    : derivedQuery;
 
   const ViewComponent = fieldToViewMap[landingDisplay.field];
-
-  const fnOpenModal = () => {
-    openModal(
-      modalProps => (
-        <SamplingModal
-          {...modalProps}
-          organization={organization}
-          eventView={eventView}
-          projects={projects}
-          onApply={() => {}}
-          isMEPEnabled
-        />
-      ),
-      {modalCss, backdrop: 'static'}
-    );
-  };
 
   let pageFilters: React.ReactNode = (
     <PageFilterBar condensed>
@@ -168,9 +145,7 @@ export function PerformanceLanding(props: Props) {
     ? SearchContainerWithFilterAndMetrics
     : SearchContainerWithFilter;
 
-  const shouldShowTransactionNameOnlySearch = organization.features.includes(
-    'performance-transaction-name-only-search'
-  );
+  const shouldShowTransactionNameOnlySearch = canUseMetricsData(organization);
 
   return (
     <StyledPageContent data-test-id="performance-landing-v3">
@@ -189,14 +164,6 @@ export function PerformanceLanding(props: Props) {
                 >
                   {t('View Trends')}
                 </Button>
-                <Feature features={['organizations:performance-use-metrics']}>
-                  <Button
-                    onClick={() => fnOpenModal()}
-                    icon={<IconSettings />}
-                    aria-label={t('Settings')}
-                    data-test-id="open-meps-settings"
-                  />
-                </Feature>
               </ButtonBar>
             )}
           </Layout.HeaderActions>
@@ -257,16 +224,23 @@ export function PerformanceLanding(props: Props) {
                       <SearchFilterContainer>
                         {pageFilters}
                         <MEPConsumer>
-                          {({metricSettingState}) =>
-                            metricSettingState === MEPState.metricsOnly &&
-                            shouldShowTransactionNameOnlySearch ? (
+                          {({metricSettingState}) => {
+                            const searchQuery =
+                              metricSettingState === MEPState.metricsOnly
+                                ? getFreeTextFromQuery(derivedQuery)
+                                : derivedQuery;
+
+                            return metricSettingState === MEPState.metricsOnly &&
+                              shouldShowTransactionNameOnlySearch ? (
                               // TODO replace `handleSearch prop` with transaction name search once
                               // transaction name search becomes the default search bar
                               <TransactionNameSearchBar
                                 organization={organization}
                                 location={location}
                                 eventView={eventView}
-                                onSearch={handleSearch}
+                                onSearch={(query: string) =>
+                                  handleSearch(query, metricSettingState)
+                                }
                                 query={searchQuery}
                               />
                             ) : (
@@ -280,11 +254,13 @@ export function PerformanceLanding(props: Props) {
                                   [...eventView.fields, {field: 'tps()'}],
                                   ['epm()', 'eps()']
                                 )}
-                                onSearch={handleSearch}
+                                onSearch={(query: string) =>
+                                  handleSearch(query, metricSettingState ?? undefined)
+                                }
                                 maxQueryLength={MAX_QUERY_LENGTH}
                               />
-                            )
-                          }
+                            );
+                          }}
                         </MEPConsumer>
                         <MetricsEventsDropdown />
                       </SearchFilterContainer>
