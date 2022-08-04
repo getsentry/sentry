@@ -12,7 +12,8 @@ import {PanelTable} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Radio from 'sentry/components/radio';
-import {IconRefresh} from 'sentry/icons';
+import Tooltip from 'sentry/components/tooltip';
+import {IconRefresh, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ModalStore from 'sentry/stores/modalStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -66,7 +67,7 @@ type Props = Omit<
   projectStats?: SeriesApi;
 };
 
-function UniformRateModal({
+export function UniformRateModal({
   Header,
   Body,
   Footer,
@@ -359,55 +360,65 @@ function UniformRateModal({
 
           <StyledPanelTable
             headers={[
-              t('Sampling Values'),
-              <RightAligned key="client">{t('Client')}</RightAligned>,
-              <RightAligned key="server">{t('Server')}</RightAligned>,
-              '',
+              <SamplingValuesColumn key="sampling-values">
+                {t('Sampling Values')}
+              </SamplingValuesColumn>,
+              <ClientColumn key="client">{t('Client')}</ClientColumn>,
+              <ClientHelpOrWarningColumn key="client-rate-help" />,
+              <ServerColumn key="server">{t('Server')}</ServerColumn>,
+              <ServerWarningColumn key="server-warning" />,
+              <RefreshRatesColumn key="refresh-rates" />,
             ]}
           >
             <Fragment>
-              <Label htmlFor="sampling-current">
-                <Radio
-                  id="sampling-current"
-                  checked={selectedStrategy === Strategy.CURRENT}
-                  onChange={() => {
-                    setSelectedStrategy(Strategy.CURRENT);
-                  }}
-                />
-                {t('Current')}
-              </Label>
-              <RightAligned>
+              <SamplingValuesColumn>
+                <Label htmlFor="sampling-current">
+                  <Radio
+                    id="sampling-current"
+                    checked={selectedStrategy === Strategy.CURRENT}
+                    onChange={() => {
+                      setSelectedStrategy(Strategy.CURRENT);
+                    }}
+                  />
+                  {t('Current')}
+                </Label>
+              </SamplingValuesColumn>
+              <ClientColumn>
                 {defined(currentClientSampling)
                   ? formatPercentage(currentClientSampling)
                   : 'N/A'}
-              </RightAligned>
-              <RightAligned>
+              </ClientColumn>
+              <ClientHelpOrWarningColumn />
+              <ServerColumn>
                 {defined(currentServerSampling)
                   ? formatPercentage(currentServerSampling)
                   : 'N/A'}
-              </RightAligned>
-              <div />
+              </ServerColumn>
+              <ServerWarningColumn />
+              <RefreshRatesColumn />
             </Fragment>
             <Fragment>
-              <Label htmlFor="sampling-recommended">
-                <Radio
-                  id="sampling-recommended"
-                  checked={selectedStrategy === Strategy.RECOMMENDED}
-                  onChange={() => {
-                    setSelectedStrategy(Strategy.RECOMMENDED);
-                  }}
-                />
-                {isEdited ? t('New') : t('Suggested')}
-                {!isEdited && (
-                  <QuestionTooltip
-                    title={t(
-                      'Optimal sample rates based on your organization’s usage and quota.'
-                    )}
-                    size="sm"
+              <SamplingValuesColumn>
+                <Label htmlFor="sampling-recommended">
+                  <Radio
+                    id="sampling-recommended"
+                    checked={selectedStrategy === Strategy.RECOMMENDED}
+                    onChange={() => {
+                      setSelectedStrategy(Strategy.RECOMMENDED);
+                    }}
                   />
-                )}
-              </Label>
-              <RightAligned>
+                  {isEdited ? t('New') : t('Suggested')}
+                  {!isEdited && (
+                    <QuestionTooltip
+                      title={t(
+                        'Optimal sample rates based on your organization’s usage and quota.'
+                      )}
+                      size="sm"
+                    />
+                  )}
+                </Label>
+              </SamplingValuesColumn>
+              <ClientColumn>
                 <StyledNumberField
                   name="recommended-client-sampling"
                   placeholder="%"
@@ -421,8 +432,26 @@ function UniformRateModal({
                   flexibleControlStateSize
                   inline={false}
                 />
-              </RightAligned>
-              <RightAligned>
+              </ClientColumn>
+              <ClientHelpOrWarningColumn>
+                {isEdited && !isValidSampleRate(percentageToRate(clientInput)) ? (
+                  <Tooltip title={t('Set a value between 0 and 100')}>
+                    <IconWarning
+                      color="red300"
+                      size="sm"
+                      data-test-id="invalid-client-rate"
+                    />
+                  </Tooltip>
+                ) : (
+                  <QuestionTooltip
+                    title={t(
+                      'Changing the client(SDK) sample rate will require re-deployment.'
+                    )}
+                    size="sm"
+                  />
+                )}
+              </ClientHelpOrWarningColumn>
+              <ServerColumn>
                 <StyledNumberField
                   name="recommended-server-sampling"
                   placeholder="%"
@@ -436,8 +465,19 @@ function UniformRateModal({
                   flexibleControlStateSize
                   inline={false}
                 />
-              </RightAligned>
-              <ResetButton>
+              </ServerColumn>
+              <ServerWarningColumn>
+                {isEdited && !isValidSampleRate(percentageToRate(serverInput)) && (
+                  <Tooltip title={t('Set a value between 0 and 100')}>
+                    <IconWarning
+                      color="red300"
+                      size="sm"
+                      data-test-id="invalid-server-rate"
+                    />
+                  </Tooltip>
+                )}
+              </ServerWarningColumn>
+              <RefreshRatesColumn>
                 {isEdited && (
                   <Button
                     icon={<IconRefresh size="sm" />}
@@ -450,7 +490,7 @@ function UniformRateModal({
                     size="zero"
                   />
                 )}
-              </ResetButton>
+              </RefreshRatesColumn>
             </Fragment>
           </StyledPanelTable>
 
@@ -513,18 +553,12 @@ function UniformRateModal({
 }
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: 1fr 115px 115px 35px;
+  grid-template-columns: 1fr 115px 24px 115px 16px 46px;
   border-top-left-radius: 0;
   border-top-right-radius: 0;
-`;
-
-const RightAligned = styled('div')`
-  text-align: right;
-`;
-
-const ResetButton = styled('div')`
-  padding-left: 0;
-  display: inline-flex;
+  > * {
+    padding: 0;
+  }
 `;
 
 const Label = styled('label')`
@@ -552,4 +586,38 @@ export const Stepper = styled('span')`
   color: ${p => p.theme.subText};
 `;
 
-export {UniformRateModal};
+const SamplingValuesColumn = styled('div')`
+  padding: ${space(2)};
+  display: flex;
+`;
+
+const ClientColumn = styled('div')`
+  padding: ${space(2)} ${space(1)} ${space(2)} ${space(2)};
+  text-align: right;
+  display: flex;
+  justify-content: flex-end;
+`;
+
+const ClientHelpOrWarningColumn = styled('div')`
+  padding: ${space(2)} ${space(1)} ${space(2)} 0;
+  display: flex;
+  align-items: center;
+`;
+
+const ServerColumn = styled('div')`
+  padding: ${space(2)} ${space(1)} ${space(2)} ${space(2)};
+  text-align: right;
+  display: flex;
+  justify-content: flex-end;
+`;
+
+const ServerWarningColumn = styled('div')`
+  padding: ${space(2)} 0;
+  display: flex;
+  align-items: center;
+`;
+
+const RefreshRatesColumn = styled('div')`
+  padding: ${space(2)} ${space(2)} ${space(2)} ${space(1)};
+  display: inline-flex;
+`;
