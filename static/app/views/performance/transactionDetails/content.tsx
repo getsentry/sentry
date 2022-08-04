@@ -230,7 +230,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                               api={this.api}
                               router={router}
                               route={route}
-                              isBorderless
                             />
                           </QuickTraceContext.Provider>
                         </SpanEntryContext.Provider>

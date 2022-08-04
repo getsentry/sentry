@@ -5,7 +5,8 @@ import Exception from 'sentry/components/events/interfaces/exception';
 import ExceptionV2 from 'sentry/components/events/interfaces/exceptionV2';
 import {Generic} from 'sentry/components/events/interfaces/generic';
 import {Message} from 'sentry/components/events/interfaces/message';
-import Request from 'sentry/components/events/interfaces/request';
+import {PerformanceIssueSection} from 'sentry/components/events/interfaces/performance';
+import {Request} from 'sentry/components/events/interfaces/request';
 import Spans from 'sentry/components/events/interfaces/spans';
 import StackTrace from 'sentry/components/events/interfaces/stackTrace';
 import StackTraceV2 from 'sentry/components/events/interfaces/stackTraceV2';
@@ -13,7 +14,7 @@ import Template from 'sentry/components/events/interfaces/template';
 import Threads from 'sentry/components/events/interfaces/threads';
 import ThreadsV2 from 'sentry/components/events/interfaces/threadsV2';
 import {Group, Organization, Project, SharedViewOrganization} from 'sentry/types';
-import {Entry, EntryType, Event, EventTransaction} from 'sentry/types/event';
+import {Entry, EntryType, Event, EventError, EventTransaction} from 'sentry/types/event';
 
 import {EmbeddedSpanTree} from './interfaces/spans/embeddedSpanTree';
 import {FocusedSpanIDMap} from './interfaces/spans/types';
@@ -69,12 +70,10 @@ function EventEntry({
       );
     }
     case EntryType.MESSAGE: {
-      const {data} = entry;
-      return <Message data={data} event={event} />;
+      return <Message event={event} data={entry.data} />;
     }
     case EntryType.REQUEST: {
-      const {data, type} = entry;
-      return <Request type={type} event={event} data={data} />;
+      return <Request event={event} data={entry.data} />;
     }
     case EntryType.STACKTRACE: {
       const {data, type} = entry;
@@ -104,7 +103,6 @@ function EventEntry({
     }
     case EntryType.CSP: {
       const {data} = entry;
-      console.log({meta: event._meta});
       return <Csp event={event} data={data} />;
     }
     case EntryType.EXPECTCT:
@@ -186,6 +184,18 @@ function EventEntry({
           organization={organization as Organization}
           projectSlug={INTERNAL_PROJECT}
           focusedSpanIds={focusedSpanIds}
+        />
+      );
+    case EntryType.PERFORMANCE:
+      if (!organization.features?.includes('performance-extraneous-spans-poc')) {
+        return null;
+      }
+
+      return (
+        <PerformanceIssueSection
+          issue={group as Group}
+          event={event as EventError}
+          organization={organization as Organization}
         />
       );
     default:
