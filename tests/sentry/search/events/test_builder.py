@@ -1116,7 +1116,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             pytest.skip("test does not apply if tag values are in clickhouse")
 
         with pytest.raises(
-            InvalidSearchQuery,
+            IncompatibleMetricsQuery,
             match=re.escape("Tag value was not found"),
         ):
             MetricsQueryBuilder(
@@ -1130,7 +1130,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         if options.get("sentry-metrics.performance.tags-values-are-strings"):
             pytest.skip("test does not apply if tag values are in clickhouse")
         with pytest.raises(
-            InvalidSearchQuery,
+            IncompatibleMetricsQuery,
             match=re.escape("Tag value was not found"),
         ):
             MetricsQueryBuilder(
@@ -2382,7 +2382,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         if options.get("sentry-metrics.performance.tags-values-are-strings"):
             pytest.skip("test does not apply if tag values are in clickhouse")
         with pytest.raises(
-            InvalidSearchQuery,
+            IncompatibleMetricsQuery,
             match=re.escape("Tag value was not found"),
         ):
             TimeseriesMetricQueryBuilder(
@@ -2397,7 +2397,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         if options.get("sentry-metrics.performance.tags-values-are-strings"):
             pytest.skip("test does not apply if tag values are in clickhouse")
         with pytest.raises(
-            InvalidSearchQuery,
+            IncompatibleMetricsQuery,
             match=re.escape("Tag value was not found"),
         ):
             TimeseriesMetricQueryBuilder(
