@@ -13,10 +13,4 @@ TASK_OPTIONS = {
 
 @instrumented_task("sentry.tasks.sentry_functions.send_sentry_function_webhook", **TASK_OPTIONS)
 def send_sentry_function_webhook(sentry_function_id, event, data=None):
-    if type(event) == str:
-        publish_message(sentry_function_id, json.dumps({"data": data, "type": event}).encode())
-    else:
-        publish_message(
-            sentry_function_id,
-            json.dumps({"data": dict(event.data), "type": "error"}).encode(),
-        )
+    publish_message(sentry_function_id, json.dumps({"data": data, "type": event}).encode())
