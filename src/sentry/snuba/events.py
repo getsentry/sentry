@@ -466,8 +466,7 @@ class Columns(Enum):
         group_name=None,
         event_name=None,
         transaction_name="transaction_source",
-        # Only available in transactions, pretend like its a tag so we dont error and just null instead
-        discover_name="tags[transaction_source]",
+        discover_name="transaction_source",
         alias="transaction.source",
     )
     MEASUREMENTS_KEYS = Column(
