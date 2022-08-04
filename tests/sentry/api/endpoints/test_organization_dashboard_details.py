@@ -1383,6 +1383,32 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 403, response.data
 
+    def test_update_dashboard_with_all_projects(self):
+        data = {
+            "title": "First dashboard",
+            "projects": [-1],
+        }
+
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+        assert response.data["projects"] == [-1]
+
+    def test_update_dashboard_with_my_projects_after_setting_all_projects(self):
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Filters",
+            created_by=self.user,
+            organization=self.organization,
+            filters={"all_projects": True},
+        )
+        data = {
+            "title": "First dashboard",
+            "projects": [],
+        }
+
+        response = self.do_request("put", self.url(dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+        assert response.data["projects"] == []
+
 
 @customer_silo_test
 class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):

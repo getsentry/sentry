@@ -27,9 +27,9 @@ from sentry.integrations.msteams.card_builder.identity import (
     build_unlinked_card,
 )
 from sentry.integrations.msteams.card_builder.installation import (
-    build_installation_confirmation_message,
     build_personal_installation_message,
-    build_welcome_card,
+    build_team_installation_confirmation_message,
+    build_team_installation_message,
 )
 from sentry.integrations.msteams.card_builder.issues import MSTeamsIssueMessageBuilder
 from sentry.integrations.msteams.card_builder.notifications import (
@@ -96,6 +96,13 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert card["actions"][0]["type"] == ActionType.OPEN_URL
         assert card["actions"][0]["title"] == "button"
 
+    def test_special_chars(self):
+        card = MSTeamsMessageBuilder().build(
+            text="in __init__.py ... return 1 < 2",
+        )
+
+        assert "in &#95;&#95;init&#95;&#95;.py ... return 1 &lt; 2" == card["body"][0]["text"]
+
     def test_missing_action_params(self):
         with pytest.raises(KeyError):
             _ = MSTeamsMessageBuilder().build(
@@ -150,7 +157,7 @@ class MSTeamsMessageBuilderTest(TestCase):
 
     def test_insallation_confirmation_message(self):
         organization = Organization(name="test-org", slug="test-org")
-        confirmation_card = build_installation_confirmation_message(organization)
+        confirmation_card = build_team_installation_confirmation_message(organization)
 
         assert 2 == len(confirmation_card["body"])
         assert 1 == len(confirmation_card["actions"])
@@ -161,15 +168,29 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert url.startswith("http")
 
     def test_personal_installation_message(self):
-        personal_installation_card = build_personal_installation_message()
+        signed_params = "signed_params"
+        personal_installation_card = build_personal_installation_message(signed_params)
 
-        assert 2 == len(personal_installation_card["body"])
+        body = personal_installation_card["body"]
+
+        assert 3 == len(body)
+        assert 1 == len(personal_installation_card["actions"])
+
+        assert "Personal Installation of Sentry" in body[0]["columns"][1]["items"][0]["text"]
+
+        url = personal_installation_card["actions"][0]["url"]
+        assert "signed_params" in url
+        assert url.startswith("http")
 
     def test_team_installation_message(self):
         signed_params = "signed_params"
-        team_installation_card = build_welcome_card(signed_params)
+        team_installation_card = build_team_installation_message(signed_params)
 
         assert 3 == len(team_installation_card["body"])
+        assert (
+            "Welcome to Sentry"
+            in team_installation_card["body"][0]["columns"][1]["items"][0]["text"]
+        )
         assert 1 == len(team_installation_card["actions"])
         assert "Complete Setup" in team_installation_card["actions"][0]["title"]
 
@@ -395,7 +416,7 @@ class MSTeamsNotificationMessageBuilderTest(TestCase):
         assert 4 == len(body)
 
         title = body[0]
-        assert "Notification Title with some_value" == title["text"]
+        assert "Notification Title with some&#95;value" == title["text"]
 
         group_title = body[1]
         assert "[My Title]" in group_title["text"]

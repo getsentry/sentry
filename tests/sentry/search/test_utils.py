@@ -506,6 +506,24 @@ class ParseQueryTest(TestCase):
         assert result["date_to"] == datetime(2016, 1, 2, tzinfo=timezone.utc)
         assert result["date_to_inclusive"] is False
 
+    def test_date_range_with_timezone(self):
+        result = self.parse_query(
+            "event.timestamp:>2016-01-01T10:00:00-03:00 event.timestamp:<2016-01-02T10:00:00+02:00"
+        )
+        assert result["date_from"] == datetime(2016, 1, 1, 13, 0, 0, tzinfo=timezone.utc)
+        assert result["date_from_inclusive"] is False
+        assert result["date_to"] == datetime(2016, 1, 2, 8, 0, tzinfo=timezone.utc)
+        assert result["date_to_inclusive"] is False
+
+    def test_date_range_with_z_timezone(self):
+        result = self.parse_query(
+            "event.timestamp:>2016-01-01T10:00:00Z event.timestamp:<2016-01-02T10:00:00Z"
+        )
+        assert result["date_from"] == datetime(2016, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
+        assert result["date_from_inclusive"] is False
+        assert result["date_to"] == datetime(2016, 1, 2, 10, 0, tzinfo=timezone.utc)
+        assert result["date_to_inclusive"] is False
+
     def test_date_range_inclusive(self):
         result = self.parse_query("event.timestamp:>=2016-01-01 event.timestamp:<=2016-01-02")
         assert result["date_from"] == datetime(2016, 1, 1, tzinfo=timezone.utc)
@@ -524,6 +542,14 @@ class ParseQueryTest(TestCase):
     def test_date_approx_precise(self):
         date_value = datetime(2016, 1, 1, tzinfo=timezone.utc)
         result = self.parse_query("event.timestamp:2016-01-01T00:00:00")
+        assert result["date_from"] == date_value - timedelta(minutes=5)
+        assert result["date_from_inclusive"]
+        assert result["date_to"] == date_value + timedelta(minutes=6)
+        assert not result["date_to_inclusive"]
+
+    def test_date_approx_precise_with_timezone(self):
+        date_value = datetime(2016, 1, 1, 5, 0, 0, tzinfo=timezone.utc)
+        result = self.parse_query("event.timestamp:2016-01-01T00:00:00-05:00")
         assert result["date_from"] == date_value - timedelta(minutes=5)
         assert result["date_from_inclusive"]
         assert result["date_to"] == date_value + timedelta(minutes=6)

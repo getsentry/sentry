@@ -111,7 +111,7 @@ export function toRGBAString(r: number, g: number, b: number, alpha: number): st
 }
 
 export function defaultFrameSortKey(frame: FlamegraphFrame): string {
-  return frame.frame.name + (frame.frame.file || '');
+  return frame.frame.name + (frame.frame.image || '');
 }
 
 function defaultFrameSort(a: FlamegraphFrame, b: FlamegraphFrame): number {
@@ -133,16 +133,26 @@ export const makeColorMap = (
   colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET'],
   sortBy: (a: FlamegraphFrame, b: FlamegraphFrame) => number = defaultFrameSort
 ): Map<FlamegraphFrame['frame']['key'], ColorChannels> => {
-  const colors = new Map<FlamegraphFrame['key'], ColorChannels>();
+  const colors = new Map<FlamegraphFrame['frame']['key'], ColorChannels>();
 
   const sortedFrames = [...frames].sort(sortBy);
-  const length = sortedFrames.length;
+  const uniqueFrames = uniqueBy(frames, f => f.frame.name + f.frame.image);
 
-  for (let i = 0; i < length; i++) {
-    colors.set(
-      sortedFrames[i].key,
-      colorBucket(Math.floor((255 * i) / frames.length) / 256, sortedFrames[i].frame)
-    );
+  const colorsByName = new Map<FlamegraphFrame['frame']['key'], ColorChannels>();
+
+  for (let i = 0; i < sortedFrames.length; i++) {
+    const frame = sortedFrames[i];
+    const nameKey = frame.frame.name + frame.frame.image ?? '';
+
+    if (!colorsByName.has(nameKey)) {
+      const color = colorBucket(
+        Math.floor((255 * i) / uniqueFrames.length) / 256,
+        frame.frame
+      );
+      colorsByName.set(nameKey, color);
+    }
+
+    colors.set(frame.key, colorsByName.get(nameKey)!);
   }
 
   return colors;
@@ -162,7 +172,7 @@ export const makeColorMapByRecursion = (
 
   for (let i = 0; i < sortedFrames.length; i++) {
     const frame = sortedFrames[i];
-    const nameKey = frame.frame.name + frame.frame.file ?? '';
+    const nameKey = frame.frame.name + frame.frame.image ?? '';
 
     if (!colorsByName.has(nameKey)) {
       const color = colorBucket(

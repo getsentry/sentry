@@ -1,5 +1,6 @@
 from datetime import timedelta
 from functools import cmp_to_key
+from typing import Any, Dict
 
 from django.utils import timezone
 from rest_framework.request import Request
@@ -67,14 +68,18 @@ class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
         )
         start_time = end_time - stats_period
 
-        avg_equation = 'count_if(trace.client_sample_rate, notEquals, "") / count()'
+        sample_rate_count_if = 'count_if(trace.client_sample_rate, notEquals, "")'
+        avg_sample_rate_equation = f"{sample_rate_count_if} / count()"
+        transaction_source_count_if = 'count_if(transaction.source, notEquals, "")'
+        avg_transaction_source_equation = f"{transaction_source_count_if} / count()"
 
         data = discover.query(
             selected_columns=[
                 "sdk.name",
                 "sdk.version",
                 "project",
-                'count_if(trace.client_sample_rate, notEquals, "")',
+                sample_rate_count_if,
+                transaction_source_count_if,
                 "count()",
             ],
             query="event.type:transaction",
@@ -84,7 +89,7 @@ class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
                 "project_id": project_ids,
                 "organization_id": organization,
             },
-            equations=[avg_equation],
+            equations=[avg_sample_rate_equation, avg_transaction_source_equation],
             orderby=[],
             offset=0,
             limit=100,
@@ -95,11 +100,10 @@ class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
             transform_alias_to_input_format=True,
             referrer="dynamic-sampling.distribution.fetch-project-sdk-versions-info",
         )["data"]
-
         # Create a dictionary of the total count per project
-        total_count_per_project = {}
+        total_count_per_project: Dict[str, int] = {}
         # Create a dictionary of total count per sdk name per project
-        total_sdk_name_count_per_project = {}
+        total_sdk_name_count_per_project: Dict[Any, Any] = {}
         for row in data:
             project = row["project"]
             sdk_name = row["sdk.name"]
@@ -121,7 +125,8 @@ class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
         # Creates a dictionary that has the first level key as project id and values (second
         # level key) as SDK versions, and finally that maps to the expected resulting project
         # sdk version info if that SDKVersion was actually the latest observed, and that info
-        # contains project, latestSDKVersion, latestSDKName, and a boolean isSendingSampleRate
+        # contains project, latestSDKVersion, latestSDKName,
+        # and two booleans: isSendingSampleRate and isSendingSource
         # which indicates if that SDK version is sending client side sample rate.
         # Example:
         # {
@@ -130,17 +135,19 @@ class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
         #             "project": 1,
         #             "latestSDKVersion": "1.0.0",
         #             "latestSDKName": "Sentry",
-        #             "isSendingSampleRate": True
+        #             "isSendingSampleRate": True,
+        #             "isSendingSource": True
         #         },
         #         "1.0.1": {
         #             "project": 1,
         #             "latestSDKVersion": "1.0.1",
         #             "latestSDKName": "Sentry",
-        #             "isSendingSampleRate": False
+        #             "isSendingSampleRate": False,
+        #             "isSendingSource": False
         #         }
         #     }
         # }
-        project_to_sdk_version_to_info_dict = {}
+        project_to_sdk_version_to_info_dict: Dict[Any, Any] = {}
         for row in data:
             project = row["project"]
             sdk_name = row["sdk.name"]
@@ -159,7 +166,8 @@ class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
                     "project": project,
                     "latestSDKName": sdk_name,
                     "latestSDKVersion": sdk_version,
-                    "isSendingSampleRate": bool(row[f"equation|{avg_equation}"]),
+                    "isSendingSampleRate": bool(row[f"equation|{avg_sample_rate_equation}"]),
+                    "isSendingSource": bool(row[f"equation|{avg_transaction_source_equation}"]),
                 }
 
         # Essentially for each project, we fetch all the SDK versions from the previously
@@ -167,10 +175,10 @@ class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
         # semantic versioning and return the info for that particular project SDK version.
         project_info_list = [
             project_to_sdk_version_to_info_dict[project][
-                sorted(
-                    list(project_to_sdk_version_to_info_dict[project].keys()),
+                max(
+                    project_to_sdk_version_to_info_dict[project].keys(),
                     key=cmp_to_key(compare_version_relay),
-                )[-1]
+                )
             ]
             for project in project_to_sdk_version_to_info_dict
         ]

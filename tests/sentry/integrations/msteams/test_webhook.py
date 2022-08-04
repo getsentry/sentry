@@ -273,7 +273,7 @@ class MsTeamsWebhookTest(APITestCase):
             HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
         )
 
-        assert resp.status_code == 204
+        assert resp.status_code == 201
         assert "Personal Installation of Sentry" in responses.calls[3].request.body.decode("utf-8")
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
 

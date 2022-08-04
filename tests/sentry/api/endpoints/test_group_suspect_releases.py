@@ -18,7 +18,7 @@ class GroupSuspectReleasesTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["suspectReleases"] == []
+        assert response.data == []
 
         release = self.create_release(
             project=group.project,
@@ -36,7 +36,7 @@ class GroupSuspectReleasesTest(APITestCase, SnubaTestCase):
         )
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
-        assert response.data["suspectReleases"] == []
+        assert response.data == []
 
     def test_with_suspect_release(self):
         self.login_as(user=self.user)
@@ -61,7 +61,7 @@ class GroupSuspectReleasesTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["suspectReleases"] == [serialize(release)]
+        assert response.data == [serialize(release)]
 
     def test_with_regression(self):
         self.login_as(user=self.user)
@@ -84,7 +84,7 @@ class GroupSuspectReleasesTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["suspectReleases"] == [serialize(release)]
+        assert response.data == [serialize(release)]
 
     def test_multiple_suspect_releases(self):
         self.login_as(user=self.user)
@@ -122,7 +122,7 @@ class GroupSuspectReleasesTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["suspectReleases"] == [
+        assert response.data == [
             serialize(release),
             serialize(regression_release),
         ]
@@ -157,4 +157,4 @@ class GroupSuspectReleasesTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["suspectReleases"] == [serialize(release)]
+        assert response.data == [serialize(release)]

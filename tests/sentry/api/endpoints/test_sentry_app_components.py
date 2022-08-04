@@ -38,6 +38,7 @@ class SentryAppComponentsTest(APITestCase):
             "uuid": str(self.component.uuid),
             "type": "issue-link",
             "schema": self.component.schema,
+            "error": False,
             "sentryApp": {
                 "uuid": self.sentry_app.uuid,
                 "slug": self.sentry_app.slug,
@@ -101,6 +102,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
             "uuid": str(self.component1.uuid),
             "type": "issue-link",
             "schema": self.component1.schema,
+            "error": False,
             "sentryApp": {
                 "uuid": self.sentry_app1.uuid,
                 "slug": self.sentry_app1.slug,
@@ -113,6 +115,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
             "uuid": str(self.component2.uuid),
             "type": "issue-link",
             "schema": self.component2.schema,
+            "error": False,
             "sentryApp": {
                 "uuid": self.sentry_app2.uuid,
                 "slug": self.sentry_app2.slug,
@@ -155,6 +158,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                 "uuid": str(component.uuid),
                 "type": "alert-rule",
                 "schema": component.schema,
+                "error": False,
                 "sentryApp": {
                     "uuid": sentry_app.uuid,
                     "slug": sentry_app.slug,
@@ -183,18 +187,31 @@ class OrganizationSentryAppComponentsTest(APITestCase):
             self.org.slug, qs_params={"projectId": self.project.id}
         )
 
-        # Does not include self.component1 data, because it raised an exception
+        # self.component1 data contains an error, because it raised an exception
         # during preparation.
         assert response.data == [
+            {
+                "uuid": str(self.component1.uuid),
+                "type": self.component1.type,
+                "schema": self.component1.schema,
+                "error": True,
+                "sentryApp": {
+                    "uuid": self.sentry_app1.uuid,
+                    "slug": self.sentry_app1.slug,
+                    "name": self.sentry_app1.name,
+                    "avatars": get_sentry_app_avatars(self.sentry_app1),
+                },
+            },
             {
                 "uuid": str(self.component2.uuid),
                 "type": self.component2.type,
                 "schema": self.component2.schema,
+                "error": False,
                 "sentryApp": {
                     "uuid": self.sentry_app2.uuid,
                     "slug": self.sentry_app2.slug,
                     "name": self.sentry_app2.name,
                     "avatars": get_sentry_app_avatars(self.sentry_app2),
                 },
-            }
+            },
         ]

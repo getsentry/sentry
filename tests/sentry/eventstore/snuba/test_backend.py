@@ -57,7 +57,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         event_data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=1))
         event_data["event_id"] = "d" * 32
 
-        self.transaction_event = self.store_event(data=event_data, project_id=self.project2.id)
+        self.transaction_event = self.store_event(data=event_data, project_id=self.project1.id)
 
         event_data_2 = load_data("transaction")
         event_data_2["timestamp"] = iso_format(before_now(seconds=30))
@@ -66,6 +66,24 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         event_data_2["event_id"] = "e" * 32
 
         self.transaction_event_2 = self.store_event(data=event_data_2, project_id=self.project2.id)
+
+        event_data_3 = load_data("transaction")
+        event_data_3["timestamp"] = iso_format(before_now(seconds=30))
+        event_data_3["start_timestamp"] = iso_format(before_now(seconds=31))
+
+        event_data_3["event_id"] = "f" * 32
+
+        self.transaction_event_3 = self.store_event(data=event_data_3, project_id=self.project2.id)
+
+        """
+        event_data_4 = load_data("transaction")
+        event_data_4["timestamp"] = iso_format(before_now(seconds=30))
+        event_data_4["start_timestamp"] = iso_format(before_now(seconds=31))
+
+        event_data_4["event_id"] = "g" * 32
+
+        self.transaction_event_4 = self.store_event(data=event_data_4, project_id=self.project2.id)
+        """
 
         self.eventstore = SnubaEventStorage()
 
@@ -107,6 +125,20 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         assert len(events) == 1
         assert get_multi.call_count == 0
 
+    @mock.patch("sentry.nodestore.get_multi")
+    def test_get_unfetched_transactions(self, get_multi):
+        transactions_proj1 = self.eventstore.get_unfetched_transactions(
+            filter=Filter(project_ids=[self.project1.id])
+        )
+        assert len(transactions_proj1) == 1
+        assert get_multi.call_count == 0
+
+        transactions_proj2 = self.eventstore.get_unfetched_transactions(
+            filter=Filter(project_ids=[self.project2.id])
+        )
+        assert len(transactions_proj2) == 2
+        assert get_multi.call_count == 0
+
     def test_get_event_by_id(self):
         # Get valid event
         event = self.eventstore.get_event_by_id(self.project1.id, "a" * 32)
@@ -116,13 +148,13 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         assert event.group_id == event.group.id
 
         # Get non existent event
-        event = self.eventstore.get_event_by_id(self.project2.id, "f" * 32)
+        event = self.eventstore.get_event_by_id(self.project2.id, "z" * 32)
         assert event is None
 
         # Get transaction
-        event = self.eventstore.get_event_by_id(self.project2.id, self.transaction_event.event_id)
+        event = self.eventstore.get_event_by_id(self.project2.id, self.transaction_event_2.event_id)
 
-        assert event.event_id == "d" * 32
+        assert event.event_id == "e" * 32
         assert event.get_event_type() == "transaction"
         assert event.project_id == self.project2.id
 
@@ -243,7 +275,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         oldest_event = self.eventstore.get_earliest_event_id(event, filter=_filter)
         latest_event = self.eventstore.get_latest_event_id(event, filter=_filter)
         assert oldest_event == (str(self.project1.id), "a" * 32)
-        assert latest_event == (str(self.project2.id), "e" * 32)
+        assert latest_event == (str(self.project2.id), "f" * 32)
 
         # Returns none when no latest/oldest event that meets conditions
         event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)
@@ -255,18 +287,18 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
 
     def test_transaction_get_next_prev_event_id(self):
         _filter = Filter(
-            project_ids=[self.project1.id, self.project2.id],
+            project_ids=[self.project2.id],
             conditions=[["event.type", "=", "transaction"]],
         )
+
+        event = self.eventstore.get_event_by_id(self.project2.id, "f" * 32)
+        prev_event = self.eventstore.get_prev_event_id(event, filter=_filter)
+        next_event = self.eventstore.get_next_event_id(event, filter=_filter)
+        assert prev_event == (str(self.project2.id), "e" * 32)
+        assert next_event is None
 
         event = self.eventstore.get_event_by_id(self.project2.id, "e" * 32)
         prev_event = self.eventstore.get_prev_event_id(event, filter=_filter)
         next_event = self.eventstore.get_next_event_id(event, filter=_filter)
-        assert prev_event == (str(self.project2.id), "d" * 32)
-        assert next_event is None
-
-        event = self.eventstore.get_event_by_id(self.project2.id, "d" * 32)
-        prev_event = self.eventstore.get_prev_event_id(event, filter=_filter)
-        next_event = self.eventstore.get_next_event_id(event, filter=_filter)
         assert prev_event is None
-        assert next_event == (str(self.project2.id), "e" * 32)
+        assert next_event == (str(self.project2.id), "f" * 32)

@@ -4995,3 +4995,12 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 self.do_request(query)
             response = self.do_request(query)
             assert response.status_code == 200, response.content
+
+    def test_transaction_source(self):
+        query = {
+            "field": ["transaction"],
+            "query": "transaction.source:task",
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
