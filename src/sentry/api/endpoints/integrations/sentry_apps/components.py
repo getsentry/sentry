@@ -23,7 +23,7 @@ class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
             request=request,
             queryset=sentry_app.components.all(),
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(x, request.user, errors=[]),
         )
 
 
@@ -40,6 +40,7 @@ class OrganizationSentryAppComponentsEndpoint(OrganizationEndpoint):
             return Response([], status=404)
 
         components = []
+        errors = []
 
         for install in SentryAppInstallation.objects.get_installed_for_organization(
             organization.id
@@ -54,13 +55,14 @@ class OrganizationSentryAppComponentsEndpoint(OrganizationEndpoint):
                     sentry_app_components.Preparer.run(
                         component=component, install=install, project=project
                     )
-                    components.append(component)
                 except APIError:
-                    continue
+                    errors.append(str(component.uuid))
+
+                components.append(component)
 
         return self.paginate(
             request=request,
             queryset=components,
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(x, request.user, errors=errors),
         )
