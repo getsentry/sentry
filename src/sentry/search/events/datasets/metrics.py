@@ -175,6 +175,104 @@ class MetricsDatasetConfig(DatasetConfig):
                     default_result_type="integer",
                 ),
                 fields.MetricsFunction(
+                    "count_unparameterized_transactions",
+                    snql_distribution=lambda args, alias: Function(
+                        "countIf",
+                        [
+                            Function(
+                                "and",
+                                [
+                                    Function(
+                                        "equals",
+                                        [
+                                            Column("metric_id"),
+                                            self.resolve_metric("transaction.duration"),
+                                        ],
+                                    ),
+                                    Function(
+                                        "equals",
+                                        [
+                                            self.builder.column("transaction"),
+                                            self.resolve_tag_value("<< unparameterized >>"),
+                                        ],
+                                    ),
+                                ],
+                            )
+                        ],
+                        alias,
+                    ),
+                    # Not yet exposed, need to add far more validation around tag&value
+                    private=True,
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
+                    "count_null_transactions",
+                    snql_distribution=lambda args, alias: Function(
+                        "countIf",
+                        [
+                            Function(
+                                "and",
+                                [
+                                    Function(
+                                        "equals",
+                                        [
+                                            Column("metric_id"),
+                                            self.resolve_metric("transaction.duration"),
+                                        ],
+                                    ),
+                                    Function(
+                                        "equals",
+                                        [
+                                            self.builder.column("transaction"),
+                                            0,
+                                        ],
+                                    ),
+                                ],
+                            )
+                        ],
+                        alias,
+                    ),
+                    private=True,
+                ),
+                fields.MetricsFunction(
+                    "count_has_transaction_name",
+                    snql_distribution=lambda args, alias: Function(
+                        "countIf",
+                        [
+                            Function(
+                                "and",
+                                [
+                                    Function(
+                                        "equals",
+                                        [
+                                            Column("metric_id"),
+                                            self.resolve_metric("transaction.duration"),
+                                        ],
+                                    ),
+                                    Function(
+                                        "and",
+                                        [
+                                            Function(
+                                                "notEquals", [self.builder.column("transaction"), 0]
+                                            ),
+                                            Function(
+                                                "notEquals",
+                                                [
+                                                    self.builder.column("transaction"),
+                                                    self.resolve_tag_value("<< unparameterized >>"),
+                                                ],
+                                            ),
+                                        ],
+                                    ),
+                                ],
+                            )
+                        ],
+                        alias,
+                    ),
+                    private=True,
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
                     "user_misery",
                     optional_args=[
                         fields.NullableNumberRange("satisfaction", 0, None),
