@@ -76,12 +76,12 @@ type BaseDiscoverQueryProps = {
    */
   noPagination?: boolean;
   /**
-   * Extra query parameters to be added.
-   */
-  /**
    * A container for query batching data and functions.
    */
   queryBatching?: QueryBatching;
+  /**
+   * Extra query parameters to be added.
+   */
   queryExtras?: Record<string, string>;
   /**
    * Sets referrer parameter in the API Payload. Set of allowed referrers are defined
