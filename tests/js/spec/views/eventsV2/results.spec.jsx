@@ -1700,7 +1700,7 @@ describe('Results', function () {
     await tick();
     wrapper.update();
     expect(wrapper.find('Alert').find('Message').text()).toEqual(
-      'These are unparameterized transactions. To better organize your transactions,  set transaction names manually.'
+      'These are unparameterized transactions. To better organize your transactions, set transaction names manually.'
     );
   });
 });

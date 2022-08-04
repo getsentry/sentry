@@ -474,7 +474,7 @@ class Results extends Component<Props, State> {
       return (
         <Alert type="info" showIcon>
           {tct(
-            'These are unparameterized transactions. To better organize your transactions, [link: set transaction names manually].',
+            'These are unparameterized transactions. To better organize your transactions, [link:set transaction names manually].',
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/configuration/integrations/react-router/#parameterized-transaction-names" />
