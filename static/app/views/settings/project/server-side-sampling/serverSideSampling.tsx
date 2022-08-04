@@ -16,10 +16,11 @@ import {
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelFooter, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import ProjectStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
@@ -402,8 +403,11 @@ export function ServerSideSampling({project}: Props) {
       <Fragment>
         <SettingsPageHeader title={t('Server-Side Sampling')} />
         <TextBlock>
-          {t(
-            'Enhance the performance monitoring experience by targeting which transactions are most valuable to your organization without the need for re-deployment.'
+          {tct(
+            'Enhance the performance monitoring experience by targeting which transactions are most valuable to your organization without the need for re-deployment. To learn more about server-side sampling, [docsLink:read the docs].',
+            {
+              docsLink: <ExternalLink href={SERVER_SIDE_SAMPLING_DOC_LINK} />,
+            }
           )}
         </TextBlock>
         <PermissionAlert
