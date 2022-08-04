@@ -2,6 +2,7 @@ import {memo, MouseEventHandler, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
+import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButton';
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -12,6 +13,7 @@ import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegrap
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
+import {useParams} from 'sentry/utils/useParams';
 
 import {FrameStackTable} from './frameStackTable';
 
@@ -25,6 +27,7 @@ interface FrameStackProps {
 }
 
 const FrameStack = memo(function FrameStack(props: FrameStackProps) {
+  const params = useParams();
   const [flamegraphPreferences, dispatchFlamegraphPreferences] =
     useFlamegraphPreferences();
 
@@ -166,6 +169,19 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
             flamegraphPreferences.layout === 'table bottom' ? props.onResize : undefined
           }
         />
+        <li>
+          <ExportProfileButton
+            eventId={params.eventId}
+            orgId={params.orgId}
+            projectId={params.projectId}
+            disabled={
+              params.eventId === undefined ||
+              params.orgId === undefined ||
+              params.projectId === undefined
+            }
+          />
+        </li>
+        <Separator />
         <li>
           <LayoutSelectionContainer>
             <StyledButton
