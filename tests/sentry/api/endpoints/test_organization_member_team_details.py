@@ -453,15 +453,8 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         ax = access.from_user(user, organization)
 
         # user a member of the team that is a part of the project should have the following access and scopes
-        assert ax.scopes == member.get_scopes()
         assert ax.has_team_access(team)
-        assert ax.has_team_scope(team, "project:read")
         assert ax.has_project_access(project)
-        assert ax.has_projects_access([project])
-        assert ax.has_project_scope(project, "project:read")
-        assert not ax.has_project_scope(project, "project:write")
-        assert ax.has_any_project_scope(project, ["project:read", "project:write"])
-        assert not ax.has_any_project_scope(project, ["project:write", "project:admin"])
         assert ax.has_project_membership(project)
 
         self.login_as(user)
@@ -473,19 +466,8 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         assert not OrganizationMemberTeam.objects.filter(organizationmember=member.id).exists()
 
         ax_after_leaving = access.from_user(user, organization)
-        assert ax_after_leaving.scopes == member.get_scopes()
         assert not ax_after_leaving.has_team_access(team)
-        assert not ax_after_leaving.has_team_scope(team, "project:read")
         assert not ax_after_leaving.has_project_access(project)
-        assert not ax_after_leaving.has_projects_access([project])
-        assert not ax_after_leaving.has_project_scope(project, "project:read")
-        assert not ax_after_leaving.has_project_scope(project, "project:write")
-        assert not ax_after_leaving.has_any_project_scope(
-            project, ["project:read", "project:write"]
-        )
-        assert not ax_after_leaving.has_any_project_scope(
-            project, ["project:write", "project:admin"]
-        )
         assert not ax_after_leaving.has_project_membership(project)
 
 

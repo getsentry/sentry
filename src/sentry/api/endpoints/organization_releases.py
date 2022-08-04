@@ -217,6 +217,14 @@ class OrganizationReleasesEndpoint(
         ]
     )
 
+    def get_projects(self, request: Request, organization, project_ids=None):
+        return super().get_projects(
+            request,
+            organization,
+            project_ids=project_ids,
+            include_all_accessible=False if "GET" == request.method else True,
+        )
+
     def get(self, request: Request, organization) -> Response:
         """
         List an Organization's Releases
