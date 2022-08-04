@@ -165,7 +165,7 @@ def make_select_statement() -> List[Union[Column, Function]]:
             alias="trace_ids",
         ),
         # Aggregations.
-        Function("min", parameters=[Column("timestamp")], alias="started_at"),
+        Function("min", parameters=[Column("replay_start_timestamp")], alias="started_at"),
         Function("max", parameters=[Column("timestamp")], alias="finished_at"),
         Function(
             "dateDiff",
