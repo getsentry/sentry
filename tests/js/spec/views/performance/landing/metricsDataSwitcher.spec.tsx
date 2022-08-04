@@ -166,7 +166,6 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
   it('renders with feature flag and no metrics data', async function () {
     addMetricsDataMock({
       metricsCount: 0,
-      transactionCount: 50,
       nullCount: 0,
       unparamCount: 0,
     });

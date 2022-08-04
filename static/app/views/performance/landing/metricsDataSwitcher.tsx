@@ -15,9 +15,8 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 import MetricsCompatibilityQuery, {
   MetricsCompatibilityData,
-} from 'sentry/utils/performance/metricsEnhanced/MetricsCompatibilityQuery';
+} from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {convertToObject} from 'typescript';
 
 export interface MetricDataSwitcherOutcome {
   forceTransactionsOnly: boolean;
