@@ -47,6 +47,7 @@ export function addMetricsDataMock(settings?: {
     body: {data: [{count: nullCount}], meta: {count: 'integer', isMetricsData: true}},
     match: [(...args) => metricsOnlyPredicate(...args) && nullPredicate(...args)],
   });
+
   MockApiClient.addMockResponse({
     method: 'GET',
     url: `/organizations/org-slug/eventsv2/`,
@@ -55,6 +56,15 @@ export function addMetricsDataMock(settings?: {
       meta: {count: 'integer', isMetricsData: false},
     },
     match: [(...args) => !metricsOnlyPredicate(...args)],
+  });
+
+  MockApiClient.addMockResponse({
+    method: 'GET',
+    url: `/organizations/org-slug/events/`,
+    body: {
+      data: [{}],
+      meta: {count: 'integer', isMetricsData: false},
+    },
   });
 }
 

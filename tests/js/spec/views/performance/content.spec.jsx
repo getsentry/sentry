@@ -271,6 +271,14 @@ describe('Performance > Content', function () {
       url: `/organizations/org-slug/key-transactions-list/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events/`,
+      body: {
+        data: [{}],
+        meta: {count: 'integer', isMetricsData: false},
+      },
+    });
   });
 
   afterEach(function () {

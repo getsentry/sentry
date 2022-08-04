@@ -87,13 +87,18 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
         eventView.fields = props.fields.map(fieldName => ({field: fieldName}));
 
         return (
-          <DiscoverQuery
-            {...provided}
-            eventView={eventView}
-            location={props.location}
-            queryExtras={getMEPQueryParams(mepSetting)}
-            useEvents
-          />
+          <QueryBatchNode batchProperty="field" transform={response => response}>
+            {({queryBatching}) => (
+              <DiscoverQuery
+                {...provided}
+                queryBatching={queryBatching}
+                eventView={eventView}
+                location={props.location}
+                queryExtras={{...getMEPQueryParams(mepSetting)}}
+                useEvents
+              />
+            )}
+          </QueryBatchNode>
         );
       },
       transform: transformDiscoverToSingleValue,
