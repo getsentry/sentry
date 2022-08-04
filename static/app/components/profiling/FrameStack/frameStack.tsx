@@ -97,7 +97,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
   return (
     <FrameDrawer layout={flamegraphPreferences.layout}>
       <FrameTabs>
-        <li className={tab === 'bottom up' ? 'active' : undefined}>
+        <ListItem className={tab === 'bottom up' ? 'active' : undefined}>
           <Button
             data-title={t('Bottom Up')}
             priority="link"
@@ -106,8 +106,8 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
           >
             {t('Bottom Up')}
           </Button>
-        </li>
-        <li className={tab === 'call order' ? 'active' : undefined}>
+        </ListItem>
+        <ListItem margin="none" className={tab === 'call order' ? 'active' : undefined}>
           <Button
             data-title={t('Call Order')}
             priority="link"
@@ -116,9 +116,9 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
           >
             {t('Call Order')}
           </Button>
-        </li>
+        </ListItem>
         <Separator />
-        <li className={treeType === 'all' ? 'active' : undefined}>
+        <ListItem className={treeType === 'all' ? 'active' : undefined}>
           <Button
             data-title={t('All Frames')}
             priority="link"
@@ -127,8 +127,8 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
           >
             {t('All Frames')}
           </Button>
-        </li>
-        <li className={treeType === 'application' ? 'active' : undefined}>
+        </ListItem>
+        <ListItem className={treeType === 'application' ? 'active' : undefined}>
           <Button
             data-title={t('Application Frames')}
             priority="link"
@@ -137,8 +137,8 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
           >
             {t('Application Frames')}
           </Button>
-        </li>
-        <li className={treeType === 'system' ? 'active' : undefined}>
+        </ListItem>
+        <ListItem margin="none" className={treeType === 'system' ? 'active' : undefined}>
           <Button
             data-title={t('System Frames')}
             priority="link"
@@ -147,9 +147,9 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
           >
             {t('System Frames')}
           </Button>
-        </li>
+        </ListItem>
         <Separator />
-        <li>
+        <ListItem>
           <FrameDrawerLabel>
             <input
               type="checkbox"
@@ -158,8 +158,8 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
             />
             {t('Collapse recursion')}
           </FrameDrawerLabel>
-        </li>
-        <li
+        </ListItem>
+        <ListItem
           style={{
             flex: '1 1 100%',
             cursor:
@@ -169,7 +169,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
             flamegraphPreferences.layout === 'table bottom' ? props.onResize : undefined
           }
         />
-        <li>
+        <ListItem margin="none">
           <ExportProfileButton
             eventId={params.eventId}
             orgId={params.orgId}
@@ -180,9 +180,9 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
               params.projectId === undefined
             }
           />
-        </li>
+        </ListItem>
         <Separator />
-        <li>
+        <ListItem>
           <LayoutSelectionContainer>
             <StyledButton
               active={flamegraphPreferences.layout === 'table left'}
@@ -209,7 +209,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
               <IconPanel size="xs" direction="left" />
             </StyledButton>
           </LayoutSelectionContainer>
-        </li>
+        </ListItem>
       </FrameTabs>
       <FrameStackTable
         {...props}
@@ -289,7 +289,7 @@ const FrameDrawer = styled('div')<{layout: FlamegraphPreferences['layout']}>`
 const Separator = styled('li')`
   width: 1px;
   height: 66%;
-  margin: 0 ${space(0.5)};
+  margin: 0 ${space(1)};
   background: ${p => p.theme.border};
   transform: translateY(29%);
 `;
@@ -303,40 +303,40 @@ const FrameTabs = styled('ul')`
   background-color: ${props => props.theme.surface400};
   user-select: none;
   grid-area: tabs;
+`;
 
-  > li {
-    font-size: ${p => p.theme.fontSizeSmall};
-    margin-right: ${space(1)};
+const ListItem = styled('li')<{margin?: 'none'}>`
+  font-size: ${p => p.theme.fontSizeSmall};
+  margin-right: ${p => (p.margin === 'none' ? 0 : space(1))};
 
-    button {
-      border: none;
-      border-top: 2px solid transparent;
-      border-bottom: 2px solid transparent;
-      border-radius: 0;
-      margin: 0;
-      padding: ${space(0.5)} 0;
-      color: ${p => p.theme.textColor};
+  button {
+    border: none;
+    border-top: 2px solid transparent;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    margin: 0;
+    padding: ${space(0.5)} 0;
+    color: ${p => p.theme.textColor};
 
-      &::after {
-        display: block;
-        content: attr(data-title);
-        font-weight: bold;
-        height: 1px;
-        color: transparent;
-        overflow: hidden;
-        visibility: hidden;
-        white-space: nowrap;
-      }
-
-      &:hover {
-        color: ${p => p.theme.textColor};
-      }
-    }
-
-    &.active button {
+    &::after {
+      display: block;
+      content: attr(data-title);
       font-weight: bold;
-      border-bottom: 2px solid ${prop => prop.theme.active};
+      height: 1px;
+      color: transparent;
+      overflow: hidden;
+      visibility: hidden;
+      white-space: nowrap;
     }
+
+    &:hover {
+      color: ${p => p.theme.textColor};
+    }
+  }
+
+  &.active button {
+    font-weight: bold;
+    border-bottom: 2px solid ${prop => prop.theme.active};
   }
 `;
 

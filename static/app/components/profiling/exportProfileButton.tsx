@@ -1,25 +1,13 @@
-import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {Client} from 'sentry/api';
 import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 
 import Button, {ButtonPropsWithoutAriaLabel} from '../button';
-
-function exportProfile(
-  api: Client,
-  eventId: string,
-  projectId: Project['id'],
-  organizationId: Organization['slug']
-): Promise<any> {
-  return api.requestPromise(
-    `/projects/${organizationId}/${projectId}/profiling/profiles/${eventId}/`
-  );
-}
 
 interface ExportProfileButtonProps
   extends Omit<ButtonPropsWithoutAriaLabel, 'onClick' | 'children'> {
@@ -30,24 +18,21 @@ interface ExportProfileButtonProps
 
 export function ExportProfileButton(props: ExportProfileButtonProps) {
   const api = useApi();
-  const handleDownload = useCallback(() => {
-    if (
-      props.eventId === undefined ||
-      props.orgId === undefined ||
-      props.projectId === undefined
-    ) {
-      return;
-    }
+  const organization = useOrganization();
 
-    exportProfile(api, props.eventId, props.projectId, props.orgId);
-  }, [api, props.eventId, props.projectId, props.orgId]);
+  const project = useProjects().projects.find(p => {
+    return p.slug === props.projectId;
+  });
 
   return (
     <StyledButton
       {...props}
       size="xs"
       title={t('Export Profile')}
-      onClick={handleDownload}
+      href={`${api.baseUrl}/projects/${props.orgId}/${props.projectId}/profiling/raw_profiles/${props.eventId}/`}
+      download={`${organization.slug}_${
+        project?.slug ?? props.projectId ?? 'unknown_project'
+      }_${props.eventId}.profile.json`}
     >
       <IconDownload size="xs" />
     </StyledButton>
@@ -60,10 +45,7 @@ const StyledButton = styled(Button)`
   box-shadow: none;
   transition: none !important;
   opacity: 0.5;
-
-  &:not(:last-child) {
-    margin-right: ${space(1)};
-  }
+  padding: ${space(0.5)} ${space(0.5)};
 
   &:hover {
     border: none;
