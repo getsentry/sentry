@@ -87,7 +87,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
         eventView.fields = props.fields.map(fieldName => ({field: fieldName}));
 
         return (
-          <QueryBatchNode batchProperty="field" transform={response => response}>
+          <QueryBatchNode batchProperty="field">
             {({queryBatching}) => (
               <DiscoverQuery
                 {...provided}
