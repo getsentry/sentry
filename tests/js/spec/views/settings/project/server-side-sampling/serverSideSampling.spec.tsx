@@ -59,7 +59,7 @@ describe('Server-Side Sampling', function () {
     );
 
     expect(
-      screen.getByRole('heading', {name: 'Server-Side Sampling'})
+      screen.getByRole('heading', {name: /Server-Side Sampling/})
     ).toBeInTheDocument();
 
     expect(screen.getByText(/enhance the performance monitoring/i)).toBeInTheDocument();
