@@ -15,11 +15,11 @@ import EventAttachments from 'sentry/components/events/eventAttachments';
 import EventCause from 'sentry/components/events/eventCause';
 import EventCauseEmpty from 'sentry/components/events/eventCauseEmpty';
 import EventDataSection from 'sentry/components/events/eventDataSection';
-import EventExtraData from 'sentry/components/events/eventExtraData';
+import EventExtraData from 'sentry/components/events/eventExtraData/eventExtraData';
 import EventSdk from 'sentry/components/events/eventSdk';
 import {EventTags} from 'sentry/components/events/eventTags';
 import EventGroupingInfo from 'sentry/components/events/groupingInfo';
-import EventPackageData from 'sentry/components/events/packageData';
+import {EventPackageData} from 'sentry/components/events/packageData';
 import RRWebIntegration from 'sentry/components/events/rrwebIntegration';
 import EventSdkUpdates from 'sentry/components/events/sdkUpdates';
 import {DataSection} from 'sentry/components/events/styles';
@@ -70,7 +70,6 @@ type Props = Pick<React.ComponentProps<typeof EventEntry>, 'route' | 'router'> &
   className?: string;
   event?: Event;
   group?: Group;
-  isBorderless?: boolean;
   isShare?: boolean;
   showExampleCommit?: boolean;
   showTagSummary?: boolean;
@@ -90,7 +89,6 @@ const EventEntries = memo(
     isShare = false,
     showExampleCommit = false,
     showTagSummary = true,
-    isBorderless = false,
   }: Props) => {
     const [isLoading, setIsLoading] = useState(true);
     const [proGuardErrors, setProGuardErrors] = useState<ProGuardErrors>([]);
@@ -390,7 +388,6 @@ const EventEntries = memo(
               location={location}
               isShare={isShare}
               hasContext={hasContext}
-              isBorderless={isBorderless}
               attachments={attachments}
               onDeleteScreenshot={handleDeleteAttachment}
             />

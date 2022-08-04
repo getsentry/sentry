@@ -15,6 +15,7 @@ from sentry.notifications.notifications.activity import (
     UnassignedActivityNotification,
 )
 from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.notify import register_notification_provider
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
@@ -31,6 +32,7 @@ SUPPORTED_NOTIFICATION_TYPES = [
     NoteActivityNotification,
     AssignedActivityNotification,
     UnassignedActivityNotification,
+    AlertRuleNotification,
 ]
 MESSAGE_BUILDERS = {
     "SlackNotificationsMessageBuilder": MSTeamsNotificationsMessageBuilder,
@@ -89,9 +91,16 @@ def send_notification_as_msteams(
 
                     client = MsTeamsClient(integration)
                     try:
-                        client.send_card(conversation_id, card)
+                        with sentry_sdk.start_span(
+                            op="notification.send_msteams", description="notify_recipient"
+                        ):
+                            client.send_card(conversation_id, card)
+
+                        notification.record_notification_sent(recipient, ExternalProviders.MSTEAMS)
                     except Exception as e:
-                        logger.error(f"Exception occured while trying to send the notification {e}")
+                        logger.error(
+                            "Exception occured while trying to send the notification", exc_info=e
+                        )
 
     metrics.incr(
         f"{notification.metrics_key}.notifications.sent",
