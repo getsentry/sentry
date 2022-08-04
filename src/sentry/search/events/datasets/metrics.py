@@ -24,6 +24,8 @@ from sentry.utils.snuba import is_duration_measurement, is_span_op_breakdown
 
 
 class MetricsDatasetConfig(DatasetConfig):
+    missing_function_error = IncompatibleMetricsQuery
+
     def __init__(self, builder: MetricsQueryBuilder):
         self.builder = builder
 

@@ -706,6 +706,21 @@ class QueryBuilderTest(TestCase):
             ],
         )
 
+    def test_missing_function(self):
+        with pytest.raises(InvalidSearchQuery):
+            QueryBuilder(
+                Dataset.Discover,
+                self.params,
+                "",
+                selected_columns=[
+                    "count_all_the_things_that_i_want()",
+                    "transaction",
+                ],
+                groupby_columns=[
+                    "transaction",
+                ],
+            )
+
 
 def _metric_percentile_definition(
     org_id, quantile, field="transaction.duration", alias=None
@@ -2269,6 +2284,20 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 ),
             ],
         )
+
+    def test_missing_function(self):
+        with pytest.raises(IncompatibleMetricsQuery):
+            MetricsQueryBuilder(
+                self.params,
+                query="",
+                selected_columns=[
+                    "count_all_the_things_that_i_want()",
+                    "transaction",
+                ],
+                groupby_columns=[
+                    "transaction",
+                ],
+            )
 
 
 class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):

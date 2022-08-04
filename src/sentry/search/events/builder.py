@@ -1185,7 +1185,7 @@ class QueryBuilder:
         function, combinator = parse_combinator(raw_function)
 
         if not self.is_function(function):
-            raise InvalidSearchQuery(f"{function} is not a valid function")
+            raise self.config.missing_function_error(f"{function} is not a valid function")
 
         arguments = parse_arguments(function, match.group("columns"))
         alias: Union[str, Any, None] = match.group("alias")

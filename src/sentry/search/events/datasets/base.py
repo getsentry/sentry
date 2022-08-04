@@ -2,12 +2,14 @@ import abc
 from typing import Callable, Mapping, Optional
 
 from sentry.api.event_search import SearchFilter
+from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.fields import SnQLFunction
 from sentry.search.events.types import SelectType, WhereType
 
 
 class DatasetConfig(abc.ABC):
     custom_threshold_columns = {}
+    missing_function_error = InvalidSearchQuery
 
     @property
     @abc.abstractmethod
