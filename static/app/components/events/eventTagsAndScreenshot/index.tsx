@@ -131,10 +131,7 @@ const TagWrapper = styled('div')<{hasEventContext: boolean}>`
 
 const TagsHighlightWrapper = styled('div')`
   overflow: hidden;
-<<<<<<< HEAD
-=======
   padding: 0 ${space(2)};
->>>>>>> master
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     padding: 0 ${space(4)};
