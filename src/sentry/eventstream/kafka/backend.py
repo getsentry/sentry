@@ -115,10 +115,15 @@ class KafkaEventStream(SnubaProtocolEventStream):
         **kwargs,
     ):
         message_type = "transaction" if self._is_transaction_event(event) else "error"
-        assign_partitions_randomly = killswitch_matches_context(
-            "kafka.send-project-events-to-random-partitions",
-            {"project_id": event.project_id, "message_type": message_type},
-        )
+
+        # Check if transaction
+        if message_type == "transaction" and options.get("kafka.partition-transactions-randomly"):
+            assign_partitions_randomly = True
+        else:
+            assign_partitions_randomly = killswitch_matches_context(
+                "kafka.send-project-events-to-random-partitions",
+                {"project_id": event.project_id, "message_type": message_type},
+            )
 
         if assign_partitions_randomly:
             kwargs[KW_SKIP_SEMANTIC_PARTITIONING] = True
