@@ -3,6 +3,9 @@ import {browserHistory} from 'react-router';
 import {Query} from 'history';
 
 import {DeepPartial} from 'sentry/types/utils';
+import {defined} from 'sentry/utils';
+import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {makeCombinedReducers} from 'sentry/utils/useCombinedReducer';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -23,7 +26,7 @@ import {
   FlamegraphSorting,
   FlamegraphViewOptions,
 } from './flamegraphPreferences';
-import {flamegraphProfilesReducer} from './flamegraphProfiles';
+import {FlamegraphProfiles, flamegraphProfilesReducer} from './flamegraphProfiles';
 import {flamegraphSearchReducer} from './flamegraphSearch';
 import {flamegraphZoomPositionReducer} from './flamegraphZoomPosition';
 
@@ -78,6 +81,13 @@ export function decodeFlamegraphStateFromQueryParams(
 ): DeepPartial<FlamegraphState> {
   return {
     profiles: {
+      focusFrame:
+        typeof query.frameName === 'string' && typeof query.framePackage === 'string'
+          ? {
+              name: query.frameName,
+              package: query.framePackage,
+            }
+          : null,
       threadId:
         typeof query.tid === 'string' && !isNaN(parseInt(query.tid, 10))
           ? parseInt(query.tid, 10)
@@ -198,8 +208,9 @@ interface FlamegraphStateProviderProps {
 
 export const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
   profiles: {
-    threadId: null,
     selectedRoot: null,
+    threadId: null,
+    focusFrame: null,
   },
   position: {
     view: Rect.Empty(),
@@ -222,8 +233,17 @@ export function FlamegraphStateProvider(
   props: FlamegraphStateProviderProps
 ): React.ReactElement {
   const [profileGroup] = useProfileGroup();
+
   const reducer = useUndoableReducer(combinedReducers, {
     profiles: {
+      focusFrame:
+        props.initialState?.profiles?.focusFrame?.name &&
+        props.initialState?.profiles?.focusFrame?.package
+          ? {
+              name: props.initialState.profiles.focusFrame.name,
+              package: props.initialState.profiles.focusFrame.package,
+            }
+          : DEFAULT_FLAMEGRAPH_STATE.profiles.focusFrame,
       selectedRoot: null,
       threadId:
         props.initialState?.profiles?.threadId ??
@@ -257,19 +277,48 @@ export function FlamegraphStateProvider(
   });
 
   useEffect(() => {
-    if (
-      reducer[0].profiles.threadId === null &&
-      profileGroup.type === 'resolved' &&
-      typeof profileGroup.data.activeProfileIndex === 'number'
-    ) {
-      const threadID =
-        profileGroup.data.profiles[profileGroup.data.activeProfileIndex].threadId;
+    if (reducer[0].profiles.threadId === null && profileGroup.type === 'resolved') {
+      /**
+       * When a focus frame is specified, we need to override the active thread.
+       * We look at each thread and pick the one that scores the highest.
+       */
+      if (defined(reducer[0].profiles.focusFrame)) {
+        const candidate = profileGroup.data.profiles.reduce(
+          (prevCandidate, profile) => {
+            const flamegraph = new Flamegraph(profile, profile.threadId, {
+              inverted: false,
+              leftHeavy: false,
+              configSpace: undefined,
+            });
 
-      if (threadID) {
-        reducer[1]({
-          type: 'set thread id',
-          payload: threadID,
-        });
+            const score = scoreFlamegraph(flamegraph, reducer[0].profiles.focusFrame);
+
+            return score <= prevCandidate.score
+              ? prevCandidate
+              : {
+                  score,
+                  threadId: profile.threadId,
+                };
+          },
+          {score: 0, threadId: null} as Candidate
+        );
+
+        if (defined(candidate.threadId)) {
+          reducer[1]({type: 'set thread id', payload: candidate.threadId});
+          return;
+        }
+      }
+
+      if (typeof profileGroup.data.activeProfileIndex === 'number') {
+        const threadID =
+          profileGroup.data.profiles[profileGroup.data.activeProfileIndex].threadId;
+
+        if (threadID) {
+          reducer[1]({
+            type: 'set thread id',
+            payload: threadID,
+          });
+        }
       }
     }
   }, [props.initialState?.profiles?.threadId, profileGroup, reducer]);
@@ -279,4 +328,37 @@ export function FlamegraphStateProvider(
       {props.children}
     </FlamegraphStateContext.Provider>
   );
+}
+
+type Candidate = {
+  score: number;
+  threadId: number | null;
+};
+
+function scoreFlamegraph(
+  flamegraph: Flamegraph,
+  focusFrame: FlamegraphProfiles['focusFrame']
+): number {
+  if (!defined(focusFrame)) {
+    return 0;
+  }
+
+  let score = 0;
+
+  const frames: FlamegraphFrame[] = [...flamegraph.root.children];
+  while (frames.length > 0) {
+    const frame = frames.pop()!;
+    if (
+      frame.frame.name === focusFrame.name &&
+      frame.frame.image === focusFrame.package
+    ) {
+      score += frame.node.totalWeight;
+    }
+
+    for (let i = 0; i < frame.children.length; i++) {
+      frames.push(frame.children[i]);
+    }
+  }
+
+  return score;
 }
