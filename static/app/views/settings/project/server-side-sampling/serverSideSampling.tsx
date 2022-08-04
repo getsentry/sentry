@@ -58,7 +58,8 @@ import {
 } from './rule';
 import {SamplingBreakdown} from './samplingBreakdown';
 import {SamplingPromo} from './samplingPromo';
-import {SamplingSDKAlert} from './samplingSDKAlert';
+import {SamplingSDKClientRateChangeAlert} from './samplingSDKClientRateChangeAlert';
+import {SamplingSDKUpgradesAlert} from './samplingSDKUpgradesAlert';
 import {isUniformRule, SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
 
 type Props = {
@@ -425,12 +426,20 @@ export function ServerSideSampling({project}: Props) {
           )}
         />
         {!!rules.length && !fetchingRecommendedSdkUpgrades && (
-          <SamplingSDKAlert
+          <SamplingSDKUpgradesAlert
             organization={organization}
             projectId={project.id}
             rules={rules}
             recommendedSdkUpgrades={recommendedSdkUpgrades}
             onReadDocs={handleReadDocs}
+          />
+        )}
+        {!!rules.length && (
+          <SamplingSDKClientRateChangeAlert
+            onReadDocs={handleReadDocs}
+            projectStats={projectStats}
+            organization={organization}
+            projectId={project.id}
           />
         )}
         <SamplingBreakdown orgSlug={organization.slug} />

@@ -24,7 +24,7 @@ type Props = Pick<RecommendedStepsModalProps, 'projectId' | 'onReadDocs'> & {
   showLinkToTheModal?: boolean;
 };
 
-export function SamplingSDKAlert({
+export function SamplingSDKUpgradesAlert({
   organization,
   projectId,
   recommendedSdkUpgrades,

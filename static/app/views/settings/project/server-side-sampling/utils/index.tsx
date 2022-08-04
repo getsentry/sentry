@@ -1,8 +1,11 @@
 import round from 'lodash/round';
 
 import {t} from 'sentry/locale';
+import {SeriesApi} from 'sentry/types';
 import {SamplingInnerName, SamplingRule, SamplingRuleType} from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
+
+import {projectStatsToSampleRates} from './projectStatsToSampleRates';
 
 export const SERVER_SIDE_SAMPLING_DOC_LINK =
   'https://docs.sentry.io/product/data-management-settings/server-side-sampling/';
@@ -50,4 +53,37 @@ export function percentageToRate(rate: number | undefined, decimalPlaces: number
   }
 
   return round(rate / 100, decimalPlaces);
+}
+
+export function getClientSampleRates(
+  projectStats: SeriesApi | undefined,
+  specifiedClientRate?: number
+) {
+  const {trueSampleRate, maxSafeSampleRate} = projectStatsToSampleRates(projectStats);
+
+  const current =
+    defined(specifiedClientRate) && !isNaN(specifiedClientRate)
+      ? specifiedClientRate
+      : defined(trueSampleRate) && !isNaN(trueSampleRate)
+      ? trueSampleRate
+      : undefined;
+
+  const recommended =
+    defined(maxSafeSampleRate) && !isNaN(maxSafeSampleRate)
+      ? maxSafeSampleRate
+      : undefined;
+
+  const recommendedPercentage = rateToPercentage(recommended);
+  const currentPercentage = rateToPercentage(current);
+
+  const diff =
+    defined(recommendedPercentage) && defined(currentPercentage)
+      ? Math.abs(recommendedPercentage - currentPercentage)
+      : undefined;
+
+  return {
+    current,
+    recommended,
+    diff,
+  };
 }
