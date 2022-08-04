@@ -165,13 +165,15 @@ class GroupEventToolbar extends Component<Props> {
           project={project}
           organization={organization}
         />
-        <QuickTrace
-          event={evt}
-          group={group}
-          organization={organization}
-          location={location}
-          isPerformanceIssue={isPerformanceIssue}
-        />
+        {/* If this is a Performance issue, the QuickTrace will be rendered along with the embedded span tree instead */}
+        {!isPerformanceIssue && (
+          <QuickTrace
+            event={evt}
+            group={group}
+            organization={organization}
+            location={location}
+          />
+        )}
       </StyledDataSection>
     );
   }

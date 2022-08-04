@@ -13,24 +13,30 @@ import {
 
 type QueryProps = Omit<DiscoverQueryProps, 'api' | 'eventView'> & {
   children: (props: QuickTraceQueryChildrenProps) => React.ReactNode;
-  event: Event;
+  event: Event | undefined;
 };
 
 export default function QuickTraceQuery({children, event, ...props}: QueryProps) {
+  const renderEmpty = () => (
+    <Fragment>
+      {children({
+        isLoading: false,
+        error: null,
+        trace: [],
+        type: 'empty',
+        currentEvent: null,
+      })}
+    </Fragment>
+  );
+
+  if (!event) {
+    return renderEmpty();
+  }
+
   const traceId = event.contexts?.trace?.trace_id;
 
   if (!traceId) {
-    return (
-      <Fragment>
-        {children({
-          isLoading: false,
-          error: null,
-          trace: [],
-          type: 'empty',
-          currentEvent: null,
-        })}
-      </Fragment>
-    );
+    return renderEmpty();
   }
 
   const {start, end} = getTraceTimeRangeFromEvent(event);
