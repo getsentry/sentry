@@ -51,6 +51,14 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     [setCurrentTime, startTimestampMs]
   );
 
+  const getColumnHandlers = useCallback(
+    (startTime: number) => ({
+      onMouseEnter: () => handleMouseEnter(startTime),
+      onMouseLeave: handleMouseLeave,
+    }),
+    [handleMouseEnter, handleMouseLeave]
+  );
+
   function handleSort(fieldName: keyof NetworkSpan): void;
   function handleSort(key: string, getValue: (row: NetworkSpan) => any): void;
 
@@ -111,12 +119,14 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     const networkStartTimestamp = network.startTimestamp * 1000;
     const networkEndTimestamp = network.endTimestamp * 1000;
 
+    const columnHandlers = getColumnHandlers(networkStartTimestamp);
+
     return (
       <Fragment key={index}>
-        <Item center>
+        <Item center {...columnHandlers}>
           <StatusPlaceHolder height="20px" />
         </Item>
-        <Item color="gray400">
+        <Item color="gray400" {...columnHandlers}>
           {network.description ? (
             <Tooltip
               title={network.description}
@@ -131,17 +141,13 @@ function NetworkList({replayRecord, networkSpans}: Props) {
             <EmptyText>({t('Missing path')})</EmptyText>
           )}
         </Item>
-        <Item>
+        <Item {...columnHandlers}>
           <Text>{network.op}</Text>
         </Item>
-        <Item numeric>
+        <Item {...columnHandlers}>
           {`${(networkEndTimestamp - networkStartTimestamp).toFixed(2)}ms`}
         </Item>
-        <Item
-          numeric
-          onMouseEnter={() => handleMouseEnter(networkStartTimestamp)}
-          onMouseLeave={handleMouseLeave}
-        >
+        <Item {...columnHandlers} numeric>
           <UnstyledButton onClick={() => handleClick(networkStartTimestamp)}>
             {showPlayerTime(networkStartTimestamp, startTimestampMs)}
           </UnstyledButton>
