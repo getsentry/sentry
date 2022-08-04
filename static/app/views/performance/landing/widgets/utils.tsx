@@ -3,6 +3,7 @@ import {objectIsEmpty} from 'sentry/utils';
 import localStorage from 'sentry/utils/localStorage';
 import {
   canUseMetricsData,
+  MEPState,
   MetricsEnhancedSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 
@@ -26,9 +27,7 @@ function setWidgetStorageObject(localObject: Record<string, string>) {
   localStorage.setItem(getContainerLocalStorageObjectKey, JSON.stringify(localObject));
 }
 
-const mepQueryParamBase = {
-  preventMetricAggregates: '1',
-};
+const mepQueryParamBase = {};
 
 export function getMEPQueryParams(mepContext: MetricsEnhancedSettingContext) {
   let queryParams = {};
@@ -37,7 +36,6 @@ export function getMEPQueryParams(mepContext: MetricsEnhancedSettingContext) {
     queryParams = {
       ...queryParams,
       ...base,
-      metricsEnhanced: '1',
       dataset: 'metricsEnhanced',
     };
   }
@@ -133,9 +131,13 @@ const DISALLOWED_CHARTS_METRICS = [
 
 export function filterAllowedChartsMetrics(
   organization: Organization,
-  allowedCharts: PerformanceWidgetSetting[]
+  allowedCharts: PerformanceWidgetSetting[],
+  mepSetting: MetricsEnhancedSettingContext
 ) {
-  if (!canUseMetricsData(organization)) {
+  if (
+    !canUseMetricsData(organization) ||
+    mepSetting.metricSettingState === MEPState.transactionsOnly
+  ) {
     return allowedCharts;
   }
 

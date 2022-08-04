@@ -1,11 +1,12 @@
 import {
   addSpace,
+  filterKeysFromQuery,
   getLastTermIndex,
   getQueryTerms,
   getTagItemsFromKeys,
   removeSpace,
 } from 'sentry/components/smartSearchBar/utils';
-import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
+import {FieldKey, FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 
 describe('addSpace()', function () {
   it('should add a space when there is no trailing space', function () {
@@ -215,7 +216,7 @@ describe('getTagItemsFromKeys()', function () {
         name: 'Device Family',
       },
     };
-    const tagKeys = Object.keys(supportedTags);
+    const tagKeys = Object.keys(supportedTags).sort((a, b) => a.localeCompare(b));
 
     const items = getTagItemsFromKeys(tagKeys, supportedTags);
 
@@ -233,5 +234,43 @@ describe('getTagItemsFromKeys()', function () {
         documentation: getFieldDefinition('has')?.desc,
       },
     ]);
+  });
+});
+
+describe('filterKeysFromQuery', () => {
+  it('filters', () => {
+    expect(
+      filterKeysFromQuery(
+        [FieldKey.DEVICE_ARCH, FieldKey.DEVICE_CHARGING, FieldKey.EVENT_TYPE],
+        'event'
+      )
+    ).toMatchObject([FieldKey.EVENT_TYPE, FieldKey.DEVICE_CHARGING]);
+  });
+
+  it('filters via description only', () => {
+    expect(
+      filterKeysFromQuery(
+        [FieldKey.DEVICE_ARCH, FieldKey.DEVICE_CHARGING, FieldKey.EVENT_TYPE],
+        'time'
+      )
+    ).toMatchObject([FieldKey.DEVICE_CHARGING]);
+  });
+
+  it('filters via key only', () => {
+    expect(
+      filterKeysFromQuery(
+        [FieldKey.DEVICE_ARCH, FieldKey.DEVICE_CHARGING, FieldKey.EVENT_TYPE],
+        'device'
+      )
+    ).toMatchObject([FieldKey.DEVICE_ARCH, FieldKey.DEVICE_CHARGING]);
+  });
+
+  it('filters via keywords', () => {
+    expect(
+      filterKeysFromQuery(
+        [FieldKey.IS, FieldKey.DEVICE_CHARGING, FieldKey.EVENT_TYPE],
+        'unresolved'
+      )
+    ).toMatchObject([FieldKey.IS]);
   });
 });

@@ -46,7 +46,8 @@ export enum MEPState {
   transactionsOnly = 'transactionsOnly',
 }
 
-const METRIC_SETTING_PARAM = 'metricSetting';
+export const METRIC_SETTING_PARAM = 'metricSetting';
+export const METRIC_SEARCH_SETTING_PARAM = 'metricSearchSetting'; // TODO: Clean this up since we don't need multiple params in practice.
 
 const storageKey = 'performance.metrics-enhanced-setting';
 export class MEPSetting {
@@ -67,36 +68,50 @@ export class MEPSetting {
   }
 }
 
+export function canUseMetricsDevUI(organization: Organization) {
+  return organization.features.includes('performance-use-metrics');
+}
+
 export function canUseMetricsData(organization: Organization) {
-  return (
-    organization.features.includes('performance-use-metrics') ||
-    organization.features.includes('performance-transaction-name-only-search')
+  const isDevFlagOn = canUseMetricsDevUI(organization); // Forces metrics data on as well.
+  const isInternalViewOn = organization.features.includes(
+    'performance-transaction-name-only-search'
+  ); // TODO: Swap this flag out.
+
+  const samplingRolloutFlag = organization.features.includes(
+    'organizations:server-side-sampling'
   );
+  const isRollingOut =
+    samplingRolloutFlag &&
+    organization.features.includes('organizations:mep-rollout-flag');
+
+  return isDevFlagOn || isInternalViewOn || isRollingOut;
 }
 
 export const MEPSettingProvider = ({
   children,
   location,
   _hasMEPState,
+  forceTransactions,
 }: {
   children: ReactNode;
   _hasMEPState?: MEPState;
+  forceTransactions?: boolean;
   location?: Location;
 }) => {
   const organization = useOrganization();
 
   const canUseMEP = canUseMetricsData(organization);
-  const shouldDefaultToMetrics = organization.features.includes(
-    'performance-transaction-name-only-search'
-  );
 
   const allowedStates = [MEPState.auto, MEPState.metricsOnly, MEPState.transactionsOnly];
   const _metricSettingFromParam = location
     ? decodeScalar(location.query[METRIC_SETTING_PARAM])
     : MEPState.auto;
-  const defaultMetricsState = shouldDefaultToMetrics
-    ? MEPState.metricsOnly
-    : MEPState.auto;
+  let defaultMetricsState = MEPState.metricsOnly;
+
+  if (forceTransactions) {
+    defaultMetricsState = MEPState.transactionsOnly;
+  }
 
   const metricSettingFromParam =
     allowedStates.find(s => s === _metricSettingFromParam) ?? defaultMetricsState;

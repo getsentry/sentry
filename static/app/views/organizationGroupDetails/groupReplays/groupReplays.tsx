@@ -50,7 +50,7 @@ const GroupReplays = ({group}: Props) => {
       ],
       projects: [+project.id],
       orderby: getQueryParamAsString(query.sort) || '-timestamp',
-      query: `issue.id:${groupId}`,
+      query: `issue.id:${groupId} has:replayId`,
     };
 
     return EventView.fromNewQueryWithLocation(eventQueryParams, location);
@@ -107,6 +107,7 @@ const GroupReplays = ({group}: Props) => {
                     </SortLink>,
                     t('Duration'),
                     t('Errors'),
+                    t('Interest'),
                   ]}
                 >
                   {data.tableData ? (
@@ -127,7 +128,7 @@ const GroupReplays = ({group}: Props) => {
 };
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: minmax(0, 1fr) max-content max-content max-content;
+  grid-template-columns: minmax(0, 1fr) max-content max-content max-content max-content;
 `;
 
 const StyledPageContent = styled(PageContent)`

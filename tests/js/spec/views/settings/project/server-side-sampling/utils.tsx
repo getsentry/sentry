@@ -8,16 +8,25 @@ import {
   RecommendedSdkUpgrade,
   SamplingConditionOperator,
   SamplingDistribution,
+  SamplingInnerName,
   SamplingInnerOperator,
   SamplingRule,
   SamplingRuleType,
   SamplingSdkVersion,
 } from 'sentry/types/sampling';
 import {OrganizationContext} from 'sentry/views/organizationContext';
+import {Outcome} from 'sentry/views/organizationStats/types';
 import {RouteContext} from 'sentry/views/routeContext';
 import ServerSideSampling from 'sentry/views/settings/project/server-side-sampling';
 import importedUseProjectStats from 'sentry/views/settings/project/server-side-sampling/utils/useProjectStats';
 import {useRecommendedSdkUpgrades as importedUseRecommendedSdkUpgrades} from 'sentry/views/settings/project/server-side-sampling/utils/useRecommendedSdkUpgrades';
+
+export const outcomesWithoutClientDiscarded = {
+  ...TestStubs.Outcomes(),
+  groups: TestStubs.Outcomes().groups.filter(
+    group => group.by.outcome !== Outcome.CLIENT_DISCARD
+  ),
+};
 
 export const uniformRule: SamplingRule = {
   sampleRate: 0.5,
@@ -39,7 +48,7 @@ export const specificRule: SamplingRule = {
     inner: [
       {
         op: SamplingInnerOperator.GLOB_MATCH,
-        name: 'trace.release',
+        name: SamplingInnerName.TRACE_RELEASE,
         value: ['1.2.2'],
       },
     ],
@@ -84,12 +93,21 @@ export const mockedSamplingSdkVersions: SamplingSdkVersion[] = [
     latestSDKVersion: '1.0.3',
     latestSDKName: 'sentry.javascript.react',
     isSendingSampleRate: true,
+    isSendingSource: true,
   },
   {
     project: mockedProjects[1].slug,
     latestSDKVersion: '1.0.2',
     latestSDKName: 'sentry.python',
     isSendingSampleRate: false,
+    isSendingSource: false,
+  },
+  {
+    project: 'java',
+    latestSDKVersion: '1.0.2',
+    latestSDKName: 'sentry.java',
+    isSendingSampleRate: true,
+    isSendingSource: false,
   },
 ];
 

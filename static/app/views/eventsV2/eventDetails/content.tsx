@@ -30,7 +30,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {formatTagKey} from 'sentry/utils/discover/fields';
 import {eventDetailsRoute} from 'sentry/utils/discover/urls';
 import {getMessage} from 'sentry/utils/events';
-import * as QuickTraceContext from 'sentry/utils/performance/quickTrace/quickTraceContext';
+import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 import TraceMetaQuery, {
   TraceMetaQueryChildrenProps,
@@ -241,7 +241,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                         api={this.api}
                         router={router}
                         route={route}
-                        isBorderless
                       />
                     </QuickTraceContext.Provider>
                   </SpanEntryContext.Provider>
@@ -254,17 +253,14 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
           {isSidebarVisible && (
             <Layout.Side>
               <EventVitals event={event} />
-
-              <Feature
-                organization={organization}
-                features={['organizations:dashboard-custom-measurement-widgets']}
-              >
+              {(organization.features.includes('dashboards-mep') ||
+                organization.features.includes('mep-rollout-flag')) && (
                 <EventCustomPerformanceMetrics
                   event={event}
                   location={location}
                   organization={organization}
                 />
-              </Feature>
+              )}
               {event.groupID && (
                 <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
               )}

@@ -6,6 +6,7 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
+import ReplayHighlight from 'sentry/components/replays/replayHighlight';
 import {StringWalker} from 'sentry/components/replays/walker/urlWalker';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar} from 'sentry/icons';
@@ -16,21 +17,15 @@ import theme from 'sentry/utils/theme';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {ReplayDiscoveryListItem} from 'sentry/views/replays/types';
+import {
+  ReplayDiscoveryListItem,
+  ReplayDurationAndErrors,
+} from 'sentry/views/replays/types';
 
 type Props = {
   idKey: string;
   replayList: ReplayDiscoveryListItem[];
   showProjectColumn?: boolean;
-};
-
-type ReplayDurationAndErrors = {
-  count_if_event_type_equals_error: number;
-  'equation[0]': number;
-  id: string;
-  max_timestamp: string;
-  min_timestamp: string;
-  replayId: string;
 };
 
 function ReplayTable({replayList, idKey, showProjectColumn}: Props) {
@@ -125,9 +120,15 @@ function ReplayTable({replayList, idKey, showProjectColumn}: Props) {
                   ? dataEntries[replay[idKey]]?.count_if_event_type_equals_error
                   : 0}
               </Item>
+              <Item>
+                <ReplayHighlight data={dataEntries[replay[idKey]]} />
+              </Item>
             </React.Fragment>
           ) : (
             <React.Fragment>
+              <Item>
+                <Placeholder height="24px" />
+              </Item>
               <Item>
                 <Placeholder height="24px" />
               </Item>
