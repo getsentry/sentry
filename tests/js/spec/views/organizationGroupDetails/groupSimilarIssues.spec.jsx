@@ -67,7 +67,7 @@ describe('Issues Similar View', function () {
       <GroupSimilarIssues
         project={project}
         query=""
-        params={{orgId: 'org-slug', projectId: 'project-slug', groupId: 'group-id'}}
+        params={{orgId: 'org-slug', groupId: 'group-id'}}
         location={{}}
       />,
       {context: routerContext}
@@ -88,7 +88,7 @@ describe('Issues Similar View', function () {
     render(
       <GroupSimilarIssues
         project={project}
-        params={{orgId: 'org-slug', projectId: 'project-slug', groupId: 'group-id'}}
+        params={{orgId: 'org-slug', groupId: 'group-id'}}
         location={{}}
       />,
       {context: routerContext}
