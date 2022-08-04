@@ -35,7 +35,6 @@ import {CombinedAlertType, CombinedMetricIssueAlerts, IncidentStatus} from '../.
 import {isIssueAlert} from '../../utils';
 
 type Props = {
-  hasDuplicateAlertRules: boolean;
   hasEditAccess: boolean;
   onDelete: (projectId: string, rule: CombinedMetricIssueAlerts) => void;
   onOwnerChange: (
@@ -66,7 +65,6 @@ function RuleListRow({
   onDelete,
   onOwnerChange,
   userTeams,
-  hasDuplicateAlertRules,
   hasEditAccess,
 }: Props) {
   const [assignee, setAssignee] = useState<string>('');
@@ -221,7 +219,6 @@ function RuleListRow({
       key: 'duplicate',
       label: t('Duplicate'),
       to: duplicateLink,
-      hidden: !hasDuplicateAlertRules,
     },
     {
       key: 'delete',
