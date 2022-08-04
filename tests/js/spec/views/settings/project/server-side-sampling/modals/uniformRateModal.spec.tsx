@@ -282,5 +282,37 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
 
     // Specified sample rate has to still be there
     expect(screen.getByRole('spinbutton')).toHaveValue(0.2);
+
+    // Close Modal
+    userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+    await waitForElementToBeRemoved(() => screen.queryByLabelText('Cancel'));
+  });
+
+  it('does not display "Specify client rate modal" if no groups', async function () {
+    const outcomesWithoutGroups = {...outcomesWithoutClientDiscarded, groups: []};
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/stats_v2/',
+      body: outcomesWithoutGroups,
+    });
+
+    const {organization, project} = getMockData();
+
+    render(<GlobalModal />);
+
+    openModal(modalProps => (
+      <UniformRateModal
+        {...modalProps}
+        organization={organization}
+        project={project}
+        projectStats={outcomesWithoutGroups}
+        rules={[]}
+        onSubmit={jest.fn()}
+        onReadDocs={jest.fn()}
+      />
+    ));
+
+    expect(
+      await screen.findByRole('heading', {name: 'Set a global sample rate'})
+    ).toBeInTheDocument();
   });
 });
