@@ -11,20 +11,21 @@ type Props = {
 export function useRecommendedSdkUpgrades({orgSlug}: Props) {
   const {samplingSdkVersions, fetching} = useLegacyStore(ServerSideSamplingStore);
 
-  const notSendingSampleRateSdkUpgrades = samplingSdkVersions.filter(
-    samplingSdkVersion => !samplingSdkVersion.isSendingSampleRate
+  const sdksToUpdate = samplingSdkVersions.filter(
+    ({isSendingSource, isSendingSampleRate}) => {
+      return !isSendingSource || !isSendingSampleRate;
+    }
   );
 
   const {projects} = useProjects({
-    slugs: notSendingSampleRateSdkUpgrades.map(sdkUpgrade => sdkUpgrade.project),
+    slugs: sdksToUpdate.map(({project}) => project),
     orgId: orgSlug,
   });
 
   const recommendedSdkUpgrades = projects
-    .map(upgradeSDKfromProject => {
-      const sdkInfo = notSendingSampleRateSdkUpgrades.find(
-        notSendingSampleRateSdkUpgrade =>
-          notSendingSampleRateSdkUpgrade.project === upgradeSDKfromProject.slug
+    .map(project => {
+      const sdkInfo = sdksToUpdate.find(
+        sdkToUpdate => sdkToUpdate.project === project.slug
       );
 
       if (!sdkInfo) {
@@ -32,7 +33,7 @@ export function useRecommendedSdkUpgrades({orgSlug}: Props) {
       }
 
       return {
-        project: upgradeSDKfromProject,
+        project,
         latestSDKName: sdkInfo.latestSDKName,
         latestSDKVersion: sdkInfo.latestSDKVersion,
       };
