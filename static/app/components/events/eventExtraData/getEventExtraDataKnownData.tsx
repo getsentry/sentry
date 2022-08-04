@@ -24,7 +24,7 @@ export function getEventExtraDataKnownData(
         key,
         subject,
         value: value.map((v, index) =>
-          meta?.[key]?.[index]?.[''] ? (
+          meta?.[key]?.[index]?.[''] && !v ? (
             <AnnotatedText key={index} value={v} meta={meta?.[key]?.[index]?.['']} />
           ) : (
             v
@@ -39,7 +39,7 @@ export function getEventExtraDataKnownData(
         key,
         subject,
         value: Object.keys(value).map((v, index) =>
-          meta?.[key]?.[index]?.[''] ? (
+          meta?.[key]?.[index]?.[''] && !value[v] ? (
             <AnnotatedText
               key={index}
               value={value[v]}
