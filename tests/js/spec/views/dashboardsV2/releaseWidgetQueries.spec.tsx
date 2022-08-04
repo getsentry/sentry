@@ -72,6 +72,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
   });
 
   it('can send chart requests', async function () {
+    jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: TestStubs.MetricsField({
@@ -457,6 +458,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
   });
 
   it('can send table requests', async function () {
+    jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: TestStubs.MetricsSessionUserCountByStatusByRelease(),
@@ -556,6 +558,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
   });
 
   it('can send big number requests', async function () {
+    jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: TestStubs.MetricsField({
@@ -603,6 +606,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
   });
 
   it('can send multiple API requests', function () {
+    jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
     const metricsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: TestStubs.SessionsField({
@@ -699,6 +703,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
   });
 
   it('adjusts interval based on date window', function () {
+    jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: TestStubs.SessionsField({
@@ -711,7 +716,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
         api={api}
         widget={{...singleQueryWidget, interval: '1m'}}
         organization={organization}
-        selection={{...selection, datetime: {...selection.datetime, period: '90d'}}}
+        selection={{...selection, datetime: {...selection.datetime, period: '14d'}}}
       >
         {() => <div data-test-id="child" />}
       </ReleaseWidgetQueries>
@@ -723,8 +728,8 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          interval: '4h',
-          statsPeriod: '90d',
+          interval: '30m',
+          statsPeriod: '14d',
           environment: ['prod'],
           project: [1],
         }),

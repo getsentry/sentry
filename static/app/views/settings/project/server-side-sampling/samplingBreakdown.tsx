@@ -68,7 +68,13 @@ export function SamplingBreakdown({orgSlug}: Props) {
           <QuestionTooltip
             title={tct(
               'Sampling rules defined here can also affect other projects. [learnMore: Learn more]',
-              {learnMore: <ExternalLink href={SERVER_SIDE_SAMPLING_DOC_LINK} />} // TODO(sampling): update docs link
+              {
+                learnMore: (
+                  <ExternalLink
+                    href={`${SERVER_SIDE_SAMPLING_DOC_LINK}#traces--propagation-of-sampling-decisions`}
+                  />
+                ),
+              }
             )}
             size="sm"
             isHoverable
@@ -76,7 +82,10 @@ export function SamplingBreakdown({orgSlug}: Props) {
         </TitleWrapper>
 
         {fetching ? (
-          <Placeholder height="49px" />
+          <Fragment>
+            <Placeholder height="16px" bottomGutter={1.5} />
+            <Placeholder height="21px" width="250px" />
+          </Fragment>
         ) : (
           <Fragment>
             <ColorBar
