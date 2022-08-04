@@ -11,6 +11,11 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {PageFilters, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {
+  canUseMetricsData,
+  MEPState,
+  METRIC_SEARCH_SETTING_PARAM,
+} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -45,10 +50,7 @@ function PerformanceContent({selection, location, demoMode, router}: Props) {
   const previousDateTime = usePrevious(selection.datetime);
 
   const [state, setState] = useState<State>({error: undefined});
-  const withStaticFilters = organization.features.includes(
-    'performance-transaction-name-only-search'
-  );
-
+  const withStaticFilters = canUseMetricsData(organization);
   const eventView = generatePerformanceEventView(location, projects, {
     withStaticFilters,
   });
@@ -130,7 +132,7 @@ function PerformanceContent({selection, location, demoMode, router}: Props) {
     setState({...state, error: newError});
   }
 
-  function handleSearch(searchQuery: string) {
+  function handleSearch(searchQuery: string, currentMEPState?: MEPState) {
     trackAdvancedAnalyticsEvent('performance_views.overview.search', {organization});
 
     browserHistory.push({
@@ -139,6 +141,7 @@ function PerformanceContent({selection, location, demoMode, router}: Props) {
         ...location.query,
         cursor: undefined,
         query: String(searchQuery).trim() || undefined,
+        [METRIC_SEARCH_SETTING_PARAM]: currentMEPState,
         isDefaultQuery: false,
       },
     });
