@@ -6,15 +6,17 @@ from sentry.testutils.helpers import override_options
 from tests.sentry.spans.grouping.test_strategy import SpanBuilder
 
 
+# Duration is in ms
 def modify_span_duration(obj, duration):
     obj["start_timestamp"] = 0.0
-    obj["timestamp"] = duration
+    obj["timestamp"] = duration / 1000.0
     return obj
 
 
+# Start is in ms
 def modify_span_start(obj, start):
     duration = obj["timestamp"] - obj["start_timestamp"]
-    obj["start_timestamp"] = start
+    obj["start_timestamp"] = start / 1000.0
     obj["timestamp"] = obj["start_timestamp"] + duration
     return obj
 
@@ -76,27 +78,28 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         _detect_performance_issue(no_duplicate_event, sdk_span_mock)
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
-        assert sdk_span_mock.containing_transaction.set_measurement.call_count == 0
 
         _detect_performance_issue(duplicate_not_allowed_op_event, sdk_span_mock)
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
-        assert sdk_span_mock.containing_transaction.set_measurement.call_count == 0
 
         _detect_performance_issue(duplicate_event, sdk_span_mock)
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 2
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 3
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
                 call(
-                    "_performance_issue_transaction_id",
+                    "_pi_all_issue_count",
+                    1,
+                ),
+                call(
+                    "_pi_transaction",
                     "aaaaaaaaaaaaaaaa",
                 ),
                 call(
-                    "_performance_issue_duplicate_spans",
+                    "_pi_duplicates",
                     "bbbbbbbbbbbbbbbb",
                 ),
             ]
         )
-        assert sdk_span_mock.containing_transaction.set_measurement.call_count == 1
 
     def test_calls_detect_slow_span(self):
         no_slow_span_event = {
@@ -140,27 +143,28 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         _detect_performance_issue(no_slow_span_event, sdk_span_mock)
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
-        assert sdk_span_mock.containing_transaction.set_measurement.call_count == 0
 
         _detect_performance_issue(slow_not_allowed_op_span_event, sdk_span_mock)
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
-        assert sdk_span_mock.containing_transaction.set_measurement.call_count == 0
 
         _detect_performance_issue(slow_span_event, sdk_span_mock)
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 2
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 3
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
                 call(
-                    "_performance_issue_transaction_id",
+                    "_pi_all_issue_count",
+                    1,
+                ),
+                call(
+                    "_pi_transaction",
                     "aaaaaaaaaaaaaaaa",
                 ),
                 call(
-                    "_performance_issue_slow_span",
+                    "_pi_slow_span",
                     "bbbbbbbbbbbbbbbb",
                 ),
             ]
         )
-        assert sdk_span_mock.containing_transaction.set_measurement.call_count == 1
 
     def test_calls_detect_sequential(self):
         no_sequential_event = {
@@ -226,24 +230,26 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         _detect_performance_issue(no_sequential_event, sdk_span_mock)
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
-        assert sdk_span_mock.containing_transaction.set_measurement.call_count == 0
 
         _detect_performance_issue(sequential_event, sdk_span_mock)
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 3
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 4
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
                 call(
-                    "_performance_issue_transaction_id",
+                    "_pi_all_issue_count",
+                    2,
+                ),
+                call(
+                    "_pi_transaction",
                     "aaaaaaaaaaaaaaaa",
                 ),
                 call(
-                    "_performance_issue_duplicate_spans",
+                    "_pi_duplicates",
                     "bbbbbbbbbbbbbbbb",
                 ),
                 call(
-                    "_performance_issue_sequential_span",
+                    "_pi_sequential",
                     "bbbbbbbbbbbbbbbb",
                 ),
             ]
         )
-        assert sdk_span_mock.containing_transaction.set_measurement.call_count == 1

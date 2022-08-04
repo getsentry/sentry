@@ -154,6 +154,7 @@ class IndexerBatch:
 
             metric_name = new_payload_value["name"]
             org_id = new_payload_value["org_id"]
+            sentry_sdk.set_tag("sentry_metrics.organization_id", org_id)
             tags = new_payload_value.get("tags", {})
             used_tags.add(metric_name)
 
