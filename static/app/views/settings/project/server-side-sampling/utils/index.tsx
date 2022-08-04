@@ -8,7 +8,7 @@ import {defined} from 'sentry/utils';
 export const SERVER_SIDE_SAMPLING_DOC_LINK =
   'https://docs.sentry.io/product/data-management-settings/filtering/';
 
-export function getInnerNameLabel(name: SamplingInnerName | string) {
+export function getInnerNameLabel(name: SamplingInnerName) {
   switch (name) {
     case SamplingInnerName.TRACE_ENVIRONMENT:
       return t('Environment');

@@ -13,7 +13,7 @@ import {TruncatedLabel} from './truncatedLabel';
 
 type Condition = React.ComponentProps<typeof Conditions>['conditions'][0];
 
-export function getMatchFieldPlaceholder(category: SamplingInnerName | string) {
+export function getMatchFieldPlaceholder(category: SamplingInnerName) {
   switch (category) {
     case SamplingInnerName.TRACE_ENVIRONMENT:
       return t('ex. prod, dev');
@@ -40,8 +40,7 @@ export function getNewCondition(condition: Condition): SamplingConditionLogicalI
 
   return {
     op: SamplingInnerOperator.EQUAL,
-    // TODO(sampling): remove the cast
-    name: condition.category as SamplingInnerName.TRACE_ENVIRONMENT,
+    name: condition.category,
     value: newValue,
     options: {
       ignoreCase: true,

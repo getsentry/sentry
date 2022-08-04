@@ -8,6 +8,7 @@ import {
   RecommendedSdkUpgrade,
   SamplingConditionOperator,
   SamplingDistribution,
+  SamplingInnerName,
   SamplingInnerOperator,
   SamplingRule,
   SamplingRuleType,
@@ -47,7 +48,7 @@ export const specificRule: SamplingRule = {
     inner: [
       {
         op: SamplingInnerOperator.GLOB_MATCH,
-        name: 'trace.release',
+        name: SamplingInnerName.TRACE_RELEASE,
         value: ['1.2.2'],
       },
     ],

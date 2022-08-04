@@ -15,7 +15,7 @@ import {TagValueAutocomplete, TagValueAutocompleteProps} from './tagValueAutocom
 import {getMatchFieldPlaceholder, getTagKey} from './utils';
 
 export type Condition = {
-  category: SamplingInnerName | string; // string is used for custom tags
+  category: SamplingInnerName;
   match?: string;
 };
 
