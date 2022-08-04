@@ -86,7 +86,7 @@ describe('Performance > Landing > Index', function () {
       url: `/organizations/org-slug/events/`,
       body: {
         data: [{}],
-        meta: {count: 'integer', isMetricsData: false},
+        meta: {},
       },
     });
   });

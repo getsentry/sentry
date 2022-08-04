@@ -276,7 +276,7 @@ describe('Performance > Content', function () {
       url: `/organizations/org-slug/events/`,
       body: {
         data: [{}],
-        meta: {count: 'integer', isMetricsData: false},
+        meta: {},
       },
     });
   });

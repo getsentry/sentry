@@ -63,7 +63,7 @@ export function addMetricsDataMock(settings?: {
     url: `/organizations/org-slug/events/`,
     body: {
       data: [{}],
-      meta: {count: 'integer', isMetricsData: false},
+      meta: {},
     },
   });
 }

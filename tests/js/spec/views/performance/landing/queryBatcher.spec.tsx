@@ -68,6 +68,9 @@ describe('Performance > Widgets > Query Batching', function () {
             'failure_rate()': 0.012,
           },
         ],
+        meta: {
+          isMetricsData: false,
+        },
       },
     });
 
