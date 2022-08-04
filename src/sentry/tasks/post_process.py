@@ -438,16 +438,20 @@ def post_process_group(
                 plugin_post_process_group(
                     plugin_slug=plugin.slug, event=event, is_new=is_new, is_regresion=is_regression
                 )
-            if features.has(
-                "organizations:sentry-functions",
-                event.project.organization,
-            ):
-                from sentry.models import SentryFunction
-
-                for sentry_function in SentryFunction.objects.get_sentry_functions(
-                    event.organization, "error"
+            try:
+                if features.has(
+                    "organizations:sentry-functions",
+                    event.project.organization,
                 ):
-                    send_sentry_function_webhook.delay(sentry_function.external_id, event)
+                    if event.get_event_type() == "error":
+                        from sentry.models import SentryFunction
+
+                        for sentry_function in SentryFunction.objects.get_sentry_functions(
+                            event.organization, "error"
+                        ):
+                            send_sentry_function_webhook.delay(sentry_function.external_id, event)
+            except Exception:
+                pass
 
             from sentry import similarity
 

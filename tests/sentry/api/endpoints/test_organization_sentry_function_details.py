@@ -14,14 +14,13 @@ class OrganizationSentryFunctionDetails(APITestCase):
         super().setUp()
         self.create_organization(owner=self.user, name="RowdyTiger")
         self.login_as(user=self.user)
-        self.creation_endpoint = reverse(
-            "sentry-api-0-organization-sentry-functions", args=[self.organization.slug]
+        self.sentryFunction = self.create_sentry_function(
+            organization_id=self.organization.id,
+            name="foo",
+            author="bar",
+            code="baz",
+            overview="qux",
         )
-        with Feature("organizations:sentry-functions"):
-            self.creation_response = self.client.post(
-                self.creation_endpoint,
-                data={"name": "foo", "author": "bar", "code": "baz", "overview": "qux"},
-            )
 
     def test_get_valid_function(self):
         with Feature("organizations:sentry-functions"):
@@ -45,7 +44,7 @@ class OrganizationSentryFunctionDetails(APITestCase):
     def test_edit_valid_function(self, mock_update_func):
         with Feature("organizations:sentry-functions"):
             edit_function_endpoint = reverse(
-                self.endpoint, args=[self.organization.slug, self.creation_response.data["slug"]]
+                self.endpoint, args=[self.organization.slug, self.sentryFunction.slug]
             )
             edit_response = self.client.put(
                 edit_function_endpoint,
@@ -57,7 +56,7 @@ class OrganizationSentryFunctionDetails(APITestCase):
             assert edit_response.data["overview"] == "qux"
             assert edit_response.data["author"] == "bar"
             mock_update_func.assert_called_once_with(
-                "newEditedCode", self.creation_response.data["external_id"], "qux"
+                "newEditedCode", self.sentryFunction.external_id, "qux"
             )
 
     def test_edit_invalid_function(self):
@@ -73,16 +72,15 @@ class OrganizationSentryFunctionDetails(APITestCase):
     @patch("sentry.api.endpoints.organization_sentry_function_details.delete_function")
     def test_delete_valid_function(self, mock_delete_func):
         with Feature("organizations:sentry-functions"):
-            print(self.creation_endpoint)
             delete_function_endpoint = reverse(
-                self.endpoint, args=[self.organization.slug, self.creation_response.data["slug"]]
+                self.endpoint, args=[self.organization.slug, self.sentryFunction.slug]
             )
             print(delete_function_endpoint)
             delete_response = self.client.delete(delete_function_endpoint)
             get_response = self.client.get(delete_function_endpoint)
             assert delete_response.status_code == 204
             assert get_response.status_code == 404
-            mock_delete_func.assert_called_once_with(self.creation_response.data["external_id"])
+            mock_delete_func.assert_called_once_with(self.sentryFunction.external_id)
 
     def test_delete_invalid_function(self):
         delete_function_endpoint = reverse(
