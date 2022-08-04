@@ -132,6 +132,7 @@ def make_select_statement() -> List[Union[Column, Function]]:
         _grouped_unique_scalar_value(column_name="release"),
         _grouped_unique_scalar_value(column_name="dist"),
         _grouped_unique_scalar_value(column_name="user_id"),
+        _grouped_unique_scalar_value(column_name="user_agent"),
         _grouped_unique_scalar_value(column_name="user_email"),
         _grouped_unique_scalar_value(column_name="user_name"),
         Function(

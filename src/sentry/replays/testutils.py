@@ -50,6 +50,7 @@ def mock_expected_response(
         "environment": kwargs.pop("environment", "production"),
         "release": kwargs.pop("release", "version@1.3"),
         "dist": kwargs.pop("dist", "abc123"),
+        "user_agent": kwargs.pop("user_agent", "Firefox"),
         "user": {
             "id": kwargs.pop("user_id", "123"),
             "email": kwargs.pop("user_email", "username@example.com"),
