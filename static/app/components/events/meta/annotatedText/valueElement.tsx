@@ -1,13 +1,12 @@
 import {Fragment, isValidElement} from 'react';
 
 import {t} from 'sentry/locale';
-import {Meta} from 'sentry/types';
 
 import Redaction from './redaction';
 
 type Props = {
   value: React.ReactNode;
-  meta?: Meta;
+  meta?: Record<any, any>;
 };
 
 // If you find yourself modifying this component to fix some tooltip bug,

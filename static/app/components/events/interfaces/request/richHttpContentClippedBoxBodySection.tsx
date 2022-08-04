@@ -2,9 +2,7 @@ import ClippedBox from 'sentry/components/clippedBox';
 import ContextData from 'sentry/components/contextData';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
-import AnnotatedText from 'sentry/components/events/meta/annotatedText';
 import {t} from 'sentry/locale';
-import {Meta} from 'sentry/types';
 import {EntryRequest} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
@@ -13,10 +11,14 @@ import getTransformedData from './getTransformedData';
 type Props = {
   data: EntryRequest['data']['data'];
   inferredContentType: EntryRequest['data']['inferredContentType'];
-  meta?: Meta;
+  meta?: Record<any, any>;
 };
 
-function RichHttpContentClippedBoxBodySection({data, meta, inferredContentType}: Props) {
+export function RichHttpContentClippedBoxBodySection({
+  data,
+  meta,
+  inferredContentType,
+}: Props) {
   if (!defined(data)) {
     return null;
   }
@@ -33,12 +35,15 @@ function RichHttpContentClippedBoxBodySection({data, meta, inferredContentType}:
         );
       case 'application/x-www-form-urlencoded':
       case 'multipart/form-data': {
-        const transformedData = getTransformedData(data).map(([key, v]) => ({
-          key,
-          subject: key,
-          value: v,
-          meta,
-        }));
+        const transformedData = getTransformedData(data, meta).map(d => {
+          const [key, value] = d.data;
+          return {
+            key,
+            subject: key,
+            value,
+            meta: d.meta,
+          };
+        });
 
         if (!transformedData.length) {
           return null;
@@ -56,11 +61,7 @@ function RichHttpContentClippedBoxBodySection({data, meta, inferredContentType}:
       default:
         return (
           <pre data-test-id="rich-http-content-body-section-pre">
-            <AnnotatedText
-              value={data && JSON.stringify(data, null, 2)}
-              meta={meta}
-              data-test-id="rich-http-content-body-context-data"
-            />
+            <ContextData data={data} meta={meta} withAnnotatedText />
           </pre>
         );
     }
@@ -78,5 +79,3 @@ function RichHttpContentClippedBoxBodySection({data, meta, inferredContentType}:
     </ClippedBox>
   );
 }
-
-export default RichHttpContentClippedBoxBodySection;

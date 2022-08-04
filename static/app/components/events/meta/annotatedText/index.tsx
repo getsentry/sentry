@@ -7,7 +7,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Meta, MetaError} from 'sentry/types';
+import {MetaError} from 'sentry/types';
 
 import Chunks from './chunks';
 import {getTooltipText} from './utils';
@@ -16,7 +16,7 @@ import ValueElement from './valueElement';
 type Props = {
   value: React.ReactNode;
   className?: string;
-  meta?: Meta;
+  meta?: Record<any, any>;
 };
 
 const AnnotatedText = ({value, meta, className, ...props}: Props) => {
