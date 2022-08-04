@@ -45,43 +45,45 @@ export function Content({
   );
   const meta = event._meta?.entries?.[exceptionEntryIndex]?.data?.values;
 
-  const children = values.map((exc, excIdx) => (
-    <div key={excIdx} className="exception">
-      {defined(exc?.module) ? (
-        <Tooltip title={tct('from [exceptionModule]', {exceptionModule: exc?.module})}>
-          <Title>{type}</Title>
-        </Tooltip>
-      ) : (
-        <Title>{exc?.module}</Title>
-      )}
-      <StyledPre className="exc-message">
-        {meta?.[excIdx]?.value?.[''] && !exc.value ? (
-          <AnnotatedText value={exc.value} meta={meta?.[excIdx]?.value?.['']} />
+  const children = values.map((exc, excIdx) => {
+    return (
+      <div key={excIdx} className="exception">
+        {defined(exc?.module) ? (
+          <Tooltip title={tct('from [exceptionModule]', {exceptionModule: exc?.module})}>
+            <Title>{exc.type}</Title>
+          </Tooltip>
         ) : (
-          exc.value
+          <Title>{exc.type}</Title>
         )}
-      </StyledPre>
-      {exc.mechanism && (
-        <Mechanism data={exc.mechanism} meta={meta?.[excIdx]?.mechanism} />
-      )}
-      <StackTrace
-        data={
-          type === STACK_TYPE.ORIGINAL
-            ? exc.stacktrace
-            : exc.rawStacktrace || exc.stacktrace
-        }
-        stackView={stackView}
-        stacktrace={exc.stacktrace}
-        expandFirstFrame={excIdx === values.length - 1}
-        platform={platform}
-        newestFirst={newestFirst}
-        event={event}
-        chainedException={values.length > 1}
-        hasHierarchicalGrouping={hasHierarchicalGrouping}
-        groupingCurrentLevel={groupingCurrentLevel}
-      />
-    </div>
-  ));
+        <StyledPre className="exc-message">
+          {meta?.[excIdx]?.value?.[''] && !exc.value ? (
+            <AnnotatedText value={exc.value} meta={meta?.[excIdx]?.value?.['']} />
+          ) : (
+            exc.value
+          )}
+        </StyledPre>
+        {exc.mechanism && (
+          <Mechanism data={exc.mechanism} meta={meta?.[excIdx]?.mechanism} />
+        )}
+        <StackTrace
+          data={
+            type === STACK_TYPE.ORIGINAL
+              ? exc.stacktrace
+              : exc.rawStacktrace || exc.stacktrace
+          }
+          stackView={stackView}
+          stacktrace={exc.stacktrace}
+          expandFirstFrame={excIdx === values.length - 1}
+          platform={platform}
+          newestFirst={newestFirst}
+          event={event}
+          chainedException={values.length > 1}
+          hasHierarchicalGrouping={hasHierarchicalGrouping}
+          groupingCurrentLevel={groupingCurrentLevel}
+        />
+      </div>
+    );
+  });
 
   if (newestFirst) {
     children.reverse();
