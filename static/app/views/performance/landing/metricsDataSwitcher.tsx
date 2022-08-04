@@ -1,18 +1,17 @@
-import {Location} from 'history';
 import {Fragment, useEffect} from 'react';
 import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
+import {Location} from 'history';
 
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Organization} from 'sentry/types';
+import {parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   canUseMetricsData,
   MEPState,
   METRIC_SEARCH_SETTING_PARAM,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-
-import styled from '@emotion/styled';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {parsePeriodToHours} from 'sentry/utils/dates';
 import MetricsCompatibilityQuery, {
   MetricsCompatibilityData,
 } from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuery';
@@ -110,10 +109,10 @@ function adjustEventViewTime(eventView: EventView) {
 }
 
 interface SwitcherHandlerProps {
+  eventView: EventView;
+  location: Location;
   outcome: MetricDataSwitcherOutcome;
   switcherChildren: MetricDataSwitchProps['children'];
-  location: Location;
-  eventView: EventView;
 }
 
 function MetricsSwitchHandler({
