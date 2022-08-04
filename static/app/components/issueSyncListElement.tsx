@@ -11,6 +11,7 @@ import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 
 type Props = {
+  disabled?: boolean;
   externalIssueDisplayName?: string | null;
   externalIssueId?: string | null;
   externalIssueKey?: string | null;
@@ -67,6 +68,7 @@ class IssueSyncListElement extends Component<Props> {
       <IntegrationLink
         href={this.props.externalIssueLink || undefined}
         onClick={!this.isLinked() ? this.props.onOpen : undefined}
+        disabled={this.props.disabled}
       >
         {this.getText()}
       </IntegrationLink>
@@ -137,7 +139,7 @@ export const IssueSyncListElementContainer = styled('div')`
   }
 `;
 
-export const IntegrationLink = styled('a')`
+export const IntegrationLink = styled('a')<{disabled?: boolean}>`
   text-decoration: none;
   padding-bottom: ${space(0.25)};
   margin-left: ${space(1)};
@@ -151,7 +153,11 @@ export const IntegrationLink = styled('a')`
 
   &,
   &:hover {
-    border-bottom: 1px solid ${p => p.theme.blue300};
+    border-bottom: 1px solid
+      ${({disabled, theme}) => (disabled ? theme.disabled : theme.blue300)};
+  }
+  &:hover {
+    color: ${({disabled, theme}) => (disabled ? theme.disabled : theme.blue300)};
   }
 `;
 

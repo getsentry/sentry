@@ -160,7 +160,7 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
     }
 
     return components.map(component => {
-      const {sentryApp} = component;
+      const {sentryApp, error: disabled} = component;
       const installation = sentryAppInstallations.find(
         i => i.app.uuid === sentryApp.uuid
       );
@@ -180,6 +180,7 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
             sentryAppComponent={component}
             sentryAppInstallation={installation}
             externalIssue={issue}
+            disabled={disabled}
           />
         </ErrorBoundary>
       );
