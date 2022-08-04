@@ -103,7 +103,6 @@ function EventEntry({
     }
     case EntryType.CSP: {
       const {data} = entry;
-      console.log({meta: event._meta});
       return <Csp event={event} data={data} />;
     }
     case EntryType.EXPECTCT:
