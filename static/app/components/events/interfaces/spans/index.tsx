@@ -14,7 +14,7 @@ import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
 import {objectIsEmpty} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import * as QuickTraceContext from 'sentry/utils/performance/quickTrace/quickTraceContext';
+import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import {TraceError} from 'sentry/utils/performance/quickTrace/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
