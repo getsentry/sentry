@@ -9,7 +9,7 @@ import {EntryType, Event} from 'sentry/types/event';
 import {STACK_TYPE} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 
-import Mechanism from './mechanism';
+import {Mechanism} from './mechanism';
 import StackTrace from './stackTrace';
 
 type StackTraceProps = React.ComponentProps<typeof StackTrace>;
@@ -61,7 +61,9 @@ export function Content({
           exc.value
         )}
       </StyledPre>
-      {exc.mechanism && <Mechanism data={exc.mechanism} />}
+      {exc.mechanism && (
+        <Mechanism data={exc.mechanism} meta={meta?.[excIdx]?.mechanism} />
+      )}
       <StackTrace
         data={
           type === STACK_TYPE.ORIGINAL

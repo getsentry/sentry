@@ -5,7 +5,7 @@ import {EntryType} from 'sentry/types';
 import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
 
 describe('Exception Content', function () {
-  it('display redacted value from exception entry', async function () {
+  it('display redacted values from exception entry', async function () {
     const event = {
       ...TestStubs.Event(),
       _meta: {
@@ -14,6 +14,16 @@ describe('Exception Content', function () {
             data: {
               values: {
                 '0': {
+                  mechanism: {
+                    data: {
+                      relevant_address: {
+                        '': {
+                          rem: [['project:3', 's', 0, 0]],
+                          len: 43,
+                        },
+                      },
+                    },
+                  },
                   value: {
                     '': {
                       rem: [['project:3', 's', 0, 0]],
@@ -32,7 +42,11 @@ describe('Exception Content', function () {
           data: {
             values: [
               {
-                mechanism: {type: 'celery', handled: false},
+                mechanism: {
+                  type: 'celery',
+                  handled: false,
+                  data: {relevant_address: null},
+                },
                 module: 'sentry.models.organization',
                 rawStacktrace: null,
                 stacktrace: {
@@ -83,7 +97,9 @@ describe('Exception Content', function () {
       />
     );
 
-    userEvent.hover(screen.getByText(/redacted/));
+    expect(screen.getAllByText(/redacted/)).toHaveLength(2);
+
+    userEvent.hover(screen.getAllByText(/redacted/)[0]);
     expect(
       await screen.findByText('Replaced because of PII rule "project:3"')
     ).toBeInTheDocument(); // tooltip description
