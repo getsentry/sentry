@@ -91,6 +91,8 @@ const getItemPaddingForSize = (itemSize?: ItemSize) => {
 };
 
 const LabelWithBorder = styled('div')`
+  display: flex;
+  align-items: center;
   background-color: ${p => p.theme.backgroundSecondary};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
   border-width: 1px 0;
