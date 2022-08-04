@@ -46,8 +46,10 @@ import {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
-import * as QuickTraceContext from 'sentry/utils/performance/quickTrace/quickTraceContext';
-import {QuickTraceContextChildrenProps} from 'sentry/utils/performance/quickTrace/quickTraceContext';
+import {
+  QuickTraceContext,
+  QuickTraceContextChildrenProps,
+} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import {QuickTraceEvent, TraceError} from 'sentry/utils/performance/quickTrace/types';
 import {isTraceFull} from 'sentry/utils/performance/quickTrace/utils';
 

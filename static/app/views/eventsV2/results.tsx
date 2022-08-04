@@ -18,6 +18,7 @@ import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -72,6 +73,7 @@ type State = {
   totalValues: null | number;
   savedQuery?: SavedQuery;
   showMetricsAlert?: boolean;
+  showUnparameterizedBanner?: boolean;
 };
 const SHOW_TAGS_STORAGE_KEY = 'discover2:show-tags';
 
@@ -124,6 +126,13 @@ class Results extends Component<Props, State> {
       browserHistory.replace({
         ...location,
         query: {...location.query, fromMetric: undefined},
+      });
+    }
+    if (location.query.showUnparameterizedBanner) {
+      this.setState({showUnparameterizedBanner: true});
+      browserHistory.replace({
+        ...location,
+        query: {...location.query, showUnparameterizedBanner: undefined},
       });
     }
     loadOrganizationTags(this.tagsApi, organization.slug, selection);
@@ -457,6 +466,20 @@ class Results extends Component<Props, State> {
         <Alert type="info" showIcon>
           {t(
             "You've navigated to this page from a performance metric widget generated from processed events. The results here only show sampled events."
+          )}
+        </Alert>
+      );
+    }
+    if (this.state.showUnparameterizedBanner) {
+      return (
+        <Alert type="info" showIcon>
+          {tct(
+            'These are unparameterized transactions. To better organize your transactions, [link:set transaction names manually].',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/configuration/integrations/react-router/#parameterized-transaction-names" />
+              ),
+            }
           )}
         </Alert>
       );

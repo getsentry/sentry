@@ -13,7 +13,7 @@ import {Project} from 'sentry/types';
 import {SuspectFunction} from 'sentry/types/profiling/core';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {getShortEventId} from 'sentry/utils/events';
-import {generateProfileFlamegraphRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {renderTableHead} from 'sentry/utils/profiling/tableRenderer';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -62,11 +62,16 @@ function FunctionsTable(props: FunctionsTableProps) {
           const profileId = example.replaceAll('-', '');
           return {
             value: getShortEventId(profileId),
-            target: generateProfileFlamegraphRouteWithQuery({
+            target: generateProfileFlamechartRouteWithQuery({
               orgSlug: organization.slug,
               projectSlug: props.project.slug,
               profileId,
-              query: {}, // TODO: we should try to go to the right thread
+              query: {
+                // specify the frame to focus, the flamegraph will switch
+                // to the appropriate thread when these are specified
+                frameName: func.name,
+                framePackage: func.package,
+              },
             }),
           };
         }),

@@ -244,6 +244,13 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
     setIsPlaying(false);
   }, []);
 
+  const getCurrentTime = useCallback(
+    () => (replayerRef.current ? Math.max(replayerRef.current.getCurrentTime(), 0) : 0),
+    []
+  );
+
+  const currentPlayerTime = useCurrentTime(getCurrentTime);
+
   const initRoot = useCallback(
     (root: RootElem) => {
       if (events === undefined) {
@@ -305,8 +312,10 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
       if (unMountedRef.current) {
         unMountedRef.current = false;
       }
+
+      replayerRef.current.pause(currentPlayerTime);
     },
-    [events, theme.purple200, setReplayFinished, hasNewEvents]
+    [events, theme.purple200, setReplayFinished, hasNewEvents, currentPlayerTime]
   );
 
   useEffect(() => {
@@ -325,11 +334,6 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [initRoot, events]);
-
-  const getCurrentTime = useCallback(
-    () => (replayerRef.current ? Math.max(replayerRef.current.getCurrentTime(), 0) : 0),
-    []
-  );
 
   const setCurrentTime = useCallback(
     (requestedTimeMs: number) => {
@@ -416,6 +420,11 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
   }, []);
 
   // Only on pageload: set the initial playback timestamp
+  // Do not include `setCurrentTime` in the hook deps array because it changes
+  // on each play/pause state change.
+  // Do include replayerRef.current in the hook deps. The rule warns that since
+  // it is a ref changing it will not cause a re-render. However, when that
+  // value changes we will get a re-render because other state values have changed.
   useEffect(() => {
     if (initialTimeOffset && events && replayerRef.current) {
       setCurrentTime(initialTimeOffset * 1000);
@@ -424,9 +433,7 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
     return () => {
       unMountedRef.current = true;
     };
-  }, [events, replayerRef.current]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const currentPlayerTime = useCurrentTime(getCurrentTime);
+  }, [initialTimeOffset, events, replayerRef.current]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [isBuffering, currentTime] =
     buffer.target !== -1 &&

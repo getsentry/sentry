@@ -16,6 +16,7 @@ import {
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
+import {statsPeriodToDays} from 'sentry/utils/dates';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
@@ -58,6 +59,8 @@ const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   conditions: '',
   orderby: `-crash_free_rate(${SessionField.SESSION})`,
 };
+
+const METRICS_BACKED_SESSIONS_START_DATE = new Date('2022-07-12');
 
 export const ReleasesConfig: DatasetConfig<
   SessionApiResponse | MetricsApiResponse,
@@ -386,6 +389,33 @@ function getReleasesRequest(
 ) {
   const {environments, projects, datetime} = pageFilters;
   const {start, end, period} = datetime;
+
+  let showIncompleteDataAlert: boolean = false;
+
+  if (start) {
+    let startDate: Date | undefined = undefined;
+    if (typeof start === 'string') {
+      startDate = new Date(start);
+    } else {
+      startDate = start;
+    }
+    showIncompleteDataAlert = startDate < METRICS_BACKED_SESSIONS_START_DATE;
+  } else if (period) {
+    const periodInDays = statsPeriodToDays(period);
+    const current = new Date();
+    const prior = new Date(new Date().setDate(current.getDate() - periodInDays));
+    showIncompleteDataAlert = prior < METRICS_BACKED_SESSIONS_START_DATE;
+  }
+
+  if (showIncompleteDataAlert) {
+    return Promise.reject(
+      new Error(
+        t(
+          'Releases data is only available from Jul 12. Please retry your query with a more recent date range.'
+        )
+      )
+    );
+  }
 
   // Only time we need to use sessions API is when session.status is requested
   // as a group by.
