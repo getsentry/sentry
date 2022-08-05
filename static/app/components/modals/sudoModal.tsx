@@ -42,36 +42,62 @@ type State = {
   busy: boolean;
   error: boolean;
   errorType: string;
+  showAccessForms: boolean;
   superuserAccessCategory: string;
   superuserReason: string;
 };
 
 class SudoModal extends Component<Props, State> {
   state: State = {
+    authenticators: [],
+    busy: false,
     error: false,
     errorType: '',
-    busy: false,
+    showAccessForms: true,
     superuserAccessCategory: '',
     superuserReason: '',
-    authenticators: [],
   };
 
   componentDidMount() {
     this.getAuthenticators();
   }
 
-  handleSubmit = async () => {
-    const {api, isSuperuser} = this.props;
-    const data = {
-      isSuperuserModal: isSuperuser,
+  handleSubmitCOPS = () => {
+    this.setState({
       superuserAccessCategory: 'cops_csm',
       superuserReason: 'COPS and CSM use',
-    };
-    try {
-      await api.requestPromise('/auth/', {method: 'PUT', data});
-      this.handleSuccess();
-    } catch (err) {
-      this.handleError(err);
+    });
+  };
+
+  handleSubmit = async data => {
+    const {api, isSuperuser} = this.props;
+    const superuserAccessCategory =
+      this.state.superuserAccessCategory === null
+        ? data.superuserAccessCategory
+        : this.state.superuserAccessCategory;
+
+    const superuserReason =
+      this.state.superuserReason === null
+        ? data.superuserReason
+        : this.state.superuserReason;
+
+    if (!this.state.authenticators.length) {
+      this.handleError('No Authenticator');
+    }
+
+    if (this.state.showAccessForms && isSuperuser) {
+      this.setState({
+        showAccessForms: false,
+        superuserAccessCategory,
+        superuserReason,
+      });
+    } else {
+      try {
+        await api.requestPromise('/auth/', {method: 'PUT', data});
+        this.handleSuccess();
+      } catch (err) {
+        this.handleError(err);
+      }
     }
   };
 
@@ -94,7 +120,7 @@ class SudoModal extends Component<Props, State> {
 
     this.setState({busy: true}, () => {
       retryRequest().then(() => {
-        this.setState({busy: false}, closeModal);
+        this.setState({busy: false, showAccessForms: true}, closeModal);
       });
     });
   };
@@ -107,6 +133,8 @@ class SudoModal extends Component<Props, State> {
       errorType = ErrorCodes.invalidSSOSession;
     } else if (err.status === 400) {
       errorType = ErrorCodes.invalidAccessCategory;
+    } else if (err === 'No Authenticator') {
+      errorType = ErrorCodes.noAuthenticator;
     } else {
       errorType = ErrorCodes.unknownError;
     }
@@ -114,6 +142,7 @@ class SudoModal extends Component<Props, State> {
       busy: false,
       error: true,
       errorType,
+      showAccessForms: true,
     });
   };
 
@@ -158,7 +187,7 @@ class SudoModal extends Component<Props, State> {
 
   renderBodyContent() {
     const {isSuperuser} = this.props;
-    const {authenticators, error, errorType} = this.state;
+    const {authenticators, error, errorType, showAccessForms} = this.state;
     const user = ConfigStore.get('user');
     const isSelfHosted = ConfigStore.get('isSelfHosted');
     const validateSUForm = ConfigStore.get('validateSUForm');
@@ -190,18 +219,28 @@ class SudoModal extends Component<Props, State> {
             <Form
               apiMethod="PUT"
               apiEndpoint="/auth/"
-              submitLabel={t('Re-authenticate')}
+              submitLabel={showAccessForms ? t('Continue') : t('Re-authenticate')}
+              onSubmit={this.handleSubmit}
               onSubmitSuccess={this.handleSuccess}
               onSubmitError={this.handleError}
               initialData={{isSuperuserModal: isSuperuser}}
               extraButton={
                 <BackWrapper>
-                  <Button onClick={this.handleSubmit}>{t('COPS/CSM')}</Button>
+                  <Button onClick={this.handleSubmitCOPS}>{t('COPS/CSM')}</Button>
                 </BackWrapper>
               }
               resetOnError
             >
-              {!isSelfHosted && <Hook name="component:superuser-access-category" />}
+              {!isSelfHosted && showAccessForms && (
+                <Hook name="component:superuser-access-category" />
+              )}
+              {!isSelfHosted && !showAccessForms && (
+                <U2fContainer
+                  authenticators={authenticators}
+                  displayMode="sudo"
+                  onTap={this.handleU2fTap}
+                />
+              )}
             </Form>
           ) : (
             <Button
