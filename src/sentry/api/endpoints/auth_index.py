@@ -20,6 +20,7 @@ from sentry.models import Authenticator, Organization
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import has_completed_sso, initiate_login
 from sentry.utils.functional import extract_lazy_object
+from sentry.utils.settings import is_self_hosted
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -193,7 +194,7 @@ class AuthIndexEndpoint(Endpoint):
 
             authenticated = self._verify_user_via_inputs(validator, request)
         else:
-            if not DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV:
+            if not DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV and not is_self_hosted():
                 if not Authenticator.objects.filter(
                     user_id=request.user.id, type=U2fInterface.type
                 ).exists():
