@@ -63,6 +63,10 @@ class DocIntegrationDetailedView extends AbstractIntegrationDetailedView<
     return this.integration.features ?? [];
   }
 
+  get requiresAccess() {
+    return false;
+  }
+
   componentDidMount() {
     super.componentDidMount();
     this.trackIntegrationAnalytics('integrations.integration_viewed', {
