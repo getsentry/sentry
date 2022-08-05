@@ -218,7 +218,9 @@ function AndroidInstallSteps() {
       <li>
         <StepTitle>{t('Update your projects SDK version')}</StepTitle>
         <p>
-          {t('Make sure your SDKs are upgraded to at least version 6.0.0 (sentry-java).')}
+          {t(
+            'Make sure your SDKs are upgraded to at least version 6.0.0 (sentry-android).'
+          )}
         </p>
       </li>
       <li>
@@ -228,7 +230,7 @@ function AndroidInstallSteps() {
         )}{' '}
         <ExternalLink
           openInNewTab
-          href="https://docs.sentry.io/platforms/java/performance/"
+          href="https://docs.sentry.io/platforms/android/performance/"
         >
           {t('Lear more about performance monitoring.')}
         </ExternalLink>
@@ -265,7 +267,10 @@ function IOSInstallSteps() {
         {t(
           `For Sentry to ingest profiles, we first require you to setup performance monitoring.`
         )}{' '}
-        <ExternalLink openInNewTab href="https://docs.sentry.io/product/performance/">
+        <ExternalLink
+          openInNewTab
+          href="https://docs.sentry.io/platforms/apple/guides/ios/performance/"
+        >
           {t('Lear more about performance monitoring.')}
         </ExternalLink>
       </li>
