@@ -1,5 +1,8 @@
 # DO NOT MODIFY. This file was generated with `make freeze-requirements`.
 
+--index-url https://pypi.devinfra.sentry.io/simple
+--extra-index-url https://pypi.org/simple
+
 amqp==2.6.1
 async-generator==1.10
 attrs==19.2.0

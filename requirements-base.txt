@@ -1,3 +1,6 @@
+--index-url https://pypi.devinfra.sentry.io/simple
+--extra-index-url https://pypi.org/simple
+
 beautifulsoup4>=4.7.1
 boto3>=1.22.12
 botocore>=1.25.12

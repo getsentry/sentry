@@ -18,6 +18,10 @@ fi
 
 venv_name=".venv"
 
+pip-install() {
+    pip install $(grep ^-- requirements-base.txt) "$@"
+}
+
 # Check if a command is available
 require() {
     command -v "$1" >/dev/null 2>&1
@@ -91,8 +95,7 @@ sudo-askpass() {
 }
 
 upgrade-pip() {
-    grep -E '^(pip|setuptools|wheel)==' requirements-dev-frozen.txt |
-        xargs pip install --upgrade
+    pip-install $(grep -E '^(pip|setuptools|wheel)==' requirements-dev-frozen.txt)
 }
 
 install-py-dev() {
@@ -103,10 +106,6 @@ install-py-dev() {
 
     echo "--> Installing Sentry (for development)"
     if query-apple-m1; then
-        # This installs pyscopg-binary2 since there's no arm64 wheel
-        # This saves having to install postgresql on the Developer's machine + using flags
-        # https://github.com/psycopg/psycopg2/issues/1286
-        pip install https://storage.googleapis.com/python-arm64-wheels/psycopg2_binary-2.8.6-cp38-cp38-macosx_11_0_arm64.whl
         # The LDFLAGS is needed for uWSGI --> https://github.com/unbit/uwsgi/issues/2361
         export LDFLAGS="-L$(brew --prefix gettext)/lib"
     fi
@@ -114,7 +113,7 @@ install-py-dev() {
     # SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
     # Webpacked assets are only necessary for devserver (which does it lazily anyways)
     # and acceptance tests, which webpack automatically if run.
-    SENTRY_LIGHT_BUILD=1 pip install -e '.[dev]'
+    SENTRY_LIGHT_BUILD=1 pip-install -e '.[dev]'
 }
 
 setup-git-config() {
@@ -133,7 +132,7 @@ setup-git() {
         exit 1
     )
     if ! require pre-commit; then
-        pip install -r requirements-dev-only-frozen.txt
+        pip-install -r requirements-dev-only-frozen.txt
     fi
     pre-commit install --install-hooks
     echo ""
