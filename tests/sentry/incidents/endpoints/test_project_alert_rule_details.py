@@ -18,8 +18,8 @@ from sentry.integrations.slack.client import SlackClient
 from sentry.models import AuditLogEntry, Integration
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.testutils import APITestCase
-from sentry.types import Dict
 from sentry.utils import json
+from sentry.utils.types import Dict
 
 
 class AlertRuleDetailsBase(APITestCase):
