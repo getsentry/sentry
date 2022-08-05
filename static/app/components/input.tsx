@@ -63,14 +63,14 @@ const Input = styled(
     p.leadingWidth &&
     `padding-left: calc(
       ${p.leadingWidth}px +
-      ${p.theme.formPadding[p.size ?? 'md'].paddingLeft}px * 1.5
-    );`}
+      ${p.theme.formPadding[p.size ?? 'md'].paddingLeft}px * 1.618
+    );`} /* 1.618 cause golden ratio! */
   ${p =>
     p.trailingWidth &&
     `padding-right: calc(
       ${p.trailingWidth}px +
-      ${p.theme.formPadding[p.size ?? 'md'].paddingRight}px * 1.5
-    );`}
+      ${p.theme.formPadding[p.size ?? 'md'].paddingRight}px * 1.618
+    );`} /* 1.618 cause golden ratio! */
 
   &::placeholder {
     color: ${p => p.theme.formPlaceholder};

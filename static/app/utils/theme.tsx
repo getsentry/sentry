@@ -750,22 +750,22 @@ const commonTheme = {
    */
   buttonPadding: {
     md: {
-      paddingTop: 10,
-      paddingBottom: 10,
       paddingLeft: 16,
       paddingRight: 16,
+      paddingTop: 10,
+      paddingBottom: 10,
     },
     sm: {
-      paddingTop: 8,
-      paddingBottom: 8,
       paddingLeft: 12,
       paddingRight: 12,
+      paddingTop: 8,
+      paddingBottom: 8,
     },
     xs: {
-      paddingTop: 6,
-      paddingBottom: 6,
       paddingLeft: 8,
       paddingRight: 8,
+      paddingTop: 6,
+      paddingBottom: 6,
     },
   },
 
@@ -775,13 +775,13 @@ const commonTheme = {
   formPadding: {
     md: {
       paddingLeft: 16,
-      paddingRight: 10,
+      paddingRight: 12,
       paddingTop: 10,
       paddingBottom: 10,
     },
     sm: {
       paddingLeft: 12,
-      paddingRight: 8,
+      paddingRight: 10,
       paddingTop: 8,
       paddingBottom: 8,
     },
