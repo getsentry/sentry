@@ -1,15 +1,23 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
+import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Organization} from 'sentry/types';
-import DiscoverQuery, {TableData} from 'sentry/utils/discover/discoverQuery';
+import {parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
-import {GenericChildrenProps} from 'sentry/utils/discover/genericDiscoverQuery';
-import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {
+  canUseMetricsData,
+  MEPState,
+  METRIC_SEARCH_SETTING_PARAM,
+} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import MetricsCompatibilityQuery, {
+  MetricsCompatibilityData,
+} from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuery';
+import {decodeScalar} from 'sentry/utils/queryString';
 
-import {getMetricOnlyQueryParams} from './widgets/utils';
-
-export interface MetricDataSwitcherChildrenProps {
+export interface MetricDataSwitcherOutcome {
   forceTransactionsOnly: boolean;
   compatibleProjects?: number[];
   shouldNotifyUnnamedTransactions?: boolean;
@@ -17,21 +25,11 @@ export interface MetricDataSwitcherChildrenProps {
 }
 
 interface MetricDataSwitchProps {
-  children: (props: MetricDataSwitcherChildrenProps) => React.ReactNode;
+  children: (props: MetricDataSwitcherOutcome) => React.ReactNode;
   eventView: EventView;
   location: Location;
   organization: Organization;
-}
-
-export enum LandingPageMEPDecision {
-  fallbackToTransactions = 'fallbackToTransactions',
-}
-
-interface DataCounts {
-  metricsCountData: GenericChildrenProps<TableData>;
-  nullData: GenericChildrenProps<TableData>;
-  transactionCountData: GenericChildrenProps<TableData>;
-  unparamData: GenericChildrenProps<TableData>;
+  hideLoadingIndicator?: boolean;
 }
 
 /**
@@ -52,240 +50,238 @@ export function MetricsDataSwitcher(props: MetricDataSwitchProps) {
     );
   }
 
-  const countView = props.eventView.withColumns([{kind: 'field', field: 'count()'}]);
-  countView.statsPeriod = '15m';
-  countView.start = undefined;
-  countView.end = undefined;
-  const unparamView = countView.clone();
-  unparamView.additionalConditions.setFilterValues('transaction', [
-    '<< unparameterized >>',
-  ]);
-  const nullView = countView.clone();
-  nullView.additionalConditions.setFilterValues('transaction', ['']);
-
-  const projectCompatibleView = countView.withColumns([
-    {kind: 'field', field: 'project.id'},
-    {kind: 'field', field: 'count()'},
-  ]);
-
-  const projectIncompatibleView = projectCompatibleView.clone();
-  projectIncompatibleView.additionalConditions.setFilterValues('transaction', ['']);
-
   const baseDiscoverProps = {
     location: props.location,
     orgSlug: props.organization.slug,
+    cursor: '0:0:0',
   };
-
-  const metricsDiscoverProps = {
-    ...baseDiscoverProps,
-    queryExtras: getMetricOnlyQueryParams(),
-  };
+  const _eventView = adjustEventViewTime(props.eventView);
 
   return (
     <Fragment>
-      <DiscoverQuery eventView={countView} {...baseDiscoverProps}>
-        {transactionCountData => (
-          <DiscoverQuery eventView={countView} {...metricsDiscoverProps}>
-            {metricsCountData => (
-              <DiscoverQuery eventView={nullView} {...metricsDiscoverProps}>
-                {nullData => (
-                  <DiscoverQuery eventView={unparamView} {...metricsDiscoverProps}>
-                    {unparamData => (
-                      <DiscoverQuery
-                        eventView={projectCompatibleView}
-                        {...metricsDiscoverProps}
-                      >
-                        {projectsCompatData => (
-                          <DiscoverQuery
-                            eventView={projectIncompatibleView}
-                            {...metricsDiscoverProps}
-                          >
-                            {projectsIncompatData => {
-                              if (
-                                transactionCountData.isLoading ||
-                                unparamData.isLoading ||
-                                metricsCountData.isLoading ||
-                                projectsIncompatData.isLoading ||
-                                nullData.isLoading ||
-                                projectsCompatData.isLoading
-                              ) {
-                                return null;
-                              }
+      <MetricsCompatibilityQuery eventView={_eventView} {...baseDiscoverProps}>
+        {data => {
+          if (data.isLoading && !props.hideLoadingIndicator) {
+            return (
+              <Fragment>
+                <LoadingContainer>
+                  <LoadingIndicator />
+                </LoadingContainer>
+              </Fragment>
+            );
+          }
 
-                              const dataCounts: DataCounts = {
-                                transactionCountData,
-                                metricsCountData,
-                                nullData,
-                                unparamData,
-                              };
-
-                              const compatibleProjects = getCompatibleProjects({
-                                projectsCompatData,
-                                projectsIncompatData,
-                              });
-
-                              if (checkIfNotEffectivelySampling(dataCounts)) {
-                                return (
-                                  <Fragment>
-                                    {props.children({
-                                      forceTransactionsOnly: true,
-                                    })}
-                                  </Fragment>
-                                );
-                              }
-
-                              if (checkNoDataFallback(dataCounts)) {
-                                return (
-                                  <Fragment>
-                                    {props.children({
-                                      forceTransactionsOnly: true,
-                                    })}
-                                  </Fragment>
-                                );
-                              }
-
-                              if (checkIncompatibleData(dataCounts)) {
-                                return (
-                                  <Fragment>
-                                    {props.children({
-                                      shouldWarnIncompatibleSDK: true,
-                                      forceTransactionsOnly: true,
-                                      compatibleProjects,
-                                    })}
-                                  </Fragment>
-                                );
-                              }
-
-                              if (checkIfAllOtherData(dataCounts)) {
-                                return (
-                                  <Fragment>
-                                    {props.children({
-                                      shouldNotifyUnnamedTransactions: true,
-                                      forceTransactionsOnly: true,
-                                      compatibleProjects,
-                                    })}
-                                  </Fragment>
-                                );
-                              }
-
-                              if (checkIfPartialOtherData(dataCounts)) {
-                                return (
-                                  <Fragment>
-                                    {props.children({
-                                      shouldNotifyUnnamedTransactions: true,
-                                      compatibleProjects,
-
-                                      forceTransactionsOnly: false,
-                                    })}
-                                  </Fragment>
-                                );
-                              }
-
-                              return (
-                                <Fragment>
-                                  {props.children({
-                                    forceTransactionsOnly: false,
-                                  })}
-                                </Fragment>
-                              );
-                            }}
-                          </DiscoverQuery>
-                        )}
-                      </DiscoverQuery>
-                    )}
-                  </DiscoverQuery>
-                )}
-              </DiscoverQuery>
-            )}
-          </DiscoverQuery>
-        )}
-      </DiscoverQuery>
+          const outcome = getMetricsOutcome(data.tableData, !!data.error);
+          return (
+            <MetricsSwitchHandler
+              eventView={props.eventView}
+              location={props.location}
+              outcome={outcome}
+              switcherChildren={props.children}
+            />
+          );
+        }}
+      </MetricsCompatibilityQuery>
     </Fragment>
   );
 }
 
 /**
- * Fallback if very similar amounts of metrics and transactions are found.
- * Only used to rollout sampling before rules are selected. Could be replaced with project dynamic sampling check directly.
+ * Performance optimization to limit the amount of rows scanned before showing the landing page.
  */
-function checkIfNotEffectivelySampling(dataCounts: DataCounts) {
-  const counts = extractCounts(dataCounts);
-  return (
-    counts.transactionsCount > 0 &&
-    counts.metricsCount > counts.transactionsCount &&
-    counts.transactionsCount >= counts.metricsCount * 0.95
-  );
+function adjustEventViewTime(eventView: EventView) {
+  const _eventView = eventView.clone();
+
+  if (!_eventView.start && !_eventView.end) {
+    if (!_eventView.statsPeriod) {
+      _eventView.statsPeriod = '1h';
+      _eventView.start = undefined;
+      _eventView.end = undefined;
+    } else {
+      const periodHours = parsePeriodToHours(_eventView.statsPeriod);
+      if (periodHours > 1) {
+        _eventView.statsPeriod = '1h';
+        _eventView.start = undefined;
+        _eventView.end = undefined;
+      }
+    }
+  }
+  return _eventView;
+}
+
+interface SwitcherHandlerProps {
+  eventView: EventView;
+  location: Location;
+  outcome: MetricDataSwitcherOutcome;
+  switcherChildren: MetricDataSwitchProps['children'];
+}
+
+function MetricsSwitchHandler({
+  switcherChildren,
+  outcome,
+  location,
+  eventView,
+}: SwitcherHandlerProps) {
+  const {query} = location;
+  const mepSearchState = decodeScalar(query[METRIC_SEARCH_SETTING_PARAM], '');
+  const hasQuery = decodeScalar(query.query, '');
+  const queryIsTransactionsBased = mepSearchState === MEPState.transactionsOnly;
+
+  const shouldAdjustQuery =
+    hasQuery && queryIsTransactionsBased && !outcome.forceTransactionsOnly;
+
+  useEffect(() => {
+    if (shouldAdjustQuery) {
+      browserHistory.push({
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          cursor: undefined,
+          query: undefined,
+          [METRIC_SEARCH_SETTING_PARAM]: undefined,
+        },
+      });
+    }
+  }, [shouldAdjustQuery, location]);
+
+  if (hasQuery && queryIsTransactionsBased && !outcome.forceTransactionsOnly) {
+    eventView.query = ''; // TODO: Create switcher provider and move it to the route level to remove the need for this.
+  }
+
+  return <Fragment>{switcherChildren(outcome)}</Fragment>;
+}
+
+/**
+ * Logic for picking sides of metrics vs. transactions along with the associated warnings.
+ */
+function getMetricsOutcome(
+  dataCounts: MetricsCompatibilityData | null,
+  hasOtherFallbackCondition: boolean
+) {
+  const fallbackOutcome: MetricDataSwitcherOutcome = {
+    forceTransactionsOnly: true,
+  };
+  const successOutcome: MetricDataSwitcherOutcome = {
+    forceTransactionsOnly: false,
+  };
+  if (!dataCounts) {
+    return fallbackOutcome;
+  }
+  const compatibleProjects = dataCounts.compatible_projects;
+
+  if (hasOtherFallbackCondition) {
+    return fallbackOutcome;
+  }
+
+  if (!dataCounts) {
+    return fallbackOutcome;
+  }
+
+  if (checkForSamplingRules(dataCounts)) {
+    return fallbackOutcome;
+  }
+
+  if (checkNoDataFallback(dataCounts)) {
+    return fallbackOutcome;
+  }
+
+  if (checkIncompatibleData(dataCounts)) {
+    return {
+      shouldWarnIncompatibleSDK: true,
+      forceTransactionsOnly: true,
+      compatibleProjects,
+    };
+  }
+
+  if (checkIfAllOtherData(dataCounts)) {
+    return {
+      shouldNotifyUnnamedTransactions: true,
+      forceTransactionsOnly: true,
+      compatibleProjects,
+    };
+  }
+
+  if (checkIfPartialOtherData(dataCounts)) {
+    return {
+      shouldNotifyUnnamedTransactions: true,
+      compatibleProjects,
+      forceTransactionsOnly: false,
+    };
+  }
+
+  return successOutcome;
+}
+
+/**
+ * Fallback if very similar amounts of metrics and transactions are found.
+ * No projects with dynamic sampling means no rules have been enabled yet.
+ */
+function checkForSamplingRules(dataCounts: MetricsCompatibilityData) {
+  const counts = normalizeCounts(dataCounts);
+  if (!dataCounts.dynamic_sampling_projects?.length) {
+    return true;
+  }
+  if (counts.metricsCount === 0) {
+    return true;
+  }
+  return false;
 }
 
 /**
  * Fallback if no metrics found.
  */
-function checkNoDataFallback(dataCounts: DataCounts) {
-  const counts = extractCounts(dataCounts);
+function checkNoDataFallback(dataCounts: MetricsCompatibilityData) {
+  const counts = normalizeCounts(dataCounts);
   return !counts.metricsCount;
 }
 
 /**
  * Fallback and warn if incompatible data found (old specific SDKs).
  */
-function checkIncompatibleData(dataCounts: DataCounts) {
-  const counts = extractCounts(dataCounts);
+function checkIncompatibleData(dataCounts: MetricsCompatibilityData) {
+  const counts = normalizeCounts(dataCounts);
   return counts.nullCount > 0;
 }
 
 /**
  * Fallback and warn about unnamed transactions (specific SDKs).
  */
-function checkIfAllOtherData(dataCounts: DataCounts) {
-  const counts = extractCounts(dataCounts);
+function checkIfAllOtherData(dataCounts: MetricsCompatibilityData) {
+  const counts = normalizeCounts(dataCounts);
   return counts.unparamCount >= counts.metricsCount;
 }
 
 /**
  * Show metrics but warn about unnamed transactions.
  */
-function checkIfPartialOtherData(dataCounts: DataCounts) {
-  const counts = extractCounts(dataCounts);
+function checkIfPartialOtherData(dataCounts: MetricsCompatibilityData) {
+  const counts = normalizeCounts(dataCounts);
   return counts.unparamCount > 0;
 }
 
 /**
  * Temporary function, can be removed after API changes.
  */
-function extractCounts({
-  metricsCountData,
-  transactionCountData,
-  unparamData,
-  nullData,
-}: DataCounts) {
-  const metricsCount = Number(metricsCountData.tableData?.data?.[0].count);
-  const transactionsCount = Number(transactionCountData.tableData?.data?.[0].count);
-  const unparamCount = Number(unparamData.tableData?.data?.[0].count);
-  const nullCount = Number(nullData.tableData?.data?.[0].count);
-
-  return {
-    metricsCount,
-    transactionsCount,
-    unparamCount,
-    nullCount,
-  };
+function normalizeCounts({sum}: MetricsCompatibilityData) {
+  try {
+    const metricsCount = Number(sum.metrics);
+    const unparamCount = Number(sum.metrics_unparam);
+    const nullCount = Number(sum.metrics_null);
+    return {
+      metricsCount,
+      unparamCount,
+      nullCount,
+    };
+  } catch (_) {
+    return {
+      metricsCount: 0,
+      unparamCount: 0,
+      nullCount: 0,
+    };
+  }
 }
 
-/**
- * Temporary function, can be removed after API changes.
- */
-function getCompatibleProjects({
-  projectsCompatData,
-  projectsIncompatData,
-}: {
-  projectsCompatData: GenericChildrenProps<TableData>;
-  projectsIncompatData: GenericChildrenProps<TableData>;
-}) {
-  const baseProjectRows = projectsCompatData.tableData?.data || [];
-  const projectIdsPage = baseProjectRows.map(row => Number(row['project.id']));
-
-  const incompatProjectsRows = projectsIncompatData.tableData?.data || [];
-  const incompatProjectIds = incompatProjectsRows.map(row => Number(row['project.id']));
-
-  return projectIdsPage.filter(projectId => !incompatProjectIds.includes(projectId));
-}
+const LoadingContainer = styled('div')`
+  display: flex;
+  justify-content: center;
+`;

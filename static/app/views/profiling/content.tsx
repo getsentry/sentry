@@ -1,10 +1,9 @@
 import {useCallback, useEffect} from 'react';
-import {browserHistory} from 'react-router';
+import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
@@ -25,26 +24,25 @@ import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
-import {useProfiles} from 'sentry/utils/profiling/hooks/useProfiles';
 import {useProfileTransactions} from 'sentry/utils/profiling/hooks/useProfileTransactions';
 import {useProfilingOnboarding} from 'sentry/utils/profiling/hooks/useProfilingOnboarding';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-import {ProfilingScatterChart} from './landing/profilingScatterChart';
+import {ProfileCharts} from './landing/profileCharts';
 
 interface ProfilingContentProps {
   location: Location;
+  router: InjectedRouter;
 }
 
-function ProfilingContent({location}: ProfilingContentProps) {
+function ProfilingContent({location, router}: ProfilingContentProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const cursor = decodeScalar(location.query.cursor);
   const query = decodeScalar(location.query.query, '');
   const profileFilters = useProfileFilters({query: '', selection});
-  const profiles = useProfiles({cursor, query, selection});
   const transactions = useProfileTransactions({cursor, query, selection});
 
   const [onboardingRequestState, onOnboardingDismiss] = useProfilingOnboarding();
@@ -118,23 +116,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                     maxQueryLength={MAX_QUERY_LENGTH}
                   />
                 </ActionBar>
-                {profiles.type === 'errored' && (
-                  <Alert type="error" showIcon>
-                    {t('Unable to load profiles')}
-                  </Alert>
-                )}
-                <ProfilingScatterChart
-                  datetime={
-                    selection?.datetime ?? {
-                      start: null,
-                      end: null,
-                      period: null,
-                      utc: null,
-                    }
-                  }
-                  traces={profiles.type === 'resolved' ? profiles.data.traces : []}
-                  isLoading={profiles.type === 'loading'}
-                />
+                <ProfileCharts router={router} query={query} selection={selection} />
                 <ProfileTransactionsTable
                   error={
                     transactions.type === 'errored' ? t('Unable to load profiles') : null
