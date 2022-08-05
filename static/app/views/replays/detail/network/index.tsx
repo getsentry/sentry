@@ -144,7 +144,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
         <Item {...columnHandlers}>
           <Text>{network.op}</Text>
         </Item>
-        <Item {...columnHandlers}>
+        <Item {...columnHandlers} numeric>
           {`${(networkEndTimestamp - networkStartTimestamp).toFixed(2)}ms`}
         </Item>
         <Item {...columnHandlers} numeric>
