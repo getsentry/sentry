@@ -211,4 +211,61 @@ describe('SelectedGroupStore', function () {
       expect(trigger).toHaveBeenCalled();
     });
   });
+
+  describe('shiftSelectItems()', function () {
+    it('toggles all between last selected and new selection', function () {
+      const ids = ['11', '12', '13', '14', '15'];
+      jest.spyOn(GroupStore, 'getAllItemIds').mockImplementation(() => ids);
+      SelectedGroupStore.add(ids);
+      SelectedGroupStore.toggleSelect('12');
+      SelectedGroupStore.shiftToggleItems('14');
+      expect(SelectedGroupStore.records).toEqual({
+        11: false,
+        12: true,
+        13: true,
+        14: true,
+        15: false,
+      });
+    });
+    it('toggles all between last selected and new selection backwards', function () {
+      const ids = ['11', '12', '13', '14', '15'];
+      jest.spyOn(GroupStore, 'getAllItemIds').mockImplementation(() => ids);
+      SelectedGroupStore.add(ids);
+      SelectedGroupStore.toggleSelect('14');
+      SelectedGroupStore.shiftToggleItems('12');
+      expect(SelectedGroupStore.records).toEqual({
+        11: false,
+        12: true,
+        13: true,
+        14: true,
+        15: false,
+      });
+    });
+    it('deslects after selecting', function () {
+      const ids = ['11', '12', '13', '14', '15'];
+      jest.spyOn(GroupStore, 'getAllItemIds').mockImplementation(() => ids);
+      SelectedGroupStore.add(ids);
+      SelectedGroupStore.toggleSelect('11');
+
+      // Select everything
+      SelectedGroupStore.shiftToggleItems('15');
+      expect(SelectedGroupStore.records).toEqual({
+        11: true,
+        12: true,
+        13: true,
+        14: true,
+        15: true,
+      });
+
+      // Deslect between selection (15) and 13
+      SelectedGroupStore.shiftToggleItems('13');
+      expect(SelectedGroupStore.records).toEqual({
+        11: true,
+        12: true,
+        13: false,
+        14: false,
+        15: false,
+      });
+    });
+  });
 });

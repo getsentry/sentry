@@ -4,6 +4,10 @@ import GroupStore from 'sentry/stores/groupStore';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 interface InternalDefinition {
+  /**
+   * The last item to have been selected
+   */
+  lastSelected: string | null;
   records: Record<string, boolean>;
 }
 
@@ -19,16 +23,19 @@ interface SelectedGroupStoreDefinition extends StoreDefinition, InternalDefiniti
   numSelected(): number;
   onGroupChange(itemIds: string[]): void;
   prune(): void;
+  shiftToggleItems(itemId: string): void;
   toggleSelect(itemId: string): void;
   toggleSelectAll(): void;
 }
 
 const storeConfig: SelectedGroupStoreDefinition = {
   records: {},
+  lastSelected: null,
   unsubscribeListeners: [],
 
   init() {
     this.records = {};
+    this.lastSelected = null;
 
     this.unsubscribeListeners.push(
       this.listenTo(GroupStore, this.onGroupChange, this.onGroupChange)
@@ -52,6 +59,7 @@ const storeConfig: SelectedGroupStoreDefinition = {
 
   prune() {
     const existingIds = new Set(GroupStore.getAllItemIds());
+    this.lastSelected = null;
 
     // Remove ids that no longer exist
     for (const itemId in this.records) {
@@ -100,6 +108,7 @@ const storeConfig: SelectedGroupStoreDefinition = {
     for (const itemId in this.records) {
       this.records[itemId] = false;
     }
+    this.lastSelected = null;
     this.trigger();
   },
 
@@ -108,15 +117,50 @@ const storeConfig: SelectedGroupStoreDefinition = {
       return;
     }
     this.records[itemId] = !this.records[itemId];
+    if (this.records[itemId]) {
+      this.lastSelected = itemId;
+    }
     this.trigger();
   },
 
   toggleSelectAll() {
     const allSelected = !this.allSelected();
+    this.lastSelected = null;
 
     for (const itemId in this.records) {
       this.records[itemId] = allSelected;
     }
+
+    this.trigger();
+  },
+
+  shiftToggleItems(itemId) {
+    if (!this.records.hasOwnProperty(itemId)) {
+      return;
+    }
+    if (!this.lastSelected) {
+      this.toggleSelect(itemId);
+      return;
+    }
+
+    const ids = GroupStore.getAllItemIds();
+    const lastIdx = ids.findIndex(id => id === this.lastSelected);
+    const currentIdx = ids.findIndex(id => id === itemId);
+    const newValue = !this.records[itemId];
+
+    if (lastIdx > -1 && currentIdx > -1) {
+      const selected =
+        lastIdx < currentIdx
+          ? ids.slice(lastIdx, currentIdx)
+          : ids.slice(currentIdx, lastIdx);
+      [...selected, this.lastSelected, itemId].forEach(id => {
+        if (this.records.hasOwnProperty(id)) {
+          this.records[id] = newValue;
+        }
+      });
+    }
+
+    this.lastSelected = itemId;
 
     this.trigger();
   },
