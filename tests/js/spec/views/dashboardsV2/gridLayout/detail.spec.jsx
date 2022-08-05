@@ -297,6 +297,10 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/events-geo/',
         body: {data: [], meta: {}},
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/',
+        body: [],
+      });
     });
 
     afterEach(function () {
