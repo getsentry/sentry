@@ -49,8 +49,16 @@ export function getGroupReleaseChartMarkers(
 
   const firstSeenX = new Date(firstSeen ?? 0).getTime();
   const lastSeenX = new Date(lastSeen ?? 0).getTime();
+  const difference = lastSeenX - firstSeenX;
+  const oneHourMs = 1000 * 60 * 60;
 
-  if (firstSeen && stats.length > 2 && firstSeenX >= firstGraphTime) {
+  if (
+    firstSeen &&
+    stats.length > 2 &&
+    firstSeenX >= firstGraphTime &&
+    // Don't show first seen if the markers are too close together
+    difference > oneHourMs
+  ) {
     // Find the first bucket that would contain our first seen event
     const firstBucket = stats.findIndex(([time]) => time * 1000 > firstSeenX);
 
@@ -83,7 +91,9 @@ export function getGroupReleaseChartMarkers(
     show: true,
     trigger: 'item',
     formatter: ({data}) => {
-      const time = getFormattedDate(data.displayValue, 'MMM D, YYYY LT');
+      const time = getFormattedDate(data.displayValue, 'MMM D, YYYY LT', {
+        local: true,
+      });
       return [
         '<div class="tooltip-series">',
         `<div><span class="tooltip-label"><strong>${data.name}</strong></span></div>`,
@@ -182,7 +192,7 @@ function GroupReleaseChart(props: Props) {
           top: 6,
           bottom: 4,
           left: 4,
-          right: 0,
+          right: 4,
         }}
       />
     </SidebarSection>
