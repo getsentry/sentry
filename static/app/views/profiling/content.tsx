@@ -104,8 +104,11 @@ function ProfilingContent({location}: ProfilingContentProps) {
   }, []);
 
   const shouldShowProfilingOnboardingPanel = useMemo((): boolean => {
+    if (profiles.type === 'resolved' && profiles.data.traces.length > 0) {
+      return false;
+    }
     return !hasSetupProfilingForAtLeastOneProject(selection.projects, projects);
-  }, [selection.projects, projects]);
+  }, [selection.projects, projects, profiles]);
 
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
