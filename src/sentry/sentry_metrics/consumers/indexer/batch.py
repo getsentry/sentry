@@ -39,7 +39,7 @@ def valid_metric_name(name: Optional[str]) -> bool:
 
 def _should_sample_debug_log() -> bool:
     rate = settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE
-    return rate and random.random() <= rate
+    return (rate > 0) and random.random() <= rate
 
 
 def invalid_metric_tags(tags: Mapping[str, str]) -> Sequence[str]:
