@@ -1381,7 +1381,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                                 Function(
                                     "nullIf",
                                     [
-                                        Function(
+                                        Function(  # Only count if the column exists (doing >=0 covers that)
                                             "uniqIf",
                                             [
                                                 self.builder.column("user"),
