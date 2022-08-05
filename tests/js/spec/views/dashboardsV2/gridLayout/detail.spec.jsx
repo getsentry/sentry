@@ -1131,10 +1131,6 @@ describe('Dashboards > Detail', function () {
     });
 
     it('can save absolute time range in existing dashboard', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/releases/',
-        body: [],
-      });
       const testData = initializeOrg({
         organization: TestStubs.Organization({
           features: [
@@ -1320,11 +1316,6 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/projects/',
         body: testProjects,
       });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/releases/',
-        body: [],
-      });
-
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         body: TestStubs.Dashboard(widgets, {
