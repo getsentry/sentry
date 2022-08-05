@@ -138,7 +138,7 @@ describe('TraceView', () => {
 
     it('should expand grouped siblings when clicked, and then regroup when clicked again', async () => {
       // eslint-disable-next-line no-console
-      console.error = jest.fn();
+      jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
       const data = initializeData({
         features: ['performance-autogroup-sibling-spans'],

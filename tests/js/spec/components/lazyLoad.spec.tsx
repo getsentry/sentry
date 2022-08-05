@@ -45,7 +45,7 @@ describe('LazyLoad', function () {
 
   it('renders with error message when promise is rejected', async function () {
     // eslint-disable-next-line no-console
-    console.error = jest.fn();
+    jest.spyOn(console, 'error').mockImplementation(jest.fn());
     const getComponent = jest.fn(
       () =>
         new Promise<ResolvedComponent>((_resolve, reject) =>

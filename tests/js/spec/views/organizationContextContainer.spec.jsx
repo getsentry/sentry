@@ -146,7 +146,7 @@ describe('OrganizationContextContainer', function () {
       url: '/organizations/org-slug/',
       statusCode: 403,
     });
-    console.error = jest.fn(); // eslint-disable-line no-console
+    jest.spyOn(console, 'error').mockImplementation(jest.fn()); // eslint-disable-line no-console
     wrapper = createWrapper();
 
     // await dispatching action
