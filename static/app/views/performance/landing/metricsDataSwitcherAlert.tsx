@@ -15,9 +15,9 @@ import EventView from 'sentry/utils/discover/eventView';
 
 import {areMultipleProjectsSelected, getSelectedProjectPlatformsArray} from '../utils';
 
-import {MetricDataSwitcherChildrenProps} from './metricsDataSwitcher';
+import {MetricDataSwitcherOutcome} from './metricsDataSwitcher';
 
-interface MetricEnhancedDataAlertProps extends MetricDataSwitcherChildrenProps {
+interface MetricEnhancedDataAlertProps extends MetricDataSwitcherOutcome {
   eventView: EventView;
   location: Location;
   organization: Organization;
