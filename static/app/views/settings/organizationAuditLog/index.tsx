@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
 import * as Sentry from '@sentry/react';
+import {Location} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {CursorHandler} from 'sentry/components/pagination';
@@ -11,26 +12,27 @@ import withOrganization from 'sentry/utils/withOrganization';
 import AuditLogList from './auditLogList';
 
 type Props = {
+  location: Location;
   organization: Organization;
 };
 
 type State = {
   entryList: AuditLog[] | null;
   entryListPageLinks: string | null;
+  eventType: string | undefined;
   eventTypes: string[] | null;
   isLoading: boolean;
   currentCursor?: string;
-  eventType?: string;
 };
 
-function OrganizationAuditLog({organization}: Props) {
+function OrganizationAuditLog({location, organization}: Props) {
   const [state, setState] = useState<State>({
     entryList: [],
     entryListPageLinks: null,
+    eventType: undefined,
     eventTypes: [],
     isLoading: true,
   });
-
   const api = useApi();
 
   const handleCursor: CursorHandler = resultsCursor => {
@@ -80,14 +82,14 @@ function OrganizationAuditLog({organization}: Props) {
     fetchAuditLogData();
   }, [fetchAuditLogData]);
 
-  const handleEventSelect = (value: string | undefined) => {
+  const handleEventSelect = (value: string) => {
     setState(prevState => ({
       ...prevState,
       eventType: value,
     }));
     browserHistory.push({
       pathname: location.pathname,
-      search: `?event=${value}`,
+      query: {...location.query, event: value},
     });
   };
 

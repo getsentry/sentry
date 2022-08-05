@@ -57,7 +57,7 @@ type Props = {
   eventTypes: string[] | null;
   isLoading: boolean;
   onCursor: CursorHandler | undefined;
-  onEventSelect: (value: string) => void;
+  onEventSelect: (value: string, location: Location) => void;
   pageLinks: string | null;
 };
 
@@ -86,7 +86,7 @@ const AuditLogList = ({
       placeholder={t('Select Action: ')}
       options={eventOptions}
       onChange={options => {
-        onEventSelect(options?.value);
+        onEventSelect(options?.value, location);
       }}
     />
   );
