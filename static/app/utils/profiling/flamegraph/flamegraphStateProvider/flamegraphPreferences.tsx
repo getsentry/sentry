@@ -4,14 +4,16 @@ export type FlamegraphColorCodings = [
   'by library',
   'by recursion'
 ];
-
+export type FlamegraphFocus = ['focus', 'hide'];
+export type FlamegraphLayout = ['table right', 'table bottom', 'table left'];
 export type FlamegraphSorting = ['left heavy', 'call order'];
 export type FlamegraphViewOptions = ['top down', 'bottom up'];
 export type FlamegraphAxisOptions = ['standalone', 'transaction'];
 
 export interface FlamegraphPreferences {
   colorCoding: FlamegraphColorCodings[number];
-  layout: 'table right' | 'table bottom' | 'table left';
+  focus: FlamegraphFocus[number];
+  layout: FlamegraphLayout[number];
   sorting: FlamegraphSorting[number];
   view: FlamegraphViewOptions[number];
   xAxis: FlamegraphAxisOptions[number];
@@ -19,6 +21,7 @@ export interface FlamegraphPreferences {
 
 type FlamegraphPreferencesAction =
   | {payload: FlamegraphPreferences['colorCoding']; type: 'set color coding'}
+  | {payload: FlamegraphPreferences['focus']; type: 'set focus'}
   | {payload: FlamegraphPreferences['sorting']; type: 'set sorting'}
   | {payload: FlamegraphPreferences['view']; type: 'set view'}
   | {payload: FlamegraphPreferences['layout']; type: 'set layout'}
@@ -42,6 +45,12 @@ export function flamegraphPreferencesReducer(
       return {
         ...state,
         colorCoding: action.payload,
+      };
+    }
+    case 'set focus': {
+      return {
+        ...state,
+        focus: action.payload,
       };
     }
     case 'set sorting': {

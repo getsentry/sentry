@@ -134,7 +134,7 @@ function FlamegraphZoomView({
   }, [configSpaceCursor, flamegraphRenderer]);
 
   const focusedRects: Rect[] = useMemo(() => {
-    if (!flamegraphProfile.focusFrame) {
+    if (!flamegraphProfile.focusFrame || flamegraphState.preferences.focus === 'hide') {
       return [];
     }
 
@@ -156,7 +156,7 @@ function FlamegraphZoomView({
     }
 
     return rects;
-  }, [flamegraph, flamegraphProfile.focusFrame]);
+  }, [flamegraph, flamegraphProfile.focusFrame, flamegraphState.preferences.focus]);
 
   useEffect(() => {
     const onKeyDown = (evt: KeyboardEvent) => {
@@ -338,6 +338,13 @@ function FlamegraphZoomView({
       return undefined;
     }
 
+    // if we're hiding the focus, then no need to setup the draw callbacks
+    // also dispatch a draw call to remove the existing focus
+    if (flamegraphState.preferences.focus === 'hide') {
+      scheduler.draw();
+      return undefined;
+    }
+
     const drawFocusedFrameBorder = () => {
       selectedFrameRenderer.draw(
         focusedRects,
@@ -360,6 +367,7 @@ function FlamegraphZoomView({
     flamegraphView,
     flamegraphTheme,
     focusedRects,
+    flamegraphState.preferences.focus,
     scheduler,
     selectedFrameRenderer,
   ]);

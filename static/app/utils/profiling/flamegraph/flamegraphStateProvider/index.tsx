@@ -22,6 +22,7 @@ import {useFlamegraphStateValue} from '../useFlamegraphState';
 import {
   FlamegraphAxisOptions,
   FlamegraphColorCodings,
+  FlamegraphFocus,
   flamegraphPreferencesReducer,
   FlamegraphSorting,
   FlamegraphViewOptions,
@@ -33,7 +34,10 @@ import {flamegraphZoomPositionReducer} from './flamegraphZoomPosition';
 // Intersect the types so we can properly guard
 type PossibleQuery =
   | Query
-  | (Pick<FlamegraphState['preferences'], 'colorCoding' | 'sorting' | 'view' | 'xAxis'> &
+  | (Pick<
+      FlamegraphState['preferences'],
+      'colorCoding' | 'focus' | 'sorting' | 'view' | 'xAxis'
+    > &
       Pick<FlamegraphState['search'], 'query'>);
 
 function isColorCoding(
@@ -45,6 +49,14 @@ function isColorCoding(
     'by library',
     'by recursion',
   ];
+
+  return values.includes(value as any);
+}
+
+function isFocus(
+  value: PossibleQuery['focus'] | FlamegraphState['preferences']['focus']
+): value is FlamegraphState['preferences']['focus'] {
+  const values: FlamegraphFocus = ['focus', 'hide'];
 
   return values.includes(value as any);
 }
@@ -101,6 +113,9 @@ export function decodeFlamegraphStateFromQueryParams(
       colorCoding: isColorCoding(query.colorCoding)
         ? query.colorCoding
         : DEFAULT_FLAMEGRAPH_STATE.preferences.colorCoding,
+      focus: isFocus(query.focus)
+        ? query.focus
+        : DEFAULT_FLAMEGRAPH_STATE.preferences.focus,
       sorting: isSorting(query.sorting)
         ? query.sorting
         : DEFAULT_FLAMEGRAPH_STATE.preferences.sorting,
@@ -217,6 +232,7 @@ export const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
   },
   preferences: {
     colorCoding: 'by symbol name',
+    focus: 'focus',
     sorting: 'call order',
     view: 'top down',
     xAxis: 'standalone',
@@ -260,6 +276,9 @@ export function FlamegraphStateProvider(
       colorCoding:
         props.initialState?.preferences?.colorCoding ??
         DEFAULT_FLAMEGRAPH_STATE.preferences.colorCoding,
+      focus:
+        props.initialState?.preferences?.focus ??
+        DEFAULT_FLAMEGRAPH_STATE.preferences.focus,
       sorting:
         props.initialState?.preferences?.sorting ??
         DEFAULT_FLAMEGRAPH_STATE.preferences.sorting,
