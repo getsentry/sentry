@@ -1423,6 +1423,69 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert abs(data[0]["count_miserable(user)"]) == 1
         assert abs(data[1]["count_miserable(user)"]) == 2
 
+    def test_user_misery_denominator(self):
+        """This is to test against a bug where the denominator of misery(total unique users) was wrong
+        This is because the total unique users for a LCP misery should only count users that have had a txn with lcp,
+        and not count all transactions (ie. uniq_if(transaction has lcp) not just uniq())
+        """
+        ProjectTransactionThreshold.objects.create(
+            project=self.project,
+            organization=self.project.organization,
+            threshold=600,
+            metric=TransactionMetric.LCP.value,
+        )
+        lcps = [
+            400,
+            400,
+            300,
+            3000,
+            3000,
+            3000,
+        ]
+        for idx, lcp in enumerate(lcps):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(10 + idx)),
+            )
+            data["event_id"] = f"{idx}" * 32
+            data["transaction"] = "/misery/new/"
+            data["user"] = {"email": f"{idx}@example.com"}
+            data["measurements"] = {
+                "lcp": {"value": lcp},
+            }
+            self.store_event(data, project_id=self.project.id)
+
+        # Shouldn't count towards misery
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=(10)),
+            start_timestamp=before_now(minutes=(10)),
+        )
+        data["transaction"] = "/misery/new/"
+        data["user"] = {"email": "7@example.com"}
+        data["measurements"] = {}
+        self.store_event(data, project_id=self.project.id)
+
+        query = {
+            "field": [
+                "transaction",
+                "user_misery()",
+            ],
+            "query": "event.type:transaction",
+            "project": [self.project.id],
+            "sort": "-user_misery",
+        }
+
+        response = self.do_request(
+            query,
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        # (3 frustrated + 5.8875) / (6 + 117.75)
+        assert abs(data[0]["user_misery()"] - 0.071818) < 0.0001
+
     def test_user_misery_alias_field(self):
         events = [
             ("one", 300),

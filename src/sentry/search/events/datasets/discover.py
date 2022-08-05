@@ -1353,11 +1353,13 @@ class DiscoverDatasetConfig(DatasetConfig):
         return Function("uniqIf", [col, Function("greater", [lhs, rhs])], alias)
 
     def _resolve_user_misery_function(self, args: Mapping[str, str], alias: str) -> SelectType:
-        if args["satisfaction"]:
+        if satisfaction := args["satisfaction"]:
+            column = self.builder.column("transaction.duration")
             count_miserable_agg = self.builder.resolve_function(
-                f"count_miserable(user,{args['satisfaction']})"
+                f"count_miserable(user,{satisfaction})"
             )
         else:
+            column = self._project_threshold_multi_if_function()
             count_miserable_agg = self.builder.resolve_function("count_miserable(user)")
 
         return Function(
@@ -1377,7 +1379,17 @@ class DiscoverDatasetConfig(DatasetConfig):
                             "plus",
                             [
                                 Function(
-                                    "nullIf", [Function("uniq", [self.builder.column("user")]), 0]
+                                    "nullIf",
+                                    [
+                                        Function(  # Only count if the column exists (doing >=0 covers that)
+                                            "uniqIf",
+                                            [
+                                                self.builder.column("user"),
+                                                Function("greater", [column, 0]),
+                                            ],
+                                        ),
+                                        0,
+                                    ],
                                 ),
                                 args["parameter_sum"],
                             ],
