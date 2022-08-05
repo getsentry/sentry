@@ -126,13 +126,13 @@ def make_select_statement() -> List[Union[Column, Function]]:
         Column("replay_id"),
         # First, non-null value of a collected array.
         _grouped_unique_scalar_value(column_name="title"),
-        _grouped_unique_scalar_value(column_name="project_id", alias="agg_project_id"),
+        _grouped_unique_scalar_value(column_name="project_id", alias="projectId"),
         _grouped_unique_scalar_value(column_name="platform"),
         _grouped_unique_scalar_value(column_name="environment", alias="agg_environment"),
         _grouped_unique_scalar_value(column_name="release"),
         _grouped_unique_scalar_value(column_name="dist"),
         _grouped_unique_scalar_value(column_name="user_id"),
-        _grouped_unique_scalar_value(column_name="user_agent"),
+        _grouped_unique_scalar_value(column_name="user_agent", alias="userAgent"),
         _grouped_unique_scalar_value(column_name="user_email"),
         _grouped_unique_scalar_value(column_name="user_name"),
         Function(
@@ -143,10 +143,10 @@ def make_select_statement() -> List[Union[Column, Function]]:
                     aliased=False,
                 )
             ],
-            alias="user_ip_address",
+            alias="user_ipAddress",
         ),
-        _grouped_unique_scalar_value(column_name="sdk_name"),
-        _grouped_unique_scalar_value(column_name="sdk_version"),
+        _grouped_unique_scalar_value(column_name="sdk_name", alias="sdkName"),
+        _grouped_unique_scalar_value(column_name="sdk_version", alias="sdkVersion"),
         _grouped_unique_scalar_value(column_name="tags.key"),
         _grouped_unique_scalar_value(column_name="tags.value"),
         # Flatten array of arrays.
@@ -162,14 +162,14 @@ def make_select_statement() -> List[Union[Column, Function]]:
                     parameters=[Column("trace_ids")],
                 ),
             ],
-            alias="trace_ids",
+            alias="traceIds",
         ),
         # Aggregations.
-        Function("min", parameters=[Column("replay_start_timestamp")], alias="started_at"),
-        Function("max", parameters=[Column("timestamp")], alias="finished_at"),
+        Function("min", parameters=[Column("replay_start_timestamp")], alias="startedAt"),
+        Function("max", parameters=[Column("timestamp")], alias="finishedAt"),
         Function(
             "dateDiff",
-            parameters=["second", Column("started_at"), Column("finished_at")],
+            parameters=["second", Column("startedAt"), Column("finishedAt")],
             alias="duration",
         ),
         Function(
@@ -177,11 +177,11 @@ def make_select_statement() -> List[Union[Column, Function]]:
             parameters=[Function("tuple", parameters=[Column("segment_id"), Column("urls")])],
             alias="agg_urls",
         ),
-        Function("count", parameters=[Column("segment_id")], alias="count_segments"),
+        Function("count", parameters=[Column("segment_id")], alias="countSegments"),
         Function(
             "uniqArray",
             parameters=[Column("error_ids")],
-            alias="count_errors",
+            alias="countErrors",
         ),
     ]
 
@@ -219,19 +219,19 @@ def _grouped_unique_scalar_value(
 
 def make_sort_ordering(sort: Optional[str]) -> List[OrderBy]:
     """Return the complete set of conditions to order our query by."""
-    if sort == "started_at":
-        orderby = [OrderBy(Column("started_at"), Direction.ASC)]
-    elif sort == "finished_at":
-        orderby = [OrderBy(Column("finished_at"), Direction.ASC)]
-    elif sort == "-finished_at":
-        orderby = [OrderBy(Column("finished_at"), Direction.DESC)]
+    if sort == "startedAt":
+        orderby = [OrderBy(Column("startedAt"), Direction.ASC)]
+    elif sort == "finishedAt":
+        orderby = [OrderBy(Column("finishedAt"), Direction.ASC)]
+    elif sort == "-finishedAt":
+        orderby = [OrderBy(Column("finishedAt"), Direction.DESC)]
     elif sort == "duration":
         orderby = [OrderBy(Column("duration"), Direction.ASC)]
     elif sort == "-duration":
         orderby = [OrderBy(Column("duration"), Direction.DESC)]
     else:
         # By default return the most recent replays.
-        orderby = [OrderBy(Column("started_at"), Direction.DESC)]
+        orderby = [OrderBy(Column("startedAt"), Direction.DESC)]
 
     return orderby
 
