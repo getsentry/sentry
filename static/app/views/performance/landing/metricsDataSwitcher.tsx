@@ -29,6 +29,7 @@ interface MetricDataSwitchProps {
   eventView: EventView;
   location: Location;
   organization: Organization;
+  hideLoadingIndicator?: boolean;
 }
 
 /**
@@ -60,7 +61,7 @@ export function MetricsDataSwitcher(props: MetricDataSwitchProps) {
     <Fragment>
       <MetricsCompatibilityQuery eventView={_eventView} {...baseDiscoverProps}>
         {data => {
-          if (data.isLoading) {
+          if (data.isLoading && !props.hideLoadingIndicator) {
             return (
               <Fragment>
                 <LoadingContainer>

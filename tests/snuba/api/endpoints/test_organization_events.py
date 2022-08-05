@@ -1423,6 +1423,69 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert abs(data[0]["count_miserable(user)"]) == 1
         assert abs(data[1]["count_miserable(user)"]) == 2
 
+    def test_user_misery_denominator(self):
+        """This is to test against a bug where the denominator of misery(total unique users) was wrong
+        This is because the total unique users for a LCP misery should only count users that have had a txn with lcp,
+        and not count all transactions (ie. uniq_if(transaction has lcp) not just uniq())
+        """
+        ProjectTransactionThreshold.objects.create(
+            project=self.project,
+            organization=self.project.organization,
+            threshold=600,
+            metric=TransactionMetric.LCP.value,
+        )
+        lcps = [
+            400,
+            400,
+            300,
+            3000,
+            3000,
+            3000,
+        ]
+        for idx, lcp in enumerate(lcps):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(10 + idx)),
+            )
+            data["event_id"] = f"{idx}" * 32
+            data["transaction"] = "/misery/new/"
+            data["user"] = {"email": f"{idx}@example.com"}
+            data["measurements"] = {
+                "lcp": {"value": lcp},
+            }
+            self.store_event(data, project_id=self.project.id)
+
+        # Shouldn't count towards misery
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=(10)),
+            start_timestamp=before_now(minutes=(10)),
+        )
+        data["transaction"] = "/misery/new/"
+        data["user"] = {"email": "7@example.com"}
+        data["measurements"] = {}
+        self.store_event(data, project_id=self.project.id)
+
+        query = {
+            "field": [
+                "transaction",
+                "user_misery()",
+            ],
+            "query": "event.type:transaction",
+            "project": [self.project.id],
+            "sort": "-user_misery",
+        }
+
+        response = self.do_request(
+            query,
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        # (3 frustrated + 5.8875) / (6 + 117.75)
+        assert abs(data[0]["user_misery()"] - 0.071818) < 0.0001
+
     def test_user_misery_alias_field(self):
         events = [
             ("one", 300),
@@ -1449,6 +1512,71 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 1
         data = response.data["data"]
         assert abs(data[0]["user_misery(300)"] - 0.0653) < 0.0001
+
+    def test_apdex_denominator_correct(self):
+        """This is to test against a bug where the denominator of apdex(total count) was wrong
+
+        This is because the total_count for a LCP apdex should only count transactions that have lcp, and not count
+        all transactions (ie. count_if(transaction has lcp) not just count())
+        """
+        ProjectTransactionThreshold.objects.create(
+            project=self.project,
+            organization=self.project.organization,
+            threshold=600,
+            metric=TransactionMetric.LCP.value,
+        )
+        lcps = [
+            400,
+            400,
+            300,
+            800,
+            3000,
+            3000,
+            3000,
+        ]
+        for idx, lcp in enumerate(lcps):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(10 + idx)),
+            )
+            data["event_id"] = f"{idx}" * 32
+            data["transaction"] = "/apdex/new/"
+            data["user"] = {"email": f"{idx}@example.com"}
+            data["measurements"] = {
+                "lcp": {"value": lcp},
+            }
+            self.store_event(data, project_id=self.project.id)
+
+        # Shouldn't count towards apdex
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=(10)),
+            start_timestamp=before_now(minutes=(10)),
+        )
+        data["transaction"] = "/apdex/new/"
+        data["user"] = {"email": "7@example.com"}
+        data["measurements"] = {}
+        self.store_event(data, project_id=self.project.id)
+
+        query = {
+            "field": [
+                "transaction",
+                "apdex()",
+            ],
+            "query": "event.type:transaction",
+            "project": [self.project.id],
+            "sort": "-apdex",
+        }
+
+        response = self.do_request(
+            query,
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        # 3 satisfied + 1 tolerated => 3.5/7
+        assert data[0]["apdex()"] == 0.5
 
     def test_apdex_new_alias_field(self):
         ProjectTransactionThreshold.objects.create(
