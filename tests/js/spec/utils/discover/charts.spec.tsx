@@ -248,4 +248,10 @@ describe('getDurationUnit()', () => {
     expect(numOfDigits).toBeLessThan(6);
     expect(durationUnit).not.toBe(MILLISECOND);
   });
+
+  it('Should return ms if all values are 0', () => {
+    const series = generateSeries([0, 0, 0]);
+    const durationUnit = getDurationUnit(series);
+    expect(durationUnit).toBe(1);
+  });
 });
