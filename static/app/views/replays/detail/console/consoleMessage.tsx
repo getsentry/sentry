@@ -143,10 +143,20 @@ function ConsoleMessage({
         level={breadcrumb.level}
         isActive={isActive}
         hasOccurred={hasOccurred}
+        onClick={handleOnClick}
+        onMouseOver={handleOnMouseOver}
+        onMouseOut={handleOnMouseOut}
       >
         {ICONS[breadcrumb.level]}
       </Icon>
-      <Message isLast={isLast} level={breadcrumb.level} hasOccurred={hasOccurred}>
+      <Message
+        isLast={isLast}
+        level={breadcrumb.level}
+        hasOccurred={hasOccurred}
+        onClick={handleOnClick}
+        onMouseOver={handleOnMouseOver}
+        onMouseOut={handleOnMouseOut}
+      >
         <ErrorBoundary mini>
           <MessageFormatter breadcrumb={breadcrumb} />
         </ErrorBoundary>
@@ -175,6 +185,7 @@ const Common = styled('div')<{
   level: string;
   hasOccurred?: boolean;
 }>`
+  cursor: pointer;
   background-color: ${p =>
     ['warning', 'error'].includes(p.level)
       ? p.theme.alert[p.level].backgroundLight
