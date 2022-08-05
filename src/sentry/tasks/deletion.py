@@ -65,6 +65,14 @@ def run_deletion(deletion_id, first_pass=True):
     from sentry import deletions
     from sentry.models import ScheduledDeletion
 
+    logger.info(
+        "deletion.started",
+        extra={
+            "deletion_id": deletion_id,
+            "first_pass": first_pass,
+        },
+    )
+
     try:
         deletion = ScheduledDeletion.objects.get(id=deletion_id)
     except ScheduledDeletion.DoesNotExist:
