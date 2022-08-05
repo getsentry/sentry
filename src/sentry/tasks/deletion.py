@@ -137,6 +137,14 @@ def delete_groups(object_ids, transaction_id=None, eventstream_state=None, **kwa
     from sentry import deletions, eventstream
     from sentry.models import Group
 
+    logger.info(
+        "delete_groups.started",
+        extra={
+            "object_ids_count": len(object_ids),
+            "first_id": object_ids[0],
+        },
+    )
+
     transaction_id = transaction_id or uuid4().hex
 
     max_batch_size = 100
