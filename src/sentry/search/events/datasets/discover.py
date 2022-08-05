@@ -1227,17 +1227,48 @@ class DiscoverDatasetConfig(DatasetConfig):
     # Functions
     def _resolve_apdex_function(self, args: Mapping[str, str], alias: str) -> SelectType:
         if args["satisfaction"]:
-            function_args = [self.builder.column("transaction.duration"), int(args["satisfaction"])]
+            column = self.builder.column("transaction.duration")
+            satisfaction = int(args["satisfaction"])
         else:
-            function_args = [
-                self._project_threshold_multi_if_function(),
+            column = self._project_threshold_multi_if_function()
+            satisfaction = Function(
+                "tupleElement",
+                [self.builder.resolve_field_alias("project_threshold_config"), 2],
+            )
+        count_satisfaction = Function(  # countIf(column<satisfaction)
+            "countIf", [Function("lessOrEquals", [column, satisfaction])]
+        )
+        count_tolerable = Function(  # countIf(satisfaction<column<=satisfacitonx4)
+            "countIf",
+            [
                 Function(
-                    "tupleElement",
-                    [self.builder.resolve_field_alias("project_threshold_config"), 2],
-                ),
-            ]
+                    "and",
+                    [
+                        Function("greater", [column, satisfaction]),
+                        Function("lessOrEquals", [column, Function("multiply", [satisfaction, 4])]),
+                    ],
+                )
+            ],
+        )
+        count_tolerable_div_2 = Function("divide", [count_tolerable, 2])
+        count_total = Function(  # Only count if the column exists (doing >=0 covers that)
+            "countIf", [Function("greaterOrEquals", [column, 0])]
+        )
 
-        return Function("apdex", function_args, alias)
+        return Function(  # (satisfied + tolerable/2)/(total)
+            "divide",
+            [
+                Function(
+                    "plus",
+                    [
+                        count_satisfaction,
+                        count_tolerable_div_2,
+                    ],
+                ),
+                count_total,
+            ],
+            alias,
+        )
 
     def _resolve_web_vital_function(
         self, args: Mapping[str, str | Column], alias: str
