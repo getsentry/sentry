@@ -45,7 +45,7 @@ describe('Performance > Landing > Index', function () {
   beforeEach(function () {
     // @ts-ignore no-console
     // eslint-disable-next-line no-console
-    console.error = jest.fn();
+    jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
