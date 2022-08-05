@@ -83,6 +83,7 @@ class SudoModal extends Component<Props, State> {
 
     if (!this.state.authenticators.length) {
       this.handleError('No Authenticator');
+      return;
     }
 
     if (this.state.showAccessForms && isSuperuser) {
