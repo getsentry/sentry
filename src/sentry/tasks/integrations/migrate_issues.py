@@ -87,6 +87,9 @@ def migrate_issues(integration_id: int, organization_id: int) -> None:
             )
             formatted_plugin_ignored_fields = {x.strip() for x in plugin_ignored_fields.split(",")}
             combo = formatted_plugin_ignored_fields | set(integration_ignored_fields)
+            # it's breaking here idk why :( i am not getting any error messages in my console
+            # and pdb isn't working please dig my grave
+            # print(config)
             config.update(combo)
             organization_integration.update(config=config)
             logger.info(
