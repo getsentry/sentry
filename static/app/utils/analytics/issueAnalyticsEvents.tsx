@@ -27,6 +27,11 @@ export type IssueEventParameters = {
     group?: string;
     platform?: string;
   };
+  'issue_search.empty': {
+    query: string;
+    search_source: string;
+    search_type: string;
+  };
   'issue_search.failed': {
     error: string;
     search_source: string;
@@ -64,6 +69,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_error_banner.viewed': 'Issue Error Banner Viewed',
   'issues_tab.viewed': 'Viewed Issues Tab', // high volume but send to our secondary event store anyways
   'issue_search.failed': 'Issue Search: Failed',
+  'issue_search.empty': 'Issue Search: Empty',
   'issue.search_sidebar_clicked': 'Issue Search Sidebar Clicked',
   'inbox_tab.issue_clicked': 'Clicked Issue from Inbox Tab',
   'issues_stream.realtime_clicked': 'Issues Stream: Realtime Clicked',
