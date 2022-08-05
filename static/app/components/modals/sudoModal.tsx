@@ -128,7 +128,11 @@ class SudoModal extends Component<Props, State> {
   handleError = err => {
     let errorType = '';
     if (err.status === 403) {
-      errorType = ErrorCodes.invalidPassword;
+      if (err.responseJSON.detail.code === 'no_u2f') {
+        errorType = ErrorCodes.noAuthenticator;
+      } else {
+        errorType = ErrorCodes.invalidPassword;
+      }
     } else if (err.status === 401) {
       errorType = ErrorCodes.invalidSSOSession;
     } else if (err.status === 400) {
