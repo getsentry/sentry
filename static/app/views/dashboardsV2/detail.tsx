@@ -198,9 +198,7 @@ class DashboardDetail extends Component<Props, State> {
           },
           disableEditWidget:
             organization.features.includes('dashboards-top-level-filter') &&
-            hasUnsavedFilterChanges(dashboard, location, {
-              release: location.query?.release,
-            }),
+            hasUnsavedFilterChanges(dashboard, location),
           disabledEditMessage: UNSAVED_FILTERS_MESSAGE,
         });
         trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.open', {
@@ -742,9 +740,7 @@ class DashboardDetail extends Component<Props, State> {
       organization.features.includes('dashboards-top-level-filter') &&
       dashboard.id !== 'default-overview' &&
       dashboardState !== DashboardState.CREATE &&
-      hasUnsavedFilterChanges(dashboard, location, {
-        release: location.query?.release,
-      });
+      hasUnsavedFilterChanges(dashboard, location);
 
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={organization.slug}>

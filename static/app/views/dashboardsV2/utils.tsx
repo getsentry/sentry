@@ -39,7 +39,6 @@ import {DisplayModes} from 'sentry/utils/discover/types';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {
   DashboardDetails,
-  DashboardFilters,
   DisplayType,
   Widget,
   WidgetQuery,
@@ -405,8 +404,7 @@ export function hasSavedPageFilters(dashboard: DashboardDetails) {
 
 export function hasUnsavedFilterChanges(
   initialDashboard: DashboardDetails,
-  location: Location,
-  newDashboardFilters: DashboardFilters
+  location: Location
 ) {
   const savedFilters = {
     projects: new Set(initialDashboard.projects),
@@ -422,7 +420,7 @@ export function hasUnsavedFilterChanges(
   const currentFilters = {
     ...getCurrentPageFilters(location),
     filters: {
-      release: new Set(newDashboardFilters.release),
+      release: new Set(location.query?.release),
     },
   };
   return !isEqual(savedFilters, {
