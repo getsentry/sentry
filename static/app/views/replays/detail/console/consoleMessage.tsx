@@ -157,13 +157,13 @@ function ConsoleMessage({
         hasOccurred={hasOccurred}
       >
         <Tooltip title={<DateTime date={breadcrumb.timestamp} seconds />}>
-          <div
+          <ConsoleTimestampContainer
             onClick={handleOnClick}
             onMouseOver={handleOnMouseOver}
             onMouseOut={handleOnMouseOut}
           >
             {showPlayerTime(breadcrumb.timestamp || '', startTimestampMs)}
-          </div>
+          </ConsoleTimestampContainer>
         </Tooltip>
       </ConsoleTimestamp>
     </Fragment>
@@ -214,6 +214,9 @@ const Common = styled('div')<{
 
 const ConsoleTimestamp = styled(Common)`
   padding: ${space(0.25)} ${space(1)};
+`;
+
+const ConsoleTimestampContainer = styled('div')`
   cursor: pointer;
 `;
 

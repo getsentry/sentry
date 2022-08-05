@@ -73,7 +73,7 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
               <ConsoleMessage
                 isActive={closestUserAction?.id === breadcrumb.id}
                 startTimestampMs={startTimestampMs}
-                key={i}
+                key={breadcrumb.id}
                 isLast={i === breadcrumbs.length - 1}
                 breadcrumb={breadcrumb}
                 hasOccurred={
