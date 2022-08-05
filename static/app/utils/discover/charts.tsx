@@ -152,7 +152,9 @@ export function findRangeOfMultiSeries(series: Series[], legend?: LegendComponen
       }
     });
     if (maxSeries?.data) {
-      const max = Math.max(...maxSeries.data.map(({value}) => value));
+      const max = Math.max(
+        ...maxSeries.data.map(({value}) => value).filter(value => !!value)
+      );
       const min = Math.min(
         ...minSeries.data.map(({value}) => value).filter(value => !!value)
       );
