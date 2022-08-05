@@ -24,18 +24,22 @@ class OrganizationIntegrationIssuesEndpoint(OrganizationIntegrationBaseEndpoint)
             )
             # hard coding jira seems weird for this endpoint but I'm not sure what else to do here, qparam?
             # except this isn't meant for anything else
+            if not plugin_options:
+                continue
+
             options_dict = {}
             for p in plugin_options:
                 options_dict[p.key] = p.value
 
-            # TODO check if the integration provider matches the instance URL, exit early if not
+            if options_dict.get("jira:instance_url") != integration.metadata.get("base_url"):
+                continue
+
             groups = Group.objects.filter(project=project.id)
             # this seems expensive but I'm not sure how else to go about it
             plugin_issues = GroupMeta.objects.filter(
                 key="jira:tid", group__id__in=[group.id for group in groups]
             )
             for plugin_issue in plugin_issues:
-                group = Group.objects.get(id=plugin_issue.group_id)
                 external_issue, created = ExternalIssue.objects.get_or_create(
                     organization_id=organization.id,
                     integration_id=integration.id,
@@ -45,8 +49,8 @@ class OrganizationIntegrationIssuesEndpoint(OrganizationIntegrationBaseEndpoint)
                 try:
                     with transaction.atomic():
                         GroupLink.objects.create(
-                            group_id=group.id,
-                            project_id=group.project_id,
+                            group_id=plugin_issue.group_id,
+                            project_id=project.id,
                             linked_type=GroupLink.LinkedType.issue,
                             linked_id=external_issue.id,
                             relationship=GroupLink.Relationship.references,
@@ -58,10 +62,10 @@ class OrganizationIntegrationIssuesEndpoint(OrganizationIntegrationBaseEndpoint)
 
                 plugin_issue.delete()
 
-            # if options_dict.get("jira:auto_create") == True:
+            # if options_dict.get("jira:auto_create") is True:
             #     if features.has("organizations:integrations-ticket-rules", organization):
             #         create_jira_migration_alert_rule()
-            # TODO create alert rule
+            # TODO create alert rule using options_dict
             # may want to hit some Jira endpoints to ensure availability first?
 
             # disable plugin
