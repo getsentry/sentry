@@ -146,7 +146,6 @@ def _last_seen_updater_processing_factory(
 
 
 def get_last_seen_updater(
-    topic: str,
     group_id: str,
     max_batch_size: int,
     max_batch_time: float,
@@ -158,7 +157,7 @@ def get_last_seen_updater(
         max_batch_size, max_batch_time, ingest_config
     )
     return StreamProcessor(
-        KafkaConsumer(get_config(topic, group_id, auto_offset_reset)),
-        Topic(topic),
+        KafkaConsumer(get_config(ingest_config.output_topic, group_id, auto_offset_reset)),
+        Topic(ingest_config.output_topic),
         processing_factory,
     )
