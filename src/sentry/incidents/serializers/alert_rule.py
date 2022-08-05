@@ -245,6 +245,11 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 self.context["organization"],
                 actor=self.context.get("user", None),
             )
+            and not features.has(
+                "organizations:mep-rollout-flag",
+                self.context["organization"],
+                actor=self.context.get("user", None),
+            )
             and dataset == Dataset.PerformanceMetrics
             and query_type == SnubaQuery.Type.PERFORMANCE
         ):

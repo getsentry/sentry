@@ -23,6 +23,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
+import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import SeenByList from 'sentry/components/seenByList';
 import ShortId from 'sentry/components/shortId';
 import Tooltip from 'sentry/components/tooltip';
@@ -372,6 +373,7 @@ class GroupHeader extends Component<Props, State> {
                 isActive={() => currentTab === Tab.REPLAYS}
               >
                 {t('Replays')} <Badge text={replaysCount ?? ''} />
+                <ReplaysFeatureBadge noTooltip />
               </ListLink>
             </Feature>
           </NavTabs>

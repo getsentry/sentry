@@ -31,6 +31,7 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
 
     if "sentry_metrics" in {mark.name for mark in request.node.iter_markers()}:
         mock_indexer = MockIndexer()
+        monkeypatch.setattr("sentry.sentry_metrics.indexer.backend", mock_indexer)
         monkeypatch.setattr("sentry.sentry_metrics.indexer.bulk_record", mock_indexer.bulk_record)
         monkeypatch.setattr("sentry.sentry_metrics.indexer.record", mock_indexer.record)
         monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", mock_indexer.resolve)

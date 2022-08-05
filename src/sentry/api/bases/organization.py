@@ -5,8 +5,7 @@ from django.core.cache import cache
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.request import Request
 
-from sentry import options
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, resolve_region
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.permissions import SentryPermission
@@ -156,29 +155,6 @@ class OrganizationAlertRulePermission(OrganizationPermission):
         "PUT": ["org:write", "org:admin", "alert_rule:write"],
         "DELETE": ["org:write", "org:admin", "alert_rule:write"],
     }
-
-
-def parse_subdomain(subdomain):
-    if subdomain is None:
-        return None, None
-    org_base_hostname = options.get("system.organization-base-hostname")
-    if not org_base_hostname or "{slug}" not in org_base_hostname:
-        return None, None
-    org_slug = subdomain
-    region = None
-    if "{region}" in org_base_hostname:
-        if "." in subdomain:
-            org_slug, _, region = subdomain.rpartition(".")
-        else:
-            return None, None
-    return org_slug, region
-
-
-def resolve_org_slug_region(request: Request, organization_slug: Optional[str] = None):
-    region = None
-    if organization_slug is None and request.subdomain is not None:
-        organization_slug, region = parse_subdomain(request.subdomain)
-    return organization_slug, region
 
 
 class OrganizationEndpoint(Endpoint):
@@ -355,6 +331,7 @@ class OrganizationEndpoint(Endpoint):
             "start": start,
             "end": end,
             "project_id": [p.id for p in projects],
+            "project_objects": projects,
             "organization_id": organization.id,
         }
 
@@ -366,6 +343,11 @@ class OrganizationEndpoint(Endpoint):
         return params
 
     def convert_args(self, request: Request, organization_slug=None, *args, **kwargs):
+        if resolve_region(request) is None:
+            subdomain = getattr(request, "subdomain", None)
+            if subdomain is not None and subdomain != organization_slug:
+                raise ResourceDoesNotExist
+
         if not organization_slug:
             raise ResourceDoesNotExist
 

@@ -210,6 +210,7 @@ export enum EntryType {
   DEBUGMETA = 'debugmeta',
   SPANS = 'spans',
   SPANTREE = 'spantree',
+  PERFORMANCE = 'performance',
 }
 
 type EntryDebugMeta = {
@@ -248,10 +249,16 @@ type EntrySpans = {
   type: EntryType.SPANS; // data is not used
 };
 
-type EntrySpanTree = {
-  data: any;
-  focusedSpanIds: string[];
+export type EntrySpanTree = {
+  data: {
+    focusedSpanIds: string[];
+  };
   type: EntryType.SPANTREE;
+};
+
+export type EntryPerformance = {
+  data: any; // data is not used
+  type: EntryType.PERFORMANCE;
 };
 
 type EntryMessage = {
@@ -269,14 +276,14 @@ export type EntryRequest = {
     cookies?: [key: string, value: string][];
     data?: string | null | Record<string, any> | [key: string, value: any][];
     env?: Record<string, string>;
-    fragment?: string;
+    fragment?: string | null;
     headers?: [key: string, value: string][];
     inferredContentType?:
       | null
       | 'application/json'
       | 'application/x-www-form-urlencoded'
       | 'multipart/form-data';
-    query?: [key: string, value: string][];
+    query?: [key: string, value: string][] | string;
   };
   type: EntryType.REQUEST;
 };
@@ -304,6 +311,7 @@ export type Entry =
   | EntryStacktrace
   | EntrySpans
   | EntrySpanTree
+  | EntryPerformance
   | EntryMessage
   | EntryRequest
   | EntryTemplate
@@ -338,6 +346,9 @@ type EventContexts = {
   client_os?: OSContext;
   device?: DeviceContext;
   os?: OSContext;
+  // TODO (udameli): add better types here
+  // once perf issue data shape is more clear
+  performance_issue?: any;
   runtime?: RuntimeContext;
   trace?: TraceContextType;
 };
@@ -425,6 +436,8 @@ export type EventError = Omit<EventBase, 'entries' | 'type'> & {
     | EntryRequest
     | EntryThreads
     | EntryDebugMeta
+    | EntryPerformance
+    | EntrySpanTree
   )[];
   type: EventOrGroupType.ERROR;
 };

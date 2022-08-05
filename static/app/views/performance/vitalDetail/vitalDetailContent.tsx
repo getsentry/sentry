@@ -11,8 +11,8 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {getInterval} from 'sentry/components/charts/utils';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import DatePageFilter from 'sentry/components/datePageFilter';
-import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
+import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
+import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -28,7 +28,7 @@ import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
-import {WebVital} from 'sentry/utils/discover/fields';
+import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
 import {decodeScalar} from 'sentry/utils/queryString';
 import Teams from 'sentry/utils/teams';
@@ -97,7 +97,6 @@ function VitalDetailContent(props: Props) {
         eventView={eventView}
         organization={organization}
         projects={projects}
-        useAlertWizardV3={organization.features.includes('alert-wizard-v3')}
         aria-label={t('Create Alert')}
         alertType={vitalAlertTypes[vitalName]}
         referrer="performance"
@@ -149,7 +148,7 @@ function VitalDetailContent(props: Props) {
     );
 
     return (
-      <DropdownMenuControlV2
+      <DropdownMenuControl
         items={items}
         triggerLabel={vitalAbbreviations[vitalName]}
         triggerProps={{

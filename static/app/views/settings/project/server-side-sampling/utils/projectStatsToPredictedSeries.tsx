@@ -6,17 +6,14 @@ import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import commonTheme from 'sentry/utils/theme';
 import {Outcome} from 'sentry/views/organizationStats/types';
-import {
-  COLOR_DROPPED,
-  COLOR_TRANSACTIONS,
-} from 'sentry/views/organizationStats/usageChart';
 
 import {quantityField} from '.';
 
 export function projectStatsToPredictedSeries(
   projectStats?: SeriesApi,
   client?: number,
-  server?: number
+  server?: number,
+  specifiedClientRate?: number
 ): Series[] {
   if (!projectStats || !defined(client) || !defined(server)) {
     return [];
@@ -62,7 +59,14 @@ export function projectStatsToPredictedSeries(
       serverRate = clientRate;
     }
 
-    const total = accepted + filtered + invalid + rateLimited + clientDiscard;
+    let total = accepted + filtered + invalid + rateLimited + clientDiscard;
+
+    if (defined(specifiedClientRate)) {
+      // We assume that the clientDiscard is 0 and
+      // calculate the discard client (SDK) bucket according to the specified client rate
+      const newClientDiscard = total / specifiedClientRate - total;
+      total += newClientDiscard;
+    }
 
     const newSentClient = total * clientRate;
     const newDroppedClient = total - newSentClient;
@@ -88,19 +92,19 @@ export function projectStatsToPredictedSeries(
   return [
     {
       seriesName: t('Indexed and Processed'),
-      color: COLOR_TRANSACTIONS,
+      color: commonTheme.green300,
       ...commonSeriesConfig,
       data: seriesData.accepted,
     },
     {
       seriesName: t('Processed'),
-      color: COLOR_DROPPED,
+      color: commonTheme.yellow300,
       data: seriesData.droppedServer,
       ...commonSeriesConfig,
     },
     {
-      seriesName: t('Dropped'),
-      color: commonTheme.yellow300,
+      seriesName: t('Discarded'),
+      color: commonTheme.red300,
       data: seriesData.droppedClient,
       ...commonSeriesConfig,
     },
