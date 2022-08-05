@@ -81,7 +81,7 @@ describe('Dashboards > Detail', function () {
             organization={initialData.organization}
             params={{orgId: 'org-slug', dashboardId: 'default-overview'}}
             router={initialData.router}
-            location={location}
+            location={initialData.router.location}
           />
         </OrganizationContext.Provider>,
         initialData.routerContext
