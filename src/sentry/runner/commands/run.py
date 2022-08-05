@@ -622,6 +622,7 @@ def replays_recordings_consumer(**options):
 def last_seen_updater(**options):
     from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
     from sentry.sentry_metrics.consumers.last_seen_updater import get_last_seen_updater
+    from sentry.utils.metrics import global_tags
 
     ingest_config = get_ingest_config(UseCaseKey(options["ingest_profile"]))
 
@@ -633,4 +634,5 @@ def last_seen_updater(**options):
     signal.signal(signal.SIGINT, handler)
     signal.signal(signal.SIGTERM, handler)
 
-    consumer.run()
+    with global_tags(_all_threads=True, pipeline=ingest_config.internal_metrics_tag):
+        consumer.run()
