@@ -214,10 +214,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
     const {notificationType} = this.props;
     const {notificationSettings} = this.state;
 
-    // NOTE: Update this when we want to enable Slack by default.
-    const provider = !isEverythingDisabled(notificationType, notificationSettings)
-      ? getCurrentProviders(notificationType, notificationSettings)
-      : ['email'];
+    const provider = getCurrentProviders(notificationType, notificationSettings);
 
     const childTypes: string[] = typeMappedChildren[notificationType] || [];
     const childTypesDefaults = Object.fromEntries(
