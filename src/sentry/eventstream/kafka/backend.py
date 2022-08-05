@@ -26,6 +26,9 @@ class KafkaEventStream(SnubaProtocolEventStream):
     def __init__(self, **options):
         self.topic = settings.KAFKA_EVENTS
         self.transactions_topic = settings.KAFKA_TRANSACTIONS
+        self.assign_transaction_partitions_randomly = options.get(
+            "kafka.partition-transactions-randomly"
+        )
 
     @cached_property
     def producer(self):
@@ -116,8 +119,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
     ):
         message_type = "transaction" if self._is_transaction_event(event) else "error"
 
-        # Check if transaction
-        if message_type == "transaction" and options.get("kafka.partition-transactions-randomly"):
+        if message_type == "transaction" and self.assign_transaction_partitions_randomly:
             assign_partitions_randomly = True
         else:
             assign_partitions_randomly = killswitch_matches_context(
