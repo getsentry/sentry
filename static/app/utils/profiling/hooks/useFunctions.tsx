@@ -5,35 +5,15 @@ import {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {Organization, PageFilters, Project, RequestState} from 'sentry/types';
-import {FunctionCall, SuspectFunction} from 'sentry/types/profiling/core';
+import {SuspectFunction} from 'sentry/types/profiling/core';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-type FunctionsResultV1 = {
-  functions: FunctionCall[];
-  version: 1;
-};
-
-type FunctionsResultV2 = {
+type FunctionsResult = {
   functions: SuspectFunction[];
   pageLinks: string | null;
-  version: 2;
 };
-
-type FunctionsResult = FunctionsResultV1 | FunctionsResultV2;
-
-export function isFunctionsResultV1(
-  result: FunctionsResult
-): result is FunctionsResultV1 {
-  return result.version === 1;
-}
-
-export function isFunctionsResultV2(
-  result: FunctionsResult
-): result is FunctionsResultV2 {
-  return result.version === 2;
-}
 
 interface UseFunctionsOptions {
   project: Project;
@@ -78,26 +58,13 @@ function useFunctions({
       cursor,
     })
       .then(([functions, , response]) => {
-        const isLegacy =
-          functions.functions.length && functions.functions[0].hasOwnProperty('symbol');
-        if (isLegacy) {
-          setRequestState({
-            type: 'resolved',
-            data: {
-              functions: functions.functions ?? [],
-              version: 1,
-            },
-          });
-        } else {
-          setRequestState({
-            type: 'resolved',
-            data: {
-              functions: functions.functions ?? [],
-              pageLinks: response?.getResponseHeader('Link') ?? null,
-              version: 2,
-            },
-          });
-        }
+        setRequestState({
+          type: 'resolved',
+          data: {
+            functions: functions.functions ?? [],
+            pageLinks: response?.getResponseHeader('Link') ?? null,
+          },
+        });
       })
       .catch(err => {
         setRequestState({type: 'errored', error: t('Error: Unable to load functions')});

@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -8,16 +8,11 @@ import CompactSelect from 'sentry/components/forms/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
 import {FunctionsTable} from 'sentry/components/profiling/functionsTable';
-import {LegacyFunctionsTable} from 'sentry/components/profiling/legacyFunctionsTable';
 import {ProfilesTable} from 'sentry/components/profiling/profilesTable';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {PageFilters, Project} from 'sentry/types';
-import {
-  isFunctionsResultV1,
-  isFunctionsResultV2,
-  useFunctions,
-} from 'sentry/utils/profiling/hooks/useFunctions';
+import {useFunctions} from 'sentry/utils/profiling/hooks/useFunctions';
 import {useProfiles} from 'sentry/utils/profiling/hooks/useProfiles';
 import {decodeScalar} from 'sentry/utils/queryString';
 
@@ -100,60 +95,39 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
         traces={profiles.type === 'resolved' ? profiles.data.traces : []}
         columnOrder={PROFILES_COLUMN_ORDER}
       />
-      {functions.type === 'resolved' && isFunctionsResultV1(functions.data) ? (
-        // this does result in some flickering if we get the v1 results
-        // back but this is temporary and will be removed in the near future
-        <LegacyFunctionsTable
-          error={null}
-          functionCalls={functions.data.functions}
-          isLoading={false}
-          project={props.project}
+      <TableHeader>
+        <CompactSelect
+          triggerProps={{prefix: t('Suspect Functions'), size: 'xs'}}
+          value={functionType}
+          options={[
+            {
+              label: t('All'),
+              value: 'all',
+            },
+            {
+              label: t('Application'),
+              value: 'application',
+            },
+            {
+              label: t('System'),
+              value: 'system',
+            },
+          ]}
+          onChange={({value}) => setFunctionType(value)}
         />
-      ) : (
-        <Fragment>
-          <TableHeader>
-            <CompactSelect
-              triggerProps={{prefix: t('Suspect Functions'), size: 'xs'}}
-              value={functionType}
-              options={[
-                {
-                  label: t('All'),
-                  value: 'all',
-                },
-                {
-                  label: t('Application'),
-                  value: 'application',
-                },
-                {
-                  label: t('System'),
-                  value: 'system',
-                },
-              ]}
-              onChange={({value}) => setFunctionType(value)}
-            />
-            <StyledPagination
-              pageLinks={
-                functions.type === 'resolved' && isFunctionsResultV2(functions.data)
-                  ? functions.data.pageLinks
-                  : null
-              }
-              onCursor={handleFunctionsCursor}
-              size="xs"
-            />
-          </TableHeader>
-          <FunctionsTable
-            error={functions.type === 'errored' ? functions.error : null}
-            isLoading={functions.type === 'initial' || functions.type === 'loading'}
-            functions={
-              functions.type === 'resolved' && isFunctionsResultV2(functions.data)
-                ? functions.data.functions
-                : []
-            }
-            project={props.project}
-            sort={functionsSort}
-          />
-        </Fragment>
-      )}
+        <StyledPagination
+          pageLinks={functions.type === 'resolved' ? functions.data.pageLinks : null}
+          onCursor={handleFunctionsCursor}
+          size="xs"
+        />
+      </TableHeader>
+      <FunctionsTable
+        error={functions.type === 'errored' ? functions.error : null}
+        isLoading={functions.type === 'initial' || functions.type === 'loading'}
+        functions={functions.type === 'resolved' ? functions.data.functions : []}
+        project={props.project}
+        sort={functionsSort}
+      />
     </Layout.Main>
   );
 }
