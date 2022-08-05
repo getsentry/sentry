@@ -61,7 +61,7 @@ export default function FiltersBar({
               <ReleasesProvider organization={organization} selection={selection}>
                 <ReleasesSelectControl
                   handleChangeFilter={onDashboardFilterChange}
-                  selectedReleases={selectedReleases ?? []}
+                  selectedReleases={selectedReleases}
                   isDisabled={isEditingDashboard}
                 />
               </ReleasesProvider>
