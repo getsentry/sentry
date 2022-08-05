@@ -18,6 +18,7 @@ from sentry.integrations.slack.client import SlackClient
 from sentry.models import AuditLogEntry, Integration
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.testutils import APITestCase
+from sentry.types import Dict
 from sentry.utils import json
 
 
@@ -194,6 +195,15 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
                 **serialized_alert_rule,
             )
 
+    def _mock_slack_response(self, url: str, body: Dict, status: int = 200) -> None:
+        responses.add(
+            method=responses.GET,
+            url=url,
+            status=status,
+            content_type="application/json",
+            body=json.dumps(body),
+        )
+
     def _project_alert_rule_api_call(
         self,
         channelName: str = None,
@@ -289,12 +299,9 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         channelName = "my-channel"
         # Specifying an inputChannelID will cause the validate_channel_id logic to be triggered
         channelID = 123
-        responses.add(
-            method=responses.GET,
+        self._mock_slack_response(
             url=f"https://slack.com/api/conversations.info?channel={channelID}",
-            status=200,
-            content_type="application/json",
-            body=json.dumps({"ok": "true", "channel": {"name": channelName}}),
+            body={"ok": "true", "channel": {"name": channelName}},
         )
         resp = self._project_alert_rule_api_call(channelName, channelID)
 
@@ -307,17 +314,13 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         """
         The user specifies the Slack channel and channel ID but they do not match.
         """
-        associated_channel_name = "some-other-channel"
+        otherChannel = "some-other-channel"
         channelName = "my-channel"
         # Specifying an inputChannelID will cause the validate_channel_id logic to be triggered
         channelID = 123
-
-        responses.add(
-            method=responses.GET,
+        self._mock_slack_response(
             url=f"https://slack.com/api/conversations.info?channel={channelID}",
-            status=200,
-            content_type="application/json",
-            body=json.dumps({"ok": "true", "channel": {"name": associated_channel_name}}),
+            body={"ok": "true", "channel": {"name": otherChannel}},
         )
         resp = self._project_alert_rule_api_call(channelName, channelID)
 
@@ -325,7 +328,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert resp.data == {
             "nonFieldErrors": [
                 ErrorDetail(
-                    string="Received channel name some-other-channel does not match inputted channel name my-channel.",
+                    string=f"Received channel name {otherChannel} does not match inputted channel name {channelName}.",
                     code="invalid",
                 )
             ]
@@ -341,7 +344,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         channelName = "my-channel"
         # Specifying an inputChannelID will cause the validate_channel_id logic to be triggered
         channelID = 123
-
         resp = self._project_alert_rule_api_call(channelName, channelID)
 
         assert resp.status_code == 400
