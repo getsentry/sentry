@@ -143,7 +143,18 @@ class PGStringIndexerV2(StringIndexer):
             # shouldn't consume quota.
             filtered_db_write_keys = writes_limiter_state.accepted_keys
             del db_write_keys
-            rate_limited_write_results = writes_limiter_state.dropped_strings
+
+            rate_limited_key_results = KeyResults()
+            for dropped_string in writes_limiter_state.dropped_strings:
+                rate_limited_key_results.add_key_result(
+                    dropped_string.key_result,
+                    fetch_type=dropped_string.fetch_type,
+                    fetch_type_ext=dropped_string.fetch_type_ext,
+                )
+
+            if filtered_db_write_keys.size == 0:
+                indexer_cache.set_many(new_results_to_cache, use_case_id.value)
+                return cache_key_results.merge(db_read_key_results).merge(rate_limited_key_results)
 
             new_records = []
             for write_pair in filtered_db_write_keys.as_tuples():
@@ -159,13 +170,6 @@ class PGStringIndexerV2(StringIndexer):
                 self._table(use_case_id).objects.bulk_create(new_records, ignore_conflicts=True)
 
         db_write_key_results = KeyResults()
-        for dropped_string in rate_limited_write_results:
-            db_write_key_results.add_key_result(
-                dropped_string.key_result,
-                fetch_type=dropped_string.fetch_type,
-                fetch_type_ext=dropped_string.fetch_type_ext,
-            )
-
         db_write_key_results.add_key_results(
             [
                 KeyResult(org_id=db_obj.organization_id, string=db_obj.string, id=db_obj.id)
@@ -177,7 +181,11 @@ class PGStringIndexerV2(StringIndexer):
         new_results_to_cache.update(db_write_key_results.get_mapped_key_strings_to_ints())
         indexer_cache.set_many(new_results_to_cache, use_case_id.value)
 
-        return cache_key_results.merge(db_read_key_results).merge(db_write_key_results)
+        return (
+            cache_key_results.merge(db_read_key_results)
+            .merge(db_write_key_results)
+            .merge(rate_limited_key_results)
+        )
 
     def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
         """Store a string and return the integer ID generated for it"""

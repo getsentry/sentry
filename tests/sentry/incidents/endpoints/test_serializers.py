@@ -187,6 +187,18 @@ class TestAlertRuleSerializer(TestCase):
             assert alert_rule.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
             assert alert_rule.snuba_query.dataset == Dataset.PerformanceMetrics.value
 
+        with self.feature("organizations:mep-rollout-flag"):
+            base_params = self.valid_params.copy()
+            base_params["queryType"] = SnubaQuery.Type.PERFORMANCE.value
+            base_params["eventTypes"] = [SnubaQueryEventType.EventType.TRANSACTION.name.lower()]
+            base_params["dataset"] = Dataset.PerformanceMetrics.value
+            base_params["query"] = ""
+            serializer = AlertRuleSerializer(context=self.context, data=base_params)
+            assert serializer.is_valid(), serializer.errors
+            alert_rule = serializer.save()
+            assert alert_rule.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
+            assert alert_rule.snuba_query.dataset == Dataset.PerformanceMetrics.value
+
     def test_aggregate(self):
         self.run_fail_validation_test(
             {"aggregate": "what()"},

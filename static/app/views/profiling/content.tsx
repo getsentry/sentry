@@ -1,10 +1,9 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
-import {browserHistory} from 'react-router';
+import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
@@ -27,14 +26,13 @@ import {Project} from 'sentry/types';
 import {PageFilters} from 'sentry/types/core';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
-import {useProfiles} from 'sentry/utils/profiling/hooks/useProfiles';
 import {useProfileTransactions} from 'sentry/utils/profiling/hooks/useProfileTransactions';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 
-import {ProfilingScatterChart} from './landing/profilingScatterChart';
+import {ProfileCharts} from './landing/profileCharts';
 import {ProfilingOnboardingPanel} from './profilingOnboardingPanel';
 
 function hasSetupProfilingForAtLeastOneProject(
@@ -64,15 +62,15 @@ function hasSetupProfilingForAtLeastOneProject(
 
 interface ProfilingContentProps {
   location: Location;
+  router: InjectedRouter;
 }
 
-function ProfilingContent({location}: ProfilingContentProps) {
+function ProfilingContent({location, router}: ProfilingContentProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const cursor = decodeScalar(location.query.cursor);
   const query = decodeScalar(location.query.query, '');
   const profileFilters = useProfileFilters({query: '', selection});
-  const profiles = useProfiles({cursor, query, selection});
   const transactions = useProfileTransactions({cursor, query, selection});
   const {projects} = useProjects();
 
@@ -104,11 +102,11 @@ function ProfilingContent({location}: ProfilingContentProps) {
   }, []);
 
   const shouldShowProfilingOnboardingPanel = useMemo((): boolean => {
-    if (profiles.type === 'resolved' && profiles.data.traces.length > 0) {
+    if (transactions.type === 'resolved' && transactions.data.transactions.length > 0) {
       return false;
     }
     return !hasSetupProfilingForAtLeastOneProject(selection.projects, projects);
-  }, [selection.projects, projects, profiles]);
+  }, [selection.projects, projects, transactions]);
 
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
@@ -150,23 +148,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   </ProfilingOnboardingPanel>
                 ) : (
                   <Fragment>
-                    {profiles.type === 'errored' && (
-                      <Alert type="error" showIcon>
-                        {t('Unable to load profiles')}
-                      </Alert>
-                    )}
-                    <ProfilingScatterChart
-                      datetime={
-                        selection?.datetime ?? {
-                          start: null,
-                          end: null,
-                          period: null,
-                          utc: null,
-                        }
-                      }
-                      traces={profiles.type === 'resolved' ? profiles.data.traces : []}
-                      isLoading={profiles.type === 'loading'}
-                    />
+                    <ProfileCharts router={router} query={query} selection={selection} />
                     <ProfileTransactionsTable
                       error={
                         transactions.type === 'errored'

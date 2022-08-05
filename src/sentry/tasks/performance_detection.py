@@ -37,20 +37,21 @@ def detect_performance_issue(data: Event):
 
 
 # Gets some of the thresholds to perform performance detection. Can be made configurable later.
+# Thresholds are in milliseconds.
 def get_detection_settings():
     return {
         DetectorType.DUPLICATE_SPANS: {
             "count": 5,
-            "cumulative_duration": 500.0,
+            "cumulative_duration": 500.0,  # ms
             "allowed_span_ops": ["db", "http"],
         },
         DetectorType.SEQUENTIAL_SLOW_SPANS: {
             "count": 3,
-            "cumulative_duration": 600.0,
+            "cumulative_duration": 600.0,  # ms
             "allowed_span_ops": ["db", "http", "ui"],
         },
         DetectorType.SLOW_SPAN: {
-            "duration_threshold": 500.0,
+            "duration_threshold": 500.0,  # ms
             "allowed_span_ops": ["db", "http"],
         },
     }
@@ -124,8 +125,8 @@ def fingerprint_span_op(span: Span):
 
 
 def get_span_duration(span: Span):
-    return timedelta(milliseconds=span.get("timestamp", 0)) - timedelta(
-        milliseconds=span.get("start_timestamp", 0)
+    return timedelta(seconds=span.get("timestamp", 0)) - timedelta(
+        seconds=span.get("start_timestamp", 0)
     )
 
 
@@ -271,7 +272,7 @@ class SequentialSlowSpanDetector(PerformanceDetector):
             return
 
         span_duration = get_span_duration(span)
-        span_end = timedelta(milliseconds=span.get("timestamp", 0))
+        span_end = timedelta(seconds=span.get("timestamp", 0))
 
         if fingerprint not in self.spans_involved:
             self.spans_involved[fingerprint] = []
@@ -284,7 +285,7 @@ class SequentialSlowSpanDetector(PerformanceDetector):
             return
 
         last_span_end = self.last_span_seen[fingerprint]
-        current_span_start = timedelta(milliseconds=span.get("start_timestamp", 0))
+        current_span_start = timedelta(seconds=span.get("start_timestamp", 0))
 
         are_spans_overlapping = current_span_start <= last_span_end
         if are_spans_overlapping:
