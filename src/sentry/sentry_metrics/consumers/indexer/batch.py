@@ -37,7 +37,7 @@ def valid_metric_name(name: Optional[str]) -> bool:
     return True
 
 
-def _should_sample_debug_log():
+def _should_sample_debug_log() -> bool:
     rate = settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE
     return rate and random.random() <= rate
 
