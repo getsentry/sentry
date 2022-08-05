@@ -116,7 +116,7 @@ export function MetricsDataSwitcherAlert(
   if (props.shouldWarnIncompatibleSDK) {
     const updateSDK = (
       <Link to="" onClick={handleReviewUpdatesClick}>
-        {t('update your SDK version.')}
+        {t('update your SDK version')}
       </Link>
     );
     if (areMultipleProjectsSelected(props.eventView)) {
@@ -148,7 +148,7 @@ export function MetricsDataSwitcherAlert(
         data-test-id="landing-mep-alert-single-project-incompatible"
       >
         {tct(
-          `Your project has an outdated SDK which is incompatible with server side sampling. To enable this feature [updateSDK]`,
+          `Your project has an outdated SDK which is incompatible with server side sampling. To enable this feature [updateSDK].`,
           {
             updateSDK,
           }
