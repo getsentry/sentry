@@ -359,7 +359,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       })
     );
     expect(await screen.findByTestId('has-metrics-data-tag')).toHaveTextContent(
-      'metrics'
+      'processed'
     );
   });
 
@@ -431,7 +431,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       })
     );
     expect(await screen.findByTestId('has-metrics-data-tag')).toHaveTextContent(
-      'transactions'
+      'indexed'
     );
   });
 
