@@ -91,6 +91,7 @@ from sentry.models.integrations.integration_feature import Feature, IntegrationT
 from sentry.models.releasefile import update_artifact_index
 from sentry.signals import project_created
 from sentry.snuba.dataset import Dataset
+from sentry.testutils.servermode import exempt_from_mode_limits
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json, loremipsum
@@ -239,6 +240,7 @@ def _patch_artifact_manifest(path, org, release, project=None, extra_files=None)
 # TODO(dcramer): consider moving to something more scalable like factoryboy
 class Factories:
     @staticmethod
+    @exempt_from_mode_limits()
     def create_organization(name=None, owner=None, **kwargs):
         if not name:
             name = petname.Generate(2, " ", letters=10).title()
@@ -249,6 +251,7 @@ class Factories:
         return org
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_member(teams=None, **kwargs):
         kwargs.setdefault("role", "member")
 
@@ -259,6 +262,7 @@ class Factories:
         return om
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_team_membership(team, member=None, user=None, role=None):
         if member is None:
             member, _ = OrganizationMember.objects.get_or_create(
@@ -270,6 +274,7 @@ class Factories:
         )
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_team(organization, **kwargs):
         if not kwargs.get("name"):
             kwargs["name"] = petname.Generate(2, " ", letters=10).title()
@@ -284,6 +289,7 @@ class Factories:
         return team
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_environment(project, **kwargs):
         name = kwargs.get("name", petname.Generate(3, " ", letters=10)[:64])
 
@@ -297,6 +303,7 @@ class Factories:
         return env
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_project(organization=None, teams=None, fire_project_created=False, **kwargs):
         if not kwargs.get("name"):
             kwargs["name"] = petname.Generate(2, " ", letters=10).title()
@@ -317,10 +324,12 @@ class Factories:
         return project
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_project_bookmark(project, user):
         return ProjectBookmark.objects.create(project_id=project.id, user=user)
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_project_rule(project, action_data=None, condition_data=None):
         action_data = action_data or [
             {
@@ -349,6 +358,7 @@ class Factories:
         )
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_slack_project_rule(project, integration_id, channel_id=None, channel_name=None):
         action_data = [
             {
@@ -362,10 +372,12 @@ class Factories:
         return Factories.create_project_rule(project, action_data)
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_project_key(project):
         return project.key_set.get_or_create()[0]
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_release(
         project: Project,
         user: Optional[User] = None,
@@ -436,6 +448,7 @@ class Factories:
         return release
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_release_file(release_id, file=None, name=None, dist_id=None):
         if file is None:
             file = Factories.create_file(
@@ -459,6 +472,7 @@ class Factories:
         )
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_artifact_bundle(org, release, project=None, extra_files=None):
         import zipfile
 
@@ -482,6 +496,7 @@ class Factories:
         return bundle.getvalue()
 
     @classmethod
+    @exempt_from_mode_limits()
     def create_release_archive(cls, org, release: str, project=None, dist=None):
         bundle = cls.create_artifact_bundle(org, release, project)
         file_ = File.objects.create(name="release-artifacts.zip")
@@ -490,6 +505,7 @@ class Factories:
         return update_artifact_index(release, dist, file_)
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_code_mapping(project, repo=None, organization_integration=None, **kwargs):
         kwargs.setdefault("stack_root", "")
         kwargs.setdefault("source_root", "")
@@ -505,6 +521,7 @@ class Factories:
         )
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_repo(project, name=None, provider=None, integration_id=None, url=None):
         repo = Repository.objects.create(
             organization_id=project.organization_id,
@@ -517,6 +534,7 @@ class Factories:
         return repo
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_commit(
         repo, project=None, author=None, release=None, message=None, key=None, date_added=None
     ):
@@ -549,6 +567,7 @@ class Factories:
         return commit
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_commit_author(organization_id=None, project=None, user=None):
         return CommitAuthor.objects.get_or_create(
             organization_id=organization_id or project.organization_id,
@@ -557,12 +576,14 @@ class Factories:
         )[0]
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_commit_file_change(commit, filename):
         return CommitFileChange.objects.get_or_create(
             organization_id=commit.organization_id, commit=commit, filename=filename, type="M"
         )
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_user(email=None, **kwargs):
         if email is None:
             email = uuid4().hex + "@example.com"
@@ -583,6 +604,7 @@ class Factories:
         return user
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_useremail(user, email, **kwargs):
         if not email:
             email = uuid4().hex + "@example.com"
@@ -610,6 +632,7 @@ class Factories:
         return event
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_group(project, **kwargs):
         kwargs.setdefault("message", "Hello world")
         kwargs.setdefault("data", {})
@@ -620,10 +643,12 @@ class Factories:
         return Group.objects.create(project=project, **kwargs)
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_file(**kwargs):
         return File.objects.create(**kwargs)
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_file_from_path(path, name=None, **kwargs):
         if name is None:
             name = os.path.basename(path)
@@ -634,6 +659,7 @@ class Factories:
         return file
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_event_attachment(event, file=None, **kwargs):
         if file is None:
             file = Factories.create_file(
@@ -652,6 +678,7 @@ class Factories:
         )
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_dif_file(
         project,
         debug_id=None,
@@ -695,6 +722,7 @@ class Factories:
         )
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_dif_from_path(path, object_name=None, **kwargs):
         if object_name is None:
             object_name = os.path.basename(path)
@@ -708,6 +736,7 @@ class Factories:
         UserPermission.objects.create(user=user, permission=permission)
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_sentry_app(**kwargs):
         app = sentry_apps.Creator.run(is_internal=False, **Factories._sentry_app_kwargs(**kwargs))
 
@@ -717,12 +746,14 @@ class Factories:
         return app
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_internal_integration(**kwargs):
         return sentry_apps.InternalCreator.run(
             is_internal=True, **Factories._sentry_app_kwargs(**kwargs)
         )
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_internal_integration_token(install, **kwargs):
         return sentry_app_installation_tokens.Creator.run(sentry_app_installation=install, **kwargs)
 
@@ -744,6 +775,7 @@ class Factories:
         return _kwargs
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_sentry_app_installation(
         organization=None, slug=None, user=None, status=None, prevent_token_exchange=False
     ):
@@ -772,10 +804,12 @@ class Factories:
         return install
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_stacktrace_link_schema():
         return {"type": "stacktrace-link", "uri": "/redirect/"}
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_issue_link_schema():
         return {
             "type": "issue-link",
@@ -814,6 +848,7 @@ class Factories:
         }
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_alert_rule_action_schema():
         return {
             "type": "alert-rule-action",
@@ -843,6 +878,7 @@ class Factories:
         }
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_service_hook(actor=None, org=None, project=None, events=None, url=None, **kwargs):
         if not actor:
             actor = Factories.create_user()
@@ -868,6 +904,7 @@ class Factories:
         return service_hooks.Creator.run(**_kwargs)
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_sentry_app_feature(feature=None, sentry_app=None, description=None):
         if not sentry_app:
             sentry_app = Factories.create_sentry_app()
@@ -899,6 +936,7 @@ class Factories:
         return _kwargs
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_doc_integration(features=None, has_avatar: bool = False, **kwargs) -> DocIntegration:
         doc = DocIntegration.objects.create(**Factories._doc_integration_kwargs(**kwargs))
         if features:
@@ -908,6 +946,7 @@ class Factories:
         return doc
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_doc_integration_features(
         features=None, doc_integration=None
     ) -> List[IntegrationFeature]:
@@ -927,6 +966,7 @@ class Factories:
         )
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_doc_integration_avatar(doc_integration=None, **kwargs) -> DocIntegrationAvatar:
         if not doc_integration:
             doc_integration = Factories.create_doc_integration()
@@ -937,6 +977,7 @@ class Factories:
         )
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_userreport(group, project=None, event_id=None, **kwargs):
         return UserReport.objects.create(
             group_id=group.id,
@@ -949,6 +990,7 @@ class Factories:
         )
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_session():
         engine = import_module(settings.SESSION_ENGINE)
 
@@ -957,6 +999,7 @@ class Factories:
         return session
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_platform_external_issue(
         group=None, service_type=None, display_name=None, web_url=None
     ):
@@ -969,6 +1012,7 @@ class Factories:
         )
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_integration_external_issue(group=None, integration=None, key=None):
         external_issue = ExternalIssue.objects.create(
             organization_id=group.organization.id, integration_id=integration.id, key=key
@@ -985,6 +1029,7 @@ class Factories:
         return external_issue
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_incident(
         organization,
         projects,
@@ -1024,12 +1069,14 @@ class Factories:
         return incident
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_incident_activity(incident, type, comment=None, user=None):
         return IncidentActivity.objects.create(
             incident=incident, type=type, comment=comment, user=user
         )
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_alert_rule(
         organization,
         projects,
@@ -1084,6 +1131,7 @@ class Factories:
         return alert_rule
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_alert_rule_trigger(alert_rule, label=None, alert_threshold=100):
         if not label:
             label = petname.Generate(2, " ", letters=10).title()
@@ -1091,6 +1139,7 @@ class Factories:
         return create_alert_rule_trigger(alert_rule, label, alert_threshold)
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_incident_trigger(incident, alert_rule_trigger, status=None):
         if status is None:
             status = TriggerStatus.ACTIVE.value
@@ -1100,6 +1149,7 @@ class Factories:
         )
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_alert_rule_trigger_action(
         trigger,
         type=AlertRuleTriggerAction.Type.EMAIL,
@@ -1120,6 +1170,7 @@ class Factories:
         )
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_external_user(user: User, **kwargs: Any) -> ExternalActor:
         kwargs.setdefault("provider", ExternalProviders.GITHUB.value)
         kwargs.setdefault("external_name", "")
@@ -1127,6 +1178,7 @@ class Factories:
         return ExternalActor.objects.create(actor=user.actor, **kwargs)
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_external_team(team: Team, **kwargs: Any) -> ExternalActor:
         kwargs.setdefault("provider", ExternalProviders.GITHUB.value)
         kwargs.setdefault("external_name", "@getsentry/ecosystem")
@@ -1134,6 +1186,7 @@ class Factories:
         return ExternalActor.objects.create(actor=team.actor, **kwargs)
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_codeowners(project, code_mapping, **kwargs):
         kwargs.setdefault("raw", "")
 
@@ -1142,6 +1195,7 @@ class Factories:
         )
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_slack_integration(
         organization: Organization, external_id: str, **kwargs: Any
     ) -> Integration:
@@ -1158,6 +1212,7 @@ class Factories:
         return integration
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_integration(
         organization: Organization, external_id: str, **kwargs: Any
     ) -> Integration:
@@ -1167,6 +1222,7 @@ class Factories:
         return integration
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_identity_provider(integration: Integration, **kwargs: Any) -> IdentityProvider:
         return IdentityProvider.objects.create(
             type=integration.provider,
@@ -1175,6 +1231,7 @@ class Factories:
         )
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_identity(
         user: User, identity_provider: IdentityProvider, external_id: str, **kwargs: Any
     ) -> Identity:
@@ -1187,6 +1244,7 @@ class Factories:
         )
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_group_history(
         group: Group,
         status: int,
@@ -1215,6 +1273,7 @@ class Factories:
         )
 
     @staticmethod
+    @exempt_from_mode_limits()
     def create_comment(issue, project, user, text="hello world"):
         data = {"text": text}
         return Activity.objects.create(
