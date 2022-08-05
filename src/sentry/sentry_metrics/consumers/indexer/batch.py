@@ -1,4 +1,5 @@
 import logging
+import random
 from collections import defaultdict
 from typing import List, Mapping, MutableMapping, NamedTuple, Optional, Sequence, Set
 
@@ -6,6 +7,7 @@ import rapidjson
 import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import Message
+from django.conf import settings
 
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.consumers.indexer.common import MessageBatch
@@ -33,6 +35,11 @@ def valid_metric_name(name: Optional[str]) -> bool:
         return False
 
     return True
+
+
+def _should_sample_debug_log() -> bool:
+    rate: float = settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE
+    return (rate > 0) and random.random() <= rate
 
 
 def invalid_metric_tags(tags: Mapping[str, str]) -> Sequence[str]:
@@ -203,15 +210,16 @@ class IndexerBatch:
                         "string_type": "tags",
                     },
                 )
-                logger.error(
-                    "process_messages.dropped_message",
-                    extra={
-                        "string_type": "tags",
-                        "num_global_quotas": exceeded_global_quotas,
-                        "num_org_quotas": exceeded_org_quotas,
-                        "org_batch_size": len(mapping[org_id]),
-                    },
-                )
+                if _should_sample_debug_log():
+                    logger.error(
+                        "process_messages.dropped_message",
+                        extra={
+                            "string_type": "tags",
+                            "num_global_quotas": exceeded_global_quotas,
+                            "num_org_quotas": exceeded_org_quotas,
+                            "org_batch_size": len(mapping[org_id]),
+                        },
+                    )
                 continue
 
             fetch_types_encountered = set()
@@ -234,18 +242,20 @@ class IndexerBatch:
                         "string_type": "metric_id",
                     },
                 )
-                logger.error(
-                    "process_messages.dropped_message",
-                    extra={
-                        "string_type": "metric_id",
-                        "is_global_quota": bool(
-                            metadata
-                            and metadata.fetch_type_ext
-                            and metadata.fetch_type_ext.is_global
-                        ),
-                        "org_batch_size": len(mapping[org_id]),
-                    },
-                )
+
+                if _should_sample_debug_log():
+                    logger.error(
+                        "process_messages.dropped_message",
+                        extra={
+                            "string_type": "metric_id",
+                            "is_global_quota": bool(
+                                metadata
+                                and metadata.fetch_type_ext
+                                and metadata.fetch_type_ext.is_global
+                            ),
+                            "org_batch_size": len(mapping[org_id]),
+                        },
+                    )
                 continue
 
             new_payload_value["retention_days"] = 90

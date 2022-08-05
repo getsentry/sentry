@@ -437,11 +437,12 @@ def test_process_messages_invalid_messages(
     assert error_text in caplog.text
 
 
-def test_process_messages_rate_limited(caplog) -> None:
+def test_process_messages_rate_limited(caplog, settings) -> None:
     """
     Test handling of `None`-values coming from the indexer service, which
     happens when postgres writes are being rate-limited.
     """
+    settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     rate_limited_payload = deepcopy(distribution_payload)
     rate_limited_payload["tags"]["custom_tag"] = "rate_limited_test"
 
