@@ -153,6 +153,12 @@ def get_last_seen_updater(
     ingest_config: MetricsIngestConfiguration,
     **options: Mapping[str, Union[str, int]],
 ) -> StreamProcessor:
+    """
+    The last_seen updater uses output from the metrics indexer to update the
+    last_seen field in the sentry_stringindexer and sentry_perfstringindexer database
+    tables. This enables us to do deletions of tag keys/values that haven't been
+    accessed over the past N days (generally, 90).
+    """
     processing_factory = _last_seen_updater_processing_factory(
         max_batch_size, max_batch_time, ingest_config
     )
