@@ -65,6 +65,7 @@ const AuditLogList = ({
   isLoading,
   pageLinks,
   entries,
+  eventType,
   eventTypes,
   onCursor,
   onEventSelect,
@@ -83,6 +84,7 @@ const AuditLogList = ({
       clearable
       isDisabled={isLoading}
       name="eventFilter"
+      value={eventType}
       placeholder={t('Select Action: ')}
       options={eventOptions}
       onChange={options => {

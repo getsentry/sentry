@@ -6,6 +6,7 @@ import {Location} from 'history';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {CursorHandler} from 'sentry/components/pagination';
 import {AuditLog, Organization} from 'sentry/types';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -29,7 +30,7 @@ function OrganizationAuditLog({location, organization}: Props) {
   const [state, setState] = useState<State>({
     entryList: [],
     entryListPageLinks: null,
-    eventType: undefined,
+    eventType: decodeScalar(location.query.event),
     eventTypes: [],
     isLoading: true,
   });
@@ -42,7 +43,15 @@ function OrganizationAuditLog({location, organization}: Props) {
     }));
   };
 
+  useEffect(() => {
+    // Watch the location for changes so we can re-fetch data.
+    const eventType = decodeScalar(location.query.event);
+    setState(prevState => ({...prevState, eventType}));
+  }, [location.query]);
+
   const fetchAuditLogData = useCallback(async () => {
+    setState(prevState => ({...prevState, isLoading: true}));
+
     try {
       const payload = {cursor: state.currentCursor, event: state.eventType};
       if (!payload.cursor) {
