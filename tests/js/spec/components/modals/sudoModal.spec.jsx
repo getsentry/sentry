@@ -55,7 +55,7 @@ describe('Sudo Modal', function () {
     const errorCb = jest.fn();
 
     // No Modal
-    expect(screen.queryByText('Confirm Password to Continue')).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
     // Should return w/ `sudoRequired`
     api.request('/organizations/org-slug/', {
@@ -65,7 +65,7 @@ describe('Sudo Modal', function () {
     });
 
     // Should have Modal + input
-    expect(await screen.findByText('Confirm Password to Continue')).toBeInTheDocument();
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
 
     // Original callbacks should not have been called
     expect(successCb).not.toHaveBeenCalled();
@@ -108,9 +108,7 @@ describe('Sudo Modal', function () {
     );
 
     // Sudo Modal should be closed
-    await waitFor(() =>
-      expect(screen.queryByText('Confirm Password to Continue')).not.toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
   it('shows button to redirect if user does not have password auth', async function () {
@@ -123,7 +121,7 @@ describe('Sudo Modal', function () {
     const errorCb = jest.fn();
 
     // No Modal
-    expect(screen.queryByText('Confirm Password to Continue')).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
     // Should return w/ `sudoRequired`
     api.request('/organizations/org-slug/', {
@@ -133,7 +131,7 @@ describe('Sudo Modal', function () {
     });
 
     // Should have Modal + input
-    expect(await screen.findByText('Confirm Password to Continue')).toBeInTheDocument();
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
     expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Continue'})).toHaveAttribute(
       'href',
