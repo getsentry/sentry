@@ -208,6 +208,7 @@ export type SentryAppComponent = {
   };
   type: 'issue-link' | 'alert-rule-action' | 'issue-media' | 'stacktrace-link';
   uuid: string;
+  error?: boolean;
 };
 
 export type SentryAppWebhookRequest = {
@@ -532,5 +533,6 @@ export type SentryFunction = {
   code: string;
   name: string;
   slug: string;
+  events?: string[];
   overview?: string;
 };

@@ -6,6 +6,7 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import FeatureBadge from 'sentry/components/featureBadge';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {t} from 'sentry/locale';
@@ -21,6 +22,7 @@ type FiltersBarProps = {
   filters: DashboardFilters;
   hasUnsavedChanges: boolean;
   isEditingDashboard: boolean;
+  isPreview: boolean;
   onCancel: () => void;
   onDashboardFilterChange: (activeFilters: DashboardFilters) => void;
   onSave: () => void;
@@ -30,6 +32,7 @@ export default function FiltersBar({
   filters,
   hasUnsavedChanges,
   isEditingDashboard,
+  isPreview,
   onCancel,
   onDashboardFilterChange,
   onSave,
@@ -57,7 +60,7 @@ export default function FiltersBar({
               </ReleasesProvider>
             </FilterButton>
           </FilterButtons>
-          {hasUnsavedChanges && !isEditingDashboard && (
+          {hasUnsavedChanges && !isEditingDashboard && !isPreview && (
             <FilterButtons>
               <Button priority="primary" onClick={onSave}>
                 {t('Save')}
@@ -65,6 +68,7 @@ export default function FiltersBar({
               <Button onClick={onCancel}>{t('Cancel')}</Button>
             </FilterButtons>
           )}
+          <FeatureBadge type="beta" />
         </Fragment>
       </Feature>
     </Wrapper>

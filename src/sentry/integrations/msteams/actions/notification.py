@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from django.db.models import QuerySet
+
 from sentry.integrations.msteams.actions.form import MsTeamsNotifyServiceForm
 from sentry.integrations.msteams.card_builder.issues import MSTeamsIssueMessageBuilder
 from sentry.integrations.msteams.client import MsTeamsClient
@@ -26,6 +28,13 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
             },
             "channel": {"type": "string", "placeholder": "i.e. General, Jane Schmidt"},
         }
+
+    def get_integrations(self) -> QuerySet[Integration]:
+        # NOTE: We exclude installations of `tenant` type to NOT show up in the team choices dropdown in alert rule actions
+        # as currently, there is no way to query the API for users or channels within a `tenant` to send alerts to.
+        return (
+            super().get_integrations().exclude(metadata__contains={"installation_type": "tenant"})
+        )
 
     def after(self, event, state):
         channel = self.get_option("channel_id")

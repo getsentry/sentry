@@ -116,6 +116,10 @@ export function FrameStackTable({
     }
 
     canvasPoolManager.dispatch('zoom at frame', [clickedContextMenuNode.node, 'exact']);
+    canvasPoolManager.dispatch('highlight frame', [
+      clickedContextMenuNode.node,
+      'selected',
+    ]);
   }, [canvasPoolManager, clickedContextMenuNode]);
 
   const renderRow: UseVirtualizedListProps<FlamegraphFrame>['renderRow'] = useCallback(
@@ -270,6 +274,7 @@ const TableHeaderButton = styled('button')`
   border: none;
   background-color: ${props => props.theme.surface400};
   transition: background-color 100ms ease-in-out;
+  line-height: 24px;
 
   &:hover {
     background-color: #edecee;
