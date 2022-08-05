@@ -1330,6 +1330,7 @@ describe('Dashboards > Detail', function () {
           environment: ['alpha', 'beta'],
         }),
       });
+
       const testData = initializeOrg({
         organization: TestStubs.Organization({
           features: [
@@ -1366,6 +1367,41 @@ describe('Dashboards > Detail', function () {
       // Save and Cancel should not appear because alpha, beta is the same as beta, alpha
       expect(screen.queryByText('Save')).not.toBeInTheDocument();
       expect(screen.queryByText('Cancel')).not.toBeInTheDocument();
+    });
+
+    it('uses releases from the URL query params', async function () {
+      jest.mock('sentry/views/dashboardsV2/dashboard');
+      const testData = initializeOrg({
+        organization: TestStubs.Organization({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-query',
+            'dashboard-grid-layout',
+            'dashboards-top-level-filter',
+          ],
+        }),
+        router: {
+          location: {
+            ...TestStubs.location(),
+            query: {
+              release: ['not-selected-1'],
+            },
+          },
+        },
+      });
+      render(
+        <ViewEditDashboard
+          organization={testData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={testData.router}
+          location={testData.router.location}
+        />,
+        {context: testData.routerContext, organization: testData.organization}
+      );
+
+      await screen.findByText(/not-selected-1/);
     });
   });
 });

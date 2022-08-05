@@ -143,8 +143,7 @@ class DashboardDetail extends Component<Props, State> {
       location,
       router,
     } = this.props;
-    const {seriesData, tableData, pageLinks, totalIssuesCount, modifiedDashboard} =
-      this.state;
+    const {seriesData, tableData, pageLinks, totalIssuesCount} = this.state;
     if (isWidgetViewerPath(location.pathname)) {
       const widget =
         defined(widgetId) &&
@@ -199,11 +198,9 @@ class DashboardDetail extends Component<Props, State> {
           },
           disableEditWidget:
             organization.features.includes('dashboards-top-level-filter') &&
-            hasUnsavedFilterChanges(
-              dashboard,
-              location,
-              (modifiedDashboard ?? dashboard).filters
-            ),
+            hasUnsavedFilterChanges(dashboard, location, {
+              release: location.query?.release,
+            }),
           disabledEditMessage: UNSAVED_FILTERS_MESSAGE,
         });
         trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.open', {
@@ -739,13 +736,15 @@ class DashboardDetail extends Component<Props, State> {
       this.state;
     const {dashboardId} = params;
 
-    const {filters} = modifiedDashboard || dashboard;
+    // TODO: const {filters} = modifiedDashboard || dashboard;
 
     const disableDashboardModifications =
       organization.features.includes('dashboards-top-level-filter') &&
       dashboard.id !== 'default-overview' &&
       dashboardState !== DashboardState.CREATE &&
-      hasUnsavedFilterChanges(dashboard, location, filters);
+      hasUnsavedFilterChanges(dashboard, location, {
+        release: location.query?.release,
+      });
 
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={organization.slug}>
