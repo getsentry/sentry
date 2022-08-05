@@ -374,7 +374,7 @@ class Fixtures:
 
     def create_slack_integration(
         self,
-        organization: Organization,
+        organization: "Organization",
         external_id: str = "TXXXXXXX1",
         user: User = None,
         identity_external_id: str = "UXXXXXXX1",
