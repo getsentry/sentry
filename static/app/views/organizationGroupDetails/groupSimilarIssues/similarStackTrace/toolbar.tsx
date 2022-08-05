@@ -47,7 +47,6 @@ class SimilarToolbar extends Component<Props, State> {
     return (
       <PanelHeader hasButtons>
         <Confirm
-          data-test-id="merge"
           disabled={mergeCount === 0}
           message={t('Are you sure you want to merge these issues?')}
           onConfirm={onMerge}
