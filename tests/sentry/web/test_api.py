@@ -3,7 +3,13 @@ from unittest import mock
 from django.urls import reverse
 from exam import fixture
 
-from sentry.models import Organization, OrganizationMember, OrganizationStatus, ScheduledDeletion
+from sentry.models import (
+    ApiToken,
+    Organization,
+    OrganizationMember,
+    OrganizationStatus,
+    ScheduledDeletion,
+)
 from sentry.tasks.deletion import run_deletion
 from sentry.testutils import TestCase
 from sentry.utils import json
@@ -370,3 +376,28 @@ class ClientConfigViewTest(TestCase):
         assert data["isAuthenticated"] is True
         assert data["lastOrganization"] is None
         assert "activeorg" not in self.client.session
+
+    def test_api_token(self):
+        api_token = ApiToken.objects.create(user=self.user, scope_list=["org:write", "org:read"])
+        HTTP_AUTHORIZATION = f"Bearer {api_token.token}"
+
+        # Induce last active organization
+        resp = self.client.get(
+            reverse("sentry-api-0-organization-projects", args=[self.organization.slug]),
+            HTTP_AUTHORIZATION=HTTP_AUTHORIZATION,
+        )
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+        assert "activeorg" not in self.client.session
+
+        # Load client config
+        response = self.client.get(self.path, HTTP_AUTHORIZATION=HTTP_AUTHORIZATION)
+        assert response.status_code == 200
+        assert response["Content-Type"] == "application/json"
+
+        data = json.loads(response.content)
+
+        assert data["isAuthenticated"] is True
+        assert data["lastOrganization"] is None
+        assert data["sentryUrl"] == "http://testserver"
+        assert data["organizationUrl"] is None
