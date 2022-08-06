@@ -154,7 +154,9 @@ class End2EndTest(APITestCase):
             assert self.client.session["activeorg"] == "test"
 
             # 'activeorg' session key is not replaced
-            response = self.client.get(reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"}))
+            response = self.client.get(
+                reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"})
+            )
             assert response.data == {
                 "organization_slug": "albertos-apples",
                 "subdomain": None,
