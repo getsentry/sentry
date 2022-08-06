@@ -130,7 +130,55 @@ urlpatterns = [
     SENTRY_SELF_HOSTED=False,
 )
 class End2EndTest(APITestCase):
-    def test_with_middleware(self):
+    def test_with_middleware_no_customer_domain(self):
+        self.create_organization(name="albertos-apples")
+
+        middleware = list(settings.MIDDLEWARE)
+        if "sentry.middleware.customer_domain.CustomerDomainMiddleware" not in middleware:
+            index = middleware.index("sentry.middleware.auth.AuthenticationMiddleware")
+            middleware.insert(
+                index + 1, "sentry.middleware.customer_domain.CustomerDomainMiddleware"
+            )
+        with override_settings(MIDDLEWARE=tuple(middleware)):
+            # Induce activeorg session value of a non-existent org
+            assert "activeorg" not in self.client.session
+            response = self.client.post(
+                reverse("org-events-endpoint", kwargs={"organization_slug": "test"})
+            )
+            assert response.data == {
+                "organization_slug": "test",
+                "subdomain": None,
+                "activeorg": "test",
+            }
+            assert "activeorg" in self.client.session
+            assert self.client.session["activeorg"] == "test"
+
+            # 'activeorg' session key is not replaced
+            response = self.client.get(reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"}))
+            assert response.data == {
+                "organization_slug": "albertos-apples",
+                "subdomain": None,
+                "activeorg": "test",
+            }
+            assert "activeorg" in self.client.session
+            assert self.client.session["activeorg"] == "test"
+
+            # No redirect response
+            response = self.client.get(
+                reverse("org-events-endpoint", kwargs={"organization_slug": "some-org"}),
+                follow=True,
+            )
+            assert response.status_code == 200
+            assert response.redirect_chain == []
+            assert response.data == {
+                "organization_slug": "some-org",
+                "subdomain": None,
+                "activeorg": "test",
+            }
+            assert "activeorg" in self.client.session
+            assert self.client.session["activeorg"] == "test"
+
+    def test_with_middleware_and_customer_domain(self):
         self.create_organization(name="albertos-apples")
 
         middleware = list(settings.MIDDLEWARE)
