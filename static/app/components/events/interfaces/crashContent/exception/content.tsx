@@ -16,6 +16,7 @@ type Props = {
   event: Event;
   platform: StackTraceProps['platform'];
   type: STACK_TYPE;
+  meta?: Record<any, any>;
   newestFirst?: boolean;
   stackView?: StackTraceProps['stackView'];
 } & Pick<ExceptionType, 'values'> &
@@ -33,36 +34,40 @@ function Content({
   platform,
   values,
   type,
+  meta,
 }: Props) {
   if (!values) {
     return null;
   }
 
-  const children = values.map((exc, excIdx) => (
-    <div key={excIdx} className="exception">
-      <ExceptionTitle type={exc.type} exceptionModule={exc?.module} />
-      <Annotated object={exc} objectKey="value" required>
-        {value => <StyledPre className="exc-message">{value}</StyledPre>}
-      </Annotated>
-      {exc.mechanism && <Mechanism data={exc.mechanism} />}
-      <StackTrace
-        data={
-          type === STACK_TYPE.ORIGINAL
-            ? exc.stacktrace
-            : exc.rawStacktrace || exc.stacktrace
-        }
-        stackView={stackView}
-        stacktrace={exc.stacktrace}
-        expandFirstFrame={excIdx === values.length - 1}
-        platform={platform}
-        newestFirst={newestFirst}
-        event={event}
-        chainedException={values.length > 1}
-        hasHierarchicalGrouping={hasHierarchicalGrouping}
-        groupingCurrentLevel={groupingCurrentLevel}
-      />
-    </div>
-  ));
+  const children = values.map((exc, excIdx) => {
+    return (
+      <div key={excIdx} className="exception">
+        <ExceptionTitle type={exc.type} exceptionModule={exc?.module} />
+        <Annotated object={exc} objectKey="value" required>
+          {value => <StyledPre className="exc-message">{value}</StyledPre>}
+        </Annotated>
+        {exc.mechanism && <Mechanism data={exc.mechanism} />}
+        <StackTrace
+          data={
+            type === STACK_TYPE.ORIGINAL
+              ? exc.stacktrace
+              : exc.rawStacktrace || exc.stacktrace
+          }
+          stackView={stackView}
+          stacktrace={exc.stacktrace}
+          expandFirstFrame={excIdx === values.length - 1}
+          platform={platform}
+          newestFirst={newestFirst}
+          event={event}
+          chainedException={values.length > 1}
+          hasHierarchicalGrouping={hasHierarchicalGrouping}
+          groupingCurrentLevel={groupingCurrentLevel}
+          meta={meta?.[excIdx]?.stacktrace}
+        />
+      </div>
+    );
+  });
 
   if (newestFirst) {
     children.reverse();

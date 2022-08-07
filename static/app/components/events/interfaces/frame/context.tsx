@@ -14,8 +14,8 @@ import {parseAssembly} from '../utils';
 
 import {Assembly} from './assembly';
 import ContextLine from './contextLine';
-import FrameRegisters from './frameRegisters';
-import FrameVariables from './frameVariables';
+import {FrameRegisters} from './frameRegisters';
+import {FrameVariables} from './frameVariables';
 import {OpenInContextLine} from './openInContextLine';
 import StacktraceLink from './stacktraceLink';
 
@@ -27,12 +27,14 @@ type Props = {
   className?: string;
   emptySourceNotation?: boolean;
   expandable?: boolean;
+  frameMeta?: Record<any, any>;
   hasAssembly?: boolean;
   hasContextRegisters?: boolean;
   hasContextSource?: boolean;
   hasContextVars?: boolean;
   isExpanded?: boolean;
   organization?: Organization;
+  registersMeta?: Record<any, any>;
 };
 
 const Context = ({
@@ -49,7 +51,10 @@ const Context = ({
   event,
   organization,
   className,
+  frameMeta,
+  registersMeta,
 }: Props) => {
+  console.log({frameMeta, registersMeta});
   if (!hasContextSource && !hasContextVars && !hasContextRegisters && !hasAssembly) {
     return emptySourceNotation ? (
       <div className="empty-context">
@@ -117,12 +122,16 @@ const Context = ({
 
       {hasContextVars && (
         <StyledClippedBox clipHeight={100}>
-          <FrameVariables data={frame.vars || {}} />
+          <FrameVariables data={frame.vars || {}} meta={frameMeta?.vars} />
         </StyledClippedBox>
       )}
 
       {hasContextRegisters && (
-        <FrameRegisters registers={registers} deviceArch={event.contexts?.device?.arch} />
+        <FrameRegisters
+          registers={registers}
+          meta={registersMeta}
+          deviceArch={event.contexts?.device?.arch}
+        />
       )}
 
       {hasAssembly && (

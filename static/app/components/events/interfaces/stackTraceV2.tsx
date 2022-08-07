@@ -1,7 +1,7 @@
 import CrashContent from 'sentry/components/events/interfaces/crashContent';
 import {t} from 'sentry/locale';
 import {Group, PlatformType, Project} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import {EntryType, Event} from 'sentry/types/event';
 import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
 
 import {PermalinkTitle, TraceEventDataSection} from '../traceEventDataSection';
@@ -19,7 +19,6 @@ type Props = Pick<
   data: NonNullable<CrashContentProps['stacktrace']>;
   event: Event;
   projectId: Project['id'];
-  type: string;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hideGuide?: boolean;
 };
@@ -28,10 +27,17 @@ function StackTrace({
   projectId,
   event,
   data,
-  type,
   hasHierarchicalGrouping,
   groupingCurrentLevel,
 }: Props) {
+  const entryIndex = event.entries.findIndex(
+    eventEntry => eventEntry.type === EntryType.STACKTRACE
+  );
+
+  const meta = event._meta?.entries?.[entryIndex]?.data?.values;
+
+  console.log({meta});
+
   function getPlatform(): PlatformType {
     const framePlatform = data.frames?.find(frame => !!frame.platform);
     return framePlatform?.platform ?? event.platform ?? 'other';
@@ -42,7 +48,7 @@ function StackTrace({
 
   return (
     <TraceEventDataSection
-      type={type}
+      type={EntryType.STACKTRACE}
       stackType={STACK_TYPE.ORIGINAL}
       projectId={projectId}
       eventId={event.id}
@@ -71,6 +77,7 @@ function StackTrace({
           <NoStackTraceMessage />
         ) : (
           <CrashContentStackTrace
+            meta={meta}
             event={event}
             platform={platform}
             stackView={
