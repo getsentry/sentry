@@ -1,6 +1,5 @@
 import {KeyValueListData} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {defined} from 'sentry/utils';
 
 import {getDeviceKnownDataDetails} from './getDeviceKnownDataDetails';
 import {DeviceData} from './types';
@@ -16,11 +15,8 @@ export function getDeviceKnownData({data, event, meta}: Props): KeyValueListData
   const knownData: KeyValueListData = [];
 
   const dataKeys = deviceKnownDataValues.filter(deviceKnownDataValue => {
-    if (!defined(data[deviceKnownDataValue])) {
-      if (meta[deviceKnownDataValue]) {
-        return true;
-      }
-      return false;
+    if (typeof data[deviceKnownDataValue] !== 'number' && !data[deviceKnownDataValue]) {
+      return !!meta[deviceKnownDataValue];
     }
     return true;
   });

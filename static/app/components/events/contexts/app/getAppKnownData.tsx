@@ -1,6 +1,5 @@
 import {KeyValueListData} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {defined} from 'sentry/utils';
 
 import {getAppKnownDataDetails} from './getAppKnownDataDetails';
 import {AppData} from './types';
@@ -16,11 +15,8 @@ export function getAppKnownData({data, event, meta}: Props): KeyValueListData {
   const knownData: KeyValueListData = [];
 
   const dataKeys = appKnownDataValues.filter(appKnownDataValue => {
-    if (!defined(data[appKnownDataValue])) {
-      if (meta[appKnownDataValue]) {
-        return true;
-      }
-      return false;
+    if (typeof data[appKnownDataValue] !== 'number' && !data[appKnownDataValue]) {
+      return !!meta[appKnownDataValue];
     }
     return true;
   });

@@ -10,8 +10,13 @@ type Props = {
 
 export function getUnknownData({allData, knownKeys, meta}: Props): KeyValueListData {
   return Object.entries(allData)
-    .filter(([key]) => key !== 'type' && key !== 'title')
-    .filter(([key]) => !knownKeys.includes(key))
+    .filter(
+      ([key]) =>
+        key !== 'type' &&
+        key !== 'title' &&
+        !knownKeys.includes(key) &&
+        (typeof allData[key] !== 'number' ? !!allData[key] : true)
+    )
     .map(([key, value]) => ({
       key,
       value,
