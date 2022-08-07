@@ -34,9 +34,7 @@ function StackTrace({
     eventEntry => eventEntry.type === EntryType.STACKTRACE
   );
 
-  const meta = event._meta?.entries?.[entryIndex]?.data?.values;
-
-  console.log({meta});
+  const meta = event._meta?.entries?.[entryIndex]?.data;
 
   function getPlatform(): PlatformType {
     const framePlatform = data.frames?.find(frame => !!frame.platform);

@@ -1,5 +1,6 @@
 import {KeyValueListData} from 'sentry/types';
 
+import AnnotatedText from '../../meta/annotatedText';
 import KeyValueList from '../keyValueList';
 
 type Props = {
@@ -22,7 +23,14 @@ export function FrameVariables({data, meta}: Props) {
     transformedData.push({
       key,
       subject: key,
-      value: data[key],
+      value: Array.isArray(data[key])
+        ? (data[key] as unknown as any[]).map((v, i) => {
+            if (!v && meta?.[key]?.[i]?.['']) {
+              return <AnnotatedText value={v} meta={meta?.[key]?.[i]?.['']} />;
+            }
+            return v;
+          })
+        : data[key],
       meta: meta?.[key]?.[''],
     });
   }
