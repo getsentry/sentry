@@ -122,7 +122,7 @@ const Context = ({
 
       {hasContextVars && (
         <StyledClippedBox clipHeight={100}>
-          <FrameVariables data={frame.vars || {}} meta={frameMeta?.vars} />
+          <FrameVariables data={frame.vars ?? {}} meta={frameMeta?.vars} />
         </StyledClippedBox>
       )}
 

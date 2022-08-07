@@ -4,7 +4,7 @@ import AnnotatedText from '../../meta/annotatedText';
 import KeyValueList from '../keyValueList';
 
 type Props = {
-  data: Record<string, string>;
+  data: Record<string, string | null | Record<string, string | null>>;
   meta?: Record<any, any>;
 };
 
