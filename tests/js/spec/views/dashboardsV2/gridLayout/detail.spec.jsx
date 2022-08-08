@@ -1365,7 +1365,6 @@ describe('Dashboards > Detail', function () {
     });
 
     it('uses releases from the URL query params', async function () {
-      jest.mock('sentry/views/dashboardsV2/dashboard');
       const testData = initializeOrg({
         organization: TestStubs.Organization({
           features: [
@@ -1397,6 +1396,59 @@ describe('Dashboards > Detail', function () {
       );
 
       await screen.findByText(/not-selected-1/);
+    });
+
+    it('resets release in URL params', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: TestStubs.Dashboard(widgets, {
+          id: '1',
+          title: 'Custom Errors',
+          filters: {
+            release: ['abc'],
+          },
+        }),
+      });
+      const testData = initializeOrg({
+        organization: TestStubs.Organization({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-query',
+            'dashboard-grid-layout',
+            'dashboards-top-level-filter',
+          ],
+        }),
+        router: {
+          location: {
+            ...TestStubs.location(),
+            query: {
+              release: ['not-selected-1'],
+            },
+          },
+        },
+      });
+      render(
+        <ViewEditDashboard
+          organization={testData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={testData.router}
+          location={testData.router.location}
+        />,
+        {context: testData.routerContext, organization: testData.organization}
+      );
+
+      await screen.findByText(/not-selected-1/);
+      userEvent.click(screen.getByText('Cancel'));
+
+      expect(browserHistory.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            release: ['abc'],
+          }),
+        })
+      );
     });
   });
 });
