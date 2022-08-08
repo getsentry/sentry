@@ -235,6 +235,9 @@ class OrganizationSerializer(Serializer):  # type: ignore
         if not getattr(obj.flags, "disable_shared_issues"):
             feature_list.add("shared-issues")
 
+        if "server-side-sampling" not in feature_list and "mep-rollout-flag" in feature_list:
+            feature_list.remove("mep-rollout-flag")
+
         return {
             "id": str(obj.id),
             "slug": obj.slug,
