@@ -146,22 +146,22 @@ const storeConfig: SelectedGroupStoreDefinition = {
     const ids = GroupStore.getAllItemIds();
     const lastIdx = ids.findIndex(id => id === this.lastSelected);
     const currentIdx = ids.findIndex(id => id === itemId);
-    const newValue = !this.records[itemId];
 
-    if (lastIdx > -1 && currentIdx > -1) {
-      const selected =
-        lastIdx < currentIdx
-          ? ids.slice(lastIdx, currentIdx)
-          : ids.slice(currentIdx, lastIdx);
-      [...selected, this.lastSelected, itemId].forEach(id => {
-        if (this.records.hasOwnProperty(id)) {
-          this.records[id] = newValue;
-        }
-      });
+    if (lastIdx === -1 || currentIdx === -1) {
+      return;
     }
 
+    const newValue = !this.records[itemId];
+    const selected =
+      lastIdx < currentIdx
+        ? ids.slice(lastIdx, currentIdx)
+        : ids.slice(currentIdx, lastIdx);
+    [...selected, this.lastSelected, itemId].forEach(id => {
+      if (this.records.hasOwnProperty(id)) {
+        this.records[id] = newValue;
+      }
+    });
     this.lastSelected = itemId;
-
     this.trigger();
   },
 };
