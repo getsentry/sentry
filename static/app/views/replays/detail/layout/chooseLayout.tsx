@@ -1,5 +1,7 @@
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import {IconPanel} from 'sentry/icons';
+import PreferencesStore from 'sentry/stores/preferencesStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import useUrlParam from 'sentry/utils/replays/hooks/useUrlParams';
 import {getDefaultLayout} from 'sentry/views/replays/detail/layout/utils';
 
@@ -23,7 +25,11 @@ function getLayoutIcon(layout: string) {
 type Props = {};
 
 function ChooseLayout({}: Props) {
-  const {getParamValue, setParamValue} = useUrlParam('l_page', getDefaultLayout());
+  const collapsed = !!useLegacyStore(PreferencesStore).collapsed;
+  const {getParamValue, setParamValue} = useUrlParam(
+    'l_page',
+    getDefaultLayout(collapsed)
+  );
   return (
     <CompactSelect
       triggerProps={{
