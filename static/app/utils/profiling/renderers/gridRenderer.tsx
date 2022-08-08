@@ -13,7 +13,6 @@ export function getIntervalTimeAtX(logicalSpaceToConfigView: mat3, x: number): n
   return Math.round(vector * 10) / 10;
 }
 
-//
 export function computeInterval(
   configView: Rect,
   logicalSpaceToConfigView: mat3
