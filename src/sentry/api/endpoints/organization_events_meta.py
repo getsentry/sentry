@@ -81,13 +81,13 @@ class OrganizationEventsMetricsCompatiblity(OrganizationEventsEndpointBase):
             compatible_results = metrics_performance.query(
                 selected_columns=[
                     "project.id",
-                    count_unparam,
+                    count_null,
                     count_has_txn,
                 ],
                 params=params,
-                query=f"{count_unparam}:0 AND {count_has_txn}:>0",
+                query=f"{count_null}:0 AND {count_has_txn}:>0",
                 referrer="api.organization-events-metrics-compatibility.compatible",
-                functions_acl=["count_unparameterized_transactions", "count_has_transaction_name"],
+                functions_acl=["count_null_transactions", "count_has_transaction_name"],
                 use_aggregate_conditions=True,
             )
             data["compatible_projects"] = sorted(
