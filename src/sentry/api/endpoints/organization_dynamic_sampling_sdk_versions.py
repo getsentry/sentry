@@ -31,13 +31,7 @@ ALLOWED_SDK_NAMES = frozenset(
         # Express
         # koa
         # AWS Lambda
-        # python
-        # django
-        # flask
-        # FastAPI
-        # Starlette
-        # Bottle
-        # Celery
+        "sentry.python",  # python, django, flask, FastAPI, Starlette, Bottle, Celery
         # AWS Lambda
         # Pyramid
         # RQ
@@ -46,40 +40,6 @@ ALLOWED_SDK_NAMES = frozenset(
         # AWS Lambda Node
     )
 )
-
-# a = [
-#     "raven-java:android",
-#     "sentry.java.android.timber",
-#     "sentry.java.android",
-#     "sentry.native.android",
-#     "sentry-android",
-#     "sentry.swift",
-#     "SentrySwift",
-#     "sentry-objc",
-#     "raven-swift",
-#     "raven-objc",
-#     "sentry-swift",
-#     "sentry.cocoa",
-#     "sentry-cocoa",
-#     "sentry.javascript.capacitor",
-#     "sentry.javascript.cordova",
-#     "sentry-cordova",
-#     "sentry.javascript.electron",
-#     "sentry-electron",
-#     "raven-js",
-#     "sentry.javascript.enrio",
-#     "sentry.javascript.miniapp",
-#     "sentry.javascript.vue",
-#     "sentry.javascript.angular",
-#     "sentry.javascript.ember",
-#     "sentry.javascript.gatsby",
-#     "sentry-browser",
-#     "sentry.javascript.nextjs",
-#     "sentry.javascript.react",
-#     "sentry.javascript.browser",
-#     "sentry-react-native",
-#     "sentry.javascript.react-native",
-# ]
 
 
 class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
