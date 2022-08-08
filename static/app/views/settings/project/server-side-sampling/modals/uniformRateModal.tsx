@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -26,8 +26,9 @@ import {formatPercentage} from 'sentry/utils/formatters';
 import {Outcome} from 'sentry/views/organizationStats/types';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import {SamplingSDKAlert} from '../samplingSDKAlert';
+import {SamplingSDKUpgradesAlert} from '../samplingSDKUpgradesAlert';
 import {
+  getClientSampleRates,
   isValidSampleRate,
   percentageToRate,
   rateToPercentage,
@@ -35,7 +36,6 @@ import {
 } from '../utils';
 import {hasFirstBucketsEmpty} from '../utils/hasFirstBucketsEmpty';
 import {projectStatsToPredictedSeries} from '../utils/projectStatsToPredictedSeries';
-import {projectStatsToSampleRates} from '../utils/projectStatsToSampleRates';
 import {projectStatsToSeries} from '../utils/projectStatsToSeries';
 import useProjectStats from '../utils/useProjectStats';
 import {useRecommendedSdkUpgrades} from '../utils/useRecommendedSdkUpgrades';
@@ -99,9 +99,10 @@ export function UniformRateModal({
     projectId: project.id,
     interval: '1d',
     statsPeriod: '30d',
+    groupBy: useMemo(() => ['outcome', 'reason'], []),
   });
 
-  const {recommendedSdkUpgrades} = useRecommendedSdkUpgrades({
+  const {recommendedSdkUpgrades, incompatibleProjects} = useRecommendedSdkUpgrades({
     orgSlug: organization.slug,
   });
 
@@ -164,21 +165,12 @@ export function UniformRateModal({
 
   const uniformSampleRate = uniformRule?.sampleRate;
 
-  const {trueSampleRate, maxSafeSampleRate} = projectStatsToSampleRates(projectStats);
+  const {recommended: recommendedClientSampling, current: currentClientSampling} =
+    getClientSampleRates(projectStats, specifiedClientRate);
 
-  const currentClientSampling =
-    defined(specifiedClientRate) && !isNaN(specifiedClientRate)
-      ? specifiedClientRate
-      : defined(trueSampleRate) && !isNaN(trueSampleRate)
-      ? trueSampleRate
-      : undefined;
   const currentServerSampling =
     defined(uniformSampleRate) && !isNaN(uniformSampleRate)
       ? uniformSampleRate
-      : undefined;
-  const recommendedClientSampling =
-    defined(maxSafeSampleRate) && !isNaN(maxSafeSampleRate)
-      ? maxSafeSampleRate
       : undefined;
   const recommendedServerSampling = shouldUseConservativeSampleRate
     ? CONSERVATIVE_SAMPLE_RATE
@@ -208,7 +200,13 @@ export function UniformRateModal({
   const isEdited =
     client !== recommendedClientSampling || server !== recommendedServerSampling;
 
-  const isValid = isValidSampleRate(client) && isValidSampleRate(server);
+  const isServerRateHigherThanClientRate =
+    defined(client) && defined(server) ? client < server : false;
+
+  const isValid =
+    isValidSampleRate(client) &&
+    isValidSampleRate(server) &&
+    !isServerRateHigherThanClientRate;
 
   function handlePrimaryButtonClick() {
     // this can either be "Next" or "Done"
@@ -437,7 +435,7 @@ export function UniformRateModal({
                 />
               </ClientColumn>
               <ClientHelpOrWarningColumn>
-                {isEdited && !isValidSampleRate(percentageToRate(clientInput)) ? (
+                {isEdited && !isValidSampleRate(client) ? (
                   <Tooltip
                     title={t('Set a value between 0 and 100')}
                     containerDisplayMode="inline-flex"
@@ -473,7 +471,7 @@ export function UniformRateModal({
                 />
               </ServerColumn>
               <ServerWarningColumn>
-                {isEdited && !isValidSampleRate(percentageToRate(serverInput)) && (
+                {isEdited && !isValidSampleRate(server) ? (
                   <Tooltip
                     title={t('Set a value between 0 and 100')}
                     containerDisplayMode="inline-flex"
@@ -484,6 +482,21 @@ export function UniformRateModal({
                       data-test-id="invalid-server-rate"
                     />
                   </Tooltip>
+                ) : (
+                  isServerRateHigherThanClientRate && (
+                    <Tooltip
+                      title={t(
+                        'Server sample rate shall not be higher than client sample rate'
+                      )}
+                      containerDisplayMode="inline-flex"
+                    >
+                      <IconWarning
+                        color="red300"
+                        size="sm"
+                        data-test-id="invalid-server-rate"
+                      />
+                    </Tooltip>
+                  )
                 )}
               </ServerWarningColumn>
               <RefreshRatesColumn>
@@ -504,11 +517,12 @@ export function UniformRateModal({
             </Fragment>
           </StyledPanelTable>
 
-          <SamplingSDKAlert
+          <SamplingSDKUpgradesAlert
             organization={organization}
             projectId={project.id}
             rules={rules}
             recommendedSdkUpgrades={recommendedSdkUpgrades}
+            incompatibleProjects={incompatibleProjects}
             showLinkToTheModal={false}
             onReadDocs={onReadDocs}
           />

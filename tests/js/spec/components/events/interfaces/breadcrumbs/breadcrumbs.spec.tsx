@@ -4,7 +4,6 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import Breadcrumbs from 'sentry/components/events/interfaces/breadcrumbs';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
-import {EntryType} from 'sentry/types/event';
 
 describe('Breadcrumbs', () => {
   let props: React.ComponentProps<typeof Breadcrumbs>;
@@ -16,7 +15,6 @@ describe('Breadcrumbs', () => {
       router,
       organization: TestStubs.Organization(),
       event: TestStubs.Event({entries: []}),
-      type: EntryType.BREADCRUMBS,
       data: {
         values: [
           {

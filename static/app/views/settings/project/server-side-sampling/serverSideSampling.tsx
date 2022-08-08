@@ -58,7 +58,8 @@ import {
 } from './rule';
 import {SamplingBreakdown} from './samplingBreakdown';
 import {SamplingPromo} from './samplingPromo';
-import {SamplingSDKAlert} from './samplingSDKAlert';
+import {SamplingSDKClientRateChangeAlert} from './samplingSDKClientRateChangeAlert';
+import {SamplingSDKUpgradesAlert} from './samplingSDKUpgradesAlert';
 import {isUniformRule, SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
 
 type Props = {
@@ -103,23 +104,28 @@ export function ServerSideSampling({project}: Props) {
       await fetchSamplingSdkVersions({
         orgSlug: organization.slug,
         api,
+        projectID: project.id,
       });
     }
 
     fetchRecommendedSdkUpgrades();
-  }, [api, organization.slug, project.slug, hasAccess]);
+  }, [api, organization.slug, project.slug, project.id, hasAccess]);
 
   const {projectStats} = useProjectStats({
     orgSlug: organization.slug,
     projectId: project?.id,
     interval: '1h',
     statsPeriod: '48h',
+    groupBy: 'outcome',
   });
 
-  const {recommendedSdkUpgrades, fetching: fetchingRecommendedSdkUpgrades} =
-    useRecommendedSdkUpgrades({
-      orgSlug: organization.slug,
-    });
+  const {
+    recommendedSdkUpgrades,
+    incompatibleProjects,
+    fetching: fetchingRecommendedSdkUpgrades,
+  } = useRecommendedSdkUpgrades({
+    orgSlug: organization.slug,
+  });
 
   async function handleActivateToggle(rule: SamplingRule) {
     const newRules = rules.map(r => {
@@ -413,7 +419,9 @@ export function ServerSideSampling({project}: Props) {
           {tct(
             'Enhance the Performance monitoring experience by targeting which transactions are most valuable to your organization. To learn more about our beta program, [faqLink: visit our FAQ], for more general information, [docsLink: read our docs].',
             {
-              faqLink: <ExternalLink href="https://help.sentry.io/product-features/" />, // TODO(sampling): replace with better link once we have it
+              faqLink: (
+                <ExternalLink href="https://help.sentry.io/account/account-settings/dynamic-sampling/" />
+              ),
               docsLink: <ExternalLink href={SERVER_SIDE_SAMPLING_DOC_LINK} />,
             }
           )}
@@ -424,15 +432,26 @@ export function ServerSideSampling({project}: Props) {
             'These settings can only be edited by users with the organization owner, manager, or admin role.'
           )}
         />
-        {!!rules.length && !fetchingRecommendedSdkUpgrades && (
-          <SamplingSDKAlert
-            organization={organization}
-            projectId={project.id}
-            rules={rules}
-            recommendedSdkUpgrades={recommendedSdkUpgrades}
-            onReadDocs={handleReadDocs}
-          />
-        )}
+
+        {!!rules.length &&
+          !fetchingRecommendedSdkUpgrades &&
+          (recommendedSdkUpgrades.length || incompatibleProjects.length ? (
+            <SamplingSDKUpgradesAlert
+              organization={organization}
+              projectId={project.id}
+              rules={rules}
+              recommendedSdkUpgrades={recommendedSdkUpgrades}
+              onReadDocs={handleReadDocs}
+              incompatibleProjects={incompatibleProjects}
+            />
+          ) : (
+            <SamplingSDKClientRateChangeAlert
+              onReadDocs={handleReadDocs}
+              projectStats={projectStats}
+              organization={organization}
+              projectId={project.id}
+            />
+          ))}
         <SamplingBreakdown orgSlug={organization.slug} />
         {!rules.length ? (
           <SamplingPromo
