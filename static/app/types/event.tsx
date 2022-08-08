@@ -423,11 +423,11 @@ interface TraceEventContexts extends EventContexts {
 }
 export interface EventTransaction
   extends Omit<EventBase, 'entries' | 'type' | 'contexts'> {
+  contexts: TraceEventContexts;
   endTimestamp: number;
   entries: (EntrySpans | EntryRequest)[];
   startTimestamp: number;
   type: EventOrGroupType.TRANSACTION;
-  contexts?: TraceEventContexts;
 }
 
 export interface EventError extends Omit<EventBase, 'entries' | 'type'> {
