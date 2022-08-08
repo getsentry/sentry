@@ -25,8 +25,12 @@ export interface ImportOptions {
 export interface ProfileGroup {
   activeProfileIndex: number;
   name: string;
+  platform: string;
   profiles: Profile[];
+  projectID: number;
   traceID: string;
+  transactionName: string;
+  version: string;
 }
 
 export function importProfile(
@@ -86,8 +90,12 @@ function importJSSelfProfile(
   return {
     traceID,
     name: traceID,
+    transactionName: traceID,
     activeProfileIndex: 0,
     profiles: [importSingleProfile(input, frameIndex, options)],
+    platform: 'javascript-browser',
+    projectID: 0,
+    version: '0.0.0',
   };
 }
 
@@ -117,6 +125,10 @@ function importSchema(
   return {
     traceID,
     name: input.transactionName,
+    platform: input.platform,
+    transactionName: input.transactionName,
+    version: input.version,
+    projectID: input.projectID,
     activeProfileIndex: input.activeProfileIndex ?? 0,
     profiles: input.profiles.map(profile =>
       importSingleProfile(profile, frameIndex, options)

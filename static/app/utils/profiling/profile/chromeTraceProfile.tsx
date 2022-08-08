@@ -286,6 +286,10 @@ export function parseTypescriptChromeTraceArrayFormat(
     name: 'chrometrace',
     traceID,
     activeProfileIndex: 0,
+    platform: 'typescript',
+    transactionName: traceID,
+    projectID: 0,
+    version: '0.0.0',
     profiles,
   };
 }
@@ -533,6 +537,10 @@ export function parseChromeTraceFormat(
     name: 'chrometrace',
     traceID,
     activeProfileIndex: 0,
+    transactionName: 'chrometrace',
+    projectID: 0,
+    platform: 'chrometrace',
+    version: '0.0.0',
     profiles: [],
   };
 }

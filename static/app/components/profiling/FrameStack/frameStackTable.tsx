@@ -191,7 +191,7 @@ export function FrameStackTable({
   return (
     <FrameBar>
       <FrameCallersTable>
-        <FrameCallersTableHeader>
+        <FrameTableHeader>
           <FrameWeightCell>
             <TableHeaderButton onClick={() => onSortChange('self weight')}>
               {t('Self Time ')}
@@ -216,7 +216,7 @@ export function FrameStackTable({
               ) : null}
             </TableHeaderButton>
           </FrameNameCell>
-        </FrameCallersTableHeader>
+        </FrameTableHeader>
         <FrameStackContextMenu
           onZoomIntoFrameClick={handleZoomIntoFrameClick}
           contextMenu={contextMenu}
@@ -286,7 +286,7 @@ const TableHeaderButton = styled('button')`
   }
 `;
 
-const FrameBar = styled('div')`
+export const FrameBar = styled('div')`
   overflow: auto;
   width: 100%;
   position: relative;
@@ -317,7 +317,7 @@ const FrameNameCell = styled('div')`
   flex: 1 1 100%;
 `;
 
-const FrameCallersTableHeader = styled('div')`
+export const FrameTableHeader = styled('div')`
   top: 0;
   position: sticky;
   z-index: 1;

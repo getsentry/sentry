@@ -62,6 +62,7 @@ declare namespace Profiling {
     profileID: string;
     profiles: ReadonlyArray<ProfileTypes>;
     projectID: number;
+    platform: string;
     shared: {
       frames: ReadonlyArray<Omit<FrameInfo, 'key'>>;
     };

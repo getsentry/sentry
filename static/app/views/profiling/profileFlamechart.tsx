@@ -32,6 +32,10 @@ const LoadingGroup: ProfileGroup = {
   traceID: '',
   activeProfileIndex: 0,
   profiles: [Profile.Empty()],
+  projectID: 0,
+  transactionName: '',
+  version: '',
+  platform: '',
 };
 
 function ProfileFlamegraph(): React.ReactElement {

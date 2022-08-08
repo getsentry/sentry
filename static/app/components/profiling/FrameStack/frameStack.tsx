@@ -1,4 +1,12 @@
-import {memo, MouseEventHandler, useCallback, useMemo, useState} from 'react';
+import {
+  memo,
+  MouseEventHandler,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -16,6 +24,7 @@ import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {useParams} from 'sentry/utils/useParams';
 
 import {FrameStackTable} from './frameStackTable';
+import {ProfileDetails} from './profileDetails';
 
 interface FrameStackProps {
   canvasPoolManager: CanvasPoolManager;
@@ -28,10 +37,13 @@ interface FrameStackProps {
 
 const FrameStack = memo(function FrameStack(props: FrameStackProps) {
   const params = useParams();
+
   const [flamegraphPreferences, dispatchFlamegraphPreferences] =
     useFlamegraphPreferences();
 
-  const [tab, setTab] = useState<'bottom up' | 'call order'>('call order');
+  const [tab, setTab] = useState<'bottom up' | 'call order' | 'profile details'>(
+    'call order'
+  );
   const [treeType, setTreeType] = useState<'all' | 'application' | 'system'>('all');
   const [recursion, setRecursion] = useState<'collapsed' | null>(null);
 
@@ -62,6 +74,23 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
     []
   );
 
+  // Keep a track of the last viewed tab so that in case user clicks on
+  // all frames/system/application frames we can show them the same tab they
+  // were on before. This handles a quirky use-case where we show parent/child
+  // hierarhcy on the same level
+  const lastViewTab = useRef<'call order' | 'bottom up' | null>(
+    tab === 'profile details' ? null : tab
+  );
+  useEffect(() => {
+    if (tab === 'bottom up' || tab === 'call order') {
+      lastViewTab.current = tab;
+    }
+  }, [tab]);
+
+  const onProfileDetailsClick = useCallback(() => {
+    setTab('profile details');
+  }, []);
+
   const onBottomUpClick = useCallback(() => {
     setTab('bottom up');
   }, []);
@@ -72,15 +101,24 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
 
   const onAllApplicationsClick = useCallback(() => {
     setTreeType('all');
-  }, []);
+    if (tab !== 'bottom up' && tab !== 'call order') {
+      setTab(lastViewTab.current || 'call order');
+    }
+  }, [tab]);
 
   const onApplicationsClick = useCallback(() => {
     setTreeType('application');
-  }, []);
+    if (tab !== 'bottom up' && tab !== 'call order') {
+      setTab(lastViewTab.current || 'call order');
+    }
+  }, [tab]);
 
   const onSystemsClick = useCallback(() => {
     setTreeType('system');
-  }, []);
+    if (tab !== 'bottom up' && tab !== 'call order') {
+      setTab(lastViewTab.current || 'call order');
+    }
+  }, [tab]);
 
   const onTableLeftClick = useCallback(() => {
     dispatchFlamegraphPreferences({type: 'set layout', payload: 'table left'});
@@ -97,6 +135,17 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
   return (
     <FrameDrawer layout={flamegraphPreferences.layout}>
       <FrameTabs>
+        <ListItem className={tab === 'profile details' ? 'active' : undefined}>
+          <Button
+            data-title={t('Profile Details')}
+            priority="link"
+            size="zero"
+            onClick={onProfileDetailsClick}
+          >
+            {t('Profile Details')}
+          </Button>
+        </ListItem>
+        <Separator />
         <ListItem className={tab === 'bottom up' ? 'active' : undefined}>
           <Button
             data-title={t('Bottom Up')}
@@ -118,7 +167,15 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
           </Button>
         </ListItem>
         <Separator />
-        <ListItem className={treeType === 'all' ? 'active' : undefined}>
+        <ListItem
+          className={
+            tab === 'profile details'
+              ? undefined
+              : treeType === 'all'
+              ? 'active'
+              : undefined
+          }
+        >
           <Button
             data-title={t('All Frames')}
             priority="link"
@@ -128,7 +185,15 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
             {t('All Frames')}
           </Button>
         </ListItem>
-        <ListItem className={treeType === 'application' ? 'active' : undefined}>
+        <ListItem
+          className={
+            tab === 'profile details'
+              ? undefined
+              : treeType === 'application'
+              ? 'active'
+              : undefined
+          }
+        >
           <Button
             data-title={t('Application Frames')}
             priority="link"
@@ -138,7 +203,16 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
             {t('Application Frames')}
           </Button>
         </ListItem>
-        <ListItem margin="none" className={treeType === 'system' ? 'active' : undefined}>
+        <ListItem
+          margin="none"
+          className={
+            tab === 'profile details'
+              ? undefined
+              : treeType === 'system'
+              ? 'active'
+              : undefined
+          }
+        >
           <Button
             data-title={t('System Frames')}
             priority="link"
@@ -211,13 +285,17 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
           </LayoutSelectionContainer>
         </ListItem>
       </FrameTabs>
-      <FrameStackTable
-        {...props}
-        recursion={recursion}
-        referenceNode={props.referenceNode}
-        tree={maybeFilteredOrInvertedTree ?? []}
-        canvasPoolManager={props.canvasPoolManager}
-      />
+      {tab === 'profile details' ? (
+        <ProfileDetails />
+      ) : (
+        <FrameStackTable
+          {...props}
+          recursion={recursion}
+          referenceNode={props.referenceNode}
+          tree={maybeFilteredOrInvertedTree ?? []}
+          canvasPoolManager={props.canvasPoolManager}
+        />
+      )}
       {flamegraphPreferences.layout === 'table left' ||
       flamegraphPreferences.layout === 'table right' ? (
         <ResizableVerticalDrawer>
