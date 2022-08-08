@@ -102,7 +102,7 @@ export function UniformRateModal({
     groupBy: useMemo(() => ['outcome', 'reason'], []),
   });
 
-  const {recommendedSdkUpgrades} = useRecommendedSdkUpgrades({
+  const {recommendedSdkUpgrades, incompatibleProjects} = useRecommendedSdkUpgrades({
     orgSlug: organization.slug,
   });
 
@@ -510,6 +510,7 @@ export function UniformRateModal({
             projectId={project.id}
             rules={rules}
             recommendedSdkUpgrades={recommendedSdkUpgrades}
+            incompatibleProjects={incompatibleProjects}
             showLinkToTheModal={false}
             onReadDocs={onReadDocs}
           />

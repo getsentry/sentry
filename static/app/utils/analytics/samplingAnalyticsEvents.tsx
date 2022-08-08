@@ -8,6 +8,9 @@ type Rule = {
 };
 
 export type SamplingEventParameters = {
+  'sampling.sdk.incompatible.alert': {
+    project_id: string;
+  };
   'sampling.sdk.updgrades.alert': {
     project_id: string;
   };
@@ -100,6 +103,7 @@ type SamplingAnalyticsKey = keyof SamplingEventParameters;
 
 export const samplingEventMap: Record<SamplingAnalyticsKey, string> = {
   'sampling.sdk.updgrades.alert': 'Recommended sdk upgrades alert',
+  'sampling.sdk.incompatible.alert': 'Incompatible sdk upgrades alert',
   'sampling.settings.modal.recommended.next.steps_back': 'Go back to uniform rate step',
   'sampling.settings.modal.recommended.next.steps_cancel':
     'Cancel at recommended next steps step ',

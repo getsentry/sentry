@@ -18,6 +18,7 @@ describe('Server-Side Sampling - Sampling SDK Alert', function () {
         onReadDocs={jest.fn()}
         rules={[uniformRule]}
         recommendedSdkUpgrades={[]}
+        incompatibleProjects={[]}
         showLinkToTheModal
       />
     );
@@ -40,6 +41,7 @@ describe('Server-Side Sampling - Sampling SDK Alert', function () {
           rules={[uniformRule]}
           recommendedSdkUpgrades={recommendedSdkUpgrades}
           showLinkToTheModal
+          incompatibleProjects={[]}
         />
       </Fragment>
     );
@@ -70,5 +72,30 @@ describe('Server-Side Sampling - Sampling SDK Alert', function () {
         name: 'Update the following SDK versions',
       })
     ).toBeInTheDocument();
+  });
+
+  it('renders incompatible sdks', function () {
+    const {organization, project} = getMockData();
+
+    render(
+      <SamplingSDKAlert
+        organization={organization}
+        projectId={project.id}
+        onReadDocs={jest.fn()}
+        rules={[uniformRule]}
+        recommendedSdkUpgrades={recommendedSdkUpgrades}
+        showLinkToTheModal
+        incompatibleProjects={[TestStubs.Project({slug: 'angular', platform: 'angular'})]}
+      />
+    );
+
+    expect(screen.getByTestId('recommended-sdk-upgrades-alert')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'The following projects are currently incompatible with Server-Side Sampling:'
+      )
+    ).toBeInTheDocument();
+
+    expect(screen.getByTestId('platform-icon-angular')).toBeInTheDocument();
   });
 });
