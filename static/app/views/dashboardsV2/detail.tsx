@@ -862,6 +862,10 @@ class DashboardDetail extends Component<Props, State> {
                             });
                           }
                           addSuccessMessage(t('Dashboard filters updated'));
+                          browserHistory.replace({
+                            pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
+                            query: omit(location.query, 'release'),
+                          });
                         },
                         () => undefined
                       );
