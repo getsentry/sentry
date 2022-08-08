@@ -16,7 +16,7 @@ from sentry.types.activity import ActivityType
 class MSTeamsDeployNotificationTest(MSTeamsActivityNotificationTest):
     def test_deploy(self, mock_send_card: MagicMock):
         """
-        Test that the card for MS Teams notification is generated correctly when a comment is made on an issue.
+        Test that the card for MS Teams notification is generated correctly when a deployment is created.
         """
         projects = [self.project, self.create_project(name="battlesnake")]
         release = self.create_release(
