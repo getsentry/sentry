@@ -1001,26 +1001,6 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                     }
                 )
 
-            # TODO implement creating an alert rule if auto_create = True
-            # plugin_options = ProjectOption.objects.filter(
-            #     project=project.id, key__startswith=plugin.slug
-            # )
-            # if not plugin_options:
-            #     continue
-
-            # options_dict = {}
-            # for p in plugin_options:
-            #     options_dict[p.key] = p.value
-
-            # if plugin.get_option("auto_create") == True and features.has("organizations:integrations-ticket-rules", self.organization):
-            #     continue
-            # migrate_issue_create.apply_async(
-            #     kwargs={
-            #         "integration_id": self.model.id,
-            #         "organization_id": self.organization_id,
-            #     }
-            # )
-
             plugin.disable(project)
 
 
