@@ -1007,8 +1007,6 @@ SENTRY_FEATURES = {
     "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
-    # Enable having the issue ID in the breadcrumbs on Issue Details
-    "organizations:issue-id-breadcrumbs": False,
     # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
     # sentry at the moment.
     "organizations:issue-search-use-cdc-primary": False,
