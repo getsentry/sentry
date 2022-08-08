@@ -8,11 +8,11 @@ describe('OrganizationAuditLog', () => {
   const {routerContext, org} = initializeOrg({
     projects: [],
     router: {
-      location: {query: {version: '2'}},
       params: {orgId: 'org-slug'},
     },
   });
   const ENDPOINT = `/organizations/${org.slug}/audit-logs/`;
+  const mockLocation = {query: {}};
 
   beforeEach(function () {
     Client.clearMockResponses();
@@ -25,7 +25,8 @@ describe('OrganizationAuditLog', () => {
   it('renders', async () => {
     render(
       <OrganizationAuditLog
-        location={{query: {version: '2'}}}
+        location={mockLocation}
+        organization={org}
         params={{orgId: org.slug}}
       />,
       {
@@ -52,7 +53,8 @@ describe('OrganizationAuditLog', () => {
 
     render(
       <OrganizationAuditLog
-        location={{query: {version: '2'}}}
+        location={mockLocation}
+        organization={org}
         params={{orgId: org.slug}}
       />,
       {
@@ -66,7 +68,8 @@ describe('OrganizationAuditLog', () => {
   it('displays whether an action was done by a superuser', async () => {
     render(
       <OrganizationAuditLog
-        location={{query: {version: '2'}}}
+        location={mockLocation}
+        organization={org}
         params={{orgId: org.slug}}
       />,
       {
