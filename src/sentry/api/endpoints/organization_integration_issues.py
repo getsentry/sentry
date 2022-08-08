@@ -7,7 +7,6 @@ from sentry.integrations.mixins import IssueSyncMixin
 
 class OrganizationIntegrationIssuesEndpoint(OrganizationIntegrationBaseEndpoint):
     def get(self, request: Request, organization, integration_id) -> Response:
-        # TODO just doing get so I can easily hit in the browser for now, should be put
         """
         Migrate plugin linked issues to integration linked issues
         ````````````````````````````````````````````````````````

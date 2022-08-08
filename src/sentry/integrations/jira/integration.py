@@ -988,16 +988,20 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
             plugin_ignored_fields = plugin.get_option("ignored_fields", project)
             if plugin_ignored_fields:
+                logging_context = {
+                    "organization_id": self.organization_id,
+                    "project_id": project.id,
+                    "plugin_slug": plugin.slug,
+                }
                 migrate_ignored_fields.apply_async(
                     kwargs={
                         "integration_id": self.model.id,
-                        "organization_id": self.organization_id,
-                        "project_id": project.id,
-                        "plugin_slug": plugin.slug,
                         "plugin_ignored_fields": plugin_ignored_fields,
+                        "logging_context": logging_context,
                     }
                 )
 
+            # TODO implement creating an alert rule if auto_create = True
             # plugin_options = ProjectOption.objects.filter(
             #     project=project.id, key__startswith=plugin.slug
             # )
@@ -1010,7 +1014,6 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
             # if plugin.get_option("auto_create") and features.has("organizations:integrations-ticket-rules", self.organization):
             #     continue
-            # TODO implement the below
             # migrate_issue_create.apply_async(
             #     kwargs={
             #         "integration_id": self.model.id,
@@ -1018,7 +1021,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             #     }
             # )
 
-            # plugin.disable(project)
+            plugin.disable(project)
 
 
 class JiraIntegrationProvider(IntegrationProvider):

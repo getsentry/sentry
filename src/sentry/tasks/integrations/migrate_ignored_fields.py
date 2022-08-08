@@ -1,3 +1,5 @@
+from typing import Any
+
 from sentry.models import OrganizationIntegration
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.integrations import logger
@@ -11,10 +13,8 @@ from sentry.tasks.integrations import logger
 )
 def migrate_ignored_fields(
     integration_id: int,
-    organization_id: int,
-    project_id: int,
-    plugin_slug: str,
     plugin_ignored_fields: list,
+    logging_context: Any,
 ) -> None:
     organization_integration = OrganizationIntegration.objects.get(integration_id=integration_id)
     config = organization_integration.config
@@ -31,8 +31,8 @@ def migrate_ignored_fields(
         "plugin_ignored_fields.migrated",
         extra={
             "integration_id": integration_id,
-            "organization_id": organization_id,
-            "project_id": project_id,
-            "plugin": plugin_slug,
+            "organization_id": logging_context["organization_id"],
+            "project_id": logging_context["project_id"],
+            "plugin": logging_context["plugin_slug"],
         },
     )
