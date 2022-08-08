@@ -543,6 +543,7 @@ export class TokenConverter {
   predicateFilter = <T extends FilterType>(type: T, key: FilterMap[T]['key']) => {
     // @ts-expect-error Unclear why this isn’t resolving correctly
     const keyName = getKeyName(key);
+    const keyIsAggregate = getFieldDefinition(keyName)?.kind === FieldKind.FUNCTION;
 
     const {isNumeric, isDuration, isBoolean, isDate} = this.keyValidation;
 
@@ -550,11 +551,31 @@ export class TokenConverter {
       const aggregateKey = key as FilterMap[AggregateFilter]['key'];
 
       return (
-        isDuration(keyName) &&
+        check(keyName) &&
         (!aggregateKey.args?.args ||
           aggregateKey.args?.args.some(arg => check(arg?.value?.value ?? '')))
       );
     };
+
+    // Be very strict with aggregate keys
+    if (keyIsAggregate) {
+      switch (type) {
+        case FilterType.AggregateDuration:
+          return checkAggregate(isDuration);
+        case FilterType.AggregateNumeric:
+        case FilterType.AggregateDate:
+        case FilterType.AggregatePercentage:
+        case FilterType.AggregateRelativeDate:
+          return true;
+
+        // Fallback all aggregate keys that aren't aggregates into text filters. ('p95:>50' will parse as a text filter)
+        case FilterType.Text:
+          return true;
+
+        default:
+          return false;
+      }
+    }
 
     switch (type) {
       case FilterType.Numeric:
@@ -571,9 +592,6 @@ export class TokenConverter {
       case FilterType.RelativeDate:
       case FilterType.SpecificDate:
         return isDate(keyName);
-
-      case FilterType.AggregateDuration:
-        return checkAggregate(isDuration);
 
       default:
         return true;
@@ -717,44 +735,52 @@ export class TokenConverter {
     }
 
     const keyName = getKeyName(key);
+    const keyIsAggregate = getFieldDefinition(keyName)?.kind === FieldKind.FUNCTION;
 
-    if (this.keyValidation.isDuration(keyName)) {
-      return {
-        reason: t('Invalid duration. Expected number followed by duration unit suffix'),
-        expectedType: [FilterType.Duration],
-      };
-    }
+    // Let text keys that match aggregate filters go through
+    if (!keyIsAggregate) {
+      if (this.keyValidation.isDuration(keyName)) {
+        return {
+          reason: t('Invalid duration. Expected number followed by duration unit suffix'),
+          expectedType: [FilterType.Duration],
+        };
+      }
 
-    if (this.keyValidation.isDate(keyName)) {
-      const date = new Date();
-      date.setSeconds(0);
-      date.setMilliseconds(0);
-      const example = date.toISOString();
+      if (this.keyValidation.isDate(keyName)) {
+        const date = new Date();
+        date.setSeconds(0);
+        date.setMilliseconds(0);
+        const example = date.toISOString();
 
-      return {
-        reason: t(
-          'Invalid date format. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. %s or %s)',
-          example.slice(0, 10),
-          example
-        ),
-        expectedType: [FilterType.Date, FilterType.SpecificDate, FilterType.RelativeDate],
-      };
-    }
+        return {
+          reason: t(
+            'Invalid date format. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. %s or %s)',
+            example.slice(0, 10),
+            example
+          ),
+          expectedType: [
+            FilterType.Date,
+            FilterType.SpecificDate,
+            FilterType.RelativeDate,
+          ],
+        };
+      }
 
-    if (this.keyValidation.isBoolean(keyName)) {
-      return {
-        reason: t('Invalid boolean. Expected true, 1, false, or 0.'),
-        expectedType: [FilterType.Boolean],
-      };
-    }
+      if (this.keyValidation.isBoolean(keyName)) {
+        return {
+          reason: t('Invalid boolean. Expected true, 1, false, or 0.'),
+          expectedType: [FilterType.Boolean],
+        };
+      }
 
-    if (this.keyValidation.isNumeric(keyName)) {
-      return {
-        reason: t(
-          'Invalid number. Expected number then optional k, m, or b suffix (e.g. 500k)'
-        ),
-        expectedType: [FilterType.Numeric, FilterType.NumericIn],
-      };
+      if (this.keyValidation.isNumeric(keyName)) {
+        return {
+          reason: t(
+            'Invalid number. Expected number then optional k, m, or b suffix (e.g. 500k)'
+          ),
+          expectedType: [FilterType.Numeric, FilterType.NumericIn],
+        };
+      }
     }
 
     return this.checkInvalidTextValue(value);
