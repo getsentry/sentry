@@ -1,4 +1,9 @@
-import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {
+  DashboardDetails,
+  DisplayType,
+  Widget,
+  WidgetType,
+} from 'sentry/views/dashboardsV2/types';
 import {
   constructWidgetFromQuery,
   eventViewFromWidget,
@@ -8,6 +13,7 @@ import {
   getNumEquations,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
+  hasUnsavedFilterChanges,
   isCustomMeasurementWidget,
 } from 'sentry/views/dashboardsV2/utils';
 
@@ -339,6 +345,51 @@ describe('Dashboards util', () => {
         ],
       };
       expect(isCustomMeasurementWidget(widget)).toBe(true);
+    });
+  });
+
+  describe('hasUnsavedFilterChanges', function () {
+    it('ignores the order of projects', function () {
+      const initialDashboard = {
+        projects: [1, 2],
+      } as DashboardDetails;
+      const location = {
+        ...TestStubs.location(),
+        query: {
+          project: ['2', '1'],
+        },
+      };
+
+      expect(hasUnsavedFilterChanges(initialDashboard, location, {})).toBe(false);
+    });
+
+    it('ignores the order of environments', function () {
+      const initialDashboard = {
+        environment: ['alpha', 'beta'],
+      } as DashboardDetails;
+      const location = {
+        ...TestStubs.location(),
+        query: {
+          environment: ['beta', 'alpha'],
+        },
+      };
+
+      expect(hasUnsavedFilterChanges(initialDashboard, location, {})).toBe(false);
+    });
+
+    it('ignores the order of releases', function () {
+      const initialDashboard = {
+        filters: {
+          release: ['v1', 'v2'],
+        },
+      } as DashboardDetails;
+      const testFilters = {
+        release: ['v2', 'v1'],
+      };
+
+      expect(
+        hasUnsavedFilterChanges(initialDashboard, TestStubs.location(), testFilters)
+      ).toBe(false);
     });
   });
 });

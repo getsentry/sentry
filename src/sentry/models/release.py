@@ -529,11 +529,14 @@ class Release(Model):
 
     @staticmethod
     def is_valid_version(value):
+        if any(c in value for c in BAD_RELEASE_CHARS):
+            return False
+
+        value_stripped = str(value).strip()
         return not (
-            not value
-            or any(c in value for c in BAD_RELEASE_CHARS)
-            or value in (".", "..")
-            or value.lower() == "latest"
+            not value_stripped
+            or value_stripped in (".", "..")
+            or value_stripped.lower() == "latest"
         )
 
     @property

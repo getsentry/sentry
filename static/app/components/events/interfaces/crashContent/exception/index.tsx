@@ -3,7 +3,7 @@ import {ExceptionType, Group, PlatformType, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
 
-import Content from './content';
+import {Content} from './content';
 import RawContent from './rawContent';
 
 type Props = {
@@ -14,6 +14,7 @@ type Props = {
   projectId: Project['id'];
   stackType: STACK_TYPE;
   groupingCurrentLevel?: Group['metadata']['current_level'];
+  meta?: Record<any, any>;
   stackView?: STACK_VIEW;
 } & Pick<ExceptionType, 'values'>;
 
@@ -27,6 +28,7 @@ function Exception({
   hasHierarchicalGrouping,
   groupingCurrentLevel,
   platform = 'other',
+  meta,
 }: Props) {
   return (
     <ErrorBoundary mini>
@@ -48,6 +50,7 @@ function Exception({
           event={event}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
           groupingCurrentLevel={groupingCurrentLevel}
+          meta={meta}
         />
       )}
     </ErrorBoundary>

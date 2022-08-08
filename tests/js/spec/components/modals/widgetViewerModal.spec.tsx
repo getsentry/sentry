@@ -1375,6 +1375,7 @@ describe('Modals -> WidgetViewerModal', function () {
       });
     });
     it('does a sessions query', async function () {
+      jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
       await renderModal({initialData, widget: mockWidget});
       expect(metricsMock).toHaveBeenCalled();
     });

@@ -20,6 +20,8 @@ def mocked_discover_query():
                 "project": "wind",
                 'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 0.0,
                 'count_if(trace.client_sample_rate, notEquals, "")': 0,
+                'equation|count_if(transaction.source, notEquals, "") / count()': 0.0,
+                'count_if(transaction.source, notEquals, "")': 0,
                 "count()": 2,
             },
             {
@@ -28,6 +30,8 @@ def mocked_discover_query():
                 "project": "wind",
                 'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 0.0,
                 'count_if(trace.client_sample_rate, notEquals, "")': 0,
+                'equation|count_if(transaction.source, notEquals, "") / count()': 0.0,
+                'count_if(transaction.source, notEquals, "")': 0,
                 "count()": 1,
             },
             # project: earth
@@ -37,6 +41,8 @@ def mocked_discover_query():
                 "project": "earth",
                 'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 1.0,
                 'count_if(trace.client_sample_rate, notEquals, "")': 7,
+                'equation|count_if(transaction.source, notEquals, "") / count()': 1.0,
+                'count_if(transaction.source, notEquals, "")': 5,
                 "count()": 23,
             },
             # Accounts for less than 10% of total count for this project, and so should be discarded
@@ -46,6 +52,8 @@ def mocked_discover_query():
                 "project": "earth",
                 'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 1.0,
                 'count_if(trace.client_sample_rate, notEquals, "")': 5,
+                'equation|count_if(transaction.source, notEquals, "") / count()': 1.0,
+                'count_if(transaction.source, notEquals, "")': 3,
                 "count()": 4,
             },
             # Accounts for less than 5% of total count for this project and sdk.name so should be
@@ -56,6 +64,8 @@ def mocked_discover_query():
                 "project": "earth",
                 'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 1.0,
                 'count_if(trace.client_sample_rate, notEquals, "")': 5,
+                'equation|count_if(transaction.source, notEquals, "") / count()': 0.0,
+                'count_if(transaction.source, notEquals, "")': 0,
                 "count()": 2,
             },
             {
@@ -64,6 +74,8 @@ def mocked_discover_query():
                 "project": "earth",
                 'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 0.0,
                 'count_if(trace.client_sample_rate, notEquals, "")': 0,
+                'equation|count_if(transaction.source, notEquals, "") / count()': 0.0,
+                'count_if(transaction.source, notEquals, "")': 0,
                 "count()": 11,
             },
             {
@@ -72,6 +84,8 @@ def mocked_discover_query():
                 "project": "earth",
                 'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 0.0,
                 'count_if(trace.client_sample_rate, notEquals, "")': 0,
+                'equation|count_if(transaction.source, notEquals, "") / count()': 0.0,
+                'count_if(transaction.source, notEquals, "")': 0,
                 "count()": 9,
             },
             # project: heart
@@ -81,6 +95,8 @@ def mocked_discover_query():
                 "project": "heart",
                 'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 1.0,
                 'count_if(trace.client_sample_rate, notEquals, "")': 3,
+                'equation|count_if(transaction.source, notEquals, "") / count()': 0.0,
+                'count_if(transaction.source, notEquals, "")': 0,
                 "count()": 3,
             },
             # project: fire
@@ -90,6 +106,8 @@ def mocked_discover_query():
                 "project": "fire",
                 'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 1.0,
                 'count_if(trace.client_sample_rate, notEquals, "")': 5,
+                'equation|count_if(transaction.source, notEquals, "") / count()': 0.0,
+                'count_if(transaction.source, notEquals, "")': 0,
                 "count()": 5,
             },
             {
@@ -98,6 +116,8 @@ def mocked_discover_query():
                 "project": "fire",
                 'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 1.0,
                 'count_if(trace.client_sample_rate, notEquals, "")': 5,
+                'equation|count_if(transaction.source, notEquals, "") / count()': 0.0,
+                'count_if(transaction.source, notEquals, "")': 0,
                 "count()": 5,
             },
             {
@@ -106,6 +126,8 @@ def mocked_discover_query():
                 "project": "fire",
                 'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 0.0,
                 'count_if(trace.client_sample_rate, notEquals, "")': 0,
+                'equation|count_if(transaction.source, notEquals, "") / count()': 0.0,
+                'count_if(transaction.source, notEquals, "")': 0,
                 "count()": 6,
             },
             {
@@ -114,6 +136,8 @@ def mocked_discover_query():
                 "project": "fire",
                 'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 0.0,
                 'count_if(trace.client_sample_rate, notEquals, "")': 0,
+                'equation|count_if(transaction.source, notEquals, "") / count()': 0.0,
+                'count_if(transaction.source, notEquals, "")': 0,
                 "count()": 5,
             },
             # project: water
@@ -123,6 +147,8 @@ def mocked_discover_query():
                 "project": "water",
                 'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 0.0,
                 'count_if(trace.client_sample_rate, notEquals, "")': 0,
+                'equation|count_if(transaction.source, notEquals, "") / count()': 0.0,
+                'count_if(transaction.source, notEquals, "")': 0,
                 "count()": 100,
             },
             # Accounts for less than 5% of total count for this project and sdk.name so should be
@@ -133,6 +159,8 @@ def mocked_discover_query():
                 "project": "water",
                 'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 0.0,
                 'count_if(trace.client_sample_rate, notEquals, "")': 0,
+                'equation|count_if(transaction.source, notEquals, "") / count()': 0.0,
+                'count_if(transaction.source, notEquals, "")': 0,
                 "count()": 1,
             },
             # Accounts for less than 5% of total count for this project and sdk.name so should be
@@ -143,7 +171,20 @@ def mocked_discover_query():
                 "project": "water",
                 'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 1.0,
                 'count_if(trace.client_sample_rate, notEquals, "")': 1,
+                'equation|count_if(transaction.source, notEquals, "") / count()': 0.0,
+                'count_if(transaction.source, notEquals, "")': 0,
                 "count()": 1,
+            },
+            # project: dummy
+            {
+                "sdk.version": "7.1.4",
+                "sdk.name": "sentry.unknown",
+                "project": "dummy",
+                'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 0.0,
+                'count_if(trace.client_sample_rate, notEquals, "")': 0,
+                'equation|count_if(transaction.source, notEquals, "") / count()': 0.0,
+                'count_if(transaction.source, notEquals, "")': 0,
+                "count()": 2,
             },
         ],
     }
@@ -197,30 +238,48 @@ class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
                     "latestSDKName": "sentry.javascript.react",
                     "latestSDKVersion": "7.1.4",
                     "isSendingSampleRate": False,
+                    "isSendingSource": False,
+                    "isSupportedPlatform": True,
                 },
                 {
                     "project": "earth",
                     "latestSDKName": "sentry.javascript.react",
                     "latestSDKVersion": "7.1.5",
                     "isSendingSampleRate": True,
+                    "isSendingSource": True,
+                    "isSupportedPlatform": True,
                 },
                 {
                     "project": "heart",
                     "latestSDKName": "sentry.javascript.react",
                     "latestSDKVersion": "7.1.5",
                     "isSendingSampleRate": True,
+                    "isSendingSource": False,
+                    "isSupportedPlatform": True,
                 },
                 {
                     "project": "fire",
                     "latestSDKName": "sentry.javascript.react",
                     "latestSDKVersion": "7.1.6",
                     "isSendingSampleRate": True,
+                    "isSendingSource": False,
+                    "isSupportedPlatform": True,
                 },
                 {
                     "project": "water",
                     "latestSDKName": "sentry.javascript.react",
                     "latestSDKVersion": "7.1.4",
                     "isSendingSampleRate": False,
+                    "isSendingSource": False,
+                    "isSupportedPlatform": True,
+                },
+                {
+                    "project": "dummy",
+                    "latestSDKName": "sentry.unknown",
+                    "latestSDKVersion": "7.1.4",
+                    "isSendingSampleRate": False,
+                    "isSendingSource": False,
+                    "isSupportedPlatform": False,
                 },
             ]
 
@@ -248,6 +307,7 @@ class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
                     "sdk.version",
                     "project",
                     'count_if(trace.client_sample_rate, notEquals, "")',
+                    'count_if(transaction.source, notEquals, "")',
                     "count()",
                 ],
                 query="event.type:transaction",
@@ -257,7 +317,10 @@ class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
                     "project_id": [self.project.id],
                     "organization_id": self.project.organization,
                 },
-                equations=['count_if(trace.client_sample_rate, notEquals, "") / count()'],
+                equations=[
+                    'count_if(trace.client_sample_rate, notEquals, "") / count()',
+                    'count_if(transaction.source, notEquals, "") / count()',
+                ],
                 orderby=[],
                 offset=0,
                 limit=100,

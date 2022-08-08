@@ -195,7 +195,6 @@ describe('ThreadsV2', function () {
       };
 
       const props: React.ComponentProps<typeof ThreadsV2> = {
-        type: EntryType.THREADS,
         data: event.entries[1].data as React.ComponentProps<typeof ThreadsV2>['data'],
         event,
         groupingCurrentLevel: 0,
@@ -302,7 +301,7 @@ describe('ThreadsV2', function () {
         expect(await screen.findByText('Display')).toBeInTheDocument();
 
         Object.entries(displayOptions).forEach(([key, value]) => {
-          if (key === 'minified') {
+          if (key === 'minified' || key === 'raw-stack-trace') {
             expect(screen.getByText(value)).toBeInTheDocument();
             return;
           }
@@ -860,7 +859,6 @@ describe('ThreadsV2', function () {
       };
 
       const props: React.ComponentProps<typeof ThreadsV2> = {
-        type: EntryType.THREADS,
         data: event.entries[1].data as React.ComponentProps<typeof ThreadsV2>['data'],
         event,
         groupingCurrentLevel: 0,

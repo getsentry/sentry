@@ -20,11 +20,12 @@ describe('Breadcrumb', function () {
         trails={[
           {type: 'landing'},
           {
-            type: 'flamegraph',
+            type: 'flamechart',
             payload: {
               transaction: 'foo',
               profileId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
               projectSlug: 'bar',
+              tab: 'flamechart',
             },
           },
         ]}

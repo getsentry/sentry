@@ -57,7 +57,7 @@ function Breadcrumbs({
 }: Props) {
   const [scrollToIndex, setScrollToIndex] = useState<number | undefined>(undefined);
   const [scrollbarSize, setScrollbarSize] = useState(0);
-  const breadcrumbEntryIndex = event.entries.findIndex(
+  const entryIndex = event.entries.findIndex(
     entry => entry.type === EntryType.BREADCRUMBS
   );
 
@@ -110,7 +110,7 @@ function Breadcrumbs({
             organization={organization}
             searchTerm={searchTerm}
             breadcrumb={breadcrumb}
-            meta={event._meta?.entries?.[breadcrumbEntryIndex]?.data?.values?.[index]}
+            meta={event._meta?.entries?.[entryIndex]?.data?.values?.[index]}
             event={event}
             relativeTime={relativeTime}
             displayRelativeTime={displayRelativeTime}

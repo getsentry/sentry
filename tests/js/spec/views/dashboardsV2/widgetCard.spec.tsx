@@ -646,7 +646,7 @@ describe('Dashboards > WidgetCard', function () {
 
     await waitFor(() => {
       // Badge in the widget header
-      expect(screen.getByText('Sampled')).toBeInTheDocument();
+      expect(screen.getByText('Indexed')).toBeInTheDocument();
     });
 
     await waitFor(() => {
@@ -812,7 +812,7 @@ describe('Dashboards > WidgetCard', function () {
 
       await waitFor(() => {
         // Badge in the widget header
-        expect(screen.getByText('Sampled')).toBeInTheDocument();
+        expect(screen.getByText('Indexed')).toBeInTheDocument();
       });
 
       await waitFor(() => {
@@ -896,6 +896,33 @@ describe('Dashboards > WidgetCard', function () {
       expect(tooltip.valueFormatter(24, 'duration')).toEqual('24.00ms');
       // @ts-ignore
       expect(yAxis.axisLabel.formatter(24, 'duration')).toEqual('24ms');
+    });
+
+    it('displays indexed badge in preview mode', async function () {
+      render(
+        <WidgetCard
+          api={api}
+          organization={{
+            ...organization,
+            features: [...organization.features, 'dashboards-mep'],
+          }}
+          widget={multipleQueryWidget}
+          selection={selection}
+          isEditing={false}
+          onDelete={() => undefined}
+          onEdit={() => undefined}
+          onDuplicate={() => undefined}
+          renderErrorMessage={() => undefined}
+          isSorting={false}
+          currentWidgetDragging={false}
+          showContextMenu
+          widgetLimitReached={false}
+          isPreview
+        />,
+        {context: routerContext}
+      );
+
+      expect(await screen.findByText('Indexed')).toBeInTheDocument();
     });
   });
 });

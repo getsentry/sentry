@@ -27,15 +27,22 @@ from sentry.integrations.msteams.card_builder.identity import (
     build_unlinked_card,
 )
 from sentry.integrations.msteams.card_builder.installation import (
-    build_installation_confirmation_message,
     build_personal_installation_message,
-    build_welcome_card,
+    build_team_installation_confirmation_message,
+    build_team_installation_message,
 )
 from sentry.integrations.msteams.card_builder.issues import MSTeamsIssueMessageBuilder
+from sentry.integrations.msteams.card_builder.notifications import (
+    MSTeamsNotificationsMessageBuilder,
+)
 from sentry.models import Integration, Organization, OrganizationIntegration, Rule
 from sentry.models.group import GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.notifications import (
+    DummyNotification,
+    DummyNotificationWithMoreFields,
+)
 from sentry.utils import json
 
 
@@ -86,6 +93,13 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert 1 == len(card["actions"])
         assert card["actions"][0]["type"] == ActionType.OPEN_URL
         assert card["actions"][0]["title"] == "button"
+
+    def test_special_chars(self):
+        card = MSTeamsMessageBuilder().build(
+            text="in __init__.py ... return 1 < 2",
+        )
+
+        assert "in &#95;&#95;init&#95;&#95;.py ... return 1 &lt; 2" == card["body"][0]["text"]
 
     def test_missing_action_params(self):
         with pytest.raises(KeyError):
@@ -141,7 +155,7 @@ class MSTeamsMessageBuilderTest(TestCase):
 
     def test_insallation_confirmation_message(self):
         organization = Organization(name="test-org", slug="test-org")
-        confirmation_card = build_installation_confirmation_message(organization)
+        confirmation_card = build_team_installation_confirmation_message(organization)
 
         assert 2 == len(confirmation_card["body"])
         assert 1 == len(confirmation_card["actions"])
@@ -152,15 +166,29 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert url.startswith("http")
 
     def test_personal_installation_message(self):
-        personal_installation_card = build_personal_installation_message()
+        signed_params = "signed_params"
+        personal_installation_card = build_personal_installation_message(signed_params)
 
-        assert 2 == len(personal_installation_card["body"])
+        body = personal_installation_card["body"]
+
+        assert 3 == len(body)
+        assert 1 == len(personal_installation_card["actions"])
+
+        assert "Personal Installation of Sentry" in body[0]["columns"][1]["items"][0]["text"]
+
+        url = personal_installation_card["actions"][0]["url"]
+        assert "signed_params" in url
+        assert url.startswith("http")
 
     def test_team_installation_message(self):
         signed_params = "signed_params"
-        team_installation_card = build_welcome_card(signed_params)
+        team_installation_card = build_team_installation_message(signed_params)
 
         assert 3 == len(team_installation_card["body"])
+        assert (
+            "Welcome to Sentry"
+            in team_installation_card["body"][0]["columns"][1]["items"][0]["text"]
+        )
         assert 1 == len(team_installation_card["actions"])
         assert "Complete Setup" in team_installation_card["actions"][0]["title"]
 
@@ -360,3 +388,62 @@ class MSTeamsMessageBuilderTest(TestCase):
         assign_action = action_set["actions"][2]
         assert ActionType.SUBMIT == assign_action["type"]
         assert "Unassign" == assign_action["title"]
+
+
+class MSTeamsNotificationMessageBuilderTest(TestCase):
+    def setUp(self):
+        owner = self.create_user()
+        self.org = self.create_organization(owner=owner)
+
+        self.notification = DummyNotificationWithMoreFields(self.org)
+        self.project1 = self.create_project(organization=self.org)
+        self.group1 = self.create_group(project=self.project1)
+
+        self.notification.group = self.group1
+        self.context = {"some_field": "some_value"}
+        self.recipient = owner
+
+    def test_simple(self):
+        notification_card = MSTeamsNotificationsMessageBuilder(
+            self.notification,
+            self.context,
+            self.recipient,
+        ).build_notification_card()
+
+        body = notification_card["body"]
+        assert 4 == len(body)
+
+        title = body[0]
+        assert "Notification Title with some&#95;value" == title["text"]
+
+        group_title = body[1]
+        assert "[My Title]" in group_title["text"]
+        assert TextSize.LARGE == group_title["size"]
+        assert TextWeight.BOLDER == group_title["weight"]
+
+        description = body[2]
+        assert "Message Description" in description["text"]
+        assert TextSize.MEDIUM == description["size"]
+
+        footer = body[3]
+        assert 2 == len(footer)
+
+        logo = footer["columns"][0]["items"][0]
+        assert "Image" == logo["type"]
+        assert "20px" == logo["height"]
+
+        footer_text = footer["columns"][1]["items"][0]
+        assert "Notification Footer" in footer_text["text"]
+        assert TextSize.SMALL == footer_text["size"]
+
+    def test_without_footer(self):
+        dummy_notification = DummyNotification(self.org)
+        dummy_notification.group = self.group1
+
+        notification_card = MSTeamsNotificationsMessageBuilder(
+            dummy_notification,
+            self.context,
+            self.recipient,
+        ).build_notification_card()
+
+        assert 3 == len(notification_card["body"])

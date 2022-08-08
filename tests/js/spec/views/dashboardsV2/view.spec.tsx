@@ -25,6 +25,7 @@ describe('Dashboards > ViewEditDashboard', function () {
         queryNames: '',
         queryOrderby: '',
         title: 'test',
+        statsPeriod: '7d',
       },
     };
     render(
@@ -53,6 +54,7 @@ describe('Dashboards > ViewEditDashboard', function () {
           period: '7d',
           project: '11111',
           start: null,
+          statsPeriod: '7d',
           utc: null,
         },
       })

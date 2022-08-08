@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any, Dict, Optional
 from urllib.parse import urlencode, urlparse
 
@@ -47,6 +48,7 @@ _profiling_pool = connection_from_url(
     settings.SENTRY_PROFILING_SERVICE_URL,
     retries=RetrySkipTimeout(
         total=3,
+        status_forcelist={502},
         allowed_methods={"GET", "POST"},
     ),
     timeout=30,
@@ -63,6 +65,10 @@ def get_from_profiling_service(
 ) -> HTTPResponse:
     kwargs: Dict[str, Any] = {"headers": {}, "preload_content": False}
     if params:
+        params = {
+            key: value.isoformat() if isinstance(value, datetime) else value
+            for key, value in params.items()
+        }
         path = f"{path}?{urlencode(params, doseq=True)}"
     if headers:
         kwargs["headers"].update(headers)
