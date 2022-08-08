@@ -41,10 +41,10 @@ type MechanismMeta = {
 
 export type StackTraceMechanism = {
   handled: boolean;
-  synthetic: boolean;
   type: string;
   data?: object;
   description?: string;
   help_link?: string;
   meta?: MechanismMeta;
+  synthetic?: boolean;
 };
