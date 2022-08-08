@@ -73,10 +73,15 @@ export function getClientSampleRates(
       ? maxSafeSampleRate
       : undefined;
 
-  const diff =
-    defined(recommended) && defined(current)
-      ? Math.abs(recommended - current)
-      : undefined;
+  let diff: number | undefined = undefined;
+
+  if (defined(recommended) && defined(current)) {
+    if (recommended >= current) {
+      diff = ((recommended - current) / current) * 100;
+    } else {
+      diff = ((current - recommended) / recommended) * 100;
+    }
+  }
 
   return {
     current,
