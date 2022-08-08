@@ -50,11 +50,13 @@ const StyledPlatformIcon = styled(PlatformIcon)`
 `;
 
 const FrameBar = styled('table')`
+  width: 329px;
+  max-width: 329px;
   overflow: auto;
-  width: 100%;
   position: relative;
   background-color: ${p => p.theme.surface100};
   border-top: 1px solid ${p => p.theme.border};
+  border-left: 1px solid ${p => p.theme.border};
   flex: 1 1 100%;
   margin: 0;
 `;
