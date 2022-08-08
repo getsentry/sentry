@@ -29,12 +29,10 @@ ALLOWED_SDK_NAMES = frozenset(
         "sentry.javascript.remix",  # RemixJS
         "sentry.javascript.node",  # Node, Express, koa
         "sentry.javascript.serverless",  # AWS Lambda Node TODO: need to double check
-        "sentry.python",  # python, django, flask, FastAPI, Starlette, Bottle, Celery
+        "sentry.python",  # python, django, flask, FastAPI, Starlette, Bottle, Celery, pyramid, rq
         "sentry.python.serverless",  # AWS Lambda TODO: need to double check
-        # Pyramid
-        # RQ
-        # iOS
-        # Android
+        "sentry.cocoa",  # iOS
+        "sentry.java.android",  # Android
     )
 )
 
