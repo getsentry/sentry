@@ -418,15 +418,16 @@ interface EventBase {
   userReport?: any;
 }
 
+interface TraceEventContexts extends EventContexts {
+  trace?: TraceContextType;
+}
 export interface EventTransaction
   extends Omit<EventBase, 'entries' | 'type' | 'contexts'> {
   endTimestamp: number;
   entries: (EntrySpans | EntryRequest)[];
   startTimestamp: number;
   type: EventOrGroupType.TRANSACTION;
-  contexts?: {
-    trace?: TraceContextType;
-  };
+  contexts?: TraceEventContexts;
 }
 
 export interface EventError extends Omit<EventBase, 'entries' | 'type'> {
