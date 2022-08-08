@@ -435,14 +435,7 @@ export function ServerSideSampling({project}: Props) {
 
         {!!rules.length &&
           !fetchingRecommendedSdkUpgrades &&
-          (!recommendedSdkUpgrades.length ? (
-            <SamplingSDKClientRateChangeAlert
-              onReadDocs={handleReadDocs}
-              projectStats={projectStats}
-              organization={organization}
-              projectId={project.id}
-            />
-          ) : (
+          (recommendedSdkUpgrades.length || incompatibleProjects.length ? (
             <SamplingSDKUpgradesAlert
               organization={organization}
               projectId={project.id}
@@ -450,6 +443,13 @@ export function ServerSideSampling({project}: Props) {
               recommendedSdkUpgrades={recommendedSdkUpgrades}
               onReadDocs={handleReadDocs}
               incompatibleProjects={incompatibleProjects}
+            />
+          ) : (
+            <SamplingSDKClientRateChangeAlert
+              onReadDocs={handleReadDocs}
+              projectStats={projectStats}
+              organization={organization}
+              projectId={project.id}
             />
           ))}
         <SamplingBreakdown orgSlug={organization.slug} />
