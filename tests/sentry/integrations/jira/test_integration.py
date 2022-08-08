@@ -955,8 +955,12 @@ class JiraMigrationIntegrationTest(APITestCase):
         assert not GroupMeta.objects.filter(
             key=f"{self.plugin.slug}:tid", group_id=group.id, value="BAR-1"
         ).exists()
+
         oi = OrganizationIntegration.objects.get(integration_id=self.integration.id)
         assert len(oi.config["issues_ignored_fields"]) == 4
+
+        assert self.plugin.get_option("enabled", self.project) is False
+        assert plugin2.get_option("enabled", project2) is False
 
 
 class JiraInstallationTest(IntegrationTestCase):

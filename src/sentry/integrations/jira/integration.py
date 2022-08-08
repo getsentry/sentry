@@ -1012,7 +1012,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             # for p in plugin_options:
             #     options_dict[p.key] = p.value
 
-            # if plugin.get_option("auto_create") and features.has("organizations:integrations-ticket-rules", self.organization):
+            # if plugin.get_option("auto_create") == True and features.has("organizations:integrations-ticket-rules", self.organization):
             #     continue
             # migrate_issue_create.apply_async(
             #     kwargs={
