@@ -54,7 +54,6 @@ const Context = ({
   frameMeta,
   registersMeta,
 }: Props) => {
-  console.log({frameMeta, registersMeta});
   if (!hasContextSource && !hasContextVars && !hasContextRegisters && !hasAssembly) {
     return emptySourceNotation ? (
       <div className="empty-context">
