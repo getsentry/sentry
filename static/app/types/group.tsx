@@ -236,7 +236,7 @@ interface GroupActivityRegression extends GroupActivityBase {
   type: GroupActivityType.SET_REGRESSION;
 }
 
-interface GroupActivitySetByResolvedInRelease extends GroupActivityBase {
+export interface GroupActivitySetByResolvedInRelease extends GroupActivityBase {
   data: {
     current_release_version?: string;
     version?: string;
@@ -258,7 +258,7 @@ interface GroupActivitySetByResolvedInPullRequest extends GroupActivityBase {
   type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST;
 }
 
-interface GroupActivitySetIgnored extends GroupActivityBase {
+export interface GroupActivitySetIgnored extends GroupActivityBase {
   data: {
     ignoreCount?: number;
     ignoreDuration?: number;
@@ -270,7 +270,7 @@ interface GroupActivitySetIgnored extends GroupActivityBase {
   type: GroupActivityType.SET_IGNORED;
 }
 
-interface GroupActivityReprocess extends GroupActivityBase {
+export interface GroupActivityReprocess extends GroupActivityBase {
   data: {
     eventCount: number;
     newGroupId: number;
@@ -308,7 +308,7 @@ interface GroupActivityMerge extends GroupActivityBase {
   type: GroupActivityType.MERGE;
 }
 
-interface GroupActivityAssigned extends GroupActivityBase {
+export interface GroupActivityAssigned extends GroupActivityBase {
   data: {
     assignee: string;
     assigneeType: string;
@@ -318,7 +318,7 @@ interface GroupActivityAssigned extends GroupActivityBase {
   type: GroupActivityType.ASSIGNED;
 }
 
-interface GroupActivityCreateIssue extends GroupActivityBase {
+export interface GroupActivityCreateIssue extends GroupActivityBase {
   data: {
     location: string;
     provider: string;
