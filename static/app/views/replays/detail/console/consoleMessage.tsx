@@ -143,20 +143,10 @@ function ConsoleMessage({
         level={breadcrumb.level}
         isActive={isActive}
         hasOccurred={hasOccurred}
-        onClick={handleOnClick}
-        onMouseOver={handleOnMouseOver}
-        onMouseOut={handleOnMouseOut}
       >
         {ICONS[breadcrumb.level]}
       </Icon>
-      <Message
-        isLast={isLast}
-        level={breadcrumb.level}
-        hasOccurred={hasOccurred}
-        onClick={handleOnClick}
-        onMouseOver={handleOnMouseOver}
-        onMouseOut={handleOnMouseOut}
-      >
+      <Message isLast={isLast} level={breadcrumb.level} hasOccurred={hasOccurred}>
         <ErrorBoundary mini>
           <MessageFormatter breadcrumb={breadcrumb} />
         </ErrorBoundary>
@@ -167,13 +157,13 @@ function ConsoleMessage({
         hasOccurred={hasOccurred}
       >
         <Tooltip title={<DateTime date={breadcrumb.timestamp} seconds />}>
-          <ConsoleTimestampContainer
+          <ConsoleTimestampButton
             onClick={handleOnClick}
             onMouseOver={handleOnMouseOver}
             onMouseOut={handleOnMouseOut}
           >
             {showPlayerTime(breadcrumb.timestamp || '', startTimestampMs)}
-          </ConsoleTimestampContainer>
+          </ConsoleTimestampButton>
         </Tooltip>
       </ConsoleTimestamp>
     </Fragment>
@@ -185,7 +175,6 @@ const Common = styled('div')<{
   level: string;
   hasOccurred?: boolean;
 }>`
-  cursor: pointer;
   background-color: ${p =>
     ['warning', 'error'].includes(p.level)
       ? p.theme.alert[p.level].backgroundLight
@@ -227,8 +216,9 @@ const ConsoleTimestamp = styled(Common)`
   padding: ${space(0.25)} ${space(1)};
 `;
 
-const ConsoleTimestampContainer = styled('div')`
-  cursor: pointer;
+const ConsoleTimestampButton = styled('button')`
+  background: none;
+  border: none;
 `;
 
 const Icon = styled(Common)<{isActive: boolean}>`
