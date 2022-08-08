@@ -3,7 +3,9 @@ import {Location} from 'history';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {backend, frontend, mobile} from 'sentry/data/platformCategories';
+import {t} from 'sentry/locale';
 import {
+  NewQuery,
   Organization,
   OrganizationSummary,
   PageFilters,
@@ -33,6 +35,38 @@ export const QUERY_KEYS = [
 export const UNPARAMETERIZED_TRANSACTION = '<< unparameterized >>'; // Represents 'other' transactions with high cardinality names that were dropped on the metrics dataset.
 const UNPARAMETRIZED_TRANSACTION = '<< unparametrized >>'; // Old spelling. Can be deleted in the future when all data for this transaction name is gone.
 export const EXCLUDE_METRICS_UNPARAM_CONDITIONS = `(!transaction:"${UNPARAMETERIZED_TRANSACTION}" AND !transaction:"${UNPARAMETRIZED_TRANSACTION}")`;
+const SHOW_UNPARAM_BANNER = 'showUnparameterizedBanner';
+
+export function createUnnamedTransactionsDiscoverTarget(props: {
+  location: Location;
+  organization: Organization;
+}) {
+  const fields = [
+    'transaction',
+    'project',
+    'transaction.source',
+    'epm()',
+    'p50()',
+    'p95()',
+  ];
+
+  const query: NewQuery = {
+    id: undefined,
+    name: t('Performance - Unparameterized Transactions '),
+    query: 'event.type:transaction transaction.source:"url"',
+    projects: [],
+    fields,
+    version: 2,
+  };
+
+  const discoverEventView = EventView.fromNewQueryWithLocation(
+    query,
+    props.location
+  ).withSorts([{field: 'epm', kind: 'desc'}]);
+  const target = discoverEventView.getResultsViewUrlTarget(props.organization.slug);
+  target.query[SHOW_UNPARAM_BANNER] = 'true';
+  return target;
+}
 
 /**
  * Performance type can used to determine a default view or which specific field should be used by default on pages

@@ -1,8 +1,8 @@
 import {cloneElement, Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {Frame, Group, PlatformType} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {StacktraceType} from 'sentry/types/stacktrace';
@@ -231,7 +231,13 @@ function Content({
 
 export default Content;
 
-const Wrapper = styled(Panel)<{isHoverPreviewed?: boolean}>`
+const Wrapper = styled('ul')<{isHoverPreviewed?: boolean}>`
+  background: ${p => p.theme.background};
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px ${p => 'solid ' + p.theme.border};
+  box-shadow: ${p => p.theme.dropShadowLight};
+  margin-bottom: ${space(2)};
+  position: relative;
   display: grid;
   overflow: hidden;
   font-size: ${p => p.theme.fontSizeSmall};
