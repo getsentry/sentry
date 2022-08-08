@@ -14,6 +14,7 @@ type Props = {
   projectId: Project['id'];
   stackType: STACK_TYPE;
   groupingCurrentLevel?: Group['metadata']['current_level'];
+  meta?: Record<any, any>;
   stackView?: STACK_VIEW;
 } & Pick<ExceptionType, 'values'>;
 
@@ -27,6 +28,7 @@ function Exception({
   hasHierarchicalGrouping,
   groupingCurrentLevel,
   platform = 'other',
+  meta,
 }: Props) {
   return (
     <ErrorBoundary mini>
@@ -48,6 +50,7 @@ function Exception({
           event={event}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
           groupingCurrentLevel={groupingCurrentLevel}
+          meta={meta}
         />
       )}
     </ErrorBoundary>

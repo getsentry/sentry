@@ -16,6 +16,7 @@ type Props = React.ComponentProps<typeof Expander> &
   React.ComponentProps<typeof LeadHint> & {
     frame: Frame;
     isUsedForGrouping: boolean;
+    frameMeta?: Record<any, any>;
     onClick?: () => void;
     onMouseDown?: React.MouseEventHandler<HTMLDivElement>;
     timesRepeated?: number;
@@ -32,6 +33,7 @@ function Default({
   leadsToApp,
   onMouseDown,
   onClick,
+  frameMeta,
   ...props
 }: Props) {
   function renderRepeats() {
@@ -65,6 +67,7 @@ function Default({
             platform={platform}
             isHoverPreviewed={isHoverPreviewed}
             isUsedForGrouping={isUsedForGrouping}
+            meta={frameMeta}
           />
         </Title>
         {renderRepeats()}

@@ -8,7 +8,7 @@ import space from 'sentry/styles/space';
 import {Frame} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
-import FunctionName from './functionName';
+import {FunctionName} from './functionName';
 import GroupingIndicator from './groupingIndicator';
 import {getFrameHint} from './utils';
 

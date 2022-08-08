@@ -6,7 +6,7 @@ import CrashActions from 'sentry/components/events/interfaces/crashHeader/crashA
 import CrashTitle from 'sentry/components/events/interfaces/crashHeader/crashTitle';
 import {t} from 'sentry/locale';
 import {ExceptionType, Group} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import {EntryType, Event} from 'sentry/types/event';
 import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 
@@ -17,14 +17,12 @@ type Props = {
   event: Event;
   hasHierarchicalGrouping: boolean;
   projectId: string;
-  type: string;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hideGuide?: boolean;
 };
 
 function Exception({
   event,
-  type,
   data,
   projectId,
   hasHierarchicalGrouping,
@@ -76,7 +74,7 @@ function Exception({
 
   return (
     <EventDataSection
-      type={type}
+      type={EntryType.EXCEPTION}
       title={<CrashTitle title={t('Exception')} {...commonCrashHeaderProps} />}
       actions={
         <CrashActions

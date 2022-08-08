@@ -22,6 +22,7 @@ type Props = {
   groupingCurrentLevel?: Group['metadata']['current_level'];
   includeSystemFrames?: boolean;
   isHoverPreviewed?: boolean;
+  meta?: Record<any, any>;
   newestFirst?: boolean;
 };
 
@@ -33,6 +34,7 @@ function Content({
   className,
   isHoverPreviewed,
   groupingCurrentLevel,
+  meta,
   includeSystemFrames = true,
   expandFirstFrame = true,
 }: Props) {
@@ -191,6 +193,8 @@ function Content({
             showCompleteFunctionName,
             isHoverPreviewed,
             isUsedForGrouping,
+            frameMeta: meta?.frames?.[frameIndex],
+            registersMeta: meta?.registers,
           };
 
           nRepeats = 0;

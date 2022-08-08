@@ -28,7 +28,7 @@ class SelectField extends Component<Props> {
         isSearchable={false}
         options={this.props.options.map(opt => ({
           ...opt,
-          details: `(${opt.description})`,
+          details: opt.description ? `(${opt.description})` : undefined,
         }))}
         styles={{
           control: (provided: {[x: string]: string | number | boolean}) => ({

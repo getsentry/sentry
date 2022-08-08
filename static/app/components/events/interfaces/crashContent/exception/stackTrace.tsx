@@ -24,6 +24,7 @@ type Props = {
   stacktrace: ExceptionValue['stacktrace'];
   expandFirstFrame?: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
+  meta?: Record<any, any>;
   newestFirst?: boolean;
   stackView?: STACK_VIEW;
 };
@@ -39,6 +40,7 @@ function StackTrace({
   data,
   expandFirstFrame,
   event,
+  meta,
 }: Props) {
   // Organization context may be unavailable for the shared event view, so we
   // avoid using the `useOrganization` hook here and directly useContext
@@ -98,6 +100,7 @@ function StackTrace({
         platform={platform}
         newestFirst={newestFirst}
         event={event}
+        meta={meta}
       />
     );
   }
@@ -112,6 +115,7 @@ function StackTrace({
         platform={platform}
         newestFirst={newestFirst}
         event={event}
+        meta={meta}
       />
     );
   }
@@ -124,6 +128,7 @@ function StackTrace({
       platform={platform}
       newestFirst={newestFirst}
       event={event}
+      meta={meta}
     />
   );
 }

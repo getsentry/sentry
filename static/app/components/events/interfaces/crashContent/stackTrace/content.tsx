@@ -24,6 +24,7 @@ type Props = {
   platform: PlatformType;
   className?: string;
   isHoverPreviewed?: boolean;
+  meta?: Record<any, any>;
   newestFirst?: boolean;
   organization?: Organization;
 } & Partial<DefaultProps>;
@@ -135,6 +136,7 @@ class Content extends Component<Props, State> {
       platform,
       includeSystemFrames,
       isHoverPreviewed,
+      meta,
     } = this.props;
 
     const {showingAbsoluteAddresses, showCompleteFunctionName} = this.state;
@@ -228,6 +230,8 @@ class Content extends Component<Props, State> {
             showCompleteFunctionName={showCompleteFunctionName}
             isHoverPreviewed={isHoverPreviewed}
             isFirst={newestFirst ? frameIdx === lastFrameIdx : frameIdx === 0}
+            frameMeta={meta?.frames?.[frameIdx]}
+            registersMeta={meta?.registers}
           />
         );
       }

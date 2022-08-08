@@ -10,7 +10,7 @@ import {Request} from 'sentry/components/events/interfaces/request';
 import Spans from 'sentry/components/events/interfaces/spans';
 import StackTrace from 'sentry/components/events/interfaces/stackTrace';
 import StackTraceV2 from 'sentry/components/events/interfaces/stackTraceV2';
-import Template from 'sentry/components/events/interfaces/template';
+import {Template} from 'sentry/components/events/interfaces/template';
 import Threads from 'sentry/components/events/interfaces/threads';
 import ThreadsV2 from 'sentry/components/events/interfaces/threadsV2';
 import {Group, Organization, Project, SharedViewOrganization} from 'sentry/types';
@@ -48,21 +48,18 @@ function EventEntry({
 
   switch (entry.type) {
     case EntryType.EXCEPTION: {
-      const {data, type} = entry;
       return hasNativeStackTraceV2 ? (
         <ExceptionV2
-          type={type}
           event={event}
-          data={data}
+          data={entry.data}
           projectId={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
       ) : (
         <Exception
-          type={type}
           event={event}
-          data={data}
+          data={entry.data}
           projectId={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
@@ -76,21 +73,18 @@ function EventEntry({
       return <Request event={event} data={entry.data} />;
     }
     case EntryType.STACKTRACE: {
-      const {data, type} = entry;
       return hasNativeStackTraceV2 ? (
         <StackTraceV2
-          type={type}
           event={event}
-          data={data}
+          data={entry.data}
           projectId={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
       ) : (
         <StackTrace
-          type={type}
           event={event}
-          data={data}
+          data={entry.data}
           projectId={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
@@ -98,25 +92,25 @@ function EventEntry({
       );
     }
     case EntryType.TEMPLATE: {
-      const {data, type} = entry;
-      return <Template type={type} event={event} data={data} />;
+      return <Template event={event} data={entry.data} />;
     }
     case EntryType.CSP: {
-      const {data} = entry;
-      return <Csp event={event} data={data} />;
+      return <Csp event={event} data={entry.data} />;
     }
     case EntryType.EXPECTCT:
-    case EntryType.EXPECTSTAPLE:
-    case EntryType.HPKP: {
+    case EntryType.EXPECTSTAPLE: {
       const {data, type} = entry;
-      return <Generic type={type} data={data} meta={event._meta?.hpkp ?? {}} />;
+      return <Generic type={type} data={data} />;
     }
+    case EntryType.HPKP:
+      return (
+        <Generic type={entry.type} data={entry.data} meta={event._meta?.hpkp ?? {}} />
+      );
+
     case EntryType.BREADCRUMBS: {
-      const {data, type} = entry;
       return (
         <Breadcrumbs
-          type={type}
-          data={data}
+          data={entry.data}
           organization={organization as Organization}
           event={event}
           router={router}
@@ -125,21 +119,18 @@ function EventEntry({
       );
     }
     case EntryType.THREADS: {
-      const {data, type} = entry;
       return hasNativeStackTraceV2 ? (
         <ThreadsV2
-          type={type}
           event={event}
-          data={data}
+          data={entry.data}
           projectId={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
       ) : (
         <Threads
-          type={type}
           event={event}
-          data={data}
+          data={entry.data}
           projectId={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
@@ -147,15 +138,13 @@ function EventEntry({
       );
     }
     case EntryType.DEBUGMETA:
-      const {data} = entry;
-
       return (
         <DebugMeta
           event={event}
           projectId={projectSlug}
           groupId={group?.id}
           organization={organization as Organization}
-          data={data}
+          data={entry.data}
         />
       );
     case EntryType.SPANS:

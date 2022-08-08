@@ -5,6 +5,7 @@ import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
 import {t} from 'sentry/locale';
 import {
+  EntryType,
   Event,
   Frame,
   PlatformType,
@@ -33,15 +34,16 @@ type Props = Pick<ExceptionProps, 'groupingCurrentLevel' | 'hasHierarchicalGroup
   };
   event: Event;
   projectId: Project['id'];
-  type: string;
 };
 
 type State = {
   activeThread?: Thread;
 };
 
-function getIntendedStackView(thread: Thread, event: Event) {
-  const exception = getThreadException(event, thread);
+function getIntendedStackView(
+  thread: Thread,
+  exception: ReturnType<typeof getThreadException>
+): STACK_VIEW {
   if (exception) {
     return !!exception.values.find(value => !!value.stacktrace?.hasSystemFrames)
       ? STACK_VIEW.APP
@@ -57,7 +59,6 @@ function Threads({
   data,
   event,
   projectId,
-  type,
   hasHierarchicalGrouping,
   groupingCurrentLevel,
 }: Props) {
@@ -72,8 +73,18 @@ function Threads({
   const {activeThread} = state;
 
   const hasMoreThanOneThread = threads.length > 1;
+
   const exception = getThreadException(event, activeThread);
-  const stackView = activeThread ? getIntendedStackView(activeThread, event) : undefined;
+
+  const entryIndex = exception
+    ? event.entries.findIndex(entry => entry.type === EntryType.EXCEPTION)
+    : event.entries.findIndex(entry => entry.type === EntryType.THREADS);
+
+  const meta = event._meta?.entries?.[entryIndex]?.data?.values;
+
+  const stackView = activeThread
+    ? getIntendedStackView(activeThread, exception)
+    : undefined;
 
   function getPlatform(): PlatformType {
     let exceptionFramePlatform: Frame | undefined = undefined;
@@ -148,6 +159,7 @@ function Threads({
           values={exception.values}
           groupingCurrentLevel={groupingCurrentLevel}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
+          meta={meta}
         />
       );
     }
@@ -173,6 +185,7 @@ function Threads({
           platform={platform}
           groupingCurrentLevel={groupingCurrentLevel}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
+          meta={meta}
           nativeV2
         />
       );
@@ -189,7 +202,7 @@ function Threads({
 
   return (
     <TraceEventDataSection
-      type={type}
+      type={EntryType.THREADS}
       stackType={STACK_TYPE.ORIGINAL}
       projectId={projectId}
       eventId={event.id}

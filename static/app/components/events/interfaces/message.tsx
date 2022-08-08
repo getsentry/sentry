@@ -14,10 +14,8 @@ type Props = {
 };
 
 export function Message({data, event}: Props) {
-  const messageEntryIndex = event.entries.findIndex(
-    entry => entry.type === EntryType.MESSAGE
-  );
-  const meta = event?._meta?.entries?.[messageEntryIndex] ?? {};
+  const entryIndex = event.entries.findIndex(entry => entry.type === EntryType.MESSAGE);
+  const meta = event?._meta?.entries?.[entryIndex] ?? {};
 
   function renderParams() {
     const params = data?.params;

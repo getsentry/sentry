@@ -94,6 +94,7 @@ describe('Exception Content', function () {
         stackView={STACK_VIEW.APP}
         event={event}
         values={event.entries[0].data.values}
+        meta={event._meta.entries[0].data.values}
       />
     );
 

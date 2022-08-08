@@ -3,22 +3,22 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ClippedBox from 'sentry/components/clippedBox';
-import {getMeta} from 'sentry/components/events/meta/metaProxy';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
 import {getSortedRegisters} from './utils';
-import Value from './value';
+import {FrameRegisterValue} from './value';
 
 type Props = {
   registers: Record<string, string | null>;
   deviceArch?: string;
+  meta?: Record<any, any>;
 };
 
 const CLIPPED_HEIGHT = 40;
 
-function FrameRegisters({registers, deviceArch}: Props) {
+export function FrameRegisters({registers, deviceArch, meta}: Props) {
   const [isRevealed, setIsRevealed] = useState(false);
   const [renderedHeight, setRenderedHeight] = useState(0);
 
@@ -51,7 +51,7 @@ function FrameRegisters({registers, deviceArch}: Props) {
             return (
               <Register key={name} onClick={handlePreventToggling}>
                 {name}
-                <Value value={value} meta={getMeta(registers, name)} />
+                <FrameRegisterValue value={value} meta={meta?.[name]?.['']} />
               </Register>
             );
           })}
@@ -60,8 +60,6 @@ function FrameRegisters({registers, deviceArch}: Props) {
     </Wrapper>
   );
 }
-
-export default FrameRegisters;
 
 const Wrapper = styled('div')`
   padding: ${space(1)} ${space(1)} ${space(0.5)} calc(${space(4)} + ${space(0.25)});

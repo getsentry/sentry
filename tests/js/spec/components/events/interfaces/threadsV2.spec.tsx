@@ -195,7 +195,6 @@ describe('ThreadsV2', function () {
       };
 
       const props: React.ComponentProps<typeof ThreadsV2> = {
-        type: EntryType.THREADS,
         data: event.entries[1].data as React.ComponentProps<typeof ThreadsV2>['data'],
         event,
         groupingCurrentLevel: 0,
@@ -860,7 +859,6 @@ describe('ThreadsV2', function () {
       };
 
       const props: React.ComponentProps<typeof ThreadsV2> = {
-        type: EntryType.THREADS,
         data: event.entries[1].data as React.ComponentProps<typeof ThreadsV2>['data'],
         event,
         groupingCurrentLevel: 0,

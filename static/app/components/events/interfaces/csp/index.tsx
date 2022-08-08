@@ -44,8 +44,8 @@ type Props = {
 export function Csp({data, event}: Props) {
   const [view, setView] = useState<View>('report');
 
-  const cspEntryIndex = event.entries.findIndex(entry => entry.type === EntryType.CSP);
-  const meta = event._meta?.entries?.[cspEntryIndex]?.data;
+  const entryIndex = event.entries.findIndex(entry => entry.type === EntryType.CSP);
+  const meta = event._meta?.entries?.[entryIndex]?.data;
 
   const cleanData =
     data.original_policy !== 'string'

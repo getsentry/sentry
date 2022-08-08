@@ -6,7 +6,7 @@ import CrashActions from 'sentry/components/events/interfaces/crashHeader/crashA
 import CrashTitle from 'sentry/components/events/interfaces/crashHeader/crashTitle';
 import {t} from 'sentry/locale';
 import {Group, Project} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import {EntryType, Event} from 'sentry/types/event';
 import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
 
 import NoStackTraceMessage from './noStackTraceMessage';
@@ -21,7 +21,6 @@ type Props = Pick<
   data: NonNullable<CrashContentProps['stacktrace']>;
   event: Event;
   projectId: Project['id'];
-  type: string;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hideGuide?: boolean;
 };
@@ -31,7 +30,6 @@ function StacktraceInterface({
   projectId,
   event,
   data,
-  type,
   hasHierarchicalGrouping,
   groupingCurrentLevel,
 }: Props) {
@@ -44,7 +42,7 @@ function StacktraceInterface({
 
   return (
     <EventDataSection
-      type={type}
+      type={EntryType.STACKTRACE}
       title={
         <CrashTitle
           title={t('Stack Trace')}
