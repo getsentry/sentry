@@ -19,7 +19,15 @@ import OrgDashboards from './orgDashboards';
 import {DashboardState, Widget} from './types';
 import {constructWidgetFromQuery} from './utils';
 
-const ALLOWED_PARAMS = ['start', 'end', 'utc', 'period', 'project', 'environment'];
+const ALLOWED_PARAMS = [
+  'start',
+  'end',
+  'utc',
+  'period',
+  'project',
+  'environment',
+  'statsPeriod',
+];
 
 type Props = RouteComponentProps<
   {dashboardId: string; orgId: string; widgetId?: number},
