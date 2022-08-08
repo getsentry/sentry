@@ -18,9 +18,5 @@ class OrganizationIntegrationIssuesEndpoint(OrganizationIntegrationBaseEndpoint)
         install = integration.get_installation(organization.id)
         if isinstance(install, IssueSyncMixin):
             install.migrate_issues()
-            # try:
-            # repositories = install.get_repositories(request.GET.get("search"))
-            # except (IntegrationError, IdentityNotValid) as e:
-            #     return self.respond({"detail": str(e)}, status=400)
 
         return Response(status=204)

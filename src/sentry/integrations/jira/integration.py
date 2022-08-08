@@ -23,8 +23,10 @@ from sentry.models import (
     IntegrationExternalProject,
     Organization,
     OrganizationIntegration,
+    Project,
     User,
 )
+from sentry.plugins.base import plugins
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -32,7 +34,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationError,
     IntegrationFormError,
 )
-from sentry.tasks.integrations import migrate_issues
+from sentry.tasks.integrations import migrate_ignored_fields, migrate_issues
 from sentry.utils.decorators import classproperty
 from sentry.utils.http import absolute_uri
 
@@ -960,12 +962,63 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         )
 
     def migrate_issues(self):
-        migrate_issues.apply_async(
-            kwargs={
-                "integration_id": self.model.id,
-                "organization_id": self.organization_id,
-            }
-        )
+        for project in Project.objects.filter(organization_id=self.organization_id):
+            plugin = None
+            for p in plugins.for_project(project):
+                if p.slug.startswith(self.model.provider) and p.get_option(
+                    "default_project", project
+                ):
+                    plugin = p
+                    break
+
+            if not plugin:
+                continue
+            if plugin.get_option("instance_url", project).rstrip("/") != self.model.metadata.get(
+                "base_url"
+            ).rstrip("/"):
+                continue
+            migrate_issues.apply_async(
+                kwargs={
+                    "integration_id": self.model.id,
+                    "organization_id": self.organization_id,
+                    "project_id": project.id,
+                    "plugin_slug": plugin.slug,
+                }
+            )
+
+            plugin_ignored_fields = plugin.get_option("ignored_fields", project)
+            if plugin_ignored_fields:
+                migrate_ignored_fields.apply_async(
+                    kwargs={
+                        "integration_id": self.model.id,
+                        "organization_id": self.organization_id,
+                        "project_id": project.id,
+                        "plugin_slug": plugin.slug,
+                        "plugin_ignored_fields": plugin_ignored_fields,
+                    }
+                )
+
+            # plugin_options = ProjectOption.objects.filter(
+            #     project=project.id, key__startswith=plugin.slug
+            # )
+            # if not plugin_options:
+            #     continue
+
+            # options_dict = {}
+            # for p in plugin_options:
+            #     options_dict[p.key] = p.value
+
+            # if plugin.get_option("auto_create") and features.has("organizations:integrations-ticket-rules", self.organization):
+            #     continue
+            # TODO implement the below
+            # migrate_issue_create.apply_async(
+            #     kwargs={
+            #         "integration_id": self.model.id,
+            #         "organization_id": self.organization_id,
+            #     }
+            # )
+
+            # plugin.disable(project)
 
 
 class JiraIntegrationProvider(IntegrationProvider):
