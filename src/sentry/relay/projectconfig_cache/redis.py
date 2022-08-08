@@ -15,7 +15,8 @@ logger = logging.getLogger(__name__)
 class RedisProjectConfigCache(ProjectConfigCache):
     def __init__(self, **options):
         cluster_key = options.get("cluster", "default")
-        self.cluster = redis.redis_clusters.get(cluster_key)
+        readonly = options.get("readonly", False)
+        self.cluster = redis.redis_clusters.get(cluster_key, readonly)
 
         super().__init__(**options)
 

@@ -11,3 +11,12 @@ backend = LazyServiceWrapper(
 )
 
 backend.expose(locals())
+
+readonly = LazyServiceWrapper(
+    ProjectConfigCache,
+    settings.SENTRY_RELAY_PROJECTCONFIG_CACHE,
+    {
+        "readonly": True,
+        **settings.SENTRY_RELAY_PROJECTCONFIG_CACHE_OPTIONS,
+    },
+)
