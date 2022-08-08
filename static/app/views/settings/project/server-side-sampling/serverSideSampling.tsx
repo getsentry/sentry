@@ -114,6 +114,7 @@ export function ServerSideSampling({project}: Props) {
     projectId: project?.id,
     interval: '1h',
     statsPeriod: '48h',
+    groupBy: 'outcome',
   });
 
   const {recommendedSdkUpgrades, fetching: fetchingRecommendedSdkUpgrades} =

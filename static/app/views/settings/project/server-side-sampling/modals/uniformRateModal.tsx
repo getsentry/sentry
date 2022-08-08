@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -99,6 +99,7 @@ export function UniformRateModal({
     projectId: project.id,
     interval: '1d',
     statsPeriod: '30d',
+    groupBy: useMemo(() => ['outcome', 'reason'], []),
   });
 
   const {recommendedSdkUpgrades} = useRecommendedSdkUpgrades({

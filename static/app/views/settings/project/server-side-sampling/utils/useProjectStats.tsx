@@ -7,7 +7,14 @@ import useApi from 'sentry/utils/useApi';
 
 import {projectStatsToSeries} from './projectStatsToSeries';
 
-function useProjectStats({orgSlug, projectId, interval, statsPeriod, disable = false}) {
+function useProjectStats({
+  orgSlug,
+  projectId,
+  interval,
+  groupBy,
+  statsPeriod,
+  disable = false,
+}) {
   const api = useApi();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
@@ -21,7 +28,7 @@ function useProjectStats({orgSlug, projectId, interval, statsPeriod, disable = f
           query: {
             category: 'transaction',
             field: 'sum(quantity)',
-            groupBy: 'outcome',
+            groupBy,
             project: projectId,
             interval,
             statsPeriod,
@@ -40,7 +47,7 @@ function useProjectStats({orgSlug, projectId, interval, statsPeriod, disable = f
     if (!disable) {
       fetchStats();
     }
-  }, [api, projectId, orgSlug, interval, statsPeriod, disable]);
+  }, [api, projectId, orgSlug, interval, statsPeriod, disable, groupBy]);
 
   return {
     loading,

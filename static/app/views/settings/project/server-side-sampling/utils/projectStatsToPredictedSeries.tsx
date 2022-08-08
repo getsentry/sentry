@@ -28,38 +28,54 @@ export function projectStatsToPredictedSeries(
     stack: 'predictedUsage',
   };
 
-  const seriesData: Record<string, Series['data']> = {
-    accepted: [],
-    droppedServer: [],
-    droppedClient: [],
+  const seriesData: Record<
+    'indexedAndProcessed' | 'processed' | 'discarded',
+    Series['data']
+  > = {
+    indexedAndProcessed: [],
+    processed: [],
+    discarded: [],
   };
 
   (
     projectStats.intervals.map((interval, index) => {
-      const result = {};
+      const result = {
+        indexedAndProcessed: 0,
+        processed: 0,
+        discarded: 0,
+      };
       projectStats.groups.forEach(group => {
-        result[group.by.outcome] = group.series[quantityField][index];
+        switch (group.by.outcome) {
+          case Outcome.ACCEPTED:
+            result.indexedAndProcessed += group.series[quantityField][index];
+            break;
+          case Outcome.CLIENT_DISCARD:
+            result.discarded += group.series[quantityField][index];
+            break;
+          case Outcome.FILTERED:
+            if (String(group.by.reason).startsWith('Sampled')) {
+              result.processed += group.series[quantityField][index];
+            }
+            break;
+          default:
+          // We do not take invalid, rate_limited and other filtered into account
+        }
       });
       return {
-        interval,
+        interval: moment(interval).valueOf(),
         ...result,
       };
-    }) as Array<Record<Partial<Outcome>, number> & {interval: string}>
+    }) as Array<
+      Record<'indexedAndProcessed' | 'processed' | 'discarded' | 'interval', number>
+    >
   ).forEach((bucket, index) => {
-    const {
-      accepted = 0,
-      filtered = 0,
-      invalid = 0,
-      rate_limited: rateLimited = 0,
-      client_discard: clientDiscard = 0,
-      interval,
-    } = bucket;
+    const {indexedAndProcessed, processed, discarded, interval} = bucket;
 
     if (clientRate < serverRate!) {
       serverRate = clientRate;
     }
 
-    let total = accepted + filtered + invalid + rateLimited + clientDiscard;
+    let total = indexedAndProcessed + processed + discarded;
 
     if (defined(specifiedClientRate)) {
       // We assume that the clientDiscard is 0 and
@@ -69,23 +85,22 @@ export function projectStatsToPredictedSeries(
     }
 
     const newSentClient = total * clientRate;
-    const newDroppedClient = total - newSentClient;
+    const newDiscarded = total - newSentClient;
+    const newIndexedAndProcessed =
+      clientRate === 0 ? 0 : newSentClient * (serverRate! / clientRate);
+    const newProcessed = newSentClient - newIndexedAndProcessed;
 
-    const newAccepted = clientRate === 0 ? 0 : newSentClient * (serverRate! / clientRate);
-    const newDroppedServer = newSentClient - newAccepted;
-
-    const name = moment(interval).valueOf();
-    seriesData.accepted[index] = {
-      name,
-      value: Math.round(newAccepted),
+    seriesData.indexedAndProcessed[index] = {
+      name: interval,
+      value: Math.round(newIndexedAndProcessed),
     };
-    seriesData.droppedServer[index] = {
-      name,
-      value: Math.round(newDroppedServer),
+    seriesData.processed[index] = {
+      name: interval,
+      value: Math.round(newProcessed),
     };
-    seriesData.droppedClient[index] = {
-      name,
-      value: Math.round(newDroppedClient),
+    seriesData.discarded[index] = {
+      name: interval,
+      value: Math.round(newDiscarded),
     };
   });
 
@@ -94,18 +109,18 @@ export function projectStatsToPredictedSeries(
       seriesName: t('Indexed and Processed'),
       color: commonTheme.green300,
       ...commonSeriesConfig,
-      data: seriesData.accepted,
+      data: seriesData.indexedAndProcessed,
     },
     {
       seriesName: t('Processed'),
       color: commonTheme.yellow300,
-      data: seriesData.droppedServer,
+      data: seriesData.processed,
       ...commonSeriesConfig,
     },
     {
       seriesName: t('Discarded'),
       color: commonTheme.red300,
-      data: seriesData.droppedClient,
+      data: seriesData.discarded,
       ...commonSeriesConfig,
     },
   ];

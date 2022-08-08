@@ -22,8 +22,8 @@ import importedUseProjectStats from 'sentry/views/settings/project/server-side-s
 import {useRecommendedSdkUpgrades as importedUseRecommendedSdkUpgrades} from 'sentry/views/settings/project/server-side-sampling/utils/useRecommendedSdkUpgrades';
 
 export const outcomesWithoutClientDiscarded = {
-  ...TestStubs.Outcomes(),
-  groups: TestStubs.Outcomes().groups.filter(
+  ...TestStubs.OutcomesWithReason(),
+  groups: TestStubs.OutcomesWithReason().groups.filter(
     group => group.by.outcome !== Outcome.CLIENT_DISCARD
   ),
 };
@@ -150,7 +150,7 @@ const useProjectStats = importedUseProjectStats as jest.MockedFunction<
   typeof importedUseProjectStats
 >;
 useProjectStats.mockImplementation(() => ({
-  projectStats: TestStubs.Outcomes(),
+  projectStats: TestStubs.OutcomesWithReason(),
   loading: false,
   error: undefined,
   projectStatsSeries: [],
