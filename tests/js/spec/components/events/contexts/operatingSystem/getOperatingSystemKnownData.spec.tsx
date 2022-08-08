@@ -16,13 +16,6 @@ describe('getOperatingSystemKnownData', function () {
         value: 'Mac OS X 10.14.0',
         meta: undefined,
       },
-      {key: 'version', subject: 'Version', value: '', meta: undefined},
-      {
-        key: 'kernel_version',
-        subject: 'Kernel Version',
-        value: '',
-        meta: undefined,
-      },
     ]);
   });
 });

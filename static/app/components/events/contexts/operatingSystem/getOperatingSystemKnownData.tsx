@@ -1,5 +1,4 @@
 import {Event, KeyValueListData} from 'sentry/types';
-import {defined} from 'sentry/utils';
 
 import {getOperatingSystemKnownDataDetails} from './getOperatingSystemKnownDataDetails';
 import {OperatingSystemKnownData} from './types';
@@ -15,11 +14,12 @@ export function getOperatingSystemKnownData({data, meta}: Props): KeyValueListDa
 
   const dataKeys = operatingSystemKnownDataValues.filter(
     operatingSystemKnownDataValue => {
-      if (!defined(data[operatingSystemKnownDataValue])) {
-        if (meta[operatingSystemKnownDataValue]) {
-          return true;
-        }
-        return false;
+      if (
+        typeof data[operatingSystemKnownDataValue] !== 'number' &&
+        typeof data[operatingSystemKnownDataValue] !== 'boolean' &&
+        !data[operatingSystemKnownDataValue]
+      ) {
+        return !!meta[operatingSystemKnownDataValue];
       }
       return true;
     }
