@@ -350,7 +350,7 @@ def is_user_signed_request(request):
 def set_active_org(request: Request, org_slug: str) -> None:
     # even if the value being set is the same this will trigger a session
     # modification and reset the users expiry, so check if they are different first.
-    if request.session.get("activeorg") != org_slug:
+    if hasattr(request, "session") and request.session.get("activeorg") != org_slug:
         request.session["activeorg"] = org_slug
 
 
