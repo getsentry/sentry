@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
+import FeatureBadge from 'sentry/components/featureBadge';
 import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -37,6 +38,7 @@ export default function EventCustomPerformanceMetrics({
   return (
     <Container>
       <SectionHeading>{t('Custom Performance Metrics')}</SectionHeading>
+      <FeatureBadge type="beta" />
       <Measurements>
         {measurementNames.map(name => {
           return (
