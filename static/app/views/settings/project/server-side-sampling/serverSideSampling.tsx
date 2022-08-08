@@ -119,11 +119,7 @@ export function ServerSideSampling({project}: Props) {
     groupBy: 'outcome',
   });
 
-  const {
-    recommendedSdkUpgrades,
-    incompatibleProjects,
-    fetching: fetchingRecommendedSdkUpgrades,
-  } = useRecommendedSdkUpgrades({
+  const {recommendedSdkUpgrades, incompatibleProjects} = useRecommendedSdkUpgrades({
     orgSlug: organization.slug,
   });
 
@@ -433,25 +429,26 @@ export function ServerSideSampling({project}: Props) {
           )}
         />
 
+        <SamplingSDKUpgradesAlert
+          organization={organization}
+          projectId={project.id}
+          rules={rules}
+          recommendedSdkUpgrades={recommendedSdkUpgrades}
+          onReadDocs={handleReadDocs}
+          incompatibleProjects={incompatibleProjects}
+        />
+
         {!!rules.length &&
-          !fetchingRecommendedSdkUpgrades &&
-          (recommendedSdkUpgrades.length || incompatibleProjects.length ? (
-            <SamplingSDKUpgradesAlert
-              organization={organization}
-              projectId={project.id}
-              rules={rules}
-              recommendedSdkUpgrades={recommendedSdkUpgrades}
-              onReadDocs={handleReadDocs}
-              incompatibleProjects={incompatibleProjects}
-            />
-          ) : (
+          !recommendedSdkUpgrades.length &&
+          !incompatibleProjects.length && (
             <SamplingSDKClientRateChangeAlert
               onReadDocs={handleReadDocs}
               projectStats={projectStats}
               organization={organization}
               projectId={project.id}
             />
-          ))}
+          )}
+
         <SamplingBreakdown orgSlug={organization.slug} />
         {!rules.length ? (
           <SamplingPromo

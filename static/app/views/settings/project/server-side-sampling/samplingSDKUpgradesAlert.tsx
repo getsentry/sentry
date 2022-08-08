@@ -52,10 +52,6 @@ export function SamplingSDKUpgradesAlert({
     }
   }, [incompatibleProjects.length, organization, projectId]);
 
-  if (recommendedSdkUpgrades.length === 0 && incompatibleProjects.length === 0) {
-    return null;
-  }
-
   function handleOpenRecommendedSteps() {
     openModal(modalProps => (
       <RecommendedStepsModal
@@ -72,7 +68,7 @@ export function SamplingSDKUpgradesAlert({
 
   return (
     <Fragment>
-      {recommendedSdkUpgrades.length > 0 && (
+      {rules.length > 0 && recommendedSdkUpgrades.length > 0 && (
         <Alert
           data-test-id="recommended-sdk-upgrades-alert"
           type="info"
