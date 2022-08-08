@@ -73,12 +73,9 @@ export function getClientSampleRates(
       ? maxSafeSampleRate
       : undefined;
 
-  const recommendedPercentage = rateToPercentage(recommended);
-  const currentPercentage = rateToPercentage(current);
-
   const diff =
-    defined(recommendedPercentage) && defined(currentPercentage)
-      ? Math.abs(recommendedPercentage - currentPercentage)
+    defined(recommended) && defined(current)
+      ? Math.abs(recommended - current)
       : undefined;
 
   return {
