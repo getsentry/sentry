@@ -414,7 +414,9 @@ export function ServerSideSampling({project}: Props) {
           {tct(
             'Enhance the Performance monitoring experience by targeting which transactions are most valuable to your organization. To learn more about our beta program, [faqLink: visit our FAQ], for more general information, [docsLink: read our docs].',
             {
-              faqLink: <ExternalLink href="https://help.sentry.io/product-features/" />, // TODO(sampling): replace with better link once we have it
+              faqLink: (
+                <ExternalLink href="https://help.sentry.io/account/account-settings/dynamic-sampling/" />
+              ),
               docsLink: <ExternalLink href={SERVER_SIDE_SAMPLING_DOC_LINK} />,
             }
           )}
