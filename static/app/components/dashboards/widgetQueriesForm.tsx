@@ -133,23 +133,8 @@ class WidgetQueriesForm extends Component<Props> {
       <ReleaseSearchBar
         organization={organization}
         widgetQuery={widgetQuery}
-        onSearch={field => {
-          // SearchBar will call handlers for both onSearch and onBlur
-          // when selecting a value from the autocomplete dropdown. This can
-          // cause state issues for the search bar in our use case. To prevent
-          // this, we set a timer in our onSearch handler to block our onBlur
-          // handler from firing if it is within 200ms, ie from clicking an
-          // autocomplete value.
-          window.clearTimeout(this.blurTimeout);
-          this.blurTimeout = window.setTimeout(() => {
-            this.blurTimeout = undefined;
-          }, 200);
-          return this.handleFieldChange(queryIndex, 'conditions')(field);
-        }}
-        onBlur={field => {
-          if (!this.blurTimeout) {
-            this.handleFieldChange(queryIndex, 'conditions')(field);
-          }
+        onClose={field => {
+          this.handleFieldChange(queryIndex, 'conditions')(field);
         }}
         pageFilters={selection}
       />
@@ -160,25 +145,8 @@ class WidgetQueriesForm extends Component<Props> {
         projectIds={selection.projects}
         query={widgetQuery.conditions}
         fields={[]}
-        onSearch={field => {
-          // SearchBar will call handlers for both onSearch and onBlur
-          // when selecting a value from the autocomplete dropdown. This can
-          // cause state issues for the search bar in our use case. To prevent
-          // this, we set a timer in our onSearch handler to block our onBlur
-          // handler from firing if it is within 200ms, ie from clicking an
-          // autocomplete value.
-          if (this.blurTimeout) {
-            window.clearTimeout(this.blurTimeout);
-          }
-          this.blurTimeout = window.setTimeout(() => {
-            this.blurTimeout = undefined;
-          }, 200);
+        onClose={field => {
           this.handleFieldChange(queryIndex, 'conditions')(field);
-        }}
-        onBlur={field => {
-          if (!this.blurTimeout) {
-            this.handleFieldChange(queryIndex, 'conditions')(field);
-          }
         }}
         useFormWrapper={false}
         maxQueryLength={MAX_QUERY_LENGTH}

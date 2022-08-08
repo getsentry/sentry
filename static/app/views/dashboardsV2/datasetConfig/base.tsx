@@ -20,7 +20,7 @@ import {IssuesConfig} from './issues';
 import {ReleasesConfig} from './releases';
 
 export type WidgetBuilderSearchBarProps = {
-  onBlur: SearchBarProps['onBlur'];
+  onClose: SearchBarProps['onClose'];
   onSearch: SearchBarProps['onSearch'];
   organization: Organization;
   pageFilters: PageFilters;

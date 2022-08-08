@@ -22,8 +22,7 @@ const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   'g'
 );
 interface Props {
-  onBlur: SearchBarProps['onBlur'];
-  onSearch: SearchBarProps['onSearch'];
+  onClose: SearchBarProps['onClose'];
   organization: Organization;
   pageFilters: PageFilters;
   widgetQuery: WidgetQuery;
@@ -33,8 +32,7 @@ export function ReleaseSearchBar({
   organization,
   pageFilters,
   widgetQuery,
-  onSearch,
-  onBlur,
+  onClose,
 }: Props) {
   const orgSlug = organization.slug;
   const projectIds = pageFilters.projects;
@@ -89,8 +87,7 @@ export function ReleaseSearchBar({
             max-height: ${MAX_MENU_HEIGHT ?? 300}px;
             overflow-y: auto;
           `}
-          onSearch={onSearch}
-          onBlur={onBlur}
+          onClose={onClose}
           maxQueryLength={MAX_QUERY_LENGTH}
           maxSearchItems={MAX_SEARCH_ITEMS}
           searchSource="widget_builder"
