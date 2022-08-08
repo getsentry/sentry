@@ -1383,6 +1383,7 @@ def translate_aggregate_field(aggregate, reverse=False):
 
 # TODO(Ecosystem): Convert to using get_filtered_actions
 def get_slack_actions_with_async_lookups(organization, user, data):
+    """Return Slack trigger actions that require async lookup"""
     try:
         from sentry.incidents.serializers import AlertRuleTriggerActionSerializer
 
@@ -1399,6 +1400,8 @@ def get_slack_actions_with_async_lookups(organization, user, data):
                     },
                     data=action,
                 )
+                # If a channel does not have a channel ID we should use an async look up to find it
+                # The calling function will receive a list of channels in need of this look up and schedule it
                 if a_s.is_valid():
                     if (
                         a_s.validated_data["type"].value == AlertRuleTriggerAction.Type.SLACK.value

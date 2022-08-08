@@ -78,7 +78,8 @@ def validate_channel_id(name: str, integration_id: Optional[int], input_channel_
 
     token = integration.metadata["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
-    payload = {"channel": input_channel_id}
+    # The empty string should be converted to None
+    payload = {"channel": input_channel_id or None}
     client = SlackClient()
 
     try:

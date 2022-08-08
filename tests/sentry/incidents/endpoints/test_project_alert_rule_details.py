@@ -1,6 +1,8 @@
 from unittest.mock import patch
 
 import responses
+from requests import Request
+from rest_framework.exceptions import ErrorDetail
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
@@ -12,8 +14,12 @@ from sentry.incidents.models import (
     Incident,
     IncidentStatus,
 )
+from sentry.integrations.slack.client import SlackClient
 from sentry.models import AuditLogEntry, Integration
+from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.testutils import APITestCase
+from sentry.utils import json
+from sentry.utils.types import Dict
 
 
 class AlertRuleDetailsBase(APITestCase):
@@ -129,7 +135,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         super().setUp()
         self.login_as(self.owner_user)
 
-    def test_simple(self):
+    def test_change_name_of_existing_alert(self):
         test_params = self.valid_params.copy()
         test_params["resolve_threshold"] = self.alert_rule.resolve_threshold
         test_params.update({"name": "what"})
@@ -145,6 +151,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert resp.data == serialize(self.alert_rule)
         assert resp.data["name"] == "what"
 
+        # We validate that there's only been one change to the alert
         audit_log_entry = AuditLogEntry.objects.filter(
             event=audit_log.get_event_id("ALERT_RULE_EDIT"), target_object=resp.data["id"]
         )
@@ -188,6 +195,53 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
                 **serialized_alert_rule,
             )
 
+    def _mock_slack_response(self, url: str, body: Dict, status: int = 200) -> None:
+        responses.add(
+            method=responses.GET,
+            url=url,
+            status=status,
+            content_type="application/json",
+            body=json.dumps(body),
+        )
+
+    def _project_alert_rule_api_call(
+        self,
+        channelName: str = None,
+        channelID: str = None,
+    ) -> Request:
+        """
+        Call the project alert rule API but do some Slack integration set up before doing so
+        """
+        # Set up the Slack integration
+        self.integration = self.create_slack_integration(
+            self.organization,
+            external_id="TXXXXXXX1",
+            user=self.user,
+        )
+
+        # Prep steps for the API call
+        test_params = self.valid_params.copy()
+        test_params["triggers"] = [
+            {
+                "label": "critical",
+                "alertThreshold": 200,
+                "actions": [
+                    {"type": "slack", "targetType": "specific", "integration": self.integration.id}
+                ],
+            },
+        ]
+        if channelName:
+            test_params["triggers"][0]["actions"][0]["targetIdentifier"] = channelName
+        if channelID:
+            # The trigger code would accept channelId to be a string and that is why I don't cast it to an int
+            test_params["triggers"][0]["actions"][0]["inputChannelId"] = channelID
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_response(
+                self.organization.slug, self.project.slug, self.alert_rule.id, **test_params
+            )
+        return resp
+
     @patch(
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=("#", None, True),
@@ -226,8 +280,8 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
                 self.organization.slug, self.project.slug, self.alert_rule.id, **test_params
             )
 
-        # resp.data["uuid"] = "abc123" # TODO: @scefali: Does this do anything? I think it can be removed
-        assert resp.data["uuid"] == "abc123"  # TODO: @scefali: You probably meant to do this?
+        # A task with this uuid has been scheduled because there's a Slack channel async search
+        assert resp.data["uuid"] == "abc123"
         kwargs = {
             "organization_id": self.organization.id,
             "uuid": "abc123",
@@ -236,6 +290,87 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             "user_id": self.owner_user.id,
         }
         mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
+
+    @responses.activate
+    def test_create_slack_alert_with_name_and_channel_id(self):
+        """
+        The user specifies the Slack channel and channel ID (which match).
+        """
+        channelName = "my-channel"
+        # Specifying an inputChannelID will cause the validate_channel_id logic to be triggered
+        channelID = 123
+        self._mock_slack_response(
+            url=f"https://slack.com/api/conversations.info?channel={channelID}",
+            body={"ok": "true", "channel": {"name": channelName}},
+        )
+        resp = self._project_alert_rule_api_call(channelName, channelID)
+
+        stored_action = resp.data["triggers"][0]["actions"][0]
+        assert stored_action["inputChannelId"] == str(channelID)
+        assert stored_action["targetIdentifier"] == channelName
+
+    @responses.activate
+    def test_create_slack_alert_with_mistmatch_name_and_channel_id(self):
+        """
+        The user specifies the Slack channel and channel ID but they do not match.
+        """
+        otherChannel = "some-other-channel"
+        channelName = "my-channel"
+        # Specifying an inputChannelID will cause the validate_channel_id logic to be triggered
+        channelID = 123
+        self._mock_slack_response(
+            url=f"https://slack.com/api/conversations.info?channel={channelID}",
+            body={"ok": "true", "channel": {"name": otherChannel}},
+        )
+        resp = self._project_alert_rule_api_call(channelName, channelID)
+
+        assert resp.status_code == 400
+        assert resp.data == {
+            "nonFieldErrors": [
+                ErrorDetail(
+                    string=f"Received channel name {otherChannel} does not match inputted channel name {channelName}.",
+                    code="invalid",
+                )
+            ]
+        }
+
+    # An incorrect channelID will raise an ApiError in the Slack client
+    @patch.object(SlackClient, "get", side_effect=ApiError(text="channel_not_found"))
+    @responses.activate
+    def test_create_slack_alert_with_non_existent_channel_id(self, mock_slack_client):
+        """
+        The user specifies a bad Slack channel ID.
+        """
+        channelName = "my-channel"
+        # Specifying an inputChannelID will cause the validate_channel_id logic to be triggered
+        channelID = 123
+        resp = self._project_alert_rule_api_call(channelName, channelID)
+
+        assert resp.status_code == 400
+        assert resp.data == {
+            "nonFieldErrors": [
+                ErrorDetail(string="Channel not found. Invalid ID provided.", code="invalid")
+            ]
+        }
+
+    @patch("sentry.tasks.integrations.slack.find_channel_id_for_alert_rule.apply_async")
+    @patch("sentry.integrations.slack.utils.rule_status.uuid4")
+    @responses.activate
+    def test_create_slack_alert_with_empty_channel_id(
+        self, mock_uuid4, mock_find_channel_id_for_alert_rule
+    ):
+        """
+        The user selects the channel ID field and the UI will send the empty string to the
+        endpoint, thus, a channel name search will be performed
+        """
+        mock_uuid4.return_value = self.get_mock_uuid()
+        channelName = "my-channel"
+        # Because channel ID is an empty string it will be converted to an async request for the channel name
+        resp = self._project_alert_rule_api_call(channelName, channelID="")
+
+        # A task with this uuid has been scheduled because there's a Slack channel async search
+        assert resp.status_code == 202
+        assert resp.data == {"uuid": "abc123"}
 
     @patch(
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
@@ -271,6 +406,8 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             resp = self.get_response(
                 self.organization.slug, self.project.slug, self.alert_rule.id, **test_params
             )
+
+        # A task with this uuid has been scheduled because there's a Slack channel async search
         assert resp.data["uuid"] == "abc123"
         assert mock_get_channel_id.call_count == 1
         # Using get deliberately as there should only be one. Test should fail otherwise.

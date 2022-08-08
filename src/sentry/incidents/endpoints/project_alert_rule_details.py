@@ -51,6 +51,7 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
                     "user_id": request.user.id,
                 }
                 find_channel_id_for_alert_rule.apply_async(kwargs=task_args)
+                # The user has requested a new Slack channel and we tell the client to check again in a bit
                 return Response({"uuid": client.uuid}, status=202)
             else:
                 alert_rule = serializer.save()
