@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
 import {ExceptionType, Group, PlatformType, Project} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import {EntryType, Event} from 'sentry/types/event';
 import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
 
 import {PermalinkTitle, TraceEventDataSection} from '../traceEventDataSection';
@@ -14,14 +14,12 @@ type Props = {
   event: Event;
   hasHierarchicalGrouping: boolean;
   projectId: Project['id'];
-  type: string;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hideGuide?: boolean;
 };
 
 function Exception({
   event,
-  type,
   data,
   projectId,
   hasHierarchicalGrouping,
@@ -35,6 +33,12 @@ function Exception({
   if (eventHasThreads) {
     return null;
   }
+
+  const entryIndex = event.entries.findIndex(
+    eventEntry => eventEntry.type === EntryType.EXCEPTION
+  );
+
+  const meta = event._meta?.entries?.[entryIndex]?.data?.values;
 
   function getPlatform(): PlatformType {
     const dataValue = data.values?.find(
@@ -58,7 +62,7 @@ function Exception({
   return (
     <TraceEventDataSection
       title={<PermalinkTitle>{t('Exception')}</PermalinkTitle>}
-      type={type}
+      type={EntryType.EXCEPTION}
       stackType={STACK_TYPE.ORIGINAL}
       projectId={projectId}
       eventId={event.id}
@@ -120,6 +124,7 @@ function Exception({
             values={data.values}
             groupingCurrentLevel={groupingCurrentLevel}
             hasHierarchicalGrouping={hasHierarchicalGrouping}
+            meta={meta}
           />
         )
       }

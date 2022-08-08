@@ -18,6 +18,7 @@ type Props = {
   groupingCurrentLevel?: Group['metadata']['current_level'];
   includeSystemFrames?: boolean;
   isHoverPreviewed?: boolean;
+  meta?: Record<any, any>;
   newestFirst?: boolean;
 };
 
@@ -30,6 +31,7 @@ function Content({
   groupingCurrentLevel,
   includeSystemFrames = true,
   expandFirstFrame = true,
+  meta,
 }: Props) {
   const [showingAbsoluteAddresses, setShowingAbsoluteAddresses] = useState(false);
   const [showCompleteFunctionName, setShowCompleteFunctionName] = useState(false);
@@ -177,6 +179,8 @@ function Content({
           showCompleteFunctionName,
           isHoverPreviewed,
           isUsedForGrouping,
+          frameMeta: meta?.frames?.[frameIndex],
+          registersMeta: meta?.registers,
         };
 
         nRepeats = 0;
