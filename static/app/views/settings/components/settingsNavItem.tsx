@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, ReactElement} from 'react';
 import {Link as RouterLink} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -12,7 +12,7 @@ import space from 'sentry/styles/space';
 type Props = {
   label: React.ReactNode;
   to: React.ComponentProps<RouterLink>['to'];
-  badge?: string | number | null;
+  badge?: string | number | null | ReactElement;
   id?: string;
   index?: boolean;
   onClick?: (e: React.MouseEvent) => void;
@@ -36,8 +36,10 @@ const SettingsNavItem = ({badge, label, index, id, ...props}: Props) => {
         <StyledBadge text={badge} type="warning" />
       </Tooltip>
     );
-  } else {
+  } else if (typeof badge === 'string' || typeof badge === 'number') {
     renderedBadge = <StyledBadge text={badge} />;
+  } else {
+    renderedBadge = badge;
   }
 
   return (

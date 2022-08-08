@@ -4,9 +4,9 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import Button from 'sentry/components/button';
 import SearchBar from 'sentry/components/events/searchBar';
-import Input from 'sentry/components/forms/controls/input';
 import Field from 'sentry/components/forms/field';
 import SelectControl from 'sentry/components/forms/selectControl';
+import Input from 'sentry/components/input';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';

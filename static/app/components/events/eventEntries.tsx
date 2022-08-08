@@ -15,8 +15,8 @@ import EventAttachments from 'sentry/components/events/eventAttachments';
 import EventCause from 'sentry/components/events/eventCause';
 import EventCauseEmpty from 'sentry/components/events/eventCauseEmpty';
 import EventDataSection from 'sentry/components/events/eventDataSection';
-import EventExtraData from 'sentry/components/events/eventExtraData/eventExtraData';
-import EventSdk from 'sentry/components/events/eventSdk';
+import EventExtraData from 'sentry/components/events/eventExtraData';
+import {EventSdk} from 'sentry/components/events/eventSdk';
 import {EventTags} from 'sentry/components/events/eventTags';
 import EventGroupingInfo from 'sentry/components/events/groupingInfo';
 import {EventPackageData} from 'sentry/components/events/packageData';
@@ -419,7 +419,9 @@ const EventEntries = memo(
             onDeleteAttachment={handleDeleteAttachment}
           />
         )}
-        {event.sdk && !objectIsEmpty(event.sdk) && <EventSdk sdk={event.sdk} />}
+        {event.sdk && !objectIsEmpty(event.sdk) && (
+          <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
+        )}
         {!isShare && event?.sdkUpdates && event.sdkUpdates.length > 0 && (
           <EventSdkUpdates event={{sdkUpdates: event.sdkUpdates, ...event}} />
         )}

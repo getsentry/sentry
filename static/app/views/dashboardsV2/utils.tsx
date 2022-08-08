@@ -393,6 +393,24 @@ export function getCustomMeasurementQueryParams() {
   };
 }
 
+export function isWidgetUsingTransactionName(widget: Widget) {
+  return (
+    widget.widgetType === WidgetType.DISCOVER &&
+    widget.queries.some(({aggregates, columns, fields}) => {
+      const aggregateArgs = aggregates.reduce((acc: string[], aggregate) => {
+        const aggregateArg = getAggregateArg(aggregate);
+        if (aggregateArg) {
+          acc.push(aggregateArg);
+        }
+        return acc;
+      }, []);
+      return [...aggregateArgs, ...columns, ...(fields ?? [])].some(
+        field => field === 'transaction'
+      );
+    })
+  );
+}
+
 export function hasSavedPageFilters(dashboard: DashboardDetails) {
   return !(
     isEmpty(dashboard.projects) &&
@@ -409,19 +427,27 @@ export function hasUnsavedFilterChanges(
   newDashboardFilters: DashboardFilters
 ) {
   const savedFilters = {
-    projects: initialDashboard.projects,
-    environment: initialDashboard.environment,
+    projects: new Set(initialDashboard.projects),
+    environment: new Set(initialDashboard.environment),
     period: initialDashboard.period,
     start: normalizeDateTimeString(initialDashboard.start),
     end: normalizeDateTimeString(initialDashboard.end),
-    filters: initialDashboard.filters,
+    filters: {
+      release: new Set(initialDashboard.filters?.release),
+    },
     utc: initialDashboard.utc,
   };
   const currentFilters = {
     ...getCurrentPageFilters(location),
-    filters: newDashboardFilters,
+    filters: {
+      release: new Set(newDashboardFilters.release),
+    },
   };
-  return !isEqual(savedFilters, currentFilters);
+  return !isEqual(savedFilters, {
+    ...currentFilters,
+    projects: new Set(currentFilters.projects),
+    environment: new Set(currentFilters.environment),
+  });
 }
 
 export function getSavedFiltersAsPageFilters(dashboard: DashboardDetails): PageFilters {
