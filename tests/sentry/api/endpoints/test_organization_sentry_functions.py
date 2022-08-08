@@ -21,6 +21,7 @@ class OrganizationSentryFunctions(APITestCase):
             "author": "bar",
             "code": defaultCode,
             "overview": "qux",
+            "envVariables": [{"name": "foo", "value": "bar"}],
         }
         with Feature("organizations:sentry-functions"):
             response = self.get_success_response(self.organization.slug, **data)
@@ -29,7 +30,9 @@ class OrganizationSentryFunctions(APITestCase):
             assert response.data["author"] == "bar"
             assert response.data["code"] == defaultCode
             assert response.data["overview"] == "qux"
-            mock_func.assert_called_once_with(defaultCode, response.data["external_id"], "qux")
+            mock_func.assert_called_once_with(
+                defaultCode, response.data["external_id"], "qux", {"foo": "bar"}
+            )
 
     def test_post_missing_params(self):
         data = {"name": "foo", "overview": "qux"}
