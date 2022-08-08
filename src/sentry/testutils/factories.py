@@ -258,11 +258,12 @@ class Factories:
     @exempt_from_silo_limits()
     def create_member(teams=None, **kwargs):
         kwargs.setdefault("role", "member")
+        teamRole = kwargs.pop("teamRole", None)
 
         om = OrganizationMember.objects.create(**kwargs)
         if teams:
             for team in teams:
-                Factories.create_team_membership(team=team, member=om)
+                Factories.create_team_membership(team=team, member=om, role=teamRole)
         return om
 
     @staticmethod

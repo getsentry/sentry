@@ -69,7 +69,7 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
         self.get_error_response(self.organization.slug, join_request.id, status_code=404)
         self.get_error_response(self.organization.slug, invite_request.id, status_code=404)
 
-    def test_admin_can_get_invite_link(self):
+    def test_superuser_can_get_invite_link(self):
         pending_om = self.create_member(
             user=None,
             email="bar@example.com",
@@ -107,6 +107,9 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
 
         response = self.get_success_response(self.organization.slug, member_om.id)
         assert team.slug in response.data["teams"]
+
+        assert response.data["teamRoles"][0]["teamSlug"] == team.slug
+        assert response.data["teamRoles"][0]["role"] is None
 
     def test_lists_organization_roles(self):
         response = self.get_success_response(self.organization.slug, "me")
@@ -266,16 +269,18 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
             organization=self.organization, user=member, role="member", teams=[]
         )
 
-        self.get_success_response(self.organization.slug, member_om.id, role="admin")
+        self.get_success_response(self.organization.slug, member_om.id, role="manager")
         member_om = OrganizationMember.objects.get(id=member_om.id)
-        assert member_om.role == "admin"
+        assert member_om.role == "manager"
 
     def test_cannot_update_own_membership(self):
         member_om = OrganizationMember.objects.get(
             organization=self.organization, user_id=self.user.id
         )
 
-        self.get_error_response(self.organization.slug, member_om.id, role="admin", status_code=400)
+        self.get_error_response(
+            self.organization.slug, member_om.id, role="manager", status_code=400
+        )
 
         member_om = OrganizationMember.objects.get(user_id=self.user.id)
         assert member_om.role == "owner"
@@ -288,7 +293,6 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
         member_om = self.create_member(
             organization=self.organization, user=member, role="member", teams=[]
         )
-
         self.get_success_response(self.organization.slug, member_om.id, teams=[foo.slug, bar.slug])
 
         member_teams = OrganizationMemberTeam.objects.filter(organizationmember=member_om)
@@ -301,6 +305,44 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
         teams = list(map(lambda team: team.slug, member_om.teams.all()))
         assert foo.slug in teams
         assert bar.slug in teams
+
+    def test_can_update_teams_using_team_roles(self):
+        foo = self.create_team(organization=self.organization, name="Team Foo")
+        bar = self.create_team(organization=self.organization, name="Team Bar")
+
+        member = self.create_user("baz@example.com")
+        member_om = self.create_member(
+            organization=self.organization, user=member, role="member", teams=[]
+        )
+        self.get_success_response(
+            self.organization.slug,
+            member_om.id,
+            teamRoles=[
+                {
+                    "teamSlug": foo.slug,
+                    "role": "admin",
+                },
+                {
+                    "teamSlug": bar.slug,
+                    "role": "contributor",
+                },
+            ],
+        )
+
+        member_teams = OrganizationMemberTeam.objects.filter(organizationmember=member_om).order_by(
+            "role"
+        )
+        print(member_teams)
+        team_ids = list(map(lambda x: x.team_id, member_teams))
+        assert foo.id in team_ids
+        assert bar.id in team_ids
+
+        # member_om = OrganizationMember.objects.get(id=member_om.id)
+
+        # teams = list(map(lambda team: team.slug, member_om.teams.all()))
+        # assert foo.slug in teams
+        # assert bar.slug in teams
+        assert 1 == 2
 
     def test_cannot_update_with_invalid_team(self):
         member = self.create_user("baz@example.com")
@@ -316,16 +358,57 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
         teams = list(map(lambda team: team.slug, member_om.teams.all()))
         assert len(teams) == 0
 
-    def test_can_update_role(self):
+    def test_can_update_org_role(self):
         member = self.create_user("baz@example.com")
         member_om = self.create_member(
             organization=self.organization, user=member, role="member", teams=[]
         )
 
-        self.get_success_response(self.organization.slug, member_om.id, role="admin")
+        self.get_success_response(self.organization.slug, member_om.id, role="manager")
 
         member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
-        assert member_om.role == "admin"
+        assert member_om.role == "manager"
+
+    def test_can_update_team_role(self):
+        # member = self.create_user("baz@example.com")
+        # member_om = self.create_member(
+        #     organization=self.organization, user=member, role="member", teams=[]
+        # )
+
+        # self.get_success_response(self.organization.slug, member_om.id, role="manager")
+
+        # member_omt = OrganizationMemberTeam.objects.get(organization=self.organization, user=member)
+        # member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
+        # assert member_om.role == "manager"
+
+        pass
+
+    def test_will_update_team_role_and_skip_teams(self):
+        # foo = self.create_team(organization=self.organization, name="Team Foo")
+        # bar = self.create_team(organization=self.organization, name="Team Bar")
+
+        # member = self.create_user("baz@example.com")
+        # member_om = self.create_member(
+        #     organization=self.organization, user=member, role="member", teams=[]
+        # )
+        # self.get_success_response(
+        #     self.organization.slug,
+        #     member_om.id,
+        #     teams=[foo.slug],
+        #     team_roles=[(bar.slug, "admin")],
+        # )
+
+        # member = self.create_user("baz@example.com")
+        # member_om = self.create_member(
+        #     organization=self.organization, user=member, role="member", teams=[]
+        # )
+
+        # self.get_success_response(self.organization.slug, member_om.id, role="manager")
+
+        # member_omt = OrganizationMemberTeam.objects.get(organization=self.organization, user=member)
+        # member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
+        # assert member_om.role == "manager"
+        pass
 
     def test_cannot_update_with_invalid_role(self):
         member = self.create_user("baz@example.com")
@@ -492,15 +575,15 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
         ).exists()
 
     def test_missing_scope(self):
-        admin_user = self.create_user("bar@example.com")
-        self.create_member(organization=self.organization, role="admin", user=admin_user)
+        no_scope_user = self.create_user("bar@example.com")
+        self.create_member(organization=self.organization, role="member", user=no_scope_user)
 
         member_user = self.create_user("baz@example.com")
         member_om = self.create_member(
             organization=self.organization, role="member", user=member_user
         )
 
-        self.login_as(admin_user)
+        self.login_as(no_scope_user)
         self.get_error_response(self.organization.slug, member_om.id, status_code=400)
 
         assert OrganizationMember.objects.filter(id=member_om.id).exists()

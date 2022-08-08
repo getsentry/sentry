@@ -1,26 +1,84 @@
 from __future__ import annotations
 
-from typing import Collection
+from typing import Collection, TypedDict
 
 from django.db import transaction
 from rest_framework.request import Request
 
 from sentry import roles
+from sentry.api.exceptions import SentryAPIException, status
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import Organization, OrganizationMember, OrganizationMemberTeam
-from sentry.roles.manager import Role
+from sentry.models import Organization, OrganizationMember, OrganizationMemberTeam, Team, TeamStatus
+from sentry.roles.manager import Role, TeamRole
+
+
+class InvalidTeam(SentryAPIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    code = "invalid_team"
+    message = "The team slug does not match a team in the organization"
+
+
+class TeamRoleDict(TypedDict):
+    teamSlug: str
+    role: str
 
 
 @transaction.atomic
-def save_team_assignments(organization_member, teams):
-    # teams may be empty
+def save_team_assignments(
+    organization_member: OrganizationMember,
+    teams: list[str],
+    teams_with_roles: list[TeamRoleDict] = None,
+):
+    team_slugs = [item["teamSlug"] for item in teams_with_roles] if teams_with_roles else teams
+    target_teams = list(
+        Team.objects.filter(
+            organization=organization_member.organization,
+            status=TeamStatus.VISIBLE,
+            slug__in=team_slugs,
+        )
+    )
+    if len(target_teams) != len(team_slugs):
+        raise InvalidTeam
+
+    # Avoids O(n * n) search later
+    team_role_map = {}
+    for item in teams_with_roles:
+        team_role_map[item["teamSlug"]] = item["role"]
+
+    new_assignments = []
+    for team in target_teams:
+        new_assignments.append((team, team_role_map.get(team.slug, None)))
+
     OrganizationMemberTeam.objects.filter(organizationmember=organization_member).delete()
     OrganizationMemberTeam.objects.bulk_create(
         [
-            OrganizationMemberTeam(team=team, organizationmember=organization_member)
-            for team in teams
+            OrganizationMemberTeam(organizationmember=organization_member, team=team, role=role)
+            for team, role in new_assignments
         ]
     )
+
+
+def can_set_team_role(request: Request, team: Team, new_role: TeamRole) -> bool:
+    if not can_admin_team(request, team):
+        return False
+
+    org_role = request.access.get_organization_role()
+    if org_role and org_role.can_manage_team_role(new_role):
+        return True
+
+    team_role = request.access.get_team_role(team)
+    if team_role and team_role.can_manage(new_role):
+        return True
+
+    return False
+
+
+def can_admin_team(request: Request, team: Team) -> bool:
+    if request.access.has_scope("org:write"):
+        return True
+    if not request.access.has_team_membership(team):
+        return False
+    return request.access.has_team_scope(team, "team:write")
 
 
 def get_allowed_org_roles(

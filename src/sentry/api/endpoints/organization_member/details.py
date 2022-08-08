@@ -20,6 +20,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS
+from sentry.app import locks
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     AuthIdentity,
@@ -29,14 +30,13 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
     Project,
-    Team,
-    TeamStatus,
     UserOption,
 )
 from sentry.roles import organization_roles, team_roles
 from sentry.utils import metrics
+from sentry.utils.retries import TimedRetryPolicy
 
-from . import get_allowed_org_roles
+from . import InvalidTeam, get_allowed_org_roles, save_team_assignments
 
 ERR_NO_AUTH = "You cannot remove this member with an unauthenticated API request."
 ERR_INSUFFICIENT_ROLE = "You cannot remove a member who has more access than you."
@@ -55,11 +55,20 @@ MEMBER_ID_PARAM = OpenApiParameter(
 )
 
 
+class TeamRolesSerializer(serializers.Serializer):
+    teamSlug = serializers.CharField(allow_null=True, allow_blank=True)
+    role = serializers.CharField(allow_null=True, allow_blank=True)
+
+
 class OrganizationMemberSerializer(serializers.Serializer):
     reinvite = serializers.BooleanField()
     regenerate = serializers.BooleanField()
-    role = serializers.ChoiceField(choices=roles.get_choices(), required=True)
-    teams = ListField(required=False, allow_null=False)
+    role = serializers.ChoiceField(
+        choices=roles.get_choices(), required=True
+    )  # deprecated, use orgRole
+    orgRole = serializers.ChoiceField(choices=roles.get_choices(), required=True)
+    teams = ListField(required=False, allow_null=False)  # deprecated, use teamRoles
+    teamRoles = ListField(required=False, child=TeamRolesSerializer())
 
 
 class RelaxedMemberPermission(OrganizationPermission):
@@ -198,32 +207,28 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 # TODO(dcramer): proper error message
                 return Response({"detail": ERR_UNINVITABLE}, status=400)
 
-        if "teams" in result:
-            # dupe code from member_index
-            # ensure listed teams are real teams
-            teams = list(
-                Team.objects.filter(
-                    organization=organization, status=TeamStatus.VISIBLE, slug__in=result["teams"]
-                )
-            )
+        # Set the team-role before org-role. If the org-role has elevated permissions
+        # on the teams, the team-roles can be overwritten later
+        try:
+            lock = locks.get(f"org:member:{member.id}", duration=5, name="org_member_details")
+            with TimedRetryPolicy(10)(lock.acquire):
+                if "teamRoles" in result:
+                    if not features.has("organizations:team-roles", organization):
+                        for item in result.get("teamRoles"):
+                            item["roles"] = None
+                    save_team_assignments(member, None, result.get("teamRoles"))
+                elif "teams" in result:
+                    save_team_assignments(member, result.get("teams"))
+        except InvalidTeam:
+            return Response({"teams": "Invalid team"}, status=400)
 
-            if len(set(result["teams"])) != len(teams):
-                return Response({"teams": "Invalid team"}, status=400)
-
-            with transaction.atomic():
-                # teams may be empty
-                OrganizationMemberTeam.objects.filter(organizationmember=member).delete()
-                OrganizationMemberTeam.objects.bulk_create(
-                    [OrganizationMemberTeam(team=team, organizationmember=member) for team in teams]
-                )
-
-        assigned_role = result.get("role")
-        if assigned_role:
+        assigned_org_role = result.get("orgRole") or result.get("role")
+        if assigned_org_role:
             allowed_roles = get_allowed_org_roles(request, organization)
             allowed_role_ids = {r.id for r in allowed_roles}
 
             # A user cannot promote others above themselves
-            if assigned_role not in allowed_role_ids:
+            if assigned_org_role not in allowed_role_ids:
                 return Response(
                     {"role": "You do not have permission to assign the given role."}, status=403
                 )
@@ -235,18 +240,20 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                     status=403,
                 )
 
-            if member.user == request.user and (assigned_role != member.role):
+            if member.user == request.user and (assigned_org_role != member.role):
                 return Response({"detail": "You cannot make changes to your own role."}, status=400)
 
             if (
-                organization_roles.get(assigned_role).is_retired
-                and assigned_role != member.role
+                organization_roles.get(assigned_org_role).is_retired
+                and assigned_org_role != member.role
                 and features.has("organizations:team-roles", organization)
             ):
-                message = f"The role '{assigned_role}' is deprecated and may no longer be assigned."
+                message = (
+                    f"The role '{assigned_org_role}' is deprecated and may no longer be assigned."
+                )
                 return Response({"detail": message}, status=400)
 
-            self._change_org_member_role(member, assigned_role)
+            self._change_org_role(member, assigned_org_role)
 
         self.create_audit_entry(
             request=request,
@@ -268,7 +275,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         )
 
     @staticmethod
-    def _change_org_member_role(member: OrganizationMember, role: str) -> None:
+    def _change_org_role(member: OrganizationMember, role: str) -> None:
         new_minimum_team_role = roles.get_minimum_team_role(role)
         lesser_team_roles = [
             r.id for r in team_roles.get_all() if r.priority <= new_minimum_team_role.priority

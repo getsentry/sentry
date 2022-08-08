@@ -185,8 +185,9 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
         :pparam string organization_slug: the slug of the organization the member will belong to
         :param string email: the email address to invite
-        :param string role: the role of the new member
+        :param string role: the org-role of the new member
         :param array teams: the slugs of the teams the member should belong to.
+        :param array teamRoles: the team and team-roles assigned to the member
 
         :auth: required
         """
@@ -245,10 +246,14 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 om.token = om.generate_token()
             om.save()
 
-        if result["teams"]:
+        # Do not set team-roles when inviting members
+        if "teams" in result or "teamRoles" in result:
+            teams = result.get("teams") or [
+                item["teamSlug"] for item in result.get("teamRoles", [])
+            ]
             lock = locks.get(f"org:member:{om.id}", duration=5, name="org_member")
             with TimedRetryPolicy(10)(lock.acquire):
-                save_team_assignments(om, result["teams"])
+                save_team_assignments(om, teams)
 
         if settings.SENTRY_ENABLE_INVITES and result.get("sendInvite"):
             om.send_invite_email()
