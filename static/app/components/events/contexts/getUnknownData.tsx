@@ -15,7 +15,7 @@ export function getUnknownData({allData, knownKeys, meta}: Props): KeyValueListD
         key !== 'type' &&
         key !== 'title' &&
         !knownKeys.includes(key) &&
-        (typeof allData[key] !== 'number' ? !!allData[key] : true)
+        (typeof allData[key] !== 'number' && !allData[key] ? !!meta?.[key]?.[''] : true)
     )
     .map(([key, value]) => ({
       key,
