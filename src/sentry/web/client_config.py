@@ -10,6 +10,7 @@ from sentry import features, options
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.user import DetailedSelfUserSerializer
 from sentry.api.utils import generate_organization_url
+from sentry.auth.access import get_cached_organization_member
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import Organization, OrganizationMember, ProjectKey
 from sentry.utils import auth
@@ -104,6 +105,23 @@ def _delete_activeorg(session):
         del session["activeorg"]
 
 
+def _resolve_last_org_slug(session, user):
+    last_org_slug = session["activeorg"] if session and "activeorg" in session else None
+    if not last_org_slug:
+        return None
+    try:
+        last_org = Organization.objects.get_from_cache(slug=last_org_slug)
+        if user is not None and not isinstance(user, AnonymousUser):
+            try:
+                get_cached_organization_member(user.id, last_org.id)
+                return last_org_slug
+            except OrganizationMember.DoesNotExist:
+                return None
+    except Organization.DoesNotExist:
+        pass
+    return None
+
+
 def get_client_config(request=None):
     """
     Provides initial bootstrap data needed to boot the frontend application.
@@ -144,26 +162,9 @@ def get_client_config(request=None):
 
     public_dsn = _get_public_dsn()
 
-    last_org_slug = session["activeorg"] if session and "activeorg" in session else None
-    if not last_org_slug:
-        last_org_slug = None
+    last_org_slug = _resolve_last_org_slug(session, user)
+    if last_org_slug is None:
         _delete_activeorg(session)
-    else:
-        try:
-            last_org = Organization.objects.get_from_cache(slug=last_org_slug)
-            if user is not None and not isinstance(user, AnonymousUser):
-                has_membership = OrganizationMember.objects.filter(
-                    user=user, organization=last_org
-                ).exists()
-                if not has_membership:
-                    last_org_slug = None
-                    _delete_activeorg(session)
-            else:
-                last_org_slug = None
-                _delete_activeorg(session)
-        except Organization.DoesNotExist:
-            last_org_slug = None
-            _delete_activeorg(session)
 
     context = {
         "singleOrganization": settings.SENTRY_SINGLE_ORGANIZATION,
