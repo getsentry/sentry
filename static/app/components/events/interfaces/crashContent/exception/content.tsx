@@ -1,14 +1,16 @@
 import styled from '@emotion/styled';
 
-import Annotated from 'sentry/components/events/meta/annotated';
+import AnnotatedText from 'sentry/components/events/meta/annotatedText';
+import Tooltip from 'sentry/components/tooltip';
+import {tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {ExceptionType} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {STACK_TYPE} from 'sentry/types/stacktrace';
+import {defined} from 'sentry/utils';
 
-import Mechanism from './mechanism';
+import {Mechanism} from './mechanism';
 import StackTrace from './stackTrace';
-import ExceptionTitle from './title';
 
 type StackTraceProps = React.ComponentProps<typeof StackTrace>;
 
@@ -25,7 +27,7 @@ type Props = {
     'groupingCurrentLevel' | 'hasHierarchicalGrouping'
   >;
 
-function Content({
+export function Content({
   newestFirst,
   event,
   stackView,
@@ -43,11 +45,23 @@ function Content({
   const children = values.map((exc, excIdx) => {
     return (
       <div key={excIdx} className="exception">
-        <ExceptionTitle type={exc.type} exceptionModule={exc?.module} />
-        <Annotated object={exc} objectKey="value" required>
-          {value => <StyledPre className="exc-message">{value}</StyledPre>}
-        </Annotated>
-        {exc.mechanism && <Mechanism data={exc.mechanism} />}
+        {defined(exc?.module) ? (
+          <Tooltip title={tct('from [exceptionModule]', {exceptionModule: exc?.module})}>
+            <Title>{exc.type}</Title>
+          </Tooltip>
+        ) : (
+          <Title>{exc.type}</Title>
+        )}
+        <StyledPre className="exc-message">
+          {meta?.[excIdx]?.value?.[''] && !exc.value ? (
+            <AnnotatedText value={exc.value} meta={meta?.[excIdx]?.value?.['']} />
+          ) : (
+            exc.value
+          )}
+        </StyledPre>
+        {exc.mechanism && (
+          <Mechanism data={exc.mechanism} meta={meta?.[excIdx]?.mechanism} />
+        )}
         <StackTrace
           data={
             type === STACK_TYPE.ORIGINAL
@@ -76,9 +90,14 @@ function Content({
   return <div>{children}</div>;
 }
 
-export default Content;
-
 const StyledPre = styled('pre')`
   margin-bottom: ${space(1)};
   margin-top: 0;
+`;
+
+const Title = styled('h5')`
+  margin-bottom: ${space(0.5)};
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
 `;
