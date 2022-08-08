@@ -66,7 +66,7 @@ if settings.SENTRY_USE_BIG_INTS:
         MAX_VALUE = 9223372036854775807
 
         def db_type(self, connection: BaseDatabaseWrapper) -> str:
-            return "bigserial"
+            return "int64"
 
         def get_related_db_type(self, connection: BaseDatabaseWrapper) -> str:
             return cast(str, BoundedBigIntegerField().db_type(connection))

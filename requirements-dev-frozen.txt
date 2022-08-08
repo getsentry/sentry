@@ -151,7 +151,7 @@ sniffio==1.2.0
 snuba-sdk==1.0.0
 sortedcontainers==2.4.0
 soupsieve==2.3.2.post1
-sqlparse==0.2.4
+sqlparse==0.4.2
 statsd==3.3
 structlog==21.1.0
 symbolic==8.7.1

@@ -27,16 +27,4 @@ class Migration(CheckedMigration):
         ("sentry", "0283_extend_externalissue_key"),
     ]
 
-    operations = [
-        migrations.RunSQL(
-            """
-            ALTER SEQUENCE sentry_stringindexer_id_seq START WITH 65536;
-            ALTER SEQUENCE sentry_stringindexer_id_seq RESTART;
-            """,
-            hints={"tables": ["sentry_stringindexer"]},
-            reverse_sql="""
-            ALTER SEQUENCE sentry_stringindexer_id_seq START WITH 1;
-            ALTER SEQUENCE sentry_stringindexer_id_seq RESTART;
-            """,
-        )
-    ]
+    operations = []

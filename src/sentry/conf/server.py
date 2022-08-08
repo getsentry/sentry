@@ -145,8 +145,16 @@ DATABASES = {
         "PORT": "",
         "AUTOCOMMIT": True,
         "ATOMIC_REQUESTS": False,
-    }
+    },
+    "metrics-spanner": {
+        "ENGINE": "django_spanner",
+        "PROJECT": "search-and-storage",
+        "INSTANCE": "markus-test-spanner",
+        "NAME": "markus-test-spanner-db",
+    },
 }
+
+DATABASE_ROUTERS = ("sentry.db.router.MultiDatabaseRouter",)
 
 if "DATABASE_URL" in os.environ:
     url = urlparse(os.environ["DATABASE_URL"])
@@ -321,6 +329,7 @@ TEMPLATES = [
 ]
 
 INSTALLED_APPS = (
+    "django_spanner",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",

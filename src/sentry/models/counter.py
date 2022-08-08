@@ -122,6 +122,3 @@ def create_counter_function(app_config, using, **kwargs):
         )
     finally:
         cursor.close()
-
-
-post_migrate.connect(create_counter_function, dispatch_uid="create_counter_function", weak=False)

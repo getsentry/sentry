@@ -58,15 +58,4 @@ class Migration(CheckedMigration):
                 fields=("string", "organization_id"), name="perf_unique_org_string"
             ),
         ),
-        migrations.RunSQL(
-            """
-            ALTER SEQUENCE sentry_perfstringindexer_id_seq START WITH 65536;
-            ALTER SEQUENCE sentry_perfstringindexer_id_seq RESTART;
-            """,
-            hints={"tables": ["sentry_perfstringindexer"]},
-            reverse_sql="""
-            ALTER SEQUENCE sentry_perfstringindexer_id_seq START WITH 1;
-            ALTER SEQUENCE sentry_perfstringindexer_id_seq RESTART;
-             """,
-        ),
     ]
