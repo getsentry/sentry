@@ -20,12 +20,12 @@ def migrate_ignored_fields(
     config = organization_integration.config
     integration_ignored_fields = organization_integration.config.get("issues_ignored_fields")
     formatted_plugin_ignored_fields = {x.strip() for x in plugin_ignored_fields.split(",")}
-    combo = {
-        "issues_ignored_fields": list(
-            formatted_plugin_ignored_fields | set(integration_ignored_fields)
-        )
-    }
-    config.update(combo)
+    update_data = None
+    if integration_ignored_fields:
+        update_data = list(formatted_plugin_ignored_fields | set(integration_ignored_fields))
+    else:
+        update_data = list(formatted_plugin_ignored_fields)
+    config.update({"issues_ignored_fields": update_data})
     organization_integration.update(config=config)
     logger.info(
         "plugin_ignored_fields.migrated",
