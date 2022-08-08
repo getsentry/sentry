@@ -1,8 +1,5 @@
 import styled from '@emotion/styled';
 
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
-import {t} from 'sentry/locale';
-
 import {EVENT_CHOICES} from './constants';
 import SubscriptionBox from './subscriptionBox';
 
@@ -25,24 +22,19 @@ function SentryFunctionSubscriptions(props: Props) {
   }
 
   return (
-    <Panel>
-      <PanelHeader>{t('Webhooks')}</PanelHeader>
-      <PanelBody>
-        <SentryFunctionsSubscriptionGrid>
-          {EVENT_CHOICES.map(resource => (
-            <SubscriptionBox
-              key={resource}
-              disabledFromPermissions={false}
-              webhookDisabled={false}
-              checked={props.events.includes(resource)}
-              resource={resource}
-              onChange={onChange}
-              isNew={resource === 'comment'}
-            />
-          ))}
-        </SentryFunctionsSubscriptionGrid>
-      </PanelBody>
-    </Panel>
+    <SentryFunctionsSubscriptionGrid>
+      {EVENT_CHOICES.map(resource => (
+        <SubscriptionBox
+          key={resource}
+          disabledFromPermissions={false}
+          webhookDisabled={false}
+          checked={props.events.includes(resource)}
+          resource={resource}
+          onChange={onChange}
+          isNew={resource === 'comment'}
+        />
+      ))}
+    </SentryFunctionsSubscriptionGrid>
   );
 }
 

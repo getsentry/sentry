@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useRef, useState} from 'react';
 import {browserHistory} from 'react-router';
 import Editor from '@monaco-editor/react';
 
@@ -19,23 +19,36 @@ import {t, tct} from 'sentry/locale';
 import {SentryFunction} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 
+import SentryFunctionEnvironmentVariables from './sentryFunctionsEnvironmentVariables';
 import SentryFunctionSubscriptions from './sentryFunctionSubscriptions';
 
 class SentryFunctionFormModel extends FormModel {
+  getEnvVariables: null | (() => EnvVariable[]) = null;
+  getEventHooks: null | (() => string[]) = null;
+
   getTransformedData() {
     const data = super.getTransformedData() as Record<string, any>;
-    const events: string[] = [];
-    if (data.onIssue) {
-      events.push('issue');
-    }
-    if (data.onError) {
-      events.push('error');
-    }
-    if (data.onComment) {
-      events.push('comment');
-    }
-    data.events = events;
+    // const events: string[] = [];
+    // if (data.onIssue) {
+    //   events.push('issue');
+    // }
+    // if (data.onError) {
+    //   events.push('error');
+    // }
+    // if (data.onComment) {
+    //   events.push('comment');
+    // }
+    // data.events = events;
     const {...output} = data;
+    for (const key in data) {
+      if (key.startsWith('env-variable')) {
+        // remove the fields since we aren't going to use them
+        delete output[key];
+      }
+    }
+    // now get our envVariables from our function
+    output.envVariables = this.getEnvVariables?.();
+    output.events = this.getEventHooks?.();
     return output;
   }
 }
@@ -44,6 +57,10 @@ type Props = {
   sentryFunction?: SentryFunction;
 } & WrapperProps;
 
+type EnvVariable = {
+  name?: string;
+  value?: string;
+};
 const formFields: Field[] = [
   {
     name: 'name',
@@ -88,13 +105,17 @@ function SentryFunctionDetails(props: Props) {
     res.status(200).send(message);
   };`;
 
-  const [events, setEvents] = useState(sentryFunction?.events || []);
+  form.current.getEnvVariables = () => {
+    return envVariables;
+  };
+  form.current.getEventHooks = () => {
+    return events;
+  };
 
-  useEffect(() => {
-    form.current.setValue('onIssue', events.includes('issue'));
-    form.current.setValue('onError', events.includes('error'));
-    form.current.setValue('onComment', events.includes('comment'));
-  }, [events]);
+  const [events, setEvents] = useState(sentryFunction?.events || []);
+  const [envVariables, setEnvVariables] = useState(
+    sentryFunction?.env_variables || [{name: '', value: ''}]
+  );
 
   const handleSubmitError = err => {
     let errorMessage = t('Unknown Error');
@@ -153,15 +174,27 @@ function SentryFunctionDetails(props: Props) {
           initialData={{
             code: defaultCode,
             events,
+            envVariables,
             ...props.sentryFunction,
           }}
           onSubmitError={handleSubmitError}
           onSubmitSuccess={handleSubmitSuccess}
         >
           <JsonForm forms={[{title: t('Sentry Function Details'), fields: formFields}]} />
-          <SentryFunctionSubscriptions events={events} setEvents={setEvents} />
           <Panel>
-            <PanelHeader>Write your Code Below</PanelHeader>
+            <PanelHeader>{t('Webhooks')}</PanelHeader>
+            <PanelBody>
+              <SentryFunctionSubscriptions events={events} setEvents={setEvents} />
+            </PanelBody>
+          </Panel>
+          <Panel>
+            <SentryFunctionEnvironmentVariables
+              envVariables={envVariables}
+              setEnvVariables={setEnvVariables}
+            />
+          </Panel>
+          <Panel>
+            <PanelHeader>{t('Write your Code Below')}</PanelHeader>
             <PanelBody>
               <Editor
                 height="40vh"
