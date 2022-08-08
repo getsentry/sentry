@@ -76,10 +76,19 @@ class MSTeamsNotificationsMessageBuilder(MSTeamsMessageBuilder):
             size=TextSize.LARGE,
         )
 
-    def create_description_block(self) -> TextBlock:
-        return create_text_block(
-            self.notification.get_message_description(self.recipient, ExternalProviders.MSTEAMS),
-            size=TextSize.MEDIUM,
+    def create_description_block(self) -> TextBlock | None:
+        message_description = self.notification.get_message_description(
+            self.recipient, ExternalProviders.MSTEAMS
+        )
+        return (
+            create_text_block(
+                self.notification.get_message_description(
+                    self.recipient, ExternalProviders.MSTEAMS
+                ),
+                size=TextSize.MEDIUM,
+            )
+            if message_description
+            else None
         )
 
     @staticmethod
