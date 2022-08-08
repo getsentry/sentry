@@ -965,7 +965,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         for project in Project.objects.filter(organization_id=self.organization_id):
             plugin = None
             for p in plugins.for_project(project):
-                if p.slug.startswith(self.model.provider) and p.get_option(
+                if self.model.provider.startswith(p.slug) and p.get_option(
                     "default_project", project
                 ):
                     plugin = p

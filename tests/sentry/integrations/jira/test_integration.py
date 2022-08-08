@@ -962,6 +962,26 @@ class JiraMigrationIntegrationTest(APITestCase):
         assert self.plugin.get_option("enabled", self.project) is False
         assert plugin2.get_option("enabled", project2) is False
 
+    def test_instance_url_mismatch(self):
+        """Test that if the plugin's instance URL does not match the integration's base URL, we don't migrate the issues"""
+        self.plugin.set_option("instance_url", "https://hellboy.atlassian.net", self.project)
+        group = self.create_group(message="Hello world", culprit="foo.bar")
+        plugin_issue = GroupMeta.objects.create(
+            key=f"{self.plugin.slug}:tid", group_id=group.id, value="SEN-1"
+        )
+        installation = self.integration.get_installation(self.organization.id)
+        with self.tasks():
+            installation.migrate_issues()
+
+        assert not ExternalIssue.objects.filter(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            key=plugin_issue.value,
+        ).exists()
+        assert GroupMeta.objects.filter(
+            key=f"{self.plugin.slug}:tid", group_id=group.id, value="SEN-1"
+        ).exists()
+
 
 class JiraInstallationTest(IntegrationTestCase):
     provider = JiraIntegrationProvider
