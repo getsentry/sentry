@@ -105,14 +105,16 @@ export function SamplingSDKAlert({
           type="warning"
           showIcon
           trailingItems={
-            <Button
-              href={`${SERVER_SIDE_SAMPLING_DOC_LINK}getting-started/#current-limitations`}
-              priority="link"
-              borderless
-              external
-            >
-              {t('Learn More')}
-            </Button>
+            showLinkToTheModal ? (
+              <Button
+                href={`${SERVER_SIDE_SAMPLING_DOC_LINK}getting-started/#current-limitations`}
+                priority="link"
+                borderless
+                external
+              >
+                {t('Learn More')}
+              </Button>
+            ) : undefined
           }
         >
           {t(
