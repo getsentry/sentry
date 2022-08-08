@@ -11,6 +11,7 @@ describe('useRecommendedSdkUpgrades', function () {
     ProjectsStore.loadInitialData([
       TestStubs.Project({id: 1, slug: 'sentry'}),
       TestStubs.Project({id: 2, slug: 'java'}),
+      TestStubs.Project({id: 3, slug: 'angular'}),
     ]);
     ServerSideSamplingStore.loadSamplingSdkVersionsSuccess(mockedSamplingSdkVersions);
 
@@ -36,6 +37,13 @@ describe('useRecommendedSdkUpgrades', function () {
           slug: 'sentry',
         }),
       },
+    ]);
+    expect(result.current.incompatibleProjects.length).toBe(1);
+    expect(result.current.incompatibleProjects).toEqual([
+      expect.objectContaining({
+        features: [],
+        slug: 'angular',
+      }),
     ]);
   });
 });

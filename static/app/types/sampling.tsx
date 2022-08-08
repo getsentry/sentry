@@ -124,6 +124,7 @@ export type SamplingDistribution = {
 export type SamplingSdkVersion = {
   isSendingSampleRate: boolean;
   isSendingSource: boolean;
+  isSupportedPlatform: boolean;
   latestSDKName: string;
   latestSDKVersion: string;
   project: string;

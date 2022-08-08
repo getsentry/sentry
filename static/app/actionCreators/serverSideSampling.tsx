@@ -8,15 +8,20 @@ import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 export function fetchSamplingSdkVersions({
   api,
   orgSlug,
+  projectID,
 }: {
   api: Client;
   orgSlug: Organization['slug'];
+  projectID: Project['id'];
 }): Promise<SamplingSdkVersion[]> {
   const {samplingDistribution} = ServerSideSamplingStore.getState();
 
-  const projectIds = samplingDistribution.project_breakdown?.map(
-    projectBreakdown => projectBreakdown.project_id
-  );
+  const projectIds = [
+    projectID,
+    ...(samplingDistribution.project_breakdown?.map(
+      projectBreakdown => projectBreakdown.project_id
+    ) ?? []),
+  ];
 
   const promise = api.requestPromise(
     `/organizations/${orgSlug}/dynamic-sampling/sdk-versions/`,

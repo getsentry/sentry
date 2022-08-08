@@ -12,13 +12,17 @@ export function useRecommendedSdkUpgrades({orgSlug}: Props) {
   const {samplingSdkVersions, fetching} = useLegacyStore(ServerSideSamplingStore);
 
   const sdksToUpdate = samplingSdkVersions.filter(
-    ({isSendingSource, isSendingSampleRate}) => {
-      return !isSendingSource || !isSendingSampleRate;
+    ({isSendingSource, isSendingSampleRate, isSupportedPlatform}) => {
+      return (!isSendingSource || !isSendingSampleRate) && isSupportedPlatform;
     }
   );
 
+  const incompatibleSDKs = samplingSdkVersions.filter(
+    ({isSupportedPlatform}) => !isSupportedPlatform
+  );
+
   const {projects} = useProjects({
-    slugs: sdksToUpdate.map(({project}) => project),
+    slugs: [...sdksToUpdate, ...incompatibleSDKs].map(({project}) => project),
     orgId: orgSlug,
   });
 
@@ -40,5 +44,9 @@ export function useRecommendedSdkUpgrades({orgSlug}: Props) {
     })
     .filter(defined);
 
-  return {recommendedSdkUpgrades, fetching};
+  const incompatibleProjects = projects.filter(project =>
+    incompatibleSDKs.find(incompatibleSDK => incompatibleSDK.project === project.slug)
+  );
+
+  return {recommendedSdkUpgrades, incompatibleProjects, fetching};
 }
