@@ -173,92 +173,92 @@ export enum GroupActivityType {
   MARK_REVIEWED = 'mark_reviewed',
 }
 
-type GroupActivityBase = {
+interface GroupActivityBase {
   dateCreated: string;
   id: string;
   project: Project;
   assignee?: string;
   issue?: Group;
   user?: null | User;
-};
+}
 
-type GroupActivityNote = GroupActivityBase & {
+interface GroupActivityNote extends GroupActivityBase {
   data: {
     text: string;
   };
   type: GroupActivityType.NOTE;
-};
+}
 
-type GroupActivitySetResolved = GroupActivityBase & {
+interface GroupActivitySetResolved extends GroupActivityBase {
   data: Record<string, any>;
   type: GroupActivityType.SET_RESOLVED;
-};
+}
 
-type GroupActivitySetUnresolved = GroupActivityBase & {
+interface GroupActivitySetUnresolved extends GroupActivityBase {
   data: Record<string, any>;
   type: GroupActivityType.SET_UNRESOLVED;
-};
+}
 
-type GroupActivitySetPublic = GroupActivityBase & {
+interface GroupActivitySetPublic extends GroupActivityBase {
   data: Record<string, any>;
   type: GroupActivityType.SET_PUBLIC;
-};
+}
 
-type GroupActivitySetPrivate = GroupActivityBase & {
+interface GroupActivitySetPrivate extends GroupActivityBase {
   data: Record<string, any>;
   type: GroupActivityType.SET_PRIVATE;
-};
+}
 
-type GroupActivitySetByAge = GroupActivityBase & {
+interface GroupActivitySetByAge extends GroupActivityBase {
   data: Record<string, any>;
   type: GroupActivityType.SET_RESOLVED_BY_AGE;
-};
+}
 
-type GroupActivityUnassigned = GroupActivityBase & {
+interface GroupActivityUnassigned extends GroupActivityBase {
   data: Record<string, any>;
   type: GroupActivityType.UNASSIGNED;
-};
+}
 
-type GroupActivityFirstSeen = GroupActivityBase & {
+interface GroupActivityFirstSeen extends GroupActivityBase {
   data: Record<string, any>;
   type: GroupActivityType.FIRST_SEEN;
-};
+}
 
-type GroupActivityMarkReviewed = GroupActivityBase & {
+interface GroupActivityMarkReviewed extends GroupActivityBase {
   data: Record<string, any>;
   type: GroupActivityType.MARK_REVIEWED;
-};
+}
 
-type GroupActivityRegression = GroupActivityBase & {
+interface GroupActivityRegression extends GroupActivityBase {
   data: {
     version?: string;
   };
   type: GroupActivityType.SET_REGRESSION;
-};
+}
 
-export type GroupActivitySetByResolvedInRelease = GroupActivityBase & {
+interface GroupActivitySetByResolvedInRelease extends GroupActivityBase {
   data: {
     current_release_version?: string;
     version?: string;
   };
   type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
-};
+}
 
-type GroupActivitySetByResolvedInCommit = GroupActivityBase & {
+interface GroupActivitySetByResolvedInCommit extends GroupActivityBase {
   data: {
     commit: Commit;
   };
   type: GroupActivityType.SET_RESOLVED_IN_COMMIT;
-};
+}
 
-type GroupActivitySetByResolvedInPullRequest = GroupActivityBase & {
+interface GroupActivitySetByResolvedInPullRequest extends GroupActivityBase {
   data: {
     pullRequest: PullRequest;
   };
   type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST;
-};
+}
 
-export type GroupActivitySetIgnored = GroupActivityBase & {
+interface GroupActivitySetIgnored extends GroupActivityBase {
   data: {
     ignoreCount?: number;
     ignoreDuration?: number;
@@ -268,18 +268,18 @@ export type GroupActivitySetIgnored = GroupActivityBase & {
     ignoreWindow?: number;
   };
   type: GroupActivityType.SET_IGNORED;
-};
+}
 
-export type GroupActivityReprocess = GroupActivityBase & {
+interface GroupActivityReprocess extends GroupActivityBase {
   data: {
     eventCount: number;
     newGroupId: number;
     oldGroupId: number;
   };
   type: GroupActivityType.REPROCESS;
-};
+}
 
-type GroupActivityUnmergeDestination = GroupActivityBase & {
+interface GroupActivityUnmergeDestination extends GroupActivityBase {
   data: {
     fingerprints: Array<string>;
     source?: {
@@ -288,9 +288,9 @@ type GroupActivityUnmergeDestination = GroupActivityBase & {
     };
   };
   type: GroupActivityType.UNMERGE_DESTINATION;
-};
+}
 
-type GroupActivityUnmergeSource = GroupActivityBase & {
+interface GroupActivityUnmergeSource extends GroupActivityBase {
   data: {
     fingerprints: Array<string>;
     destination?: {
@@ -299,16 +299,16 @@ type GroupActivityUnmergeSource = GroupActivityBase & {
     };
   };
   type: GroupActivityType.UNMERGE_SOURCE;
-};
+}
 
-type GroupActivityMerge = GroupActivityBase & {
+interface GroupActivityMerge extends GroupActivityBase {
   data: {
     issues: Array<any>;
   };
   type: GroupActivityType.MERGE;
-};
+}
 
-export type GroupActivityAssigned = GroupActivityBase & {
+interface GroupActivityAssigned extends GroupActivityBase {
   data: {
     assignee: string;
     assigneeType: string;
@@ -316,16 +316,16 @@ export type GroupActivityAssigned = GroupActivityBase & {
     assigneeEmail?: string;
   };
   type: GroupActivityType.ASSIGNED;
-};
+}
 
-export type GroupActivityCreateIssue = GroupActivityBase & {
+interface GroupActivityCreateIssue extends GroupActivityBase {
   data: {
     location: string;
     provider: string;
     title: string;
   };
   type: GroupActivityType.CREATE_ISSUE;
-};
+}
 
 export type GroupActivity =
   | GroupActivityNote

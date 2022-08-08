@@ -366,7 +366,7 @@ export type EventUser = {
   username?: string | null;
 };
 
-type EventBase = {
+interface EventBase {
   contexts: EventContexts;
   crashFile: IssueAttachment | null;
   culprit: string;
@@ -416,9 +416,10 @@ type EventBase = {
   } | null;
   sdkUpdates?: Array<SDKUpdatesSuggestion>;
   userReport?: any;
-};
+}
 
-export type EventTransaction = Omit<EventBase, 'entries' | 'type'> & {
+export interface EventTransaction
+  extends Omit<EventBase, 'entries' | 'type' | 'contexts'> {
   endTimestamp: number;
   entries: (EntrySpans | EntryRequest)[];
   startTimestamp: number;
@@ -426,10 +427,9 @@ export type EventTransaction = Omit<EventBase, 'entries' | 'type'> & {
   contexts?: {
     trace?: TraceContextType;
   };
-  title?: string;
-};
+}
 
-export type EventError = Omit<EventBase, 'entries' | 'type'> & {
+export interface EventError extends Omit<EventBase, 'entries' | 'type'> {
   entries: (
     | EntryException
     | EntryStacktrace
@@ -440,7 +440,7 @@ export type EventError = Omit<EventBase, 'entries' | 'type'> & {
     | EntrySpanTree
   )[];
   type: EventOrGroupType.ERROR;
-};
+}
 
 export type Event = EventError | EventTransaction | EventBase;
 
