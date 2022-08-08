@@ -668,6 +668,7 @@ CELERY_QUEUES = [
     Queue("profiles.process", routing_key="profiles.process"),
     Queue("release_health.duplex", routing_key="release_health.duplex"),
     Queue("get_suspect_resolutions", routing_key="get_suspect_resolutions"),
+    Queue("get_suspect_resolutions", routing_key="get_suspect_resolutions"),
 ]
 
 for queue in CELERY_QUEUES:
@@ -1149,6 +1150,8 @@ SENTRY_FEATURES = {
     "organizations:sso-saml2": True,
     # Enable the server-side sampling feature (frontend, backend, relay)
     "organizations:server-side-sampling": False,
+    # Enable suspect resolutions feature
+    "organizations:suspect-resolutions": True,
     # Enable the mobile screenshots feature
     "organizations:mobile-screenshots": False,
     # Enable the release details performance section
