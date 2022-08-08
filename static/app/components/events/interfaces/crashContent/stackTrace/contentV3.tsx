@@ -209,6 +209,10 @@ function Content({
     })
     .filter(frame => !!frame) as React.ReactElement[];
 
+  const className = `traceback ${
+    includeSystemFrames ? 'full-traceback' : 'in-app-traceback'
+  }`;
+
   if (convertedFrames.length > 0 && registers) {
     const lastFrame = convertedFrames.length - 1;
     convertedFrames[lastFrame] = cloneElement(convertedFrames[lastFrame], {
@@ -216,22 +220,34 @@ function Content({
     });
 
     return (
-      <Wrapper isHoverPreviewed={isHoverPreviewed} data-test-id="stack-trace">
-        {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
+      <Wrapper className={className}>
+        <Frames isHoverPreviewed={isHoverPreviewed} data-test-id="stack-trace">
+          {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
+        </Frames>
       </Wrapper>
     );
   }
 
   return (
-    <Wrapper isHoverPreviewed={isHoverPreviewed} data-test-id="stack-trace">
-      {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
+    <Wrapper className={className}>
+      <Frames isHoverPreviewed={isHoverPreviewed} data-test-id="stack-trace">
+        {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
+      </Frames>
     </Wrapper>
   );
 }
 
 export default Content;
 
-const Wrapper = styled('ul')<{isHoverPreviewed?: boolean}>`
+const Wrapper = styled('div')`
+  && {
+    border: 0;
+    box-shadow: none;
+    margin: 0;
+  }
+`;
+
+const Frames = styled('ul')<{isHoverPreviewed?: boolean}>`
   background: ${p => p.theme.background};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px ${p => 'solid ' + p.theme.border};
