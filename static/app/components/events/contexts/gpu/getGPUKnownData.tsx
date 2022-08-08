@@ -1,5 +1,4 @@
 import {Event, KeyValueListData} from 'sentry/types';
-import {defined} from 'sentry/utils';
 
 import {getGPUKnownDataDetails} from './getGPUKnownDataDetails';
 import {GPUData, GPUKnownDataType} from './types';
@@ -18,11 +17,12 @@ export function getGPUKnownData({
   const knownData: KeyValueListData = [];
 
   const dataKeys = gpuKnownDataValues.filter(gpuKnownDataValue => {
-    if (!defined(data[gpuKnownDataValue])) {
-      if (meta[gpuKnownDataValue]) {
-        return true;
-      }
-      return false;
+    if (
+      typeof data[gpuKnownDataValue] !== 'number' &&
+      typeof data[gpuKnownDataValue] !== 'boolean' &&
+      !data[gpuKnownDataValue]
+    ) {
+      return !!meta[gpuKnownDataValue];
     }
     return true;
   });

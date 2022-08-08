@@ -5,7 +5,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {ExceptionType} from 'sentry/types';
-import {EntryType, Event} from 'sentry/types/event';
+import {Event} from 'sentry/types/event';
 import {STACK_TYPE} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 
@@ -18,6 +18,7 @@ type Props = {
   event: Event;
   platform: StackTraceProps['platform'];
   type: STACK_TYPE;
+  meta?: Record<any, any>;
   newestFirst?: boolean;
   stackView?: StackTraceProps['stackView'];
 } & Pick<ExceptionType, 'values'> &
@@ -35,15 +36,11 @@ export function Content({
   platform,
   values,
   type,
+  meta,
 }: Props) {
   if (!values) {
     return null;
   }
-
-  const exceptionEntryIndex = event.entries.findIndex(
-    entry => entry.type === EntryType.EXCEPTION
-  );
-  const meta = event._meta?.entries?.[exceptionEntryIndex]?.data?.values;
 
   const children = values.map((exc, excIdx) => {
     return (
@@ -80,6 +77,7 @@ export function Content({
           chainedException={values.length > 1}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
           groupingCurrentLevel={groupingCurrentLevel}
+          meta={meta?.[excIdx]?.stacktrace}
         />
       </div>
     );

@@ -3,16 +3,16 @@ import {Fragment} from 'react';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import GlobalModal from 'sentry/components/globalModal';
-import {SamplingSDKAlert} from 'sentry/views/settings/project/server-side-sampling/samplingSDKAlert';
+import {SamplingSDKUpgradesAlert} from 'sentry/views/settings/project/server-side-sampling/samplingSDKUpgradesAlert';
 
 import {getMockData, mockedProjects, recommendedSdkUpgrades, uniformRule} from './utils';
 
-describe('Server-Side Sampling - Sampling SDK Alert', function () {
+describe('Server-Side Sampling - Sdk Upgrades Alert', function () {
   it('does not render content', function () {
     const {organization, project} = getMockData();
 
     render(
-      <SamplingSDKAlert
+      <SamplingSDKUpgradesAlert
         organization={organization}
         projectId={project.id}
         onReadDocs={jest.fn()}
@@ -34,7 +34,7 @@ describe('Server-Side Sampling - Sampling SDK Alert', function () {
     render(
       <Fragment>
         <GlobalModal />
-        <SamplingSDKAlert
+        <SamplingSDKUpgradesAlert
           organization={organization}
           projectId={project.id}
           onReadDocs={jest.fn()}
@@ -78,7 +78,7 @@ describe('Server-Side Sampling - Sampling SDK Alert', function () {
     const {organization, project} = getMockData();
 
     render(
-      <SamplingSDKAlert
+      <SamplingSDKUpgradesAlert
         organization={organization}
         projectId={project.id}
         onReadDocs={jest.fn()}

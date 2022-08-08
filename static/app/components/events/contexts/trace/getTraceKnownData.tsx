@@ -1,6 +1,5 @@
 import {KeyValueListData, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {defined} from 'sentry/utils';
 
 import {getTraceKnownDataDetails} from './getTraceKnownDataDetails';
 import {TraceKnownData, TraceKnownDataType} from './types';
@@ -28,11 +27,12 @@ export function getTraceKnownData({
       });
     }
 
-    if (!defined(data[traceKnownDataValue])) {
-      if (meta[traceKnownDataValue]) {
-        return true;
-      }
-      return false;
+    if (
+      typeof data[traceKnownDataValue] !== 'number' &&
+      typeof data[traceKnownDataValue] !== 'boolean' &&
+      !data[traceKnownDataValue]
+    ) {
+      return !!meta[traceKnownDataValue];
     }
     return true;
   });
