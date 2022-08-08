@@ -142,7 +142,7 @@ function ChartLabels({
             <QuestionTooltip
               position="top"
               title={t(
-                'Shows the count of events for the selected time period, showing the ingested events for this page compared to total processed events.'
+                'The count of events for the selected time period, showing the indexed events powering this page with filters compared to total processed events.'
               )}
               size="sm"
             />
