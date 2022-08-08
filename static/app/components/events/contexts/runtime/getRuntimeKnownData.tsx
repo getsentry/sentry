@@ -15,6 +15,7 @@ export function getRuntimeKnownData({data, meta}: Props): KeyValueListData {
   const dataKeys = runtimeKnownDataValues.filter(runTimerKnownDataValue => {
     if (
       typeof data[runTimerKnownDataValue] !== 'number' &&
+      typeof data[runTimerKnownDataValue] !== 'boolean' &&
       !data[runTimerKnownDataValue]
     ) {
       return !!meta[runTimerKnownDataValue];

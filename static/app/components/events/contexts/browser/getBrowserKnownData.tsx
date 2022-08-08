@@ -13,7 +13,11 @@ export function getBrowserKnownData({data, meta}: Props): KeyValueListData {
   const knownData: KeyValueListData = [];
 
   const dataKeys = browserKnownDataValues.filter(browserKnownDataValue => {
-    if (typeof data[browserKnownDataValue] !== 'number' && !data[browserKnownDataValue]) {
+    if (
+      typeof data[browserKnownDataValue] !== 'number' &&
+      typeof data[browserKnownDataValue] !== 'boolean' &&
+      !data[browserKnownDataValue]
+    ) {
       return !!meta[browserKnownDataValue];
     }
     return true;

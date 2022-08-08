@@ -16,6 +16,7 @@ export function getOperatingSystemKnownData({data, meta}: Props): KeyValueListDa
     operatingSystemKnownDataValue => {
       if (
         typeof data[operatingSystemKnownDataValue] !== 'number' &&
+        typeof data[operatingSystemKnownDataValue] !== 'boolean' &&
         !data[operatingSystemKnownDataValue]
       ) {
         return !!meta[operatingSystemKnownDataValue];

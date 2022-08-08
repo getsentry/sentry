@@ -15,7 +15,11 @@ export function getDeviceKnownData({data, event, meta}: Props): KeyValueListData
   const knownData: KeyValueListData = [];
 
   const dataKeys = deviceKnownDataValues.filter(deviceKnownDataValue => {
-    if (typeof data[deviceKnownDataValue] !== 'number' && !data[deviceKnownDataValue]) {
+    if (
+      typeof data[deviceKnownDataValue] !== 'number' &&
+      typeof data[deviceKnownDataValue] !== 'boolean' &&
+      !data[deviceKnownDataValue]
+    ) {
       return !!meta[deviceKnownDataValue];
     }
     return true;

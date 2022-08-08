@@ -12,7 +12,11 @@ export function getUserKnownData({data, meta}: Props): KeyValueListData {
   const knownData: KeyValueListData = [];
 
   const dataKeys = userKnownDataValues.filter(userKnownDataValue => {
-    if (typeof data[userKnownDataValue] !== 'number' && !data[userKnownDataValue]) {
+    if (
+      typeof data[userKnownDataValue] !== 'number' &&
+      typeof data[userKnownDataValue] !== 'boolean' &&
+      !data[userKnownDataValue]
+    ) {
       return !!meta[userKnownDataValue];
     }
     return true;

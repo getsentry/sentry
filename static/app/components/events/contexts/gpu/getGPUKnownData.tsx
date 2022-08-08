@@ -17,7 +17,11 @@ export function getGPUKnownData({
   const knownData: KeyValueListData = [];
 
   const dataKeys = gpuKnownDataValues.filter(gpuKnownDataValue => {
-    if (typeof data[gpuKnownDataValue] !== 'number' && !data[gpuKnownDataValue]) {
+    if (
+      typeof data[gpuKnownDataValue] !== 'number' &&
+      typeof data[gpuKnownDataValue] !== 'boolean' &&
+      !data[gpuKnownDataValue]
+    ) {
       return !!meta[gpuKnownDataValue];
     }
     return true;

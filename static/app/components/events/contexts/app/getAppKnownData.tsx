@@ -15,7 +15,11 @@ export function getAppKnownData({data, event, meta}: Props): KeyValueListData {
   const knownData: KeyValueListData = [];
 
   const dataKeys = appKnownDataValues.filter(appKnownDataValue => {
-    if (typeof data[appKnownDataValue] !== 'number' && !data[appKnownDataValue]) {
+    if (
+      typeof data[appKnownDataValue] !== 'number' &&
+      typeof data[appKnownDataValue] !== 'boolean' &&
+      !data[appKnownDataValue]
+    ) {
       return !!meta[appKnownDataValue];
     }
     return true;

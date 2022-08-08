@@ -27,7 +27,11 @@ export function getTraceKnownData({
       });
     }
 
-    if (typeof data[traceKnownDataValue] !== 'number' && !data[traceKnownDataValue]) {
+    if (
+      typeof data[traceKnownDataValue] !== 'number' &&
+      typeof data[traceKnownDataValue] !== 'boolean' &&
+      !data[traceKnownDataValue]
+    ) {
       return !!meta[traceKnownDataValue];
     }
     return true;
