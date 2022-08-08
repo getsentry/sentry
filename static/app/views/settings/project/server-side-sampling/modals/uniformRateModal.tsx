@@ -209,7 +209,13 @@ export function UniformRateModal({
   const isEdited =
     client !== recommendedClientSampling || server !== recommendedServerSampling;
 
-  const isValid = isValidSampleRate(client) && isValidSampleRate(server);
+  const isServerRateHigherThanClientRate =
+    defined(client) && defined(server) ? client < server : false;
+
+  const isValid =
+    isValidSampleRate(client) &&
+    isValidSampleRate(server) &&
+    !isServerRateHigherThanClientRate;
 
   function handlePrimaryButtonClick() {
     // this can either be "Next" or "Done"
@@ -438,7 +444,7 @@ export function UniformRateModal({
                 />
               </ClientColumn>
               <ClientHelpOrWarningColumn>
-                {isEdited && !isValidSampleRate(percentageToRate(clientInput)) ? (
+                {isEdited && !isValidSampleRate(client) ? (
                   <Tooltip
                     title={t('Set a value between 0 and 100')}
                     containerDisplayMode="inline-flex"
@@ -474,7 +480,7 @@ export function UniformRateModal({
                 />
               </ServerColumn>
               <ServerWarningColumn>
-                {isEdited && !isValidSampleRate(percentageToRate(serverInput)) && (
+                {isEdited && !isValidSampleRate(server) ? (
                   <Tooltip
                     title={t('Set a value between 0 and 100')}
                     containerDisplayMode="inline-flex"
@@ -485,6 +491,21 @@ export function UniformRateModal({
                       data-test-id="invalid-server-rate"
                     />
                   </Tooltip>
+                ) : (
+                  isServerRateHigherThanClientRate && (
+                    <Tooltip
+                      title={t(
+                        'Server sample rate shall not be higher than client sample rate'
+                      )}
+                      containerDisplayMode="inline-flex"
+                    >
+                      <IconWarning
+                        color="red300"
+                        size="sm"
+                        data-test-id="invalid-server-rate"
+                      />
+                    </Tooltip>
+                  )
                 )}
               </ServerWarningColumn>
               <RefreshRatesColumn>
