@@ -135,8 +135,8 @@ export enum MobileVital {
 
 export enum SpanOpBreakdown {
   SpansBrowser = 'spans.browser',
-  SpansHttp = 'spans.http',
   SpansDb = 'spans.db',
+  SpansHttp = 'spans.http',
   SpansResource = 'spans.resource',
   SpansUi = 'spans.ui',
 }
