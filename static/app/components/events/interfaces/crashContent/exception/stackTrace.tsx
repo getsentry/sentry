@@ -1,5 +1,4 @@
 import {useContext} from 'react';
-import styled from '@emotion/styled';
 
 import {Panel} from 'sentry/components/panels';
 import {IconWarning} from 'sentry/icons';
@@ -93,22 +92,16 @@ function StackTrace({
     isNativePlatform(platform)
   ) {
     return (
-      <StackTraceWrapper
-        className={`traceback ${
-          includeSystemFrames ? 'full-traceback' : 'in-app-traceback'
-        }`}
-      >
-        <StacktraceContentV3
-          data={data}
-          expandFirstFrame={expandFirstFrame}
-          includeSystemFrames={includeSystemFrames}
-          groupingCurrentLevel={groupingCurrentLevel}
-          platform={platform}
-          newestFirst={newestFirst}
-          event={event}
-          meta={meta}
-        />
-      </StackTraceWrapper>
+      <StacktraceContentV3
+        data={data}
+        expandFirstFrame={expandFirstFrame}
+        includeSystemFrames={includeSystemFrames}
+        groupingCurrentLevel={groupingCurrentLevel}
+        platform={platform}
+        newestFirst={newestFirst}
+        event={event}
+        meta={meta}
+      />
     );
   }
 
@@ -141,11 +134,3 @@ function StackTrace({
 }
 
 export default StackTrace;
-
-const StackTraceWrapper = styled('div')`
-  && {
-    border: 0;
-    box-shadow: none;
-    margin: 0;
-  }
-`;
