@@ -425,23 +425,24 @@ export function ServerSideSampling({project}: Props) {
             'These settings can only be edited by users with the organization owner, manager, or admin role.'
           )}
         />
-        {!!rules.length && !fetchingRecommendedSdkUpgrades && (
-          <SamplingSDKUpgradesAlert
-            organization={organization}
-            projectId={project.id}
-            rules={rules}
-            recommendedSdkUpgrades={recommendedSdkUpgrades}
-            onReadDocs={handleReadDocs}
-          />
-        )}
-        {!!rules.length && (
-          <SamplingSDKClientRateChangeAlert
-            onReadDocs={handleReadDocs}
-            projectStats={projectStats}
-            organization={organization}
-            projectId={project.id}
-          />
-        )}
+        {!!rules.length &&
+          !fetchingRecommendedSdkUpgrades &&
+          (!recommendedSdkUpgrades.length ? (
+            <SamplingSDKClientRateChangeAlert
+              onReadDocs={handleReadDocs}
+              projectStats={projectStats}
+              organization={organization}
+              projectId={project.id}
+            />
+          ) : (
+            <SamplingSDKUpgradesAlert
+              organization={organization}
+              projectId={project.id}
+              rules={rules}
+              recommendedSdkUpgrades={recommendedSdkUpgrades}
+              onReadDocs={handleReadDocs}
+            />
+          ))}
         <SamplingBreakdown orgSlug={organization.slug} />
         {!rules.length ? (
           <SamplingPromo
