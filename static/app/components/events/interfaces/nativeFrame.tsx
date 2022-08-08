@@ -71,13 +71,13 @@ function NativeFrame({
   components,
   isExpanded,
   platform,
+  registersMeta,
+  frameMeta,
   emptySourceNotation = false,
   /**
    * Is the stack trace being previewed in a hovercard?
    */
   isHoverPreviewed = false,
-  frameMeta,
-  registersMeta,
 }: Props) {
   const traceEventDataSectionContext = useContext(TraceEventDataSectionContext);
 
@@ -222,6 +222,7 @@ function NativeFrame({
       inApp={frame.inApp}
       expandable={expandable}
       expanded={expanded}
+      className="frame"
       data-test-id="stack-trace-frame"
     >
       <StrictClick onClick={handleToggleContext}>
@@ -417,6 +418,7 @@ const RegistersCell = styled('div')`
   grid-column: 1/-1;
   margin-left: -${space(0.5)};
   margin-right: -${space(0.5)};
+  margin-bottom: -${space(0.5)};
   cursor: default;
 `;
 
@@ -451,7 +453,7 @@ const PackageStatusButton = styled(Button)`
   border: none;
 `;
 
-const GridRow = styled('div')<{expandable: boolean; expanded: boolean; inApp: boolean}>`
+const GridRow = styled('li')<{expandable: boolean; expanded: boolean; inApp: boolean}>`
   ${p => p.expandable && `cursor: pointer;`};
   ${p => p.inApp && `background: ${p.theme.bodyBackground};`};
   ${p =>
@@ -471,6 +473,10 @@ const GridRow = styled('div')<{expandable: boolean; expanded: boolean; inApp: bo
   padding: ${space(0.5)};
   :not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.border};
+  }
+
+  && {
+    border-top: 0;
   }
 
   grid-template-columns: 24px 132px 138px 24px 1fr 24px;
