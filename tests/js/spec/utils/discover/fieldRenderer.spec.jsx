@@ -306,9 +306,9 @@ describe('getFieldRenderer', function () {
 
       const value = wrapper.find('RelativeOpsBreakdown');
       expect(value).toHaveLength(1);
-      expect(getWidth(value, 0)).toEqual('20.000%');
+      expect(getWidth(value, 0)).toEqual('13.333%');
       expect(getWidth(value, 1)).toEqual('40.000%');
-      expect(getWidth(value, 2)).toEqual('13.333%');
+      expect(getWidth(value, 2)).toEqual('20.000%');
       expect(getWidth(value, 3)).toEqual('26.667%');
     });
 
@@ -329,8 +329,8 @@ describe('getFieldRenderer', function () {
       const value = wrapper.find('RelativeOpsBreakdown');
       expect(value).toHaveLength(1);
       expect(getWidth(value, 0)).toEqual('40.000%');
-      expect(getWidth(value, 1)).toEqual('20.000%');
-      expect(getWidth(value, 2)).toEqual('13.333%');
+      expect(getWidth(value, 1)).toEqual('13.333%');
+      expect(getWidth(value, 2)).toEqual('20.000%');
       expect(getWidth(value, 3)).toEqual('26.667%');
     });
   });

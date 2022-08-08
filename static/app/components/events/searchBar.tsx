@@ -16,6 +16,7 @@ import {
   isEquation,
   isMeasurement,
   SEMVER_TAGS,
+  SPAN_OP_BREAKDOWN_FIELDS,
   TRACING_FIELDS,
 } from 'sentry/utils/discover/fields';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
@@ -65,6 +66,12 @@ const getMeasurementTags = (
       },
     ])
   );
+
+const getSpanTags = () => {
+  return Object.fromEntries(
+    SPAN_OP_BREAKDOWN_FIELDS.map(key => [key, {key, name: key, kind: FieldKind.METRICS}])
+  );
+};
 
 const getSemverTags = () =>
   Object.fromEntries(
@@ -155,12 +162,13 @@ function SearchBar(props: SearchBarProps) {
     const functionTags = getFunctionTags(fields ?? []);
     const fieldTags = getFieldTags();
     const measurementsWithKind = getMeasurementTags(measurements);
+    const spanTags = getSpanTags();
     const semverTags = getSemverTags();
 
     const orgHasPerformanceView = organization.features.includes('performance-view');
 
     const combinedTags: Record<string, Tag> = orgHasPerformanceView
-      ? Object.assign({}, measurementsWithKind, fieldTags, functionTags)
+      ? Object.assign({}, measurementsWithKind, spanTags, fieldTags, functionTags)
       : omit(fieldTags, TRACING_FIELDS);
 
     const tagsWithKind = Object.fromEntries(

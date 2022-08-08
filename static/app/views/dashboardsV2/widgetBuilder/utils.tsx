@@ -12,10 +12,10 @@ import {
   isEquation,
   isEquationAlias,
   isLegalYAxisType,
+  SPAN_OP_BREAKDOWN_FIELDS,
   stripDerivedMetricsPrefix,
 } from 'sentry/utils/discover/fields';
 import {MeasurementCollection} from 'sentry/utils/measurements/measurements';
-import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import {
   DisplayType,
   Widget,

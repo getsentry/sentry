@@ -16,6 +16,7 @@ import {
   FIELDS,
   FieldValueType,
   MEASUREMENT_FIELDS,
+  SpanOpBreakdown,
   WebVital,
 } from '../fields';
 
@@ -598,13 +599,7 @@ export function isRelativeSpanOperationBreakdownField(field: string) {
   return field === SPAN_OP_RELATIVE_BREAKDOWN_FIELD;
 }
 
-export const SPAN_OP_BREAKDOWN_FIELDS = [
-  'spans.http',
-  'spans.db',
-  'spans.browser',
-  'spans.resource',
-  'spans.ui',
-];
+export const SPAN_OP_BREAKDOWN_FIELDS = Object.values(SpanOpBreakdown);
 
 // This list contains fields/functions that are available with performance-view feature.
 export const TRACING_FIELDS = [
