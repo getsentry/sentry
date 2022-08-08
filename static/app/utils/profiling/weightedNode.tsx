@@ -1,5 +1,5 @@
 /**
- * This is a utility class for profiling - we extend it in order to be able to construct
+ * This is a utility class for profiling (inspired from Speedscope) - we extend it in order to be able to construct
  * a stack of nodes (or call trees) and append weights to them.
  */
 export class WeightedNode {

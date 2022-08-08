@@ -10,7 +10,7 @@ import EventDataSection from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {BreadcrumbLevelType, Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
-import {Event} from 'sentry/types/event';
+import {EntryType, Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
 import SearchBarAction from '../searchBarAction';
@@ -32,7 +32,6 @@ type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> 
   };
   event: Event;
   organization: Organization;
-  type: string;
 };
 
 type State = {
@@ -46,14 +45,7 @@ type State = {
   relativeTime?: string;
 };
 
-function BreadcrumbsContainer({
-  data,
-  event,
-  organization,
-  type: eventType,
-  route,
-  router,
-}: Props) {
+function BreadcrumbsContainer({data, event, organization, route, router}: Props) {
   const [state, setState] = useState<State>({
     searchTerm: '',
     breadcrumbs: [],
@@ -318,7 +310,7 @@ function BreadcrumbsContainer({
 
   return (
     <EventDataSection
-      type={eventType}
+      type={EntryType.BREADCRUMBS}
       title={
         <GuideAnchor target="breadcrumbs" position="right">
           <h3>{t('Breadcrumbs')}</h3>

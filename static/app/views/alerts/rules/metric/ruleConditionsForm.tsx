@@ -452,7 +452,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 'Filtering by these conditions automatically switch you to indexed events. [link:Learn more].',
                 {
                   link: (
-                    <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/" />
+                    <ExternalLink href="https://docs.sentry.io/product/sentry-basics/metrics/" />
                   ),
                 }
               )}
@@ -530,7 +530,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
                     onKeyDown?.(e);
                   }}
-                  onBlur={query => {
+                  onClose={query => {
                     onFilterSearch(query);
                     onBlur(query);
                   }}

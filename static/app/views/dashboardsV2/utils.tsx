@@ -392,6 +392,24 @@ export function getCustomMeasurementQueryParams() {
   };
 }
 
+export function isWidgetUsingTransactionName(widget: Widget) {
+  return (
+    widget.widgetType === WidgetType.DISCOVER &&
+    widget.queries.some(({aggregates, columns, fields}) => {
+      const aggregateArgs = aggregates.reduce((acc: string[], aggregate) => {
+        const aggregateArg = getAggregateArg(aggregate);
+        if (aggregateArg) {
+          acc.push(aggregateArg);
+        }
+        return acc;
+      }, []);
+      return [...aggregateArgs, ...columns, ...(fields ?? [])].some(
+        field => field === 'transaction'
+      );
+    })
+  );
+}
+
 export function hasSavedPageFilters(dashboard: DashboardDetails) {
   return !(
     isEmpty(dashboard.projects) &&
