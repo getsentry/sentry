@@ -48,7 +48,7 @@ export function SamplingSDKClientRateChangeAlert({
       showIcon
       trailingItems={
         <Button
-          href={SERVER_SIDE_SAMPLING_DOC_LINK} // TODO(sampling): check if we should use other link here
+          href={`${SERVER_SIDE_SAMPLING_DOC_LINK}product/data-management-settings/server-side-sampling/getting-started/#4-increase-your-sdk-transaction-sample-rate`}
           onClick={onReadDocs}
           priority="link"
           borderless
