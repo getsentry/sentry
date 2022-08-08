@@ -71,17 +71,13 @@ class SudoModal extends Component<Props, State> {
 
   handleSubmit = async data => {
     const {api, isSuperuser} = this.props;
-    const superuserAccessCategory =
-      this.state.superuserAccessCategory === null
-        ? data.superuserAccessCategory
-        : this.state.superuserAccessCategory;
+    const {superuserAccessCategory, superuserReason, authenticators} = this.state;
 
-    const superuserReason =
-      this.state.superuserReason === null
-        ? data.superuserReason
-        : this.state.superuserReason;
+    const suAccessCategory = superuserAccessCategory || data.superuserAccessCategory;
 
-    if (!this.state.authenticators.length) {
+    const suReason = superuserReason || data.superuserReason;
+
+    if (!authenticators.length) {
       this.handleError('No Authenticator');
       return;
     }
@@ -89,8 +85,8 @@ class SudoModal extends Component<Props, State> {
     if (this.state.showAccessForms && isSuperuser) {
       this.setState({
         showAccessForms: false,
-        superuserAccessCategory,
-        superuserReason,
+        superuserAccessCategory: suAccessCategory,
+        superuserReason: suReason,
       });
     } else {
       try {
