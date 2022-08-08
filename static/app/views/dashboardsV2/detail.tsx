@@ -734,8 +734,6 @@ class DashboardDetail extends Component<Props, State> {
       this.state;
     const {dashboardId} = params;
 
-    // TODO: const {filters} = modifiedDashboard || dashboard;
-
     const disableDashboardModifications =
       organization.features.includes('dashboards-top-level-filter') &&
       dashboard.id !== 'default-overview' &&
