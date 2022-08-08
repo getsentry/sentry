@@ -176,6 +176,4 @@ export default function getConfiguration({
 
 const NarrowFeatureBadge = styled(FeatureBadge)`
   max-width: 25px;
-  position: relative;
-  top: 1px;
 `;
