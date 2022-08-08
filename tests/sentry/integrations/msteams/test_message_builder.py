@@ -446,4 +446,4 @@ class MSTeamsNotificationMessageBuilderTest(TestCase):
             self.recipient,
         ).build_notification_card()
 
-        assert 3 == len(notification_card["body"])
+        assert 2 == len(notification_card["body"])
