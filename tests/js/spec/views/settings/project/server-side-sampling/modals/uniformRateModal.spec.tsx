@@ -20,7 +20,7 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
   beforeAll(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/stats_v2/',
-      body: TestStubs.Outcomes(),
+      body: TestStubs.OutcomesWithReason(),
     });
   });
 
