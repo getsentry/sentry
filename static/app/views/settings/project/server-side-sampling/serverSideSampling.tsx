@@ -58,7 +58,8 @@ import {
 } from './rule';
 import {SamplingBreakdown} from './samplingBreakdown';
 import {SamplingPromo} from './samplingPromo';
-import {SamplingSDKAlert} from './samplingSDKAlert';
+import {SamplingSDKClientRateChangeAlert} from './samplingSDKClientRateChangeAlert';
+import {SamplingSDKUpgradesAlert} from './samplingSDKUpgradesAlert';
 import {isUniformRule, SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
 
 type Props = {
@@ -114,6 +115,7 @@ export function ServerSideSampling({project}: Props) {
     projectId: project?.id,
     interval: '1h',
     statsPeriod: '48h',
+    groupBy: 'outcome',
   });
 
   const {recommendedSdkUpgrades, fetching: fetchingRecommendedSdkUpgrades} =
@@ -413,7 +415,9 @@ export function ServerSideSampling({project}: Props) {
           {tct(
             'Enhance the Performance monitoring experience by targeting which transactions are most valuable to your organization. To learn more about our beta program, [faqLink: visit our FAQ], for more general information, [docsLink: read our docs].',
             {
-              faqLink: <ExternalLink href="https://help.sentry.io/product-features/" />, // TODO(sampling): replace with better link once we have it
+              faqLink: (
+                <ExternalLink href="https://help.sentry.io/account/account-settings/dynamic-sampling/" />
+              ),
               docsLink: <ExternalLink href={SERVER_SIDE_SAMPLING_DOC_LINK} />,
             }
           )}
@@ -424,15 +428,24 @@ export function ServerSideSampling({project}: Props) {
             'These settings can only be edited by users with the organization owner, manager, or admin role.'
           )}
         />
-        {!!rules.length && !fetchingRecommendedSdkUpgrades && (
-          <SamplingSDKAlert
-            organization={organization}
-            projectId={project.id}
-            rules={rules}
-            recommendedSdkUpgrades={recommendedSdkUpgrades}
-            onReadDocs={handleReadDocs}
-          />
-        )}
+        {!!rules.length &&
+          !fetchingRecommendedSdkUpgrades &&
+          (!recommendedSdkUpgrades.length ? (
+            <SamplingSDKClientRateChangeAlert
+              onReadDocs={handleReadDocs}
+              projectStats={projectStats}
+              organization={organization}
+              projectId={project.id}
+            />
+          ) : (
+            <SamplingSDKUpgradesAlert
+              organization={organization}
+              projectId={project.id}
+              rules={rules}
+              recommendedSdkUpgrades={recommendedSdkUpgrades}
+              onReadDocs={handleReadDocs}
+            />
+          ))}
         <SamplingBreakdown orgSlug={organization.slug} />
         {!rules.length ? (
           <SamplingPromo

@@ -1,5 +1,4 @@
 import {Event, KeyValueListData} from 'sentry/types';
-import {defined} from 'sentry/utils';
 
 import {getUserKnownDataDetails} from './getUserKnownDataDetails';
 import {UserEventContextData, userKnownDataValues} from '.';
@@ -13,11 +12,12 @@ export function getUserKnownData({data, meta}: Props): KeyValueListData {
   const knownData: KeyValueListData = [];
 
   const dataKeys = userKnownDataValues.filter(userKnownDataValue => {
-    if (!defined(data[userKnownDataValue])) {
-      if (meta[userKnownDataValue]) {
-        return true;
-      }
-      return false;
+    if (
+      typeof data[userKnownDataValue] !== 'number' &&
+      typeof data[userKnownDataValue] !== 'boolean' &&
+      !data[userKnownDataValue]
+    ) {
+      return !!meta[userKnownDataValue];
     }
     return true;
   });
