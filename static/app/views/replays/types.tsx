@@ -11,6 +11,7 @@ export type ReplayRecord = {
   dist: null | string;
   duration: number;
   environment: null | string;
+  errorIds: string[];
   finishedAt: Date; // API will send a string, needs to be hydrated
   longestTransaction: number;
   platform: string;
@@ -31,6 +32,7 @@ export type ReplayRecord = {
     ipAddress: null | string;
     name: null | string;
   };
+  userAgent: string;
 };
 
 export type ReplayDiscoveryListItem = {

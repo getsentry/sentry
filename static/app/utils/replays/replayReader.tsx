@@ -95,6 +95,7 @@ export default class ReplayReader {
       ).length,
       countSegments: 0,
       countUrls: urls.length,
+      errorIds: [],
       dist: this.event.dist,
       duration: endTimestampMs - startTimestampMs,
       environment: null,
@@ -115,6 +116,7 @@ export default class ReplayReader {
       title: this.event.title,
       traceIds: [],
       urls,
+      userAgent: '',
       user: {
         email: this.event.user?.email,
         id: this.event.user?.id,
