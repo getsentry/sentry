@@ -1,10 +1,10 @@
-import {Component} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import forOwn from 'lodash/forOwn';
 import isNil from 'lodash/isNil';
 import isObject from 'lodash/isObject';
 
+import AnnotatedText from 'sentry/components/events/meta/annotatedText';
 import {Hovercard} from 'sentry/components/hovercard';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Pill from 'sentry/components/pill';
@@ -18,75 +18,79 @@ import {Theme} from 'sentry/utils/theme';
 
 type Props = {
   data: StackTraceMechanism;
+  meta?: Record<any, any>;
 };
 
-class Mechanism extends Component<Props> {
-  render() {
-    const mechanism = this.props.data;
-    const {type, description, help_link, handled, meta = {}, data = {}} = mechanism;
-    const {errno, signal, mach_exception} = meta;
+export function Mechanism({data: mechanism, meta: mechanismMeta}: Props) {
+  const {type, description, help_link, handled, meta = {}, data = {}} = mechanism;
+  const {errno, signal, mach_exception} = meta;
 
-    const linkElement = help_link && isUrl(help_link) && (
-      <StyledExternalLink href={help_link}>
-        <IconOpen size="xs" />
-      </StyledExternalLink>
-    );
+  const linkElement = help_link && isUrl(help_link) && (
+    <StyledExternalLink href={help_link}>
+      <IconOpen size="xs" />
+    </StyledExternalLink>
+  );
 
-    const descriptionElement = description && (
-      <Hovercard
-        header={
-          <span>
-            <Details>{t('Details')}</Details> {linkElement}
-          </span>
-        }
-        body={description}
-      >
-        <StyledIconInfo size="14px" />
-      </Hovercard>
-    );
-
-    const pills = [
-      <Pill key="mechanism" name="mechanism" value={type || 'unknown'}>
-        {descriptionElement || linkElement}
-      </Pill>,
-    ];
-
-    if (!isNil(handled)) {
-      pills.push(<Pill key="handled" name="handled" value={handled} />);
-    }
-
-    if (errno) {
-      const value = errno.name || errno.number;
-      pills.push(<Pill key="errno" name="errno" value={value} />);
-    }
-
-    if (mach_exception) {
-      const value = mach_exception.name || mach_exception.exception;
-      pills.push(<Pill key="mach" name="mach exception" value={value} />);
-    }
-
-    if (signal) {
-      const code = signal.code_name || `${t('code')} ${signal.code}`;
-      const name = signal.name || signal.number;
-      const value = isNil(signal.code) ? name : `${name} (${code})`;
-      pills.push(<Pill key="signal" name="signal" value={value} />);
-    }
-
-    forOwn(data, (value, key) => {
-      if (!isObject(value)) {
-        pills.push(<Pill key={`data:${key}`} name={key} value={value} />);
+  const descriptionElement = description && (
+    <Hovercard
+      header={
+        <span>
+          <Details>{t('Details')}</Details> {linkElement}
+        </span>
       }
-    });
+      body={description}
+    >
+      <StyledIconInfo size="14px" />
+    </Hovercard>
+  );
 
-    return (
-      <Wrapper>
-        <StyledPills>{pills}</StyledPills>
-      </Wrapper>
-    );
+  const pills = [
+    <Pill key="mechanism" name="mechanism" value={type || 'unknown'}>
+      {descriptionElement || linkElement}
+    </Pill>,
+  ];
+
+  if (!isNil(handled)) {
+    pills.push(<Pill key="handled" name="handled" value={handled} />);
   }
-}
 
-export default Mechanism;
+  if (errno) {
+    const value = errno.name || errno.number;
+    pills.push(<Pill key="errno" name="errno" value={value} />);
+  }
+
+  if (mach_exception) {
+    const value = mach_exception.name || mach_exception.exception;
+    pills.push(<Pill key="mach" name="mach exception" value={value} />);
+  }
+
+  if (signal) {
+    const code = signal.code_name || `${t('code')} ${signal.code}`;
+    const name = signal.name || signal.number;
+    const value = isNil(signal.code) ? name : `${name} (${code})`;
+    pills.push(<Pill key="signal" name="signal" value={value} />);
+  }
+
+  forOwn(data, (value, key) => {
+    if (!isObject(value)) {
+      pills.push(
+        <Pill key={`data:${key}`} name={key}>
+          {mechanismMeta?.data?.[key]?.[''] && !value ? (
+            <AnnotatedText value={value} meta={mechanismMeta?.data?.[key]?.['']} />
+          ) : (
+            value
+          )}
+        </Pill>
+      );
+    }
+  });
+
+  return (
+    <Wrapper>
+      <StyledPills>{pills}</StyledPills>
+    </Wrapper>
+  );
+}
 
 const Wrapper = styled('div')`
   margin: ${space(2)} 0;

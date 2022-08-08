@@ -70,6 +70,7 @@ export function RecommendedStepsModal({
     interval: '1h',
     statsPeriod: '48h',
     disable: !!clientSampleRate,
+    groupBy: 'outcome',
   });
   const {maxSafeSampleRate} = projectStatsToSampleRates(projectStats);
   const suggestedClientSampleRate = clientSampleRate ?? maxSafeSampleRate;
