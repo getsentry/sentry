@@ -26,15 +26,18 @@ import type {User} from './user';
  * The Hooks type mapping is the master interface for all external Hooks into
  * the sentry frontend application.
  */
-export type Hooks = {_: any} & RouteHooks &
-  ComponentHooks &
-  CustomizationHooks &
-  AnalyticsHooks &
-  FeatureDisabledHooks &
-  InterfaceChromeHooks &
-  OnboardingHooks &
-  SettingsHooks &
-  CallbackHooks;
+export interface Hooks
+  extends RouteHooks,
+    ComponentHooks,
+    CustomizationHooks,
+    AnalyticsHooks,
+    FeatureDisabledHooks,
+    InterfaceChromeHooks,
+    OnboardingHooks,
+    SettingsHooks,
+    CallbackHooks {
+  _: any;
+}
 
 export type HookName = keyof Hooks;
 
