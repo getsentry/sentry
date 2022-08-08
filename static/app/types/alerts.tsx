@@ -24,7 +24,7 @@ type IssueAlertRuleFormField =
  * These templates that tell the UI how to render the action or condition
  * and what fields it needs
  */
-export type IssueAlertRuleActionTemplate = {
+export interface IssueAlertRuleActionTemplate {
   enabled: boolean;
   id: string;
   label: string;
@@ -39,21 +39,18 @@ export type IssueAlertRuleActionTemplate = {
   link?: string;
   sentryAppInstallationUuid?: string;
   ticketType?: string;
-};
+}
 export type IssueAlertRuleConditionTemplate = IssueAlertRuleActionTemplate;
 
 /**
  * These are the action or condition data that the user is editing or has saved.
  */
-export type IssueAlertRuleAction = Omit<
-  IssueAlertRuleActionTemplate,
-  'formFields' | 'enabled'
-> & {
-  dynamic_form_fields?: IssueConfigField[];
-} & {
+export interface IssueAlertRuleAction
+  extends Omit<IssueAlertRuleActionTemplate, 'formFields' | 'enabled'> {
   // These are the same values as the keys in `formFields` for a template
   [key: string]: any;
-};
+  dynamic_form_fields?: IssueConfigField[];
+}
 
 export type IssueAlertRuleCondition = Omit<
   IssueAlertRuleConditionTemplate,
@@ -65,7 +62,7 @@ export type IssueAlertRuleCondition = Omit<
   [key: string]: number | string;
 };
 
-export type UnsavedIssueAlertRule = {
+export interface UnsavedIssueAlertRule {
   /** When an issue matches [actionMatch] of the following */
   actionMatch: 'all' | 'any' | 'none';
   actions: IssueAlertRuleAction[];
@@ -77,17 +74,17 @@ export type UnsavedIssueAlertRule = {
   name: string;
   environment?: null | string;
   owner?: string | null;
-};
+}
 
 // Issue-based alert rule
-export type IssueAlertRule = UnsavedIssueAlertRule & {
+export interface IssueAlertRule extends UnsavedIssueAlertRule {
   createdBy: {email: string; id: number; name: string} | null;
   dateCreated: string;
   id: string;
   projects: string[];
   errors?: {detail: string}[];
   lastTriggered?: string;
-};
+}
 
 // Project's alert rule stats
 export type ProjectAlertRuleStats = {
