@@ -2,8 +2,8 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import Input from 'sentry/components/forms/controls/input';
 import SelectControl from 'sentry/components/forms/selectControl';
+import Input from 'sentry/components/input';
 import NumberDragControl from 'sentry/components/numberDragControl';
 import Tooltip from 'sentry/components/tooltip';
 import {t, tct, tn} from 'sentry/locale';

@@ -4,10 +4,10 @@ import sortBy from 'lodash/sortBy';
 
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import InputControl from 'sentry/components/forms/controls/input';
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
+import InputControl from 'sentry/components/input';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';

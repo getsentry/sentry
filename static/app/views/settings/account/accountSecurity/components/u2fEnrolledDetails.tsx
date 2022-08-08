@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import DateTime from 'sentry/components/dateTime';
-import Input from 'sentry/components/forms/controls/input';
+import Input from 'sentry/components/input';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
 import {IconClose, IconDelete} from 'sentry/icons';

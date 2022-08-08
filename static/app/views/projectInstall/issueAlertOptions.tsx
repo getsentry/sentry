@@ -5,10 +5,10 @@ import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
-import Input from 'sentry/components/forms/controls/input';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import MultipleCheckboxField from 'sentry/components/forms/MultipleCheckboxField';
 import SelectControl from 'sentry/components/forms/selectControl';
+import Input from 'sentry/components/input';
 import PageHeading from 'sentry/components/pageHeading';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';

@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 
 import Alert from 'sentry/components/alert';
-import Input from 'sentry/components/forms/controls/input';
 import Textarea from 'sentry/components/forms/controls/textarea';
 import Field from 'sentry/components/forms/field';
+import Input from 'sentry/components/input';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 
