@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 
+// This is the formatter for the stack marker spec https://github.com/WICG/js-self-profiling/blob/main/markers.md
 export function stackMarkerToHumanReadable(marker: JSSelfProfiling.Marker): string {
   switch (marker) {
     case 'gc':

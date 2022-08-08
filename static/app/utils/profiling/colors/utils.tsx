@@ -20,6 +20,7 @@ const uniqueBy = <T,>(arr: ReadonlyArray<T>, predicate: (t: T) => unknown): Arra
   ];
 };
 
+// These were taken from speedscope, originally described in
 // https://en.wikipedia.org/wiki/HSL_and_HSV#From_luma/chroma/hue
 export const fract = (x: number): number => x - Math.floor(x);
 export const triangle = (x: number): number => 2.0 * Math.abs(fract(x) - 0.5) - 1.0;

@@ -10,7 +10,7 @@ import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 
 import {Flamegraph} from '../flamegraph';
 import {LightFlamegraphTheme} from '../flamegraph/flamegraphTheme';
-import {Rect, Transform} from '../gl/utils';
+import {Rect, transformMatrixBetweenRect} from '../gl/utils';
 import androidTrace from '../profile/formats/android/trace.json';
 import ios from '../profile/formats/ios/trace.json';
 import typescriptTrace from '../profile/formats/typescript/trace.json';
@@ -51,10 +51,7 @@ const makeDrawFullScreen = (renderer: TextRenderer, flamegraph: Flamegraph) => {
     1000
   ).withY(0);
 
-  const transform = Transform.transformMatrixBetweenRect(
-    configView,
-    new Rect(0, 0, 1000, 1000)
-  );
+  const transform = transformMatrixBetweenRect(configView, new Rect(0, 0, 1000, 1000));
   return (searchResults?: FlamegraphSearch) => {
     renderer.draw(flamegraph.configSpace, transform, searchResults);
   };
@@ -67,10 +64,7 @@ const makeDrawCenterScreen = (renderer: TextRenderer, flamegraph: Flamegraph) =>
     flamegraph.configSpace.width * 0.5, // 50% width
     1000
   ).withY(0);
-  const transform = Transform.transformMatrixBetweenRect(
-    configView,
-    new Rect(0, 0, 1000, 1000)
-  );
+  const transform = transformMatrixBetweenRect(configView, new Rect(0, 0, 1000, 1000));
 
   return (searchResults?: FlamegraphSearch) => {
     renderer.draw(configView, transform, searchResults);
@@ -84,10 +78,7 @@ const makeDrawRightSideOfScreen = (renderer: TextRenderer, flamegraph: Flamegrap
     flamegraph.configSpace.width * 0.25, // 25% width
     1000
   ).withY(0);
-  const transform = Transform.transformMatrixBetweenRect(
-    configView,
-    new Rect(0, 0, 1000, 1000)
-  );
+  const transform = transformMatrixBetweenRect(configView, new Rect(0, 0, 1000, 1000));
 
   return (searchResults?: FlamegraphSearch) => {
     renderer.draw(configView, transform, searchResults);

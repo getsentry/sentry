@@ -11,7 +11,6 @@ import {
   getContext,
   makeProjectionMatrix,
   Rect,
-  Transform,
   trimTextCenter,
 } from 'sentry/utils/profiling/gl/utils';
 
@@ -157,14 +156,6 @@ describe('createShader', () => {
     // @ts-ignore this is a partial mock
     expect(() => createShader(ctx, type, shaderSource)).toThrow(
       'Failed to compile shader'
-    );
-  });
-});
-
-describe('Transform', () => {
-  it('betweenRect', () => {
-    expect(Transform.betweenRect(new Rect(2, 3, 4, 5), new Rect(1, 2, 10, 15))).toEqual(
-      new Rect(1, 2, 2.5, 3)
     );
   });
 });

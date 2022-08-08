@@ -17,7 +17,8 @@ class PositionIndicatorRenderer {
 
   draw(configView: Rect, configSpace: Rect, configSpaceToPhysicalSpace: mat3): void {
     if (configView.equals(configSpace)) {
-      // User is not zoomed in, so we dont need to draw anything.
+      // User is not zoomed in or entire chart fits in view,
+      // then we dont need to draw anything.
       return;
     }
 
