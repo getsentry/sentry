@@ -50,6 +50,7 @@ export function getEventExtraDataKnownData(
           )
         ),
       });
+      continue;
     }
 
     knownData.push({
