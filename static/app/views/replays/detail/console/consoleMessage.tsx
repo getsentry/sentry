@@ -143,10 +143,18 @@ function ConsoleMessage({
         level={breadcrumb.level}
         isActive={isActive}
         hasOccurred={hasOccurred}
+        onMouseOver={handleOnMouseOver}
+        onMouseOut={handleOnMouseOut}
       >
         {ICONS[breadcrumb.level]}
       </Icon>
-      <Message isLast={isLast} level={breadcrumb.level} hasOccurred={hasOccurred}>
+      <Message
+        isLast={isLast}
+        level={breadcrumb.level}
+        hasOccurred={hasOccurred}
+        onMouseOver={handleOnMouseOver}
+        onMouseOut={handleOnMouseOut}
+      >
         <ErrorBoundary mini>
           <MessageFormatter breadcrumb={breadcrumb} />
         </ErrorBoundary>
