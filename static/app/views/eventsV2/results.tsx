@@ -76,6 +76,7 @@ type State = {
   showUnparameterizedBanner?: boolean;
 };
 const SHOW_TAGS_STORAGE_KEY = 'discover2:show-tags';
+const SHOW_UNPARAM_BANNER = 'showUnparameterizedBanner';
 
 function readShowTagsState() {
   const value = localStorage.getItem(SHOW_TAGS_STORAGE_KEY);
@@ -128,11 +129,11 @@ class Results extends Component<Props, State> {
         query: {...location.query, fromMetric: undefined},
       });
     }
-    if (location.query.showUnparameterizedBanner) {
+    if (location.query[SHOW_UNPARAM_BANNER]) {
       this.setState({showUnparameterizedBanner: true});
       browserHistory.replace({
         ...location,
-        query: {...location.query, showUnparameterizedBanner: undefined},
+        query: {...location.query, [SHOW_UNPARAM_BANNER]: undefined},
       });
     }
     loadOrganizationTags(this.tagsApi, organization.slug, selection);

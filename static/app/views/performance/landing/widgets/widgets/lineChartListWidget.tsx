@@ -96,6 +96,11 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           ];
           eventView.additionalConditions.setFilterValues('event.type', ['error']);
           eventView.additionalConditions.setFilterValues('!tags[transaction]', ['']);
+          if (canUseMetricsData(organization)) {
+            eventView.additionalConditions.setFilterValues('!transaction', [
+              UNPARAMETERIZED_TRANSACTION,
+            ]);
+          }
           const mutableSearch = new MutableSearch(eventView.query);
           mutableSearch.removeFilter('transaction.duration');
           eventView.additionalConditions.removeFilter('transaction.op'); // Remove transaction op incase it's applied from the performance view.
