@@ -13,18 +13,20 @@ export function getIntervalTimeAtX(logicalSpaceToConfigView: mat3, x: number): n
   return Math.round(vector * 10) / 10;
 }
 
+//
 export function computeInterval(
   configView: Rect,
   logicalSpaceToConfigView: mat3
 ): number[] {
-  // We want to draw an interval every 200px
+  // We want to draw an interval every 200px, this is similar to how speedscope draws it and it works well
+  // (both visually pleasing and precise enough). It is pretty much identical to what speedscope does with
+  // the safeguards for the intervals being too small.
   const target = 200;
   // Compute x at 200 and subtract left, so we have the interval
   const targetInterval =
     getIntervalTimeAtX(logicalSpaceToConfigView, target) - configView.left;
 
   const minInterval = Math.pow(10, Math.floor(Math.log10(targetInterval)));
-
   let interval = minInterval;
 
   if (targetInterval / interval > 5) {
@@ -33,8 +35,8 @@ export function computeInterval(
     interval *= 2;
   }
 
-  const intervals: number[] = [];
   let x = Math.ceil(configView.left / interval) * interval;
+  const intervals: number[] = [];
 
   while (x <= configView.right) {
     intervals.push(x);
@@ -74,14 +76,13 @@ class GridRenderer {
       this.theme.FONTS.FONT
     }`;
     context.textBaseline = 'top';
-
-    const LINE_WIDTH = 1;
+    context.lineWidth = this.theme.SIZES.GRID_LINE_WIDTH / 2;
 
     // Draw the background of the top timeline
     context.fillStyle = this.theme.COLORS.GRID_FRAME_BACKGROUND_COLOR;
     context.fillRect(
       0,
-      LINE_WIDTH,
+      this.theme.SIZES.GRID_LINE_WIDTH,
       physicalViewRect.width,
       this.theme.SIZES.LABEL_FONT_SIZE * window.devicePixelRatio +
         this.theme.SIZES.LABEL_FONT_PADDING * window.devicePixelRatio * 2 -
@@ -90,12 +91,12 @@ class GridRenderer {
 
     // Draw top timeline lines
     context.fillStyle = this.theme.COLORS.GRID_LINE_COLOR;
-    context.fillRect(0, 0, physicalViewRect.width, LINE_WIDTH / 2);
+    context.fillRect(0, 0, physicalViewRect.width, this.theme.SIZES.GRID_LINE_WIDTH / 2);
     context.fillRect(
       0,
       this.theme.SIZES.TIMELINE_HEIGHT * window.devicePixelRatio,
       physicalViewRect.width,
-      LINE_WIDTH / 2
+      this.theme.SIZES.GRID_LINE_WIDTH / 2
     );
 
     const intervals = computeInterval(configViewSpace, logicalSpaceToConfigView);
@@ -121,11 +122,10 @@ class GridRenderer {
 
       // Draw the vertical grid line
       context.strokeStyle = this.theme.COLORS.GRID_LINE_COLOR;
-      context.lineWidth = this.theme.SIZES.GRID_LINE_WIDTH;
       context.strokeRect(
-        physicalIntervalPosition - LINE_WIDTH / 2,
+        physicalIntervalPosition - this.theme.SIZES.GRID_LINE_WIDTH / 2,
         physicalViewRect.y,
-        LINE_WIDTH / 2,
+        this.theme.SIZES.GRID_LINE_WIDTH / 2,
         physicalViewRect.height
       );
     }
