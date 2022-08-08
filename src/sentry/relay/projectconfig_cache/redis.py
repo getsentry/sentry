@@ -17,6 +17,9 @@ class RedisProjectConfigCache(ProjectConfigCache):
         cluster_key = options.get("cluster", "default")
         self.cluster = redis.redis_clusters.get(cluster_key)
 
+        read_cluster_key = options.get("read_cluster", cluster_key)
+        self.cluster_read = redis.redis_clusters.get(read_cluster_key)
+
         super().__init__(**options)
 
     def validate(self):
@@ -52,7 +55,7 @@ class RedisProjectConfigCache(ProjectConfigCache):
         )
 
     def get(self, public_key):
-        rv = self.cluster.get(self.__get_redis_key(public_key))
+        rv = self.cluster_read.get(self.__get_redis_key(public_key))
         if rv is not None:
             try:
                 rv = zstandard.decompress(rv).decode()

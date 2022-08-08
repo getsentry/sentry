@@ -206,6 +206,10 @@ class _RedisCluster:
         hosts = config.get("hosts")
         hosts = list(hosts.values()) if isinstance(hosts, dict) else hosts
 
+        # support for scaling reads using the readonly mode
+        # https://redis.io/docs/reference/cluster-spec/#scaling-reads-using-replica-nodes
+        readonly_mode = config.get("readonly_mode", False)
+
         # Redis cluster does not wait to attempt to connect. We'd prefer to not
         # make TCP connections on boot. Wrap the client in a lazy proxy object.
         def cluster_factory():
@@ -223,6 +227,7 @@ class _RedisCluster:
                     skip_full_coverage_check=True,
                     max_connections=16,
                     max_connections_per_node=True,
+                    readonly_mode=readonly_mode,
                 )
             else:
                 host = hosts[0].copy()
