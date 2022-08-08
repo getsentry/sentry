@@ -38,7 +38,9 @@ class OrganizationAlertRuleEndpoint(OrganizationEndpoint):
         args, kwargs = super().convert_args(request, *args, **kwargs)
         organization = kwargs["organization"]
 
-        if not features.has("organizations:incidents", organization, actor=request.user):
+        if request.method != "DELETE" and not features.has(
+            "organizations:incidents", organization, actor=request.user
+        ):
             raise ResourceDoesNotExist
 
         try:
