@@ -60,6 +60,7 @@ function OrganizationAuditLog({location, organization}: Props) {
       if (!payload.event) {
         delete payload.event;
       }
+      setState(prevState => ({...prevState, isLoading: true}));
       const [data, _, response] = await api.requestPromise(
         `/organizations/${organization.slug}/audit-logs/`,
         {
