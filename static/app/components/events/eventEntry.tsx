@@ -6,7 +6,7 @@ import ExceptionV2 from 'sentry/components/events/interfaces/exceptionV2';
 import {Generic} from 'sentry/components/events/interfaces/generic';
 import {Message} from 'sentry/components/events/interfaces/message';
 import {PerformanceIssueSection} from 'sentry/components/events/interfaces/performance';
-import Request from 'sentry/components/events/interfaces/request';
+import {Request} from 'sentry/components/events/interfaces/request';
 import Spans from 'sentry/components/events/interfaces/spans';
 import StackTrace from 'sentry/components/events/interfaces/stackTrace';
 import StackTraceV2 from 'sentry/components/events/interfaces/stackTraceV2';
@@ -70,12 +70,10 @@ function EventEntry({
       );
     }
     case EntryType.MESSAGE: {
-      const {data} = entry;
-      return <Message data={data} event={event} />;
+      return <Message event={event} data={entry.data} />;
     }
     case EntryType.REQUEST: {
-      const {data, type} = entry;
-      return <Request type={type} event={event} data={data} />;
+      return <Request event={event} data={entry.data} />;
     }
     case EntryType.STACKTRACE: {
       const {data, type} = entry;
@@ -105,7 +103,6 @@ function EventEntry({
     }
     case EntryType.CSP: {
       const {data} = entry;
-      console.log({meta: event._meta});
       return <Csp event={event} data={data} />;
     }
     case EntryType.EXPECTCT:

@@ -67,6 +67,7 @@ class OrganizationTransactionAnomalyDetectionEndpoint(APITestCase, SnubaTestCase
             "params": {
                 "start": datetime(2022, 1, 25, 12, 0, tzinfo=timezone.utc),
                 "end": datetime(2022, 2, 8, 12, 0, tzinfo=timezone.utc),
+                "project_objects": [self.project],
                 "project_id": [self.project.id],
                 "organization_id": self.organization.id,
                 "user_id": self.user.id,
@@ -101,6 +102,7 @@ class OrganizationTransactionAnomalyDetectionEndpoint(APITestCase, SnubaTestCase
             "params": {
                 "start": datetime(2022, 1, 28, 3, 21, 34, tzinfo=timezone.utc),
                 "end": datetime(2022, 2, 11, 3, 21, 34, tzinfo=timezone.utc),
+                "project_objects": [self.project],
                 "project_id": [self.project.id],
                 "organization_id": self.organization.id,
                 "user_id": self.user.id,
@@ -134,6 +136,7 @@ class OrganizationTransactionAnomalyDetectionEndpoint(APITestCase, SnubaTestCase
             "params": {
                 "start": datetime(2021, 12, 20, 0, 0, tzinfo=timezone.utc),
                 "end": datetime(2022, 1, 17, 0, 0, tzinfo=timezone.utc),
+                "project_objects": [self.project],
                 "project_id": [self.project.id],
                 "organization_id": self.organization.id,
                 "user_id": self.user.id,

@@ -15,9 +15,9 @@ import EventView from 'sentry/utils/discover/eventView';
 
 import {areMultipleProjectsSelected, getSelectedProjectPlatformsArray} from '../utils';
 
-import {MetricDataSwitcherChildrenProps} from './metricsDataSwitcher';
+import {MetricDataSwitcherOutcome} from './metricsDataSwitcher';
 
-interface MetricEnhancedDataAlertProps extends MetricDataSwitcherChildrenProps {
+interface MetricEnhancedDataAlertProps extends MetricDataSwitcherOutcome {
   eventView: EventView;
   location: Location;
   organization: Organization;
@@ -116,7 +116,7 @@ export function MetricsDataSwitcherAlert(
   if (props.shouldWarnIncompatibleSDK) {
     const updateSDK = (
       <Link to="" onClick={handleReviewUpdatesClick}>
-        {t('update your SDK version.')}
+        {t('update your SDK version')}
       </Link>
     );
     if (areMultipleProjectsSelected(props.eventView)) {
@@ -148,7 +148,7 @@ export function MetricsDataSwitcherAlert(
         data-test-id="landing-mep-alert-single-project-incompatible"
       >
         {tct(
-          `Your project has an outdated SDK which is incompatible with server side sampling. To enable this feature [updateSDK]`,
+          `Your project has an outdated SDK which is incompatible with server side sampling. To enable this feature [updateSDK].`,
           {
             updateSDK,
           }

@@ -22,7 +22,7 @@ import {Organization, Project} from 'sentry/types';
 import {Event, EventTag} from 'sentry/types/event';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {formatTagKey} from 'sentry/utils/discover/fields';
-import * as QuickTraceContext from 'sentry/utils/performance/quickTrace/quickTraceContext';
+import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 import TraceMetaQuery from 'sentry/utils/performance/quickTrace/traceMetaQuery';
 import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/utils';
