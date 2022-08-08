@@ -38,7 +38,7 @@ class GetSuspectResolutionsTest(TestCase):
             project=project, group=resolved_issue, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
         )
 
-        assert get_suspect_resolutions(resolved_issue) == [0]
+        assert get_suspect_resolutions(resolved_issue.id) == [0]
 
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_commit_correlated",
@@ -62,7 +62,7 @@ class GetSuspectResolutionsTest(TestCase):
         )
         self.create_group(project=project, status=GroupStatus.UNRESOLVED)
 
-        assert get_suspect_resolutions(resolved_issue) == []
+        assert get_suspect_resolutions(resolved_issue.id) == []
 
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_commit_correlated",
@@ -85,7 +85,7 @@ class GetSuspectResolutionsTest(TestCase):
             status=GroupStatus.RESOLVED, resolved_at=timezone.now(), project=project
         )
 
-        assert get_suspect_resolutions(resolved_issue) == []
+        assert get_suspect_resolutions(resolved_issue.id) == []
 
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_commit_correlated",
@@ -108,7 +108,7 @@ class GetSuspectResolutionsTest(TestCase):
             status=GroupStatus.RESOLVED, resolved_at=timezone.now(), project=project
         )
 
-        assert get_suspect_resolutions(resolved_issue) == []
+        assert get_suspect_resolutions(resolved_issue.id) == []
 
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_commit_correlated",
@@ -122,7 +122,7 @@ class GetSuspectResolutionsTest(TestCase):
         project = self.create_project()
         unresolved_issue = self.create_group(project=project, status=GroupStatus.UNRESOLVED)
 
-        assert get_suspect_resolutions(unresolved_issue) == []
+        assert get_suspect_resolutions(unresolved_issue.id) == []
 
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_commit_correlated",
@@ -136,4 +136,4 @@ class GetSuspectResolutionsTest(TestCase):
         project = self.create_project()
         resolved_issue = self.create_group(project=project, status=GroupStatus.RESOLVED)
 
-        assert get_suspect_resolutions(resolved_issue) == []
+        assert get_suspect_resolutions(resolved_issue.id) == []

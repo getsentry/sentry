@@ -667,6 +667,7 @@ CELERY_QUEUES = [
     Queue("update", routing_key="update"),
     Queue("profiles.process", routing_key="profiles.process"),
     Queue("release_health.duplex", routing_key="release_health.duplex"),
+    Queue("get_suspect_resolutions", routing_key="get_suspect_resolutions"),
 ]
 
 for queue in CELERY_QUEUES:
@@ -1152,6 +1153,8 @@ SENTRY_FEATURES = {
     "organizations:mobile-screenshots": False,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
+    # Enable suspect resolutions feature
+    "organizations:suspect-resolutions": True,
     # Enable team insights page
     "organizations:team-insights": True,
     # Enable setting team-level roles and receiving permissions from them
