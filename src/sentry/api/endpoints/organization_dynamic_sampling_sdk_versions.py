@@ -26,18 +26,15 @@ ALLOWED_SDK_NAMES = frozenset(
         "sentry.javascript.ember",  # Ember
         "sentry.javascript.vue",  # Vue.js
         "sentry.javascript.nextjs",  # Next.js
-        # RemixJS
-        # Node
-        # Express
-        # koa
-        # AWS Lambda
+        "sentry.javascript.remix",  # RemixJS
+        "sentry.javascript.node",  # Node, Express, koa
+        "sentry.javascript.serverless",  # AWS Lambda Node TODO: need to double check
         "sentry.python",  # python, django, flask, FastAPI, Starlette, Bottle, Celery
-        # AWS Lambda
+        "sentry.python.serverless",  # AWS Lambda TODO: need to double check
         # Pyramid
         # RQ
         # iOS
         # Android
-        # AWS Lambda Node
     )
 )
 
