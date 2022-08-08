@@ -50,7 +50,14 @@ def mock_expected_response(
         "environment": kwargs.pop("environment", "production"),
         "release": kwargs.pop("release", "version@1.3"),
         "dist": kwargs.pop("dist", "abc123"),
-        "userAgent": kwargs.pop("user_agent", "Firefox"),
+        "osName": kwargs.pop("os_name", "iOS"),
+        "osVersion": kwargs.pop("os_version", "16.2"),
+        "browserName": kwargs.pop("browser_name", "Chrome"),
+        "browserVersion": kwargs.pop("browser_version", "103.0.38"),
+        "deviceName": kwargs.pop("device_name", "iPhone 13 Pro"),
+        "deviceBrand": kwargs.pop("device_brand", "Apple"),
+        "deviceFamily": kwargs.pop("device_family", "iPhone"),
+        "deviceModel": kwargs.pop("device_model", "13 Pro"),
         "user": {
             "id": kwargs.pop("user_id", "123"),
             "email": kwargs.pop("user_email", "username@example.com"),
@@ -114,7 +121,21 @@ def mock_replay(
                                 "trace_id": kwargs.pop(
                                     "trace_id", "23eda6cd4b174ef8a51f0096df3bfdd1"
                                 ),
-                            }
+                            },
+                            "os": {
+                                "name": kwargs.pop("os_name", "iOS"),
+                                "version": kwargs.pop("os_version", "16.2"),
+                            },
+                            "browser": {
+                                "name": kwargs.pop("browser_name", "Chrome"),
+                                "version": kwargs.pop("browser_version", "103.0.38"),
+                            },
+                            "device": {
+                                "name": kwargs.pop("device_name", "iPhone 13 Pro"),
+                                "brand": kwargs.pop("device_brand", "Apple"),
+                                "family": kwargs.pop("device_family", "iPhone"),
+                                "model": kwargs.pop("device_model", "13 Pro"),
+                            },
                         },
                         "request": {
                             "url": "Doesn't matter not ingested.",
