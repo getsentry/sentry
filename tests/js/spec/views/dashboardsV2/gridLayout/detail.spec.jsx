@@ -1396,6 +1396,8 @@ describe('Dashboards > Detail', function () {
       );
 
       await screen.findByText(/not-selected-1/);
+      screen.getByText('Save');
+      screen.getByText('Cancel');
     });
 
     it('resets release in URL params', async function () {
