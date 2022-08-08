@@ -16,34 +16,37 @@ type Props = {
   meta?: Meta;
 };
 
-const RichHttpContentClippedBoxKeyValueList = ({
+export function RichHttpContentClippedBoxKeyValueList({
   data,
   title,
   defaultCollapsed = false,
   isContextData = false,
   meta,
-}: Props) => {
-  const getContent = (transformedData: Array<[string, string]>) => {
+}: Props) {
+  const transformedData = getTransformedData(data, meta);
+
+  function getContent() {
     // Sentry API abbreviates long query string values, sometimes resulting in
     // an un-parsable querystring ... stay safe kids
     try {
       return (
         <KeyValueList
-          data={transformedData.map(([key, value]) => ({
-            key,
-            subject: key,
-            value,
-            meta,
-          }))}
+          data={transformedData.map(d => {
+            const [key, value] = d.data;
+            return {
+              key,
+              subject: key,
+              value,
+              meta: d.meta,
+            };
+          })}
           isContextData={isContextData}
         />
       );
     } catch {
       return <pre>{data}</pre>;
     }
-  };
-
-  const transformedData = getTransformedData(data);
+  }
 
   if (!transformedData.length) {
     return null;
@@ -51,9 +54,7 @@ const RichHttpContentClippedBoxKeyValueList = ({
 
   return (
     <ClippedBox title={title} defaultClipped={defaultCollapsed}>
-      <ErrorBoundary mini>{getContent(transformedData)}</ErrorBoundary>
+      <ErrorBoundary mini>{getContent()}</ErrorBoundary>
     </ClippedBox>
   );
-};
-
-export default RichHttpContentClippedBoxKeyValueList;
+}

@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -8,6 +8,8 @@ import {SelectField} from 'sentry/components/forms';
 import {SelectFieldProps} from 'sentry/components/forms/selectField';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
+import Tag from 'sentry/components/tag';
+import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types/project';
@@ -187,6 +189,8 @@ function SelectProjectStep({
               />
             </div>
           </li>
+          {project?.platform === 'android' ? <AndroidInstallSteps /> : null}
+          {project?.platform === 'apple-ios' ? <IOSInstallSteps /> : null}
         </StyledList>
         <ModalFooter>
           <ModalActions>
@@ -208,8 +212,88 @@ function SelectProjectStep({
   );
 }
 
+function AndroidInstallSteps() {
+  return (
+    <Fragment>
+      <li>
+        <StepTitle>{t('Update your projects SDK version')}</StepTitle>
+        <p>
+          {t(
+            'Make sure your SDKs are upgraded to at least version 6.0.0 (sentry-android).'
+          )}
+        </p>
+      </li>
+      <li>
+        <StepTitle>{t('Setup Performance Monitoring')}</StepTitle>
+        {t(
+          `For Sentry to ingest profiles, we first require you to setup performance monitoring.`
+        )}{' '}
+        <ExternalLink
+          openInNewTab
+          href="https://docs.sentry.io/platforms/android/performance/"
+        >
+          {t('Lear more about performance monitoring.')}
+        </ExternalLink>
+      </li>
+      <li>
+        <StepTitle>
+          {t('Enable profiling in your app by configuring the SDKs like below:')}
+        </StepTitle>
+        <CodeContainer>
+          {`<application>
+  <meta-data android:name="io.sentry.dsn" android:value="..." />
+  <meta-data android:name="io.sentry.traces.sample-rate" android:value="1.0" />
+  <meta-data android:name="io.sentry.traces.profiling.enable" android:value="true" />
+</application>`}
+        </CodeContainer>
+      </li>
+    </Fragment>
+  );
+}
+
+function IOSInstallSteps() {
+  return (
+    <Fragment>
+      <li>
+        <StepTitle>{t('Update your projects SDK version')}</StepTitle>
+        <p>
+          {t(
+            'Make sure your SDKs are upgraded to at least version 7.23.0 (sentry-cocoa).'
+          )}
+        </p>
+      </li>
+      <li>
+        <StepTitle>{t('Setup Performance Monitoring')}</StepTitle>
+        {t(
+          `For Sentry to ingest profiles, we first require you to setup performance monitoring.`
+        )}{' '}
+        <ExternalLink
+          openInNewTab
+          href="https://docs.sentry.io/platforms/apple/guides/ios/performance/"
+        >
+          {t('Lear more about performance monitoring.')}
+        </ExternalLink>
+      </li>
+      <li>
+        <StepTitle>
+          {t('Enable profiling in your app by configuring the SDKs like below:')}
+        </StepTitle>
+        <CodeContainer>{`SentrySDK.start { options in
+    options.dsn = "..."
+    options.tracesSampleRate = 1.0 // Make sure transactions are enabled
+    options.enableProfiling = true
+}`}</CodeContainer>
+      </li>
+    </Fragment>
+  );
+}
+
 const StyledList = styled(List)`
   position: relative;
+
+  li {
+    margin-bottom: ${space(3)};
+  }
 `;
 
 const StyledSelectField = styled(SelectField)`
@@ -226,6 +310,7 @@ function AndroidSendDebugFilesInstruction({
   Body: ModalBody,
   Header: ModalHeader,
   Footer: ModalFooter,
+  closeModal,
   toStep,
   step,
 }: OnboardingStepProps) {
@@ -234,6 +319,38 @@ function AndroidSendDebugFilesInstruction({
       <ModalHeader>
         <h3>{t('Setup Profiling')}</h3>
       </ModalHeader>
+      <p>
+        {t(`The most straightforward way to provide Sentry with debug information files is to
+        upload them using sentry-cli. Depending on your workflow, you may want to upload
+        as part of your build pipeline or when deploying and publishing your application.`)}{' '}
+        <ExternalLink href="https://docs.sentry.io/product/cli/dif/">
+          {t('Learn more about Debug Information Files.')}
+        </ExternalLink>
+      </p>
+      <OptionsContainer>
+        <OptionTitleContainer>
+          <OptionTitle>{t('Option 1')}</OptionTitle> <Tag>{t('Recommended')}</Tag>
+        </OptionTitleContainer>
+        <OptionTitleContainer>
+          <OptionTitle>{t('Option 2')}</OptionTitle>
+        </OptionTitleContainer>
+      </OptionsContainer>
+      <OptionsContainer>
+        <Option>
+          <ExternalOptionTitle href="https://docs.sentry.io/platforms/android/proguard/">
+            {t('Proguard and DexGuard')}
+            <IconOpen />
+          </ExternalOptionTitle>
+          <p>{t('Upload ProGuard files using our Gradle plugin.')}</p>
+        </Option>
+        <Option>
+          <ExternalOptionTitle href="https://docs.sentry.io/product/cli/dif/#uploading-files">
+            {t('Sentry-cli')}
+            <IconOpen />
+          </ExternalOptionTitle>
+          <p>{t('Validate and upload debug files using our cli tool.')}</p>
+        </Option>
+      </OptionsContainer>
       <ModalFooter>
         <ModalActions>
           <DocsLink />
@@ -242,6 +359,9 @@ function AndroidSendDebugFilesInstruction({
             {step.previous ? (
               <PreviousStepButton onClick={() => toStep(step.previous)} />
             ) : null}
+            <Button priority="primary" onClick={closeModal}>
+              {t('Done')}
+            </Button>
           </div>
         </ModalActions>
       </ModalFooter>
@@ -253,6 +373,7 @@ function IOSSendDebugFilesInstruction({
   Body: ModalBody,
   Header: ModalHeader,
   Footer: ModalFooter,
+  closeModal,
   toStep,
   step,
 }: OnboardingStepProps) {
@@ -261,6 +382,40 @@ function IOSSendDebugFilesInstruction({
       <ModalHeader>
         <h3>{t('Setup Profiling')}</h3>
       </ModalHeader>
+      <p>
+        {t(`The most straightforward way to provide Sentry with debug information files is to
+        upload them using sentry-cli. Depending on your workflow, you may want to upload
+        as part of your build pipeline or when deploying and publishing your application.`)}{' '}
+        <ExternalLink href="https://docs.sentry.io/product/cli/dif/">
+          {t('Learn more about Debug Information Files.')}
+        </ExternalLink>
+      </p>
+      <OptionsContainer>
+        <OptionTitleContainer>
+          <OptionTitle>{t('Option 1')}</OptionTitle> <Tag>{t('Recommended')}</Tag>
+        </OptionTitleContainer>
+        <OptionTitleContainer>
+          <OptionTitle>{t('Option 2')}</OptionTitle>
+        </OptionTitleContainer>
+      </OptionsContainer>
+      <OptionsContainer>
+        <Option>
+          <ExternalOptionTitle href="https://docs.sentry.io/product/cli/dif/#uploading-files">
+            {t('Sentry-cli')}
+            <IconOpen />
+          </ExternalOptionTitle>
+          <p>{t('Validate and upload debug files using our cli tool.')}</p>
+        </Option>
+        <Option>
+          <ExternalOptionTitle href="https://docs.sentry.io/platforms/apple/dsym/">
+            {t('Symbol servers')}
+            <IconOpen />
+          </ExternalOptionTitle>
+          <p>
+            {t('Sentry downloads debug information files from external repositories.')}
+          </p>
+        </Option>
+      </OptionsContainer>
       <ModalFooter>
         <ModalActions>
           <DocsLink />
@@ -269,6 +424,9 @@ function IOSSendDebugFilesInstruction({
             {step.previous !== null ? (
               <PreviousStepButton onClick={() => toStep(step.previous)} />
             ) : null}
+            <Button priority="primary" onClick={closeModal}>
+              {t('Next')}
+            </Button>
           </div>
         </ModalActions>
       </ModalFooter>
@@ -292,8 +450,11 @@ function PreviousStepButton(props: StepButtonProps) {
 }
 
 function DocsLink() {
-  // @TODO docs requires public link
-  return <ExternalLink href="https://docs.sentry.io/">{t('Read Docs')}</ExternalLink>;
+  return (
+    <Button external href="https://docs.sentry.io/">
+      {t('Read Docs')}
+    </Button>
+  );
 }
 
 interface ModalActionsProps {
@@ -302,6 +463,43 @@ interface ModalActionsProps {
 function ModalActions({children}: ModalActionsProps) {
   return <ModalActionsContainer>{children}</ModalActionsContainer>;
 }
+
+const OptionTitleContainer = styled('div')`
+  margin-bottom: ${space(0.5)};
+`;
+
+const OptionTitle = styled('span')`
+  font-weight: bold;
+`;
+
+const ExternalOptionTitle = styled(ExternalLink)`
+  font-weight: bold;
+  font-size: ${p => p.theme.fontSizeLarge};
+  display: flex;
+  align-items: center;
+  margin-bottom: ${space(0.5)};
+
+  svg {
+    margin-left: ${space(0.5)};
+  }
+`;
+
+const Option = styled('div')`
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.border};
+  padding: ${space(2)};
+  margin-top: ${space(1)};
+`;
+
+const OptionsContainer = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: ${space(2)};
+
+  > p {
+    margin: 0;
+  }
+`;
 
 const ModalActionsContainer = styled('div')`
   display: flex;
@@ -315,7 +513,7 @@ const ModalActionsContainer = styled('div')`
 `;
 
 const StepTitle = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(1)};
   font-weight: bold;
 `;
 
@@ -323,3 +521,16 @@ const StepIndicator = styled('span')`
   color: ${p => p.theme.subText};
   margin-right: ${space(2)};
 `;
+
+const PreContainer = styled('pre')`
+  code {
+    white-space: pre;
+  }
+`;
+function CodeContainer({children}: {children: React.ReactNode}) {
+  return (
+    <PreContainer>
+      <code>{children}</code>
+    </PreContainer>
+  );
+}

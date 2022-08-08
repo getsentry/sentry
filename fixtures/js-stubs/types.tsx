@@ -76,6 +76,7 @@ type TestStubFixtures = {
   OrganizationIntegrations: OverridableStub;
   Organizations: OverridableStub;
   Outcomes: SimpleStub;
+  OutcomesWithReason: SimpleStub;
   PhabricatorCreate: SimpleStub;
   PhabricatorPlugin: SimpleStub;
   PlatformExternalIssue: OverridableStub;

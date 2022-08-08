@@ -15,7 +15,6 @@ import {
 } from 'sentry/components/events/interfaces/frame/utils';
 import {formatAddress, parseAddress} from 'sentry/components/events/interfaces/utils';
 import AnnotatedText from 'sentry/components/events/meta/annotatedText';
-import {getMeta} from 'sentry/components/events/meta/metaProxy';
 import {TraceEventDataSectionContext} from 'sentry/components/events/traceEventDataSection';
 import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'sentry/components/stacktracePreview';
 import StrictClick from 'sentry/components/strictClick';
@@ -46,6 +45,7 @@ type Props = {
   platform: PlatformType;
   registers: Record<string, string>;
   emptySourceNotation?: boolean;
+  frameMeta?: Record<any, any>;
   image?: React.ComponentProps<typeof DebugImage>['image'];
   includeSystemFrames?: boolean;
   isExpanded?: boolean;
@@ -54,6 +54,7 @@ type Props = {
   maxLengthOfRelativeAddress?: number;
   nextFrame?: Frame;
   prevFrame?: Frame;
+  registersMeta?: Record<any, any>;
 };
 
 function NativeFrame({
@@ -75,6 +76,8 @@ function NativeFrame({
    * Is the stack trace being previewed in a hovercard?
    */
   isHoverPreviewed = false,
+  frameMeta,
+  registersMeta,
 }: Props) {
   const traceEventDataSectionContext = useContext(TraceEventDataSectionContext);
 
@@ -154,14 +157,14 @@ function NativeFrame({
     if (functionNameHiddenDetails && fullFunctionName && frame.rawFunction) {
       return {
         value: frame.rawFunction,
-        meta: getMeta(frame, 'rawFunction'),
+        meta: frameMeta?.rawFunction?.[''],
       };
     }
 
     if (frame.function) {
       return {
         value: frame.function,
-        meta: getMeta(frame, 'function'),
+        meta: frameMeta?.function?.[''],
       };
     }
 
@@ -348,6 +351,8 @@ function NativeFrame({
             hasAssembly={hasAssembly(frame, platform)}
             expandable={expandable}
             isExpanded={expanded}
+            registersMeta={registersMeta}
+            frameMeta={frameMeta}
           />
         )}
       </RegistersCell>

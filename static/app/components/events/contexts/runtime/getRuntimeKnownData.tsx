@@ -1,5 +1,4 @@
 import {Event, KeyValueListData} from 'sentry/types';
-import {defined} from 'sentry/utils';
 
 import {getRuntimeKnownDataDetails} from './getRuntimeKnownDataDetails';
 import {runtimeKnownDataValues} from './index';
@@ -14,11 +13,12 @@ export function getRuntimeKnownData({data, meta}: Props): KeyValueListData {
   const knownData: KeyValueListData = [];
 
   const dataKeys = runtimeKnownDataValues.filter(runTimerKnownDataValue => {
-    if (!defined(data[runTimerKnownDataValue])) {
-      if (meta[runTimerKnownDataValue]) {
-        return true;
-      }
-      return false;
+    if (
+      typeof data[runTimerKnownDataValue] !== 'number' &&
+      typeof data[runTimerKnownDataValue] !== 'boolean' &&
+      !data[runTimerKnownDataValue]
+    ) {
+      return !!meta[runTimerKnownDataValue];
     }
     return true;
   });
