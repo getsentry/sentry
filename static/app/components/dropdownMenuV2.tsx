@@ -48,6 +48,7 @@ type Props = {
    */
   menuTitle?: string;
   onClose?: () => void;
+  size?: MenuItemProps['size'];
   /**
    * Current width of the trigger element. This is used as the menu's minimum
    * width.
@@ -65,6 +66,7 @@ function Menu({
   closeOnSelect = true,
   triggerRef,
   triggerWidth,
+  size,
   isSubmenu,
   menuTitle,
   closeRootMenu,
@@ -191,6 +193,7 @@ function Menu({
         crossOffset={-8}
         closeOnSelect={closeOnSelect}
         isOpen={state.selectionManager.isSelected(node.key)}
+        size={size}
         isSubmenu
         closeRootMenu={closeRootMenu}
         closeCurrentSubmenu={() => state.selectionManager.clearSelection()}
