@@ -313,9 +313,9 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
         unMountedRef.current = false;
       }
 
-      replayerRef.current.pause(currentPlayerTime);
+      replayerRef.current.pause(getCurrentTime());
     },
-    [events, theme.purple200, setReplayFinished, hasNewEvents, currentPlayerTime]
+    [events, theme.purple200, setReplayFinished, hasNewEvents, getCurrentTime]
   );
 
   useEffect(() => {
@@ -420,11 +420,8 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
   }, []);
 
   // Only on pageload: set the initial playback timestamp
-  // Do not include `setCurrentTime` in the hook deps array because it changes
+  // Don't include `setCurrentTime` in the hook deps array because it changes
   // on each play/pause state change.
-  // Do include replayerRef.current in the hook deps. The rule warns that since
-  // it is a ref changing it will not cause a re-render. However, when that
-  // value changes we will get a re-render because other state values have changed.
   useEffect(() => {
     if (initialTimeOffset && events && replayerRef.current) {
       setCurrentTime(initialTimeOffset * 1000);
@@ -433,7 +430,7 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
     return () => {
       unMountedRef.current = true;
     };
-  }, [initialTimeOffset, events, replayerRef.current]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [initialTimeOffset, events]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [isBuffering, currentTime] =
     buffer.target !== -1 &&
