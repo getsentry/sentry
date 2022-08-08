@@ -1,7 +1,3 @@
-export const SPAN_OP_BREAKDOWN_FIELDS = [
-  'spans.browser',
-  'spans.http',
-  'spans.db',
-  'spans.resource',
-  'spans.ui',
-];
+import {SpanOpBreakdown} from 'sentry/utils/fields';
+
+export const SPAN_OP_BREAKDOWN_FIELDS = Object.values(SpanOpBreakdown);
