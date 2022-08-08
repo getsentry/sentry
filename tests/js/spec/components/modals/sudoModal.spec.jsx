@@ -1,5 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
@@ -7,7 +6,7 @@ import App from 'sentry/views/app';
 
 describe('Sudo Modal', function () {
   const setHasPasswordAuth = hasPasswordAuth =>
-    act(() => ConfigStore.set('user', {...ConfigStore.get('user'), hasPasswordAuth}));
+    ConfigStore.set('user', {...ConfigStore.get('user'), hasPasswordAuth});
 
   beforeEach(function () {
     Client.clearMockResponses();
@@ -42,17 +41,21 @@ describe('Sudo Modal', function () {
     });
   });
 
+  afterEach(() => {
+    ConfigStore.teardown();
+  });
+
   it('can delete an org with sudo flow', async function () {
     setHasPasswordAuth(true);
 
-    const wrapper = mountWithTheme(<App>{<div>placeholder content</div>}</App>);
+    render(<App>{<div>placeholder content</div>}</App>);
 
     const api = new Client();
     const successCb = jest.fn();
     const errorCb = jest.fn();
 
     // No Modal
-    expect(wrapper.find('GlobalModal[visible=true]').exists()).toBe(false);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
     // Should return w/ `sudoRequired`
     api.request('/organizations/org-slug/', {
@@ -61,12 +64,8 @@ describe('Sudo Modal', function () {
       error: errorCb,
     });
 
-    await tick();
-    await tick();
-    wrapper.update();
-
     // Should have Modal + input
-    expect(wrapper.find('Modal input')).toHaveLength(1);
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
 
     // Original callbacks should not have been called
     expect(successCb).not.toHaveBeenCalled();
@@ -88,15 +87,8 @@ describe('Sudo Modal', function () {
     expect(sudoMock).not.toHaveBeenCalled();
 
     // "Sudo" auth
-    wrapper
-      .find('Modal input[name="password"]')
-      .simulate('change', {target: {value: 'password'}});
-
-    wrapper.find('Modal form').simulate('submit');
-    wrapper.find('Modal Button[type="submit"]').simulate('click');
-
-    await tick();
-    wrapper.update();
+    userEvent.type(screen.getByLabelText('Password'), 'password');
+    userEvent.click(screen.getByRole('button', {name: 'Confirm Password'}));
 
     expect(sudoMock).toHaveBeenCalledWith(
       '/auth/',
@@ -107,7 +99,7 @@ describe('Sudo Modal', function () {
     );
 
     // Retry API request
-    expect(successCb).toHaveBeenCalled();
+    await waitFor(() => expect(successCb).toHaveBeenCalled());
     expect(orgDeleteMock).toHaveBeenCalledWith(
       '/organizations/org-slug/',
       expect.objectContaining({
@@ -115,24 +107,21 @@ describe('Sudo Modal', function () {
       })
     );
 
-    await tick();
-    wrapper.update();
-
     // Sudo Modal should be closed
-    expect(wrapper.find('GlobalModal[visible=true]').exists()).toBe(false);
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
   it('shows button to redirect if user does not have password auth', async function () {
     setHasPasswordAuth(false);
 
-    const wrapper = mountWithTheme(<App>{<div>placeholder content</div>}</App>);
+    render(<App>{<div>placeholder content</div>}</App>);
 
     const api = new Client();
     const successCb = jest.fn();
     const errorCb = jest.fn();
 
     // No Modal
-    expect(wrapper.find('GlobalModal[visible=true]').exists()).toBe(false);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
     // Should return w/ `sudoRequired`
     api.request('/organizations/org-slug/', {
@@ -141,12 +130,12 @@ describe('Sudo Modal', function () {
       error: errorCb,
     });
 
-    await tick();
-    await tick();
-    wrapper.update();
-
     // Should have Modal + input
-    expect(wrapper.find('Modal input')).toHaveLength(0);
-    expect(wrapper.find('Button[href]').prop('href')).toMatch('/auth/login/?next=%2F');
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Continue'})).toHaveAttribute(
+      'href',
+      '/auth/login/?next=%2F'
+    );
   });
 });
