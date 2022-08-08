@@ -26,8 +26,9 @@ import {formatPercentage} from 'sentry/utils/formatters';
 import {Outcome} from 'sentry/views/organizationStats/types';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import {SamplingSDKAlert} from '../samplingSDKAlert';
+import {SamplingSDKUpgradesAlert} from '../samplingSDKUpgradesAlert';
 import {
+  getClientSampleRates,
   isValidSampleRate,
   percentageToRate,
   rateToPercentage,
@@ -35,7 +36,6 @@ import {
 } from '../utils';
 import {hasFirstBucketsEmpty} from '../utils/hasFirstBucketsEmpty';
 import {projectStatsToPredictedSeries} from '../utils/projectStatsToPredictedSeries';
-import {projectStatsToSampleRates} from '../utils/projectStatsToSampleRates';
 import {projectStatsToSeries} from '../utils/projectStatsToSeries';
 import useProjectStats from '../utils/useProjectStats';
 import {useRecommendedSdkUpgrades} from '../utils/useRecommendedSdkUpgrades';
@@ -165,21 +165,12 @@ export function UniformRateModal({
 
   const uniformSampleRate = uniformRule?.sampleRate;
 
-  const {trueSampleRate, maxSafeSampleRate} = projectStatsToSampleRates(projectStats);
+  const {recommended: recommendedClientSampling, current: currentClientSampling} =
+    getClientSampleRates(projectStats, specifiedClientRate);
 
-  const currentClientSampling =
-    defined(specifiedClientRate) && !isNaN(specifiedClientRate)
-      ? specifiedClientRate
-      : defined(trueSampleRate) && !isNaN(trueSampleRate)
-      ? trueSampleRate
-      : undefined;
   const currentServerSampling =
     defined(uniformSampleRate) && !isNaN(uniformSampleRate)
       ? uniformSampleRate
-      : undefined;
-  const recommendedClientSampling =
-    defined(maxSafeSampleRate) && !isNaN(maxSafeSampleRate)
-      ? maxSafeSampleRate
       : undefined;
   const recommendedServerSampling = shouldUseConservativeSampleRate
     ? CONSERVATIVE_SAMPLE_RATE
@@ -505,7 +496,7 @@ export function UniformRateModal({
             </Fragment>
           </StyledPanelTable>
 
-          <SamplingSDKAlert
+          <SamplingSDKUpgradesAlert
             organization={organization}
             projectId={project.id}
             rules={rules}
