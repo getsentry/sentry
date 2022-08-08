@@ -99,16 +99,16 @@ export default class ReplayReader {
       dist: this.event.dist,
       duration: endTimestampMs - startTimestampMs,
       environment: null,
-      finishedAt: new Date(endTimestampMs),
+      finishedAt: new Date(endTimestampMs), // TODO(replay): Convert from string to Date when reading API
       longestTransaction: 0,
       platform: this.event.platform,
       projectId: this.event.projectID,
-      projectSlug: '', // TODO(replay)
+      projectSlug: '', // TODO(replay): Read from useProject to fill this in
       release: null, // event.release is not a string, expected to be `version@1.4`
       replayId: this.event.id,
       sdkName: this.event.sdk?.name,
       sdkVersion: this.event.sdk?.version,
-      startedAt: new Date(startTimestampMs),
+      startedAt: new Date(startTimestampMs), // TODO(replay): Convert from string to Date when reading API
       tags: this.event.tags.reduce((tags, {key, value}) => {
         tags[key] = value;
         return tags;
