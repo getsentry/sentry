@@ -18,10 +18,11 @@ def test_get_id() -> None:
 
 def test_get_id_time_since() -> None:
     """
-    This verfies that the middle 32bits are the correct time since.
+    This verifies that the middle 32bits are the correct time since.
 
     (4bits)              (32bits)                        (28bits)
     version |         time since (s)           |          random            |
+
     0100    | 00000001001000101000000111100011 | 1110100001100010100101011111
 
     """

@@ -12,8 +12,6 @@ _VERSION = 2
 # 1st January 2022
 _EPOCH_START = 1641024000
 
-_RANDOM_MAX = pow(2, _RANDOM_BITS) - 1  # inclusive
-
 
 def reverse_bits(number: int, bit_size: int) -> int:
     return int(bin(number)[2:].zfill(bit_size)[::-1], 2)
@@ -34,7 +32,7 @@ def get_id() -> int:
 
     now = int(time.time())
     time_since_epoch = now - _EPOCH_START
-    rand = random.randint(0, _RANDOM_MAX)
+    rand = random.getrandbits(_RANDOM_BITS)
 
     id = _VERSION_PREFIX << (_TOTAL_BITS - _VERSION_BITS)
     id |= time_since_epoch << (_TOTAL_BITS - _VERSION_BITS - _TS_BITS)
