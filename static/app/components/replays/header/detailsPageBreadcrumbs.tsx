@@ -16,7 +16,7 @@ function DetailsPageBreadcrumbs({orgId, replayRecord}: Props) {
   const labelTitle =
     replayRecord?.user.name ||
     replayRecord?.user.email ||
-    replayRecord?.user.ip ||
+    replayRecord?.user.ipAddress ||
     replayRecord?.user.id;
 
   return (

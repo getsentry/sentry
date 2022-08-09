@@ -465,10 +465,6 @@ register("relay.project-config-cache-compress", default=[])  # unused
 # Set this value of the fraction of config writes you want to compress.
 register("relay.project-config-cache-compress-sample-rate", default=0.0)  # unused
 
-# Mechanism for dialing up the last-seen-updater, which isn't needed outside
-# of SaaS (last_seen is a marker for deleting stale customer data)
-register("sentry-metrics.last-seen-updater.accept-rate", default=0.0)
-
 # default brownout crontab for api deprecations
 register("api.deprecation.brownout-cron", default="0 12 * * *", type=String)
 # Brownout duration to be stored in ISO8601 format for durations (See https://en.wikipedia.org/wiki/ISO_8601#Durations)
