@@ -237,8 +237,7 @@ reset-db() {
     create-db
     apply-migrations
     create-user
-    # This ensures that your set up as some data inside of it
-    bin/load-mocks
+    echo "Finished resetting database. To load mock data, run `./bin/load-mocks`"
 }
 
 prerequisites() {
