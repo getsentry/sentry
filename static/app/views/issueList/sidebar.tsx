@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import map from 'lodash/map';
 
-import Input from 'sentry/components/forms/controls/input';
+import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {
   joinQuery,

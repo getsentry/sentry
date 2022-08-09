@@ -7,6 +7,7 @@ from hashlib import md5
 from typing import TypeVar
 from unittest import mock
 
+import freezegun
 import pytest
 from django.conf import settings
 from sentry_sdk import Hub
@@ -223,6 +224,8 @@ def pytest_configure(config):
     from sentry.celery import app  # NOQA
 
     http.DISALLOWED_IPS = set()
+
+    freezegun.configure(extend_ignore_list=["sentry.utils.retries"])
 
 
 def register_extensions():

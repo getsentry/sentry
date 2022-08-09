@@ -5,11 +5,12 @@ from sentry.models import SentryAppComponent
 
 @register(SentryAppComponent)
 class SentryAppComponentSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, errors):
         return {
             "uuid": str(obj.uuid),
             "type": obj.type,
             "schema": obj.schema,
+            "error": True if str(obj.uuid) in errors else False,
             "sentryApp": {
                 "uuid": obj.sentry_app.uuid,
                 "slug": obj.sentry_app.slug,

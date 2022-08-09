@@ -13,7 +13,7 @@ import {Project} from 'sentry/types';
 import {SuspectFunction} from 'sentry/types/profiling/core';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {getShortEventId} from 'sentry/utils/events';
-import {generateProfileFlamegraphRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {renderTableHead} from 'sentry/utils/profiling/tableRenderer';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -62,11 +62,16 @@ function FunctionsTable(props: FunctionsTableProps) {
           const profileId = example.replaceAll('-', '');
           return {
             value: getShortEventId(profileId),
-            target: generateProfileFlamegraphRouteWithQuery({
+            target: generateProfileFlamechartRouteWithQuery({
               orgSlug: organization.slug,
               projectSlug: props.project.slug,
               profileId,
-              query: {}, // TODO: we should try to go to the right thread
+              query: {
+                // specify the frame to focus, the flamegraph will switch
+                // to the appropriate thread when these are specified
+                frameName: func.name,
+                framePackage: func.package,
+              },
             }),
           };
         }),
@@ -115,7 +120,7 @@ function FunctionsTable(props: FunctionsTableProps) {
   );
 }
 
-const RIGHT_ALIGNED_COLUMNS = new Set<TableColumnKey>(['p75', 'p95', 'p99', 'count']);
+const RIGHT_ALIGNED_COLUMNS = new Set<TableColumnKey>(['p75', 'p99', 'count']);
 const SORTABLE_COLUMNS = RIGHT_ALIGNED_COLUMNS;
 
 function renderFunctionsTableCell(
@@ -159,7 +164,6 @@ function ProfilingFunctionsTableCell({
         </NumberContainer>
       );
     case 'p75':
-    case 'p95':
     case 'p99':
       return (
         <NumberContainer>
@@ -211,11 +215,6 @@ const COLUMNS: Record<TableColumnKey, TableColumn> = {
   p75: {
     key: 'p75',
     name: t('P75 Duration'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  p95: {
-    key: 'p95',
-    name: t('P95 Duration'),
     width: COL_WIDTH_UNDEFINED,
   },
   p99: {

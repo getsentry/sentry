@@ -122,7 +122,8 @@ def _get_string_indexer_log_records(caplog):
     ]
 
 
-def test_all_resolved(caplog):
+def test_all_resolved(caplog, settings):
+    settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
         [
             (counter_payload, []),
@@ -253,7 +254,8 @@ def test_all_resolved(caplog):
     ]
 
 
-def test_metric_id_rate_limited(caplog):
+def test_metric_id_rate_limited(caplog, settings):
+    settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
         [
             (counter_payload, []),
@@ -348,7 +350,8 @@ def test_metric_id_rate_limited(caplog):
     ]
 
 
-def test_tag_key_rate_limited(caplog):
+def test_tag_key_rate_limited(caplog, settings):
+    settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
         [
             (counter_payload, []),
@@ -425,7 +428,8 @@ def test_tag_key_rate_limited(caplog):
     assert _deconstruct_messages(snuba_payloads) == []
 
 
-def test_tag_value_rate_limited(caplog):
+def test_tag_value_rate_limited(caplog, settings):
+    settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
         [
             (counter_payload, []),
@@ -542,7 +546,8 @@ def test_tag_value_rate_limited(caplog):
     ]
 
 
-def test_one_org_limited(caplog):
+def test_one_org_limited(caplog, settings):
+    settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
         [
             (counter_payload, []),

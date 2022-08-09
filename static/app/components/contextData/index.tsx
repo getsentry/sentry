@@ -8,26 +8,23 @@ import AnnotatedText from 'sentry/components/events/meta/annotatedText';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Meta} from 'sentry/types';
 import {isUrl} from 'sentry/utils';
 
 import Toggle from './toggle';
 import {analyzeStringForRepr, naturalCaseInsensitiveSort} from './utils';
 
-type Value = null | string | boolean | number | {[key: string]: Value} | Value[];
-
 type Props = React.HTMLAttributes<HTMLPreElement> & {
-  data?: Value;
+  data?: React.ReactNode;
   jsonConsts?: boolean;
   maxDefaultDepth?: number;
-  meta?: Meta;
+  meta?: Record<any, any>;
   preserveQuotes?: boolean;
   withAnnotatedText?: boolean;
 };
 
 function walk({
   depth,
-  value,
+  value = null,
   maxDefaultDepth: maxDepth = 2,
   preserveQuotes,
   withAnnotatedText,
@@ -35,7 +32,7 @@ function walk({
   meta,
 }: {
   depth: number;
-  value: Value;
+  value?: React.ReactNode;
 } & Pick<
   Props,
   'withAnnotatedText' | 'preserveQuotes' | 'jsonConsts' | 'meta' | 'maxDefaultDepth'
@@ -47,7 +44,7 @@ function walk({
   if (value === null) {
     return (
       <span className="val-null">
-        <AnnotatedText value={jsonConsts ? 'null' : 'None'} meta={meta} />
+        <AnnotatedText value={jsonConsts ? 'null' : 'None'} meta={meta?.[''] ?? meta} />
       </span>
     );
   }
@@ -57,7 +54,7 @@ function walk({
       <span className="val-bool">
         <AnnotatedText
           value={jsonConsts ? (value ? 'true' : 'false') : value ? 'True' : 'False'}
-          meta={meta}
+          meta={meta?.[''] ?? meta}
         />
       </span>
     );
@@ -67,7 +64,7 @@ function walk({
     const valueInfo = analyzeStringForRepr(value);
 
     const valueToBeReturned = withAnnotatedText ? (
-      <AnnotatedText value={valueInfo.repr} meta={meta} />
+      <AnnotatedText value={valueInfo.repr} meta={meta?.[''] ?? meta} />
     ) : (
       valueInfo.repr
     );
@@ -98,7 +95,11 @@ function walk({
 
   if (isNumber(value)) {
     const valueToBeReturned =
-      withAnnotatedText && meta ? <AnnotatedText value={value} meta={meta} /> : value;
+      withAnnotatedText && meta ? (
+        <AnnotatedText value={value} meta={meta?.[''] ?? meta} />
+      ) : (
+        value
+      );
     return <span>{valueToBeReturned}</span>;
   }
 
@@ -112,7 +113,7 @@ function walk({
             preserveQuotes,
             withAnnotatedText,
             jsonConsts,
-            meta,
+            meta: meta?.[i]?.[''] ?? meta?.[i] ?? meta?.[''] ?? meta,
           })}
           {i < value.length - 1 ? <span className="val-array-sep">{', '}</span> : null}
         </span>
@@ -153,7 +154,7 @@ function walk({
             preserveQuotes,
             withAnnotatedText,
             jsonConsts,
-            meta,
+            meta: meta?.[key]?.[''] ?? meta?.[key] ?? meta?.[''] ?? meta,
           })}
           {i < keys.length - 1 ? <span className="val-dict-sep">{', '}</span> : null}
         </span>

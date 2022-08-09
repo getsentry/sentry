@@ -102,3 +102,22 @@ def test_multiple_windows(limiter):
     )
 
     assert resp == [GrantedQuota(prefix="foo", granted=5, reached_quotas=quotas[:1])]
+
+
+def test_conflicting_quotas(limiter):
+    quotas = [
+        Quota(window_seconds=10, granularity_seconds=1, limit=10, prefix_override="hello"),
+    ]
+
+    resp = limiter.check_and_use_quotas(
+        [
+            RequestedQuota(prefix="foo", requested=6, quotas=quotas),
+            RequestedQuota(prefix="bar", requested=6, quotas=quotas),
+        ],
+        timestamp=TIMESTAMP_OFFSET,
+    )
+
+    assert resp == [
+        GrantedQuota(prefix="foo", granted=6, reached_quotas=[]),
+        GrantedQuota(prefix="bar", granted=4, reached_quotas=quotas),
+    ]

@@ -20,7 +20,7 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
   beforeAll(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/stats_v2/',
-      body: TestStubs.Outcomes(),
+      body: TestStubs.OutcomesWithReason(),
     });
   });
 
@@ -65,12 +65,17 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     expect(screen.getByText('100%')).toBeInTheDocument(); // Current client-side sample rate
     expect(screen.getByText('N/A')).toBeInTheDocument(); // Current server-side sample rate
     expect(screen.getAllByRole('spinbutton')[0]).toHaveValue(95); // Suggested client-side sample rate
+    expect(screen.queryByTestId('invalid-client-rate')).not.toBeInTheDocument(); // Client input warning is not visible
+    expect(screen.getAllByTestId('more-information')).toHaveLength(2); // Client input help is visible
     expect(screen.getAllByRole('spinbutton')[1]).toHaveValue(95); // Suggested server-side sample rate
     expect(screen.queryByLabelText('Reset to suggested values')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('invalid-server-rate')).not.toBeInTheDocument(); // Server input warning is not visible
 
     // Enter invalid client-side sample rate
     userEvent.clear(screen.getAllByRole('spinbutton')[0]);
-    expect(screen.getByRole('button', {name: 'Next'})).toBeDisabled();
+    userEvent.hover(screen.getByTestId('invalid-client-rate')); // Client input warning is visible
+    expect(await screen.findByText('Set a value between 0 and 100')).toBeInTheDocument();
+    expect(screen.queryByTestId('more-information')).not.toBeInTheDocument(); // Client input help is not visible
 
     // Hover over next button
     userEvent.hover(screen.getByRole('button', {name: 'Next'}));
@@ -83,10 +88,28 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     expect(screen.getByRole('radio', {name: 'New'})).toBeChecked();
     expect(screen.getByLabelText('Reset to suggested values')).toBeInTheDocument();
 
-    // Reset client-side sample rate to suggested value
+    // Enter invalid server-side sample rate
+    userEvent.clear(screen.getAllByRole('spinbutton')[1]);
+    userEvent.hover(screen.getByTestId('invalid-server-rate')); // Server input warning is visible
+    expect(await screen.findByText('Set a value between 0 and 100')).toBeInTheDocument();
+
+    // Enter a server-side sample rate higher than the client-side rate
+    userEvent.type(screen.getAllByRole('spinbutton')[1], '30{enter}');
+    userEvent.hover(screen.getByTestId('invalid-server-rate')); // Server input warning is visible
+    expect(
+      await screen.findByText(
+        'Server sample rate shall not be higher than client sample rate'
+      )
+    ).toBeInTheDocument();
+
+    // Reset sample rates to suggested values
     userEvent.click(screen.getByLabelText('Reset to suggested values'));
     expect(screen.getByText('Suggested')).toBeInTheDocument();
     expect(screen.getAllByRole('spinbutton')[0]).toHaveValue(95); // Suggested client-side sample rate
+    expect(screen.getAllByRole('spinbutton')[1]).toHaveValue(95); // Suggested server-side sample rate
+    expect(screen.queryByTestId('invalid-client-rate')).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('more-information')).toHaveLength(2); // Question marks (help components) are visible
+    expect(screen.queryByTestId('invalid-server-rate')).not.toBeInTheDocument();
 
     // Footer
     expect(screen.getByRole('button', {name: 'Read Docs'})).toHaveAttribute(
@@ -282,5 +305,37 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
 
     // Specified sample rate has to still be there
     expect(screen.getByRole('spinbutton')).toHaveValue(0.2);
+
+    // Close Modal
+    userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+    await waitForElementToBeRemoved(() => screen.queryByLabelText('Cancel'));
+  });
+
+  it('does not display "Specify client rate modal" if no groups', async function () {
+    const outcomesWithoutGroups = {...outcomesWithoutClientDiscarded, groups: []};
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/stats_v2/',
+      body: outcomesWithoutGroups,
+    });
+
+    const {organization, project} = getMockData();
+
+    render(<GlobalModal />);
+
+    openModal(modalProps => (
+      <UniformRateModal
+        {...modalProps}
+        organization={organization}
+        project={project}
+        projectStats={outcomesWithoutGroups}
+        rules={[]}
+        onSubmit={jest.fn()}
+        onReadDocs={jest.fn()}
+      />
+    ));
+
+    expect(
+      await screen.findByRole('heading', {name: 'Set a global sample rate'})
+    ).toBeInTheDocument();
   });
 });

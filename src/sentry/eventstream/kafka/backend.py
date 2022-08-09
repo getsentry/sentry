@@ -26,6 +26,9 @@ class KafkaEventStream(SnubaProtocolEventStream):
     def __init__(self, **options):
         self.topic = settings.KAFKA_EVENTS
         self.transactions_topic = settings.KAFKA_TRANSACTIONS
+        self.assign_transaction_partitions_randomly = options.get(
+            "kafka.partition-transactions-randomly"
+        )
 
     @cached_property
     def producer(self):
@@ -62,11 +65,8 @@ class KafkaEventStream(SnubaProtocolEventStream):
                 value = False
             return str(int(value))
 
-        # WARNING: We must remove all None headers. There is a bug in confluent-kafka-python
-        # (used by both Sentry and Snuba) that incorrectly decrements the reference count of
-        # Python's None on any attempt to read header values containing null values, leading
-        # None to eventually get deallocated and crash the interpreter. The bug exists in the
-        # version we are using (1.5) as well as in the latest (at the time of writing) 1.7 version.
+        # we strip `None` values here so later in the pipeline they can be
+        # cleanly encoded without nullability checks
         def strip_none_values(value: Mapping[str, Optional[str]]) -> Mapping[str, str]:
             return {key: value for key, value in value.items() if value is not None}
 
@@ -118,10 +118,14 @@ class KafkaEventStream(SnubaProtocolEventStream):
         **kwargs,
     ):
         message_type = "transaction" if self._is_transaction_event(event) else "error"
-        assign_partitions_randomly = killswitch_matches_context(
-            "kafka.send-project-events-to-random-partitions",
-            {"project_id": event.project_id, "message_type": message_type},
-        )
+
+        if message_type == "transaction" and self.assign_transaction_partitions_randomly:
+            assign_partitions_randomly = True
+        else:
+            assign_partitions_randomly = killswitch_matches_context(
+                "kafka.send-project-events-to-random-partitions",
+                {"project_id": event.project_id, "message_type": message_type},
+            )
 
         if assign_partitions_randomly:
             kwargs[KW_SKIP_SEMANTIC_PARTITIONING] = True

@@ -1,16 +1,14 @@
-import {useCallback} from 'react';
+import React from 'react';
 import styled from '@emotion/styled';
 
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
 import HTMLCode from 'sentry/components/htmlCode';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import PlayerRelativeTime from 'sentry/components/replays/playerRelativeTime';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import Truncate from 'sentry/components/truncate';
 import {SVGIconProps} from 'sentry/icons/svgIcon';
 import space from 'sentry/styles/space';
-import {Crumb} from 'sentry/types/breadcrumbs';
+import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useExtractedCrumbHtml from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 
@@ -20,31 +18,10 @@ type Props = {
 
 function DomMutations({replay}: Props) {
   const {isLoading, actions} = useExtractedCrumbHtml({replay});
-  const {setCurrentTime, setCurrentHoverTime} = useReplayContext();
+  const startTimestampMs = replay.getReplay().startedAt.getTime();
 
-  const startTimestampMs = replay.getReplay().started_at.getTime();
-
-  const handleMouseEnter = useCallback(
-    (item: Crumb) => {
-      if (startTimestampMs) {
-        setCurrentHoverTime(relativeTimeInMs(item.timestamp ?? '', startTimestampMs));
-      }
-    },
-    [setCurrentHoverTime, startTimestampMs]
-  );
-
-  const handleMouseLeave = useCallback(() => {
-    setCurrentHoverTime(undefined);
-  }, [setCurrentHoverTime]);
-
-  const handleTimestampClick = useCallback(
-    (crumb: Crumb) => {
-      crumb.timestamp !== undefined
-        ? setCurrentTime(relativeTimeInMs(crumb.timestamp, startTimestampMs))
-        : null;
-    },
-    [setCurrentTime, startTimestampMs]
-  );
+  const {handleMouseEnter, handleMouseLeave, handleClick} =
+    useCrumbHandlers(startTimestampMs);
 
   if (isLoading) {
     return null;
@@ -56,7 +33,7 @@ function DomMutations({replay}: Props) {
         <MutationListItem
           key={i}
           onMouseEnter={() => handleMouseEnter(mutation.crumb)}
-          onMouseLeave={handleMouseLeave}
+          onMouseLeave={() => handleMouseLeave(mutation.crumb)}
         >
           <StepConnector />
           <MutationItemContainer>
@@ -65,7 +42,7 @@ function DomMutations({replay}: Props) {
                 <IconWrapper color={mutation.crumb.color}>
                   <BreadcrumbIcon type={mutation.crumb.type} />
                 </IconWrapper>
-                <UnstyledButton onClick={() => handleTimestampClick(mutation.crumb)}>
+                <UnstyledButton onClick={() => handleClick(mutation.crumb)}>
                   <PlayerRelativeTime
                     relativeTimeMs={startTimestampMs}
                     timestamp={mutation.crumb.timestamp}

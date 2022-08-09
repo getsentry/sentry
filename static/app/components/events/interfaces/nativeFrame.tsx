@@ -15,7 +15,6 @@ import {
 } from 'sentry/components/events/interfaces/frame/utils';
 import {formatAddress, parseAddress} from 'sentry/components/events/interfaces/utils';
 import AnnotatedText from 'sentry/components/events/meta/annotatedText';
-import {getMeta} from 'sentry/components/events/meta/metaProxy';
 import {TraceEventDataSectionContext} from 'sentry/components/events/traceEventDataSection';
 import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'sentry/components/stacktracePreview';
 import StrictClick from 'sentry/components/strictClick';
@@ -46,6 +45,7 @@ type Props = {
   platform: PlatformType;
   registers: Record<string, string>;
   emptySourceNotation?: boolean;
+  frameMeta?: Record<any, any>;
   image?: React.ComponentProps<typeof DebugImage>['image'];
   includeSystemFrames?: boolean;
   isExpanded?: boolean;
@@ -54,6 +54,7 @@ type Props = {
   maxLengthOfRelativeAddress?: number;
   nextFrame?: Frame;
   prevFrame?: Frame;
+  registersMeta?: Record<any, any>;
 };
 
 function NativeFrame({
@@ -70,6 +71,8 @@ function NativeFrame({
   components,
   isExpanded,
   platform,
+  registersMeta,
+  frameMeta,
   emptySourceNotation = false,
   /**
    * Is the stack trace being previewed in a hovercard?
@@ -154,14 +157,14 @@ function NativeFrame({
     if (functionNameHiddenDetails && fullFunctionName && frame.rawFunction) {
       return {
         value: frame.rawFunction,
-        meta: getMeta(frame, 'rawFunction'),
+        meta: frameMeta?.rawFunction?.[''],
       };
     }
 
     if (frame.function) {
       return {
         value: frame.function,
-        meta: getMeta(frame, 'function'),
+        meta: frameMeta?.function?.[''],
       };
     }
 
@@ -219,6 +222,7 @@ function NativeFrame({
       inApp={frame.inApp}
       expandable={expandable}
       expanded={expanded}
+      className="frame"
       data-test-id="stack-trace-frame"
     >
       <StrictClick onClick={handleToggleContext}>
@@ -348,6 +352,8 @@ function NativeFrame({
             hasAssembly={hasAssembly(frame, platform)}
             expandable={expandable}
             isExpanded={expanded}
+            registersMeta={registersMeta}
+            frameMeta={frameMeta}
           />
         )}
       </RegistersCell>
@@ -412,6 +418,7 @@ const RegistersCell = styled('div')`
   grid-column: 1/-1;
   margin-left: -${space(0.5)};
   margin-right: -${space(0.5)};
+  margin-bottom: -${space(0.5)};
   cursor: default;
 `;
 
@@ -446,7 +453,7 @@ const PackageStatusButton = styled(Button)`
   border: none;
 `;
 
-const GridRow = styled('div')<{expandable: boolean; expanded: boolean; inApp: boolean}>`
+const GridRow = styled('li')<{expandable: boolean; expanded: boolean; inApp: boolean}>`
   ${p => p.expandable && `cursor: pointer;`};
   ${p => p.inApp && `background: ${p.theme.bodyBackground};`};
   ${p =>
@@ -466,6 +473,10 @@ const GridRow = styled('div')<{expandable: boolean; expanded: boolean; inApp: bo
   padding: ${space(0.5)};
   :not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.border};
+  }
+
+  && {
+    border-top: 0;
   }
 
   grid-template-columns: 24px 132px 138px 24px 1fr 24px;

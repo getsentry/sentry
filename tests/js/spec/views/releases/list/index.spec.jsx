@@ -557,8 +557,8 @@ describe('ReleasesList', () => {
     });
     const smartSearchBar = await screen.findByTestId('smart-search-input');
 
-    fireEvent.change(smartSearchBar, {target: {value: 'sentry.semv'}});
-    fireEvent.submit(smartSearchBar);
+    userEvent.clear(smartSearchBar);
+    fireEvent.change(smartSearchBar, {target: {value: 'release'}});
 
     const autocompleteItems = await screen.findAllByTestId('search-autocomplete-item');
     expect(autocompleteItems.at(0)).toHaveTextContent('release');
