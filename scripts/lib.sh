@@ -109,8 +109,8 @@ install-py-dev() {
         pip install https://storage.googleapis.com/python-arm64-wheels/psycopg2_binary-2.8.6-cp38-cp38-macosx_11_0_arm64.whl
         # The CPATH is needed for confluent-kakfa --> https://github.com/confluentinc/confluent-kafka-python/issues/1190
         export CPATH="$(brew --prefix librdkafka)/include"
-        export C_INCLUDE_PATH="$(brew info librdkafka | sed -n 4p | cut -d' ' -f1)/include/"
-        export LIBRARY_PATH="$(brew info librdkafka | sed -n 4p | cut -d' ' -f1)/lib"
+        export C_INCLUDE_PATH="$(brew --prefix librdkafka)/include"
+        export LIBRARY_PATH="$(brew --prefex librdkafka)/lib"
         # The LDFLAGS is needed for uWSGI --> https://github.com/unbit/uwsgi/issues/2361
         export LDFLAGS="-L$(brew --prefix gettext)/lib"
     fi
