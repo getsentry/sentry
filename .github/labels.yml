@@ -342,12 +342,6 @@
 - name: invalid
   color: 'F6F6F8'
   description: ''
-- name: javascript
-  color: 'F6F6F8'
-  description: Pull requests that update Javascript code
-- name: python
-  color: 'F6F6F8'
-  description: Pull requests that update Python code
 - name: wcgw
   color: 'F6F6F8'
   description: ''
