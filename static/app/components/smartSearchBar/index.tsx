@@ -14,7 +14,6 @@ import ButtonBar from 'sentry/components/buttonBar';
 import DropdownLink from 'sentry/components/dropdownLink';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {
-  allOperators,
   FilterType,
   ParseResult,
   parseSearch,
@@ -1637,7 +1636,7 @@ class SmartSearchBar extends Component<Props, State> {
     } else if (this.cursorFilter?.filter === FilterType.Text) {
       const valueText = this.cursorFilter.value.text;
 
-      if (allOperators.find(op => op === valueText)) {
+      if (valueText && isOperator(valueText)) {
         this.onAutoCompleteFromAst(`${valueText}${isoDate}`, dateItem);
       }
     }
