@@ -4,7 +4,7 @@ from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.base import KeyResult, KeyResults, StringIndexer
 
 
-class CloudSpannerIndexer(StringIndexer):  # type: ignore
+class CloudSpannerIndexer(StringIndexer):
     def bulk_record(
         self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
     ) -> KeyResults:
