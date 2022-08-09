@@ -9,8 +9,8 @@ import space from 'sentry/styles/space';
 
 type Props = {
   envVariables: {
-    name?: string | undefined;
-    value?: string | undefined;
+    name: string;
+    value: string;
   }[];
   setEnvVariables: (envVariables) => void;
 };
@@ -25,7 +25,7 @@ function SentryFunctionEnvironmentVariables(props: Props) {
   const handleNameChange = (value: string, pos: number) => {
     const newEnvVariables = [...envVariables];
     while (newEnvVariables.length <= pos) {
-      newEnvVariables.push({});
+      newEnvVariables.push({name: '', value: ''});
     }
     newEnvVariables[pos] = {...newEnvVariables[pos], name: value};
     setEnvVariables(newEnvVariables);
@@ -34,7 +34,7 @@ function SentryFunctionEnvironmentVariables(props: Props) {
   const handleValueChange = (value: string, pos: number) => {
     const newEnvVariables = [...envVariables];
     while (newEnvVariables.length <= pos) {
-      newEnvVariables.push({});
+      newEnvVariables.push({name: '', value: ''});
     }
     newEnvVariables[pos] = {...newEnvVariables[pos], value};
     setEnvVariables(newEnvVariables);

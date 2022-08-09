@@ -1,4 +1,4 @@
-import React, {useRef, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {browserHistory} from 'react-router';
 import Editor from '@monaco-editor/react';
 
@@ -23,32 +23,40 @@ import SentryFunctionEnvironmentVariables from './sentryFunctionsEnvironmentVari
 import SentryFunctionSubscriptions from './sentryFunctionSubscriptions';
 
 class SentryFunctionFormModel extends FormModel {
-  getEnvVariables: null | (() => EnvVariable[]) = null;
-  getEventHooks: null | (() => string[]) = null;
-
   getTransformedData() {
     const data = super.getTransformedData() as Record<string, any>;
-    // const events: string[] = [];
-    // if (data.onIssue) {
-    //   events.push('issue');
-    // }
-    // if (data.onError) {
-    //   events.push('error');
-    // }
-    // if (data.onComment) {
-    //   events.push('comment');
-    // }
-    // data.events = events;
-    const {...output} = data;
-    for (const key in data) {
-      if (key.startsWith('env-variable')) {
-        // remove the fields since we aren't going to use them
-        delete output[key];
-      }
+
+    const events: string[] = [];
+    if (data.onIssue) {
+      events.push('issue');
     }
-    // now get our envVariables from our function
-    output.envVariables = this.getEnvVariables?.();
-    output.events = this.getEventHooks?.();
+    if (data.onError) {
+      events.push('error');
+    }
+    if (data.onComment) {
+      events.push('comment');
+    }
+    delete data.onIssue;
+    delete data.onError;
+    delete data.onComment;
+    data.events = events;
+
+    const envVariables: EnvVariable[] = [];
+    let i = 0;
+    while (data[`env-variable-name-${i}`]) {
+      if (data[`env-variable-value-${i}`]) {
+        envVariables.push({
+          name: data[`env-variable-name-${i}`],
+          value: data[`env-variable-value-${i}`],
+        });
+      }
+      delete data[`env-variable-name-${i}`];
+      delete data[`env-variable-value-${i}`];
+      i++;
+    }
+    data.envVariables = envVariables;
+
+    const {...output} = data;
     return output;
   }
 }
@@ -58,8 +66,8 @@ type Props = {
 } & WrapperProps;
 
 type EnvVariable = {
-  name?: string;
-  value?: string;
+  name: string;
+  value: string;
 };
 const formFields: Field[] = [
   {
@@ -105,14 +113,14 @@ function SentryFunctionDetails(props: Props) {
     res.status(200).send(message);
   };`;
 
-  form.current.getEnvVariables = () => {
-    return envVariables;
-  };
-  form.current.getEventHooks = () => {
-    return events;
-  };
-
   const [events, setEvents] = useState(sentryFunction?.events || []);
+
+  useEffect(() => {
+    form.current.setValue('onIssue', events.includes('issue'));
+    form.current.setValue('onError', events.includes('error'));
+    form.current.setValue('onComment', events.includes('comment'));
+  }, [events]);
+
   const [envVariables, setEnvVariables] = useState(
     sentryFunction?.env_variables || [{name: '', value: ''}]
   );
