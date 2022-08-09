@@ -81,7 +81,6 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
             "performance.performance_issue.aggregate",
             len(all_fingerprints),
             skip_internal=False,
-            sample_rate=1.0,
         )
         if event_id:
             sdk_span.containing_transaction.set_tag("_pi_transaction", event_id)
@@ -95,7 +94,6 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
             "performance.performance_issue.duplicates",
             len(duplicate_performance_fingerprints),
             skip_internal=False,
-            sample_rate=1.0,
         )
 
     slow_span_performance_issues = detectors[DetectorType.SLOW_SPAN].stored_issues
@@ -107,7 +105,6 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
             "performance.performance_issue.slow_span",
             len(slow_performance_fingerprints),
             skip_internal=False,
-            sample_rate=1.0,
         )
 
     sequential_span_performance_issues = detectors[DetectorType.SEQUENTIAL_SLOW_SPANS].stored_issues
@@ -121,14 +118,12 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
             "performance.performance_issue.sequential",
             len(sequential_performance_fingerprints),
             skip_internal=False,
-            sample_rate=1.0,
         )
 
     metrics.incr(
         "performance.performance_issue.detected",
         instance=str(bool(all_fingerprints)),
         skip_internal=False,
-        sample_rate=1.0,
         tags={
             "duplicates": bool(len(duplicate_performance_fingerprints)),
             "slow_span": bool(len(slow_performance_fingerprints)),
