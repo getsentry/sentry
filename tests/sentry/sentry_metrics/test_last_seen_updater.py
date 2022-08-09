@@ -16,7 +16,6 @@ from sentry.sentry_metrics.consumers.last_seen_updater import (
 )
 from sentry.sentry_metrics.indexer.models import StringIndexer
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import override_options
 
 
 def mixed_payload():
@@ -127,15 +126,14 @@ class TestLastSeenUpdaterEndToEnd(TestCase):
         self.table.objects.filter(id=self.stale_id).delete()
 
     def test_basic_flow(self):
-        with override_options({"sentry-metrics.last-seen-updater.accept-rate": 1.0}):
-            # we can't use fixtures with unittest.TestCase
-            message = kafka_message(headerless_kafka_payload(mixed_payload()))
-            processing_strategy = self.processing_factory().create_with_partitions(
-                lambda x: None, {Partition(Topic("fake-topic"), 0): 0}
-            )
-            processing_strategy.submit(message)
-            processing_strategy.poll()
-            processing_strategy.join(1)
+        # we can't use fixtures with unittest.TestCase
+        message = kafka_message(headerless_kafka_payload(mixed_payload()))
+        processing_strategy = self.processing_factory().create_with_partitions(
+            lambda x: None, {Partition(Topic("fake-topic"), 0): 0}
+        )
+        processing_strategy.submit(message)
+        processing_strategy.poll()
+        processing_strategy.join(1)
 
         fresh_item = self.table.objects.get(id=self.fresh_id)
         assert fresh_item.last_seen == self.fresh_last_seen
@@ -146,16 +144,15 @@ class TestLastSeenUpdaterEndToEnd(TestCase):
         assert (timezone.now() - stale_item.last_seen) < timedelta(seconds=30)
 
     def test_message_processes_after_bad_message(self):
-        with override_options({"sentry-metrics.last-seen-updater.accept-rate": 1.0}):
-            ok_message = kafka_message(headerless_kafka_payload(mixed_payload()))
-            bad_message = kafka_message(headerless_kafka_payload(bad_payload()))
-            processing_strategy = self.processing_factory().create_with_partitions(
-                lambda x: None, {Partition(Topic("fake-topic"), 0): 0}
-            )
-            processing_strategy.submit(bad_message)
-            processing_strategy.submit(ok_message)
-            processing_strategy.poll()
-            processing_strategy.join(1)
+        ok_message = kafka_message(headerless_kafka_payload(mixed_payload()))
+        bad_message = kafka_message(headerless_kafka_payload(bad_payload()))
+        processing_strategy = self.processing_factory().create_with_partitions(
+            lambda x: None, {Partition(Topic("fake-topic"), 0): 0}
+        )
+        processing_strategy.submit(bad_message)
+        processing_strategy.submit(ok_message)
+        processing_strategy.poll()
+        processing_strategy.join(1)
 
         stale_item = self.table.objects.get(id=self.stale_id)
         assert stale_item.last_seen > self.stale_last_seen
@@ -171,19 +168,16 @@ class TestFilterMethod:
         return Message(partition=Mock(), offset=0, payload=payload, timestamp=datetime.utcnow())
 
     def test_message_filter_no_header(self, message_filter):
-        with override_options({"sentry-metrics.last-seen-updater.accept-rate": 1.0}):
-            message = self.empty_message_with_headers([])
-            assert not message_filter.should_drop(message)
+        message = self.empty_message_with_headers([])
+        assert not message_filter.should_drop(message)
 
     def test_message_filter_header_contains_d(self, message_filter):
-        with override_options({"sentry-metrics.last-seen-updater.accept-rate": 1.0}):
-            message = self.empty_message_with_headers([("mapping_sources", "hcd")])
-            assert not message_filter.should_drop(message)
+        message = self.empty_message_with_headers([("mapping_sources", "hcd")])
+        assert not message_filter.should_drop(message)
 
     def test_message_filter_header_contains_no_d(self, message_filter):
-        with override_options({"sentry-metrics.last-seen-updater.accept-rate": 1.0}):
-            message = self.empty_message_with_headers([("mapping_sources", "fhc")])
-            assert message_filter.should_drop(message)
+        message = self.empty_message_with_headers([("mapping_sources", "fhc")])
+        assert message_filter.should_drop(message)
 
 
 class TestCollectMethod(TestCase):

@@ -1,6 +1,5 @@
 import datetime
 import functools
-import random
 from datetime import timedelta
 from typing import Any, Mapping, Optional, Set, Union
 
@@ -13,7 +12,6 @@ from arroyo.processing.strategies.streaming import KafkaConsumerStrategyFactory
 from arroyo.processing.strategies.streaming.factory import StreamMessageFilter
 from django.utils import timezone
 
-from sentry import options
 from sentry.sentry_metrics.configuration import MetricsIngestConfiguration
 from sentry.sentry_metrics.consumers.indexer.common import get_config
 from sentry.sentry_metrics.consumers.indexer.multiprocess import logger
@@ -39,19 +37,6 @@ class LastSeenUpdaterMessageFilter(StreamMessageFilter[Message[KafkaPayload]]): 
     # and does not contain the DB_READ ('d') character (this should be the vast
     # majority of messages).
     def should_drop(self, message: Message[KafkaPayload]) -> bool:
-        feature_enabled: float = options.get("sentry-metrics.last-seen-updater.accept-rate")
-        bypass_for_user = random.random() > feature_enabled
-        sample_rate = 0.001
-        if random.random() < sample_rate:
-            self.__metrics.incr(
-                "last_seen_updater.accept_rate",
-                tags={"bypass": bypass_for_user},
-                amount=1.0 / sample_rate,
-            )
-
-        if bypass_for_user:
-            return True
-
         header_value: Optional[str] = next(
             (
                 str(header[1])
