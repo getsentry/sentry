@@ -25,6 +25,7 @@ import {
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import {
   getKeyName,
+  isOperator,
   isWithinToken,
   treeResultLocator,
 } from 'sentry/components/searchSyntax/utils';
@@ -900,6 +901,7 @@ class SmartSearchBar extends Component<Props, State> {
   /**
    * Determines when the date picker should be shown instead of normal dropdown options
    * This should return true when the cursor is within a date filter and the user has
+   * typed in an operator
    */
   get shouldShowDatePicker() {
     if (
@@ -915,13 +917,15 @@ class SmartSearchBar extends Component<Props, State> {
       return false;
     }
 
-    const operator = this.cursorFilter?.operator ?? '';
     const textValue = this.cursorFilter?.value?.text ?? '';
 
     if (
+      // Cursor is in a valid ISO date value
       this.cursorValueIsoDate ||
-      operator ||
-      (textValue && allOperators.find(op => op === textValue))
+      // Cursor is in a value that has an operator
+      this.cursorFilter?.operator ||
+      // Cursor is in raw text value that matches one of the non-empty operators
+      (textValue && isOperator(textValue))
     ) {
       return true;
     }
