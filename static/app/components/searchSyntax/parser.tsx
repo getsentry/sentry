@@ -711,14 +711,14 @@ export class TokenConverter {
     switch (filterType) {
       case FilterType.AggregateRelativeDate:
       case FilterType.AggregateDate:
-        return checkAggregateKey(isDate.bind(this));
+        return checkAggregateKey(isDate);
 
       case FilterType.AggregateDuration:
-        return checkAggregateKey(isDuration.bind(this));
+        return checkAggregateKey(isDuration);
       case FilterType.AggregatePercentage:
-        return checkAggregateKey(isPercentage.bind(this));
+        return checkAggregateKey(isPercentage);
       case FilterType.AggregateNumeric:
-        return checkAggregateKey(isNumeric.bind(this));
+        return checkAggregateKey(isNumeric);
 
       default:
         return null;
