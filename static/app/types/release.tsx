@@ -44,7 +44,7 @@ export type VersionInfo = {
   version: {raw: string};
 };
 
-export type BaseRelease = {
+export interface BaseRelease {
   dateCreated: string;
   dateReleased: string;
   ref: string;
@@ -52,19 +52,17 @@ export type BaseRelease = {
   status: ReleaseStatus;
   url: string;
   version: string;
-};
+}
 
-export type Release = BaseRelease &
-  ReleaseData & {
-    projects: ReleaseProject[];
-  };
+export interface Release extends BaseRelease, ReleaseData {
+  projects: ReleaseProject[];
+}
 
-export type ReleaseWithHealth = BaseRelease &
-  ReleaseData & {
-    projects: Required<ReleaseProject>[];
-  };
+export interface ReleaseWithHealth extends BaseRelease, ReleaseData {
+  projects: Required<ReleaseProject>[];
+}
 
-type ReleaseData = {
+interface ReleaseData {
   authors: User[];
   commitCount: number;
   currentProjectMeta: {
@@ -94,7 +92,7 @@ type ReleaseData = {
   lastCommit?: Commit;
   lastDeploy?: Deploy;
   owner?: any;
-};
+}
 
 export type CurrentRelease = {
   environment: string;

@@ -38,7 +38,7 @@ export type OnboardingCustomComponentProps = {
   task: OnboardingTask;
 };
 
-export type OnboardingTaskDescriptor = {
+interface OnboardingTaskDescriptorBase {
   description: string;
   /**
    * Should the onboarding task currently be displayed
@@ -74,31 +74,49 @@ export type OnboardingTaskDescriptor = {
    * tasks for the same server-side task.
    */
   serverTask?: string;
-} & (
-  | {
-      actionType: 'app' | 'external';
-      location: string;
-    }
-  | {
-      action: (props: RouteContextInterface) => void;
-      actionType: 'action';
-    }
-);
+}
 
-export type OnboardingTaskStatus = {
+interface OnboardingTypeDescriptorWithAction extends OnboardingTaskDescriptorBase {
+  action: (props: RouteContextInterface) => void;
+  actionType: 'action';
+}
+
+interface OnboardingTypeDescriptorWithExternal extends OnboardingTaskDescriptorBase {
+  actionType: 'app' | 'external';
+  location: string;
+}
+
+export type OnboardingTaskDescriptor =
+  | OnboardingTypeDescriptorWithAction
+  | OnboardingTypeDescriptorWithExternal;
+
+export interface OnboardingTaskStatus {
   status: 'skipped' | 'pending' | 'complete';
   task: OnboardingTaskKey;
   completionSeen?: string;
   data?: {[key: string]: string};
   dateCompleted?: string;
   user?: AvatarUser | null;
-};
+}
 
-export type OnboardingTask = OnboardingTaskStatus &
-  OnboardingTaskDescriptor & {
-    /**
-     * Onboarding tasks that are currently incomplete and must be completed
-     * before this task should be completed.
-     */
-    requisiteTasks: OnboardingTask[];
-  };
+interface OnboardingTaskWithAction
+  extends OnboardingTaskStatus,
+    OnboardingTypeDescriptorWithAction {
+  /**
+   * Onboarding tasks that are currently incomplete and must be completed
+   * before this task should be completed.
+   */
+  requisiteTasks: OnboardingTaskDescriptor[];
+}
+
+interface OnboardingTaskWithExternal
+  extends OnboardingTaskStatus,
+    OnboardingTypeDescriptorWithExternal {
+  /**
+   * Onboarding tasks that are currently incomplete and must be completed
+   * before this task should be completed.
+   */
+  requisiteTasks: OnboardingTaskDescriptor[];
+}
+
+export type OnboardingTask = OnboardingTaskWithAction | OnboardingTaskWithExternal;
