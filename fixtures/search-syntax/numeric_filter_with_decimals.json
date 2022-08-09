@@ -2,10 +2,7 @@
   {
     "query": "stack.lineno:>3.1415",
     "result": [
-      {
-        "type": "spaces",
-        "value": ""
-      },
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numeric",
@@ -19,10 +16,7 @@
           "unit": null
         }
       },
-      {
-        "type": "spaces",
-        "value": ""
-      }
+      {"type": "spaces", "value": ""}
     ]
   }
 ]

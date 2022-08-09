@@ -2,10 +2,7 @@
   {
     "query": "stack.lineno:[500,501,502]",
     "result": [
-      {
-        "type": "spaces",
-        "value": ""
-      },
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numericIn",
@@ -45,19 +42,13 @@
           ]
         }
       },
-      {
-        "type": "spaces",
-        "value": ""
-      }
+      {"type": "spaces", "value": ""}
     ]
   },
   {
     "query": "stack.lineno:[500, 501,     502]",
     "result": [
-      {
-        "type": "spaces",
-        "value": ""
-      },
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numericIn",
@@ -97,19 +88,13 @@
           ]
         }
       },
-      {
-        "type": "spaces",
-        "value": ""
-      }
+      {"type": "spaces", "value": ""}
     ]
   },
   {
     "query": "stack.lineno:[500, 501 ,502]",
     "result": [
-      {
-        "type": "spaces",
-        "value": ""
-      },
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numericIn",
@@ -149,19 +134,13 @@
           ]
         }
       },
-      {
-        "type": "spaces",
-        "value": ""
-      }
+      {"type": "spaces", "value": ""}
     ]
   },
   {
     "query": "stack.lineno:[500,501,502] stack.colno:[100]",
     "result": [
-      {
-        "type": "spaces",
-        "value": ""
-      },
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numericIn",
@@ -201,10 +180,7 @@
           ]
         }
       },
-      {
-        "type": "spaces",
-        "value": " "
-      },
+      {"type": "spaces", "value": " "},
       {
         "type": "filter",
         "filter": "numericIn",
@@ -226,20 +202,14 @@
           ]
         }
       },
-      {
-        "type": "spaces",
-        "value": ""
-      }
+      {"type": "spaces", "value": ""}
     ]
   },
   {
     "desc": "Numeric format should still return a string if field isn't allowed",
     "query": "stack.lineno:[500,501,502] random_field:[500,501,502]",
     "result": [
-      {
-        "type": "spaces",
-        "value": ""
-      },
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numericIn",
@@ -279,69 +249,42 @@
           ]
         }
       },
-      {
-        "type": "spaces",
-        "value": " "
-      },
+      {"type": "spaces", "value": " "},
       {
         "type": "filter",
         "filter": "textIn",
         "negated": false,
-        "key": {
-          "type": "keySimple",
-          "value": "random_field",
-          "quoted": false
-        },
+        "key": {"type": "keySimple", "value": "random_field", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueTextList",
           "items": [
             {
               "separator": "",
-              "value": {
-                "type": "valueText",
-                "value": "500",
-                "quoted": false
-              }
+              "value": {"type": "valueText", "value": "500", "quoted": false}
             },
             {
               "separator": ",",
-              "value": {
-                "type": "valueText",
-                "value": "501",
-                "quoted": false
-              }
+              "value": {"type": "valueText", "value": "501", "quoted": false}
             },
             {
               "separator": ",",
-              "value": {
-                "type": "valueText",
-                "value": "502",
-                "quoted": false
-              }
+              "value": {"type": "valueText", "value": "502", "quoted": false}
             }
           ]
         }
       },
-      {
-        "type": "spaces",
-        "value": ""
-      }
+      {"type": "spaces", "value": ""}
     ]
   },
   {
     "query": "stack.lineno:[500,501,]",
     "result": [
-      {
-        "type": "spaces",
-        "value": ""
-      },
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numericIn",
-        "invalid": {
-          "reason": "Lists should not have empty values"
-        },
+        "invalid": {"reason": "Lists should not have empty values"},
         "negated": false,
         "key": {"type": "keySimple", "value": "stack.lineno", "quoted": false},
         "operator": "",
@@ -373,19 +316,13 @@
           ]
         }
       },
-      {
-        "type": "spaces",
-        "value": ""
-      }
+      {"type": "spaces", "value": ""}
     ]
   },
   {
     "query": "!stack.lineno:[500,501]",
     "result": [
-      {
-        "type": "spaces",
-        "value": ""
-      },
+      {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numericIn",
@@ -416,10 +353,7 @@
           ]
         }
       },
-      {
-        "type": "spaces",
-        "value": ""
-      }
+      {"type": "spaces", "value": ""}
     ]
   }
 ]
