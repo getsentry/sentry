@@ -136,7 +136,6 @@ function SentryFunctionDetails(props: Props) {
   const handleSubmitSuccess = data => {
     addSuccessMessage(t('Sentry Function successfully saved.', data.name));
     const baseUrl = `/settings/${orgId}/developer-settings/sentry-functions/`;
-    // TODO: should figure out where to redirect this
     const url = `${baseUrl}${data.slug}/`;
     if (sentryFunction) {
       addSuccessMessage(t('%s successfully saved.', data.name));
@@ -156,8 +155,7 @@ function SentryFunctionDetails(props: Props) {
         method: 'DELETE',
       });
       addSuccessMessage(t('Sentry Function successfully deleted.'));
-      // TODO: Not sure where to redirect to, so just redirect to the unbuilt Sentry Functions page
-      browserHistory.push(`/settings/${orgId}/developer-settings/sentry-functions/`);
+      browserHistory.push(`/settings/${orgId}/developer-settings/`);
     } catch (err) {
       addErrorMessage(err?.responseJSON?.detail || t('Unknown Error'));
     }

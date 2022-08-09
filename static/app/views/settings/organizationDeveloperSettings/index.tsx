@@ -3,12 +3,13 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {removeSentryApp} from 'sentry/actionCreators/sentryApps';
+import {removeSentryFunction} from 'sentry/actionCreators/sentryFunctions';
 import ExternalLink from 'sentry/components/links/externalLink';
 import NavTabs from 'sentry/components/navTabs';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, SentryApp} from 'sentry/types';
+import {Organization, SentryApp, SentryFunction} from 'sentry/types';
 import {
   platformEventLinkMap,
   PlatformEvents,
@@ -23,11 +24,13 @@ import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import SentryApplicationRow from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationRow';
 
+import SentryFunctionRow from './sentryFunctionRow';
+
 type Props = Omit<AsyncView['props'], 'params'> & {
   organization: Organization;
 } & RouteComponentProps<{orgId: string}, {}>;
 
-type Tab = 'public' | 'internal';
+type Tab = 'public' | 'internal' | 'sentryfx';
 type State = AsyncView['state'] & {
   applications: SentryApp[];
   tab: Tab;
@@ -39,12 +42,14 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
   getDefaultState(): State {
     const {location} = this.props;
     const value =
-      (['public', 'internal'] as const).find(tab => tab === location?.query?.type) ||
-      'internal';
+      (['public', 'internal', 'sentryfx'] as const).find(
+        tab => tab === location?.query?.type
+      ) || 'internal';
 
     return {
       ...super.getDefaultState(),
       applications: [],
+      sentryFunctions: [],
       tab: value,
     };
   }
@@ -60,8 +65,14 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId} = this.props.params;
-
-    return [['applications', `/organizations/${orgId}/sentry-apps/`]];
+    const {organization} = this.props;
+    const returnValue: [string, string, any?, any?][] = [
+      ['applications', `/organizations/${orgId}/sentry-apps/`],
+    ];
+    if (organization.features.includes('sentry-functions')) {
+      returnValue.push(['sentryFunctions', `/organizations/${orgId}/functions/`]);
+    }
+    return returnValue;
   }
 
   removeApp = (app: SentryApp) => {
@@ -74,9 +85,53 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
     );
   };
 
+  removeFunction = (organization: Organization, sentryFunction: SentryFunction) => {
+    const functionsToKeep = this.state.sentryFunctions?.filter(
+      fn => fn.name !== sentryFunction.name
+    );
+    if (!functionsToKeep) {
+      return;
+    }
+    removeSentryFunction(this.api, organization, sentryFunction).then(
+      () => {
+        this.setState({sentryFunctions: functionsToKeep});
+      },
+      () => {}
+    );
+  };
+
   onTabChange = (value: Tab) => {
     this.setState({tab: value});
   };
+
+  renderSentryFunction = (sentryFunction: SentryFunction) => {
+    const {organization} = this.props;
+    return (
+      <SentryFunctionRow
+        key={organization.slug + sentryFunction.name}
+        organization={organization}
+        sentryFunction={sentryFunction}
+        onRemoveFunction={this.removeFunction}
+      />
+    );
+  };
+
+  renderSentryFunctions() {
+    const {sentryFunctions} = this.state;
+
+    return (
+      <Panel>
+        <PanelHeader hasButtons>{t('Sentry Functions')}</PanelHeader>
+        <PanelBody>
+          {sentryFunctions?.length ? (
+            sentryFunctions.map(this.renderSentryFunction)
+          ) : (
+            <EmptyMessage>{t('No Sentry Functions have been created yet.')}</EmptyMessage>
+          )}
+        </PanelBody>
+      </Panel>
+    );
+  }
 
   renderApplicationRow = (app: SentryApp) => {
     const {organization} = this.props;
@@ -134,6 +189,8 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
 
   renderTabContent(tab: Tab) {
     switch (tab) {
+      case 'sentryfx':
+        return this.renderSentryFunctions();
       case 'internal':
         return this.renderInternalIntegrations();
       case 'public':
@@ -147,6 +204,9 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
       ['internal', t('Internal Integration')],
       ['public', t('Public Integration')],
     ] as [id: Tab, label: string][];
+    if (organization.features.includes('sentry-functions')) {
+      tabs.push(['sentryfx', t('Sentry Function')]);
+    }
 
     return (
       <div>
