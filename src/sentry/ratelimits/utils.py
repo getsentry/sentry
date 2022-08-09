@@ -72,8 +72,7 @@ def get_rate_limit_key(
     if isinstance(request_auth, SystemToken):
         return None
 
-    if isinstance(request_auth, ApiToken):
-
+    if isinstance(request_auth, ApiToken) and request_user:
         if request_user.is_sentry_app:
             category = "org"
             id = get_organization_id_from_token(request_auth.id)

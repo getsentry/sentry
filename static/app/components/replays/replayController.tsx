@@ -114,7 +114,7 @@ function ReplayCurrentTime() {
 
   return (
     <span>
-      {formatTime(currentTime)} / {durationMs ? formatTime(durationMs) : '??:??'}
+      {formatTime(currentTime)} / {durationMs ? formatTime(durationMs) : '--:--'}
     </span>
   );
 }

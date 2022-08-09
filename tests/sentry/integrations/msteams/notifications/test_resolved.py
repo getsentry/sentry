@@ -41,15 +41,15 @@ class MSTeamsResolvedNotificationTest(MSTeamsActivityNotificationTest):
         assert 4 == len(body)
 
         assert (
-            f"{self.user.get_display_name()} marked [{self.group.qualified_short_id}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=activity&#95;notification) as resolved"
+            f"{self.user.get_display_name()} marked [{self.group.qualified_short_id}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=activity\\_notification) as resolved"
             == body[0]["text"]
         )
         assert (
-            f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=resolved&#95;activity-msteams)"
+            f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=resolved\\_activity-msteams)"
             == body[1]["text"]
         )
         assert (
-            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=resolved&#95;activity-msteams-user)"
+            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=resolved\\_activity-msteams-user)"
             == body[3]["columns"][1]["items"][0]["text"]
         )
 
@@ -84,10 +84,10 @@ class MSTeamsResolvedNotificationTest(MSTeamsActivityNotificationTest):
             == body[0]["text"]
         )
         assert (
-            f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=resolved&#95;in&#95;release&#95;activity-msteams)"
+            f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=resolved\\_in\\_release\\_activity-msteams)"
             == body[1]["text"]
         )
         assert (
-            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=resolved&#95;in&#95;release&#95;activity-msteams-user)"
+            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=resolved\\_in\\_release\\_activity-msteams-user)"
             == body[3]["columns"][1]["items"][0]["text"]
         )
