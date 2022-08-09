@@ -1,6 +1,6 @@
 from django.db import models
 
-from sentry.db.models import BaseManager, DefaultFieldsModel, FlexibleForeignKey
+from sentry.db.models import BaseManager, DefaultFieldsModel, EncryptedJsonField, FlexibleForeignKey
 from sentry.db.models.fields.array import ArrayField
 
 
@@ -15,6 +15,7 @@ class SentryFunction(DefaultFieldsModel):
     overview = models.TextField(null=True)
     code = models.TextField(null=True)
     events = ArrayField(of=models.TextField, null=True)
+    env_variables = EncryptedJsonField(default=dict)
     objects = BaseManager()
 
     class Meta:
