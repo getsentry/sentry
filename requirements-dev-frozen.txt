@@ -18,7 +18,7 @@ cfgv==3.3.1
 chardet==4.0.0
 click==8.0.4
 confluent-kafka==1.8.2
-coverage[toml]==6.3.3
+coverage==6.3.3
 croniter==0.3.37
 cryptography==37.0.2
 cssselect==1.0.3
@@ -42,7 +42,7 @@ filelock==3.7.0
 flake8==5.0.2
 flake8-bugbear==22.7.1
 freezegun==1.1.0
-google-api-core[grpc]==1.32.0
+google-api-core==1.32.0
 google-auth==1.35.0
 google-cloud-bigtable==1.6.1
 google-cloud-core==1.5.0
@@ -51,7 +51,7 @@ google-cloud-pubsub==2.2.0
 google-cloud-storage==1.35.0
 google-crc32c==1.1.2
 google-resumable-media==1.3.3
-googleapis-common-protos[grpc]==1.56.2
+googleapis-common-protos==1.56.2
 grpc-google-iam-v1==0.12.4
 grpcio==1.47.0
 h11==0.13.0
@@ -167,7 +167,7 @@ typing-inspect==0.7.1
 ua-parser==0.10.0
 unidiff==0.7.4
 uritemplate==4.1.1
-urllib3[brotli,secure,socks]==1.26.9
+urllib3==1.26.9
 uwsgi==2.0.20.0
 vine==1.3.0
 virtualenv==20.14.1
