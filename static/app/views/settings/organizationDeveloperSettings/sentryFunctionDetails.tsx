@@ -9,15 +9,13 @@ import {
 } from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
 import AsyncComponent from 'sentry/components/asyncComponent';
-import Button from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
 import {Field} from 'sentry/components/forms/type';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {SentryFunction} from 'sentry/types';
-import useApi from 'sentry/utils/useApi';
 
 import SentryFunctionEnvironmentVariables from './sentryFunctionsEnvironmentVariables';
 import SentryFunctionSubscriptions from './sentryFunctionSubscriptions';
@@ -95,7 +93,6 @@ const formFields: Field[] = [
 ];
 
 function SentryFunctionDetails(props: Props) {
-  const api = useApi();
   const form = useRef(new SentryFunctionFormModel());
   const {orgId, functionSlug} = props.params;
   const {sentryFunction} = props;
@@ -149,26 +146,11 @@ function SentryFunctionDetails(props: Props) {
     form.current.setValue('code', value);
   }
 
-  async function handleDelete() {
-    try {
-      await api.requestPromise(endpoint, {
-        method: 'DELETE',
-      });
-      addSuccessMessage(t('Sentry Function successfully deleted.'));
-      browserHistory.push(`/settings/${orgId}/developer-settings/`);
-    } catch (err) {
-      addErrorMessage(err?.responseJSON?.detail || t('Unknown Error'));
-    }
-  }
-
   return (
     <div>
       <Feature features={['organizations:sentry-functions']}>
-        <h1>{t('Sentry Function Details')}</h1>
         <h2>
-          {sentryFunction
-            ? tct('Editing [name]', {name: sentryFunction.name})
-            : t('New Function')}
+          {sentryFunction ? t('Editing Sentry Function') : t('Create Sentry Function')}
         </h2>
         <Form
           apiMethod={method}
@@ -218,17 +200,6 @@ function SentryFunctionDetails(props: Props) {
             </PanelBody>
           </Panel>
         </Form>
-        {sentryFunction && (
-          <Button
-            onClick={handleDelete}
-            title={t('Delete Sentry Function')}
-            aria-label={t('Delete Sentry Function')}
-            type="button"
-            priority="danger"
-          >
-            {t('Delete Sentry Function')}
-          </Button>
-        )}
       </Feature>
     </div>
   );

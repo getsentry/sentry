@@ -25,9 +25,11 @@ export function removeSentryFunction(
     () => {
       addSuccessMessage(t('%s successfully removed.', sentryFn.name));
     },
-    () => {
+    err => {
       clearIndicators();
-      addErrorMessage(t('Unable to remove %s function', sentryFn.name));
+      addErrorMessage(
+        err?.responseJSON?.detail || t('Unable to remove %s function', sentryFn.name)
+      );
     }
   );
   return promise;
