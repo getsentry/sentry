@@ -19,11 +19,13 @@ import {t, tct} from 'sentry/locale';
 import {SentryFunction} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 
+import SentryFunctionEnvironmentVariables from './sentryFunctionsEnvironmentVariables';
 import SentryFunctionSubscriptions from './sentryFunctionSubscriptions';
 
 class SentryFunctionFormModel extends FormModel {
   getTransformedData() {
     const data = super.getTransformedData() as Record<string, any>;
+
     const events: string[] = [];
     if (data.onIssue) {
       events.push('issue');
@@ -34,7 +36,26 @@ class SentryFunctionFormModel extends FormModel {
     if (data.onComment) {
       events.push('comment');
     }
+    delete data.onIssue;
+    delete data.onError;
+    delete data.onComment;
     data.events = events;
+
+    const envVariables: EnvVariable[] = [];
+    let i = 0;
+    while (data[`env-variable-name-${i}`]) {
+      if (data[`env-variable-value-${i}`]) {
+        envVariables.push({
+          name: data[`env-variable-name-${i}`],
+          value: data[`env-variable-value-${i}`],
+        });
+      }
+      delete data[`env-variable-name-${i}`];
+      delete data[`env-variable-value-${i}`];
+      i++;
+    }
+    data.envVariables = envVariables;
+
     const {...output} = data;
     return output;
   }
@@ -44,6 +65,10 @@ type Props = {
   sentryFunction?: SentryFunction;
 } & WrapperProps;
 
+type EnvVariable = {
+  name: string;
+  value: string;
+};
 const formFields: Field[] = [
   {
     name: 'name',
@@ -95,6 +120,10 @@ function SentryFunctionDetails(props: Props) {
     form.current.setValue('onError', events.includes('error'));
     form.current.setValue('onComment', events.includes('comment'));
   }, [events]);
+
+  const [envVariables, setEnvVariables] = useState(
+    sentryFunction?.env_variables || [{name: '', value: ''}]
+  );
 
   const handleSubmitError = err => {
     let errorMessage = t('Unknown Error');
@@ -153,15 +182,27 @@ function SentryFunctionDetails(props: Props) {
           initialData={{
             code: defaultCode,
             events,
+            envVariables,
             ...props.sentryFunction,
           }}
           onSubmitError={handleSubmitError}
           onSubmitSuccess={handleSubmitSuccess}
         >
           <JsonForm forms={[{title: t('Sentry Function Details'), fields: formFields}]} />
-          <SentryFunctionSubscriptions events={events} setEvents={setEvents} />
           <Panel>
-            <PanelHeader>Write your Code Below</PanelHeader>
+            <PanelHeader>{t('Webhooks')}</PanelHeader>
+            <PanelBody>
+              <SentryFunctionSubscriptions events={events} setEvents={setEvents} />
+            </PanelBody>
+          </Panel>
+          <Panel>
+            <SentryFunctionEnvironmentVariables
+              envVariables={envVariables}
+              setEnvVariables={setEnvVariables}
+            />
+          </Panel>
+          <Panel>
+            <PanelHeader>{t('Write your Code Below')}</PanelHeader>
             <PanelBody>
               <Editor
                 height="40vh"
