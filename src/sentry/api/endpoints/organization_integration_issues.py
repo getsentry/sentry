@@ -17,5 +17,5 @@ class OrganizationIntegrationIssuesEndpoint(OrganizationIntegrationBaseEndpoint)
         install = integration.get_installation(organization.id)
         if isinstance(install, IssueSyncMixin):
             install.migrate_issues()
-
-        return Response(status=204)
+            return Response(status=204)
+        return Response(status=400)

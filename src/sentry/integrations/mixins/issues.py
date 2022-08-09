@@ -384,4 +384,4 @@ class IssueSyncMixin(IssueBasicMixin):
         """
         Migrate the corresponding plugin's issues to the integration and disable the plugins.
         """
-        raise NotImplementedError
+        pass

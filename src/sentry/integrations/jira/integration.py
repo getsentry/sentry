@@ -37,6 +37,7 @@ from sentry.shared_integrations.exceptions import (
 from sentry.tasks.integrations import migrate_ignored_fields, migrate_issues
 from sentry.utils.decorators import classproperty
 from sentry.utils.http import absolute_uri
+from sentry_plugins.jira.plugin import JiraPlugin
 
 from .client import JiraCloudClient
 from .utils import build_user_choice
@@ -965,18 +966,19 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         for project in Project.objects.filter(organization_id=self.organization_id):
             plugin = None
             for p in plugins.for_project(project):
-                if self.model.provider.startswith(p.slug) and p.get_option(
-                    "default_project", project
-                ):
+                if isinstance(p, JiraPlugin) and p.is_configured(None, project):
                     plugin = p
                     break
 
             if not plugin:
                 continue
-            if plugin.get_option("instance_url", project).rstrip("/") != self.model.metadata.get(
-                "base_url"
-            ).rstrip("/"):
+
+            is_different_jira_instance = plugin.get_option("instance_url", project).rstrip(
+                "/"
+            ) != self.model.metadata.get("base_url").rstrip("/")
+            if is_different_jira_instance:
                 continue
+
             migrate_issues.apply_async(
                 kwargs={
                     "integration_id": self.model.id,

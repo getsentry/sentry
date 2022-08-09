@@ -1,5 +1,4 @@
 from django.db import IntegrityError, transaction
-from rest_framework.response import Response
 
 from sentry.models import ExternalIssue, Group, GroupLink, GroupMeta, Integration
 from sentry.tasks.base import instrumented_task, retry
@@ -38,7 +37,7 @@ def migrate_issues(
                     relationship=GroupLink.Relationship.references,
                 )
         except IntegrityError:
-            return Response({"non_field_errors": ["That issue is already linked"]}, status=400)
+            continue
 
         plugin_issue.delete()
         logger.info(
