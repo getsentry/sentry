@@ -17,10 +17,10 @@ class PartitionKey(Enum):
 
 
 class StringIndexerCache:
-    def __init__(self, version: int, cache_name: str, partition_key: Optional[str] = None):
+    def __init__(self, version: int, cache_name: str, partition_key: Optional[PartitionKey] = None):
         self.version = version
         self.cache = caches[cache_name]
-        self.partition_key = partition_key or ""
+        self.partition_key = partition_key.value if partition_key else ""
 
     @property
     def randomized_ttl(self) -> int:
