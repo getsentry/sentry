@@ -1,7 +1,7 @@
 import {vec2} from 'gl-matrix';
 
 import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {Rect, Transform} from 'sentry/utils/profiling/gl/utils';
+import {Rect, transformMatrixBetweenRect} from 'sentry/utils/profiling/gl/utils';
 import {CursorRenderer} from 'sentry/utils/profiling/renderers/cursorRenderer';
 
 describe('CursorRenderer', () => {
@@ -22,12 +22,12 @@ describe('CursorRenderer', () => {
     const cursor = vec2.fromValues(0.5, 0.5);
     const physicalSpace = new Rect(0, 0, 1000, 1000);
 
-    const configViewToPhysicalSpace = Transform.betweenRect(
+    const configViewToPhysicalSpace = transformMatrixBetweenRect(
       new Rect(0, 0, 1, 1),
       physicalSpace
     );
 
-    renderer.draw(cursor, physicalSpace, configViewToPhysicalSpace.toMatrix());
+    renderer.draw(cursor, physicalSpace, configViewToPhysicalSpace);
 
     expect(context.beginPath).toHaveBeenCalled();
 
