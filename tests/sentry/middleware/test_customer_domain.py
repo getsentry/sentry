@@ -22,30 +22,6 @@ class CustomerDomainMiddlewareTest(TestCase):
         assert request.session == {"activeorg": "test"}
         assert response == request
 
-    def test_recycles_last_active_org(self):
-        self.create_organization(name="test")
-
-        request = RequestFactory().get("/organizations/test/issues/")
-        request.subdomain = "does-not-exist"
-        request.session = {"activeorg": "test"}
-        response = CustomerDomainMiddleware(lambda request: request)(request)
-
-        assert request.session == {"activeorg": "test"}
-        assert response.status_code == 302
-        assert response["Location"] == "http://test.us.testserver/organizations/test/issues/"
-
-    def test_recycles_last_active_org_path_mismatch(self):
-        self.create_organization(name="test")
-
-        request = RequestFactory().get("/organizations/albertos-apples/issues/")
-        request.subdomain = "does-not-exist"
-        request.session = {"activeorg": "test"}
-        response = CustomerDomainMiddleware(lambda request: request)(request)
-
-        assert request.session == {"activeorg": "test"}
-        assert response.status_code == 302
-        assert response["Location"] == "http://test.us.testserver/organizations/test/issues/"
-
     def test_removes_active_organization(self):
         request = RequestFactory().get("/")
         request.subdomain = "does-not-exist"
@@ -240,26 +216,10 @@ class End2EndTest(APITestCase):
             assert "activeorg" in self.client.session
             assert self.client.session["activeorg"] == "albertos-apples"
 
-            # Redirect response for org slug path mismatch
+            # Redirect response
             response = self.client.get(
                 reverse("org-events-endpoint", kwargs={"organization_slug": "some-org"}),
                 HTTP_HOST="albertos-apples.testserver",
-                follow=True,
-            )
-            assert response.status_code == 200
-            assert response.redirect_chain == [("/api/0/albertos-apples/", 302)]
-            assert response.data == {
-                "organization_slug": "albertos-apples",
-                "subdomain": "albertos-apples",
-                "activeorg": "albertos-apples",
-            }
-            assert "activeorg" in self.client.session
-            assert self.client.session["activeorg"] == "albertos-apples"
-
-            # Redirect response for subdomain and path mismatch
-            response = self.client.get(
-                reverse("org-events-endpoint", kwargs={"organization_slug": "some-org"}),
-                HTTP_HOST="does-not-exist.testserver",
                 follow=True,
             )
             assert response.status_code == 200
