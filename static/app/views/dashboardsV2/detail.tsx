@@ -203,10 +203,6 @@ class DashboardDetail extends Component<Props, State> {
               source: DashboardWidgetSource.DASHBOARDS,
             });
           },
-          disableEditWidget:
-            organization.features.includes('dashboards-top-level-filter') &&
-            hasUnsavedFilterChanges(dashboard, location),
-          disabledEditMessage: UNSAVED_FILTERS_MESSAGE,
         });
         trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.open', {
           organization,
@@ -703,7 +699,6 @@ class DashboardDetail extends Component<Props, State> {
               onUpdate={this.onUpdateWidget}
               handleUpdateWidgetList={this.handleUpdateWidgetList}
               handleAddCustomWidget={this.handleAddCustomWidget}
-              hasUnsavedFilters={false}
               isPreview={this.isPreview}
               router={router}
               location={location}
@@ -744,7 +739,7 @@ class DashboardDetail extends Component<Props, State> {
       this.state;
     const {dashboardId} = params;
 
-    const disableDashboardModifications =
+    const hasUnsavedFilters =
       organization.features.includes('dashboards-top-level-filter') &&
       dashboard.id !== 'default-overview' &&
       dashboardState !== DashboardState.CREATE &&
@@ -799,7 +794,7 @@ class DashboardDetail extends Component<Props, State> {
                   <Controls
                     organization={organization}
                     dashboards={dashboards}
-                    hasUnsavedFilters={disableDashboardModifications}
+                    hasUnsavedFilters={hasUnsavedFilters}
                     onEdit={this.onEdit}
                     onCancel={this.onCancel}
                     onCommit={this.onCommit}
@@ -836,7 +831,7 @@ class DashboardDetail extends Component<Props, State> {
                   <FiltersBar
                     filters={(modifiedDashboard ?? dashboard).filters}
                     location={location}
-                    hasUnsavedChanges={disableDashboardModifications}
+                    hasUnsavedChanges={hasUnsavedFilters}
                     isEditingDashboard={
                       dashboardState !== DashboardState.CREATE && this.isEditing
                     }
@@ -890,7 +885,6 @@ class DashboardDetail extends Component<Props, State> {
                       newWidget={newWidget}
                       onSetNewWidget={onSetNewWidget}
                       isPreview={this.isPreview}
-                      hasUnsavedFilters={disableDashboardModifications}
                     />
                   </WidgetViewerContext.Provider>
                 </Layout.Main>
