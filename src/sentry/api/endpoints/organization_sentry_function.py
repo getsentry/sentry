@@ -43,5 +43,7 @@ class OrganizationSentryFunctionEndpoint(OrganizationEndpoint):
         return Response(serialize(function), status=201)
 
     def get(self, request, organization):
+        if not features.has("organizations:sentry-functions", organization, actor=request.user):
+            return Response("organizations:sentry-functions flag set to false", status=404)
         functions = SentryFunction.objects.filter(organization=organization)
         return Response(serialize(list(functions), request.user), status=200)
