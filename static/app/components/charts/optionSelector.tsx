@@ -57,13 +57,13 @@ function OptionSelector({
 
   return (
     <CompactSelect
+      size="sm"
       options={mappedOptions}
       value={selected}
       onChange={onValueChange}
       isOptionDisabled={isOptionDisabled}
       multiple={multiple}
       triggerProps={{
-        size: 'sm',
         borderless: true,
         prefix: (
           <Fragment>
