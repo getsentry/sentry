@@ -42,6 +42,6 @@ class OrganizationSentryFunctionEndpoint(OrganizationEndpoint):
         function = SentryFunction.objects.create(**data)
         return Response(serialize(function), status=201)
 
-    # def get(self, request, organization):
-    #     functions = SentryFunction.objects.filter(organization=organization)
-    #     return Response(serialize(list(functions), request.user), status=200)
+    def get(self, request, organization):
+        functions = SentryFunction.objects.filter(organization=organization)
+        return Response(serialize(list(functions), request.user), status=200)

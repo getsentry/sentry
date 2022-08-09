@@ -1,16 +1,19 @@
 from unittest.mock import patch
 
+from django.urls import reverse
+
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature
 
 
 class OrganizationSentryFunctions(APITestCase):
-    method = "POST"
+    # method = "POST"
     endpoint = "sentry-api-0-organization-sentry-functions"
 
     def setUp(self):
         super().setUp()
         self.create_organization(owner=self.user, name="RowdyTiger")
+        self.url = reverse(self.endpoint, args=[self.organization.slug])
         self.login_as(user=self.user)
 
     @patch("sentry.api.endpoints.organization_sentry_function.create_function")
@@ -23,7 +26,7 @@ class OrganizationSentryFunctions(APITestCase):
             "overview": "qux",
         }
         with Feature("organizations:sentry-functions"):
-            response = self.get_success_response(self.organization.slug, **data)
+            response = self.client.post(self.url, data)
             assert response.status_code == 201
             assert response.data["name"] == "foo"
             assert response.data["author"] == "bar"
@@ -34,10 +37,35 @@ class OrganizationSentryFunctions(APITestCase):
     def test_post_missing_params(self):
         data = {"name": "foo", "overview": "qux"}
         with Feature("organizations:sentry-functions"):
-            response = self.get_error_response(self.organization.slug, **data)
+            response = self.client.post(self.url, **data)
             assert response.status_code == 400
 
     def test_post_feature_false(self):
         data = {"name": "foo", "author": "bar"}
-        response = self.get_error_response(self.organization.slug, **data)
+        response = self.client.post(self.url, **data)
         assert response.status_code == 404
+
+    def test_get(self):
+        with Feature("organizations:sentry-functions"):
+            response = self.client.get(self.url)
+            assert response.status_code == 200
+            assert response.data == []
+
+    @patch("sentry.api.endpoints.organization_sentry_function.create_function")
+    def test_get_with_function(self, mock_func):
+        defaultCode = "exports.yourFunction = (req, res) => {\n\tlet message = req.query.message || req.body.message || 'Hello World!';\n\tconsole.log('Query: ' + req.query);\n\tconsole.log('Body: ' + req.body);\n\tres.status(200).send(message);\n};"
+        data = {
+            "name": "foo",
+            "author": "bar",
+            "code": defaultCode,
+            "overview": "qux",
+        }
+        with Feature("organizations:sentry-functions"):
+            self.client.post(self.url, data)
+            response = self.client.get(self.url)
+            assert response.status_code == 200
+            assert response.data[0]["name"] == "foo"
+            assert response.data[0]["author"] == "bar"
+            assert response.data[0]["code"] == defaultCode
+            assert response.data[0]["overview"] == "qux"
+            mock_func.assert_called_once_with(defaultCode, response.data[0]["external_id"], "qux")
