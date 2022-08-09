@@ -7,6 +7,7 @@ function getTransformedData(data: any, meta: Record<any, any> | undefined) {
         if (typeof dataValue === 'string') {
           return !!dataValue;
         }
+
         return defined(dataValue);
       })
       .map((dataValue, index) => {

@@ -31,7 +31,7 @@ function KeyValueList({
   const keyValueData = isSorted ? sortBy(data, [({key}) => key.toLowerCase()]) : data;
 
   return (
-    <table className="table key-value" onClick={onClick} {...props}>
+    <Table className="table key-value" onClick={onClick} {...props}>
       <tbody>
         {keyValueData.map(
           ({
@@ -75,7 +75,7 @@ function KeyValueList({
           }
         )}
       </tbody>
-    </table>
+    </Table>
   );
 }
 
@@ -109,4 +109,11 @@ const ActionButtonWrapper = styled('div')`
   height: 100%;
   display: flex;
   align-items: flex-start;
+`;
+
+const Table = styled('table')`
+  > * pre > pre {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
 `;

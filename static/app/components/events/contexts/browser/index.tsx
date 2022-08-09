@@ -3,9 +3,9 @@ import {Fragment} from 'react';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import {Event} from 'sentry/types';
 
-import {getUnknownData} from '../getUnknownData';
+import {geKnownData, getUnknownData} from '../utils';
 
-import {getBrowserKnownData} from './getBrowserKnownData';
+import {getBrowserKnownDataDetails} from './getBrowserKnownDataDetails';
 import {BrowserKnownData, BrowserKnownDataType} from './types';
 
 type Props = {
@@ -22,7 +22,14 @@ export function BrowserEventContext({data, event}: Props) {
   const meta = event._meta?.contexts?.browser ?? {};
   return (
     <Fragment>
-      <ContextBlock data={getBrowserKnownData({data, meta})} />
+      <ContextBlock
+        data={geKnownData<BrowserKnownData, BrowserKnownDataType>({
+          data,
+          meta,
+          knownDataTypes: browserKnownDataValues,
+          onGetKnownDataDetails: v => getBrowserKnownDataDetails(v),
+        })}
+      />
       <ContextBlock
         data={getUnknownData({
           allData: data,

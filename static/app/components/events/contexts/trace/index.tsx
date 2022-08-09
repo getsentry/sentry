@@ -3,9 +3,9 @@ import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {Event} from 'sentry/types/event';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {getUnknownData} from '../getUnknownData';
+import {geKnownData, getUnknownData} from '../utils';
 
-import {getTraceKnownData} from './getTraceKnownData';
+import {getTraceKnownDataDetails} from './getTraceKnownDataDetails';
 import {TraceKnownData, TraceKnownDataType} from './types';
 
 export const traceKnownDataValues = [
@@ -31,11 +31,21 @@ export function TraceEventContext({event, data}: Props) {
   return (
     <ErrorBoundary mini>
       <KeyValueList
-        data={getTraceKnownData({data, meta, event, organization})}
+        data={geKnownData<TraceKnownData, TraceKnownDataType>({
+          data,
+          meta,
+          knownDataTypes: traceKnownDataValues,
+          onGetKnownDataDetails: v =>
+            getTraceKnownDataDetails({...v, organization, event}),
+        }).map(v => ({
+          ...v,
+          subjectDataTestId: `trace-context-${v.key.toLowerCase()}-value`,
+        }))}
         isSorted={false}
         raw={false}
         isContextData
       />
+
       <KeyValueList
         data={getUnknownData({
           allData: data,

@@ -6,13 +6,16 @@ import {t} from 'sentry/locale';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
-import {getEventExtraDataKnownData} from './getEventExtraDataKnownData';
+import {geKnownData} from '../contexts/utils';
+
+import {getEventExtraDataKnownDataDetails} from './getEventExtraDataKnownDataDetails';
+import {EventExtraData, EventExtraDataType} from './types';
 
 type Props = {
   event: Event;
 };
 
-const EventExtraData = memo(
+const EventExtraDataContext = memo(
   ({event}: Props) => {
     const [raw, setRaw] = useState(false);
     return (
@@ -24,7 +27,12 @@ const EventExtraData = memo(
       >
         {!defined(event.context) ? null : (
           <ContextBlock
-            data={getEventExtraDataKnownData(event.context, event._meta?.context)}
+            data={geKnownData<EventExtraData, EventExtraDataType>({
+              data: event.context,
+              knownDataTypes: Object.keys(event.context),
+              meta: event._meta?.context,
+              onGetKnownDataDetails: v => getEventExtraDataKnownDataDetails(v),
+            })}
             raw={raw}
           />
         )}
@@ -34,4 +42,4 @@ const EventExtraData = memo(
   (prevProps: Props, nextProps: Props) => prevProps.event.id !== nextProps.event.id
 );
 
-export default EventExtraData;
+export default EventExtraDataContext;
