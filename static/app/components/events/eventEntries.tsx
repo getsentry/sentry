@@ -432,30 +432,64 @@ const EventEntries = memo(
             showGroupingConfig={orgFeatures.includes('set-grouping-config')}
           />
         )}
-        {!isShare && !replayId && hasEventAttachmentsFeature && (
-          <RRWebIntegration
+        {!isShare && (
+          <EventReplay
             event={event}
-            orgId={orgSlug}
-            projectId={projectSlug}
-            renderer={children => (
-              <StyledReplayEventDataSection type="context-replay" title={t('Replay')}>
-                {children}
-              </StyledReplayEventDataSection>
-            )}
-          />
-        )}
-        {!isShare && replayId && orgFeatures.includes('session-replay') && (
-          <LazyLoad
-            component={() => import('./eventReplay')}
-            replayId={replayId}
+            orgFeatures={orgFeatures}
             orgSlug={orgSlug}
             projectSlug={projectSlug}
+            replayId={replayId}
           />
         )}
       </div>
     );
   }
 );
+
+type EventReplayProps = {
+  event: Event;
+  orgFeatures: string[];
+  orgSlug: string;
+  projectSlug: string;
+  replayId: undefined | string;
+};
+
+function EventReplay({
+  event,
+  orgFeatures,
+  orgSlug,
+  projectSlug,
+  replayId,
+}: EventReplayProps) {
+  const hasEventAttachmentsFeature = orgFeatures.includes('event-attachments');
+  const hasSessionReplayFeature = orgFeatures.includes('session-replay');
+
+  if (replayId && hasSessionReplayFeature) {
+    return (
+      <LazyLoad
+        component={() => import('./eventReplay')}
+        replayId={replayId}
+        orgSlug={orgSlug}
+        projectSlug={projectSlug}
+      />
+    );
+  }
+  if (hasEventAttachmentsFeature) {
+    return (
+      <RRWebIntegration
+        event={event}
+        orgId={orgSlug}
+        projectId={projectSlug}
+        renderer={children => (
+          <StyledReplayEventDataSection type="context-replay" title={t('Replay')}>
+            {children}
+          </StyledReplayEventDataSection>
+        )}
+      />
+    );
+  }
+  return null;
+}
 
 const StyledEventDataSection = styled(EventDataSection)`
   /* Hiding the top border because of the event section appears at this breakpoint */
