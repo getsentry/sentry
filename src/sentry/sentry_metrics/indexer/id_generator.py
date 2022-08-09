@@ -15,6 +15,13 @@ _EPOCH_START = 1641024000
 _RANDOM_MAX = pow(2, _RANDOM_BITS) - 1  # inclusive
 
 
+def reverse_bits(number: int, bit_size: int) -> int:
+    return int(bin(number)[2:].zfill(bit_size)[::-1], 2)
+
+
+_VERSION_PREFIX = reverse_bits(_VERSION, _VERSION_BITS)
+
+
 def get_id() -> int:
     """
     Generates IDs for use by indexer storages that do not have autoincrement sequences (e.g. CloudSpanner).
@@ -29,7 +36,7 @@ def get_id() -> int:
     time_since_epoch = now - _EPOCH_START
     rand = random.randint(0, _RANDOM_MAX)
 
-    id = _VERSION << (_TOTAL_BITS - _VERSION_BITS)
+    id = _VERSION_PREFIX << (_TOTAL_BITS - _VERSION_BITS)
     id |= time_since_epoch << (_TOTAL_BITS - _VERSION_BITS - _TS_BITS)
     id |= rand
 
