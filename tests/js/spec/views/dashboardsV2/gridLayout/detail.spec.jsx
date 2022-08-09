@@ -297,6 +297,10 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/events-geo/',
         body: {data: [], meta: {}},
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/',
+        body: [],
+      });
     });
 
     afterEach(function () {
@@ -1127,10 +1131,6 @@ describe('Dashboards > Detail', function () {
     });
 
     it('can save absolute time range in existing dashboard', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/releases/',
-        body: [],
-      });
       const testData = initializeOrg({
         organization: TestStubs.Organization({
           features: [
@@ -1317,11 +1317,6 @@ describe('Dashboards > Detail', function () {
         body: testProjects,
       });
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/releases/',
-        body: [],
-      });
-
-      MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         body: TestStubs.Dashboard(widgets, {
           id: '1',
@@ -1330,6 +1325,7 @@ describe('Dashboards > Detail', function () {
           environment: ['alpha', 'beta'],
         }),
       });
+
       const testData = initializeOrg({
         organization: TestStubs.Organization({
           features: [
@@ -1366,6 +1362,149 @@ describe('Dashboards > Detail', function () {
       // Save and Cancel should not appear because alpha, beta is the same as beta, alpha
       expect(screen.queryByText('Save')).not.toBeInTheDocument();
       expect(screen.queryByText('Cancel')).not.toBeInTheDocument();
+    });
+
+    it('uses releases from the URL query params', async function () {
+      const testData = initializeOrg({
+        organization: TestStubs.Organization({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-query',
+            'dashboard-grid-layout',
+            'dashboards-top-level-filter',
+          ],
+        }),
+        router: {
+          location: {
+            ...TestStubs.location(),
+            query: {
+              release: ['not-selected-1'],
+            },
+          },
+        },
+      });
+      render(
+        <ViewEditDashboard
+          organization={testData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={testData.router}
+          location={testData.router.location}
+        />,
+        {context: testData.routerContext, organization: testData.organization}
+      );
+
+      await screen.findByText(/not-selected-1/);
+      screen.getByText('Save');
+      screen.getByText('Cancel');
+    });
+
+    it('resets release in URL params', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: TestStubs.Dashboard(widgets, {
+          id: '1',
+          title: 'Custom Errors',
+          filters: {
+            release: ['abc'],
+          },
+        }),
+      });
+      const testData = initializeOrg({
+        organization: TestStubs.Organization({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-query',
+            'dashboard-grid-layout',
+            'dashboards-top-level-filter',
+          ],
+        }),
+        router: {
+          location: {
+            ...TestStubs.location(),
+            query: {
+              release: ['not-selected-1'],
+            },
+          },
+        },
+      });
+      render(
+        <ViewEditDashboard
+          organization={testData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={testData.router}
+          location={testData.router.location}
+        />,
+        {context: testData.routerContext, organization: testData.organization}
+      );
+
+      await screen.findByText(/not-selected-1/);
+      userEvent.click(screen.getByText('Cancel'));
+
+      // release isn't used in the redirect
+      expect(browserHistory.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {
+            end: undefined,
+            environment: undefined,
+            project: undefined,
+            start: undefined,
+            statsPeriod: undefined,
+            utc: undefined,
+          },
+        })
+      );
+    });
+
+    it('reflects selections in the release filter in the query params', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/',
+        body: [
+          TestStubs.Release({
+            shortVersion: 'sentry-android-shop@1.2.0',
+            version: 'sentry-android-shop@1.2.0',
+          }),
+        ],
+      });
+      const testData = initializeOrg({
+        organization: TestStubs.Organization({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-query',
+            'dashboard-grid-layout',
+            'dashboards-top-level-filter',
+          ],
+        }),
+        router: {
+          location: TestStubs.location(),
+        },
+      });
+      render(
+        <ViewEditDashboard
+          organization={testData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={testData.router}
+          location={testData.router.location}
+        />,
+        {context: testData.routerContext, organization: testData.organization}
+      );
+
+      userEvent.click(await screen.findByText('All Releases'));
+      userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
+      userEvent.click(document.body);
+
+      expect(browserHistory.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            release: ['sentry-android-shop@1.2.0'],
+          }),
+        })
+      );
     });
   });
 });

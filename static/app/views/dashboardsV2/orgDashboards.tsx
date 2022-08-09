@@ -91,13 +91,14 @@ class OrgDashboards extends AsyncComponent<Props, State> {
     const {params, organization, location} = this.props;
 
     if (params.dashboardId || stateKey === 'selectedDashboard') {
-      const queryParamPageFilters = new Set([
+      const queryParamFilters = new Set([
         'project',
         'environment',
         'statsPeriod',
         'start',
         'end',
         'utc',
+        'release',
       ]);
       if (
         organization.features.includes('dashboards-top-level-filter') &&
@@ -107,7 +108,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
         hasSavedPageFilters(data) &&
         isEmpty(
           Object.keys(location.query).filter(unsavedQueryParam =>
-            queryParamPageFilters.has(unsavedQueryParam)
+            queryParamFilters.has(unsavedQueryParam)
           )
         )
       ) {
