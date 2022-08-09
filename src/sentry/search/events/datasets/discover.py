@@ -1255,19 +1255,19 @@ class DiscoverDatasetConfig(DatasetConfig):
             "countIf", [Function("greaterOrEquals", [column, 0])]
         )
 
-        return Function(  # (satisfied + tolerable/2)/(total)
-            "divide",
-            [
-                Function(
-                    "plus",
-                    [
-                        count_satisfaction,
-                        count_tolerable_div_2,
-                    ],
-                ),
-                count_total,
-            ],
+        return self.builder.resolve_division(  # (satisfied + tolerable/2)/(total)
+            Function(
+                "plus",
+                [
+                    count_satisfaction,
+                    count_tolerable_div_2,
+                ],
+            ),
+            count_total,
             alias,
+            # TODO(zerofill): This behaviour is incorrect if we remove zerofilling
+            # But need to do something reasonable here since we'll get a null row otherwise
+            fallback=0,
         )
 
     def _resolve_web_vital_function(
