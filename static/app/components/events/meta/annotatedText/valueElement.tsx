@@ -34,6 +34,10 @@ const ValueElement = ({value, meta}: Props) => {
     );
   }
 
+  if (typeof value === 'string') {
+    return <Fragment>{value.replace(/\n/g, '\\n')}</Fragment>;
+  }
+
   if (isValidElement(value)) {
     return value;
   }
