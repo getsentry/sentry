@@ -69,11 +69,16 @@ describe('contexts utils', function () {
       expect(knownData).toEqual([
         {
           key: 'device_app_hash',
-          value: '2421fae1ac9237a8131e74883e52b0f7034a143f',
+          value: expect.anything(),
           subject: 'Device App Hash',
           meta: undefined,
         },
-        {key: 'build_type', value: 0, subject: 'Build Type', meta: undefined},
+        {
+          key: 'build_type',
+          value: expect.anything(),
+          subject: 'Build Type',
+          meta: undefined,
+        },
       ]);
     });
   });
