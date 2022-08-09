@@ -236,6 +236,7 @@ reset-db() {
     drop-db
     create-db
     apply-migrations
+    create-user
     # This ensures that your set up as some data inside of it
     bin/load-mocks
 }
