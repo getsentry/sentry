@@ -50,7 +50,7 @@ def get_date_range_from_params(params, optional=False, default_stats_period=MAX_
 
     Similarly, `timeframeStart` and `timeframeEnd` allow for selecting a
     relative range, for example: 15 days ago through 8 days ago. This uses the same
-    format as `statsPeriod`
+    format as `statsPeriod`.
 
     :param params:
     If `start` end `end` are passed, validate them, convert to `datetime` and
