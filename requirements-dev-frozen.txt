@@ -78,7 +78,7 @@ mock==4.0.3
 more-itertools==8.13.0
 msgpack==1.0.4
 msgpack-types==0.2.0
-mypy==0.812
+mypy==0.971
 mypy-extensions==0.4.3
 natsort==8.1.0
 nodeenv==1.6.0
@@ -161,7 +161,12 @@ tomli==2.0.1
 toronado==0.1.0
 trio==0.21.0
 trio-websocket==0.9.2
-typed-ast==1.4.3
+types-freezegun==1.1.10
+types-python-dateutil==2.8.19
+types-pytz==2022.1.2
+types-redis==4.3.13
+types-requests==2.28.8
+types-urllib3==1.26.22
 typing-extensions==3.10.0.2
 typing-inspect==0.7.1
 ua-parser==0.10.0
