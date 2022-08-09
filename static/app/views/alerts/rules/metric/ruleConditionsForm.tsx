@@ -436,26 +436,29 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     const eventOmitTags =
       dataset === 'events' ? [...measurementTags, ...transactionTags] : [];
 
+    const hasMetricDataset =
+      organization.features.includes('metrics-performance-alerts') ||
+      organization.features.includes('mep-rollout-flag');
+
     return (
       <Fragment>
         <ChartPanel>
           <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
         </ChartPanel>
-        {showMEPAlertBanner &&
-          organization.features.includes('metrics-performance-alerts') && (
-            <AlertContainer>
-              <Alert type="info" showIcon>
-                {tct(
-                  'Filtering by these conditions automatically switch you to indexed events. [link:Learn more].',
-                  {
-                    link: (
-                      <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/" />
-                    ),
-                  }
-                )}
-              </Alert>
-            </AlertContainer>
-          )}
+        {showMEPAlertBanner && hasMetricDataset && (
+          <AlertContainer>
+            <Alert type="info" showIcon>
+              {tct(
+                'Filtering by these conditions automatically switch you to indexed events. [link:Learn more].',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/product/sentry-basics/metrics/" />
+                  ),
+                }
+              )}
+            </Alert>
+          </AlertContainer>
+        )}
         {this.renderInterval()}
         <StyledListItem>{t('Filter events')}</StyledListItem>
         <FormRow noMargin columns={1 + (allowChangeEventTypes ? 1 : 0) + 1}>
@@ -527,7 +530,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
                     onKeyDown?.(e);
                   }}
-                  onBlur={query => {
+                  onClose={query => {
                     onFilterSearch(query);
                     onBlur(query);
                   }}

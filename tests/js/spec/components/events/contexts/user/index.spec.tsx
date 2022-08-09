@@ -50,9 +50,7 @@ export const userMetaMockData = {
 const event = {
   ...TestStubs.Event(),
   _meta: {
-    contexts: {
-      user: userMetaMockData,
-    },
+    user: userMetaMockData,
   },
 };
 

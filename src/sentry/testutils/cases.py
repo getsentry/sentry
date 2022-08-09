@@ -1227,6 +1227,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsTestCase, TestCase):
         "measurements.fcp": "metrics_distributions",
         "measurements.fid": "metrics_distributions",
         "measurements.cls": "metrics_distributions",
+        "measurements.frames_frozen_rate": "metrics_distributions",
         "spans.http": "metrics_distributions",
         "user": "metrics_sets",
     }
@@ -1745,6 +1746,18 @@ class MSTeamsActivityNotificationTest(ActivityTestCase):
         NotificationSetting.objects.update_settings(
             ExternalProviders.MSTEAMS,
             NotificationSettingTypes.WORKFLOW,
+            NotificationSettingOptionValues.ALWAYS,
+            user=self.user,
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.MSTEAMS,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.ALWAYS,
+            user=self.user,
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.MSTEAMS,
+            NotificationSettingTypes.DEPLOY,
             NotificationSettingOptionValues.ALWAYS,
             user=self.user,
         )

@@ -8,6 +8,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -1032,6 +1033,42 @@ describe('Dashboards > Detail', function () {
       );
     });
 
+    it('does not render save and cancel buttons on templates', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/',
+        body: [
+          TestStubs.Release({
+            shortVersion: 'sentry-android-shop@1.2.0',
+            version: 'sentry-android-shop@1.2.0',
+          }),
+        ],
+      });
+      render(
+        <CreateDashboard
+          organization={{
+            ...initialData.organization,
+            features: [
+              ...initialData.organization.features,
+              'dashboards-top-level-filter',
+            ],
+          }}
+          params={{orgId: 'org-slug', templateId: 'default-template'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        {
+          context: initialData.routerContext,
+          organization: initialData.organization,
+        }
+      );
+
+      userEvent.click(await screen.findByText('24H'));
+      userEvent.click(screen.getByText('Last 7 days'));
+
+      expect(screen.queryByText('Cancel')).not.toBeInTheDocument();
+      expect(screen.queryByText('Save')).not.toBeInTheDocument();
+    });
+
     it('can save dashboard filters in existing dashboard', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
@@ -1266,6 +1303,69 @@ describe('Dashboards > Detail', function () {
         'aria-disabled',
         'false'
       );
+    });
+
+    it('ignores the order of selection of page filters to render unsaved filters', async () => {
+      const testProjects = [
+        TestStubs.Project({id: '1', name: 'first', environments: ['alpha', 'beta']}),
+        TestStubs.Project({id: '2', name: 'second', environments: ['alpha', 'beta']}),
+      ];
+
+      act(() => ProjectsStore.loadInitialData(testProjects));
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/',
+        body: testProjects,
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/',
+        body: [],
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: TestStubs.Dashboard(widgets, {
+          id: '1',
+          title: 'Custom Errors',
+          filters: {},
+          environment: ['alpha', 'beta'],
+        }),
+      });
+      const testData = initializeOrg({
+        organization: TestStubs.Organization({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-query',
+            'dashboard-grid-layout',
+            'dashboards-top-level-filter',
+          ],
+        }),
+        router: {
+          location: {
+            ...TestStubs.location(),
+            query: {
+              environment: ['beta', 'alpha'], // Reversed order from saved dashboard
+            },
+          },
+        },
+      });
+      render(
+        <ViewEditDashboard
+          organization={testData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={testData.router}
+          location={testData.router.location}
+        />,
+        {context: testData.routerContext, organization: testData.organization}
+      );
+
+      await waitFor(() => expect(screen.queryAllByText('Loading\u2026')).toEqual([]));
+      await screen.findByText(/beta, alpha/);
+
+      // Save and Cancel should not appear because alpha, beta is the same as beta, alpha
+      expect(screen.queryByText('Save')).not.toBeInTheDocument();
+      expect(screen.queryByText('Cancel')).not.toBeInTheDocument();
     });
   });
 });
