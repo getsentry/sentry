@@ -43,7 +43,12 @@ function ReplayContent({eventSlug, orgId}: Props) {
             <td className="key">{t('Replay')}</td>
             <td className="value">
               <ReplayContextProvider replay={replay} initialTimeOffset={0}>
-                <ReplayView toggleFullscreen={toggleFullscreen} showAddressBar={false} />
+                <PlayerContainer ref={fullscreenRef}>
+                  <ReplayView
+                    toggleFullscreen={toggleFullscreen}
+                    showAddressBar={false}
+                  />
+                </PlayerContainer>
               </ReplayContextProvider>
             </td>
           </tr>
@@ -82,11 +87,8 @@ function ReplayContent({eventSlug, orgId}: Props) {
 }
 
 const PlayerContainer = styled(FluidHeight)`
-  max-width: 420px;
   margin-bottom: ${space(2)};
-
   background: ${p => p.theme.background};
-  gap: ${space(1)};
 `;
 
 const StyledPlaceholder = styled(Placeholder)`
