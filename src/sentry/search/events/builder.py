@@ -657,7 +657,9 @@ class QueryBuilder:
             return snql_function.snql_aggregate(arguments, alias)
         return None
 
-    def resolve_division(self, dividend: SelectType, divisor: SelectType, alias: str) -> SelectType:
+    def resolve_division(
+        self, dividend: SelectType, divisor: SelectType, alias: str, fallback: Optional[Any] = None
+    ) -> SelectType:
         return Function(
             "if",
             [
@@ -672,7 +674,7 @@ class QueryBuilder:
                         divisor,
                     ],
                 ),
-                None,
+                fallback,
             ],
             alias,
         )
