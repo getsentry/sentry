@@ -533,6 +533,10 @@ export type SentryFunction = {
   code: string;
   name: string;
   slug: string;
+  env_variables?: Array<{
+    name: string;
+    value: string;
+  }>;
   events?: string[];
   overview?: string;
 };
