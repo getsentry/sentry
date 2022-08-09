@@ -1444,11 +1444,17 @@ describe('Dashboards > Detail', function () {
       await screen.findByText(/not-selected-1/);
       userEvent.click(screen.getByText('Cancel'));
 
+      // release isn't used in the redirect
       expect(browserHistory.replace).toHaveBeenCalledWith(
         expect.objectContaining({
-          query: expect.objectContaining({
-            release: ['abc'],
-          }),
+          query: {
+            end: undefined,
+            environment: undefined,
+            project: undefined,
+            start: undefined,
+            statsPeriod: undefined,
+            utc: undefined,
+          },
         })
       );
     });

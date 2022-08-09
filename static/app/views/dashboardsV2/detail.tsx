@@ -411,13 +411,15 @@ class DashboardDetail extends Component<Props, State> {
         filters: {...newModifiedDashboard.filters, ...activeFilters},
       },
     });
-    browserHistory.replace({
-      ...location,
-      query: {
-        ...location.query,
-        ...activeFilters,
-      },
-    });
+    if (!isEqual(activeFilters, dashboard.filters?.release)) {
+      browserHistory.replace({
+        ...location,
+        query: {
+          ...location.query,
+          ...activeFilters,
+        },
+      });
+    }
   };
 
   handleUpdateWidgetList = (widgets: Widget[]) => {
@@ -832,6 +834,7 @@ class DashboardDetail extends Component<Props, State> {
                     </MetricsDataSwitcher>
                   ) : null}
                   <FiltersBar
+                    filters={(modifiedDashboard ?? dashboard).filters}
                     location={location}
                     hasUnsavedChanges={disableDashboardModifications}
                     isEditingDashboard={

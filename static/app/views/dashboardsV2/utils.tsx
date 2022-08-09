@@ -424,28 +424,42 @@ export function hasUnsavedFilterChanges(
   initialDashboard: DashboardDetails,
   location: Location
 ) {
-  const savedFilters = {
+  // Use Sets to compare the filter fields that are arrays
+  type Filters = {
+    end?: string;
+    environment?: Set<string>;
+    period?: string;
+    projects?: Set<number>;
+    release?: Set<string>;
+    start?: string;
+    utc?: boolean;
+  };
+
+  const savedFilters: Filters = {
     projects: new Set(initialDashboard.projects),
     environment: new Set(initialDashboard.environment),
     period: initialDashboard.period,
     start: normalizeDateTimeString(initialDashboard.start),
     end: normalizeDateTimeString(initialDashboard.end),
-    filters: {
-      release: new Set(initialDashboard.filters?.release),
-    },
     utc: initialDashboard.utc,
   };
-  const currentFilters = {
+  let currentFilters = {
     ...getCurrentPageFilters(location),
-    filters: {
-      release: new Set(location.query?.release),
-    },
-  };
-  return !isEqual(savedFilters, {
+  } as unknown as Filters;
+  currentFilters = {
     ...currentFilters,
     projects: new Set(currentFilters.projects),
     environment: new Set(currentFilters.environment),
-  });
+  };
+
+  if (location.query?.release) {
+    // Release is only included in the comparison if it exists in the query
+    // params, otherwise the dashboard should be using its saved state
+    savedFilters.release = new Set(initialDashboard.filters?.release);
+    currentFilters.release = new Set(location.query?.release);
+  }
+
+  return !isEqual(savedFilters, currentFilters);
 }
 
 export function getSavedFiltersAsPageFilters(dashboard: DashboardDetails): PageFilters {
@@ -477,7 +491,6 @@ export function resetPageFilters(dashboard: DashboardDetails, location: Location
     ...location,
     query: {
       ...getSavedPageFilters(dashboard),
-      ...dashboard.filters,
     },
   });
 }
