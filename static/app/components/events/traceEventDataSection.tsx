@@ -208,7 +208,7 @@ export function TraceEventDataSection({
                   <ButtonBar active={state.fullStackTrace ? 'full' : 'relevant'} merged>
                     <Button
                       type="button"
-                      size="sm"
+                      size="xs"
                       barId="relevant"
                       onClick={() =>
                         setState({
@@ -222,7 +222,7 @@ export function TraceEventDataSection({
                     </Button>
                     <Button
                       type="button"
-                      size="sm"
+                      size="xs"
                       barId="full"
                       priority={!hasAppOnlyFrames ? 'primary' : undefined}
                       onClick={() =>
@@ -239,7 +239,7 @@ export function TraceEventDataSection({
               )}
               {state.display.includes('raw-stack-trace') && nativePlatform && (
                 <Button
-                  size="sm"
+                  size="xs"
                   href={rawStackTraceDownloadLink}
                   title={t('Download raw stack trace file')}
                 >
@@ -249,7 +249,7 @@ export function TraceEventDataSection({
               <CompactSelect
                 triggerProps={{
                   icon: <IconSort />,
-                  size: 'sm',
+                  size: 'xs',
                   title: sortByTooltip,
                 }}
                 isDisabled={!!sortByTooltip}
@@ -266,7 +266,7 @@ export function TraceEventDataSection({
               <CompositeSelect
                 triggerProps={{
                   icon: <IconEllipsis />,
-                  size: 'sm',
+                  size: 'xs',
                   showChevron: false,
                   'aria-label': t('More Options'),
                 }}
