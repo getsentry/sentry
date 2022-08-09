@@ -8,10 +8,11 @@ import {
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
-import BooleanField from 'sentry/components/forms/booleanField';
+import ButtonBar from 'sentry/components/buttonBar';
+import CompactSelect from 'sentry/components/forms/compactSelect';
 import CompositeSelect from 'sentry/components/forms/compositeSelect';
 import Tooltip from 'sentry/components/tooltip';
-import {IconSliders} from 'sentry/icons';
+import {IconEllipsis, IconSort} from 'sentry/icons';
 import {IconAnchor} from 'sentry/icons/iconAnchor';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -25,8 +26,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import EventDataSection from './eventDataSection';
 
 const sortByOptions = {
-  'recent-first': t('Recent first'),
-  'recent-last': t('Recent last'),
+  'recent-first': t('Newest'),
+  'recent-last': t('Oldest'),
 };
 
 export const displayOptions = {
@@ -201,22 +202,39 @@ export function TraceEventDataSection({
             <Fragment>
               {!state.display.includes('raw-stack-trace') && (
                 <Tooltip
-                  title={!hasAppOnlyFrames ? t('Only full version available') : undefined}
+                  title={t('Only full version available')}
                   disabled={hasAppOnlyFrames}
                 >
-                  <FullStackTraceToggler
-                    name="full-stack-trace-toggler"
-                    label={t('Full stack trace')}
-                    hideControlState
-                    disabled={!hasAppOnlyFrames}
-                    value={state.fullStackTrace}
-                    onChange={() =>
-                      setState({
-                        ...state,
-                        fullStackTrace: !state.fullStackTrace,
-                      })
-                    }
-                  />
+                  <ButtonBar active={state.fullStackTrace ? 'full' : 'relevant'} merged>
+                    <Button
+                      type="button"
+                      size="sm"
+                      barId="relevant"
+                      onClick={() =>
+                        setState({
+                          ...state,
+                          fullStackTrace: false,
+                        })
+                      }
+                      disabled={!hasAppOnlyFrames}
+                    >
+                      {t('Most Relevant')}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      barId="full"
+                      priority={!hasAppOnlyFrames ? 'primary' : undefined}
+                      onClick={() =>
+                        setState({
+                          ...state,
+                          fullStackTrace: true,
+                        })
+                      }
+                    >
+                      {t('Full Stack Trace')}
+                    </Button>
+                  </ButtonBar>
                 </Tooltip>
               )}
               {state.display.includes('raw-stack-trace') && nativePlatform && (
@@ -228,26 +246,33 @@ export function TraceEventDataSection({
                   {t('Download')}
                 </Button>
               )}
-              <CompositeSelect
-                triggerLabel={t('Options')}
+              <CompactSelect
                 triggerProps={{
-                  icon: <IconSliders />,
+                  icon: <IconSort />,
                   size: 'sm',
+                  title: sortByTooltip,
                 }}
+                isDisabled={!!sortByTooltip}
+                placement="bottom right"
+                onChange={selectedOption => {
+                  setState({...state, sortBy: selectedOption.value});
+                }}
+                value={state.sortBy}
+                options={Object.entries(sortByOptions).map(([value, label]) => ({
+                  label,
+                  value,
+                }))}
+              />
+              <CompositeSelect
+                triggerProps={{
+                  icon: <IconEllipsis />,
+                  size: 'sm',
+                  showChevron: false,
+                  'aria-label': t('More Options'),
+                }}
+                triggerLabel=""
                 placement="bottom right"
                 sections={[
-                  {
-                    label: t('Sort By'),
-                    value: 'sort-by',
-                    defaultValue: state.sortBy,
-                    options: Object.entries(sortByOptions).map(([value, label]) => ({
-                      label,
-                      value,
-                      isDisabled: !!sortByTooltip,
-                      tooltip: sortByTooltip,
-                    })),
-                    onChange: sortBy => setState({...state, sortBy}),
-                  },
                   {
                     label: t('Display'),
                     value: 'display',
@@ -304,22 +329,6 @@ const Permalink = styled('a')`
   &:hover ${StyledIconAnchor} {
     display: block;
     color: ${p => p.theme.gray300};
-  }
-`;
-
-const FullStackTraceToggler = styled(BooleanField)`
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(2, max-content);
-  gap: ${space(1)};
-  border-bottom: none;
-  justify-content: flex-end;
-
-  && {
-    > * {
-      padding: 0;
-      width: auto;
-    }
   }
 `;
 
