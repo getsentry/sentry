@@ -360,7 +360,7 @@ describe('Dashboards util', () => {
         },
       };
 
-      expect(hasUnsavedFilterChanges(initialDashboard, location, {})).toBe(false);
+      expect(hasUnsavedFilterChanges(initialDashboard, location)).toBe(false);
     });
 
     it('ignores the order of environments', function () {
@@ -374,7 +374,7 @@ describe('Dashboards util', () => {
         },
       };
 
-      expect(hasUnsavedFilterChanges(initialDashboard, location, {})).toBe(false);
+      expect(hasUnsavedFilterChanges(initialDashboard, location)).toBe(false);
     });
 
     it('ignores the order of releases', function () {
@@ -383,12 +383,14 @@ describe('Dashboards util', () => {
           release: ['v1', 'v2'],
         },
       } as DashboardDetails;
-      const testFilters = {
-        release: ['v2', 'v1'],
-      };
 
       expect(
-        hasUnsavedFilterChanges(initialDashboard, TestStubs.location(), testFilters)
+        hasUnsavedFilterChanges(initialDashboard, {
+          ...TestStubs.location(),
+          query: {
+            release: ['v2', 'v1'],
+          },
+        })
       ).toBe(false);
     });
   });

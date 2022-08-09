@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
@@ -23,22 +24,37 @@ type FiltersBarProps = {
   hasUnsavedChanges: boolean;
   isEditingDashboard: boolean;
   isPreview: boolean;
+  location: Location;
   onCancel: () => void;
   onDashboardFilterChange: (activeFilters: DashboardFilters) => void;
   onSave: () => void;
 };
+
+function getReleaseParams(release: string | string[]) {
+  if (Array.isArray(release)) {
+    return release;
+  }
+
+  return [release];
+}
 
 export default function FiltersBar({
   filters,
   hasUnsavedChanges,
   isEditingDashboard,
   isPreview,
+  location,
   onCancel,
   onDashboardFilterChange,
   onSave,
 }: FiltersBarProps) {
   const {selection} = usePageFilters();
   const organization = useOrganization();
+
+  const selectedReleases =
+    (location.query?.release
+      ? getReleaseParams(location.query.release)
+      : filters?.release) ?? [];
 
   return (
     <Wrapper>
@@ -54,7 +70,7 @@ export default function FiltersBar({
               <ReleasesProvider organization={organization} selection={selection}>
                 <ReleasesSelectControl
                   handleChangeFilter={onDashboardFilterChange}
-                  selectedReleases={filters?.release || []}
+                  selectedReleases={selectedReleases}
                   isDisabled={isEditingDashboard}
                 />
               </ReleasesProvider>
