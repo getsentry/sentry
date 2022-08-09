@@ -31,6 +31,8 @@ ALLOWED_SDK_NAMES = frozenset(
         "sentry.javascript.serverless",  # AWS Lambda Node
         "sentry.python",  # python, django, flask, FastAPI, Starlette, Bottle, Celery, pyramid, rq
         "sentry.python.serverless",  # AWS Lambda
+        "sentry.cocoa",  # iOS
+        "sentry.java.android",  # Android
     )
 )
 
