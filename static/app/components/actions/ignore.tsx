@@ -215,6 +215,7 @@ const IgnoreActions = ({
         {t('Ignore')}
       </IgnoreButton>
       <DropdownMenuControl
+        size="sm"
         trigger={({props: triggerProps, ref: triggerRef}) => (
           <DropdownTrigger
             ref={triggerRef}
