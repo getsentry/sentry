@@ -1153,8 +1153,6 @@ SENTRY_FEATURES = {
     "organizations:mobile-screenshots": False,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
-    # Enable suspect resolutions feature
-    "organizations:suspect-resolutions": True,
     # Enable team insights page
     "organizations:team-insights": True,
     # Enable setting team-level roles and receiving permissions from them
@@ -1184,6 +1182,8 @@ SENTRY_FEATURES = {
     "projects:rate-limits": True,
     # Enable functionality to trigger service hooks upon event ingestion.
     "projects:servicehooks": False,
+    # Enable suspect resolutions feature
+    "projects:suspect-resolutions": True,
     # Use Kafka (instead of Celery) for ingestion pipeline.
     "projects:kafka-ingest": False,
     # Workflow 2.0 Auto associate commits to commit sha release
