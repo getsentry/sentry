@@ -146,7 +146,7 @@ export function geKnownData<Data, DataType>({
 
       return {
         key: type,
-        subject: knownDataDetails.subject,
+        ...knownDataDetails,
         value: (
           <ContextData
             data={knownDataDetails.value}
