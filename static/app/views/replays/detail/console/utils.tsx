@@ -1,7 +1,7 @@
-import {BreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
+import {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
 
 export const filterBreadcrumbs = (
-  breadcrumbs: BreadcrumbTypeDefault[],
+  breadcrumbs: Extract<Crumb, BreadcrumbTypeDefault>[],
   searchTerm: string,
   logLevel: Array<string>
 ) => {

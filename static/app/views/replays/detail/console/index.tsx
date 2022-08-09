@@ -5,21 +5,26 @@ import debounce from 'lodash/debounce';
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import {Panel} from 'sentry/components/panels';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {relativeTimeInMs, showPlayerTime} from 'sentry/components/replays/utils';
+import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {BreadcrumbLevelType, BreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
+import type {
+  BreadcrumbLevelType,
+  BreadcrumbTypeDefault,
+  Crumb,
+} from 'sentry/types/breadcrumbs';
+import {getPrevBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
 import ConsoleMessage from 'sentry/views/replays/detail/console/consoleMessage';
 import {filterBreadcrumbs} from 'sentry/views/replays/detail/console/utils';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 interface Props {
-  breadcrumbs: BreadcrumbTypeDefault[];
+  breadcrumbs: Extract<Crumb, BreadcrumbTypeDefault>[];
   startTimestampMs: number;
 }
 
-const getDistinctLogLevels = (breadcrumbs: BreadcrumbTypeDefault[]) =>
+const getDistinctLogLevels = (breadcrumbs: Crumb[]) =>
   Array.from(new Set<string>(breadcrumbs.map(breadcrumb => breadcrumb.level)));
 
 function Console({breadcrumbs, startTimestampMs = 0}: Props) {
@@ -33,42 +38,14 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
     [logLevel, searchTerm, breadcrumbs]
   );
 
-  const activeConsoleBounds = useMemo(() => {
-    if (filteredBreadcrumbs.length <= 0 || currentHoverTime === undefined) {
-      return [-1, -1];
-    }
-
-    let indexUpperBound = 0;
-    const finalBreadCrumbIndex = filteredBreadcrumbs.length - 1;
-    const finalBreadcrumbTimestamp =
-      filteredBreadcrumbs[finalBreadCrumbIndex].timestamp || '';
-
-    if (
-      currentHoverTime >= relativeTimeInMs(finalBreadcrumbTimestamp, startTimestampMs)
-    ) {
-      indexUpperBound = finalBreadCrumbIndex;
-    } else {
-      indexUpperBound =
-        filteredBreadcrumbs.findIndex(
-          breadcrumb =>
-            relativeTimeInMs(breadcrumb.timestamp || '', startTimestampMs) >=
-            (currentHoverTime || 0)
-        ) - 1;
-    }
-
-    const activeMessageBoundary = showPlayerTime(
-      filteredBreadcrumbs[indexUpperBound]?.timestamp || '',
-      startTimestampMs
-    );
-
-    const indexLowerBound = filteredBreadcrumbs.findIndex(
-      breadcrumb =>
-        showPlayerTime(breadcrumb.timestamp || '', startTimestampMs) ===
-        activeMessageBoundary
-    );
-
-    return [indexLowerBound, indexUpperBound];
-  }, [currentHoverTime, filteredBreadcrumbs, startTimestampMs]);
+  const closestUserAction =
+    currentHoverTime !== undefined
+      ? getPrevBreadcrumb({
+          crumbs: breadcrumbs,
+          targetTimestampMs: startTimestampMs + (currentHoverTime ?? 0),
+          allowExact: true,
+        })
+      : undefined;
 
   return (
     <Fragment>
@@ -94,9 +71,9 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
           {filteredBreadcrumbs.map((breadcrumb, i) => {
             return (
               <ConsoleMessage
-                isActive={i >= activeConsoleBounds[0] && i <= activeConsoleBounds[1]}
+                isActive={closestUserAction?.id === breadcrumb.id}
                 startTimestampMs={startTimestampMs}
-                key={i}
+                key={breadcrumb.id}
                 isLast={i === breadcrumbs.length - 1}
                 breadcrumb={breadcrumb}
                 hasOccurred={
