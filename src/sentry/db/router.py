@@ -1,5 +1,6 @@
 _db_table_to_db = {
     "sentry_stringindexer": "metrics-spanner",  # will replace ^ table above
+    "sentry_perfstringindexer": "metrics-spanner",  # will replace ^ table above
 }
 
 

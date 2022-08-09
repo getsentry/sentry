@@ -150,7 +150,7 @@ DATABASES = {
         "ENGINE": "django_spanner",
         "PROJECT": "search-and-storage",
         "INSTANCE": "markus-test-spanner-pg",
-        "NAME": "markus-test-spanner-db-std",
+        "NAME": "metrics-spanner",
     },
 }
 
