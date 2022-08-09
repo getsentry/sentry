@@ -61,8 +61,6 @@ export enum FieldKey {
   PLATFORM = 'platform',
   PLATFORM_NAME = 'platform.name',
   PROJECT = 'project',
-  PROJECT_ID_LEGACY = 'project_id',
-  PROJECT_ID = 'project.id',
   RELEASE = 'release',
   RELEASE_BUILD = 'release.build',
   RELEASE_PACKAGE = 'release.package',
@@ -651,15 +649,6 @@ export const FIELDS: Record<FieldKey & AggregationKey & MobileVital, FieldDefini
   [FieldKey.PROJECT]: {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
-  },
-  [FieldKey.PROJECT_ID]: {
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.NUMBER,
-  },
-  [FieldKey.PROJECT_ID_LEGACY]: {
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.NUMBER,
-    deprecated: true,
   },
   [FieldKey.FIRST_RELEASE]: {
     desc: t('Issues first seen in a given release'),
