@@ -37,13 +37,16 @@ function ReplayContent({eventSlug, orgId}: Props) {
 
   return (
     <Fragment>
-      <ReplayContextProvider replay={replay} initialTimeOffset={0}>
-        <PlayerContainer ref={fullscreenRef}>
-          <ReplayView toggleFullscreen={toggleFullscreen} />
-        </PlayerContainer>
-      </ReplayContextProvider>
       <table className="table key-value">
         <tbody>
+          <tr key="replay">
+            <td className="key">{t('Replay')}</td>
+            <td className="value">
+              <ReplayContextProvider replay={replay} initialTimeOffset={0}>
+                <ReplayView toggleFullscreen={toggleFullscreen} showAddressBar={false} />
+              </ReplayContextProvider>
+            </td>
+          </tr>
           <tr key="id">
             <td className="key">{t('Id')}</td>
             <td className="value">
@@ -60,10 +63,7 @@ function ReplayContent({eventSlug, orgId}: Props) {
             <td className="key">{t('Timestamp')}</td>
             <td className="value">
               <pre className="val-string">
-                <DateTime
-                  format="MMM D, YYYY HH:mm:ss zz"
-                  date={replayRecord.started_at}
-                />
+                <DateTime year seconds utc date={replayRecord.started_at} />
               </pre>
             </td>
           </tr>

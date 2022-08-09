@@ -17,6 +17,7 @@ export default function EventReplay({replayId, orgSlug, projectSlug}: Props) {
       title={t('Replay')}
       actions={
         <Button
+          size="sm"
           priority="primary"
           to={`/organizations/${orgSlug}/replays/${projectSlug}:${replayId}`}
         >
