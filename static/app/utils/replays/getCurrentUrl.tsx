@@ -9,7 +9,7 @@ function getCurrentUrl(
   crumbs: Crumb[],
   currentOffsetMS: number
 ) {
-  const startTimestampMs = replayRecord.started_at.getTime();
+  const startTimestampMs = replayRecord.startedAt.getTime();
   const currentTimeMs = startTimestampMs + Math.floor(currentOffsetMS);
 
   const navigationCrumbs = crumbs.filter(

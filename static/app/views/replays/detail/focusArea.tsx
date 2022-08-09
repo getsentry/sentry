@@ -41,7 +41,7 @@ function FocusArea({}: Props) {
   }
 
   const replayRecord = replay.getReplay();
-  const startTimestampMs = replayRecord.started_at.getTime();
+  const startTimestampMs = replayRecord.startedAt.getTime();
 
   const getNetworkSpans = () => {
     return replay.getRawSpans().filter(replay.isNotMemorySpan);
@@ -56,7 +56,7 @@ function FocusArea({}: Props) {
       return (
         <Console
           breadcrumbs={consoleMessages ?? []}
-          startTimestampMs={replayRecord.started_at.getTime()}
+          startTimestampMs={replayRecord.startedAt.getTime()}
         />
       );
     case 'network':
@@ -84,10 +84,7 @@ function FocusArea({}: Props) {
       );
     case 'issues':
       return (
-        <IssueList
-          replayId={replayRecord.replay_id}
-          projectId={replayRecord.project_id}
-        />
+        <IssueList replayId={replayRecord.replayId} projectId={replayRecord.projectId} />
       );
     case 'dom':
       return <DomMutations replay={replay} />;

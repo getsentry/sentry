@@ -56,8 +56,8 @@ describe('getCurrentUrl', () => {
     tags: {
       url: 'https://sourcemaps.io/#initial',
     },
-    started_at: START_DATE,
-    finished_at: END_DATE,
+    startedAt: START_DATE,
+    finishedAt: END_DATE,
   }) as ReplayRecord;
 
   it('should return the url from tags when the offset is early', () => {

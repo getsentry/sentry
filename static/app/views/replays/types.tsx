@@ -5,32 +5,34 @@ import type {RawCrumb} from 'sentry/types/breadcrumbs';
 // Keep this in sync with the backend blueprint
 // "ReplayRecord" is distinct from the common: "replay = new ReplayReader()"
 export type ReplayRecord = {
-  count_errors: number;
-  count_segments: number;
-  count_urls: number;
+  countErrors: number;
+  countSegments: number;
+  countUrls: number;
   dist: null | string;
   duration: number;
   environment: null | string;
-  finished_at: Date; // API will send a string, needs to be hydrated
-  longest_transaction: number;
+  errorIds: string[];
+  finishedAt: Date; // API will send a string, needs to be hydrated
+  longestTransaction: number;
   platform: string;
-  project_id: string;
-  project_slug: string;
+  projectId: string;
+  projectSlug: string;
   release: null | string;
-  replay_id: string;
-  sdk_name: string;
-  sdk_version: string;
-  started_at: Date; // API will send a string, needs to be hydrated
+  replayId: string;
+  sdkName: string;
+  sdkVersion: string;
+  startedAt: Date; // API will send a string, needs to be hydrated
   tags: Record<string, string>;
   title: string;
-  trace_ids: string[];
+  traceIds: string[];
   urls: string[];
   user: {
     email: null | string;
     id: null | string;
-    ip: null | string;
+    ipAddress: null | string;
     name: null | string;
   };
+  userAgent: string;
 };
 
 export type ReplayDiscoveryListItem = {
