@@ -1498,7 +1498,7 @@ describe('Dashboards > Detail', function () {
       userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
       userEvent.click(document.body);
 
-      expect(browserHistory.replace).toHaveBeenCalledWith(
+      expect(browserHistory.push).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             release: ['sentry-android-shop@1.2.0'],

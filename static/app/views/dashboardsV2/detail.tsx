@@ -412,7 +412,7 @@ class DashboardDetail extends Component<Props, State> {
       },
     });
     if (!isEqual(activeFilters, dashboard.filters?.release)) {
-      browserHistory.replace({
+      browserHistory.push({
         ...location,
         query: {
           ...location.query,
