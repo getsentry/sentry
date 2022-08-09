@@ -9,6 +9,7 @@ import sentry_sdk
 
 from sentry import options
 from sentry.eventstore.processing.base import Event
+from sentry.utils import metrics
 
 Span = Dict[str, Any]
 TransactionSpans = List[Span]
@@ -76,20 +77,41 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
 
     if all_fingerprints:
         sdk_span.containing_transaction.set_tag("_pi_all_issue_count", len(all_fingerprints))
+        metrics.incr(
+            "performance_issue_count", len(all_fingerprints), skip_internal=False, sample_rate=1.0
+        )
         if event_id:
             sdk_span.containing_transaction.set_tag("_pi_transaction", event_id)
+    metrics.incr(
+        "has_performance_problem",
+        instance=str(bool(all_fingerprints)),
+        skip_internal=False,
+        sample_rate=1.0,
+    )
 
     duplicate_performance_issues = detectors[DetectorType.DUPLICATE_SPANS].stored_issues
     duplicate_performance_fingerprints = list(duplicate_performance_issues.keys())
     if duplicate_performance_fingerprints:
         first_duplicate = duplicate_performance_issues[duplicate_performance_fingerprints[0]]
         sdk_span.containing_transaction.set_tag("_pi_duplicates", first_duplicate["span_id"])
+        metrics.incr(
+            "performance_issue_duplicates",
+            len(duplicate_performance_fingerprints),
+            skip_internal=False,
+            sample_rate=1.0,
+        )
 
     slow_span_performance_issues = detectors[DetectorType.SLOW_SPAN].stored_issues
     slow_performance_fingerprints = list(slow_span_performance_issues.keys())
     if slow_performance_fingerprints:
         first_slow_span = slow_span_performance_issues[slow_performance_fingerprints[0]]
         sdk_span.containing_transaction.set_tag("_pi_slow_span", first_slow_span["span_id"])
+        metrics.incr(
+            "performance_issue_slow_span",
+            len(slow_performance_fingerprints),
+            skip_internal=False,
+            sample_rate=1.0,
+        )
 
     sequential_span_performance_issues = detectors[DetectorType.SEQUENTIAL_SLOW_SPANS].stored_issues
     sequential_performance_fingerprints = list(sequential_span_performance_issues.keys())
@@ -98,6 +120,12 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
             sequential_performance_fingerprints[0]
         ]
         sdk_span.containing_transaction.set_tag("_pi_sequential", first_sequential_span["span_id"])
+        metrics.incr(
+            "performance_issue_sequential",
+            len(sequential_performance_fingerprints),
+            skip_internal=False,
+            sample_rate=1.0,
+        )
 
 
 # Creates a stable fingerprint given the same span details using sha1.
