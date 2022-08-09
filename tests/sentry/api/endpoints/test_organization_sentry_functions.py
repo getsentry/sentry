@@ -7,7 +7,6 @@ from sentry.testutils.helpers import Feature
 
 
 class OrganizationSentryFunctions(APITestCase):
-    # method = "POST"
     endpoint = "sentry-api-0-organization-sentry-functions"
 
     def setUp(self):
