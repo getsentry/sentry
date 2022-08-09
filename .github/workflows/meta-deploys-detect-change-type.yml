@@ -12,10 +12,10 @@ jobs:
     name: detect what files changed
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
+      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e # v2
 
       - name: Check for file changes
-        uses: getsentry/paths-filter@78ab00f87740f82aec8ed8826eb4c3c851044126  # master
+        uses: getsentry/paths-filter@78ab00f87740f82aec8ed8826eb4c3c851044126 # master
         id: changes
         with:
           list-files: shell
@@ -23,7 +23,7 @@ jobs:
           filters: .github/file-filters.yml
 
       - name: Create GitHub job
-        uses: actions/github-script@e3cbab99d3a9b271e1b79fc96d103a4a5534998c  # v5
+        uses: actions/github-script@e3cbab99d3a9b271e1b79fc96d103a4a5534998c # v5
         with:
           script: |
             require(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/deploy`).updateChangeType({

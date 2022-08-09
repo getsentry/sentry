@@ -22,7 +22,7 @@ jobs:
         run: |
           labels_to_remove=$(gh api --paginate "/repos/$GH_REPO/labels" -q '[.[].name | select((startswith("Team: ") or startswith("Status: ")) and . != "${{ github.event.label.name }}" and . != "Status: Untriaged")] | join(",")')
           gh issue edit ${{ github.event.issue.number }} --remove-label "$labels_to_remove" --add-label '${{ github.event.label.name }},Status: Untriaged'
-      - name: "Mention/ping assigned team for triage"
+      - name: 'Mention/ping assigned team for triage'
         run: |
           # Get team label mention name:
           team_label='${{ github.event.label.name }}'
