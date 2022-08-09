@@ -154,7 +154,6 @@ export function geKnownData<Data, DataType>({
             withAnnotatedText
           />
         ),
-        meta: meta?.[type]?.[''],
       };
     })
     .filter(defined);
