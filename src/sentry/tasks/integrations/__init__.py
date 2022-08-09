@@ -23,7 +23,6 @@ __all__ = (
     "kickoff_vsts_subscription_check",
     "logger",
     "migrate_issues",
-    "migrate_ignored_fields",
     "migrate_repo",
     "should_comment_sync",
     "sync_assignee_outbound",
@@ -38,7 +37,6 @@ _tasks_list = (
     "create_comment",
     "kick_off_status_syncs",
     "migrate_issues",
-    "migrate_ignored_fields",
     "migrate_repo",
     "sync_assignee_outbound",
     "sync_metadata",
@@ -52,7 +50,6 @@ settings.CELERY_IMPORTS += tuple(f"sentry.tasks.integrations.{task}" for task in
 
 from .create_comment import create_comment
 from .kick_off_status_syncs import kick_off_status_syncs
-from .migrate_ignored_fields import migrate_ignored_fields
 from .migrate_issues import migrate_issues
 from .migrate_repo import migrate_repo
 from .sync_assignee_outbound import sync_assignee_outbound

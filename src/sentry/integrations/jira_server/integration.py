@@ -31,11 +31,9 @@ from sentry.models import (
     IntegrationExternalProject,
     Organization,
     OrganizationIntegration,
-    Project,
     User,
 )
 from sentry.pipeline import PipelineView
-from sentry.plugins.base import plugins
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -43,12 +41,11 @@ from sentry.shared_integrations.exceptions import (
     IntegrationError,
     IntegrationFormError,
 )
-from sentry.tasks.integrations import migrate_ignored_fields, migrate_issues
+from sentry.tasks.integrations import migrate_issues
 from sentry.utils.decorators import classproperty
 from sentry.utils.hashlib import sha1_text
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
-from sentry_plugins.jira.plugin import JiraPlugin
 
 from .client import JiraServerClient, JiraServerSetupClient
 
@@ -1085,47 +1082,12 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                 self.get_client().create_comment(external_issue.key, comment)
 
     def migrate_issues(self):
-        for project in Project.objects.filter(organization_id=self.organization_id):
-            plugin = None
-            for p in plugins.for_project(project):
-                if isinstance(p, JiraPlugin) and p.is_configured(None, project):
-                    plugin = p
-                    break
-
-            if not plugin:
-                continue
-
-            is_different_jira_instance = plugin.get_option("instance_url", project).rstrip(
-                "/"
-            ) != self.model.metadata.get("base_url").rstrip("/")
-            if is_different_jira_instance:
-                continue
-
-            migrate_issues.apply_async(
-                kwargs={
-                    "integration_id": self.model.id,
-                    "organization_id": self.organization_id,
-                    "project_id": project.id,
-                    "plugin_slug": plugin.slug,
-                }
-            )
-
-            plugin_ignored_fields = plugin.get_option("ignored_fields", project)
-            if plugin_ignored_fields:
-                logging_context = {
-                    "organization_id": self.organization_id,
-                    "project_id": project.id,
-                    "plugin_slug": plugin.slug,
-                }
-                migrate_ignored_fields.apply_async(
-                    kwargs={
-                        "integration_id": self.model.id,
-                        "plugin_ignored_fields": plugin_ignored_fields,
-                        "logging_context": logging_context,
-                    }
-                )
-
-            plugin.disable(project)
+        migrate_issues.apply_async(
+            kwargs={
+                "integration_id": self.model.id,
+                "organization_id": self.organization_id,
+            }
+        )
 
 
 class JiraServerIntegrationProvider(IntegrationProvider):

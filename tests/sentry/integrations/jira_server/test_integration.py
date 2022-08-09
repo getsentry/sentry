@@ -11,6 +11,7 @@ from fixtures.integrations import StubService
 from fixtures.integrations.jira import StubJiraApiClient
 from sentry.models import (
     ExternalIssue,
+    GroupLink,
     GroupMeta,
     Integration,
     IntegrationExternalProject,
@@ -939,6 +940,7 @@ class JiraMigrationIntegrationTest(APITestCase):
         self.plugin.set_option("default_project", "SEN", self.project)
         self.plugin.set_option("instance_url", "https://example.atlassian.net", self.project)
         self.plugin.set_option("ignored_fields", "hellboy, meow", self.project)
+        self.installation = self.integration.get_installation(self.organization.id)
         self.login_as(self.user)
 
     def test_migrate_plugin(self):
@@ -961,13 +963,12 @@ class JiraMigrationIntegrationTest(APITestCase):
         plugin2_issue = GroupMeta.objects.create(
             key=f"{self.plugin.slug}:tid", group_id=group2.id, value="BAR-1"
         )
-        installation = self.integration.get_installation(self.organization.id)
         org_integration = OrganizationIntegration.objects.get(integration_id=self.integration.id)
         org_integration.config.update({"issues_ignored_fields": ["reporter", "test"]})
         org_integration.save()
 
         with self.tasks():
-            installation.migrate_issues()
+            self.installation.migrate_issues()
 
         assert ExternalIssue.objects.filter(
             organization_id=self.organization.id,
@@ -999,9 +1000,8 @@ class JiraMigrationIntegrationTest(APITestCase):
         plugin_issue = GroupMeta.objects.create(
             key=f"{self.plugin.slug}:tid", group_id=group.id, value="SEN-1"
         )
-        installation = self.integration.get_installation(self.organization.id)
         with self.tasks():
-            installation.migrate_issues()
+            self.installation.migrate_issues()
 
         assert not ExternalIssue.objects.filter(
             organization_id=self.organization.id,
@@ -1011,3 +1011,26 @@ class JiraMigrationIntegrationTest(APITestCase):
         assert GroupMeta.objects.filter(
             key=f"{self.plugin.slug}:tid", group_id=group.id, value="SEN-1"
         ).exists()
+
+    def test_external_issue_already_exists(self):
+        """Test that if an issue already exists during migration, we continue with no issue"""
+
+        group = self.create_group(message="Hello world", culprit="foo.bar")
+        GroupMeta.objects.create(key=f"{self.plugin.slug}:tid", group_id=group.id, value="SEN-1")
+        group2 = self.create_group(message="Hello world", culprit="foo.bar")
+        GroupMeta.objects.create(key=f"{self.plugin.slug}:tid", group_id=group2.id, value="BAR-1")
+        integration_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            key="BAR-1",
+        )
+        GroupLink.objects.create(
+            group_id=group2.id,
+            project_id=self.project.id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=integration_issue.id,
+            relationship=GroupLink.Relationship.references,
+        )
+
+        with self.tasks():
+            self.installation.migrate_issues()
