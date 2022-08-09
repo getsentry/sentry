@@ -121,7 +121,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
 
     return (
       <Panel>
-        <PanelHeader hasButtons>{t('Sentry Functions')}</PanelHeader>
+        <PanelHeader>{t('Sentry Functions')}</PanelHeader>
         <PanelBody>
           {sentryFunctions?.length ? (
             sentryFunctions.map(this.renderSentryFunction)
