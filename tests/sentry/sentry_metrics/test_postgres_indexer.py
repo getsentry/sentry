@@ -4,9 +4,12 @@ import pytest
 
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.base import FetchType, FetchTypeExt, KeyCollection, Metadata
-from sentry.sentry_metrics.indexer.cache import indexer_cache
 from sentry.sentry_metrics.indexer.models import StringIndexer
-from sentry.sentry_metrics.indexer.postgres_v2 import PGStringIndexerV2, PostgresIndexer
+from sentry.sentry_metrics.indexer.postgres_v2 import (
+    PGStringIndexerV2,
+    PostgresIndexer,
+    indexer_cache,
+)
 from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options

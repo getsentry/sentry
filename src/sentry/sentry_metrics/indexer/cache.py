@@ -1,5 +1,6 @@
 import logging
 import random
+from enum import Enum
 from typing import Mapping, MutableMapping, Optional, Sequence
 
 from django.conf import settings
@@ -10,10 +11,16 @@ from sentry.utils.hashlib import md5_text
 logger = logging.getLogger(__name__)
 
 
+class PartitionKey(Enum):
+    CLOUD_SPANNER = "cs"
+    POSTGRES = "pg"
+
+
 class StringIndexerCache:
-    def __init__(self, version: int, cache_name: str):
+    def __init__(self, version: int, cache_name: str, partition_key: Optional[str] = None):
         self.version = version
         self.cache = caches[cache_name]
+        self.partition_key = partition_key or ""
 
     @property
     def randomized_ttl(self) -> int:
@@ -25,7 +32,7 @@ class StringIndexerCache:
 
     def make_cache_key(self, key: str, cache_namespace: str) -> str:
         hashed = md5_text(key).hexdigest()
-        return f"indexer:org:str:{cache_namespace}:{hashed}"
+        return f"indexer{self.partition_key}:org:str:{cache_namespace}:{hashed}"
 
     def _format_results(
         self, keys: Sequence[str], results: Mapping[str, Optional[int]], cache_namespace: str
@@ -83,5 +90,4 @@ class StringIndexerCache:
         self.cache.delete_many(cache_keys, version=self.version)
 
 
-# todo: dont hard code 1 as the version
 indexer_cache = StringIndexerCache(**settings.SENTRY_STRING_INDEXER_CACHE_OPTIONS)
