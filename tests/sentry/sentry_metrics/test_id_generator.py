@@ -8,6 +8,6 @@ def test_get_id() -> None:
     # IDs fit in 64 bits
     assert get_id() <= pow(2, 64)
 
-    # Starts with 01 (version)
+    # Starts with 0100 (version)
     id_binary_string = bin(get_id())[2:].zfill(64)
     assert id_binary_string.startswith("0100")
