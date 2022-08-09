@@ -141,12 +141,9 @@ function Controls({
             </Button>
             {hasFeature ? (
               <Tooltip
-                title={
-                  (hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE) ||
-                  tct('Max widgets ([maxWidgets]) per dashboard reached.', {
-                    maxWidgets: MAX_WIDGETS,
-                  })
-                }
+                title={tct('Max widgets ([maxWidgets]) per dashboard reached.', {
+                  maxWidgets: MAX_WIDGETS,
+                })}
                 disabled={!!!widgetLimitReached}
               >
                 <GuideAnchor
