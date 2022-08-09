@@ -63,19 +63,14 @@ const Context = ({
     ) : null;
   }
 
-  const getContextLines = () => {
-    if (isExpanded) {
-      return frame.context;
-    }
-    return frame.context.filter(l => l[0] === frame.lineNo);
-  };
-
-  const contextLines = getContextLines();
+  const contextLines = isExpanded
+    ? frame.context
+    : frame.context.filter(l => l[0] === frame.lineNo);
 
   const startLineNo = hasContextSource ? frame.context[0][0] : undefined;
 
   return (
-    <ol
+    <Wrapper
       start={startLineNo}
       className={`${className} context ${isExpanded ? 'expanded' : ''}`}
     >
@@ -136,7 +131,7 @@ const Context = ({
       {hasAssembly && (
         <Assembly {...parseAssembly(frame.package)} filePath={frame.absPath} />
       )}
-    </ol>
+    </Wrapper>
   );
 };
 
@@ -166,4 +161,10 @@ const StyledContextLine = styled(ContextLine)`
   padding: 0;
   text-indent: 20px;
   z-index: 1000;
+`;
+
+const Wrapper = styled('ol')`
+  && {
+    border-radius: 0;
+  }
 `;
