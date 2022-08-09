@@ -1120,6 +1120,8 @@ SENTRY_FEATURES = {
     "organizations:performance-extraneous-spans-poc": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
+    # Enable populating suggested assignees with release committers
+    "organizations:release-committer-assignees": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,

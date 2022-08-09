@@ -14,6 +14,7 @@ from sentry.models import (
     GROUP_OWNER_TYPE,
     Activity,
     ApiToken,
+    Commit,
     ExternalIssue,
     Group,
     GroupAssignee,
@@ -25,6 +26,7 @@ from sentry.models import (
     GroupLink,
     GroupOwner,
     GroupOwnerType,
+    GroupRelease,
     GroupResolution,
     GroupSeen,
     GroupShare,
@@ -35,7 +37,9 @@ from sentry.models import (
     Integration,
     OrganizationIntegration,
     Release,
+    ReleaseCommit,
     ReleaseStages,
+    Repository,
     UserOption,
     add_group_to_inbox,
     remove_group_from_inbox,
@@ -1782,6 +1786,82 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == event.group.id
+
+    def test_include_release_committers_owners(self):
+        with self.feature("organizations:release-committer-assignees"):
+            event = self.store_event(
+                data={
+                    "timestamp": iso_format(before_now(seconds=500)),
+                    "fingerprint": ["group-1"],
+                    "release": "1.0.0",
+                },
+                project_id=self.project.id,
+            )
+            query = "status:unresolved"
+            self.login_as(user=self.user)
+            # Test with no owner
+            response = self.get_response(sort_by="date", limit=10, query=query, expand="owners")
+            assert response.status_code == 200
+            assert len(response.data) == 1
+            assert int(response.data[0]["id"]) == event.group.id
+            assert response.data[0]["owners"] is None
+
+            # setup release commits
+            group = event.group
+            assert Group.objects.get(id=group.id)
+
+            assert GroupRelease.objects.filter(group_id=group.id).exists()
+
+            project = self.create_project(name="foo")
+            release = Release.objects.create(organization_id=project.organization_id, version="1")
+            release.add_project(project)
+            repo = Repository.objects.create(
+                organization_id=project.organization_id, name=project.name
+            )
+            commit = Commit.objects.create(
+                organization_id=project.organization_id, repository_id=repo.id, key="a" * 40
+            )
+            commit2 = Commit.objects.create(
+                organization_id=project.organization_id, repository_id=repo.id, key="b" * 40
+            )
+            ReleaseCommit.objects.create(
+                organization_id=project.organization_id, release=release, commit=commit, order=1
+            )
+            ReleaseCommit.objects.create(
+                organization_id=project.organization_id, release=release, commit=commit2, order=0
+            )
+
+            # Test with owners
+            GroupOwner.objects.create(
+                group=event.group,
+                project=event.project,
+                organization=event.project.organization,
+                type=GroupOwnerType.SUSPECT_COMMIT.value,
+                user=self.user,
+            )
+            GroupOwner.objects.create(
+                group=event.group,
+                project=event.project,
+                organization=event.project.organization,
+                type=GroupOwnerType.OWNERSHIP_RULE.value,
+                team=self.team,
+            )
+            response = self.get_response(sort_by="date", limit=10, query=query, expand="owners")
+            assert response.status_code == 200
+            assert len(response.data) == 1
+            assert int(response.data[0]["id"]) == event.group.id
+            assert response.data[0]["owners"] is not None
+            assert len(response.data[0]["owners"]) == 2
+            assert response.data[0]["owners"][0]["owner"] == f"user:{self.user.id}"
+            assert response.data[0]["owners"][1]["owner"] == f"team:{self.team.id}"
+            assert (
+                response.data[0]["owners"][0]["type"]
+                == GROUP_OWNER_TYPE[GroupOwnerType.SUSPECT_COMMIT]
+            )
+            assert (
+                response.data[0]["owners"][1]["type"]
+                == GROUP_OWNER_TYPE[GroupOwnerType.OWNERSHIP_RULE]
+            )
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):

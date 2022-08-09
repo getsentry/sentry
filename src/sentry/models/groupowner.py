@@ -76,4 +76,51 @@ def get_owner_details(group_list):
             }
         )
 
+    # quick and dirty way to get release committers
+    def _get_release_committers_for_group(group_id):
+        from sentry.api.serializers import get_users_for_authors
+        from sentry.models import GroupRelease, ReleaseCommit
+
+        # if ReleaseCommit.objects.filter(
+        #         commit__pullrequestcommit__pull_request__in=pr_ids
+        # ).exists():
+        # pr_ids = PullRequest.objects.filter(
+        #     pullrequestcommit__commit=latest_issue_commit_resolution.linked_id
+        # ).values_list("id", flat=True)
+        # # assume that this commit has been released if any commits in this PR have been released
+        # if ReleaseCommit.objects.filter(
+        #         commit__pullrequestcommit__pull_request__in=pr_ids
+        # ).exists():
+        # group_id -> GroupRelease -> Release ->
+        group_releases = GroupRelease.objects.filter(group_id=group_id).values_list(
+            "release_id", flat=True
+        )
+
+        # ReleaseCommit -> Commit -> CommitAuthor
+        release_commits = ReleaseCommit.objects.filter(release__in=group_releases).select_related(
+            "commit", "release", "commit__author"
+        )
+
+        if not release_commits.exists():
+            return []
+
+        author_to_user = get_users_for_authors(
+            release_commits[0].organization_id,
+            [_rc.commit.author for _rc in release_commits if _rc.commit and _rc.commit.author],
+        )
+        return [
+            {"type": "releaseCommitters", "owner": f"user:{user.id}", "date_added": ""}
+            for user in author_to_user
+            if user.get("id")
+        ]
+
+    org = next(iter([g.organization for g in group_owners] or []), None)
+    from sentry import features
+
+    if org and features.has("organizations:release-committer-assignees", org):
+        for g in group_ids:
+            release_committers = _get_release_committers_for_group(g)
+            for rc in release_committers:
+                owner_details[g].append(rc)
+
     return owner_details
