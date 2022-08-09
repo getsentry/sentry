@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
@@ -92,7 +91,11 @@ const MutationListItem = styled('li')`
 
 const MutationItemContainer = styled('div')`
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 1fr;
+
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    grid-template-columns: 280px 1fr;
+  }
 `;
 
 const MutationMetadata = styled('div')`
@@ -148,13 +151,14 @@ const CodeContainer = styled('div')`
   overflow: auto;
   max-height: 400px;
   max-width: 100%;
+  z-index: 1;
 `;
 
 const StepConnector = styled('div')`
   position: absolute;
   height: 100%;
   top: 28px;
-  left: 31px;
+  left: 28px;
   border-right: 1px ${p => p.theme.border} dashed;
 `;
 
