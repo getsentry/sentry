@@ -1102,6 +1102,7 @@ default_config = SearchConfig(
         "stack.lineno",
         "stack.stack_level",
         "transaction.duration",
+        "timesSeen",
     },
     date_keys={
         "start",

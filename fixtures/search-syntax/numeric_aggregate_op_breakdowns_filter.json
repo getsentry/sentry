@@ -162,7 +162,7 @@
     ]
   },
   {
-    "query": "min(timesSeen):<3k",
+    "query": "min(measurements.stall_count):<3k",
     "result": [
       {
         "type": "spaces",
@@ -186,7 +186,7 @@
                 "separator": "",
                 "value": {
                   "type": "keyAggregateParam",
-                  "value": "timesSeen",
+                  "value": "measurements.stall_count",
                   "quoted": false
                 }
               }
@@ -216,7 +216,7 @@
     ]
   },
   {
-    "query": "min(timesSeen):2m",
+    "query": "min(measurements.stall_count):2m",
     "result": [
       {
         "type": "spaces",
@@ -240,7 +240,7 @@
                 "separator": "",
                 "value": {
                   "type": "keyAggregateParam",
-                  "value": "timesSeen",
+                  "value": "measurements.stall_count",
                   "quoted": false
                 }
               }
