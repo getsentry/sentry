@@ -39,11 +39,11 @@ class MSTeamsUnassignedNotificationTest(MSTeamsActivityNotificationTest):
 
         assert f"Issue unassigned by {self.user.get_display_name()}" == body[0]["text"]
         assert (
-            f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=unassigned&#95;activity-msteams)"
+            f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=unassigned\\_activity-msteams)"
             == body[1]["text"]
         )
         assert (
-            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=unassigned&#95;activity-msteams-user)"
+            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=unassigned\\_activity-msteams-user)"
             == body[3]["columns"][1]["items"][0]["text"]
         )
 
@@ -73,10 +73,10 @@ class MSTeamsUnassignedNotificationTest(MSTeamsActivityNotificationTest):
 
         assert "Issue unassigned by Sentry" == body[0]["text"]
         assert (
-            f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=unassigned&#95;activity-msteams)"
+            f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=unassigned\\_activity-msteams)"
             == body[1]["text"]
         )
         assert (
-            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=unassigned&#95;activity-msteams-user)"
+            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=unassigned\\_activity-msteams-user)"
             == body[3]["columns"][1]["items"][0]["text"]
         )

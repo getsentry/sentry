@@ -54,11 +54,11 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
             == body[0]["text"]
         )
         assert (
-            f"[{event.title}](http://testserver/organizations/{self.organization.slug}/issues/{event.group_id}/?referrer=issue&#95;alert-msteams)"
+            f"[{event.title}](http://testserver/organizations/{self.organization.slug}/issues/{event.group_id}/?referrer=issue\\_alert-msteams)"
             == body[1]["text"]
         )
         assert (
-            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/alerts/?referrer=issue&#95;alert-msteams-user)"
+            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/alerts/?referrer=issue\\_alert-msteams-user)"
             == body[3]["columns"][1]["items"][0]["text"]
         )
 
@@ -101,10 +101,10 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
             == body[0]["text"]
         )
         assert (
-            f"[{event.title}](http://testserver/organizations/{self.organization.slug}/issues/{event.group_id}/?referrer=issue&#95;alert-msteams)"
+            f"[{event.title}](http://testserver/organizations/{self.organization.slug}/issues/{event.group_id}/?referrer=issue\\_alert-msteams)"
             == body[1]["text"]
         )
         assert (
-            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/alerts/?referrer=issue&#95;alert-msteams-user)"
+            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/alerts/?referrer=issue\\_alert-msteams-user)"
             == body[3]["columns"][1]["items"][0]["text"]
         )
