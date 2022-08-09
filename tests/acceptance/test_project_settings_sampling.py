@@ -6,7 +6,7 @@ from sentry.api.endpoints.project_details import DynamicSamplingSerializer
 from sentry.models import ProjectOption
 from sentry.testutils import AcceptanceTestCase
 
-FEATURE_NAME = "organizations:server-side-sampling"
+FEATURE_NAME = ["organizations:server-side-sampling" + "organizations:server-side-sampling-ui"]
 
 uniform_rule_with_recommended_sampling_values = {
     "id": 1,
