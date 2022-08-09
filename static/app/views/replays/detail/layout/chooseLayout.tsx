@@ -1,13 +1,21 @@
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import {IconPanel} from 'sentry/icons';
-import useReplayLayout, {layoutLabels} from 'sentry/utils/replays/hooks/useReplayLayout';
+import {t} from 'sentry/locale';
+import useReplayLayout, {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
+
+const layoutToLabel: Record<LayoutKey, string> = {
+  topbar: t('Player Top'),
+  sidebar_left: t('Player Left'),
+  sidebar_right: t('Player Right'),
+};
+
+const layoutToDir: Record<LayoutKey, string> = {
+  topbar: 'up',
+  sidebar_left: 'left',
+  sidebar_right: 'right',
+};
 
 function getLayoutIcon(layout: string) {
-  const layoutToDir = {
-    sidebar_right: 'right',
-    sidebar_left: 'left',
-    topbar: 'up',
-  };
   const dir = layout in layoutToDir ? layoutToDir[layout] : 'up';
   return <IconPanel size="sm" direction={dir} />;
 }
@@ -27,7 +35,7 @@ function ChooseLayout({}: Props) {
       value={getLayout()}
       placement="bottom right"
       onChange={opt => setLayout(opt?.value)}
-      options={Object.entries(layoutLabels).map(([value, label]) => ({
+      options={Object.entries(layoutToLabel).map(([value, label]) => ({
         value,
         label,
         leadingItems: getLayoutIcon(value),
