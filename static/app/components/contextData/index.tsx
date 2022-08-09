@@ -109,7 +109,7 @@ function walk({
             preserveQuotes,
             withAnnotatedText,
             jsonConsts,
-            meta: meta?.[i]?.[''] ?? meta?.[i] ?? meta,
+            meta: meta?.[i]?.[''] ?? meta?.[i] ?? meta?.[''] ?? meta,
           })}
           {i < value.length - 1 ? <span className="val-array-sep">{', '}</span> : null}
         </span>
@@ -150,7 +150,7 @@ function walk({
             preserveQuotes,
             withAnnotatedText,
             jsonConsts,
-            meta: meta?.[key]?.[''] ?? meta?.[key] ?? meta,
+            meta: meta?.[key]?.[''] ?? meta?.[key] ?? meta?.[''] ?? meta,
           })}
           {i < keys.length - 1 ? <span className="val-dict-sep">{', '}</span> : null}
         </span>

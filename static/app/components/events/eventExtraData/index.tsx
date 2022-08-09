@@ -30,6 +30,7 @@ const EventExtraDataContext = memo(
             data={geKnownData<EventExtraData, EventExtraDataType>({
               data: event.context,
               knownDataTypes: Object.keys(event.context),
+              meta: event._meta?.context,
               onGetKnownDataDetails: v => getEventExtraDataKnownDataDetails(v),
             })}
             raw={raw}

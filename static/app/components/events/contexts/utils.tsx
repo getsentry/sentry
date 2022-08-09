@@ -150,7 +150,7 @@ export function geKnownData<Data, DataType>({
         value: (
           <ContextData
             data={knownDataDetails.value}
-            meta={meta?.[type]?.['']}
+            meta={meta?.[type]}
             withAnnotatedText
           />
         ),
