@@ -94,6 +94,7 @@ export const mockedSamplingSdkVersions: SamplingSdkVersion[] = [
     latestSDKName: 'sentry.javascript.react',
     isSendingSampleRate: true,
     isSendingSource: true,
+    isSupportedPlatform: true,
   },
   {
     project: mockedProjects[1].slug,
@@ -101,6 +102,7 @@ export const mockedSamplingSdkVersions: SamplingSdkVersion[] = [
     latestSDKName: 'sentry.python',
     isSendingSampleRate: false,
     isSendingSource: false,
+    isSupportedPlatform: true,
   },
   {
     project: 'java',
@@ -108,6 +110,15 @@ export const mockedSamplingSdkVersions: SamplingSdkVersion[] = [
     latestSDKName: 'sentry.java',
     isSendingSampleRate: true,
     isSendingSource: false,
+    isSupportedPlatform: true,
+  },
+  {
+    project: 'angular',
+    latestSDKVersion: '1.0.2',
+    latestSDKName: 'sentry.javascript.angular',
+    isSendingSampleRate: false,
+    isSendingSource: false,
+    isSupportedPlatform: false,
   },
 ];
 
@@ -171,6 +182,7 @@ useRecommendedSdkUpgrades.mockImplementation(() => ({
       latestSDKVersion: mockedSamplingSdkVersions[1].latestSDKVersion,
     },
   ],
+  incompatibleProjects: [],
   fetching: false,
 }));
 
@@ -182,7 +194,7 @@ export function getMockData({
     ...initializeOrg(),
     organization: {
       ...initializeOrg().organization,
-      features: ['server-side-sampling'],
+      features: ['server-side-sampling', 'server-side-sampling-ui'],
       access: access ?? initializeOrg().organization.access,
       projects,
     },

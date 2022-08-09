@@ -85,7 +85,7 @@ function ReplayPlayPauseBar({isCompact}: {isCompact: boolean}) {
           title={t('Next breadcrumb')}
           icon={<IconNext size="sm" />}
           onClick={() => {
-            const startTimestampMs = replay?.getReplay().started_at?.getTime();
+            const startTimestampMs = replay?.getReplay().startedAt?.getTime();
             if (!startTimestampMs) {
               return;
             }
@@ -114,7 +114,7 @@ function ReplayCurrentTime() {
 
   return (
     <span>
-      {formatTime(currentTime)} / {durationMs ? formatTime(durationMs) : '??:??'}
+      {formatTime(currentTime)} / {durationMs ? formatTime(durationMs) : '--:--'}
     </span>
   );
 }

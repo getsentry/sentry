@@ -150,8 +150,7 @@ class DashboardDetail extends Component<Props, State> {
       location,
       router,
     } = this.props;
-    const {seriesData, tableData, pageLinks, totalIssuesCount, modifiedDashboard} =
-      this.state;
+    const {seriesData, tableData, pageLinks, totalIssuesCount} = this.state;
     if (isWidgetViewerPath(location.pathname)) {
       const widget =
         defined(widgetId) &&
@@ -206,11 +205,7 @@ class DashboardDetail extends Component<Props, State> {
           },
           disableEditWidget:
             organization.features.includes('dashboards-top-level-filter') &&
-            hasUnsavedFilterChanges(
-              dashboard,
-              location,
-              (modifiedDashboard ?? dashboard).filters
-            ),
+            hasUnsavedFilterChanges(dashboard, location),
           disabledEditMessage: UNSAVED_FILTERS_MESSAGE,
         });
         trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.open', {
@@ -407,7 +402,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   handleChangeFilter = (activeFilters: DashboardFilters) => {
-    const {dashboard} = this.props;
+    const {dashboard, location} = this.props;
     const {modifiedDashboard} = this.state;
     const newModifiedDashboard = modifiedDashboard || dashboard;
 
@@ -425,6 +420,15 @@ class DashboardDetail extends Component<Props, State> {
         filters: {...newModifiedDashboard.filters, ...activeFilters},
       },
     });
+    if (!isEqual(activeFilters, dashboard.filters?.release)) {
+      browserHistory.push({
+        ...location,
+        query: {
+          ...location.query,
+          ...activeFilters,
+        },
+      });
+    }
   };
 
   handleUpdateWidgetList = (widgets: Widget[]) => {
@@ -749,13 +753,11 @@ class DashboardDetail extends Component<Props, State> {
       this.state;
     const {dashboardId} = params;
 
-    const {filters} = modifiedDashboard || dashboard;
-
     const disableDashboardModifications =
       organization.features.includes('dashboards-top-level-filter') &&
       dashboard.id !== 'default-overview' &&
       dashboardState !== DashboardState.CREATE &&
-      hasUnsavedFilterChanges(dashboard, location, filters);
+      hasUnsavedFilterChanges(dashboard, location);
 
     const eventView = generatePerformanceEventView(location, projects);
 
@@ -841,12 +843,13 @@ class DashboardDetail extends Component<Props, State> {
                     </MetricsDataSwitcher>
                   ) : null}
                   <FiltersBar
+                    filters={(modifiedDashboard ?? dashboard).filters}
+                    location={location}
                     hasUnsavedChanges={disableDashboardModifications}
                     isEditingDashboard={
                       dashboardState !== DashboardState.CREATE && this.isEditing
                     }
                     isPreview={this.isPreview}
-                    filters={filters}
                     onDashboardFilterChange={this.handleChangeFilter}
                     onCancel={() => {
                       resetPageFilters(dashboard, location);
@@ -871,6 +874,10 @@ class DashboardDetail extends Component<Props, State> {
                             });
                           }
                           addSuccessMessage(t('Dashboard filters updated'));
+                          browserHistory.replace({
+                            pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
+                            query: omit(location.query, 'release'),
+                          });
                         },
                         () => undefined
                       );

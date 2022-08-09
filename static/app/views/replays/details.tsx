@@ -7,11 +7,14 @@ import {
   useReplayContext,
 } from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
+import PreferencesStore from 'sentry/stores/preferencesStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {PageContent} from 'sentry/styles/organization';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import useUrlParam from 'sentry/utils/replays/hooks/useUrlParams';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 import Layout from 'sentry/views/replays/detail/layout';
+import {getDefaultLayout} from 'sentry/views/replays/detail/layout/utils';
 import Page from 'sentry/views/replays/detail/page';
 
 const LAYOUT_NAMES = ['topbar', 'sidebar_right', 'sidebar_left'];
@@ -71,7 +74,8 @@ function ReplayDetails() {
 }
 
 function LoadedDetails({orgId}: {orgId: string}) {
-  const {getParamValue} = useUrlParam('l_page', 'topbar');
+  const collapsed = !!useLegacyStore(PreferencesStore).collapsed;
+  const {getParamValue} = useUrlParam('l_page', getDefaultLayout(collapsed));
   const {replay} = useReplayContext();
   const durationMs = replay?.getDurationMs();
 

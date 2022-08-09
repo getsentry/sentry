@@ -197,6 +197,7 @@ function MenuControl({
         {...menuProps}
         triggerRef={ref}
         triggerWidth={triggerWidth}
+        size={size}
         isSubmenu={isSubmenu}
         isDismissable={!isSubmenu && props.isDismissable}
         shouldCloseOnBlur={!isSubmenu && props.shouldCloseOnBlur}
