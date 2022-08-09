@@ -44,7 +44,7 @@ function walk({
   if (value === null) {
     return (
       <span className="val-null">
-        <AnnotatedText value={jsonConsts ? 'null' : 'None'} meta={meta} />
+        <AnnotatedText value={jsonConsts ? 'null' : 'None'} meta={meta?.[''] ?? meta} />
       </span>
     );
   }
@@ -54,7 +54,7 @@ function walk({
       <span className="val-bool">
         <AnnotatedText
           value={jsonConsts ? (value ? 'true' : 'false') : value ? 'True' : 'False'}
-          meta={meta}
+          meta={meta?.[''] ?? meta}
         />
       </span>
     );
@@ -64,7 +64,7 @@ function walk({
     const valueInfo = analyzeStringForRepr(value);
 
     const valueToBeReturned = withAnnotatedText ? (
-      <AnnotatedText value={valueInfo.repr} meta={meta} />
+      <AnnotatedText value={valueInfo.repr} meta={meta?.[''] ?? meta} />
     ) : (
       valueInfo.repr
     );
@@ -95,7 +95,11 @@ function walk({
 
   if (isNumber(value)) {
     const valueToBeReturned =
-      withAnnotatedText && meta ? <AnnotatedText value={value} meta={meta} /> : value;
+      withAnnotatedText && meta ? (
+        <AnnotatedText value={value} meta={meta?.[''] ?? meta} />
+      ) : (
+        value
+      );
     return <span>{valueToBeReturned}</span>;
   }
 
