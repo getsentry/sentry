@@ -15,7 +15,7 @@ function isReplayTab(tab: string): tab is TabKey {
   return tab in TabKey;
 }
 
-const DEFAULT_TAB = 'console';
+const DEFAULT_TAB = TabKey.console;
 
 function useActiveReplayTab() {
   const {getParamValue, setParamValue} = useUrlParams('t_main', DEFAULT_TAB);
