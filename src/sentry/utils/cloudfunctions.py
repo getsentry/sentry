@@ -18,42 +18,6 @@ from sentry.utils import json
 WRAPPER_JS = """
 const userFunc = require('./user.js');
 Object.assign(process.env, require('./env.json'));
-const Sentry = require("@sentry/node");
-const Tracing = require("@sentry/tracing");
-exports.start = async (message, context) => {
-  if (process.env.SENTRY_DSN) {
-    Sentry.init({
-      dsn: process.env.SENTRY_DSN,
-      integrations: [
-        new Sentry.Integrations.Http({ tracing: true }),
-      ],
-      tracesSampleRate: 1.0,
-    });
-  }
-  if (!userFunc) {
-    console.error("Your code needs to export a function. module.export = () => {}");
-    return;
-  }
-  if (typeof userFunc !== 'function') {
-    console.error("Your code needs to export a function. Instead, " + typeof userFunc + " was exported.");
-    return;
-  }
-  const event = JSON.parse(Buffer.from(message.data, 'base64').toString());
-  if (process.env.SENTRY_DSN) {
-    const transaction = Sentry.startTransaction({
-        op: "func",
-        name: "Sentry Function Transaction",
-    });
-    try {
-        await userFunc(event.data, event.type);
-    } catch (e) {
-        Sentry.captureException(e);
-    } finally {
-        transaction.finish();
-    }
-  } else {
-      await userFunc(event.data, event.type);
-  }
 };
 """
 

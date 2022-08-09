@@ -13,8 +13,8 @@ from sentry.utils.cloudfunctions import create_function
 
 
 class EnvVariableSerializer(CamelSnakeSerializer):
-    value = serializers.CharField(required=False, allow_blank=True)
-    name = serializers.CharField(required=False, allow_blank=True)
+    value = serializers.CharField(required=True)
+    name = serializers.CharField(required=True)
 
 
 class SentryFunctionSerializer(CamelSnakeSerializer):
@@ -28,11 +28,9 @@ class SentryFunctionSerializer(CamelSnakeSerializer):
     def validate_env_variables(self, env_variables):
         output = {}
         for env_variable in env_variables:
+            # double checking for blanks, but also checked on frontend
             if env_variable.get("name", None) and env_variable.get("value", None):
                 output[env_variable["name"]] = env_variable["value"]
-            else:
-                # what should we do if the env variable is invalid?
-                continue
         return output
 
 
