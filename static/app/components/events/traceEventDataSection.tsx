@@ -268,7 +268,7 @@ export function TraceEventDataSection({
                   icon: <IconEllipsis />,
                   size: 'xs',
                   showChevron: false,
-                  'aria-label': t('More Options'),
+                  'aria-label': t('Options'),
                 }}
                 triggerLabel=""
                 placement="bottom right"
