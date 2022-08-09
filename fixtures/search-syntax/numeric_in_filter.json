@@ -1,6 +1,6 @@
 [
   {
-    "query": "timesSeen:[500,501,502]",
+    "query": "stack.lineno:[500,501,502]",
     "result": [
       {
         "type": "spaces",
@@ -10,7 +10,7 @@
         "type": "filter",
         "filter": "numericIn",
         "negated": false,
-        "key": {"type": "keySimple", "value": "timesSeen", "quoted": false},
+        "key": {"type": "keySimple", "value": "stack.lineno", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueNumberList",
@@ -52,7 +52,7 @@
     ]
   },
   {
-    "query": "timesSeen:[500, 501,     502]",
+    "query": "stack.lineno:[500, 501,     502]",
     "result": [
       {
         "type": "spaces",
@@ -62,7 +62,7 @@
         "type": "filter",
         "filter": "numericIn",
         "negated": false,
-        "key": {"type": "keySimple", "value": "timesSeen", "quoted": false},
+        "key": {"type": "keySimple", "value": "stack.lineno", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueNumberList",
@@ -104,7 +104,7 @@
     ]
   },
   {
-    "query": "timesSeen:[500, 501 ,502]",
+    "query": "stack.lineno:[500, 501 ,502]",
     "result": [
       {
         "type": "spaces",
@@ -114,7 +114,7 @@
         "type": "filter",
         "filter": "numericIn",
         "negated": false,
-        "key": {"type": "keySimple", "value": "timesSeen", "quoted": false},
+        "key": {"type": "keySimple", "value": "stack.lineno", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueNumberList",
@@ -156,7 +156,7 @@
     ]
   },
   {
-    "query": "timesSeen:[500,501,502] stack.colno:[100]",
+    "query": "stack.lineno:[500,501,502] stack.colno:[100]",
     "result": [
       {
         "type": "spaces",
@@ -166,7 +166,7 @@
         "type": "filter",
         "filter": "numericIn",
         "negated": false,
-        "key": {"type": "keySimple", "value": "timesSeen", "quoted": false},
+        "key": {"type": "keySimple", "value": "stack.lineno", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueNumberList",
@@ -234,7 +234,7 @@
   },
   {
     "desc": "Numeric format should still return a string if field isn't allowed",
-    "query": "timesSeen:[500,501,502] random_field:[500,501,502]",
+    "query": "stack.lineno:[500,501,502] random_field:[500,501,502]",
     "result": [
       {
         "type": "spaces",
@@ -244,7 +244,7 @@
         "type": "filter",
         "filter": "numericIn",
         "negated": false,
-        "key": {"type": "keySimple", "value": "timesSeen", "quoted": false},
+        "key": {"type": "keySimple", "value": "stack.lineno", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueNumberList",
@@ -330,7 +330,7 @@
     ]
   },
   {
-    "query": "timesSeen:[500,501,]",
+    "query": "stack.lineno:[500,501,]",
     "result": [
       {
         "type": "spaces",
@@ -343,7 +343,7 @@
           "reason": "Lists should not have empty values"
         },
         "negated": false,
-        "key": {"type": "keySimple", "value": "timesSeen", "quoted": false},
+        "key": {"type": "keySimple", "value": "stack.lineno", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueNumberList",
@@ -380,7 +380,7 @@
     ]
   },
   {
-    "query": "!timesSeen:[500,501]",
+    "query": "!stack.lineno:[500,501]",
     "result": [
       {
         "type": "spaces",
@@ -390,7 +390,7 @@
         "type": "filter",
         "filter": "numericIn",
         "negated": true,
-        "key": {"type": "keySimple", "value": "timesSeen", "quoted": false},
+        "key": {"type": "keySimple", "value": "stack.lineno", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueNumberList",

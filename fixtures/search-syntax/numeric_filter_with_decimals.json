@@ -1,6 +1,6 @@
 [
   {
-    "query": "timesSeen:>3.1415",
+    "query": "stack.lineno:>3.1415",
     "result": [
       {
         "type": "spaces",
@@ -10,7 +10,7 @@
         "type": "filter",
         "filter": "numeric",
         "negated": false,
-        "key": {"type": "keySimple", "value": "timesSeen", "quoted": false},
+        "key": {"type": "keySimple", "value": "stack.lineno", "quoted": false},
         "operator": ">",
         "value": {
           "type": "valueNumber",

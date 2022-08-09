@@ -89,7 +89,7 @@
     ]
   },
   {
-    "query": "timesSeen:-500",
+    "query": "stack.lineno:-500",
     "result": [
       {
         "type": "spaces",
@@ -99,7 +99,7 @@
         "type": "filter",
         "filter": "numeric",
         "negated": false,
-        "key": {"type": "keySimple", "value": "timesSeen", "quoted": false},
+        "key": {"type": "keySimple", "value": "stack.lineno", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueNumber",
