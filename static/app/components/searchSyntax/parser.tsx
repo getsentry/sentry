@@ -635,7 +635,7 @@ export class TokenConverter {
       FilterType.AggregateNumeric,
       FilterType.AggregatePercentage,
       FilterType.AggregateRelativeDate,
-    ].includes(filter)
+    ].includes(filter);
 
     if (isAggregateFilter) {
       return this.checkInvalidAggregateFilter(
