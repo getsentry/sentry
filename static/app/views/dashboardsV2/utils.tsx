@@ -489,9 +489,7 @@ export function getSavedPageFilters(dashboard: DashboardDetails) {
 export function resetPageFilters(dashboard: DashboardDetails, location: Location) {
   browserHistory.replace({
     ...location,
-    query: {
-      ...getSavedPageFilters(dashboard),
-    },
+    query: getSavedPageFilters(dashboard),
   });
 }
 
