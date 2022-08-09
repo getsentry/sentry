@@ -1,4 +1,3 @@
-from collections import ChainMap
 from typing import Mapping, Optional, Union
 
 from sentry.metrics.base import MetricsBackend
@@ -29,7 +28,7 @@ class MetricsWrapper(MetricsBackend):  # type: ignore
         elif tags is None:
             return self.__tags
         else:
-            return ChainMap(tags, self.__tags)
+            return {**self.__tags, **tags}
 
     def increment(
         self, name: str, value: Union[int, float] = 1, tags: Optional[Tags] = None

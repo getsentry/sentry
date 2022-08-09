@@ -2,7 +2,6 @@ docker>=3.7.0,<3.8.0
 exam>=0.10.6
 freezegun>=1.1.0
 honcho>=1.0.0,<1.1.0
-mypy>=0.800,<0.900
 openapi-core>=0.14.2
 pytest>=6.1.0
 pytest-cov>=3.0.0
@@ -11,7 +10,6 @@ pytest-rerunfailures>=9.1.1
 pytest-sentry>=0.1.9
 pytest-xdist
 responses>=0.21.0
-msgpack-types>=0.2.0
 
 # pre-commit dependencies
 pre-commit>=2.18.1
@@ -25,3 +23,12 @@ isort>=5.10.1
 # note: wheel is pulled in by pip-tools
 pip-tools>=6.7.0
 packaging>=21.3
+
+# for type checking
+msgpack-types>=0.2.0
+mypy>=0.971
+types-freezegun
+types-python-dateutil
+types-pytz
+types-redis
+types-requests

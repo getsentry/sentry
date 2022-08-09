@@ -69,7 +69,7 @@ class KillswitchCallback:
     title: str
 
     def __call__(self, old: Any, new: Any) -> None:
-        self.callback(old, new)  # type: ignore
+        self.callback(old, new)
 
 
 @dataclass

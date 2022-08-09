@@ -362,7 +362,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
             sentry_sdk.set_tag("discover.trace-view.warning", "root.extra-found")
             logger.warning(
                 "discover.trace-view.root.extra-found",
-                {"extra_roots": len(roots), **warning_extra},
+                extra={"extra_roots": len(roots), **warning_extra},
             )
 
         return Response(

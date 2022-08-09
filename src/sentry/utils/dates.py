@@ -104,11 +104,11 @@ def parse_stats_period(period: str) -> Optional[timedelta]:
     if not m:
         return None
     value, unit = m.groups()
-    value = int(value)  # type: ignore
+    value = int(value)
     if not unit:
         unit = "s"
     return timedelta(
-        **{{"h": "hours", "d": "days", "m": "minutes", "s": "seconds", "w": "weeks"}[unit]: value}  # type: ignore
+        **{{"h": "hours", "d": "days", "m": "minutes", "s": "seconds", "w": "weeks"}[unit]: value}
     )
 
 
