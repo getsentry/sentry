@@ -893,15 +893,13 @@ class SmartSearchBar extends Component<Props, State> {
 
     const tagName = getKeyName(this.cursorToken.key, {aggregateWithArgs: true});
 
-    const fieldDefinition = getFieldDefinition(tagName);
-
-    return fieldDefinition;
+    return getFieldDefinition(tagName);
   }
 
   /**
-   * Determines when the date picker should be shown instead of normal dropdown options
-   * This should return true when the cursor is within a date filter and the user has
-   * typed in an operator
+   * Determines when the date picker should be shown instead of normal dropdown options.
+   * This should return true when the cursor is within a date tag value and the user has
+   * typed in an operator (or already has a date value).
    */
   get shouldShowDatePicker() {
     if (
