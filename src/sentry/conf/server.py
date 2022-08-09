@@ -1007,8 +1007,6 @@ SENTRY_FEATURES = {
     "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
-    # Enable having the issue ID in the breadcrumbs on Issue Details
-    "organizations:issue-id-breadcrumbs": False,
     # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
     # sentry at the moment.
     "organizations:issue-search-use-cdc-primary": False,
@@ -1146,8 +1144,10 @@ SENTRY_FEATURES = {
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
-    # Enable the server-side sampling feature (frontend, backend, relay)
+    # Enable the server-side sampling feature (backend + relay)
     "organizations:server-side-sampling": False,
+    # Enable the server-side sampling feature (frontend)
+    "organizations:server-side-sampling-ui": False,
     # Enable the mobile screenshots feature
     "organizations:mobile-screenshots": False,
     # Enable the release details performance section
@@ -1465,10 +1465,17 @@ SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefix
 SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres_v2.StaticStringsIndexerDecorator"
 SENTRY_METRICS_INDEXER_OPTIONS = {}
 SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
+
+# Rate limits during string indexing for our metrics product.
+# Which cluster to use. Example: {"cluster": "default"}
 SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS = {}
 SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS_PERFORMANCE = (
     SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS
 )
+
+# Controls the sample rate with which we report errors to Sentry for metric messages
+# dropped due to rate limits.
+SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 0.01
 
 # Release Health
 SENTRY_RELEASE_HEALTH = "sentry.release_health.sessions.SessionsReleaseHealthBackend"

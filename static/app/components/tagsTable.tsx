@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {withMeta} from 'sentry/components/events/meta/metaProxy';
+import AnnotatedText from 'sentry/components/events/meta/annotatedText';
 import {KeyValueTable} from 'sentry/components/keyValueTable';
 import TagsTableRow from 'sentry/components/tagsTableRow';
 import {t} from 'sentry/locale';
@@ -13,26 +13,32 @@ type Props = {
   event: Event;
   generateUrl: (tag: EventTag) => LocationDescriptor;
   query: string;
-  title?: React.ReactNode;
 };
 
-const TagsTable = ({event, query, generateUrl, title = t('Tag Details')}: Props) => {
-  const eventWithMeta = withMeta(event) as Event;
-  const tags = eventWithMeta.tags;
+export function TagsTable({event, query, generateUrl}: Props) {
+  const meta = event._meta?.tags;
 
   return (
     <StyledTagsTable>
-      <SectionHeading>{title}</SectionHeading>
-      <KeyValueTable>
-        {tags.map(tag => (
-          <TagsTableRow key={tag.key} tag={tag} query={query} generateUrl={generateUrl} />
-        ))}
-      </KeyValueTable>
+      <SectionHeading>{t('Tag Details')}</SectionHeading>
+      {!!meta?.[''] && !event.tags ? (
+        <AnnotatedText value={event.tags} meta={meta?.['']} />
+      ) : (
+        <KeyValueTable>
+          {event.tags.map((tag, index) => (
+            <TagsTableRow
+              key={tag.key}
+              tag={tag}
+              query={query}
+              generateUrl={generateUrl}
+              meta={meta?.[index]}
+            />
+          ))}
+        </KeyValueTable>
+      )}
     </StyledTagsTable>
   );
-};
-
-export default TagsTable;
+}
 
 const StyledTagsTable = styled('div')`
   margin-bottom: ${space(3)};

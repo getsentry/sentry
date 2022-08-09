@@ -15,7 +15,7 @@ import FileSize from 'sentry/components/fileSize';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import TagsTable from 'sentry/components/tagsTable';
+import {TagsTable} from 'sentry/components/tagsTable';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';

@@ -16,7 +16,7 @@ import SplitPanel from 'sentry/views/replays/detail/layout/splitPanel';
 import SideTabs from 'sentry/views/replays/detail/sideTabs';
 import TagPanel from 'sentry/views/replays/detail/tagPanel';
 
-type Layout =
+export type LayoutModes =
   /**
    * ### Sidebar Right
    * ┌───────────────────┐
@@ -64,7 +64,7 @@ const MIN_CONTENT_HEIGHT = {px: 200};
 const MIN_CRUMBS_HEIGHT = {px: 200};
 
 type Props = {
-  layout?: Layout;
+  layout?: LayoutModes;
   showCrumbs?: boolean;
   showTimeline?: boolean;
   showVideo?: boolean;
