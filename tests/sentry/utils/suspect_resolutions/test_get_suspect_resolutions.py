@@ -184,9 +184,7 @@ class GetSuspectResolutionsTest(TestCase):
             )
         ]
 
-    @mock.patch(
-        "sentry.utils.suspect_resolutions.get_suspect_resolutions.record_suspect_resolutions"
-    )
+    @mock.patch("sentry.utils.suspect_resolutions.get_suspect_resolutions.get_suspect_resolutions")
     def test_record_suspect_resolutions(self, mock_record_suspect_resolutions):
         organization = self.create_organization()
         project = self.create_project(organization=organization)
