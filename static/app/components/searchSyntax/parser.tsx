@@ -101,6 +101,13 @@ export enum FilterType {
   Is = 'is',
 }
 
+type AggregateFilter =
+  | FilterType.AggregateDate
+  | FilterType.AggregateDuration
+  | FilterType.AggregateNumeric
+  | FilterType.AggregatePercentage
+  | FilterType.AggregateRelativeDate;
+
 const allOperators = [
   TermOperator.Default,
   TermOperator.GreaterThanEqual,
@@ -305,13 +312,6 @@ type TokenConverterOpts = {
   location: LocationFn;
   text: TextFn;
 };
-
-type AggregateFilter =
-  | FilterType.AggregateDate
-  | FilterType.AggregateDuration
-  | FilterType.AggregateNumeric
-  | FilterType.AggregatePercentage
-  | FilterType.AggregateRelativeDate;
 
 /**
  * Used to construct token results via the token grammar
