@@ -20,6 +20,7 @@ class DetectorType(Enum):
     SLOW_SPAN = "slow_span"
     DUPLICATE_SPANS = "duplicate_spans"
     SEQUENTIAL_SLOW_SPANS = "sequential_slow_spans"
+    UNCOMPRESSED_ASSET_SPAN = "uncompressed_asset"
 
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion
@@ -55,6 +56,10 @@ def get_detection_settings():
             "duration_threshold": 500.0,  # ms
             "allowed_span_ops": ["db", "http"],
         },
+        DetectorType.UNCOMPRESSED_ASSET_SPAN: {
+            "size_threshold_bytes": 500 * 1024,
+            "allowed_span_ops": ["resource.css", "resource.script"],
+        },
     }
 
 
@@ -67,6 +72,7 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
         DetectorType.DUPLICATE_SPANS: DuplicateSpanDetector(detection_settings),
         DetectorType.SLOW_SPAN: SlowSpanDetector(detection_settings),
         DetectorType.SEQUENTIAL_SLOW_SPANS: SequentialSlowSpanDetector(detection_settings),
+        DetectorType.UNCOMPRESSED_ASSET_SPAN: UncompressedAssetSpanDetector(detection_settings),
     }
 
     for span in spans:
@@ -125,6 +131,18 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
             "sequential": bool(len(sequential_performance_fingerprints)),
         },
     )
+
+    uncompressed_asset_performance_issues = detectors[
+        DetectorType.UNCOMPRESSED_ASSET_SPAN
+    ].stored_issues
+    uncompressed_asset_fingerprints = list(uncompressed_asset_performance_issues.keys())
+    if uncompressed_asset_fingerprints:
+        first_uncompressed_asset_span = uncompressed_asset_performance_issues[
+            uncompressed_asset_fingerprints[0]
+        ]
+        sdk_span.containing_transaction.set_tag(
+            "_pi_uncompressed_asset", first_uncompressed_asset_span["span_id"]
+        )
 
 
 # Creates a stable fingerprint given the same span details using sha1.
@@ -331,3 +349,51 @@ class SequentialSlowSpanDetector(PerformanceDetector):
                 fingerprint
             ] >= timedelta(milliseconds=duration_threshold):
                 self.stored_issues[fingerprint] = {"span_id": span_id}
+
+
+class UncompressedAssetSpanDetector(PerformanceDetector):
+    """
+    Checks for large assets that are affecting load time.
+    """
+
+    __slots__ = "stored_issues"
+
+    settings_key = DetectorType.UNCOMPRESSED_ASSET_SPAN
+
+    def init(self):
+        self.stored_issues = {}
+
+    def visit_span(self, span: Span) -> None:
+        op = span.get("op", None)
+        if not op:
+            return
+
+        allowed_span_ops = self.settings.get("allowed_span_ops")
+        if op not in allowed_span_ops:
+            return
+
+        data = span.get("data", None)
+        transfer_size = data and data.get("Transfer Size", None)
+        encoded_body_size = data and data.get("Encoded Body Size", None)
+        decoded_body_size = data and data.get("Decoded Body Size", None)
+        if not (encoded_body_size and decoded_body_size and transfer_size):
+            return
+
+        # Ignore assets from cache, either directly (nothing transferred) or via
+        # a 304 Not Modified response (transfer is smaller than asset size).
+        if transfer_size <= 0 or transfer_size < encoded_body_size:
+            return
+
+        # Ignore assets that are already compressed.
+        if encoded_body_size != decoded_body_size:
+            return
+
+        # Ignore assets that aren't big enough to worry about.
+        size_threshold_bytes = self.settings.get("size_threshold_bytes")
+        if encoded_body_size < size_threshold_bytes:
+            return
+
+        fingerprint = fingerprint_span_op(span)
+        span_id = span.get("span_id", None)
+        if fingerprint and span_id and not self.stored_issues.get(fingerprint, False):
+            self.stored_issues[fingerprint] = {"span_id": span_id}

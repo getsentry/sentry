@@ -253,3 +253,79 @@ class PerformanceDetectionTest(unittest.TestCase):
                 ),
             ]
         )
+
+    def test_calls_detect_uncompressed_assets(self):
+        def asset_event(transfer_size=0, encoded_body_size=0, decoded_body_size=0):
+            return {
+                "event_id": "a" * 16,
+                "spans": [
+                    modify_span_duration(
+                        SpanBuilder()
+                        .with_op("resource.script")
+                        .with_description("https://example.com/app.js")
+                        .with_data(
+                            {
+                                "Transfer Size": transfer_size,
+                                "Encoded Body Size": encoded_body_size,
+                                "Decoded Body Size": decoded_body_size,
+                            }
+                        )
+                        .build(),
+                        100.0,
+                    )
+                ],
+            }
+
+        insignificant_size_bytes = 500
+        significant_size_bytes = 5 * 1024**2
+
+        compressed_asset_event = asset_event(
+            transfer_size=significant_size_bytes,
+            encoded_body_size=significant_size_bytes,
+            decoded_body_size=2 * significant_size_bytes,
+        )
+        small_uncompressed_asset_event = asset_event(
+            transfer_size=insignificant_size_bytes,
+            encoded_body_size=insignificant_size_bytes,
+            decoded_body_size=insignificant_size_bytes,
+        )
+        cached_uncompressed_asset_event = asset_event(
+            transfer_size=0,
+            encoded_body_size=significant_size_bytes,
+            decoded_body_size=significant_size_bytes,
+        )
+        uncompressed_asset_event = asset_event(
+            transfer_size=significant_size_bytes,
+            encoded_body_size=significant_size_bytes,
+            decoded_body_size=significant_size_bytes,
+        )
+
+        sdk_span_mock = Mock()
+
+        _detect_performance_issue(compressed_asset_event, sdk_span_mock)
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
+
+        _detect_performance_issue(small_uncompressed_asset_event, sdk_span_mock)
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
+
+        _detect_performance_issue(cached_uncompressed_asset_event, sdk_span_mock)
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
+
+        _detect_performance_issue(uncompressed_asset_event, sdk_span_mock)
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 3
+        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
+            [
+                call(
+                    "_pi_all_issue_count",
+                    1,
+                ),
+                call(
+                    "_pi_transaction",
+                    "aaaaaaaaaaaaaaaa",
+                ),
+                call(
+                    "_pi_uncompressed_asset",
+                    "bbbbbbbbbbbbbbbb",
+                ),
+            ]
+        )
