@@ -60,6 +60,10 @@ class SpanBuilder:
         self.hash = hash
         return self
 
+    def with_data(self, data: Any) -> "SpanBuilder":
+        self.data = data
+        return self
+
     def build(self) -> Span:
         span = {
             "trace_id": self.trace_id,
