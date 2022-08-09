@@ -13,10 +13,8 @@ import {isUrl} from 'sentry/utils';
 import Toggle from './toggle';
 import {analyzeStringForRepr, naturalCaseInsensitiveSort} from './utils';
 
-type Value = null | string | boolean | number | {[key: string]: Value} | Value[];
-
 type Props = React.HTMLAttributes<HTMLPreElement> & {
-  data?: Value;
+  data?: React.ReactNode;
   jsonConsts?: boolean;
   maxDefaultDepth?: number;
   meta?: Record<any, any>;
@@ -26,7 +24,7 @@ type Props = React.HTMLAttributes<HTMLPreElement> & {
 
 function walk({
   depth,
-  value,
+  value = null,
   maxDefaultDepth: maxDepth = 2,
   preserveQuotes,
   withAnnotatedText,
@@ -34,7 +32,7 @@ function walk({
   meta,
 }: {
   depth: number;
-  value: Value;
+  value?: React.ReactNode;
 } & Pick<
   Props,
   'withAnnotatedText' | 'preserveQuotes' | 'jsonConsts' | 'meta' | 'maxDefaultDepth'
