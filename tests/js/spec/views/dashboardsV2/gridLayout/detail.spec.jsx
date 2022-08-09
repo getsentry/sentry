@@ -8,6 +8,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -183,6 +184,7 @@ describe('Dashboards > Detail', function () {
           {
             title: 'Errors',
             interval: '1d',
+            widgetType: 'discover',
             id: '1',
           }
         ),
@@ -199,6 +201,7 @@ describe('Dashboards > Detail', function () {
           {
             title: 'Transactions',
             interval: '1d',
+            widgetType: 'discover',
             id: '2',
           }
         ),
@@ -293,6 +296,10 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-geo/',
         body: {data: [], meta: {}},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/',
+        body: [],
       });
     });
 
@@ -447,6 +454,7 @@ describe('Dashboards > Detail', function () {
             ],
             title: 'Errors',
             type: 'line',
+            widgetType: 'discover',
           },
         })
       );
@@ -1029,6 +1037,42 @@ describe('Dashboards > Detail', function () {
       );
     });
 
+    it('does not render save and cancel buttons on templates', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/',
+        body: [
+          TestStubs.Release({
+            shortVersion: 'sentry-android-shop@1.2.0',
+            version: 'sentry-android-shop@1.2.0',
+          }),
+        ],
+      });
+      render(
+        <CreateDashboard
+          organization={{
+            ...initialData.organization,
+            features: [
+              ...initialData.organization.features,
+              'dashboards-top-level-filter',
+            ],
+          }}
+          params={{orgId: 'org-slug', templateId: 'default-template'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        {
+          context: initialData.routerContext,
+          organization: initialData.organization,
+        }
+      );
+
+      userEvent.click(await screen.findByText('24H'));
+      userEvent.click(screen.getByText('Last 7 days'));
+
+      expect(screen.queryByText('Cancel')).not.toBeInTheDocument();
+      expect(screen.queryByText('Save')).not.toBeInTheDocument();
+    });
+
     it('can save dashboard filters in existing dashboard', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
@@ -1087,10 +1131,6 @@ describe('Dashboards > Detail', function () {
     });
 
     it('can save absolute time range in existing dashboard', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/releases/',
-        body: [],
-      });
       const testData = initializeOrg({
         organization: TestStubs.Organization({
           features: [
@@ -1193,6 +1233,275 @@ describe('Dashboards > Detail', function () {
             project: undefined,
             statsPeriod: undefined,
             environment: undefined,
+          }),
+        })
+      );
+    });
+
+    it('disables dashboard actions when there are unsaved filters', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/',
+        body: [
+          TestStubs.Release({
+            shortVersion: 'sentry-android-shop@1.2.0',
+            version: 'sentry-android-shop@1.2.0',
+          }),
+        ],
+      });
+      const testData = initializeOrg({
+        organization: TestStubs.Organization({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-basic',
+            'discover-query',
+            'dashboard-grid-layout',
+            'dashboards-top-level-filter',
+          ],
+        }),
+        router: {
+          location: {
+            ...TestStubs.location(),
+            query: {
+              statsPeriod: '7d',
+              project: [1, 2],
+              environment: ['alpha', 'beta'],
+            },
+          },
+        },
+      });
+      render(
+        <ViewEditDashboard
+          organization={testData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={testData.router}
+          location={testData.router.location}
+        />,
+        {context: testData.routerContext, organization: testData.organization}
+      );
+
+      expect(await screen.findByText('Save')).toBeInTheDocument();
+      expect(screen.getByText('Cancel')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Add Widget'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Edit Dashboard'})).toBeDisabled();
+
+      userEvent.click(screen.getAllByLabelText('Widget actions')[0]);
+
+      expect(screen.getByTestId('edit-widget')).toHaveAttribute('aria-disabled', 'true');
+      expect(screen.getByTestId('duplicate-widget')).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+      expect(screen.getByTestId('delete-widget')).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+
+      // Open in discover shouldn't be disabled
+      expect(screen.getByTestId('open-in-discover')).toHaveAttribute(
+        'aria-disabled',
+        'false'
+      );
+    });
+
+    it('ignores the order of selection of page filters to render unsaved filters', async () => {
+      const testProjects = [
+        TestStubs.Project({id: '1', name: 'first', environments: ['alpha', 'beta']}),
+        TestStubs.Project({id: '2', name: 'second', environments: ['alpha', 'beta']}),
+      ];
+
+      act(() => ProjectsStore.loadInitialData(testProjects));
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/',
+        body: testProjects,
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: TestStubs.Dashboard(widgets, {
+          id: '1',
+          title: 'Custom Errors',
+          filters: {},
+          environment: ['alpha', 'beta'],
+        }),
+      });
+
+      const testData = initializeOrg({
+        organization: TestStubs.Organization({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-query',
+            'dashboard-grid-layout',
+            'dashboards-top-level-filter',
+          ],
+        }),
+        router: {
+          location: {
+            ...TestStubs.location(),
+            query: {
+              environment: ['beta', 'alpha'], // Reversed order from saved dashboard
+            },
+          },
+        },
+      });
+      render(
+        <ViewEditDashboard
+          organization={testData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={testData.router}
+          location={testData.router.location}
+        />,
+        {context: testData.routerContext, organization: testData.organization}
+      );
+
+      await waitFor(() => expect(screen.queryAllByText('Loading\u2026')).toEqual([]));
+      await screen.findByText(/beta, alpha/);
+
+      // Save and Cancel should not appear because alpha, beta is the same as beta, alpha
+      expect(screen.queryByText('Save')).not.toBeInTheDocument();
+      expect(screen.queryByText('Cancel')).not.toBeInTheDocument();
+    });
+
+    it('uses releases from the URL query params', async function () {
+      const testData = initializeOrg({
+        organization: TestStubs.Organization({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-query',
+            'dashboard-grid-layout',
+            'dashboards-top-level-filter',
+          ],
+        }),
+        router: {
+          location: {
+            ...TestStubs.location(),
+            query: {
+              release: ['not-selected-1'],
+            },
+          },
+        },
+      });
+      render(
+        <ViewEditDashboard
+          organization={testData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={testData.router}
+          location={testData.router.location}
+        />,
+        {context: testData.routerContext, organization: testData.organization}
+      );
+
+      await screen.findByText(/not-selected-1/);
+      screen.getByText('Save');
+      screen.getByText('Cancel');
+    });
+
+    it('resets release in URL params', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: TestStubs.Dashboard(widgets, {
+          id: '1',
+          title: 'Custom Errors',
+          filters: {
+            release: ['abc'],
+          },
+        }),
+      });
+      const testData = initializeOrg({
+        organization: TestStubs.Organization({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-query',
+            'dashboard-grid-layout',
+            'dashboards-top-level-filter',
+          ],
+        }),
+        router: {
+          location: {
+            ...TestStubs.location(),
+            query: {
+              release: ['not-selected-1'],
+            },
+          },
+        },
+      });
+      render(
+        <ViewEditDashboard
+          organization={testData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={testData.router}
+          location={testData.router.location}
+        />,
+        {context: testData.routerContext, organization: testData.organization}
+      );
+
+      await screen.findByText(/not-selected-1/);
+      userEvent.click(screen.getByText('Cancel'));
+
+      // release isn't used in the redirect
+      expect(browserHistory.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {
+            end: undefined,
+            environment: undefined,
+            project: undefined,
+            start: undefined,
+            statsPeriod: undefined,
+            utc: undefined,
+          },
+        })
+      );
+    });
+
+    it('reflects selections in the release filter in the query params', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/',
+        body: [
+          TestStubs.Release({
+            shortVersion: 'sentry-android-shop@1.2.0',
+            version: 'sentry-android-shop@1.2.0',
+          }),
+        ],
+      });
+      const testData = initializeOrg({
+        organization: TestStubs.Organization({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-query',
+            'dashboard-grid-layout',
+            'dashboards-top-level-filter',
+          ],
+        }),
+        router: {
+          location: TestStubs.location(),
+        },
+      });
+      render(
+        <ViewEditDashboard
+          organization={testData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={testData.router}
+          location={testData.router.location}
+        />,
+        {context: testData.routerContext, organization: testData.organization}
+      );
+
+      userEvent.click(await screen.findByText('All Releases'));
+      userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
+      userEvent.click(document.body);
+
+      expect(browserHistory.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            release: ['sentry-android-shop@1.2.0'],
           }),
         })
       );

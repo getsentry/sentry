@@ -16,7 +16,7 @@ import SplitPanel from 'sentry/views/replays/detail/layout/splitPanel';
 import SideTabs from 'sentry/views/replays/detail/sideTabs';
 import TagPanel from 'sentry/views/replays/detail/tagPanel';
 
-type Layout =
+export type LayoutModes =
   /**
    * ### Sidebar Right
    * ┌───────────────────┐
@@ -64,7 +64,7 @@ const MIN_CONTENT_HEIGHT = {px: 200};
 const MIN_CRUMBS_HEIGHT = {px: 200};
 
 type Props = {
-  layout?: Layout;
+  layout?: LayoutModes;
   showCrumbs?: boolean;
   showTimeline?: boolean;
   showVideo?: boolean;
@@ -111,6 +111,7 @@ function ReplayLayout({
       <BodyContent>
         {timeline}
         <SplitPanel
+          key={layout}
           left={{
             content,
             default: '60%',
@@ -118,7 +119,6 @@ function ReplayLayout({
           }}
           right={{
             content: <SidebarContent video={video} crumbs={crumbs} />,
-            default: '325px',
             min: MIN_VIDEO_WIDTH,
           }}
         />
@@ -131,9 +131,9 @@ function ReplayLayout({
       <BodyContent>
         {timeline}
         <SplitPanel
+          key={layout}
           left={{
             content: <SidebarContent video={video} crumbs={crumbs} />,
-            default: '325px',
             min: MIN_VIDEO_WIDTH,
           }}
           right={{
@@ -151,24 +151,26 @@ function ReplayLayout({
     <BodyContent>
       {timeline}
       <SplitPanel
+        key={layout}
         top={{
           content: (
             <SplitPanel
               left={{
                 content: video,
+                default: '70%',
                 min: MIN_VIDEO_WIDTH,
               }}
               right={{
                 content: crumbs,
-                default: '30%',
               }}
             />
           ),
-          default: '325px',
+
           min: MIN_VIDEO_HEIGHT,
         }}
         bottom={{
           content,
+          default: '60%',
           min: MIN_CONTENT_HEIGHT,
         }}
       />

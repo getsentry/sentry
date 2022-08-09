@@ -23,7 +23,7 @@ import ListItem from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {EventsStats, MultiSeriesEventsStats, Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {logExperiment, metric} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -124,10 +124,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
   get isDuplicateRule(): boolean {
     return Boolean(this.props.isDuplicateRule);
-  }
-
-  get hasAlertWizardV3(): boolean {
-    return this.props.organization.features.includes('alert-wizard-v3');
   }
 
   get chartQuery(): string {
@@ -569,6 +565,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       comparisonDelta,
       uuid,
       timeWindow,
+      eventTypes,
     } = this.state;
     // Remove empty warning trigger
     const sanitizedTriggers = triggers.filter(
@@ -595,6 +592,10 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       }
       transaction.setData('actions', sanitizedTriggers);
 
+      const hasMetricDataset =
+        organization.features.includes('metrics-performance-alerts') ||
+        organization.features.includes('mep-rollout-flag');
+
       this.setState({loading: true});
       const [data, , resp] = await addOrUpdateRule(
         this.api,
@@ -610,13 +611,14 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
           comparisonDelta: comparisonDelta ?? null,
           timeWindow,
           aggregate,
-          ...(organization.features.includes('metrics-performance-alerts')
-            ? {queryType: DatasetMEPAlertQueryTypes[dataset]}
-            : {}),
+          ...(hasMetricDataset ? {queryType: DatasetMEPAlertQueryTypes[dataset]} : {}),
+          // Remove eventTypes as it is no longer requred for crash free
+          eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : eventTypes,
+          dataset,
         },
         {
           duplicateRule: this.isDuplicateRule ? 'true' : 'false',
-          wizardV3: this.hasAlertWizardV3 ? 'true' : 'false',
+          wizardV3: 'true',
           referrer: location?.query?.referrer,
           sessionId,
         }
@@ -743,17 +745,17 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     this.goBack();
   };
 
-  handleMEPAlertDataset = data => {
-    const {organization} = this.props;
-    const {dataset, showMEPAlertBanner} = this.state;
+  handleMEPAlertDataset = (data: EventsStats | MultiSeriesEventsStats | null) => {
     const {isMetricsData} = data ?? {};
 
     if (
       isMetricsData === undefined ||
-      !organization.features.includes('metrics-performance-alerts')
+      !this.props.organization.features.includes('metrics-performance-alerts')
     ) {
       return;
     }
+
+    const {dataset, showMEPAlertBanner} = this.state;
 
     if (isMetricsData && dataset === Dataset.TRANSACTIONS) {
       this.setState({dataset: Dataset.GENERIC_METRICS, showMEPAlertBanner: false});
@@ -848,7 +850,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         currentProject={project.slug}
         organization={organization}
         availableActions={this.state.availableActions}
-        hasAlertWizardV3={this.hasAlertWizardV3}
         onChange={this.handleChangeTriggers}
         onThresholdTypeChange={this.handleThresholdTypeChange}
         onThresholdPeriodChange={this.handleThresholdPeriodChange}
@@ -857,11 +858,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     );
 
     const ruleNameOwnerForm = (disabled: boolean) => (
-      <RuleNameOwnerForm
-        disabled={disabled}
-        project={project}
-        hasAlertWizardV3={this.hasAlertWizardV3}
-      />
+      <RuleNameOwnerForm disabled={disabled} project={project} />
     );
 
     const thresholdTypeForm = (disabled: boolean) => (
@@ -874,7 +871,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         }
         onComparisonTypeChange={this.handleComparisonTypeChange}
         organization={organization}
-        hasAlertWizardV3={this.hasAlertWizardV3}
         comparisonDelta={comparisonDelta}
       />
     );
@@ -973,7 +969,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                         alertType === 'custom' || dataset === Dataset.ERRORS
                       }
                       alertType={alertType}
-                      hasAlertWizardV3={this.hasAlertWizardV3}
                       dataset={dataset}
                       timeWindow={timeWindow}
                       comparisonType={comparisonType}
@@ -987,13 +982,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                       disableProjectSelector={disableProjectSelector}
                       showMEPAlertBanner={showMEPAlertBanner}
                     />
-                    {!this.hasAlertWizardV3 && thresholdTypeForm(disabled)}
-                    <AlertListItem>
-                      {this.hasAlertWizardV3
-                        ? t('Set thresholds')
-                        : t('Set thresholds to trigger alert')}
-                    </AlertListItem>
-                    {this.hasAlertWizardV3 && thresholdTypeForm(disabled)}
+                    <AlertListItem>{t('Set thresholds')}</AlertListItem>
+                    {thresholdTypeForm(disabled)}
                     {triggerForm(disabled)}
                     {ruleNameOwnerForm(disabled)}
                   </List>

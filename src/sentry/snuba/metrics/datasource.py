@@ -19,7 +19,7 @@ from snuba_sdk import Column, Condition, Function, Op, Query, Request
 from snuba_sdk.conditions import ConditionGroup
 
 from sentry.api.utils import InvalidParams
-from sentry.models import Organization, Project
+from sentry.models import Project
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import (
@@ -63,7 +63,7 @@ logger = logging.getLogger(__name__)
 
 def _get_metrics_for_entity(
     entity_key: EntityKey,
-    projects: Sequence[Project],
+    project_ids: Sequence[int],
     org_id: int,
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
@@ -74,7 +74,7 @@ def _get_metrics_for_entity(
         groupby=[Column("metric_id")],
         where=[],
         referrer="snuba.metrics.get_metrics_names_for_entity",
-        projects=projects,
+        project_ids=project_ids,
         org_id=org_id,
         start=start,
         end=end,
@@ -142,7 +142,7 @@ def get_metrics(projects: Sequence[Project], use_case_id: UseCaseKey) -> Sequenc
         metric_ids_in_entities.setdefault(metric_type, set())
         for row in _get_metrics_for_entity(
             entity_key=METRIC_TYPE_TO_ENTITY[metric_type],
-            projects=projects,
+            project_ids=[project.id for project in projects],
             org_id=projects[0].organization_id,
         ):
             try:
@@ -191,20 +191,20 @@ def get_metrics(projects: Sequence[Project], use_case_id: UseCaseKey) -> Sequenc
 
 
 def get_custom_measurements(
-    projects: Sequence[Project],
-    organization: Optional[Organization] = None,
+    project_ids: Sequence[int],
+    organization_id: int,
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
     use_case_id: UseCaseKey = UseCaseKey.PERFORMANCE,
 ) -> Sequence[MetricMeta]:
-    assert projects
+    assert project_ids
 
     metrics_meta = []
     for metric_type in CUSTOM_MEASUREMENT_DATASETS:
         for row in _get_metrics_for_entity(
             entity_key=METRIC_TYPE_TO_ENTITY[metric_type],
-            projects=projects,
-            org_id=projects[0].organization_id if organization is None else organization.id,
+            project_ids=project_ids,
+            org_id=organization_id,
             start=start,
             end=end,
         ):
@@ -343,7 +343,7 @@ def _fetch_tags_or_values_per_ids(
             where=where,
             groupby=[Column("metric_id"), Column(column)],
             referrer=referrer,
-            projects=projects,
+            project_ids=[p.id for p in projects],
             org_id=projects[0].organization_id,
         )
 

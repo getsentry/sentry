@@ -20,7 +20,7 @@ import {IssuesConfig} from './issues';
 import {ReleasesConfig} from './releases';
 
 export type WidgetBuilderSearchBarProps = {
-  onBlur: SearchBarProps['onBlur'];
+  onClose: SearchBarProps['onClose'];
   onSearch: SearchBarProps['onSearch'];
   organization: Organization;
   pageFilters: PageFilters;
@@ -136,6 +136,13 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     pageFilters: PageFilters,
     referrer?: string
   ) => Promise<[SeriesResponse, string | undefined, ResponseMeta | undefined]>;
+  /**
+   * Get the result type of the series. ie duration, size, percentage, etc
+   */
+  getSeriesResultType?: (
+    data: SeriesResponse,
+    widgetQuery: WidgetQuery
+  ) => string | undefined;
   /**
    * Generate the request promises for fetching
    * tabular data.

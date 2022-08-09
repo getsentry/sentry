@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import Feature from 'sentry/components/acl/feature';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -16,14 +15,14 @@ import FileSize from 'sentry/components/fileSize';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import TagsTable from 'sentry/components/tagsTable';
+import {TagsTable} from 'sentry/components/tagsTable';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {Event, EventTag} from 'sentry/types/event';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {formatTagKey} from 'sentry/utils/discover/fields';
-import * as QuickTraceContext from 'sentry/utils/performance/quickTrace/quickTraceContext';
+import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 import TraceMetaQuery from 'sentry/utils/performance/quickTrace/traceMetaQuery';
 import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/utils';
@@ -231,7 +230,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                               api={this.api}
                               router={router}
                               route={route}
-                              isBorderless
                             />
                           </QuickTraceContext.Provider>
                         </SpanEntryContext.Provider>
@@ -251,16 +249,14 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                         </Fragment>
                       )}
                       <EventVitals event={event} />
-                      <Feature
-                        organization={organization}
-                        features={['organizations:dashboard-custom-measurement-widgets']}
-                      >
+                      {(organization.features.includes('dashboards-mep') ||
+                        organization.features.includes('mep-rollout-flag')) && (
                         <EventCustomPerformanceMetrics
                           event={event}
                           location={location}
                           organization={organization}
                         />
-                      </Feature>
+                      )}
                       <TagsTable
                         event={event}
                         query={query}

@@ -5,7 +5,7 @@ import moment from 'moment';
 
 import Button from 'sentry/components/button';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
-import {getMeta} from 'sentry/components/events/meta/metaProxy';
+import AnnotatedText from 'sentry/components/events/meta/annotatedText';
 import ListItem from 'sentry/components/list/listItem';
 import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
 import {t, tct} from 'sentry/locale';
@@ -35,9 +35,10 @@ const keyMapping = {
 
 export type ErrorItemProps = {
   error: Error;
+  meta?: Record<any, any>;
 };
 
-export function ErrorItem({error}: ErrorItemProps) {
+export function ErrorItem({error, meta}: ErrorItemProps) {
   const [expanded, setExpanded] = useState(false);
 
   const cleanedData = useMemo(() => {
@@ -69,25 +70,38 @@ export function ErrorItem({error}: ErrorItemProps) {
       );
     }
 
-    return Object.entries(data).map(([key, value]) => ({
-      key,
-      value,
-      subject: keyMapping[key] || startCase(key),
-      meta: getMeta(data, key),
-    }));
-  }, [error.data]);
+    return Object.entries(data)
+      .map(([key, value]) => ({
+        key,
+        value,
+        subject: keyMapping[key] || startCase(key),
+        meta: key === 'image_name' ? meta?.image_path?.[''] : meta?.[key]?.[''],
+      }))
+      .filter(d => {
+        if (!d.value && !!d.meta) {
+          return true;
+        }
+        return !!d.value;
+      });
+  }, [error.data, meta]);
 
   return (
-    <StyledListItem>
+    <StyledListItem data-test-id="event-error-item">
       <OverallInfo>
         <div>
-          {!error.data?.name || typeof error.data?.name !== 'string' ? null : (
+          {meta?.data?.name?.[''] ? (
+            <AnnotatedText value={error.message} meta={meta?.data?.name?.['']} />
+          ) : !error.data?.name || typeof error.data?.name !== 'string' ? null : (
             <Fragment>
               <strong>{error.data?.name}</strong>
               {': '}
             </Fragment>
           )}
-          {error.message}
+          {meta?.message?.[''] ? (
+            <AnnotatedText value={error.message} meta={meta?.message?.['']} />
+          ) : (
+            error.message
+          )}
           {Object.values(JavascriptProcessingErrors).includes(
             error.type as JavascriptProcessingErrors
           ) && (

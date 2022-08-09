@@ -1,15 +1,14 @@
-import {Component, lazy, Suspense} from 'react';
-import type {OnChangeProps, RangeWithKey} from 'react-date-range';
+import {Component} from 'react';
+import type {Range} from 'react-date-range';
 // eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
+import {DateRangePicker} from 'sentry/components/calendar';
 import Checkbox from 'sentry/components/checkbox';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TimePicker from 'sentry/components/organizations/timeRangeSelector/timePicker';
-import Placeholder from 'sentry/components/placeholder';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -24,16 +23,7 @@ import {
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {Theme} from 'sentry/utils/theme';
 
-const DateRangePicker = lazy(() => import('./dateRangeWrapper'));
-
 const getTimeStringFromDate = (date: Date) => moment(date).local().format('HH:mm');
-
-// react.date-range doesn't export this as a type.
-type RangeSelection = {selection: RangeWithKey};
-
-function isRangeSelection(maybe: OnChangeProps): maybe is RangeSelection {
-  return (maybe as RangeSelection).selection !== undefined;
-}
 
 type ChangeData = {end?: Date; hasDateRangeErrors?: boolean; start?: Date};
 
@@ -99,13 +89,9 @@ class BaseDateRange extends Component<Props, State> {
     hasEndErrors: false,
   };
 
-  handleSelectDateRange = (changeProps: OnChangeProps) => {
-    if (!isRangeSelection(changeProps)) {
-      return;
-    }
-    const {selection} = changeProps;
+  handleSelectDateRange = (range: Range) => {
     const {onChange} = this.props;
-    const {startDate, endDate} = selection;
+    const {startDate, endDate} = range;
 
     const end = endDate ? getEndOfDay(endDate) : endDate;
 
@@ -179,8 +165,7 @@ class BaseDateRange extends Component<Props, State> {
   };
 
   render() {
-    const {className, maxPickableDays, utc, showTimePicker, onChangeUtc, theme} =
-      this.props;
+    const {className, maxPickableDays, utc, showTimePicker, onChangeUtc} = this.props;
     const start = this.props.start ?? '';
     const end = this.props.end ?? '';
 
@@ -202,27 +187,13 @@ class BaseDateRange extends Component<Props, State> {
 
     return (
       <div className={className} data-test-id="date-range">
-        <Suspense
-          fallback={
-            <Placeholder width="342px" height="254px">
-              <LoadingIndicator />
-            </Placeholder>
-          }
-        >
-          <DateRangePicker
-            rangeColors={[theme.purple300]}
-            ranges={[
-              {
-                startDate: moment(start).local().toDate(),
-                endDate: moment(end).local().toDate(),
-                key: 'selection',
-              },
-            ]}
-            minDate={minDate}
-            maxDate={maxDate}
-            onChange={this.handleSelectDateRange}
-          />
-        </Suspense>
+        <DateRangePicker
+          startDate={moment(start).local().toDate()}
+          endDate={moment(end).local().toDate()}
+          minDate={minDate}
+          maxDate={maxDate}
+          onChange={this.handleSelectDateRange}
+        />
         {showTimePicker && (
           <TimeAndUtcPicker>
             <TimePicker

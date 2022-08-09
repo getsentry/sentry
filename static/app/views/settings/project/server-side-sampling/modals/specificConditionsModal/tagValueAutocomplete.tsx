@@ -19,10 +19,7 @@ type TagValue = Pick<
 >;
 
 export interface TagValueAutocompleteProps {
-  category:
-    | SamplingInnerName.TRACE_ENVIRONMENT
-    | SamplingInnerName.TRACE_RELEASE
-    | string;
+  category: SamplingInnerName.TRACE_ENVIRONMENT | SamplingInnerName.TRACE_RELEASE;
   onChange: (value: string) => void;
   orgSlug: Organization['slug'];
   projectId: Project['id'];
@@ -75,7 +72,6 @@ function TagValueAutocomplete({
     const response: TagValue[] = await new Promise(resolve => {
       debouncedFetchValues(inputValue, resolve);
     });
-
     // react-select doesn't seem to work very well when its value contains
     // a created item that isn't listed in the options
     const createdOptions: TagValue[] = value
@@ -102,6 +98,9 @@ function TagValueAutocomplete({
   return (
     <StyledSelectField
       name="match"
+      // The key is used as a way to force a reload of the options:
+      // https://github.com/JedWatson/react-select/issues/1879#issuecomment-316871520
+      key={tagKey}
       aria-label={getAriaLabel()}
       value={value ? value?.split('\n').map(v => ({value: v, label: v})) : []}
       onChange={newValue => {

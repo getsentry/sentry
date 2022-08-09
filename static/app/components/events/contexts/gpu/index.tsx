@@ -3,9 +3,9 @@ import {Fragment} from 'react';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import {Event} from 'sentry/types/event';
 
-import {getUnknownData} from '../getUnknownData';
+import {geKnownData, getUnknownData} from '../utils';
 
-import {getGPUKnownData} from './getGPUKnownData';
+import {getGPUKnownDataDetails} from './getGPUKnownDataDetails';
 import {GPUData, GPUKnownDataType} from './types';
 
 type Props = {
@@ -38,7 +38,14 @@ export function GPUEventContext({event, data}: Props) {
 
   return (
     <Fragment>
-      <ContextBlock data={getGPUKnownData({data, gpuKnownDataValues, meta})} />
+      <ContextBlock
+        data={geKnownData<GPUData, GPUKnownDataType>({
+          data,
+          meta,
+          knownDataTypes: gpuKnownDataValues,
+          onGetKnownDataDetails: v => getGPUKnownDataDetails(v),
+        })}
+      />
       <ContextBlock
         data={getUnknownData({
           allData: data,

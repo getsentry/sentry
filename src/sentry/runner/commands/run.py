@@ -558,16 +558,20 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
 @click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 @click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 @click.option("--factory-name", default="default")
-@click.option("--ingest-profile")
+@click.option("--ingest-profile", required=True)
 @click.option("commit_max_batch_size", "--commit-max-batch-size", type=int, default=25000)
 @click.option("commit_max_batch_time", "--commit-max-batch-time-ms", type=int, default=10000)
 def metrics_streaming_consumer(**options):
+    import sentry_sdk
+
     from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
     from sentry.sentry_metrics.consumers.indexer.multiprocess import get_streaming_metrics_consumer
     from sentry.sentry_metrics.metrics_wrapper import MetricsWrapper
     from sentry.utils.metrics import backend, global_tags
 
-    ingest_config = get_ingest_config(UseCaseKey(options["ingest_profile"]))
+    use_case = UseCaseKey(options["ingest_profile"])
+    sentry_sdk.set_tag("sentry_metrics.use_case_key", use_case.value)
+    ingest_config = get_ingest_config(use_case)
     metrics_wrapper = MetricsWrapper(backend, "sentry_metrics.indexer")
     configure_metrics(metrics_wrapper)
 
@@ -594,6 +598,19 @@ def profiles_consumer(**options):
     get_profiles_consumer(**options).run()
 
 
+@run.command("ingest-replay-recordings")
+@log_options()
+@configuration
+@batching_kafka_options("ingest-replay-recordings")
+@click.option(
+    "--topic", default="ingest-replay-recordings", help="Topic to get replay recording data from"
+)
+def replays_recordings_consumer(**options):
+    from sentry.replays.consumers import get_replays_recordings_consumer
+
+    get_replays_recordings_consumer(**options).run()
+
+
 @run.command("indexer-last-seen-updater")
 @log_options()
 @configuration
@@ -601,10 +618,15 @@ def profiles_consumer(**options):
 @click.option("commit_max_batch_size", "--commit-max-batch-size", type=int, default=25000)
 @click.option("commit_max_batch_time", "--commit-max-batch-time-ms", type=int, default=10000)
 @click.option("--topic", default="snuba-metrics", help="Topic to read indexer output from.")
+@click.option("--ingest-profile", required=True)
 def last_seen_updater(**options):
+    from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
     from sentry.sentry_metrics.consumers.last_seen_updater import get_last_seen_updater
+    from sentry.utils.metrics import global_tags
 
-    consumer = get_last_seen_updater(**options)
+    ingest_config = get_ingest_config(UseCaseKey(options["ingest_profile"]))
+
+    consumer = get_last_seen_updater(ingest_config=ingest_config, **options)
 
     def handler(signum, frame):
         consumer.signal_shutdown()
@@ -612,4 +634,5 @@ def last_seen_updater(**options):
     signal.signal(signal.SIGINT, handler)
     signal.signal(signal.SIGTERM, handler)
 
-    consumer.run()
+    with global_tags(_all_threads=True, pipeline=ingest_config.internal_metrics_tag):
+        consumer.run()

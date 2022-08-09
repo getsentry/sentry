@@ -18,7 +18,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
-import {generateProfileFlamegraphRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {renderTableHead} from 'sentry/utils/profiling/tableRenderer';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -113,7 +113,7 @@ function ProfileDetails() {
 
   useEffectAfterFirstRender(() => {
     setSlowestFunctions(search(query));
-  }, [allFunctions]);
+  }, [allFunctions, query, search]);
 
   const pageLinks = useMemo(() => {
     const prevResults = cursor >= RESULTS_PER_PAGE ? 'true' : 'false';
@@ -239,7 +239,7 @@ function ProfilingFunctionsTableCell({
       return (
         <Container>
           <Link
-            to={generateProfileFlamegraphRouteWithQuery({
+            to={generateProfileFlamechartRouteWithQuery({
               orgSlug: orgId,
               projectSlug: projectId,
               profileId: eventId,

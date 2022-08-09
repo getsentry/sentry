@@ -286,7 +286,9 @@ export const getStateToPutForProvider = (
   notificationSettings: NotificationSettingsObject,
   changedData: NotificationSettingsByProviderObject
 ): NotificationSettingsObject => {
-  const providerList: string[] = changedData.provider?.split('+') || [];
+  const providerList: string[] = changedData.provider
+    ? Object.values(changedData.provider)
+    : [];
   const fallbackValue = getFallBackValue(notificationType);
 
   // If the user has no settings, we need to create them.
@@ -429,7 +431,7 @@ export function getDocsLinkForEventType(event: 'error' | 'transaction' | 'attach
     case 'transaction':
       return 'https://docs.sentry.io/product/performance/transaction-summary/#what-is-a-transaction';
     case 'attachment':
-      return 'https://docs.sentry.io/product/accounts/quotas/#attachment-limits';
+      return 'https://docs.sentry.io/product/accounts/quotas/manage-attachments-quota/#2-rate-limiting';
     default:
       return 'https://docs.sentry.io/product/accounts/quotas/manage-event-stream-guide/#common-workflows-for-managing-your-event-stream';
   }

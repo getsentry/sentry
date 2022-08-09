@@ -16,10 +16,12 @@ import {
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import FeatureBadge from 'sentry/components/featureBadge';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelFooter, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import ProjectStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
@@ -45,7 +47,6 @@ import {UniformRateModal} from './modals/uniformRateModal';
 import useProjectStats from './utils/useProjectStats';
 import {useRecommendedSdkUpgrades} from './utils/useRecommendedSdkUpgrades';
 import {DraggableRuleList, DraggableRuleListUpdateItemsProps} from './draggableRuleList';
-import {Promo} from './promo';
 import {
   ActiveColumn,
   Column,
@@ -55,7 +56,10 @@ import {
   RateColumn,
   Rule,
 } from './rule';
-import {SamplingSDKAlert} from './samplingSDKAlert';
+import {SamplingBreakdown} from './samplingBreakdown';
+import {SamplingPromo} from './samplingPromo';
+import {SamplingSDKClientRateChangeAlert} from './samplingSDKClientRateChangeAlert';
+import {SamplingSDKUpgradesAlert} from './samplingSDKUpgradesAlert';
 import {isUniformRule, SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
 
 type Props = {
@@ -100,23 +104,24 @@ export function ServerSideSampling({project}: Props) {
       await fetchSamplingSdkVersions({
         orgSlug: organization.slug,
         api,
+        projectID: project.id,
       });
     }
 
     fetchRecommendedSdkUpgrades();
-  }, [api, organization.slug, project.slug, hasAccess]);
+  }, [api, organization.slug, project.slug, project.id, hasAccess]);
 
   const {projectStats} = useProjectStats({
     orgSlug: organization.slug,
     projectId: project?.id,
     interval: '1h',
     statsPeriod: '48h',
+    groupBy: 'outcome',
   });
 
-  const {recommendedSdkUpgrades, fetching: fetchingRecommendedSdkUpgrades} =
-    useRecommendedSdkUpgrades({
-      orgSlug: organization.slug,
-    });
+  const {recommendedSdkUpgrades, incompatibleProjects} = useRecommendedSdkUpgrades({
+    orgSlug: organization.slug,
+  });
 
   async function handleActivateToggle(rule: SamplingRule) {
     const newRules = rules.map(r => {
@@ -397,12 +402,24 @@ export function ServerSideSampling({project}: Props) {
   const uniformRule = rules.find(isUniformRule);
 
   return (
-    <SentryDocumentTitle title={t('Server-side Sampling')}>
+    <SentryDocumentTitle title={t('Server-Side Sampling')}>
       <Fragment>
-        <SettingsPageHeader title={t('Server-side Sampling')} />
+        <SettingsPageHeader
+          title={
+            <Fragment>
+              {t('Server-Side Sampling')} <FeatureBadge type="beta" />
+            </Fragment>
+          }
+        />
         <TextBlock>
-          {t(
-            'Server-side sampling lets you control what transactions Sentry retains by setting sample rules and rates so you see more of the transactions you want to explore further in Sentry – and less of the ones you don’t – without re-configuring the Sentry SDK and redeploying anything.'
+          {tct(
+            'Enhance the Performance monitoring experience by targeting which transactions are most valuable to your organization. To learn more about our beta program, [faqLink: visit our FAQ], for more general information, [docsLink: read our docs].',
+            {
+              faqLink: (
+                <ExternalLink href="https://help.sentry.io/account/account-settings/dynamic-sampling/" />
+              ),
+              docsLink: <ExternalLink href={SERVER_SIDE_SAMPLING_DOC_LINK} />,
+            }
           )}
         </TextBlock>
         <PermissionAlert
@@ -411,136 +428,146 @@ export function ServerSideSampling({project}: Props) {
             'These settings can only be edited by users with the organization owner, manager, or admin role.'
           )}
         />
-        {!!rules.length && !fetchingRecommendedSdkUpgrades && (
-          <SamplingSDKAlert
-            organization={organization}
-            projectId={project.id}
-            rules={rules}
-            recommendedSdkUpgrades={recommendedSdkUpgrades}
-            onReadDocs={handleReadDocs}
-          />
-        )}
-        <RulesPanel>
-          <RulesPanelHeader lightText>
-            <RulesPanelLayout>
-              <GrabColumn />
-              <OperatorColumn>{t('Operator')}</OperatorColumn>
-              <ConditionColumn>{t('Condition')}</ConditionColumn>
-              <RateColumn>{t('Rate')}</RateColumn>
-              <ActiveColumn>{t('Active')}</ActiveColumn>
-              <Column />
-            </RulesPanelLayout>
-          </RulesPanelHeader>
-          {!rules.length && (
-            <Promo
-              onGetStarted={handleGetStarted}
+
+        <SamplingSDKUpgradesAlert
+          organization={organization}
+          projectId={project.id}
+          rules={rules}
+          recommendedSdkUpgrades={recommendedSdkUpgrades}
+          onReadDocs={handleReadDocs}
+          incompatibleProjects={incompatibleProjects}
+        />
+
+        {!!rules.length &&
+          !recommendedSdkUpgrades.length &&
+          !incompatibleProjects.length && (
+            <SamplingSDKClientRateChangeAlert
               onReadDocs={handleReadDocs}
-              hasAccess={hasAccess}
+              projectStats={projectStats}
+              organization={organization}
+              projectId={project.id}
             />
           )}
-          {!!rules.length && (
-            <Fragment>
-              <DraggableRuleList
-                disabled={!hasAccess}
-                items={items}
-                onUpdateItems={handleSortRules}
-                wrapperStyle={({isDragging, isSorting, index}) => {
-                  if (isDragging) {
-                    return {
-                      cursor: 'grabbing',
-                    };
-                  }
-                  if (isSorting) {
-                    return {};
-                  }
+
+        <SamplingBreakdown orgSlug={organization.slug} />
+        {!rules.length ? (
+          <SamplingPromo
+            onGetStarted={handleGetStarted}
+            onReadDocs={handleReadDocs}
+            hasAccess={hasAccess}
+          />
+        ) : (
+          <RulesPanel>
+            <RulesPanelHeader lightText>
+              <RulesPanelLayout>
+                <GrabColumn />
+                <OperatorColumn>{t('Operator')}</OperatorColumn>
+                <ConditionColumn>{t('Condition')}</ConditionColumn>
+                <RateColumn>{t('Rate')}</RateColumn>
+                <ActiveColumn>{t('Active')}</ActiveColumn>
+                <Column />
+              </RulesPanelLayout>
+            </RulesPanelHeader>
+            <DraggableRuleList
+              disabled={!hasAccess}
+              items={items}
+              onUpdateItems={handleSortRules}
+              wrapperStyle={({isDragging, isSorting, index}) => {
+                if (isDragging) {
                   return {
-                    transform: 'none',
-                    transformOrigin: '0',
-                    '--box-shadow': 'none',
-                    '--box-shadow-picked-up': 'none',
-                    overflow: 'visible',
-                    position: 'relative',
-                    zIndex: rules.length - index,
-                    cursor: 'default',
+                    cursor: 'grabbing',
                   };
-                }}
-                renderItem={({value, listeners, attributes, dragging, sorting}) => {
-                  const itemsRuleIndex = items.findIndex(item => item.id === value);
+                }
+                if (isSorting) {
+                  return {};
+                }
+                return {
+                  transform: 'none',
+                  transformOrigin: '0',
+                  '--box-shadow': 'none',
+                  '--box-shadow-picked-up': 'none',
+                  overflow: 'visible',
+                  position: 'relative',
+                  zIndex: rules.length - index,
+                  cursor: 'default',
+                };
+              }}
+              renderItem={({value, listeners, attributes, dragging, sorting}) => {
+                const itemsRuleIndex = items.findIndex(item => item.id === value);
 
-                  if (itemsRuleIndex === -1) {
-                    return null;
-                  }
+                if (itemsRuleIndex === -1) {
+                  return null;
+                }
 
-                  const itemsRule = items[itemsRuleIndex];
+                const itemsRule = items[itemsRuleIndex];
 
-                  const currentRule = {
-                    active: itemsRule.active,
-                    condition: itemsRule.condition,
-                    sampleRate: itemsRule.sampleRate,
-                    type: itemsRule.type,
-                    id: Number(itemsRule.id),
-                  };
+                const currentRule = {
+                  active: itemsRule.active,
+                  condition: itemsRule.condition,
+                  sampleRate: itemsRule.sampleRate,
+                  type: itemsRule.type,
+                  id: Number(itemsRule.id),
+                };
 
-                  return (
-                    <RulesPanelLayout isContent>
-                      <Rule
-                        operator={
-                          itemsRule.id === items[0].id
-                            ? SamplingRuleOperator.IF
-                            : isUniformRule(currentRule)
-                            ? SamplingRuleOperator.ELSE
-                            : SamplingRuleOperator.ELSE_IF
-                        }
-                        hideGrabButton={items.length === 1}
-                        rule={currentRule}
-                        onEditRule={() => handleEditRule(currentRule)}
-                        onDeleteRule={() => handleDeleteRule(currentRule)}
-                        onActivate={() => handleActivateToggle(currentRule)}
-                        noPermission={!hasAccess}
-                        upgradeSdkForProjects={recommendedSdkUpgrades.map(
-                          recommendedSdkUpgrade => recommendedSdkUpgrade.project.slug
-                        )}
-                        listeners={listeners}
-                        grabAttributes={attributes}
-                        dragging={dragging}
-                        sorting={sorting}
-                      />
-                    </RulesPanelLayout>
-                  );
-                }}
-              />
-              <RulesPanelFooter>
-                <ButtonBar gap={1}>
-                  <Button
-                    href={SERVER_SIDE_SAMPLING_DOC_LINK}
-                    onClick={handleReadDocs}
-                    external
-                  >
-                    {t('Read Docs')}
-                  </Button>
-                  <GuideAnchor
-                    target="add_conditional_rule"
-                    disabled={!uniformRule?.active || !hasAccess || rules.length !== 1}
-                  >
-                    <AddRuleButton
-                      disabled={!hasAccess}
-                      title={
-                        !hasAccess
-                          ? t("You don't have permission to add a rule")
-                          : undefined
+                return (
+                  <RulesPanelLayout isContent>
+                    <Rule
+                      operator={
+                        itemsRule.id === items[0].id
+                          ? SamplingRuleOperator.IF
+                          : isUniformRule(currentRule)
+                          ? SamplingRuleOperator.ELSE
+                          : SamplingRuleOperator.ELSE_IF
                       }
-                      priority="primary"
-                      onClick={handleAddRule}
-                      icon={<IconAdd isCircled />}
-                    >
-                      {t('Add Rule')}
-                    </AddRuleButton>
-                  </GuideAnchor>
-                </ButtonBar>
-              </RulesPanelFooter>
-            </Fragment>
-          )}
-        </RulesPanel>
+                      hideGrabButton={items.length === 1}
+                      rule={currentRule}
+                      onEditRule={() => handleEditRule(currentRule)}
+                      onDeleteRule={() => handleDeleteRule(currentRule)}
+                      onActivate={() => handleActivateToggle(currentRule)}
+                      noPermission={!hasAccess}
+                      upgradeSdkForProjects={recommendedSdkUpgrades.map(
+                        recommendedSdkUpgrade => recommendedSdkUpgrade.project.slug
+                      )}
+                      listeners={listeners}
+                      grabAttributes={attributes}
+                      dragging={dragging}
+                      sorting={sorting}
+                    />
+                  </RulesPanelLayout>
+                );
+              }}
+            />
+            <RulesPanelFooter>
+              <ButtonBar gap={1}>
+                <Button
+                  href={SERVER_SIDE_SAMPLING_DOC_LINK}
+                  onClick={handleReadDocs}
+                  external
+                >
+                  {t('Read Docs')}
+                </Button>
+                <GuideAnchor
+                  target="add_conditional_rule"
+                  disabled={!uniformRule?.active || !hasAccess || rules.length !== 1}
+                >
+                  <AddRuleButton
+                    disabled={!hasAccess}
+                    title={
+                      !hasAccess
+                        ? t("You don't have permission to add a rule")
+                        : undefined
+                    }
+                    priority="primary"
+                    onClick={handleAddRule}
+                    icon={<IconAdd isCircled />}
+                  >
+                    {t('Add Rule')}
+                  </AddRuleButton>
+                </GuideAnchor>
+              </ButtonBar>
+            </RulesPanelFooter>
+          </RulesPanel>
+        )}
       </Fragment>
     </SentryDocumentTitle>
   );

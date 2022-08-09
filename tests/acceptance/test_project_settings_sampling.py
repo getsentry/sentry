@@ -6,7 +6,7 @@ from sentry.api.endpoints.project_details import DynamicSamplingSerializer
 from sentry.models import ProjectOption
 from sentry.testutils import AcceptanceTestCase
 
-FEATURE_NAME = "organizations:server-side-sampling"
+FEATURE_NAME = ["organizations:server-side-sampling", "organizations:server-side-sampling-ui"]
 
 uniform_rule_with_recommended_sampling_values = {
     "id": 1,
@@ -44,12 +44,6 @@ specific_rule_with_all_current_trace_conditions = {
                 "options": {"ignoreCase": True},
             },
             {"op": "glob", "name": "trace.release", "value": ["frontend@22*"]},
-            {
-                "op": "eq",
-                "name": "trace.user.segment",
-                "value": ["paid", "common"],
-                "options": {"ignoreCase": True},
-            },
         ],
     },
     "sampleRate": 0.3,
@@ -237,9 +231,6 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             # Add Release
             self.browser.element('[data-test-id="trace.release"]').click()
 
-            # Add User Segment
-            self.browser.element('[data-test-id="trace.user.segment"]').click()
-
             # Fill in Environment
             self.browser.element('[aria-label="Search or add an environment"]').send_keys("prod")
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
@@ -258,11 +249,6 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             self.browser.element('[aria-label="Search or add a release"]').send_keys("frontend@22*")
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.element('[aria-label="Search or add a release"]').send_keys(Keys.ENTER)
-
-            # Fill in User Segment
-            self.browser.element('[placeholder="ex. paid, common (Multiline)"]').send_keys(
-                "paid\ncommon"
-            )
 
             # Fill in sample rate
             self.browser.element('[placeholder="%"]').send_keys("30")

@@ -8,27 +8,27 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar, IconClock, IconFire} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
-import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import useProjects from 'sentry/utils/useProjects';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
   crumbs: Crumb[] | undefined;
-  duration: number | undefined;
-  event: EventTransaction | undefined;
+  durationMs: number | undefined;
+  replayRecord: ReplayRecord | undefined;
 };
 
-function EventMetaData({crumbs, duration, event}: Props) {
+function EventMetaData({crumbs, durationMs, replayRecord}: Props) {
   const {projects} = useProjects();
   const errors = crumbs?.filter(crumb => crumb.type === 'error').length;
 
   return (
     <KeyMetrics>
-      {event ? (
+      {replayRecord ? (
         <ProjectBadge
           project={
-            projects.find(p => p.id === event.projectID) || {
-              slug: event.projectSlug || '',
+            projects.find(p => p.id === replayRecord.projectId) || {
+              slug: replayRecord.projectSlug || '',
             }
           }
           avatarSize={16}
@@ -38,21 +38,21 @@ function EventMetaData({crumbs, duration, event}: Props) {
       )}
 
       <KeyMetricData>
-        {event ? (
+        {replayRecord ? (
           <React.Fragment>
             <IconCalendar color="gray300" />
-            <TimeSince date={event.dateReceived} shorten />
+            <TimeSince date={replayRecord.startedAt} shorten />
           </React.Fragment>
         ) : (
           <HeaderPlaceholder />
         )}
       </KeyMetricData>
       <KeyMetricData>
-        {duration !== undefined ? (
+        {durationMs !== undefined ? (
           <React.Fragment>
             <IconClock color="gray300" />
             <Duration
-              seconds={Math.floor(msToSec(duration || 0)) || 1}
+              seconds={Math.floor(msToSec(durationMs || 0)) || 1}
               abbreviation
               exact
             />

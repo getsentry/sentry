@@ -28,12 +28,7 @@ class ProjectProfilingBaseEndpoint(ProjectEndpoint):  # type: ignore
         except InvalidSearchQuery as err:
             raise ParseError(detail=str(err))
 
-        params.update(
-            {
-                key: value.isoformat() if key in {"start", "end"} else value
-                for key, value in self.get_filter_params(request, project).items()
-            }
-        )
+        params.update(self.get_filter_params(request, project))
 
         return params
 
@@ -88,6 +83,19 @@ class ProjectProfilingProfileEndpoint(ProjectProfilingBaseEndpoint):
         kwargs: Dict[str, Any] = {
             "method": "GET",
             "path": f"/organizations/{project.organization.id}/projects/{project.id}/profiles/{profile_id}",
+        }
+        if "Accept-Encoding" in request.headers:
+            kwargs["headers"] = {"Accept-Encoding": request.headers.get("Accept-Encoding")}
+        return proxy_profiling_service(**kwargs)
+
+
+class ProjectProfilingRawProfileEndpoint(ProjectProfilingBaseEndpoint):
+    def get(self, request: Request, project: Project, profile_id: str) -> StreamingHttpResponse:
+        if not features.has("organizations:profiling", project.organization, actor=request.user):
+            return Response(status=404)
+        kwargs: Dict[str, Any] = {
+            "method": "GET",
+            "path": f"/organizations/{project.organization.id}/projects/{project.id}/raw_profiles/{profile_id}",
         }
         if "Accept-Encoding" in request.headers:
             kwargs["headers"] = {"Accept-Encoding": request.headers.get("Accept-Encoding")}

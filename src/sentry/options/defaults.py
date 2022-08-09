@@ -408,12 +408,17 @@ register("relay.drop-transaction-metrics", default=[])
 #       given fraction of orgs even if the corresponding feature flag is disabled.
 register("relay.transaction-metrics-org-sample-rate", default=0.0)
 
+# Sample rate for opting in orgs into the new transaction name handling.
+# old behavior: Treat transactions from old SDKs as high-cardinality.
+# new behavior: Treat transactions from old SDKs as low-cardinality, except for browser JS.
+register("relay.transaction-names-client-based", default=0.0)
+
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=True)
 
 # Post process forwarder options
 # Gets data from Kafka headers
-register("post-process-forwarder:kafka-headers", default=False)
+register("post-process-forwarder:kafka-headers", default=True)
 # Number of threads to use for post processing
 register("post-process-forwarder:concurrency", default=1)
 
@@ -437,6 +442,12 @@ register("store.save-transactions-ingest-consumer-rate", default=0.0)
 
 # Drop delete_old_primary_hash messages for a particular project.
 register("reprocessing2.drop-delete-old-primary-hash", default=[])
+
+
+# Send transaction events to random Kafka partitions. Currently
+# this defaults to false as transaction events are partitioned the same
+# as errors (by project ID). Eventually we will flip the default.
+register("kafka.partition-transactions-randomly", default=False)
 
 # Send event messages for specific project IDs to random partitions in Kafka
 # contents are a list of project IDs to message types to be randomly assigned
@@ -465,3 +476,24 @@ register("api.deprecation.brownout-duration", default="PT1M")
 
 # switch all metrics usage over to using strings for tag values
 register("sentry-metrics.performance.tags-values-are-strings", default=False)
+
+# Global and per-organization limits on the writes to the string indexer's DB.
+#
+# Format is a list of dictionaries of format {
+#   "window_seconds": ...,
+#   "granularity_seconds": ...,
+#   "limit": ...
+# }
+#
+# See sentry.ratelimiters.sliding_windows for an explanation of what each of
+# those terms mean.
+#
+# Note that changing either window or granularity_seconds of a limit will
+# effectively reset it, as the previous data can't/won't be converted.
+register("sentry-metrics.writes-limiter.limits.performance.per-org", default=[])
+register("sentry-metrics.writes-limiter.limits.releasehealth.per-org", default=[])
+register("sentry-metrics.writes-limiter.limits.performance.global", default=[])
+register("sentry-metrics.writes-limiter.limits.releasehealth.global", default=[])
+
+# A rate to apply during ingest to turn on performance detection (just detection, no storage of events or issues)
+register("store.use-ingest-performance-detection-only", default=0.0)

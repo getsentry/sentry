@@ -78,6 +78,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
             "organizations:performance-chart-interpolation",
             "organizations:performance-use-metrics",
             "organizations:dashboards-mep",
+            "organizations:mep-rollout-flag",
             "organizations:performance-dry-run-mep",
         ]
         batch_features = features.batch_has(
@@ -139,20 +140,17 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
             has_chart_interpolation = batch_features.get(
                 "organizations:performance-chart-interpolation", False
             )
-            use_metrics = batch_features.get(
-                "organizations:performance-use-metrics", False
-            ) or batch_features.get("organizations:dashboards-mep", False)
+            use_metrics = (
+                batch_features.get("organizations:performance-use-metrics", False)
+                or batch_features.get("organizations:dashboards-mep", False)
+                or batch_features.get("organizations:mep-rollout-flag", False)
+            )
             performance_dry_run_mep = batch_features.get(
                 "organizations:performance-dry-run-mep", False
             )
 
-            # This param will be deprecated in favour of dataset
-            if "metricsEnhanced" in request.GET:
-                metrics_enhanced = request.GET.get("metricsEnhanced") == "1" and use_metrics
-                dataset = discover if not metrics_enhanced else metrics_enhanced_performance
-            else:
-                dataset = self.get_dataset(request) if use_metrics else discover
-                metrics_enhanced = dataset != discover
+            dataset = self.get_dataset(request) if use_metrics else discover
+            metrics_enhanced = dataset != discover
 
             allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
             sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)

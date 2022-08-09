@@ -12,17 +12,17 @@ import {defined} from 'sentry/utils';
 import {
   Field,
   FIELD_TAGS,
-  getFieldDoc,
   isAggregateField,
   isEquation,
   isMeasurement,
   SEMVER_TAGS,
+  SPAN_OP_BREAKDOWN_FIELDS,
   TRACING_FIELDS,
 } from 'sentry/utils/discover/fields';
+import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import Measurements from 'sentry/utils/measurements/measurements';
 import useApi from 'sentry/utils/useApi';
 import withTags from 'sentry/utils/withTags';
-import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
@@ -37,7 +37,7 @@ const getFunctionTags = (fields: Readonly<Field[]>) =>
       )
       .map(item => [
         item.field,
-        {key: item.field, name: item.field, kind: FieldValueKind.FUNCTION},
+        {key: item.field, name: item.field, kind: FieldKind.FUNCTION},
       ])
   );
 
@@ -47,7 +47,7 @@ const getFieldTags = () =>
       key,
       {
         ...FIELD_TAGS[key],
-        kind: FieldValueKind.FIELD,
+        kind: FieldKind.FIELD,
       },
     ])
   );
@@ -62,10 +62,16 @@ const getMeasurementTags = (
       key,
       {
         ...measurements[key],
-        kind: FieldValueKind.MEASUREMENT,
+        kind: FieldKind.MEASUREMENT,
       },
     ])
   );
+
+const getSpanTags = () => {
+  return Object.fromEntries(
+    SPAN_OP_BREAKDOWN_FIELDS.map(key => [key, {key, name: key, kind: FieldKind.METRICS}])
+  );
+};
 
 const getSemverTags = () =>
   Object.fromEntries(
@@ -73,7 +79,7 @@ const getSemverTags = () =>
       key,
       {
         ...SEMVER_TAGS[key],
-        kind: FieldValueKind.FIELD,
+        kind: FieldKind.FIELD,
       },
     ])
   );
@@ -156,12 +162,13 @@ function SearchBar(props: SearchBarProps) {
     const functionTags = getFunctionTags(fields ?? []);
     const fieldTags = getFieldTags();
     const measurementsWithKind = getMeasurementTags(measurements);
+    const spanTags = getSpanTags();
     const semverTags = getSemverTags();
 
     const orgHasPerformanceView = organization.features.includes('performance-view');
 
     const combinedTags: Record<string, Tag> = orgHasPerformanceView
-      ? Object.assign({}, measurementsWithKind, fieldTags, functionTags)
+      ? Object.assign({}, measurementsWithKind, spanTags, fieldTags, functionTags)
       : omit(fieldTags, TRACING_FIELDS);
 
     const tagsWithKind = Object.fromEntries(
@@ -169,7 +176,7 @@ function SearchBar(props: SearchBarProps) {
         key,
         {
           ...tags[key],
-          kind: FieldValueKind.TAG,
+          kind: FieldKind.TAG,
         },
       ])
     );
@@ -182,11 +189,11 @@ function SearchBar(props: SearchBarProps) {
     });
 
     combinedTags.has = {
-      key: 'has',
+      key: FieldKey.HAS,
       name: 'Has property',
       values: sortedTagKeys,
       predefined: true,
-      kind: FieldValueKind.FIELD,
+      kind: FieldKind.FIELD,
     };
 
     return omit(combinedTags, omitTags ?? []);
@@ -207,7 +214,6 @@ function SearchBar(props: SearchBarProps) {
           maxSearchItems={maxSearchItems}
           excludeEnvironment
           maxMenuHeight={maxMenuHeight ?? 300}
-          getFieldDoc={getFieldDoc}
           {...props}
         />
       )}

@@ -94,11 +94,11 @@ export type CandidateDownload =
   | CandidateDownloadUnAppliedStatus
   | CandidateDownloadOtherStatus;
 
-type ImageCandidateBase = {
+interface ImageCandidateBase {
+  location: string;
   source: string;
-  location?: string;
   source_name?: string;
-};
+}
 
 type InternalSource = {
   cpuName: string;
@@ -110,35 +110,33 @@ type InternalSource = {
   symbolType: SymbolType;
 };
 
-export type ImageCandidateOk = ImageCandidateBase & {
+export interface ImageCandidateOk extends ImageCandidateBase {
   download: CandidateDownloadOkStatus;
   debug?: CandidateProcessingInfo;
   unwind?: CandidateProcessingInfo;
-};
+}
 
-export type ImageCandidateInternalOk = ImageCandidateBase &
-  InternalSource & {
-    download: CandidateDownloadOkStatus;
-    debug?: CandidateProcessingInfo;
-    unwind?: CandidateProcessingInfo;
-  };
+export interface ImageCandidateInternalOk extends ImageCandidateBase, InternalSource {
+  download: CandidateDownloadOkStatus;
+  debug?: CandidateProcessingInfo;
+  unwind?: CandidateProcessingInfo;
+}
 
-export type ImageCandidateUnApplied = ImageCandidateBase &
-  InternalSource & {
-    download: CandidateDownloadUnAppliedStatus;
-    source: string;
-    source_name?: string;
-  };
+export interface ImageCandidateUnApplied extends ImageCandidateBase, InternalSource {
+  download: CandidateDownloadUnAppliedStatus;
+  source: string;
+  source_name?: string;
+}
 
-type ImageCandidateOthers = ImageCandidateBase & {
+interface ImageCandidateOthers extends ImageCandidateBase {
   download:
     | CandidateDownloadNotFoundStatus
     | CandidateDownloadDeletedStatus
     | CandidateDownloadOtherStatus;
+  location: string;
   source: string;
-  location?: string;
   source_name?: string;
-};
+}
 
 export type ImageCandidate =
   | ImageCandidateOk
@@ -169,6 +167,7 @@ export type Image = {
   debug_status?: ImageStatus | null;
   image_addr?: string;
   image_size?: number;
+  image_vmaddr?: string;
   unwind_status?: ImageStatus | null;
   uuid?: string;
 };

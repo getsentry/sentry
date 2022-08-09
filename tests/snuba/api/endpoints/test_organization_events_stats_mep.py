@@ -58,7 +58,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                     "interval": "1h",
                     "yAxis": axis,
                     "project": self.project.id,
-                    "metricsEnhanced": "1",
+                    "dataset": "metricsEnhanced",
                 },
             )
             assert response.status_code == 200, response.content
@@ -87,7 +87,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                     "interval": "24h",
                     "yAxis": axis,
                     "project": self.project.id,
-                    "metricsEnhanced": "1",
+                    "dataset": "metricsEnhanced",
                 },
             )
             assert response.status_code == 200, response.content
@@ -114,7 +114,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                     "interval": "1h",
                     "yAxis": axis,
                     "project": self.project.id,
-                    "metricsEnhanced": "1",
+                    "dataset": "metricsEnhanced",
                 },
             )
             assert response.status_code == 200, response.content
@@ -143,7 +143,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                     "interval": "1m",
                     "yAxis": axis,
                     "project": self.project.id,
-                    "metricsEnhanced": "1",
+                    "dataset": "metricsEnhanced",
                 },
             )
             assert response.status_code == 200, response.content
@@ -171,7 +171,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "interval": "1h",
                 "yAxis": ["failure_rate()"],
                 "project": self.project.id,
-                "metricsEnhanced": "1",
+                "dataset": "metricsEnhanced",
             },
         )
         assert response.status_code == 200, response.content
@@ -200,7 +200,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "interval": "1h",
                 "yAxis": ["p75(measurements.lcp)", "p75(transaction.duration)"],
                 "project": self.project.id,
-                "metricsEnhanced": "1",
+                "dataset": "metricsEnhanced",
             },
         )
         assert response.status_code == 200, response.content
@@ -224,7 +224,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "end": iso_format(self.day_ago + timedelta(hours=2)),
                 "interval": "1h",
                 "yAxis": ["epm()", "eps()", "tpm()", "p50(transaction.duration)"],
-                "metricsEnhanced": "1",
+                "dataset": "metricsEnhanced",
             },
         )
 
@@ -243,7 +243,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "end": iso_format(self.day_ago + timedelta(hours=2)),
                 "interval": "1h",
                 "yAxis": "count_unique(user)",
-                "metricsEnhanced": "1",
+                "dataset": "metricsEnhanced",
             },
         )
         assert response.status_code == 200, response.content
@@ -262,7 +262,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                     "interval": "1h",
                     "query": query,
                     "yAxis": ["epm()"],
-                    "metricsEnhanced": "1",
+                    "dataset": "metricsEnhanced",
                 },
             )
             assert response.status_code == 200, response.content
@@ -289,7 +289,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "interval": "1h",
                 "query": "p95():<5s",
                 "yAxis": ["epm()"],
-                "metricsEnhanced": "1",
+                "dataset": "metricsEnhanced",
                 "preventMetricAggregates": "1",
             },
         )
@@ -326,7 +326,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "end": iso_format(self.day_ago + timedelta(hours=2)),
                 "interval": "1h",
                 "yAxis": "sum(transaction.duration)",
-                "metricsEnhanced": "1",
+                "dataset": "metricsEnhanced",
             },
         )
         assert response.status_code == 200, response.content
@@ -371,7 +371,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "end": iso_format(self.day_ago + timedelta(hours=2)),
                 "interval": "1h",
                 "yAxis": "sum(measurements.datacenter_memory)",
-                "metricsEnhanced": "1",
+                "dataset": "metricsEnhanced",
             },
         )
         assert response.status_code == 200, response.content
@@ -384,6 +384,29 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert meta["isMetricsData"] == response.data["isMetricsData"]
         assert meta["fields"] == {"time": "date", "sum_measurements_datacenter_memory": "size"}
         assert meta["units"] == {"time": None, "sum_measurements_datacenter_memory": "pebibyte"}
+
+    def test_does_not_fallback_if_custom_metric_is_out_of_request_time_range(self):
+        self.store_transaction_metric(
+            123,
+            timestamp=self.day_ago + timedelta(hours=1),
+            internal_metric="d:transactions/measurements.custom@kibibyte",
+            entity="metrics_distributions",
+        )
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "yAxis": "p99(measurements.custom)",
+                "dataset": "metricsEnhanced",
+            },
+        )
+        meta = response.data["meta"]
+        assert response.status_code == 200, response.content
+        assert response.data["isMetricsData"]
+        assert meta["isMetricsData"]
+        assert meta["fields"] == {"time": "date", "p99_measurements_custom": "size"}
+        assert meta["units"] == {"time": None, "p99_measurements_custom": "kibibyte"}
 
     def test_multi_yaxis_custom_measurement(self):
         self.store_transaction_metric(
@@ -419,7 +442,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                     "sum(measurements.datacenter_memory)",
                     "p50(measurements.datacenter_memory)",
                 ],
-                "metricsEnhanced": "1",
+                "dataset": "metricsEnhanced",
             },
         )
         assert response.status_code == 200, response.content
@@ -461,3 +484,72 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             "sum_measurements_datacenter_memory": "pebibyte",
             "p50_measurements_datacenter_memory": "pebibyte",
         }
+
+    def test_dataset_metrics_does_not_fallback(self):
+        self.store_transaction_metric(123, timestamp=self.day_ago + timedelta(minutes=30))
+        self.store_transaction_metric(456, timestamp=self.day_ago + timedelta(hours=1, minutes=30))
+        self.store_transaction_metric(789, timestamp=self.day_ago + timedelta(hours=1, minutes=30))
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "query": "transaction.duration:<5s",
+                "yAxis": "sum(transaction.duration)",
+                "dataset": "metrics",
+            },
+        )
+        assert response.status_code == 400, response.content
+
+    def test_title_filter(self):
+        self.store_transaction_metric(
+            123,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.day_ago + timedelta(minutes=30),
+        )
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "query": "title:foo_transaction",
+                "yAxis": [
+                    "sum(transaction.duration)",
+                ],
+                "dataset": "metricsEnhanced",
+            },
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert [attrs for time, attrs in data] == [
+            [{"count": 123}],
+            [{"count": 0}],
+        ]
+
+    def test_search_query_if_environment_does_not_exist_on_indexer(self):
+        self.create_environment(self.project, name="prod")
+        self.create_environment(self.project, name="dev")
+        self.store_transaction_metric(
+            123,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.day_ago + timedelta(minutes=30),
+        )
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "yAxis": [
+                    "sum(transaction.duration)",
+                ],
+                "environment": ["prod", "dev"],
+                "dataset": "metricsEnhanced",
+            },
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert [attrs for time, attrs in data] == [
+            [{"count": 0}],
+            [{"count": 0}],
+        ]
+        assert not response.data["isMetricsData"]

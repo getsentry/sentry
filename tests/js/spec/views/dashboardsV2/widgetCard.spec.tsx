@@ -4,6 +4,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import * as modal from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
+import * as LineChart from 'sentry/components/charts/lineChart';
 import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
@@ -645,7 +646,7 @@ describe('Dashboards > WidgetCard', function () {
 
     await waitFor(() => {
       // Badge in the widget header
-      expect(screen.getByText('Sampled')).toBeInTheDocument();
+      expect(screen.getByText('Indexed')).toBeInTheDocument();
     });
 
     await waitFor(() => {
@@ -811,7 +812,7 @@ describe('Dashboards > WidgetCard', function () {
 
       await waitFor(() => {
         // Badge in the widget header
-        expect(screen.getByText('Sampled')).toBeInTheDocument();
+        expect(screen.getByText('Indexed')).toBeInTheDocument();
       });
 
       await waitFor(() => {
@@ -820,6 +821,108 @@ describe('Dashboards > WidgetCard', function () {
           screen.getByText(/we've automatically adjusted your results/i)
         ).toBeInTheDocument();
       });
+    });
+
+    it('renders chart using axis and tooltip formatters from custom measurement meta', async function () {
+      const spy = jest.spyOn(LineChart, 'LineChart');
+      const eventsStatsMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-stats/',
+        body: {
+          data: [
+            [
+              1658262600,
+              [
+                {
+                  count: 24,
+                },
+              ],
+            ],
+          ],
+          meta: {
+            fields: {
+              time: 'date',
+              p95_measurements_custom: 'duration',
+            },
+            units: {
+              time: null,
+              p95_measurements_custom: 'minute',
+            },
+            isMetricsData: true,
+            tips: {},
+          },
+        },
+      });
+
+      render(
+        <WidgetCard
+          api={api}
+          organization={organization}
+          widget={{
+            title: '',
+            interval: '5m',
+            widgetType: WidgetType.DISCOVER,
+            displayType: DisplayType.LINE,
+            queries: [
+              {
+                conditions: '',
+                name: '',
+                fields: [],
+                columns: [],
+                aggregates: ['p95(measurements.custom)'],
+                orderby: '',
+              },
+            ],
+          }}
+          selection={selection}
+          isEditing={false}
+          onDelete={() => undefined}
+          onEdit={() => undefined}
+          onDuplicate={() => undefined}
+          renderErrorMessage={() => undefined}
+          isSorting={false}
+          currentWidgetDragging={false}
+          showContextMenu
+          widgetLimitReached={false}
+        />,
+        {context: routerContext}
+      );
+      await waitFor(function () {
+        expect(eventsStatsMock).toHaveBeenCalled();
+      });
+      const {tooltip, yAxis} = spy.mock.calls.pop()?.[0] ?? {};
+      expect(tooltip).toBeDefined();
+      expect(yAxis).toBeDefined();
+      // @ts-ignore
+      expect(tooltip.valueFormatter(24, 'duration')).toEqual('24.00ms');
+      // @ts-ignore
+      expect(yAxis.axisLabel.formatter(24, 'duration')).toEqual('24ms');
+    });
+
+    it('displays indexed badge in preview mode', async function () {
+      render(
+        <WidgetCard
+          api={api}
+          organization={{
+            ...organization,
+            features: [...organization.features, 'dashboards-mep'],
+          }}
+          widget={multipleQueryWidget}
+          selection={selection}
+          isEditing={false}
+          onDelete={() => undefined}
+          onEdit={() => undefined}
+          onDuplicate={() => undefined}
+          renderErrorMessage={() => undefined}
+          isSorting={false}
+          currentWidgetDragging={false}
+          showContextMenu
+          widgetLimitReached={false}
+          isPreview
+        />,
+        {context: routerContext}
+      );
+
+      expect(await screen.findByText('Indexed')).toBeInTheDocument();
     });
   });
 });

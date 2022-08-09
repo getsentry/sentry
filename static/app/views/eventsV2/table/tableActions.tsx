@@ -35,7 +35,7 @@ function handleDownloadAsCsv(title: string, {organization, eventView, tableData}
     eventName: 'Discoverv2: Download CSV',
     organization_id: parseInt(organization.id, 10),
   });
-  downloadAsCsv(tableData, eventView.getColumns(), title);
+  downloadAsCsv(tableData, eventView.getColumns(true), title);
 }
 
 function renderDownloadButton(canEdit: boolean, props: Props) {
