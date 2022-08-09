@@ -30,8 +30,11 @@ function useActiveReplayTab() {
       () => (isReplayTab(paramValue || '') ? (paramValue as TabKey) : DEFAULT_TAB),
       [paramValue]
     ),
-    setActiveTab: (value: string) =>
-      isReplayTab(value) ? setParamValue(value) : setParamValue(DEFAULT_TAB),
+    setActiveTab: useCallback(
+      (value: string) =>
+        isReplayTab(value) ? setParamValue(value) : setParamValue(DEFAULT_TAB),
+      [setParamValue]
+    ),
   };
 }
 

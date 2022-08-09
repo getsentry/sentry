@@ -6,6 +6,7 @@ import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline
 import ReplayView from 'sentry/components/replays/replayView';
 import space from 'sentry/styles/space';
 import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
+import {layoutLabels} from 'sentry/utils/replays/hooks/useReplayLayout';
 import useUrlParams from 'sentry/utils/replays/hooks/useUrlParams';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import FocusArea from 'sentry/views/replays/detail/focusArea';
@@ -16,46 +17,7 @@ import SplitPanel from 'sentry/views/replays/detail/layout/splitPanel';
 import SideTabs from 'sentry/views/replays/detail/sideTabs';
 import TagPanel from 'sentry/views/replays/detail/tagPanel';
 
-export type LayoutModes =
-  /**
-   * ### Sidebar Right
-   * ┌───────────────────┐
-   * │ Timeline          │
-   * ├──────────┬────────┤
-   * │ Details  > Video  │
-   * │          >        │
-   * │          >^^^^^^^^┤
-   * │          > Crumbs │
-   * │          >        │
-   * └──────────┴────────┘
-   */
-  | 'sidebar_right'
-  /**
-   * ### Sidebar Left
-   * ┌───────────────────┐
-   * │ Timeline          │
-   * ├────────┬──────────┤
-   * │ Video  > Details  │
-   * │        >          │
-   * │^^^^^^^ >          |
-   * │ Crumbs >          │
-   * │        >          │
-   * └────────┴──────────┘
-   */
-  | 'sidebar_left'
-  /**
-   * ### Topbar
-   *┌────────────────────┐
-   *│ Timeline           │
-   *├───────────┬────────┤
-   *│ Video     │ Crumbs │
-   *│           │        │
-   *├^^^^^^^^^^^^^^^^^^^^┤
-   *│ Details            │
-   *│                    │
-   *└────────────────────┘
-   */
-  | 'topbar';
+type LayoutModes = keyof typeof layoutLabels;
 
 const MIN_VIDEO_WIDTH = {px: 325};
 const MIN_CONTENT_WIDTH = {px: 325};

@@ -1,5 +1,7 @@
+import {layoutLabels} from 'sentry/utils/replays/hooks/useReplayLayout';
 import theme from 'sentry/utils/theme';
-import {LayoutModes} from 'sentry/views/replays/detail/layout';
+
+type LayoutModes = keyof typeof layoutLabels;
 
 export const getDefaultLayout = (collapsed: boolean): LayoutModes => {
   const {innerWidth, innerHeight} = window;

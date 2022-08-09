@@ -1,16 +1,6 @@
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import {IconPanel} from 'sentry/icons';
-import PreferencesStore from 'sentry/stores/preferencesStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import useUrlParam from 'sentry/utils/replays/hooks/useUrlParams';
-import {getDefaultLayout} from 'sentry/views/replays/detail/layout/utils';
-
-const LAYOUT_NAMES = ['topbar', 'sidebar_left', 'sidebar_right'];
-const layoutLabels = {
-  sidebar_right: 'Player Right',
-  sidebar_left: 'Player Left',
-  topbar: 'Player Top',
-};
+import useReplayLayout, {layoutLabels} from 'sentry/utils/replays/hooks/useReplayLayout';
 
 function getLayoutIcon(layout: string) {
   const layoutToDir = {
@@ -25,25 +15,22 @@ function getLayoutIcon(layout: string) {
 type Props = {};
 
 function ChooseLayout({}: Props) {
-  const collapsed = !!useLegacyStore(PreferencesStore).collapsed;
-  const {getParamValue, setParamValue} = useUrlParam(
-    'l_page',
-    getDefaultLayout(collapsed)
-  );
+  const {getLayout, setLayout} = useReplayLayout();
+
   return (
     <CompactSelect
       triggerProps={{
         size: 'xs',
-        icon: getLayoutIcon(getParamValue()),
+        icon: getLayoutIcon(getLayout()),
       }}
       triggerLabel=""
-      value={getParamValue()}
+      value={getLayout()}
       placement="bottom right"
-      onChange={opt => setParamValue(opt?.value)}
-      options={LAYOUT_NAMES.map(key => ({
-        value: key,
-        label: layoutLabels[key],
-        leadingItems: getLayoutIcon(key),
+      onChange={opt => setLayout(opt?.value)}
+      options={Object.entries(layoutLabels).map(([value, label]) => ({
+        value,
+        label,
+        leadingItems: getLayoutIcon(value),
       }))}
     />
   );
