@@ -7,7 +7,7 @@ from django.db.models import Q
 
 from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.indexer.base import KeyCollection, KeyResult, KeyResults, StringIndexer
-from sentry.sentry_metrics.indexer.cache import PartitionKey, StringIndexerCache
+from sentry.sentry_metrics.indexer.cache import StringIndexerCache
 from sentry.sentry_metrics.indexer.db import TABLE_MAPPING, IndexerTable
 from sentry.sentry_metrics.indexer.ratelimiters import writes_limiter
 from sentry.sentry_metrics.indexer.static_strings import StaticStringIndexer
@@ -23,8 +23,10 @@ _INDEXER_DB_METRIC = "sentry_metrics.indexer.postgres"
 # only used to compare to the older version of the PGIndexer
 _INDEXER_CACHE_FETCH_METRIC = "sentry_metrics.indexer.memcache.fetch"
 
+_PARTITION_KEY = "pg"
+
 indexer_cache = StringIndexerCache(
-    **settings.SENTRY_STRING_INDEXER_CACHE_OPTIONS, partition_key=PartitionKey.POSTGRES
+    **settings.SENTRY_STRING_INDEXER_CACHE_OPTIONS, partition_key=_PARTITION_KEY
 )
 
 
