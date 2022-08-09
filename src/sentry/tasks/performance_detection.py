@@ -78,16 +78,13 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
     if all_fingerprints:
         sdk_span.containing_transaction.set_tag("_pi_all_issue_count", len(all_fingerprints))
         metrics.incr(
-            "performance_issue_count", len(all_fingerprints), skip_internal=False, sample_rate=1.0
+            "performance.performance_issue.aggregate",
+            len(all_fingerprints),
+            skip_internal=False,
+            sample_rate=1.0,
         )
         if event_id:
             sdk_span.containing_transaction.set_tag("_pi_transaction", event_id)
-    metrics.incr(
-        "has_performance_problem",
-        instance=str(bool(all_fingerprints)),
-        skip_internal=False,
-        sample_rate=1.0,
-    )
 
     duplicate_performance_issues = detectors[DetectorType.DUPLICATE_SPANS].stored_issues
     duplicate_performance_fingerprints = list(duplicate_performance_issues.keys())
@@ -95,7 +92,7 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
         first_duplicate = duplicate_performance_issues[duplicate_performance_fingerprints[0]]
         sdk_span.containing_transaction.set_tag("_pi_duplicates", first_duplicate["span_id"])
         metrics.incr(
-            "performance_issue_duplicates",
+            "performance.performance_issue.duplicates",
             len(duplicate_performance_fingerprints),
             skip_internal=False,
             sample_rate=1.0,
@@ -107,7 +104,7 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
         first_slow_span = slow_span_performance_issues[slow_performance_fingerprints[0]]
         sdk_span.containing_transaction.set_tag("_pi_slow_span", first_slow_span["span_id"])
         metrics.incr(
-            "performance_issue_slow_span",
+            "performance.performance_issue.slow_span",
             len(slow_performance_fingerprints),
             skip_internal=False,
             sample_rate=1.0,
@@ -121,11 +118,23 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
         ]
         sdk_span.containing_transaction.set_tag("_pi_sequential", first_sequential_span["span_id"])
         metrics.incr(
-            "performance_issue_sequential",
+            "performance.performance_issue.sequential",
             len(sequential_performance_fingerprints),
             skip_internal=False,
             sample_rate=1.0,
         )
+
+    metrics.incr(
+        "performance.performance_issue.detected",
+        instance=str(bool(all_fingerprints)),
+        skip_internal=False,
+        sample_rate=1.0,
+        tags={
+            "duplicates": bool(len(duplicate_performance_fingerprints)),
+            "slow_span": bool(len(slow_performance_fingerprints)),
+            "sequential": bool(len(sequential_performance_fingerprints)),
+        },
+    )
 
 
 # Creates a stable fingerprint given the same span details using sha1.
