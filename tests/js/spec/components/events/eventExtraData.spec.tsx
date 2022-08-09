@@ -178,7 +178,7 @@ describe('EventExtraData', function () {
       await screen.findByText('Replaced because of PII rule "project:3"')
     ).toBeInTheDocument(); // tooltip description
 
-    // expect(screen.getByText('isNewer')).toBeInTheDocument(); // key
-    // expect(screen.getByText('\\n')).toBeInTheDocument(); // value
+    expect(screen.getByText('isNewer')).toBeInTheDocument(); // key
+    expect(screen.queryByText('\\n')).not.toBeInTheDocument(); // value
   });
 });
