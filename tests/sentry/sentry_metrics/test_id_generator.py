@@ -6,7 +6,7 @@ def test_get_id() -> None:
     assert get_id() != get_id()
 
     # IDs fit in 64 bits
-    assert get_id() <= pow(2, 64)
+    assert get_id() < pow(2, 64)
 
     # Starts with 0100 (version)
     id_binary_string = bin(get_id())[2:].zfill(64)
