@@ -3,7 +3,7 @@ import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
 import {
   mockedSamplingDistribution,
   mockedSamplingSdkVersions,
-} from '../views/settings/project/server-side-sampling/utils';
+} from '../views/settings/project/server-side-sampling/testUtils/utils';
 
 describe('ServerSideSamplingStore', function () {
   beforeEach(function () {

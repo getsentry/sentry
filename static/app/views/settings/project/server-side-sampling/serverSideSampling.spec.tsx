@@ -11,11 +11,11 @@ import {
   mockedProjects,
   mockedSamplingDistribution,
   mockedSamplingSdkVersions,
-  SERVER_SIDE_SAMPLING_DOC_LINK,
   specificRule,
   TestComponent,
   uniformRule,
-} from 'sentry/views/settings/project/server-side-sampling/utils';
+} from 'sentry/views/settings/project/server-side-sampling/testUtils/utils';
+import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
 import {samplingBreakdownTitle} from './samplingBreakdown.spec';
 

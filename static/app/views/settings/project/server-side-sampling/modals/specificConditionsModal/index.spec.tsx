@@ -13,11 +13,11 @@ import {SamplingInnerName} from 'sentry/types/sampling';
 import {SpecificConditionsModal} from 'sentry/views/settings/project/server-side-sampling/modals/specificConditionsModal';
 import {distributedTracesConditions} from 'sentry/views/settings/project/server-side-sampling/modals/specificConditionsModal/utils';
 import {
-  getInnerNameLabel,
   getMockData,
   specificRule,
   uniformRule,
-} from 'sentry/views/settings/project/server-side-sampling/utils';
+} from 'sentry/views/settings/project/server-side-sampling/testUtils/utils';
+import {getInnerNameLabel} from 'sentry/views/settings/project/server-side-sampling/utils';
 
 describe('Server-Side Sampling - Specific Conditions Modal', function () {
   afterEach(function () {

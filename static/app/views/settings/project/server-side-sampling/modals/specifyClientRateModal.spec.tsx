@@ -9,10 +9,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {openModal} from 'sentry/actionCreators/modal';
 import GlobalModal from 'sentry/components/globalModal';
 import {SpecifyClientRateModal} from 'sentry/views/settings/project/server-side-sampling/modals/specifyClientRateModal';
-import {
-  getMockData,
-  SERVER_SIDE_SAMPLING_DOC_LINK,
-} from 'sentry/views/settings/project/server-side-sampling/utils';
+import {getMockData} from 'sentry/views/settings/project/server-side-sampling/testUtils/utils';
+import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
 jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 

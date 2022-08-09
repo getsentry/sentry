@@ -9,9 +9,9 @@ import {
   mockedProjects,
   mockedSamplingSdkVersions,
   recommendedSdkUpgrades,
-  SERVER_SIDE_SAMPLING_DOC_LINK,
   uniformRule,
-} from 'sentry/views/settings/project/server-side-sampling/utils';
+} from 'sentry/views/settings/project/server-side-sampling/testUtils/utils';
+import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
 describe('Server-Side Sampling - Recommended Steps Modal', function () {
   beforeEach(function () {

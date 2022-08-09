@@ -2,7 +2,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {SamplingSDKClientRateChangeAlert} from 'sentry/views/settings/project/server-side-sampling/samplingSDKClientRateChangeAlert';
 
-import {getMockData} from './utils';
+import {getMockData} from './testUtils/utils';
 
 const otherOutcomesGroups = TestStubs.Outcomes().groups.filter(
   group => group.by.outcome !== 'accepted' && group.by.outcome !== 'client_discard'
