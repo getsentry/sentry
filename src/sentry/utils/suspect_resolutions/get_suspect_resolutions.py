@@ -19,7 +19,7 @@ def record_suspect_resolutions(organization_id, project, group, user, resolution
 @instrumented_task(name="sentry.tasks.get_suspect_resolutions", queue="get_suspect_resolutions")
 def get_suspect_resolutions(resolved_issue_id: int) -> Sequence[int]:
     resolved_issue = Group.objects.get(id=resolved_issue_id)
-    resolution_type = Activity.objects.filter(group=resolved_issue).values_list("type").first()
+    (resolution_type,) = Activity.objects.filter(group=resolved_issue).values_list("type").first()
 
     if resolved_issue.status != GroupStatus.RESOLVED or resolution_type is None:
         return []
