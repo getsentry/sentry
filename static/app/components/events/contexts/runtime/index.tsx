@@ -3,9 +3,9 @@ import {Fragment} from 'react';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import {Event} from 'sentry/types/event';
 
-import {getUnknownData} from '../getUnknownData';
+import {geKnownData, getUnknownData} from '../utils';
 
-import {getRuntimeKnownData} from './getRuntimeKnownData';
+import {getRuntimeKnownDataDetails} from './getRuntimeKnownDataDetails';
 import {RuntimeData, RuntimeIgnoredDataType, RuntimeKnownDataType} from './types';
 
 type Props = {
@@ -24,7 +24,14 @@ export function RuntimeEventContext({data, event}: Props) {
   const meta = event._meta?.contexts?.runtime ?? {};
   return (
     <Fragment>
-      <ContextBlock data={getRuntimeKnownData({data, meta})} />
+      <ContextBlock
+        data={geKnownData<RuntimeData, RuntimeKnownDataType>({
+          data,
+          meta,
+          knownDataTypes: runtimeKnownDataValues,
+          onGetKnownDataDetails: v => getRuntimeKnownDataDetails(v),
+        })}
+      />
       <ContextBlock
         data={getUnknownData({
           allData: data,
