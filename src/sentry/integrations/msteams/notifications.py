@@ -39,10 +39,34 @@ SUPPORTED_NOTIFICATION_TYPES = [
     ResolvedActivityNotification,
     ResolvedInReleaseActivityNotification,
     ReleaseActivityNotification,
+    # TODO: Implement the following types of notifications.
+    # Most notification just need to be added to this list, triggered
+    # and verified that they're rendered correctly in MS Teams, but
+    # some notifications like approval notifications could be more
+    # interactive and might require changes in the webhook.
+    # - `AutoSyncNotification`
+    # - `DigestNotification`
+    # - `IntegrationNudgeNotification`
+    # - `IntegrationRequestNotification`
+    # - `InviteRequestNotification`
+    # - `JoinRequestNotification`
+    # - `NewProcessingIssuesActivityNotification`
+    # - `RegressionActivityNotification`
+    # - `UserReportNotification`
+    # - `QuotaExceededNotification`
+    # - `QuotaWarningNotification`
+    # - `IntegrationDisabledNotification`
+    # - `OverMemberLimitNotification`
+    # - `PlanUpgradeRequestNotification`
+    # - `RestrictedIntegrationTrialNotification`
+    # - `TrialRequestNotification`
 ]
 MESSAGE_BUILDERS = {
     "SlackNotificationsMessageBuilder": MSTeamsNotificationsMessageBuilder,
     "IssueNotificationMessageBuilder": MSTeamsIssueNotificationsMessageBuilder,
+    # TODO: Add more message builders like Slack when adding new notification types.
+    # "DigestNotificationMessageBuilder": DigestNotificationMessageBuilder,
+    # "ActiveReleaseIssueNotificationMessageBuilder": ActiveReleaseIssueNotificationMessageBuilder,
 }
 
 
