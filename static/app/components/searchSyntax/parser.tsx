@@ -629,15 +629,15 @@ export class TokenConverter {
       return this.checkInvalidInFilter(value as InFilter['value']);
     }
 
-    if (
-      [
-        FilterType.AggregateDate,
-        FilterType.AggregateDuration,
-        FilterType.AggregateNumeric,
-        FilterType.AggregatePercentage,
-        FilterType.AggregateRelativeDate,
-      ].includes(filter)
-    ) {
+    const isAggregateFilter = [
+      FilterType.AggregateDate,
+      FilterType.AggregateDuration,
+      FilterType.AggregateNumeric,
+      FilterType.AggregatePercentage,
+      FilterType.AggregateRelativeDate,
+    ].includes(filter)
+
+    if (isAggregateFilter) {
       return this.checkInvalidAggregateFilter(
         filter as AggregateFilter,
         key as FilterMap[AggregateFilter]['key'],
