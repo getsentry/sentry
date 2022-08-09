@@ -1,7 +1,7 @@
+import {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
 import theme from 'sentry/utils/theme';
-import {LayoutModes} from 'sentry/views/replays/detail/layout';
 
-export const getDefaultLayout = (collapsed: boolean): LayoutModes => {
+export const getDefaultLayout = (collapsed: boolean): LayoutKey => {
   const {innerWidth, innerHeight} = window;
 
   const sidebarWidth = parseInt(
@@ -15,8 +15,8 @@ export const getDefaultLayout = (collapsed: boolean): LayoutModes => {
     innerWidth <= mediumScreenWidth ? innerWidth : innerWidth - sidebarWidth;
 
   if (windowsWidth < innerHeight) {
-    return 'topbar';
+    return LayoutKey.topbar;
   }
 
-  return 'sidebar_left';
+  return LayoutKey.sidebar_left;
 };

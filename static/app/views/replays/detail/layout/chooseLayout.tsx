@@ -1,23 +1,21 @@
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import {IconPanel} from 'sentry/icons';
-import PreferencesStore from 'sentry/stores/preferencesStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import useUrlParam from 'sentry/utils/replays/hooks/useUrlParams';
-import {getDefaultLayout} from 'sentry/views/replays/detail/layout/utils';
+import {t} from 'sentry/locale';
+import useReplayLayout, {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
 
-const LAYOUT_NAMES = ['topbar', 'sidebar_left', 'sidebar_right'];
-const layoutLabels = {
-  sidebar_right: 'Player Right',
-  sidebar_left: 'Player Left',
-  topbar: 'Player Top',
+const layoutToLabel: Record<LayoutKey, string> = {
+  topbar: t('Player Top'),
+  sidebar_left: t('Player Left'),
+  sidebar_right: t('Player Right'),
+};
+
+const layoutToDir: Record<LayoutKey, string> = {
+  topbar: 'up',
+  sidebar_left: 'left',
+  sidebar_right: 'right',
 };
 
 function getLayoutIcon(layout: string) {
-  const layoutToDir = {
-    sidebar_right: 'right',
-    sidebar_left: 'left',
-    topbar: 'up',
-  };
   const dir = layout in layoutToDir ? layoutToDir[layout] : 'up';
   return <IconPanel size="sm" direction={dir} />;
 }
@@ -25,25 +23,22 @@ function getLayoutIcon(layout: string) {
 type Props = {};
 
 function ChooseLayout({}: Props) {
-  const collapsed = !!useLegacyStore(PreferencesStore).collapsed;
-  const {getParamValue, setParamValue} = useUrlParam(
-    'l_page',
-    getDefaultLayout(collapsed)
-  );
+  const {getLayout, setLayout} = useReplayLayout();
+
   return (
     <CompactSelect
       triggerProps={{
         size: 'xs',
-        icon: getLayoutIcon(getParamValue()),
+        icon: getLayoutIcon(getLayout()),
       }}
       triggerLabel=""
-      value={getParamValue()}
+      value={getLayout()}
       placement="bottom right"
-      onChange={opt => setParamValue(opt?.value)}
-      options={LAYOUT_NAMES.map(key => ({
-        value: key,
-        label: layoutLabels[key],
-        leadingItems: getLayoutIcon(key),
+      onChange={opt => setLayout(opt?.value)}
+      options={Object.entries(layoutToLabel).map(([value, label]) => ({
+        value,
+        label,
+        leadingItems: getLayoutIcon(value),
       }))}
     />
   );

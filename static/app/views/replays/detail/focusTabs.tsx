@@ -1,9 +1,17 @@
 import {MouseEvent} from 'react';
 
 import NavTabs from 'sentry/components/navTabs';
-import useActiveReplayTab, {
-  ReplayTabs,
-} from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import {t} from 'sentry/locale';
+import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
+
+const ReplayTabs: Record<TabKey, string> = {
+  console: t('Console'),
+  dom: t('DOM Events'),
+  network: t('Network'),
+  trace: t('Trace'),
+  issues: t('Issues'),
+  memory: t('Memory'),
+};
 
 type Props = {};
 
