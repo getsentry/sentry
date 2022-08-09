@@ -101,7 +101,7 @@
   description: ''
 - name: 'Component: Developer Environment'
   color: '584774'
-  description: This covers issues related to setting up a developer's environment to be able to contribute to Sentr
+  description: This covers issues related to setting up a developer's environment
 - name: 'Component: Documentation'
   color: '584774'
   description: ''
