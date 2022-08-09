@@ -226,6 +226,7 @@ function ActionSet({
         </ActionLink>
       )}
       <DropdownMenuControl
+        size="sm"
         items={menuItems}
         triggerProps={{
           'aria-label': t('More issue actions'),
