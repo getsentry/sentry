@@ -40,6 +40,48 @@ def default_start_end_dates(now=None, default_stats_period=MAX_STATS_PERIOD):
 
 def get_date_range_from_params(params, optional=False, default_stats_period=MAX_STATS_PERIOD):
     """
+    A wrapper function for `get_date_range_from_stats_period` that allows us
+    to alias `statsPeriod` to ensure backward compatibility.
+
+    If `timeframe` is passed then convert to a time delta and make sure it
+    fits within our min/max period length. Values are in the format
+    <number><period_type>, where period type is one of `s` (seconds),
+    `m` (minutes), `h` (hours) or `d` (days).
+
+    Similarly, `timeframeStart` and `timeframeEnd` allow for selecting a
+    relative range, for example: 15 days ago through 8 days ago. This uses the same
+    format as `statsPeriod`
+
+    :param params:
+    If `start` end `end` are passed, validate them, convert to `datetime` and
+    returns them if valid.
+    :param optional: When True, if no params passed then return `(None, None)`.
+    :param default_stats_period: When set, this becomes the interval upon which default start
+    and end dates are defined
+    :return: A length 2 tuple containing start/end or raises an `InvalidParams`
+    exception
+    """
+    timeframe = params.get("timeframe")
+    timeframe_start = params.get("timeframeStart")
+    timeframe_end = params.get("timeframeEnd")
+
+    if timeframe is not None:
+        params["statsPeriod"] = timeframe
+
+    elif timeframe_start or timeframe_end:
+        if not all([timeframe_start, timeframe_end]):
+            raise InvalidParams("timeframeStart and timeframeEnd are both required")
+        else:
+            params["statsPeriodStart"] = timeframe_start
+            params["statsPeriodEnd"] = timeframe_end
+
+    return get_date_range_from_stats_period(
+        params, optional=optional, default_stats_period=default_stats_period
+    )
+
+
+def get_date_range_from_stats_period(params, optional=False, default_stats_period=MAX_STATS_PERIOD):
+    """
     Gets a date range from standard date range params we pass to the api.
 
     If `statsPeriod` is passed then convert to a time delta and make sure it
@@ -55,7 +97,7 @@ def get_date_range_from_params(params, optional=False, default_stats_period=MAX_
     If `start` end `end` are passed, validate them, convert to `datetime` and
     returns them if valid.
     :param optional: When True, if no params passed then return `(None, None)`.
-    :param default_stats_period: When set, this becomes the interval upon which default start and
+    :param default_stats_period: When set, this becomes the interval upon which default start
     and end dates are defined
     :return: A length 2 tuple containing start/end or raises an `InvalidParams`
     exception
