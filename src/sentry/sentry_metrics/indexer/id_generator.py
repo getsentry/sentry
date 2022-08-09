@@ -17,6 +17,15 @@ def reverse_bits(number: int, bit_size: int) -> int:
     return int(bin(number)[2:].zfill(bit_size)[::-1], 2)
 
 
+# we will have room b/n version and time since for a while
+# so let's reverse the version bits to grow to the right
+# instead of left should we need more than 4bits for version
+#
+#  version             time since
+# (0100    | 00000001001000101000000111100011)
+#
+# (10000)  |  0000001001000101000000111100011)
+
 _VERSION_PREFIX = reverse_bits(_VERSION, _VERSION_BITS)
 
 
