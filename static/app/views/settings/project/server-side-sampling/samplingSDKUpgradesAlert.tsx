@@ -68,7 +68,6 @@ export function SamplingSDKUpgradesAlert({
 
   return (
     <Fragment>
-      {/* TODO: this kills the alert in the modal */}
       {rules.length > 0 && recommendedSdkUpgrades.length > 0 && (
         <Alert
           data-test-id="recommended-sdk-upgrades-alert"
