@@ -181,6 +181,7 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     features: List[str]
     firstTransactionEvent: bool
     hasSessions: bool
+    hasProfiles: bool
     platform: Optional[str]
     firstEvent: Optional[datetime]
 
@@ -411,6 +412,7 @@ class ProjectSerializer(Serializer):  # type: ignore
             "firstEvent": obj.first_event,
             "firstTransactionEvent": bool(obj.flags.has_transactions),
             "hasSessions": bool(obj.flags.has_sessions),
+            "hasProfiles": bool(obj.flags.has_profiles),
             "features": attrs["features"],
             "status": status_label,
             "platform": obj.platform,
@@ -634,6 +636,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             firstEvent=obj.first_event,
             firstTransactionEvent=bool(obj.flags.has_transactions),
             hasSessions=bool(obj.flags.has_sessions),
+            hasProfiles=bool(obj.flags.has_profiles),
             platform=obj.platform,
             platforms=attrs["platforms"],
             latestRelease=attrs["latest_release"],

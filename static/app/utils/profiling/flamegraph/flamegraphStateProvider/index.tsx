@@ -44,6 +44,7 @@ function isColorCoding(
     'by system / application',
     'by library',
     'by recursion',
+    'by frequency',
   ];
 
   return values.includes(value as any);
