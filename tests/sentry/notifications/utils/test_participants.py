@@ -2,7 +2,15 @@ from typing import Iterable, Mapping, Optional, Sequence, Union
 from unittest import mock
 
 from sentry.eventstore.models import Event
-from sentry.models import GroupRelease, NotificationSetting, Project, ProjectOwnership, Team, User
+from sentry.models import (
+    ExternalActor,
+    GroupRelease,
+    NotificationSetting,
+    Project,
+    ProjectOwnership,
+    Team,
+    User,
+)
 from sentry.notifications.types import (
     ActionTargetType,
     NotificationSettingOptionValues,
@@ -92,12 +100,35 @@ class GetSendToTeamTest(TestCase):
 
         assert self.get_send_to_team() == {}
 
+    def test_no_external_actor(self):
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.ALWAYS,
+            team=self.team,
+        )
+
+        assert self.get_send_to_team() == {ExternalProviders.EMAIL: {self.user}}
+
     def test_send_to_team_direct(self):
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
             team=self.team,
+        )
+        integration = self.create_integration(
+            self.organization,
+            self.team.id,
+            name="Slack Installation",
+            provider="slack",
+        )
+        ExternalActor.objects.create(
+            actor=self.team.actor,
+            organization=self.team.organization,
+            integration=integration,
+            provider=ExternalProviders.SLACK.value,
+            external_name="my-name",
         )
 
         assert self.get_send_to_team() == {ExternalProviders.SLACK: {self.team}}

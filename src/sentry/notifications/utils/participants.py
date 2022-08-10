@@ -8,6 +8,7 @@ from sentry import features
 from sentry.models import (
     ActorTuple,
     Commit,
+    ExternalActor,
     Group,
     GroupSubscription,
     NotificationSetting,
@@ -45,6 +46,9 @@ AVAILABLE_PROVIDERS = {
     ExternalProviders.EMAIL,
     ExternalProviders.SLACK,
 }
+
+# team notifications only support Slack for now
+AVAILABLE_TEAM_PROVIDERS = {ExternalProviders.SLACK}
 
 
 def get_providers_from_which_to_remove_user(
@@ -381,17 +385,8 @@ def get_recipients_by_provider(
     """Get the lists of recipients that should receive an Issue Alert by ExternalProvider."""
     teams, users = partition_recipients(recipients)
 
-    # First evaluate the teams.
-    teams_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
-        project, teams, notification_type
-    )
-
-    # Teams cannot receive emails so omit EMAIL settings.
-    teams_by_provider = {
-        provider: teams
-        for provider, teams in teams_by_provider.items()
-        if provider != ExternalProviders.EMAIL
-    }
+    # a set of teams by the provider
+    teams_by_provider = get_teams_by_provider(project, teams, notification_type)
 
     # If there are any teams that didn't get added, fall back and add all users.
     users = set(users).union(get_users_from_team_fall_back(teams, teams_by_provider))
@@ -402,3 +397,36 @@ def get_recipients_by_provider(
     )
 
     return combine_recipients_by_provider(teams_by_provider, users_by_provider)
+
+
+def get_teams_by_provider(
+    project: Project, teams: Iterable[Team], notification_type: NotificationSettingTypes
+):
+    # figure out which teams have external actors for the right platform
+    team_actor_ids = list(map(lambda x: x.actor_id, teams))
+    external_actors = ExternalActor.objects.filter(
+        actor_id__in=team_actor_ids,
+        provider__in=list(map(lambda x: x.value, list(AVAILABLE_TEAM_PROVIDERS))),
+    )
+    team_by_actor_id = {}
+    for team in teams:
+        team_by_actor_id[team.actor_id] = team
+
+    teams_with_mappings_by_provider = defaultdict(set)
+    for external_actor in external_actors:
+        teams_with_mappings_by_provider[external_actor.provider].add(
+            team_by_actor_id[external_actor.actor_id].id
+        )
+
+    # First evaluate the teams.
+    unfiltered_teams_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
+        project, teams, notification_type
+    )
+
+    # check against our external actors
+    teams_by_provider = defaultdict(set)
+    for provider in AVAILABLE_TEAM_PROVIDERS:
+        for unfiltered_team in unfiltered_teams_by_provider[provider]:
+            if unfiltered_team.id in teams_with_mappings_by_provider[provider.value]:
+                teams_by_provider[provider].add(unfiltered_team)
+    return teams_by_provider
