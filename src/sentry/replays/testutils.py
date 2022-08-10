@@ -38,6 +38,7 @@ def mock_expected_response(
         "title": kwargs.pop("title", "Title"),
         "projectId": project_id,
         "urls": urls,
+        "errorIds": kwargs.pop("error_ids", []),
         "traceIds": kwargs.pop("trace_ids", []),
         "startedAt": datetime.datetime.strftime(started_at, "%Y-%m-%dT%H:%M:%S+00:00"),
         "finishedAt": datetime.datetime.strftime(finished_at, "%Y-%m-%dT%H:%M:%S+00:00"),
