@@ -11,11 +11,10 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
 type Props = {
-  isLoading: boolean;
   series: Series[];
 };
 
-function UniformRateChart({series, isLoading}: Props) {
+function UniformRateChart({series}: Props) {
   const legend = {
     right: 10,
     top: 5,
@@ -25,7 +24,7 @@ function UniformRateChart({series, isLoading}: Props) {
   return (
     <ChartPanel>
       <ChartContainer>
-        <TransitionChart loading={isLoading} reloading={false} height="224px">
+        <TransitionChart loading={false} reloading={false} height="224px">
           <HeaderTitle>{t('Transactions (Last 30 days) ')}</HeaderTitle>
 
           {getDynamicText({
