@@ -20,7 +20,7 @@ class OrganizationSentryFunctionDetails(APITestCase):
             author="bar",
             code="baz",
             overview="qux",
-            envVariables=[]
+            envVariables=[],
         )
 
     def test_get_valid_function(self):
