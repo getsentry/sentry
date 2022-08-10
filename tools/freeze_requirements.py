@@ -61,10 +61,11 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     base_cmd = (
         "pip-compile",
-        "--no-header",
-        "--no-annotate",
         "--allow-unsafe",
-        "-q",
+        "--no-annotate",
+        "--no-header",
+        "--quiet",
+        "--strip-extras",
     )
 
     executor = ThreadPoolExecutor(max_workers=3)

@@ -9,6 +9,7 @@ import sentry_sdk
 
 from sentry import options
 from sentry.eventstore.processing.base import Event
+from sentry.utils import metrics
 
 Span = Dict[str, Any]
 TransactionSpans = List[Span]
@@ -76,6 +77,10 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
 
     if all_fingerprints:
         sdk_span.containing_transaction.set_tag("_pi_all_issue_count", len(all_fingerprints))
+        metrics.incr(
+            "performance.performance_issue.aggregate",
+            len(all_fingerprints),
+        )
         if event_id:
             sdk_span.containing_transaction.set_tag("_pi_transaction", event_id)
 
@@ -84,12 +89,20 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
     if duplicate_performance_fingerprints:
         first_duplicate = duplicate_performance_issues[duplicate_performance_fingerprints[0]]
         sdk_span.containing_transaction.set_tag("_pi_duplicates", first_duplicate["span_id"])
+        metrics.incr(
+            "performance.performance_issue.duplicates",
+            len(duplicate_performance_fingerprints),
+        )
 
     slow_span_performance_issues = detectors[DetectorType.SLOW_SPAN].stored_issues
     slow_performance_fingerprints = list(slow_span_performance_issues.keys())
     if slow_performance_fingerprints:
         first_slow_span = slow_span_performance_issues[slow_performance_fingerprints[0]]
         sdk_span.containing_transaction.set_tag("_pi_slow_span", first_slow_span["span_id"])
+        metrics.incr(
+            "performance.performance_issue.slow_span",
+            len(slow_performance_fingerprints),
+        )
 
     sequential_span_performance_issues = detectors[DetectorType.SEQUENTIAL_SLOW_SPANS].stored_issues
     sequential_performance_fingerprints = list(sequential_span_performance_issues.keys())
@@ -98,6 +111,20 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
             sequential_performance_fingerprints[0]
         ]
         sdk_span.containing_transaction.set_tag("_pi_sequential", first_sequential_span["span_id"])
+        metrics.incr(
+            "performance.performance_issue.sequential",
+            len(sequential_performance_fingerprints),
+        )
+
+    metrics.incr(
+        "performance.performance_issue.detected",
+        instance=str(bool(all_fingerprints)),
+        tags={
+            "duplicates": bool(len(duplicate_performance_fingerprints)),
+            "slow_span": bool(len(slow_performance_fingerprints)),
+            "sequential": bool(len(sequential_performance_fingerprints)),
+        },
+    )
 
 
 # Creates a stable fingerprint given the same span details using sha1.
@@ -143,6 +170,12 @@ class PerformanceDetector(ABC):
     def init(self):
         raise NotImplementedError
 
+    def is_span_op_allowed(self, span_op: str):
+        allowed_span_ops = self.settings.get("allowed_span_ops", [])
+        if len(allowed_span_ops) <= 0:
+            return True
+        return any(span_op.startswith(op) for op in allowed_span_ops)
+
     @property
     @abstractmethod
     def settings_key(self) -> DetectorType:
@@ -180,11 +213,10 @@ class DuplicateSpanDetector(PerformanceDetector):
 
         fingerprint = fingerprint_span(span)
 
-        allowed_span_ops = self.settings.get("allowed_span_ops")
         duplicate_count_threshold = self.settings.get("count")
         duplicate_duration_threshold = self.settings.get("cumulative_duration")
 
-        if not fingerprint or op not in allowed_span_ops:
+        if not fingerprint or not self.is_span_op_allowed(op):
             return
 
         span_duration = get_span_duration(span)
@@ -226,10 +258,9 @@ class SlowSpanDetector(PerformanceDetector):
 
         fingerprint = fingerprint_span(span)
 
-        allowed_span_ops = self.settings.get("allowed_span_ops")
         slow_span_duration_threshold = self.settings.get("duration_threshold")
 
-        if not fingerprint or op not in allowed_span_ops:
+        if not fingerprint or not self.is_span_op_allowed(op):
             return
 
         span_duration = get_span_duration(span)
@@ -264,11 +295,10 @@ class SequentialSlowSpanDetector(PerformanceDetector):
 
         fingerprint = fingerprint_span_op(span)
 
-        allowed_span_ops = self.settings.get("allowed_span_ops")
         count_threshold = self.settings.get("count")
         duration_threshold = self.settings.get("cumulative_duration")
 
-        if not fingerprint or op not in allowed_span_ops:
+        if not fingerprint or not self.is_span_op_allowed(op):
             return
 
         span_duration = get_span_duration(span)

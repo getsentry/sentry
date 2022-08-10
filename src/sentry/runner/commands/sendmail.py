@@ -38,5 +38,7 @@ def sendmail(files, fail_silently):
     configure()
 
     for file in files:
+        click.echo(f"Sending {file}")
         with open(file) as f:
-            send_prepared_email(f.read(), fail_silently=fail_silently)
+            if not send_prepared_email(f.read(), fail_silently=fail_silently):
+                click.echo(f"  error: Failed to send {file}")

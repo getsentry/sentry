@@ -5,12 +5,8 @@ import pytest
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.base import FetchType, FetchTypeExt, KeyCollection, Metadata
 from sentry.sentry_metrics.indexer.cache import indexer_cache
-from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer, StringIndexer
-from sentry.sentry_metrics.indexer.postgres import PGStringIndexer
-from sentry.sentry_metrics.indexer.postgres_v2 import (
-    PGStringIndexerV2,
-    StaticStringsIndexerDecorator,
-)
+from sentry.sentry_metrics.indexer.models import StringIndexer
+from sentry.sentry_metrics.indexer.postgres_v2 import PGStringIndexerV2, PostgresIndexer
 from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
@@ -26,36 +22,9 @@ def assert_fetch_type_for_tag_string_set(
 pytestmark = pytest.mark.sentry_metrics
 
 
-class PostgresIndexerTest(TestCase):
-    def setUp(self) -> None:
-        self.indexer = PGStringIndexer()
-
-    def test_indexer(self):
-        org_id = self.organization.id
-        org_strings = {org_id: {"hello", "hey", "hi"}}
-        results = PGStringIndexer().bulk_record(org_strings=org_strings)
-        obj_ids = MetricsKeyIndexer.objects.filter(string__in=["hello", "hey", "hi"]).values_list(
-            "id", flat=True
-        )
-        assert set(results.values()) == set(obj_ids)
-
-        # test resolve and reverse_resolve
-        obj = MetricsKeyIndexer.objects.get(string="hello")
-        assert PGStringIndexer().resolve(org_id, "hello") == obj.id
-        assert PGStringIndexer().reverse_resolve(obj.id) == obj.string
-
-        # test record on a string that already exists
-        PGStringIndexer().record(org_id, "hello")
-        assert PGStringIndexer().resolve(org_id, "hello") == obj.id
-
-        # test invalid values
-        assert PGStringIndexer().resolve(org_id, "beep") is None
-        assert PGStringIndexer().reverse_resolve(1234) is None
-
-
 class StaticStringsIndexerTest(TestCase):
     def setUp(self) -> None:
-        self.indexer = StaticStringsIndexerDecorator()
+        self.indexer = PostgresIndexer()
         self.use_case_id = UseCaseKey("release-health")
 
     def test_static_strings_only(self) -> None:

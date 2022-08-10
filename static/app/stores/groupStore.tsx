@@ -131,7 +131,7 @@ const storeConfig: GroupStoreDefinition = {
       items = [items];
     }
 
-    const itemsById = {};
+    const itemsById: Record<string, Item> = {};
     const itemIds = new Set<string>();
     items.forEach(item => {
       itemsById[item.id] = item;
@@ -150,9 +150,8 @@ const storeConfig: GroupStoreDefinition = {
     });
 
     // New items
-    for (const itemId in itemsById) {
-      this.items.push(itemsById[itemId]);
-    }
+    const newItems = items.filter(item => itemsById.hasOwnProperty(item.id));
+    this.items = this.items.concat(newItems);
 
     this.trigger(itemIds);
   },

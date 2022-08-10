@@ -57,6 +57,7 @@ import {
   Rule,
 } from './rule';
 import {SamplingBreakdown} from './samplingBreakdown';
+import {SamplingProjectIncompatibleAlert} from './samplingProjectIncompatibleAlert';
 import {SamplingPromo} from './samplingPromo';
 import {SamplingSDKClientRateChangeAlert} from './samplingSDKClientRateChangeAlert';
 import {SamplingSDKUpgradesAlert} from './samplingSDKUpgradesAlert';
@@ -119,11 +120,19 @@ export function ServerSideSampling({project}: Props) {
     groupBy: 'outcome',
   });
 
-  const {recommendedSdkUpgrades, incompatibleProjects} = useRecommendedSdkUpgrades({
+  const {recommendedSdkUpgrades, isProjectIncompatible} = useRecommendedSdkUpgrades({
     orgSlug: organization.slug,
+    projectId: project.id,
   });
 
   async function handleActivateToggle(rule: SamplingRule) {
+    if (isProjectIncompatible) {
+      addErrorMessage(
+        t('Your project is currently incompatible with Server-Side Sampling.')
+      );
+      return;
+    }
+
     const newRules = rules.map(r => {
       if (r.id === rule.id) {
         return {
@@ -325,6 +334,13 @@ export function ServerSideSampling({project}: Props) {
     onSuccess,
     rule,
   }: Parameters<UniformModalsSubmit>[0]) {
+    if (isProjectIncompatible) {
+      addErrorMessage(
+        t('Your project is currently incompatible with Server-Side Sampling.')
+      );
+      return;
+    }
+
     const newRule: SamplingRule = {
       // All new/updated rules must have id equal to 0
       id: 0,
@@ -429,32 +445,37 @@ export function ServerSideSampling({project}: Props) {
           )}
         />
 
-        <SamplingSDKUpgradesAlert
+        <SamplingProjectIncompatibleAlert
           organization={organization}
           projectId={project.id}
-          rules={rules}
-          recommendedSdkUpgrades={recommendedSdkUpgrades}
-          onReadDocs={handleReadDocs}
-          incompatibleProjects={incompatibleProjects}
+          isProjectIncompatible={isProjectIncompatible}
         />
 
-        {!!rules.length &&
-          !recommendedSdkUpgrades.length &&
-          !incompatibleProjects.length && (
-            <SamplingSDKClientRateChangeAlert
-              onReadDocs={handleReadDocs}
-              projectStats={projectStats}
-              organization={organization}
-              projectId={project.id}
-            />
-          )}
+        {!!rules.length && (
+          <SamplingSDKUpgradesAlert
+            organization={organization}
+            projectId={project.id}
+            recommendedSdkUpgrades={recommendedSdkUpgrades}
+            onReadDocs={handleReadDocs}
+          />
+        )}
 
-        <SamplingBreakdown orgSlug={organization.slug} />
+        {!!rules.length && !recommendedSdkUpgrades.length && (
+          <SamplingSDKClientRateChangeAlert
+            onReadDocs={handleReadDocs}
+            projectStats={projectStats}
+            organization={organization}
+            projectId={project.id}
+          />
+        )}
+
+        {hasAccess && <SamplingBreakdown orgSlug={organization.slug} />}
         {!rules.length ? (
           <SamplingPromo
             onGetStarted={handleGetStarted}
             onReadDocs={handleReadDocs}
             hasAccess={hasAccess}
+            isProjectIncompatible={isProjectIncompatible}
           />
         ) : (
           <RulesPanel>

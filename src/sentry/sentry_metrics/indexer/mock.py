@@ -39,18 +39,14 @@ class SimpleIndexer(StringIndexer):
             return SHARED_STRINGS[string]
         return self._record(org_id, string)
 
-    def resolve(
-        self, org_id: int, string: str, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
-    ) -> Optional[int]:
+    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
 
         strs = self._strings[org_id]
         return strs.get(string)
 
-    def reverse_resolve(
-        self, id: int, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
-    ) -> Optional[str]:
+    def reverse_resolve(self, use_case_id: UseCaseKey, id: int) -> Optional[str]:
         if id in REVERSE_SHARED_STRINGS:
             return REVERSE_SHARED_STRINGS[id]
         return self._reverse.get(id)

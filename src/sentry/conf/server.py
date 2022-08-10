@@ -667,6 +667,7 @@ CELERY_QUEUES = [
     Queue("update", routing_key="update"),
     Queue("profiles.process", routing_key="profiles.process"),
     Queue("release_health.duplex", routing_key="release_health.duplex"),
+    Queue("get_suspect_resolutions", routing_key="get_suspect_resolutions"),
 ]
 
 for queue in CELERY_QUEUES:
@@ -1181,6 +1182,8 @@ SENTRY_FEATURES = {
     "projects:rate-limits": True,
     # Enable functionality to trigger service hooks upon event ingestion.
     "projects:servicehooks": False,
+    # Enable suspect resolutions feature
+    "projects:suspect-resolutions": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
     "projects:kafka-ingest": False,
     # Workflow 2.0 Auto associate commits to commit sha release
@@ -1460,7 +1463,7 @@ SENTRY_METRICS_PREFIX = "sentry."
 SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
 
 # Metrics product
-SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres_v2.StaticStringsIndexerDecorator"
+SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres_v2.PostgresIndexer"
 SENTRY_METRICS_INDEXER_OPTIONS = {}
 SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
 
