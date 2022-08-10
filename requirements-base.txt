@@ -101,4 +101,4 @@ phabricator>=0.7.0
 # test dependencies, but unable to move to requirements-test until
 # sentry.utils.pytest and sentry.testutils are moved to tests/
 selenium>=4.1.5
-sqlparse>=0.2.4
+sqlparse>=0.2.4,<=0.3.0
