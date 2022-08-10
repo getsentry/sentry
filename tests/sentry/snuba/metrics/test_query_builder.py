@@ -968,7 +968,9 @@ def test_translate_meta_results_with_duplicates():
 class QueryDefinitionTestCase(TestCase):
     def test_valid_latest_release_alias_filter(self):
         self.create_release(version="foo", project=self.project, date_added=before_now(days=4))
-        self.create_release(version="bar", project=self.project, date_added=before_now(days=2))
+        self.create_release(
+            version="bar", project=self.project, date_added=before_now(days=2)
+        )  # latest release
 
         query_params = MultiValueDict(
             {
