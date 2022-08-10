@@ -21,7 +21,6 @@ import {
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
-import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {decodeList} from 'sentry/utils/queryString';
 import {Theme} from 'sentry/utils/theme';
@@ -349,14 +348,8 @@ export function Chart({
       minInterval: durationUnit,
       axisLabel: {
         color: theme.chartLabel,
-        // p50() coerces the axis to be time based
         formatter: (value: number) =>
-          axisLabelFormatter(
-            value,
-            'duration',
-            undefined,
-            durationUnit
-          ),
+          axisLabelFormatter(value, 'duration', undefined, durationUnit),
       },
     },
   };

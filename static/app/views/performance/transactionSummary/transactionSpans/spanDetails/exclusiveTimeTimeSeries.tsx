@@ -20,7 +20,6 @@ import {Organization} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
-import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import useApi from 'sentry/utils/useApi';
@@ -146,9 +145,7 @@ export default function ExclusiveTimeTimeSeries(props: Props) {
                 yAxis: {
                   axisLabel: {
                     color: theme.chartLabel,
-                    // p50() coerces the axis to be time based
-                    formatter: (value: number) =>
-                      axisLabelFormatter(value, aggregateOutputType('p50()')),
+                    formatter: (value: number) => axisLabelFormatter(value, 'duration'),
                   },
                 },
               };
