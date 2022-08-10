@@ -22,12 +22,8 @@ class CloudSpannerIndexer(StringIndexer):
     def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
         raise NotImplementedError
 
-    def resolve(
-        self, org_id: int, string: str, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
-    ) -> Optional[int]:
+    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
         raise NotImplementedError
 
-    def reverse_resolve(
-        self, id: int, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
-    ) -> Optional[str]:
+    def reverse_resolve(self, use_case_id: UseCaseKey, id: int) -> Optional[str]:
         raise NotImplementedError
