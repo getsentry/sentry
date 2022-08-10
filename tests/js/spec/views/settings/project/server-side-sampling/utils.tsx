@@ -183,6 +183,8 @@ useRecommendedSdkUpgrades.mockImplementation(() => ({
     },
   ],
   incompatibleProjects: [],
+  isProjectIncompatible: true,
+  affectedProjects: [mockedProjects[1]],
   fetching: false,
 }));
 
