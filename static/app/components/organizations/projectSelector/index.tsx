@@ -25,7 +25,7 @@ import theme from 'sentry/utils/theme';
 import ProjectSelectorFooter from './footer';
 import SelectorItem from './selectorItem';
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   /**
    * Projects the member is a part of
    */
@@ -108,7 +108,7 @@ type Props = WithRouterProps & {
    * @deprecated
    */
   showProjectSettingsLink?: boolean;
-};
+}
 
 function ProjectSelector({
   customDropdownButton,

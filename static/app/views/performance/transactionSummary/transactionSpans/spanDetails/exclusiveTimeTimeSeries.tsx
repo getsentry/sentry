@@ -26,13 +26,13 @@ import useApi from 'sentry/utils/useApi';
 
 import {getExclusiveTimeDisplayedValue} from '../utils';
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   eventView: EventView;
   location: Location;
   organization: Organization;
   spanSlug: SpanSlug;
   withoutZerofill: boolean;
-};
+}
 
 export default function ExclusiveTimeTimeSeries(props: Props) {
   const {location, router, organization, eventView, spanSlug, withoutZerofill} = props;

@@ -15,7 +15,7 @@ import {Project} from 'sentry/types';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import withProject from 'sentry/utils/withProject';
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   /**
    * Disable logging to Sentry
    */
@@ -26,7 +26,7 @@ type Props = WithRouterProps & {
   disableReport?: boolean;
   error?: Error;
   project?: Project;
-};
+}
 
 function RouteError({error, disableLogSentry, disableReport, project, routes}: Props) {
   const {organization} = useLegacyStore(OrganizationStore);

@@ -27,28 +27,27 @@ type DefaultProps = {
   debounceWait?: number; // optional, otherwise app/views/settings/organizationMembers/organizationMembersList.tsx L:191 is not happy
 };
 
-type Props = WithRouterProps &
-  DefaultProps & {
-    api: Client;
-    onError: () => void;
-    onSuccess: (data: object, resp: ResponseMeta | undefined) => void;
-    /**
-     * URL to make the search request to
-     */
-    url: string;
+interface Props extends WithRouterProps, DefaultProps {
+  api: Client;
+  onError: () => void;
+  onSuccess: (data: object, resp: ResponseMeta | undefined) => void;
+  /**
+   * URL to make the search request to
+   */
+  url: string;
 
-    /**
-     * A render-prop child may be passed to handle custom rendering of the input.
-     */
-    children?: (otps: RenderProps) => React.ReactNode;
-    className?: string;
-    onSearchSubmit?: (query: string, event: React.FormEvent) => void;
+  /**
+   * A render-prop child may be passed to handle custom rendering of the input.
+   */
+  children?: (otps: RenderProps) => React.ReactNode;
+  className?: string;
+  onSearchSubmit?: (query: string, event: React.FormEvent) => void;
 
-    /**
-     * Updates URL with search query in the URL param: `query`
-     */
-    updateRoute?: boolean;
-  };
+  /**
+   * Updates URL with search query in the URL param: `query`
+   */
+  updateRoute?: boolean;
+}
 
 type State = {
   busy: boolean;

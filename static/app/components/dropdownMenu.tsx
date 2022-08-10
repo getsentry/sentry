@@ -61,7 +61,7 @@ type RenderProps = {
   isOpen: boolean;
 };
 
-type DefaultProps = {
+interface DefaultProps {
   /**
    * closes menu on "Esc" keypress
    */
@@ -70,9 +70,9 @@ type DefaultProps = {
    * Keeps dropdown menu open when menu is clicked
    */
   keepMenuOpen: boolean;
-};
+}
 
-type Props = DefaultProps & {
+interface Props extends DefaultProps {
   /**
    * Render function
    */
@@ -105,7 +105,7 @@ type Props = DefaultProps & {
    * hide dropdown menu
    */
   shouldIgnoreClickOutside?: (event: MouseEvent) => boolean;
-};
+}
 
 type State = {
   isOpen: boolean;

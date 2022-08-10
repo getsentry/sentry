@@ -20,7 +20,7 @@ import IssueWidgetQueries from './issueWidgetQueries';
 import ReleaseWidgetQueries from './releaseWidgetQueries';
 import WidgetQueries from './widgetQueries';
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   api: Client;
   organization: Organization;
   selection: PageFilters;
@@ -47,7 +47,7 @@ type Props = WithRouterProps & {
   showSlider?: boolean;
   tableItemLimit?: number;
   windowWidth?: number;
-};
+}
 
 export function WidgetCardChartContainer({
   location,

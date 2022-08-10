@@ -9,20 +9,22 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
 import {ResolutionStatusDetails} from 'sentry/types';
 
-const defaultProps = {
-  label: t('Ignore this issue until \u2026'),
-};
+interface DefaultProps {
+  label: string;
+}
 
-type Props = ModalRenderProps & {
+interface Props extends DefaultProps, ModalRenderProps {
   onSelected: (details: ResolutionStatusDetails) => void;
-} & typeof defaultProps;
+}
 
 type State = {
   dateWarning: boolean;
 };
 
 export default class CustomIgnoreDurationModal extends Component<Props, State> {
-  static defaultProps = defaultProps;
+  static defaultProps: DefaultProps = {
+    label: t('Ignore this issue until \u2026'),
+  };
 
   state: State = {
     dateWarning: false,

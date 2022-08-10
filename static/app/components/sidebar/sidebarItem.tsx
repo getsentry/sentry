@@ -21,7 +21,7 @@ const LabelHook = HookOrDefault({
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   /**
    * Icon to display
    */
@@ -81,7 +81,7 @@ type Props = WithRouterProps & {
   organization?: Organization;
 
   to?: string;
-};
+}
 
 const SidebarItem = ({
   router,

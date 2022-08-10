@@ -25,7 +25,7 @@ import {analytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import theme from 'sentry/utils/theme';
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   loadingProjects: boolean;
   /**
    * When menu is closed
@@ -55,7 +55,7 @@ type Props = WithRouterProps & {
    * Show the pin button in the dropdown's header actions
    */
   showPin?: boolean;
-};
+}
 
 /**
  * Environment Selector

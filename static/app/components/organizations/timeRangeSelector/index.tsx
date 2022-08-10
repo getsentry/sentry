@@ -57,27 +57,27 @@ type DateRangeChangeData = Parameters<
   React.ComponentProps<typeof DateRange>['onChange']
 >[0];
 
-const defaultProps = {
-  /**
-   * Show absolute date selectors
-   */
-  showAbsolute: true,
-  /**
-   * Show relative date selectors
-   */
-  showRelative: true,
+interface DefaultProps {
   /**
    * When the default period is selected, it is visually dimmed and
    * makes the selector unclearable.
    */
-  defaultPeriod: DEFAULT_STATS_PERIOD,
+  defaultPeriod: string;
   /**
    * Callback when value changes
    */
-  onChange: (() => {}) as (data: ChangeData) => void,
-};
+  onChange: (data: ChangeData) => void;
+  /**
+   * Show absolute date selectors
+   */
+  showAbsolute: boolean;
+  /**
+   * Show relative date selectors
+   */
+  showRelative: boolean;
+}
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps, Partial<DefaultProps> {
   /**
    * End date value for absolute date selector
    */
@@ -171,7 +171,7 @@ type Props = WithRouterProps & {
    * Show the pin button in the dropdown's header actions
    */
   showPin?: boolean;
-} & Partial<typeof defaultProps>;
+}
 
 type State = {
   hasChanges: boolean;
@@ -185,7 +185,12 @@ type State = {
 };
 
 class TimeRangeSelector extends PureComponent<Props, State> {
-  static defaultProps = defaultProps;
+  static defaultProps: DefaultProps = {
+    showAbsolute: true,
+    showRelative: true,
+    defaultPeriod: DEFAULT_STATS_PERIOD,
+    onChange: () => {},
+  };
 
   constructor(props: Props) {
     super(props);

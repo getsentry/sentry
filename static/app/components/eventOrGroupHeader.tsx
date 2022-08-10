@@ -22,7 +22,7 @@ import EventTitleError from './eventTitleError';
 
 type Size = 'small' | 'normal';
 
-type Props = WithRouterProps<{orgId: string}> & {
+interface Props extends WithRouterProps<{orgId: string}> {
   data: Event | Group | GroupTombstone;
   organization: Organization;
   className?: string;
@@ -36,7 +36,7 @@ type Props = WithRouterProps<{orgId: string}> & {
   onClick?: () => void;
   query?: string;
   size?: Size;
-};
+}
 
 /**
  * Displays an event or group/issue title (i.e. in Stream)

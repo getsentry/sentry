@@ -25,7 +25,7 @@ import useProjects from 'sentry/utils/useProjects';
 
 type ProjectSelectorProps = React.ComponentProps<typeof ProjectSelector>;
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   disabled?: ProjectSelectorProps['disabled'];
   /**
    * Message to display at the bottom of project list
@@ -77,7 +77,7 @@ type Props = WithRouterProps & {
    * Slugs of projects to restrict the project selector to
    */
   specificProjectSlugs?: string[];
-};
+}
 
 function ProjectPageFilter({
   router,

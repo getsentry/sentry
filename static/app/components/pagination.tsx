@@ -24,7 +24,7 @@ export type CursorHandler = (
   delta: number
 ) => void;
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   caption?: React.ReactNode;
   className?: string;
   disabled?: boolean;
@@ -33,7 +33,7 @@ type Props = WithRouterProps & {
   paginationAnalyticsEvent?: (direction: string) => void;
   size?: 'zero' | 'xs' | 'sm';
   to?: string;
-};
+}
 
 const defaultOnCursor: CursorHandler = (cursor, path, query, _direction) =>
   browserHistory.push({

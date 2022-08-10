@@ -11,14 +11,14 @@ import {ResolutionStatusDetails, SelectValue} from 'sentry/types';
 type CountNames = 'ignoreCount' | 'ignoreUserCount';
 type WindowNames = 'ignoreWindow' | 'ignoreUserWindow';
 
-type Props = ModalRenderProps & {
+interface Props extends ModalRenderProps {
   countLabel: string;
   countName: CountNames;
   label: string;
   onSelected: (statusDetails: ResolutionStatusDetails) => void;
   windowName: WindowNames;
   windowOptions: SelectValue<number>[];
-};
+}
 
 type State = {
   count: number;

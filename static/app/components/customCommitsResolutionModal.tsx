@@ -9,11 +9,11 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Commit} from 'sentry/types';
 
-type Props = ModalRenderProps & {
+interface Props extends ModalRenderProps {
   onSelected: ({inCommit: string}) => void;
   orgSlug: string;
   projectSlug?: string;
-};
+}
 
 function CustomCommitsResolutionModal({
   onSelected,

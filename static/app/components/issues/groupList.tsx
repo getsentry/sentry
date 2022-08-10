@@ -28,16 +28,16 @@ import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metr
 
 import GroupListHeader from './groupListHeader';
 
-const defaultProps = {
-  canSelectGroups: true,
-  withChart: true,
-  withPagination: true,
-  useFilteredStats: true,
-  useTintRow: true,
-  narrowGroups: false,
-};
+interface DefaultProps {
+  canSelectGroups: boolean;
+  narrowGroups: boolean;
+  useFilteredStats: boolean;
+  useTintRow: boolean;
+  withChart: boolean;
+  withPagination: boolean;
+}
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps, Partial<DefaultProps> {
   api: Client;
   endpointPath: string;
   orgId: string;
@@ -56,7 +56,7 @@ type Props = WithRouterProps & {
   queryParams?: Record<string, number | string | string[] | undefined | null>;
   renderEmptyMessage?: () => React.ReactNode;
   renderErrorMessage?: ({detail: string}, retry: () => void) => React.ReactNode;
-} & Partial<typeof defaultProps>;
+}
 
 type State = {
   error: boolean;
@@ -68,7 +68,14 @@ type State = {
 };
 
 class GroupList extends Component<Props, State> {
-  static defaultProps = defaultProps;
+  static defaultProps: DefaultProps = {
+    canSelectGroups: true,
+    withChart: true,
+    withPagination: true,
+    useFilteredStats: true,
+    useTintRow: true,
+    narrowGroups: false,
+  };
 
   state: State = {
     loading: true,

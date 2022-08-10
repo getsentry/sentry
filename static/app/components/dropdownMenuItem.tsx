@@ -14,7 +14,7 @@ import MenuListItem, {
 import {IconChevron} from 'sentry/icons';
 import usePrevious from 'sentry/utils/usePrevious';
 
-export type MenuItemProps = MenuListItemProps & {
+export interface MenuItemProps extends MenuListItemProps {
   /**
    * Item key. Must be unique across the entire menu, including sub-menus.
    */
@@ -53,7 +53,7 @@ export type MenuItemProps = MenuListItemProps & {
    * Destination if this menu item is a link. See also: `isExternalLink`.
    */
   to?: LocationDescriptor;
-};
+}
 
 type Props = {
   /**

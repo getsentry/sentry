@@ -15,10 +15,10 @@ import withProject from 'sentry/utils/withProject';
 
 const ERROR_NAME = 'Permission Denied';
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   organization: Organization;
   project?: Project;
-};
+}
 
 class PermissionDenied extends Component<Props> {
   componentDidMount() {

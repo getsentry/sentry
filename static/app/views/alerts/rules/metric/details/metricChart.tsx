@@ -73,7 +73,7 @@ import {
   transformSessionResponseToSeries,
 } from './metricChartOption';
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   api: Client;
   filter: string[] | null;
   interval: string;
@@ -85,7 +85,7 @@ type Props = WithRouterProps & {
   timePeriod: TimePeriodType;
   incidents?: Incident[];
   selectedIncident?: Incident | null;
-};
+}
 
 type State = {
   height: number;

@@ -24,13 +24,13 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import ExclusiveTimeHistogram from './exclusiveTimeHistogram';
 import ExclusiveTimeTimeSeries from './exclusiveTimeTimeSeries';
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   eventView: EventView;
   location: Location;
   organization: Organization;
   spanSlug: SpanSlug;
   totalCount?: number;
-};
+}
 
 enum DisplayModes {
   TIMESERIES = 'timeseries',

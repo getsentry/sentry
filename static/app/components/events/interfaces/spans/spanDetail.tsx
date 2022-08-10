@@ -68,7 +68,7 @@ type TransactionResult = {
   transaction: string;
 };
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   api: Client;
   childTransactions: QuickTraceEvent[] | null;
   event: Readonly<EventTransaction>;
@@ -78,7 +78,7 @@ type Props = WithRouterProps & {
   scrollToHash: (hash: string) => void;
   span: Readonly<ProcessedSpanType>;
   trace: Readonly<ParsedTraceType>;
-};
+}
 
 type State = {
   errorsOpened: boolean;

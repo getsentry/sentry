@@ -17,11 +17,11 @@ import space from 'sentry/styles/space';
 import {Group} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 
-type Props = WithRouterProps<{orgId: string}> & {
+interface Props extends WithRouterProps<{orgId: string}> {
   data: Event | Group;
   showAssignee?: boolean;
   showInboxTime?: boolean;
-};
+}
 
 function EventOrGroupExtraDetails({data, showAssignee, params, showInboxTime}: Props) {
   const {

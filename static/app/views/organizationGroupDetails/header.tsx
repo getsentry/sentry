@@ -43,7 +43,7 @@ import {Tab} from './types';
 import {TagAndMessageWrapper} from './unhandledTag';
 import {ReprocessingStatus} from './utils';
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   api: Client;
   baseUrl: string;
   currentTab: string;
@@ -53,7 +53,7 @@ type Props = WithRouterProps & {
   project: Project;
   replaysCount: number | null;
   event?: Event;
-};
+}
 
 type MemberList = NonNullable<
   React.ComponentProps<typeof AssigneeSelector>['memberList']

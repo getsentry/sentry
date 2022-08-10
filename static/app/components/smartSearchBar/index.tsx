@@ -135,7 +135,7 @@ type AutocompleteGroup = {
   type: ItemType;
 };
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   api: Client;
   organization: Organization;
   /**
@@ -253,7 +253,7 @@ type Props = WithRouterProps & {
    * form
    */
   useFormWrapper?: boolean;
-};
+}
 
 type State = {
   /**

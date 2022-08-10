@@ -27,16 +27,13 @@ const getTimeStringFromDate = (date: Date) => moment(date).local().format('HH:mm
 
 type ChangeData = {end?: Date; hasDateRangeErrors?: boolean; start?: Date};
 
-const defaultProps = {
-  showAbsolute: true,
-  showRelative: false,
-  /**
-   * The maximum number of days in the past you can pick
-   */
-  maxPickableDays: MAX_PICKABLE_DAYS,
-};
+interface DefaultProps {
+  maxPickableDays: number;
+  showAbsolute: boolean;
+  showRelative: boolean;
+}
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps, Partial<DefaultProps> {
   /**
    * End date value for absolute date selector
    */
@@ -74,7 +71,7 @@ type Props = WithRouterProps & {
    * Use UTC
    */
   utc?: boolean | null;
-} & Partial<typeof defaultProps>;
+}
 
 type State = {
   hasEndErrors: boolean;
@@ -82,7 +79,14 @@ type State = {
 };
 
 class BaseDateRange extends Component<Props, State> {
-  static defaultProps = defaultProps;
+  static defaultProps = {
+    showAbsolute: true,
+    showRelative: false,
+    /**
+     * The maximum number of days in the past you can pick
+     */
+    maxPickableDays: MAX_PICKABLE_DAYS,
+  };
 
   state: State = {
     hasStartErrors: false,

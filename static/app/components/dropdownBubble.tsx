@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import space from 'sentry/styles/space';
 import SettingsHeader from 'sentry/views/settings/components/settingsHeader';
 
-type Params = {
+interface Params {
   /**
    * Menu alignment
    */
@@ -25,9 +25,11 @@ type Params = {
    * The width of the menu
    */
   width?: string;
-};
+}
 
-type ParamsWithTheme = Params & {theme: Theme};
+interface ParamsWithTheme extends Params {
+  theme: Theme;
+}
 
 /**
  * If `blendCorner` is false, then we apply border-radius to all corners

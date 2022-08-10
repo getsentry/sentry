@@ -32,12 +32,12 @@ import {ZoomKeys} from './utils';
 const NUM_BUCKETS = 50;
 const PRECISION = 0;
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   eventView: EventView;
   location: Location;
   organization: Organization;
   spanSlug: SpanSlug;
-};
+}
 
 export default function ExclusiveTimeHistogram(props: Props) {
   const {location, organization, eventView, spanSlug} = props;

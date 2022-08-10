@@ -15,7 +15,7 @@ import withLatestContext from 'sentry/utils/withLatestContext';
 
 import {ChildProps, Result, ResultItem} from './types';
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   /**
    * Render function that renders the global search result
    */
@@ -30,7 +30,7 @@ type Props = WithRouterProps & {
    * The string to search the navigation routes for
    */
   query: string;
-};
+}
 
 type State = {
   loading: boolean;

@@ -32,11 +32,11 @@ import {PRESET_AGGREGATES} from '../alerts/rules/metric/presets';
 const getCategoryName = (category?: string) =>
   categoryList.find(({id}) => id === category)?.id;
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   api: any;
   organization: Organization;
   teams: Team[];
-};
+}
 
 type PlatformName = React.ComponentProps<typeof PlatformIcon>['platform'];
 type IssueAlertFragment = Parameters<

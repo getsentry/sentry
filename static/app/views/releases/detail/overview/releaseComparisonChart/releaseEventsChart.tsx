@@ -29,7 +29,7 @@ import {
   releaseMarkLinesLabels,
 } from '../../utils';
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   chartType: ReleaseComparisonChartType;
   diff: React.ReactNode;
   organization: Organization;
@@ -40,7 +40,7 @@ type Props = WithRouterProps & {
   period?: string | null;
   start?: string;
   utc?: boolean;
-};
+}
 
 function ReleaseEventsChart({
   release,

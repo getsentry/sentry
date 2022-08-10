@@ -40,7 +40,7 @@ import WidgetCardContextMenu from './widgetCardContextMenu';
 
 type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   api: Client;
   currentWidgetDragging: boolean;
   isEditing: boolean;
@@ -68,7 +68,7 @@ type Props = WithRouterProps & {
   showWidgetViewerButton?: boolean;
   tableItemLimit?: number;
   windowWidth?: number;
-};
+}
 
 type State = {
   pageLinks?: string;
