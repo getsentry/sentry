@@ -61,6 +61,7 @@ class OrganizationSentryFunctions(APITestCase):
             "author": "bar",
             "code": defaultCode,
             "overview": "qux",
+            "envVariables": [{"name": "foo", "value": "bar"}],
         }
         with Feature("organizations:sentry-functions"):
             self.client.post(self.url, data)
@@ -70,4 +71,6 @@ class OrganizationSentryFunctions(APITestCase):
             assert response.data[0]["author"] == "bar"
             assert response.data[0]["code"] == defaultCode
             assert response.data[0]["overview"] == "qux"
-            mock_func.assert_called_once_with(defaultCode, response.data[0]["external_id"], "qux")
+            mock_func.assert_called_once_with(
+                defaultCode, response.data[0]["external_id"], "qux", {"foo": "bar"}
+            )
