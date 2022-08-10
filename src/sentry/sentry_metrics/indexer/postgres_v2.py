@@ -9,7 +9,7 @@ from sentry.sentry_metrics.indexer.base import KeyCollection, KeyResult, KeyResu
 from sentry.sentry_metrics.indexer.cache import indexer_cache
 from sentry.sentry_metrics.indexer.db import TABLE_MAPPING, IndexerTable
 from sentry.sentry_metrics.indexer.ratelimiters import writes_limiter
-from sentry.sentry_metrics.indexer.static_strings import StaticStringIndexer as StaticStringIndexer
+from sentry.sentry_metrics.indexer.static_strings import StaticStringIndexer
 from sentry.utils import metrics
 
 from .base import FetchType
