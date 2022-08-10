@@ -1183,7 +1183,7 @@ SENTRY_FEATURES = {
     # Enable functionality to trigger service hooks upon event ingestion.
     "projects:servicehooks": False,
     # Enable suspect resolutions feature
-    "projects:suspect-resolutions": True,
+    "projects:suspect-resolutions": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
     "projects:kafka-ingest": False,
     # Workflow 2.0 Auto associate commits to commit sha release
