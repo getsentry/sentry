@@ -199,10 +199,12 @@ class StreamGroup extends Component<Props, State> {
   toggleSelect = (evt: React.MouseEvent<HTMLDivElement>) => {
     const targetElement = evt.target as Partial<HTMLElement>;
 
+    // Ignore clicks on links
     if (targetElement?.tagName?.toLowerCase() === 'a') {
       return;
     }
 
+    // Ignore clicks on the selection checkbox
     if (targetElement?.tagName?.toLowerCase() === 'input') {
       return;
     }
@@ -215,7 +217,11 @@ class StreamGroup extends Component<Props, State> {
       e = e.parentElement!;
     }
 
-    SelectedGroupStore.toggleSelect(this.state.data.id);
+    if (evt.shiftKey) {
+      SelectedGroupStore.shiftToggleItems(this.state.data.id);
+    } else {
+      SelectedGroupStore.toggleSelect(this.state.data.id);
+    }
   };
 
   getDiscoverUrl(isFiltered?: boolean): LocationDescriptor {

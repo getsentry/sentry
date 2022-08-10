@@ -26,7 +26,7 @@ class GroupCheckBox extends Component<Props, State> {
     }
   }
 
-  shouldComponentUpdate(_nextProps, nextState) {
+  shouldComponentUpdate(_nextProps: Props, nextState: State) {
     return nextState.isSelected !== this.state.isSelected;
   }
 
@@ -47,9 +47,15 @@ class GroupCheckBox extends Component<Props, State> {
     }
   }
 
-  handleSelect = () => {
+  handleSelect = (evt: React.ChangeEvent<HTMLInputElement>) => {
     const id = this.props.id;
-    SelectedGroupStore.toggleSelect(id);
+
+    // Check for shift key while clicking
+    if ((evt.nativeEvent as MouseEvent).shiftKey) {
+      SelectedGroupStore.shiftToggleItems(id);
+    } else {
+      SelectedGroupStore.toggleSelect(id);
+    }
   };
 
   render() {
