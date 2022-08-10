@@ -19,6 +19,7 @@ from sentry.signals import (
     event_processed,
     first_event_pending,
     first_event_received,
+    first_profile_received,
     first_transaction_received,
     integration_added,
     issue_tracker_used,
@@ -203,6 +204,11 @@ def record_first_transaction(project, event, **kwargs):
         project_id=project.id,
         platform=project.platform,
     )
+
+
+@first_profile_received.connect(weak=False)
+def record_first_profile(project, **kwargs):
+    project.update(flags=F("flags").bitor(Project.flags.has_profiles))
 
 
 @member_invited.connect(weak=False)
