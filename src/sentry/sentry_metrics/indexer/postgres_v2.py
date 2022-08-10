@@ -184,11 +184,7 @@ class PGStringIndexerV2(StringIndexer):
         result = self.bulk_record(use_case_id=use_case_id, org_strings={org_id: {string}})
         return result[org_id][string]
 
-    # TODO: @andriisoldatenko
-    # move use_case_id to 1st parameter and remove default value
-    def resolve(
-        self, org_id: int, string: str, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
-    ) -> Optional[int]:
+    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
         """Lookup the integer ID for a string.
 
         Returns None if the entry cannot be found.
@@ -211,11 +207,7 @@ class PGStringIndexerV2(StringIndexer):
 
         return id
 
-    # TODO: @andriisoldatenko
-    # move use_case_id to 1st parameter and remove default value
-    def reverse_resolve(
-        self, id: int, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
-    ) -> Optional[str]:
+    def reverse_resolve(self, use_case_id: UseCaseKey, id: int) -> Optional[str]:
         """Lookup the stored string for a given integer ID.
 
         Returns None if the entry cannot be found.
@@ -268,20 +260,12 @@ class StaticStringsIndexerDecorator(StringIndexer):
             return SHARED_STRINGS[string]
         return self.indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)
 
-    # TODO: @andriisoldatenko
-    # move use_case_id to 1st parameter and remove default value
-    def resolve(
-        self, org_id: int, string: str, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
-    ) -> Optional[int]:
+    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
         return self.indexer.resolve(use_case_id=use_case_id, org_id=org_id, string=string)
 
-    # TODO: @andriisoldatenko
-    # move use_case_id to 1st parameter and remove default value
-    def reverse_resolve(
-        self, id: int, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
-    ) -> Optional[str]:
+    def reverse_resolve(self, use_case_id: UseCaseKey, id: int) -> Optional[str]:
         if id in REVERSE_SHARED_STRINGS:
             return REVERSE_SHARED_STRINGS[id]
         return self.indexer.reverse_resolve(use_case_id=use_case_id, id=id)

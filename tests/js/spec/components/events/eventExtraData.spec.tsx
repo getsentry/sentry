@@ -8,6 +8,15 @@ describe('EventExtraData', function () {
       ...TestStubs.Event(),
       context: {
         'sys.argv': ['', '', '', '', '', '', '', '', '', ''],
+        sdk: {
+          clientIP: '127.0.0.1',
+          version: '3.16.1',
+          name: 'raven-js',
+          upstream: {
+            url: 'https://docs.sentry.io/clients/javascript/',
+            isNewer: '\n',
+          },
+        },
       },
       _meta: {
         context: {
@@ -168,5 +177,8 @@ describe('EventExtraData', function () {
     expect(
       await screen.findByText('Replaced because of PII rule "project:3"')
     ).toBeInTheDocument(); // tooltip description
+
+    expect(screen.getByText('isNewer')).toBeInTheDocument(); // key
+    expect(screen.queryByText('\\n')).not.toBeInTheDocument(); // value
   });
 });
