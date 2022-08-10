@@ -57,12 +57,35 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
     def test_simple(self):
         response = self.get_success_response(self.organization.slug)
 
+        assert response.data["slug"] == self.organization.slug
+        assert response.data["organizationUrl"] == f"http://{self.organization.slug}.us.testserver"
         assert response.data["onboardingTasks"] == []
         assert response.data["id"] == str(self.organization.id)
         assert response.data["role"] == "owner"
         assert response.data["orgRole"] == "owner"
         assert len(response.data["teams"]) == 0
         assert len(response.data["projects"]) == 0
+
+    def test_simple_customer_domain(self):
+        HTTP_HOST = f"{self.organization.slug}.testserver"
+        response = self.get_success_response(
+            self.organization.slug, extra_headers={"HTTP_HOST": HTTP_HOST}
+        )
+
+        assert response.data["slug"] == self.organization.slug
+        assert response.data["organizationUrl"] == f"http://{self.organization.slug}.us.testserver"
+        assert response.data["onboardingTasks"] == []
+        assert response.data["id"] == str(self.organization.id)
+        assert response.data["role"] == "owner"
+        assert response.data["orgRole"] == "owner"
+        assert len(response.data["teams"]) == 0
+        assert len(response.data["projects"]) == 0
+
+    def test_org_mismatch_customer_domain(self):
+        HTTP_HOST = f"{self.organization.slug}-apples.testserver"
+        self.get_error_response(
+            self.organization.slug, status_code=404, extra_headers={"HTTP_HOST": HTTP_HOST}
+        )
 
     def test_with_projects(self):
         # Create non-member team to test response shape
@@ -210,10 +233,20 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         illegal_slug = list(RESERVED_ORGANIZATION_SLUGS)[0]
         self.get_error_response(self.organization.slug, slug=illegal_slug, status_code=400)
 
-    def test_invalid_slug(self):
+    def test_valid_slugs(self):
+        valid_slugs = ["santry", "downtown-canada", "1234", "SaNtRy"]
+        for slug in valid_slugs:
+            self.organization.refresh_from_db()
+            self.get_success_response(self.organization.slug, slug=slug)
+
+    def test_invalid_slugs(self):
         self.get_error_response(self.organization.slug, slug=" i have whitespace ", status_code=400)
         self.get_error_response(self.organization.slug, slug="foo-bar ", status_code=400)
         self.get_error_response(self.organization.slug, slug="bird-company!", status_code=400)
+        self.get_error_response(self.organization.slug, slug="downtown_canada", status_code=400)
+        self.get_error_response(self.organization.slug, slug="canada-", status_code=400)
+        self.get_error_response(self.organization.slug, slug="-canada", status_code=400)
+        self.get_error_response(self.organization.slug, slug="----", status_code=400)
 
     def test_upload_avatar(self):
         data = {"avatarType": "upload", "avatar": b64encode(self.load_fixture("avatar.jpg"))}

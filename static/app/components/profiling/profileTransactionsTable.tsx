@@ -68,7 +68,7 @@ function ProfileTransactionsTable(props: ProfileTransactionsTableProps) {
       columnOrder={COLUMN_ORDER.map(key => COLUMNS[key])}
       columnSortBy={[]}
       grid={{
-        renderHeadCell: renderTableHead(RIGHT_ALIGNED_COLUMNS),
+        renderHeadCell: renderTableHead({rightAlignedColumns: RIGHT_ALIGNED_COLUMNS}),
         renderBodyCell: renderTableBody,
       }}
       location={location}

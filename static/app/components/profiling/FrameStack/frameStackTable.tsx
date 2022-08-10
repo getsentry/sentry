@@ -5,6 +5,7 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
+import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {
@@ -12,8 +13,6 @@ import {
   useVirtualizedTree,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
-import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
-import theme from 'sentry/utils/theme';
 
 import {FrameCallersTableCell} from './frameStack';
 import {FrameStackContextMenu} from './frameStackContextMenu';
@@ -80,17 +79,19 @@ function skipRecursiveNodes(n: VirtualizedTreeNode<FlamegraphFrame>): boolean {
 
 interface FrameStackTableProps {
   canvasPoolManager: CanvasPoolManager;
-  flamegraphRenderer: FlamegraphRenderer;
+  formatDuration: Flamegraph['formatter'];
+  getFrameColor: (frame: FlamegraphFrame) => string;
   recursion: 'collapsed' | null;
   referenceNode: FlamegraphFrame;
-  roots: FlamegraphFrame[];
+  tree: FlamegraphFrame[];
 }
 
 export function FrameStackTable({
-  roots,
-  flamegraphRenderer,
-  canvasPoolManager,
+  tree,
   referenceNode,
+  canvasPoolManager,
+  getFrameColor,
+  formatDuration,
   recursion,
 }: FrameStackTableProps) {
   const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(
@@ -109,12 +110,16 @@ export function FrameStackTable({
 
   const contextMenu = useContextMenu({container: scrollContainerRef});
 
-  const handleZoomIntoNodeClick = useCallback(() => {
+  const handleZoomIntoFrameClick = useCallback(() => {
     if (!clickedContextMenuNode) {
       return;
     }
 
-    canvasPoolManager.dispatch('zoomIntoFrame', [clickedContextMenuNode.node]);
+    canvasPoolManager.dispatch('zoom at frame', [clickedContextMenuNode.node, 'exact']);
+    canvasPoolManager.dispatch('highlight frame', [
+      clickedContextMenuNode.node,
+      'selected',
+    ]);
   }, [canvasPoolManager, clickedContextMenuNode]);
 
   const renderRow: UseVirtualizedListProps<FlamegraphFrame>['renderRow'] = useCallback(
@@ -136,8 +141,9 @@ export function FrameStackTable({
           node={r.item}
           style={r.styles}
           referenceNode={referenceNode}
+          frameColor={getFrameColor(r.item.node)}
+          formatDuration={formatDuration}
           tabIndex={tabIndexKey === r.key ? 0 : 1}
-          flamegraphRenderer={flamegraphRenderer}
           onClick={handleRowClick}
           onExpandClick={handleExpandTreeNode}
           onKeyDown={handleRowKeyDown}
@@ -149,7 +155,7 @@ export function FrameStackTable({
         />
       );
     },
-    [contextMenu, flamegraphRenderer, referenceNode]
+    [contextMenu, formatDuration, referenceNode, getFrameColor]
   );
 
   const {
@@ -165,7 +171,7 @@ export function FrameStackTable({
     renderRow,
     scrollContainer: scrollContainerRef,
     rowHeight: 24,
-    roots,
+    tree,
   });
 
   const onSortChange = useCallback(
@@ -212,12 +218,16 @@ export function FrameStackTable({
           </FrameNameCell>
         </FrameCallersTableHeader>
         <FrameStackContextMenu
-          onZoomIntoNodeClick={handleZoomIntoNodeClick}
+          onZoomIntoFrameClick={handleZoomIntoFrameClick}
           contextMenu={contextMenu}
         />
-        <div style={{position: 'relative', height: '100%', background: theme.white}}>
-          <div ref={clickedGhostRowRef} />
+        <TableItemsContainer>
+          {/*
+          The order of these two matters because we want clicked state to
+          be on top of hover in cases where user is hovering a clicked row.
+           */}
           <div ref={hoveredGhostRowRef} />
+          <div ref={clickedGhostRowRef} />
           <div
             ref={ref => setScrollContainerRef(ref)}
             style={scrollContainerStyles}
@@ -237,11 +247,18 @@ export function FrameStackTable({
               </GhostRowContainer>
             </div>
           </div>
-        </div>
+        </TableItemsContainer>
       </FrameCallersTable>
     </FrameBar>
   );
 }
+
+const TableItemsContainer = styled('div')`
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  background: ${p => p.theme.background};
+`;
 
 const GhostRowContainer = styled('div')`
   display: flex;
@@ -259,11 +276,12 @@ const TableHeaderButton = styled('button')`
   justify-content: space-between;
   padding: 0 ${space(1)};
   border: none;
-  background-color: ${props => props.theme.surface400};
+  background-color: ${props => props.theme.surface100};
   transition: background-color 100ms ease-in-out;
+  line-height: 24px;
 
   &:hover {
-    background-color: #edecee;
+    background-color: ${props => props.theme.surface400};
   }
 
   svg {
@@ -279,6 +297,7 @@ const FrameBar = styled('div')`
   background-color: ${p => p.theme.surface100};
   border-top: 1px solid ${p => p.theme.border};
   flex: 1 1 100%;
+  grid-area: table;
 `;
 
 const FrameCallersTable = styled('div')`

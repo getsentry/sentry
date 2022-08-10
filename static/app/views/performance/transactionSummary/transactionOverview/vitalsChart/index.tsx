@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import {Location, Query} from 'history';
@@ -11,11 +12,8 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
-import {
-  getAggregateArg,
-  getMeasurementSlug,
-  WebVital,
-} from 'sentry/utils/discover/fields';
+import {getAggregateArg, getMeasurementSlug} from 'sentry/utils/discover/fields';
+import {WebVital} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
 
 import {ViewProps} from '../../../types';

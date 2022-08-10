@@ -18,7 +18,7 @@ def delete_file(path, checksum, **kwargs):
     from sentry.models.file import FileBlob, get_storage
     from sentry.utils.retries import TimedRetryPolicy
 
-    lock = locks.get(f"fileblob:upload:{checksum}", duration=60 * 10)
+    lock = locks.get(f"fileblob:upload:{checksum}", duration=60 * 10, name="fileblob_upload")
     with TimedRetryPolicy(60)(lock.acquire):
         if not FileBlob.objects.filter(checksum=checksum).exists():
             get_storage().delete(path)

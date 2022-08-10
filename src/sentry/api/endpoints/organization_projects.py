@@ -70,6 +70,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                         "features": ["releases"],
                         "firstTransactionEvent": True,
                         "hasSessions": True,
+                        "hasProfiles": True,
                         "latestRelease": None,
                         "hasUserReports": False,
                     }

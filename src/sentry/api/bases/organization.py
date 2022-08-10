@@ -5,7 +5,7 @@ from django.core.cache import cache
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.request import Request
 
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, resolve_region
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.permissions import SentryPermission
@@ -331,6 +331,7 @@ class OrganizationEndpoint(Endpoint):
             "start": start,
             "end": end,
             "project_id": [p.id for p in projects],
+            "project_objects": projects,
             "organization_id": organization.id,
         }
 
@@ -341,7 +342,15 @@ class OrganizationEndpoint(Endpoint):
 
         return params
 
-    def convert_args(self, request: Request, organization_slug, *args, **kwargs):
+    def convert_args(self, request: Request, organization_slug=None, *args, **kwargs):
+        if resolve_region(request) is None:
+            subdomain = getattr(request, "subdomain", None)
+            if subdomain is not None and subdomain != organization_slug:
+                raise ResourceDoesNotExist
+
+        if not organization_slug:
+            raise ResourceDoesNotExist
+
         try:
             organization = Organization.objects.get_from_cache(slug=organization_slug)
         except Organization.DoesNotExist:

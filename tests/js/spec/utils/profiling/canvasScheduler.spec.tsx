@@ -1,11 +1,11 @@
 import {CanvasScheduler, FlamegraphEvents} from 'sentry/utils/profiling/canvasScheduler';
 
 const handlers: (keyof FlamegraphEvents)[] = [
-  'setConfigView',
-  'transformConfigView',
-  'zoomIntoFrame',
-  'selectedNode',
-  'resetZoom',
+  'reset zoom',
+  'set config view',
+  'highlight frame',
+  'transform config view',
+  'zoom at frame',
 ];
 
 describe('CanvasScheduler', () => {
@@ -14,7 +14,7 @@ describe('CanvasScheduler', () => {
     const scheduler = new CanvasScheduler();
 
     scheduler.on(key, handler);
-    scheduler.dispatch(key, undefined);
+    scheduler.dispatch(key, undefined as any);
 
     expect(scheduler.events[key].has(handler)).toBe(true);
     expect(handler).toHaveBeenCalledTimes(1);
@@ -27,7 +27,7 @@ describe('CanvasScheduler', () => {
       scheduler.on(key, handler);
       scheduler.on(key, handler);
 
-      scheduler.dispatch(key, undefined);
+      scheduler.dispatch(key, undefined as any);
 
       expect(scheduler.events[key].has(handler)).toBe(true);
       expect(handler).toHaveBeenCalledTimes(1);
@@ -39,7 +39,7 @@ describe('CanvasScheduler', () => {
     scheduler.on(key, handler);
     scheduler.off(key, handler);
 
-    scheduler.dispatch(key, undefined);
+    scheduler.dispatch(key, undefined as any);
 
     expect(scheduler.events[key].has(handler)).toBe(false);
     expect(handler).not.toHaveBeenCalled();

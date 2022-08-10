@@ -1,13 +1,13 @@
 import logging
 import uuid
 from datetime import datetime
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any, Collection, Literal, Mapping, Optional, Sequence, TypedDict
 
 import sentry_sdk
 from pytz import utc
 from sentry_sdk import Hub, capture_exception
 
-from sentry import features, quotas, utils
+from sentry import features, killswitches, quotas, utils
 from sentry.constants import ObjectStatus
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
 from sentry.grouping.api import get_grouping_config_dict_for_project
@@ -23,6 +23,7 @@ from sentry.relay.config.metric_extraction import get_metric_conditional_tagging
 from sentry.relay.utils import to_camel_case_name
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
+from sentry.utils.options import sample_modulo
 
 #: These features will be listed in the project config
 EXPOSABLE_FEATURES = ["organizations:profiling", "organizations:session-replay"]
@@ -171,13 +172,16 @@ def _get_project_config(project, full_config=True, project_keys=None):
             "projectId": project.id,  # XXX: Unused by Relay, required by Python store
         }
     allow_dynamic_sampling = features.has(
-        "organizations:filters-and-sampling",
+        "organizations:server-side-sampling",
         project.organization,
     )
     if allow_dynamic_sampling:
         dynamic_sampling = project.get_option("sentry:dynamic_sampling")
         if dynamic_sampling is not None:
-            cfg["config"]["dynamicSampling"] = dynamic_sampling
+            # filter out rules that do not have active set to True
+            cfg["config"]["dynamicSampling"] = {
+                "rules": [r for r in dynamic_sampling["rules"] if r.get("active")]
+            }
 
     if not full_config:
         # This is all we need for external Relay processors
@@ -185,7 +189,7 @@ def _get_project_config(project, full_config=True, project_keys=None):
 
     if features.has("organizations:performance-ops-breakdown", project.organization):
         cfg["config"]["breakdownsV2"] = project.get_option("sentry:breakdowns")
-    if features.has("organizations:transaction-metrics-extraction", project.organization):
+    if _should_extract_transaction_metrics(project):
         cfg["config"]["transactionMetrics"] = get_transaction_metrics_settings(
             project, cfg["config"].get("breakdownsV2")
         )
@@ -384,6 +388,13 @@ def _filter_option_to_config_setting(flt, setting):
     return ret_val
 
 
+#: Version of the transaction metrics extraction.
+#: When you increment this version, outdated Relays will stop extracting
+#: transaction metrics.
+#: See https://github.com/getsentry/relay/blob/4f3e224d5eeea8922fe42163552e8f20db674e86/relay-server/src/metrics_extraction/transactions.rs#L71
+TRANSACTION_METRICS_EXTRACTION_VERSION = 1
+
+
 #: Top-level metrics for transactions
 TRANSACTION_METRICS = frozenset(
     [
@@ -399,58 +410,99 @@ ALL_MEASUREMENT_METRICS = frozenset(
         "d:transactions/measurements.lcp@millisecond",
         "d:transactions/measurements.app_start_cold@millisecond",
         "d:transactions/measurements.app_start_warm@millisecond",
-        "d:transactions/measurements.cls@millisecond",
+        "d:transactions/measurements.cls@none",
         "d:transactions/measurements.fid@millisecond",
         "d:transactions/measurements.fp@millisecond",
         "d:transactions/measurements.frames_frozen@none",
+        "d:transactions/measurements.frames_frozen_rate@ratio",
         "d:transactions/measurements.frames_slow@none",
+        "d:transactions/measurements.frames_slow_rate@ratio",
         "d:transactions/measurements.frames_total@none",
         "d:transactions/measurements.stall_count@none",
         "d:transactions/measurements.stall_longest_time@millisecond",
+        "d:transactions/measurements.stall_percentage@ratio",
         "d:transactions/measurements.stall_total_time@millisecond",
         "d:transactions/measurements.ttfb@millisecond",
         "d:transactions/measurements.ttfb.requesttime@millisecond",
     ]
 )
 
+#: The maximum number of custom measurements to be extracted from transactions.
+CUSTOM_MEASUREMENT_LIMIT = 5
+
+
+class CustomMeasurementSettings(TypedDict):
+    limit: int
+
+
+TransactionNameStrategy = Literal["strict", "clientBased"]
+
+
+class TransactionMetricsSettings(TypedDict):
+    version: int
+    extractMetrics: Collection[str]
+    extractCustomTags: Collection[str]
+    customMeasurements: CustomMeasurementSettings
+    acceptTransactionNames: TransactionNameStrategy
+
+
+def _should_extract_transaction_metrics(project: Project) -> bool:
+    return (
+        sample_modulo("relay.transaction-metrics-org-sample-rate", project.organization_id)
+        or features.has("organizations:transaction-metrics-extraction", project.organization)
+    ) and not killswitches.killswitch_matches_context(
+        "relay.drop-transaction-metrics", {"project_id": project.id}
+    )
+
+
+def _accept_transaction_names_strategy(project: Project) -> TransactionNameStrategy:
+    is_selected_org = sample_modulo("relay.transaction-names-client-based", project.organization_id)
+    return "clientBased" if is_selected_org else "strict"
+
 
 def get_transaction_metrics_settings(
     project: Project, breakdowns_config: Optional[Mapping[str, Any]]
-):
+) -> TransactionMetricsSettings:
+    """This function assumes that the corresponding feature flag has been checked.
+    See _should_extract_transaction_metrics.
+    """
+
     metrics = []
     custom_tags = []
 
-    if features.has("organizations:transaction-metrics-extraction", project.organization):
-        metrics.extend(sorted(TRANSACTION_METRICS))
-        # TODO: for now let's extract all known measurements. we might want to
-        # be more fine-grained in the future once we know which measurements we
-        # really need (or how that can be dynamically determined)
-        metrics.extend(sorted(ALL_MEASUREMENT_METRICS))
+    metrics.extend(sorted(TRANSACTION_METRICS))
+    # TODO: for now let's extract all known measurements. we might want to
+    # be more fine-grained in the future once we know which measurements we
+    # really need (or how that can be dynamically determined)
+    metrics.extend(sorted(ALL_MEASUREMENT_METRICS))
 
-        if breakdowns_config is not None:
-            # we already have a breakdown configuration that tells relay which
-            # breakdowns to compute for an event. metrics extraction should
-            # probably be in sync with that, or at least not extract more metrics
-            # than there are breakdowns configured.
-            try:
-                for breakdown_name, breakdown_config in breakdowns_config.items():
-                    assert breakdown_config["type"] == "spanOperations"
-
-                    for op_name in breakdown_config["matches"]:
-                        metrics.append(f"d:transactions/breakdowns.ops.{op_name}")
-            except Exception:
-                capture_exception()
-
-        # Tells relay which user-defined tags to add to each extracted
-        # transaction metric.  This cannot include things such as `os.name`
-        # which are computed on the server, they have to come from the SDK as
-        # event tags.
+    if breakdowns_config is not None:
+        # we already have a breakdown configuration that tells relay which
+        # breakdowns to compute for an event. metrics extraction should
+        # probably be in sync with that, or at least not extract more metrics
+        # than there are breakdowns configured.
         try:
-            custom_tags.extend(project.get_option("sentry:transaction_metrics_custom_tags") or ())
+            for breakdown_name, breakdown_config in breakdowns_config.items():
+                assert breakdown_config["type"] == "spanOperations"
+
+                for op_name in breakdown_config["matches"]:
+                    metrics.append(f"d:transactions/breakdowns.span_ops.ops.{op_name}@millisecond")
         except Exception:
             capture_exception()
 
+    # Tells relay which user-defined tags to add to each extracted
+    # transaction metric.  This cannot include things such as `os.name`
+    # which are computed on the server, they have to come from the SDK as
+    # event tags.
+    try:
+        custom_tags.extend(project.get_option("sentry:transaction_metrics_custom_tags") or ())
+    except Exception:
+        capture_exception()
+
     return {
+        "version": TRANSACTION_METRICS_EXTRACTION_VERSION,
         "extractMetrics": metrics,
         "extractCustomTags": custom_tags,
+        "customMeasurements": {"limit": CUSTOM_MEASUREMENT_LIMIT},
+        "acceptTransactionNames": _accept_transaction_names_strategy(project),
     }

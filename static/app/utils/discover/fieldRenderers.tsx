@@ -5,6 +5,7 @@ import partial from 'lodash/partial';
 
 import Count from 'sentry/components/count';
 import Duration from 'sentry/components/duration';
+import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -58,9 +59,14 @@ export type RenderFunctionBaggage = {
   location: Location;
   organization: Organization;
   eventView?: EventView;
+  unit?: string;
 };
 
-type FieldFormatterRenderFunction = (field: string, data: EventData) => React.ReactNode;
+type FieldFormatterRenderFunction = (
+  field: string,
+  data: EventData,
+  baggage?: RenderFunctionBaggage
+) => React.ReactNode;
 
 type FieldFormatterRenderFunctionPartial = (
   data: EventData,
@@ -80,6 +86,7 @@ type FieldFormatters = {
   integer: FieldFormatter;
   number: FieldFormatter;
   percentage: FieldFormatter;
+  size: FieldFormatter;
   string: FieldFormatter;
 };
 
@@ -101,6 +108,30 @@ export function nullableValue(value: string | null): string | React.ReactElement
       return value;
   }
 }
+
+export const SIZE_UNITS = {
+  bit: 1 / 8,
+  byte: 1,
+  kibibyte: 1024,
+  mebibyte: 1024 ** 2,
+  gibibyte: 1024 ** 3,
+  tebibyte: 1024 ** 4,
+  pebibyte: 1024 ** 5,
+  exbibyte: 1024 ** 6,
+};
+
+export const DURATION_UNITS = {
+  nanosecond: 1 / 1000 ** 2,
+  microsecond: 1 / 1000,
+  millisecond: 1,
+  second: 1000,
+  minute: 1000 * 60,
+  hour: 1000 * 60 * 60,
+  day: 1000 * 60 * 60 * 24,
+  week: 1000 * 60 * 60 * 24 * 7,
+};
+
+export const PERCENTAGE_UNITS = ['ratio', 'percent'];
 
 /**
  * A mapping of field types to their rendering function.
@@ -132,15 +163,22 @@ export const FIELD_FORMATTERS: FieldFormatters = {
   },
   duration: {
     isSortable: true,
-    renderFunc: (field, data) => (
-      <NumberContainer>
-        {typeof data[field] === 'number' ? (
-          <Duration seconds={data[field] / 1000} fixedDigits={2} abbreviation />
-        ) : (
-          emptyValue
-        )}
-      </NumberContainer>
-    ),
+    renderFunc: (field, data, baggage) => {
+      const {unit} = baggage ?? {};
+      return (
+        <NumberContainer>
+          {typeof data[field] === 'number' ? (
+            <Duration
+              seconds={(data[field] * ((unit && DURATION_UNITS[unit]) ?? 1)) / 1000}
+              fixedDigits={2}
+              abbreviation
+            />
+          ) : (
+            emptyValue
+          )}
+        </NumberContainer>
+      );
+    },
   },
   integer: {
     isSortable: true,
@@ -165,6 +203,21 @@ export const FIELD_FORMATTERS: FieldFormatters = {
         {typeof data[field] === 'number' ? formatPercentage(data[field]) : emptyValue}
       </NumberContainer>
     ),
+  },
+  size: {
+    isSortable: true,
+    renderFunc: (field, data, baggage) => {
+      const {unit} = baggage ?? {};
+      return (
+        <NumberContainer>
+          {unit && SIZE_UNITS[unit] && typeof data[field] === 'number' ? (
+            <FileSize bytes={data[field] * SIZE_UNITS[unit]} />
+          ) : (
+            emptyValue
+          )}
+        </NumberContainer>
+      );
+    },
   },
   string: {
     isSortable: true,
@@ -485,27 +538,27 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
     let countMiserableUserField: string = '';
 
     let miseryLimit: number | undefined = parseInt(
-      userMiseryField.split('_').pop() || '',
+      userMiseryField.split('(').pop()?.slice(0, -1) || '',
       10
     );
     if (isNaN(miseryLimit)) {
-      countMiserableUserField = 'count_miserable_user';
+      countMiserableUserField = 'count_miserable(user)';
       if (projectThresholdConfig in data) {
         miseryLimit = data[projectThresholdConfig][1];
       } else {
         miseryLimit = undefined;
       }
     } else {
-      countMiserableUserField = `count_miserable_user_${miseryLimit}`;
+      countMiserableUserField = `count_miserable(user,${miseryLimit})`;
     }
 
-    const uniqueUsers = data.count_unique_user;
+    const uniqueUsers = data['count_unique(user)'];
 
     let miserableUsers: number | undefined;
 
     if (countMiserableUserField in data) {
       const countMiserableMiseryLimit = parseInt(
-        countMiserableUserField.split('_').pop() || '',
+        userMiseryField.split('(').pop()?.slice(0, -1) || '',
         10
       );
       miserableUsers =
@@ -590,7 +643,7 @@ const spanOperationRelativeBreakdownRenderer = (
   let otherPercentage = 1;
   let orderedSpanOpsBreakdownFields;
   const sortingOnField = eventView?.sorts?.[0]?.field;
-  if (sortingOnField && SPAN_OP_BREAKDOWN_FIELDS.includes(sortingOnField)) {
+  if (sortingOnField && (SPAN_OP_BREAKDOWN_FIELDS as string[]).includes(sortingOnField)) {
     orderedSpanOpsBreakdownFields = [
       sortingOnField,
       ...SPAN_OP_BREAKDOWN_FIELDS.filter(op => op !== sortingOnField),
@@ -719,7 +772,10 @@ export function getFieldRenderer(
   return partial(FIELD_FORMATTERS.string.renderFunc, fieldName);
 }
 
-type FieldTypeFormatterRenderFunctionPartial = (data: EventData) => React.ReactNode;
+type FieldTypeFormatterRenderFunctionPartial = (
+  data: EventData,
+  baggage?: RenderFunctionBaggage
+) => React.ReactNode;
 
 /**
  * Get the field renderer for the named field only based on its type from the given

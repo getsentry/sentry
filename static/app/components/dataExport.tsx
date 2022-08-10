@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import debounce from 'lodash/debounce';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -38,17 +38,33 @@ function DataExport({
   payload,
   icon,
 }: DataExportProps): React.ReactElement {
+  const unmountedRef = useRef(false);
   const [inProgress, setInProgress] = useState(false);
 
+  // We clear the indicator if export props change so that the user
+  // can fire another export without having to wait for the previous one to finish.
   useEffect(() => {
     if (inProgress) {
       setInProgress(false);
     }
+    // We are skipping the inProgress dependency because it would have fired on each handleDataExport
+    // call and would have immediately turned off the value giving users no feedback on their click action.
+    // An alternative way to handle this would have probably been to key the component by payload/queryType,
+    // but that seems like it can be a complex object so tracking changes could result in very brittle behavior.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [payload.queryType, payload.queryInfo]);
+
+  // Tracking unmounting of the component to prevent setState call on unmounted component
+  useEffect(() => {
+    return () => {
+      unmountedRef.current = true;
+    };
+  }, []);
 
   const handleDataExport = useCallback(() => {
     setInProgress(true);
 
+    // This is a fire and forget request.
     api
       .requestPromise(`/organizations/${organization.slug}/data-export/`, {
         includeAllArgs: true,
@@ -59,6 +75,11 @@ function DataExport({
         },
       })
       .then(([_data, _, response]) => {
+        // If component has unmounted, don't do anything
+        if (unmountedRef.current) {
+          return;
+        }
+
         addSuccessMessage(
           response?.status === 201
             ? t(
@@ -68,6 +89,10 @@ function DataExport({
         );
       })
       .catch(err => {
+        // If component has unmounted, don't do anything
+        if (unmountedRef.current) {
+          return;
+        }
         const message =
           err?.responseJSON?.detail ??
           "We tried our hardest, but we couldn't export your data. Give it another go.";
@@ -81,7 +106,7 @@ function DataExport({
     <Feature features={['organizations:discover-query']}>
       {inProgress ? (
         <Button
-          size="small"
+          size="sm"
           priority="default"
           title="You can get on with your life. We'll email you when your data's ready."
           disabled
@@ -93,7 +118,7 @@ function DataExport({
         <Button
           onClick={debounce(handleDataExport, 500)}
           disabled={disabled || false}
-          size="small"
+          size="sm"
           priority="default"
           title="Put your data to work. Start your export and we'll email you when it's finished."
           icon={icon}

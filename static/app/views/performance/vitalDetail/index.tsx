@@ -13,7 +13,7 @@ import {PageContent} from 'sentry/styles/organization';
 import {Organization, PageFilters, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
-import {WebVital} from 'sentry/utils/discover/fields';
+import {WebVital} from 'sentry/utils/fields';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
@@ -111,7 +111,7 @@ class VitalDetail extends Component<Props, State> {
     return (
       <SentryDocumentTitle title={this.getDocumentTitle()} orgSlug={organization.slug}>
         <PerformanceEventViewProvider value={{eventView: this.state.eventView}}>
-          <PageFiltersContainer hideGlobalHeader>
+          <PageFiltersContainer>
             <StyledPageContent>
               <NoProjectMessage organization={organization}>
                 <VitalDetailContent

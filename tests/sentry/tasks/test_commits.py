@@ -86,7 +86,7 @@ class FetchCommitsTest(TestCase):
         refs = [{"repository": repo.name, "commit": "b" * 40}]
         new_release = Release.objects.create(organization_id=org.id, version="12345678")
 
-        lock = locks.get(Release.get_lock_key(org.id, new_release.id), duration=10)
+        lock = locks.get(Release.get_lock_key(org.id, new_release.id), duration=10, name="release")
         lock.acquire()
 
         with self.tasks():

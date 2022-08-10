@@ -1,13 +1,13 @@
 import {Fragment, useState} from 'react';
 import omit from 'lodash/omit';
 
-import Input from 'sentry/components/forms/controls/input';
 import InputField, {InputFieldProps} from 'sentry/components/forms/inputField';
+import Input from 'sentry/components/input';
 
 export interface FileFieldProps extends Omit<InputFieldProps, 'type' | 'accept'> {
   accept?: string[];
   // TODO(dcramer): multiple is native to the file input type, but not yet supported
-  // mulitiple?: boolean;
+  // multiple?: boolean;
 }
 
 // XXX(dcramer): This stores files in memory - serialized into the forms values

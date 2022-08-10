@@ -32,7 +32,7 @@ import {
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import {MobileVital, WebVital} from 'sentry/utils/discover/fields';
+import {MobileVital, SpanOpBreakdown, WebVital} from 'sentry/utils/fields';
 import {formatVersion} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import routeTitleGen from 'sentry/utils/routeTitle';
@@ -204,9 +204,9 @@ class ReleaseOverview extends AsyncView<Props> {
               `p75(${WebVital.FID})`,
               `p75(${WebVital.LCP})`,
               `p75(${WebVital.CLS})`,
-              'p75(spans.http)',
-              'p75(spans.browser)',
-              'p75(spans.resource)',
+              `p75(${SpanOpBreakdown.SpansHttp})`,
+              `p75(${SpanOpBreakdown.SpansBrowser})`,
+              `p75(${SpanOpBreakdown.SpansResource})`,
             ],
           }) as EventView)
         : performanceType === PROJECT_PERFORMANCE_TYPE.BACKEND

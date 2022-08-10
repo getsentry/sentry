@@ -20,8 +20,6 @@ import withProjects from 'sentry/utils/withProjects';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 
 import Stepper from './components/stepper';
-import IntegrationSelect from './integration';
-import MobileRedirect from './mobileRedirect';
 import PlatformSelection from './platform';
 import SetupDocs from './setupDocs';
 import {StepDescriptor} from './types';
@@ -38,8 +36,8 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   projects: Project[];
 };
 
-function getOrganizationOnboardingSteps(org: Organization) {
-  const steps: StepDescriptor[] = [
+function getOrganizationOnboardingSteps(): StepDescriptor[] {
+  return [
     {
       id: 'welcome',
       title: t('Welcome'),
@@ -61,24 +59,7 @@ function getOrganizationOnboardingSteps(org: Organization) {
       cornerVariant: 'top-left',
     },
   ];
-  if (org.experiments.TargetedOnboardingIntegrationSelectExperiment) {
-    steps.splice(2, 0, {
-      id: 'select-integration',
-      title: t('Select integrations'),
-      Component: IntegrationSelect,
-      hasFooter: true,
-      cornerVariant: 'top-left',
-    });
-  }
-  return steps;
 }
-
-const MobileRedirectStep: StepDescriptor = {
-  id: 'setup-docs',
-  title: t('Install the Sentry SDK'),
-  Component: MobileRedirect,
-  cornerVariant: 'top-left',
-};
 
 function Onboarding(props: Props) {
   const {
@@ -93,8 +74,8 @@ function Onboarding(props: Props) {
       window.clearTimeout(cornerVariantTimeoutRed.current);
     };
   }, []);
-  const onboardingSteps = getOrganizationOnboardingSteps(organization);
-  let stepObj = onboardingSteps.find(({id}) => stepId === id);
+  const onboardingSteps = getOrganizationOnboardingSteps();
+  const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
 
   const cornerVariantControl = useAnimation();
@@ -179,13 +160,7 @@ function Onboarding(props: Props) {
   };
 
   if (!stepObj || stepIndex === -1) {
-    if (props.params.step === 'mobile-redirect') {
-      stepObj = MobileRedirectStep;
-    } else {
-      return (
-        <Redirect to={`/onboarding/${organization.slug}/${onboardingSteps[0].id}/`} />
-      );
-    }
+    return <Redirect to={`/onboarding/${organization.slug}/${onboardingSteps[0].id}/`} />;
   }
   return (
     <OnboardingWrapper data-test-id="targeted-onboarding">

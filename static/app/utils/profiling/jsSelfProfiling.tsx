@@ -25,7 +25,6 @@ export function resolveJSSelfProfilingStack(
   marker?: JSSelfProfiling.Marker
 ): Frame[] {
   // If there is no stack associated with a sample, it means the thread was idle
-
   const callStack: Frame[] = [];
 
   // There can only be one marker per callStack, so prepend it to the start of the stack
@@ -48,7 +47,7 @@ export function resolveJSSelfProfilingStack(
   while (stack !== undefined) {
     // If the frameId pointer cannot be resolved, it means the format is corrupt or partial (possibly due to termination reasons).
     // This should never happen, but in the offchance that it somehow does, it should be handled.
-    if (!trace.frames[stack.frameId]) {
+    if (trace.frames[stack.frameId] === undefined) {
       return callStack;
     }
 

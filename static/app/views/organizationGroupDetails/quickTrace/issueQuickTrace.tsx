@@ -18,7 +18,8 @@ import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
-import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {QuickTraceQueryChildrenProps} from 'sentry/utils/performance/quickTrace/types';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import withApi from 'sentry/utils/withApi';
 
@@ -27,6 +28,8 @@ type Props = {
   event: Event;
   location: Location;
   organization: Organization;
+  quickTrace: QuickTraceQueryChildrenProps;
+  isPerformanceIssue?: boolean;
 };
 
 type State = {
@@ -45,7 +48,8 @@ class IssueQuickTrace extends Component<Props, State> {
   shouldComponentUpdate(nextProps, nextState: State) {
     return (
       this.props.event !== nextProps.event ||
-      this.state.shouldShow !== nextState.shouldShow
+      this.state.shouldShow !== nextState.shouldShow ||
+      this.props.quickTrace !== nextProps.quickTrace
     );
   }
 
@@ -100,8 +104,8 @@ class IssueQuickTrace extends Component<Props, State> {
     promptsUpdate(api, data).then(() => this.setState({shouldShow: false}));
   };
 
-  renderQuickTrace(results) {
-    const {event, location, organization} = this.props;
+  renderQuickTrace(results: QuickTraceQueryChildrenProps) {
+    const {event, location, organization, isPerformanceIssue} = this.props;
     const {shouldShow} = this.state;
     const {isLoading, error, trace, type} = results;
 
@@ -113,6 +117,12 @@ class IssueQuickTrace extends Component<Props, State> {
       if (!shouldShow) {
         return null;
       }
+
+      trackAdvancedAnalyticsEvent('issue.quick_trace_status', {
+        organization,
+        status: type === 'missing' ? 'transaction missing' : 'trace missing',
+        is_performance_issue: isPerformanceIssue ?? false,
+      });
 
       return (
         <StyledAlert
@@ -129,7 +139,7 @@ class IssueQuickTrace extends Component<Props, State> {
             </Button>
           }
         >
-          {tct('The [type] for this error cannot be found. [link]', {
+          {tct('The [type] for this event cannot be found. [link]', {
             type: type === 'missing' ? t('transaction') : t('trace'),
             link: (
               <ExternalLink href="https://docs.sentry.io/product/sentry-basics/tracing/trace-view/#troubleshooting">
@@ -141,36 +151,34 @@ class IssueQuickTrace extends Component<Props, State> {
       );
     }
 
+    trackAdvancedAnalyticsEvent('issue.quick_trace_status', {
+      organization,
+      status: 'success',
+      is_performance_issue: isPerformanceIssue ?? false,
+    });
+
     return (
-      <QuickTrace
-        event={event}
-        quickTrace={results}
-        location={location}
-        organization={organization}
-        anchor="left"
-        errorDest="issue"
-        transactionDest="performance"
-      />
+      <Fragment>
+        {this.renderTraceLink(results)}
+        <QuickTraceWrapper>
+          <QuickTrace
+            event={event}
+            quickTrace={results}
+            location={location}
+            organization={organization}
+            anchor="left"
+            errorDest="issue"
+            transactionDest="performance"
+          />
+        </QuickTraceWrapper>
+      </Fragment>
     );
   }
 
   render() {
-    const {event, organization, location} = this.props;
+    const {quickTrace} = this.props;
 
-    return (
-      <ErrorBoundary mini>
-        <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
-          {results => {
-            return (
-              <Fragment>
-                {this.renderTraceLink(results)}
-                <QuickTraceWrapper>{this.renderQuickTrace(results)}</QuickTraceWrapper>
-              </Fragment>
-            );
-          }}
-        </QuickTraceQuery>
-      </ErrorBoundary>
-    );
+    return <ErrorBoundary mini>{this.renderQuickTrace(quickTrace)}</ErrorBoundary>;
   }
 }
 

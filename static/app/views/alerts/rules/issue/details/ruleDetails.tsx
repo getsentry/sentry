@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
-import Alert from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Button from 'sentry/components/button';
@@ -18,7 +17,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconEdit} from 'sentry/icons';
+import {IconCopy, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {DateString, Member, Organization, Project} from 'sentry/types';
@@ -87,12 +86,9 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
         'rule',
         `/projects/${orgId}/${projectId}/rules/${ruleId}/`,
         {query: {expand: 'lastTriggered'}},
+        {allowError: error => error.status === 404},
       ],
-      [
-        'memberList',
-        `/organizations/${orgId}/users/`,
-        {query: {project: this.props.project.id}},
-      ],
+      ['memberList', `/organizations/${orgId}/users/`, {query: {projectSlug: projectId}}],
     ];
   }
 
@@ -196,16 +192,30 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
     const {rule, memberList} = this.state;
 
     if (!rule) {
-      return <LoadingError message={t('There was an error loading the alert rule.')} />;
+      return (
+        <StyledLoadingError
+          message={t('The alert rule you were looking for was not found.')}
+        />
+      );
     }
 
     if (!project) {
       return (
-        <Alert type="warning">
-          {t('The project you were looking for was not found.')}
-        </Alert>
+        <StyledLoadingError
+          message={t('The project you were looking for was not found.')}
+        />
       );
     }
+
+    const duplicateLink = {
+      pathname: `/organizations/${orgId}/alerts/new/issue/`,
+      query: {
+        project: project.slug,
+        duplicateRuleId: rule.id,
+        createFromDuplicate: true,
+        referrer: 'issue_rule_details',
+      },
+    };
 
     return (
       <PageFiltersContainer
@@ -213,10 +223,6 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
         skipLoadLastUsed
         shouldForceProject
         forceProject={project}
-        forceEnvironment={rule.environment ?? ''}
-        lockedMessageSubject={t('alert rule')}
-        showDateSelector={false}
-        hideGlobalHeader
       >
         <SentryDocumentTitle title={rule.name} orgSlug={orgId} projectSlug={projectId} />
 
@@ -245,11 +251,8 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
-              <Button
-                title={t('Send us feedback via email')}
-                href="mailto:alerting-feedback@sentry.io?subject=Issue Alert Details Feedback"
-              >
-                {t('Give Feedback')}
+              <Button icon={<IconCopy />} to={duplicateLink}>
+                {t('Duplicate')}
               </Button>
               <Button
                 icon={<IconEdit />}
@@ -317,4 +320,8 @@ const RuleName = styled('div')`
   grid-template-columns: max-content 1fr;
   grid-column-gap: ${space(1)};
   align-items: center;
+`;
+
+const StyledLoadingError = styled(LoadingError)`
+  margin: ${space(2)};
 `;

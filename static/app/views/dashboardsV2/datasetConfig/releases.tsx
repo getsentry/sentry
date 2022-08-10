@@ -5,16 +5,27 @@ import {doMetricsRequest} from 'sentry/actionCreators/metrics';
 import {doSessionsRequest} from 'sentry/actionCreators/sessions';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {MetricsApiResponse, SessionApiResponse, SessionField} from 'sentry/types';
+import {
+  MetricsApiResponse,
+  Organization,
+  PageFilters,
+  SelectValue,
+  SessionApiResponse,
+  SessionField,
+  SessionsMeta,
+} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
+import {statsPeriodToDays} from 'sentry/utils/dates';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
-import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
+import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
-import {DisplayType, WidgetQuery} from '../types';
+import {DisplayType, Widget, WidgetQuery} from '../types';
 import {getWidgetInterval} from '../utils';
+import {ReleaseSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/releaseSearchBar';
 import {
   DERIVED_STATUS_METRICS_PATTERN,
   DerivedStatusFields,
@@ -23,6 +34,7 @@ import {
   generateReleaseWidgetFieldOptions,
   SESSIONS_FIELDS,
   SESSIONS_TAGS,
+  TAG_SORT_DENY_LIST,
 } from '../widgetBuilder/releaseWidget/fields';
 import {
   derivedMetricsToField,
@@ -36,7 +48,7 @@ import {
   mapDerivedMetricsToFields,
 } from '../widgetCard/transformSessionsResponseToTable';
 
-import {ContextualProps, DatasetConfig, handleOrderByReset} from './base';
+import {DatasetConfig, handleOrderByReset} from './base';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
@@ -48,42 +60,50 @@ const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   orderby: `-crash_free_rate(${SessionField.SESSION})`,
 };
 
+const METRICS_BACKED_SESSIONS_START_DATE = new Date('2022-07-12');
+
 export const ReleasesConfig: DatasetConfig<
   SessionApiResponse | MetricsApiResponse,
   SessionApiResponse | MetricsApiResponse
 > = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
+  enableEquations: false,
+  disableSortOptions,
   getTableRequest: (
     api: Client,
     query: WidgetQuery,
-    contextualProps?: ContextualProps,
+    organization: Organization,
+    pageFilters: PageFilters,
     limit?: number,
     cursor?: string
-  ) => getReleasesRequest(0, 1, api, query, contextualProps, limit, cursor),
-  getSeriesRequest: (
-    api: Client,
-    query: WidgetQuery,
-    contextualProps?: ContextualProps,
-    limit?: number,
-    cursor?: string
-  ) => {
-    const includeTotals = query.columns.length > 0 ? 1 : 0;
-    return getReleasesRequest(
+  ) =>
+    getReleasesRequest(
+      0,
       1,
-      includeTotals,
       api,
       query,
-      contextualProps,
+      organization,
+      pageFilters,
+      undefined,
       limit,
       cursor
-    );
-  },
+    ),
+  getSeriesRequest: getReleasesSeriesRequest,
+  getTableSortOptions,
+  getTimeseriesSortOptions,
   filterTableOptions: filterPrimaryReleaseTableOptions,
-  filterTableAggregateParams: filterAggregateParams,
+  filterAggregateParams,
+  filterYAxisAggregateParams: (_fieldValue: QueryFieldValue, _displayType: DisplayType) =>
+    filterAggregateParams,
+  filterYAxisOptions,
   getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
+  SearchBar: ReleaseSearchBar,
   getTableFieldOptions: getReleasesTableFieldOptions,
+  getGroupByFieldOptions: (_organization: Organization) =>
+    generateReleaseWidgetFieldOptions([] as SessionsMeta[], SESSIONS_TAGS),
   handleColumnFieldChangeOverride,
   handleOrderByReset: handleReleasesTableOrderByReset,
+  filterSeriesSortOptions,
   supportedDisplayTypes: [
     DisplayType.AREA,
     DisplayType.BAR,
@@ -96,6 +116,107 @@ export const ReleasesConfig: DatasetConfig<
   transformTable: transformSessionsResponseToTable,
 };
 
+function disableSortOptions(widgetQuery: WidgetQuery) {
+  const {columns} = widgetQuery;
+  if (columns.includes('session.status')) {
+    return {
+      disableSort: true,
+      disableSortDirection: true,
+      disableSortReason: t('Sorting currently not supported with session.status'),
+    };
+  }
+  return {
+    disableSort: false,
+    disableSortDirection: false,
+  };
+}
+
+function getTableSortOptions(_organization: Organization, widgetQuery: WidgetQuery) {
+  const {columns, aggregates} = widgetQuery;
+  const options: SelectValue<string>[] = [];
+  [...aggregates, ...columns]
+    .filter(field => !!field)
+    .filter(field => !DISABLED_SORT.includes(field))
+    .filter(field => !TAG_SORT_DENY_LIST.includes(field))
+    .forEach(field => {
+      options.push({label: field, value: field});
+    });
+
+  return options;
+}
+
+function getTimeseriesSortOptions(_organization: Organization, widgetQuery: WidgetQuery) {
+  const columnSet = new Set(widgetQuery.columns);
+  const releaseFieldOptions = generateReleaseWidgetFieldOptions(
+    Object.values(SESSIONS_FIELDS),
+    SESSIONS_TAGS
+  );
+  const options: Record<string, SelectValue<FieldValue>> = {};
+  Object.entries(releaseFieldOptions).forEach(([key, option]) => {
+    if (['count_healthy', 'count_errored'].includes(option.value.meta.name)) {
+      return;
+    }
+    if (option.value.kind === FieldValueKind.FIELD) {
+      // Only allow sorting by release tag
+      if (option.value.meta.name === 'release' && columnSet.has(option.value.meta.name)) {
+        options[key] = option;
+      }
+      return;
+    }
+    options[key] = option;
+  });
+  return options;
+}
+
+function filterSeriesSortOptions(columns: Set<string>) {
+  return (option: FieldValueOption) => {
+    if (['count_healthy', 'count_errored'].includes(option.value.meta.name)) {
+      return false;
+    }
+    if (option.value.kind === FieldValueKind.FIELD) {
+      // Only allow sorting by release tag
+      return columns.has(option.value.meta.name) && option.value.meta.name === 'release';
+    }
+    return filterPrimaryReleaseTableOptions(option);
+  };
+}
+
+function getReleasesSeriesRequest(
+  api: Client,
+  widget: Widget,
+  queryIndex: number,
+  organization: Organization,
+  pageFilters: PageFilters
+) {
+  const query = widget.queries[queryIndex];
+  const {displayType, limit} = widget;
+
+  const {datetime} = pageFilters;
+  const {start, end, period} = datetime;
+
+  const isCustomReleaseSorting = requiresCustomReleaseSorting(query);
+
+  const includeTotals = query.columns.length > 0 ? 1 : 0;
+  const interval = getWidgetInterval(
+    displayType,
+    {start, end, period},
+    '5m',
+    // requesting low fidelity for release sort because metrics api can't return 100 rows of high fidelity series data
+    isCustomReleaseSorting ? 'low' : undefined
+  );
+
+  return getReleasesRequest(
+    1,
+    includeTotals,
+    api,
+    query,
+    organization,
+    pageFilters,
+    interval,
+    limit
+  );
+}
+
 function filterPrimaryReleaseTableOptions(option: FieldValueOption) {
   return [
     FieldValueKind.FUNCTION,
@@ -106,6 +227,14 @@ function filterPrimaryReleaseTableOptions(option: FieldValueOption) {
 
 function filterAggregateParams(option: FieldValueOption) {
   return option.value.kind === FieldValueKind.METRICS;
+}
+
+function filterYAxisOptions(_displayType: DisplayType) {
+  return (option: FieldValueOption) => {
+    return [FieldValueKind.FUNCTION, FieldValueKind.NUMERIC_METRICS].includes(
+      option.value.kind
+    );
+  };
 }
 
 function handleReleasesTableOrderByReset(widgetQuery: WidgetQuery, newFields: string[]) {
@@ -128,7 +257,7 @@ function handleColumnFieldChangeOverride(widgetQuery: WidgetQuery): WidgetQuery 
   return widgetQuery;
 }
 
-function getReleasesTableFieldOptions() {
+function getReleasesTableFieldOptions(_organization: Organization) {
   return generateReleaseWidgetFieldOptions(Object.values(SESSIONS_FIELDS), SESSIONS_TAGS);
 }
 
@@ -252,12 +381,41 @@ function getReleasesRequest(
   includeTotals: number,
   api: Client,
   query: WidgetQuery,
-  contextualProps?: ContextualProps,
+  organization: Organization,
+  pageFilters: PageFilters,
+  interval?: string,
   limit?: number,
   cursor?: string
 ) {
-  const {environments, projects, datetime} = contextualProps!.pageFilters!;
+  const {environments, projects, datetime} = pageFilters;
   const {start, end, period} = datetime;
+
+  let showIncompleteDataAlert: boolean = false;
+
+  if (start) {
+    let startDate: Date | undefined = undefined;
+    if (typeof start === 'string') {
+      startDate = new Date(start);
+    } else {
+      startDate = start;
+    }
+    showIncompleteDataAlert = startDate < METRICS_BACKED_SESSIONS_START_DATE;
+  } else if (period) {
+    const periodInDays = statsPeriodToDays(period);
+    const current = new Date();
+    const prior = new Date(new Date().setDate(current.getDate() - periodInDays));
+    showIncompleteDataAlert = prior < METRICS_BACKED_SESSIONS_START_DATE;
+  }
+
+  if (showIncompleteDataAlert) {
+    return Promise.reject(
+      new Error(
+        t(
+          'Releases data is only available from Jul 12. Please retry your query with a more recent date range.'
+        )
+      )
+    );
+  }
 
   // Only time we need to use sessions API is when session.status is requested
   // as a group by.
@@ -297,14 +455,6 @@ function getReleasesRequest(
   //      table/chart/
   //
 
-  const interval = getWidgetInterval(
-    DisplayType.TABLE,
-    {start, end, period},
-    '5m',
-    // requesting low fidelity for release sort because metrics api can't return 100 rows of high fidelity series data
-    isCustomReleaseSorting ? 'low' : undefined
-  );
-
   const {aggregates, injectedFields} = resolveDerivedStatusFields(
     query.aggregates,
     query.orderby,
@@ -318,7 +468,7 @@ function getReleasesRequest(
     );
     requestData = {
       field: sessionAggregates,
-      orgSlug: contextualProps?.organization?.slug,
+      orgSlug: organization.slug,
       end,
       environment: environments,
       groupBy: columns,
@@ -336,7 +486,7 @@ function getReleasesRequest(
   } else {
     requestData = {
       field: aggregates.map(fieldsToDerivedMetrics),
-      orgSlug: contextualProps?.organization?.slug,
+      orgSlug: organization.slug,
       end,
       environment: environments,
       groupBy: columns.map(fieldsToDerivedMetrics),

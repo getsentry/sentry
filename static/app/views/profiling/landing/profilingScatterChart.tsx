@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import type {TooltipComponentFormatterCallback} from 'echarts';
@@ -26,7 +27,7 @@ import {Trace} from 'sentry/types/profiling/core';
 import {defined} from 'sentry/utils';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import {getDuration} from 'sentry/utils/formatters';
-import {generateProfileDetailsRoute} from 'sentry/utils/profiling/routes';
+import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {Theme} from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -249,7 +250,7 @@ function makeScatterChartOptions({
         return;
       }
       browserHistory.push(
-        generateProfileDetailsRoute({
+        generateProfileFlamechartRoute({
           orgSlug: organization.slug,
           projectSlug: project.slug,
           profileId: dataPoint.id,

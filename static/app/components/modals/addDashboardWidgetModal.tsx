@@ -15,11 +15,11 @@ import ButtonBar from 'sentry/components/buttonBar';
 import IssueWidgetQueriesForm from 'sentry/components/dashboards/issueWidgetQueriesForm';
 import WidgetQueriesForm from 'sentry/components/dashboards/widgetQueriesForm';
 import FeatureBadge from 'sentry/components/featureBadge';
-import Input from 'sentry/components/forms/controls/input';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import Field from 'sentry/components/forms/field';
 import FieldLabel from 'sentry/components/forms/field/fieldLabel';
 import SelectControl from 'sentry/components/forms/selectControl';
+import Input from 'sentry/components/input';
 import {PanelAlert} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -33,9 +33,11 @@ import {
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {getColumnsAndAggregates} from 'sentry/utils/discover/fields';
+import {
+  getColumnsAndAggregates,
+  SPAN_OP_BREAKDOWN_FIELDS,
+} from 'sentry/utils/discover/fields';
 import Measurements from 'sentry/utils/measurements/measurements';
-import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withTags from 'sentry/utils/withTags';

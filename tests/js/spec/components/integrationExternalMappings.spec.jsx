@@ -1,6 +1,10 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountGlobalModal} from 'sentry-test/modal';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import IntegrationExternalMappings from 'sentry/components/integrationExternalMappings';
 
@@ -60,7 +64,7 @@ describe('IntegrationExternalMappings', function () {
     });
   };
 
-  it('renders empty if not mappings are provided or found', async function () {
+  it('renders empty if not mappings are provided or found', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/codeowners-associations/`,
       method: 'GET',
@@ -80,7 +84,6 @@ describe('IntegrationExternalMappings', function () {
         context: routerContext,
       }
     );
-    await act(tick);
     expect(screen.getByTestId('empty-message')).toBeInTheDocument();
   });
 
@@ -100,13 +103,12 @@ describe('IntegrationExternalMappings', function () {
         context: routerContext,
       }
     );
-    await act(tick);
 
     expect(await screen.findByTestId('mapping-table')).toBeInTheDocument();
     for (const user of MOCK_USER_SUGGESTIONS) {
-      expect(await screen.findByText(user)).toBeInTheDocument();
+      expect(screen.getByText(user)).toBeInTheDocument();
     }
-    expect(await screen.findAllByTestId('suggestion-option')).toHaveLength(3);
+    expect(screen.getAllByTestId('suggestion-option')).toHaveLength(3);
   });
 
   it('renders suggestions along with the provided mappings', async function () {
@@ -125,19 +127,18 @@ describe('IntegrationExternalMappings', function () {
         context: routerContext,
       }
     );
-    await act(tick);
 
     expect(await screen.findByTestId('mapping-table')).toBeInTheDocument();
     for (const team of MOCK_TEAM_SUGGESTIONS) {
-      expect(await screen.findByText(team)).toBeInTheDocument();
+      expect(screen.getByText(team)).toBeInTheDocument();
     }
-    expect(await screen.findAllByTestId('mapping-option')).toHaveLength(2);
+    expect(screen.getAllByTestId('mapping-option')).toHaveLength(2);
 
     for (const team of MOCK_TEAM_MAPPINGS) {
-      expect(await screen.findByText(team.externalName)).toBeInTheDocument();
-      expect(await screen.findByText(team.sentryName)).toBeInTheDocument();
+      expect(screen.getByText(team.externalName)).toBeInTheDocument();
+      expect(screen.getByText(team.sentryName)).toBeInTheDocument();
     }
-    expect(await screen.findAllByTestId('suggestion-option')).toHaveLength(3);
+    expect(screen.getAllByTestId('suggestion-option')).toHaveLength(3);
   });
 
   it('uses the methods passed down from props appropriately', async function () {
@@ -155,15 +156,13 @@ describe('IntegrationExternalMappings', function () {
         context: routerContext,
       }
     );
-    await act(tick);
+    renderGlobalModal();
 
     expect(await screen.findByTestId('mapping-table')).toBeInTheDocument();
     userEvent.click(screen.getByTestId('add-mapping-button'));
     expect(onCreateMock).toHaveBeenCalled();
 
     userEvent.click(screen.getAllByTestId('delete-mapping-button')[0]);
-    await act(tick);
-    mountGlobalModal();
     userEvent.click(screen.getByTestId('confirm-button'));
     expect(onDeleteMock).toHaveBeenCalled();
   });

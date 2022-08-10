@@ -16,6 +16,7 @@ from sentry.snuba.metrics import (
     parse_query,
 )
 from sentry.snuba.metrics.naming_layer import SessionMetricKey
+from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
 from sentry.utils.dates import parse_stats_period
 
 
@@ -138,20 +139,6 @@ def test_validate_select():
 
 
 def test_validate_order_by():
-    metric_field_2 = MetricField(op=None, metric_name=SessionMetricKey.ALL.value)
-    metrics_query_dict = (
-        MetricsQueryBuilder()
-        .with_orderby(
-            [
-                OrderBy(field=MetricsQueryBuilder.AVG_DURATION_METRIC, direction=Direction.ASC),
-                OrderBy(field=metric_field_2, direction=Direction.ASC),
-            ]
-        )
-        .to_metrics_query_dict()
-    )
-    with pytest.raises(InvalidParams, match="Only one 'orderBy' is supported"):
-        MetricsQuery(**metrics_query_dict)
-
     with pytest.raises(
         InvalidParams,
         match=(
@@ -214,6 +201,182 @@ def test_validate_order_by_field_in_select():
     metrics_query_dict = (
         MetricsQueryBuilder()
         .with_select([MetricsQueryBuilder.AVG_DURATION_METRIC, metric_field_2])
+        .to_metrics_query_dict()
+    )
+    MetricsQuery(**metrics_query_dict)
+
+
+def test_validate_multiple_orderby_columns_not_specified_in_select():
+    metric_field_1 = MetricField(op=None, metric_name=SessionMetricKey.ABNORMAL.value)
+    metric_field_2 = MetricField(op=None, metric_name=SessionMetricKey.ALL.value)
+    metrics_query_dict = (
+        MetricsQueryBuilder()
+        .with_select([MetricsQueryBuilder.AVG_DURATION_METRIC, metric_field_1])
+        .with_orderby(
+            [
+                OrderBy(field=metric_field_1, direction=Direction.ASC),
+                OrderBy(field=metric_field_2, direction=Direction.ASC),
+            ]
+        )
+        .to_metrics_query_dict()
+    )
+
+    # Test that ensures an instance of `InvalidParams` is raised when requesting an orderBy field
+    # that is not present in the select
+    with pytest.raises(InvalidParams, match="'orderBy' must be one of the provided 'fields'"):
+        MetricsQuery(**metrics_query_dict)
+
+
+def test_validate_multiple_order_by_fields_from_multiple_entities():
+    """
+    The example should fail because session crash free rate is generated from
+    counters entity while p50 of duration will go to distribution
+    """
+    metric_field_1 = MetricField(op=None, metric_name=SessionMetricKey.CRASH_FREE_RATE.value)
+    metric_field_2 = MetricField(op="p50", metric_name=TransactionMetricKey.DURATION.value)
+    metrics_query_dict = (
+        MetricsQueryBuilder()
+        .with_select([metric_field_1, metric_field_2])
+        .with_orderby(
+            [
+                OrderBy(field=metric_field_1, direction=Direction.ASC),
+                OrderBy(field=metric_field_2, direction=Direction.ASC),
+            ]
+        )
+        .to_metrics_query_dict()
+    )
+
+    # Test that ensures an instance of `InvalidParams` is raised when requesting an orderBy field
+    # that is not present in the select
+    with pytest.raises(
+        InvalidParams, match="Selected 'orderBy' columns must belongs to the same entity"
+    ):
+        MetricsQuery(**metrics_query_dict)
+
+
+def test_validate_multiple_orderby_derived_metrics_from_different_entities():
+    """
+    This example should fail because session crash free rate is generated from
+    counters while session user crash free rate is generated from sets
+    """
+    metric_field_1 = MetricField(op=None, metric_name=SessionMetricKey.CRASH_FREE_RATE.value)
+    metric_field_2 = MetricField(op=None, metric_name=SessionMetricKey.CRASH_FREE_USER_RATE.value)
+    metrics_query_dict = (
+        MetricsQueryBuilder()
+        .with_select([metric_field_1, metric_field_2])
+        .with_orderby(
+            [
+                OrderBy(field=metric_field_1, direction=Direction.ASC),
+                OrderBy(field=metric_field_2, direction=Direction.ASC),
+            ]
+        )
+        .to_metrics_query_dict()
+    )
+
+    # Test that ensures an instance of `InvalidParams` is raised when requesting an orderBy field
+    # that is not present in the select
+    with pytest.raises(
+        InvalidParams, match="Selected 'orderBy' columns must belongs to the same entity"
+    ):
+        MetricsQuery(**metrics_query_dict)
+
+
+def test_validate_many_order_by_fields_are_in_select():
+    """
+    Validate no exception is raised when all orderBy fields are presented the select
+    """
+    metric_field_1 = MetricField(op=None, metric_name=SessionMetricKey.ABNORMAL.value)
+    metric_field_2 = MetricField(op=None, metric_name=SessionMetricKey.ALL.value)
+
+    metrics_query_dict = (
+        MetricsQueryBuilder()
+        .with_select([metric_field_1, metric_field_2])
+        .with_orderby(
+            [
+                OrderBy(field=metric_field_1, direction=Direction.ASC),
+                OrderBy(field=metric_field_2, direction=Direction.ASC),
+            ]
+        )
+        .to_metrics_query_dict()
+    )
+    MetricsQuery(**metrics_query_dict)
+
+    # orderby should be subset of select
+    metrics_query_dict = (
+        MetricsQueryBuilder()
+        .with_select([metric_field_1, metric_field_2])
+        .with_orderby(
+            [
+                OrderBy(field=metric_field_1, direction=Direction.ASC),
+            ]
+        )
+        .to_metrics_query_dict()
+    )
+    MetricsQuery(**metrics_query_dict)
+
+    # This example should pass because both session crash free rate
+    # and sum(session) both go to the entity counters
+    metric_field_1 = MetricField(op=None, metric_name=SessionMetricKey.CRASH_FREE_RATE.value)
+    metric_field_2 = MetricField(op="sum", metric_name=SessionMetricKey.DURATION.value)
+    metrics_query_dict = (
+        MetricsQueryBuilder()
+        .with_select([metric_field_1, metric_field_2])
+        .with_orderby(
+            [
+                OrderBy(field=metric_field_1, direction=Direction.ASC),
+                OrderBy(field=metric_field_2, direction=Direction.ASC),
+            ]
+        )
+        .to_metrics_query_dict()
+    )
+
+    MetricsQuery(**metrics_query_dict)
+
+
+def test_validate_functions_from_multiple_entities_in_orderby():
+    # Validate exception is raised when orderBy fields have function from different snuba groups
+    # because:
+    # `avg` are in OP_TO_SNUBA_FUNCTION["metrics_distributions"].keys()
+    # but
+    # `count_unique` are in OP_TO_SNUBA_FUNCTION["metrics_sets"].keys()
+    metric_field_1 = MetricField(op="avg", metric_name=TransactionMetricKey.DURATION.value)
+    metric_field_2 = MetricField(op="count_unique", metric_name=TransactionMetricKey.USER.value)
+
+    metrics_query_dict = (
+        MetricsQueryBuilder()
+        .with_select([metric_field_1, metric_field_2])
+        .with_orderby(
+            [
+                OrderBy(field=metric_field_1, direction=Direction.ASC),
+                OrderBy(field=metric_field_2, direction=Direction.ASC),
+            ]
+        )
+        .to_metrics_query_dict()
+    )
+
+    # Test that ensures an instance of `InvalidParams` is raised when requesting an orderBy field
+    # from different snuba function groups
+    with pytest.raises(
+        InvalidParams,
+        match="Selected 'orderBy' columns must belongs to the same entity",
+    ):
+        MetricsQuery(**metrics_query_dict)
+
+
+def test_validate_distribution_functions_in_orderby():
+    # Validate no exception is raised when all orderBy fields are presented the select
+    metric_field_1 = MetricField(op="avg", metric_name=TransactionMetricKey.DURATION.value)
+    metric_field_2 = MetricField(op="p50", metric_name=TransactionMetricKey.DURATION.value)
+
+    metrics_query_dict = (
+        MetricsQueryBuilder()
+        .with_select([metric_field_1, metric_field_2])
+        .with_orderby(
+            [
+                OrderBy(field=metric_field_1, direction=Direction.ASC),
+                OrderBy(field=metric_field_2, direction=Direction.ASC),
+            ]
+        )
         .to_metrics_query_dict()
     )
     MetricsQuery(**metrics_query_dict)

@@ -36,7 +36,6 @@ type Props = {
   currentProject: string;
   disabled: boolean;
   error: boolean;
-  hasAlertWizardV3: boolean;
   loading: boolean;
   onAdd: (triggerIndex: number, action: Action) => void;
   onChange: (triggerIndex: number, triggers: Trigger[], actions: Action[]) => void;
@@ -153,7 +152,7 @@ class ActionsPanel extends PureComponent<Props> {
         trailingItems={
           <Button
             href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error"
-            size="xsmall"
+            size="xs"
           >
             {t('Learn More')}
           </Button>
@@ -273,7 +272,6 @@ class ActionsPanel extends PureComponent<Props> {
       organization,
       projects,
       triggers,
-      hasAlertWizardV3,
     } = this.props;
 
     const project = projects.find(({slug}) => slug === currentProject);
@@ -310,16 +308,7 @@ class ActionsPanel extends PureComponent<Props> {
 
     return (
       <Fragment>
-        <PerformActionsListItem>
-          {hasAlertWizardV3 ? t('Set actions') : t('Perform actions')}
-          {!hasAlertWizardV3 && (
-            <AlertParagraph>
-              {t(
-                'When any of the thresholds above are met, perform an action such as sending an email or using an integration.'
-              )}
-            </AlertParagraph>
-          )}
-        </PerformActionsListItem>
+        <PerformActionsListItem>{t('Set actions')}</PerformActionsListItem>
         {loading && <LoadingIndicator />}
         {actions.map(({action, actionIdx, triggerIndex, availableAction}) => {
           const actionDisabled =
@@ -466,12 +455,6 @@ const ActionsPanelWithSpace = styled(ActionsPanel)`
 const ActionSection = styled('div')`
   margin-top: ${space(1)};
   margin-bottom: ${space(3)};
-`;
-
-const AlertParagraph = styled('p')`
-  color: ${p => p.theme.subText};
-  margin-bottom: ${space(1)};
-  font-size: ${p => p.theme.fontSizeLarge};
 `;
 
 const PanelItemGrid = styled(PanelItem)`

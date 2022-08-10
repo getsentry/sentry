@@ -140,7 +140,14 @@ class ProjectSerializerTest(TestCase):
         assert "test-feature" in result["features"]
         assert "disabled-feature" not in result["features"]
 
-    def test_project_features(self):
+    @mock.patch("sentry.api.serializers.project.features")
+    def test_project_features(self, mock_features):
+        test_features = features.FeatureManager()
+        mock_features.all = test_features.all
+        mock_features.has = test_features.has
+        mock_features.batch_has = test_features.batch_has
+        mock_features.has_for_batch = test_features.has_for_batch
+
         early_flag = "projects:TEST_early"
         red_flag = "projects:TEST_red"
         blue_flag = "projects:TEST_blue"
@@ -168,13 +175,13 @@ class ProjectSerializerTest(TestCase):
 
             return ProjectColorFeatureHandler()
 
-        features.add(early_flag, features.ProjectFeature)
-        features.add(red_flag, features.ProjectFeature)
-        features.add(blue_flag, features.ProjectFeature)
+        test_features.add(early_flag, features.ProjectFeature)
+        test_features.add(red_flag, features.ProjectFeature)
+        test_features.add(blue_flag, features.ProjectFeature)
         red_handler = create_color_handler(red_flag, [early_red, late_red])
         blue_handler = create_color_handler(blue_flag, [early_blue, late_blue])
         for handler in (EarlyAdopterFeatureHandler(), red_handler, blue_handler):
-            features.add_handler(handler)
+            test_features.add_handler(handler)
 
         def api_form(flag):
             return flag[len("projects:") :]
@@ -306,6 +313,16 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
 
         result = serialize(self.project, self.user, ProjectSummarySerializer())
         assert result["hasSessions"] is True
+
+    def test_has_profiles_flag(self):
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["hasProfiles"] is False
+
+        self.project.first_event = timezone.now()
+        self.project.update(flags=F("flags").bitor(Project.flags.has_profiles))
+
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["hasProfiles"] is True
 
     def test_no_environments(self):
         # remove environments and related models

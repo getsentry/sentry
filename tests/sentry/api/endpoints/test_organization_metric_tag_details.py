@@ -2,9 +2,11 @@ import time
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
+import pytest
 from freezegun import freeze_time
 
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics.naming_layer import get_mri
 from sentry.snuba.metrics.naming_layer.public import SessionMetricKey
 from sentry.testutils.cases import OrganizationMetricMetaIntegrationTestCase
@@ -13,13 +15,19 @@ from tests.sentry.api.endpoints.test_organization_metrics import (
     mocked_mri_resolver,
 )
 
+pytestmark = pytest.mark.sentry_metrics
+
+
+def _indexer_record(org_id: int, string: str) -> int:
+    return indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=string)
+
 
 class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricMetaIntegrationTestCase):
 
     endpoint = "sentry-api-0-organization-metrics-tag-details"
 
     def test_unknown_tag(self):
-        indexer.record(self.organization.id, "bar")
+        _indexer_record(self.organization.id, "bar")
         response = self.get_success_response(self.project.organization.slug, "bar")
         assert response.data == []
 
@@ -29,7 +37,7 @@ class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricMetaIntegra
 
     @patch("sentry.snuba.metrics.datasource.get_mri", mocked_mri_resolver(["bad"], get_mri))
     def test_non_existing_filter(self):
-        indexer.record(self.organization.id, "bar")
+        _indexer_record(self.organization.id, "bar")
         response = self.get_response(self.project.organization.slug, "bar", metric="bad")
         assert response.status_code == 200
         assert response.data == []
@@ -68,7 +76,7 @@ class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricMetaIntegra
 
         # We need to ensure that if the tag is present in the indexer but has no values in the
         # dataset, the intersection of it and other tags should not yield any results
-        indexer.record(self.organization.id, "random_tag")
+        _indexer_record(self.organization.id, "random_tag")
         response = self.get_success_response(
             self.organization.slug,
             "tag1",

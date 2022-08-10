@@ -1,3 +1,6 @@
+from selenium.webdriver.common.by import By
+
+
 class BasePage:
     """Base class for PageObjects"""
 
@@ -36,7 +39,7 @@ class ButtonElement(BaseElement):
 class ButtonWithIconElement(ButtonElement):
     @property
     def icon_href(self):
-        return self.element.find_element_by_tag_name("use").get_attribute("href")
+        return self.element.find_element(by=By.TAG_NAME, value="use").get_attribute("href")
 
 
 class TextBoxElement(BaseElement):

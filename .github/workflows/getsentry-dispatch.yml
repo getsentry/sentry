@@ -8,31 +8,55 @@ on:
   #
   # See https://github.com/getsentry/sentry/pull/21600 for more details
   pull_request_target:
+    types: [labeled, opened, reopened, synchronize]
+
+# disable all other special privileges
+permissions:
+  # needed for `actions/checkout` to clone the code
+  contents: read
+  # needed to remove the pull-request label
+  pull-requests: write
 
 jobs:
   dispatch:
+    if: github.event.action != 'labeled' || github.event.label.name == 'trigger-getsentry-external'
     name: getsentry dispatch
     runs-on: ubuntu-20.04
     steps:
-      # Need to checkout just for `github/file-filters.yml`
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b  # v3
+        with:
+          persist-credentials: false
+
+      - name: permissions
+        run: |
+          python3 -uS .github/workflows/scripts/getsentry-dispatch-setup \
+              --repo-id ${{ github.event.repository.id }} \
+              --pr ${{ github.event.number }} \
+              --event ${{ github.event.action }} \
+              --username "$ARG_USERNAME" \
+              --label-names "$ARG_LABEL_NAMES"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # these can contain special characters
+          ARG_USERNAME: ${{ github.event.pull_request.user.login }}
+          ARG_LABEL_NAMES: ${{ toJSON(github.event.pull_request.labels.*.name) }}
 
       - name: Check for file changes
-        uses: getsentry/paths-filter@v2
+        uses: getsentry/paths-filter@66f7f1844185eb7fb6738ea4ea59d74bb99199e5  # v2
         id: changes
         with:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
       - name: getsentry token
-        uses: getsentry/action-github-app-token@v1
+        uses: getsentry/action-github-app-token@38a3ce582e170ddfe8789f509597c6944f2292a9  # v1
         id: getsentry
         with:
           app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
       - name: Dispatch getsentry tests
-        uses: actions/github-script@v3
+        uses: actions/github-script@f05a81df23035049204b043b50c3322045ce7eb3  # v3
         with:
           github-token: ${{ steps.getsentry.outputs.token }}
           script: |

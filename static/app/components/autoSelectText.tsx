@@ -20,7 +20,7 @@ const AutoSelectText: React.ForwardRefRenderFunction<AutoSelectHandle, Props> = 
   const element = useRef<HTMLSpanElement>(null);
 
   // We need to expose a selectText method to parent components
-  // and need an imperitive ref handle.
+  // and need an imperative ref handle.
   useImperativeHandle(forwardedRef, () => ({
     selectText: () => handleClick(),
   }));

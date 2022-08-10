@@ -1,5 +1,8 @@
-import {Query} from 'history';
+import {browserHistory} from 'react-router';
+import {Location, Query} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
+import isEmpty from 'lodash/isEmpty';
+import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import trimStart from 'lodash/trimStart';
 import * as qs from 'query-string';
@@ -19,17 +22,21 @@ import {
   SIX_HOURS,
   TWENTY_FOUR_HOURS,
 } from 'sentry/components/charts/utils';
+import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
 import {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   getAggregateAlias,
+  getAggregateArg,
   getColumnsAndAggregates,
   isEquation,
+  isMeasurement,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {DisplayModes} from 'sentry/utils/discover/types';
+import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {
   DashboardDetails,
   DisplayType,
@@ -210,7 +217,8 @@ export function getWidgetDiscoverUrl(
   widget: Widget,
   selection: PageFilters,
   organization: Organization,
-  index: number = 0
+  index: number = 0,
+  isMetricsData: boolean = false
 ) {
   const eventView = eventViewFromWidget(
     widget.title,
@@ -262,6 +270,10 @@ export function getWidgetDiscoverUrl(
       fields.unshift(term);
     }
   });
+
+  if (isMetricsData) {
+    discoverLocation.query.fromMetric = 'true';
+  }
 
   // Construct and return the discover url
   const discoverPath = `${discoverLocation.pathname}?${qs.stringify({
@@ -346,4 +358,162 @@ export function getDashboardsMEPQueryParams(isMEPEnabled: boolean) {
 
 export function getNumEquations(possibleEquations: string[]) {
   return possibleEquations.filter(isEquation).length;
+}
+
+export function isCustomMeasurement(field: string) {
+  const definedMeasurements = Object.keys(getMeasurements());
+  return isMeasurement(field) && !definedMeasurements.includes(field);
+}
+
+export function isCustomMeasurementWidget(widget: Widget) {
+  return (
+    widget.widgetType === WidgetType.DISCOVER &&
+    widget.queries.some(({aggregates, columns, fields}) => {
+      const aggregateArgs = aggregates.reduce((acc: string[], aggregate) => {
+        // Should be ok to use getAggregateArg. getAggregateArg only returns the first arg
+        // but there aren't any custom measurement aggregates that use custom measurements
+        // outside of the first arg.
+        const aggregateArg = getAggregateArg(aggregate);
+        if (aggregateArg) {
+          acc.push(aggregateArg);
+        }
+        return acc;
+      }, []);
+      return [...aggregateArgs, ...columns, ...(fields ?? [])].some(field =>
+        isCustomMeasurement(field)
+      );
+    })
+  );
+}
+
+export function getCustomMeasurementQueryParams() {
+  return {
+    dataset: 'metrics',
+  };
+}
+
+export function isWidgetUsingTransactionName(widget: Widget) {
+  return (
+    widget.widgetType === WidgetType.DISCOVER &&
+    widget.queries.some(({aggregates, columns, fields}) => {
+      const aggregateArgs = aggregates.reduce((acc: string[], aggregate) => {
+        const aggregateArg = getAggregateArg(aggregate);
+        if (aggregateArg) {
+          acc.push(aggregateArg);
+        }
+        return acc;
+      }, []);
+      return [...aggregateArgs, ...columns, ...(fields ?? [])].some(
+        field => field === 'transaction'
+      );
+    })
+  );
+}
+
+export function hasSavedPageFilters(dashboard: DashboardDetails) {
+  return !(
+    isEmpty(dashboard.projects) &&
+    dashboard.environment === undefined &&
+    dashboard.start === undefined &&
+    dashboard.end === undefined &&
+    dashboard.period === undefined
+  );
+}
+
+export function hasUnsavedFilterChanges(
+  initialDashboard: DashboardDetails,
+  location: Location
+) {
+  // Use Sets to compare the filter fields that are arrays
+  type Filters = {
+    end?: string;
+    environment?: Set<string>;
+    period?: string;
+    projects?: Set<number>;
+    release?: Set<string>;
+    start?: string;
+    utc?: boolean;
+  };
+
+  const savedFilters: Filters = {
+    projects: new Set(initialDashboard.projects),
+    environment: new Set(initialDashboard.environment),
+    period: initialDashboard.period,
+    start: normalizeDateTimeString(initialDashboard.start),
+    end: normalizeDateTimeString(initialDashboard.end),
+    utc: initialDashboard.utc,
+  };
+  let currentFilters = {
+    ...getCurrentPageFilters(location),
+  } as unknown as Filters;
+  currentFilters = {
+    ...currentFilters,
+    projects: new Set(currentFilters.projects),
+    environment: new Set(currentFilters.environment),
+  };
+
+  if (location.query?.release) {
+    // Release is only included in the comparison if it exists in the query
+    // params, otherwise the dashboard should be using its saved state
+    savedFilters.release = new Set(initialDashboard.filters?.release);
+    currentFilters.release = new Set(location.query?.release);
+  }
+
+  return !isEqual(savedFilters, currentFilters);
+}
+
+export function getSavedFiltersAsPageFilters(dashboard: DashboardDetails): PageFilters {
+  return {
+    datetime: {
+      end: dashboard.end || null,
+      period: dashboard.period || null,
+      start: dashboard.start || null,
+      utc: null,
+    },
+    environments: dashboard.environment || [],
+    projects: dashboard.projects || [],
+  };
+}
+
+export function getSavedPageFilters(dashboard: DashboardDetails) {
+  return {
+    project: dashboard.projects,
+    environment: dashboard.environment,
+    statsPeriod: dashboard.period,
+    start: normalizeDateTimeString(dashboard.start),
+    end: normalizeDateTimeString(dashboard.end),
+    utc: dashboard.utc,
+  };
+}
+
+export function resetPageFilters(dashboard: DashboardDetails, location: Location) {
+  browserHistory.replace({
+    ...location,
+    query: getSavedPageFilters(dashboard),
+  });
+}
+
+export function getCurrentPageFilters(
+  location: Location
+): Pick<
+  DashboardDetails,
+  'projects' | 'environment' | 'period' | 'start' | 'end' | 'utc'
+> {
+  const {project, environment, statsPeriod, start, end, utc} = location.query ?? {};
+  return {
+    // Ensure projects and environment are sent as arrays, or undefined in the request
+    // location.query will return a string if there's only one value
+    projects:
+      project === undefined || project === null
+        ? []
+        : typeof project === 'string'
+        ? [Number(project)]
+        : project.map(Number),
+    environment:
+      typeof environment === 'string' ? [environment] : environment ?? undefined,
+    period: statsPeriod as string | undefined,
+    start: defined(start) ? normalizeDateTimeString(start as string) : undefined,
+    end: defined(end) ? normalizeDateTimeString(end as string) : undefined,
+    utc: defined(utc) ? utc === 'true' : undefined,
+  };
 }

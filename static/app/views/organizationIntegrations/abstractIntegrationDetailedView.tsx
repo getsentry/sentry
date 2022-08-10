@@ -111,6 +111,12 @@ class AbstractIntegrationDetailedView<
     throw new Error('Not implemented');
   }
 
+  // Checks to see if integration requires admin access to install, doc integrations don't
+  get requiresAccess(): boolean {
+    // default is integration requires access to install
+    return true;
+  }
+
   // Returns an array of RawIntegrationFeatures which is used in feature gating
   // and displaying what the integration does
   get featureData(): IntegrationFeature[] {
@@ -266,7 +272,7 @@ class AbstractIntegrationDetailedView<
                   title={t(
                     'You must be an organization owner, manager or admin to install this.'
                   )}
-                  disabled={hasAccess}
+                  disabled={hasAccess || !this.requiresAccess}
                 >
                   {!hideButtonIfDisabled && disabled ? (
                     <div />
@@ -458,10 +464,11 @@ const Metadata = styled(Flex)`
   display: grid;
   grid-auto-rows: max-content;
   grid-auto-flow: row;
-  gap: ${space(2)};
+  gap: ${space(1)};
   font-size: 0.9em;
   margin-left: ${space(4)};
   margin-right: 100px;
+  align-self: flex-start;
 `;
 
 const AuthorInfo = styled('div')`

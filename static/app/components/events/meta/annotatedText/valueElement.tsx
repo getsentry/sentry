@@ -1,13 +1,12 @@
 import {Fragment, isValidElement} from 'react';
 
 import {t} from 'sentry/locale';
-import {Meta} from 'sentry/types';
 
 import Redaction from './redaction';
 
 type Props = {
   value: React.ReactNode;
-  meta?: Meta;
+  meta?: Record<any, any>;
 };
 
 // If you find yourself modifying this component to fix some tooltip bug,
@@ -15,7 +14,7 @@ type Props = {
 // first place. It's much more likely that `withMeta` is buggy or improperly
 // used than that this component has a bug.
 const ValueElement = ({value, meta}: Props) => {
-  if (value && meta) {
+  if (!!value && meta) {
     return <Redaction>{value}</Redaction>;
   }
 

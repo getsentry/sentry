@@ -115,10 +115,12 @@ describe('EventTagsAndScreenshot', function () {
     organization: {
       role: 'member',
       attachmentsRole: 'member',
-      availableRoles: [
+      orgRoleList: [
         {
           id: 'member',
           name: 'Member',
+          desc: '...',
+          minimumTeamRole: 'contributor',
         },
       ],
     },
@@ -189,7 +191,7 @@ describe('EventTagsAndScreenshot', function () {
         deviceNameMapper(contexts.device.model)?.trim() ?? ''
       );
       expect(contextItem3.getByTestId('context-sub-title')).toHaveTextContent(
-        `Model:${contexts.device.model_id}`
+        'Model:iPhone13,4'
       );
 
       // Tags

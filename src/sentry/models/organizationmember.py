@@ -10,7 +10,7 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.db import models, transaction
-from django.db.models import QuerySet
+from django.db.models import F, QuerySet
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_bytes
@@ -22,6 +22,7 @@ from sentry import features
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.manager import BaseManager
 from sentry.exceptions import UnableToAcceptMemberInvitationException
+from sentry.models.authprovider import AuthProvider
 from sentry.models.team import TeamStatus
 from sentry.roles import organization_roles
 from sentry.signals import member_invited
@@ -62,10 +63,14 @@ class OrganizationMemberManager(BaseManager):
 
     def delete_expired(self, threshold: int) -> None:
         """Delete un-accepted member invitations that expired `threshold` days ago."""
-        self.filter(
-            token_expires_at__lt=threshold,
-            user_id__exact=None,
-        ).exclude(email__exact=None).delete()
+
+        orgs_with_scim = AuthProvider.objects.filter(
+            flags=F("flags").bitor(AuthProvider.flags.scim_enabled)
+        ).values_list("organization_id", flat=True)
+
+        self.filter(token_expires_at__lt=threshold, user_id__exact=None,).exclude(
+            email__exact=None
+        ).exclude(organization_id__in=orgs_with_scim).delete()
 
     def get_for_integration(self, integration: Integration, actor: User) -> QuerySet:
         return self.filter(
@@ -452,9 +457,9 @@ class OrganizationMember(Model):
             event=audit_log.get_event_id("INVITE_REQUEST_REMOVE"),
         )
 
-    def get_allowed_roles_to_invite(self):
+    def get_allowed_org_roles_to_invite(self):
         """
-        Return a list of roles which that member could invite
+        Return a list of org-level roles which that member could invite
         Must check if member member has member:admin first before checking
         """
         return [

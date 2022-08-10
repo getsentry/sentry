@@ -78,7 +78,8 @@ def validate_channel_id(name: str, integration_id: Optional[int], input_channel_
 
     token = integration.metadata["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
-    payload = {"channel": input_channel_id}
+    # The empty string should be converted to None
+    payload = {"channel": input_channel_id or None}
     client = SlackClient()
 
     try:
@@ -93,8 +94,11 @@ def validate_channel_id(name: str, integration_id: Optional[int], input_channel_
         raise IntegrationError("Bad slack channel list response.")
 
     stripped_channel_name = strip_channel_name(name)
-    if not stripped_channel_name == results["channel"]["name"]:
-        channel_name = results["channel"]["name"]
+    results_channel_name = results.get("channel", {}).get("name")
+    if not results_channel_name:
+        raise ValidationError("Did not receive channel name from API results")
+    if stripped_channel_name != results_channel_name:
+        channel_name = results_channel_name
         raise ValidationError(
             f"Received channel name {channel_name} does not match inputted channel name {stripped_channel_name}."
         )

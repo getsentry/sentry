@@ -65,6 +65,14 @@ def run_deletion(deletion_id, first_pass=True):
     from sentry import deletions
     from sentry.models import ScheduledDeletion
 
+    logger.info(
+        "deletion.started",
+        extra={
+            "deletion_id": deletion_id,
+            "first_pass": first_pass,
+        },
+    )
+
     try:
         deletion = ScheduledDeletion.objects.get(id=deletion_id)
     except ScheduledDeletion.DoesNotExist:
@@ -90,6 +98,7 @@ def run_deletion(deletion_id, first_pass=True):
         transaction_id=deletion.guid,
         actor_id=deletion.actor_id,
     )
+
     if not task.should_proceed(instance):
         logger.info(
             "object.delete.aborted",
@@ -127,6 +136,14 @@ def run_deletion(deletion_id, first_pass=True):
 def delete_groups(object_ids, transaction_id=None, eventstream_state=None, **kwargs):
     from sentry import deletions, eventstream
     from sentry.models import Group
+
+    logger.info(
+        "delete_groups.started",
+        extra={
+            "object_ids_count": len(object_ids),
+            "first_id": object_ids[0],
+        },
+    )
 
     transaction_id = transaction_id or uuid4().hex
 

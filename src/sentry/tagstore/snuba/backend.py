@@ -293,7 +293,7 @@ class SnubaTagStorage(TagStorage):
         results = set()
 
         for key, data in result.items():
-            # Ignore key (skip interation) if it's in denylist
+            # Ignore key (skip interaction) if it's in denylist
             if denylist is not None and key in denylist:
                 continue
 
@@ -558,7 +558,7 @@ class SnubaTagStorage(TagStorage):
 
         for keyobj in keys_with_counts:
             key = keyobj.key
-            values = values_by_key.get(key, [])
+            values = values_by_key.get(key, dict())
             keyobj.top_values = [
                 value_ctor(
                     key=keyobj.key,
@@ -920,12 +920,18 @@ class SnubaTagStorage(TagStorage):
     ):
         from sentry.api.paginator import SequencePaginator
 
-        if not order_by == "-last_seen":
+        if not (order_by == "-last_seen" or order_by == "-count"):
             raise ValueError("Unsupported order_by: %s" % order_by)
+
+        # We need to replace `-count` into `-times_seen`, because
+        # internally we can not order by `count` we can only by `times_seen`.
+        if order_by == "-count":
+            order_by = "-times_seen"
 
         dataset = Dataset.Events
         if include_transactions:
             dataset = Dataset.Discover
+
         snuba_key = snuba.get_snuba_column_name(key, dataset=dataset)
 
         # We cannot search the values of these columns like we do other columns because they are
@@ -1033,7 +1039,7 @@ class SnubaTagStorage(TagStorage):
             is_user_alias = include_transactions and key == USER_DISPLAY_ALIAS
             if is_user_alias:
                 # user.alias is a pseudo column in discover. It is computed by coalescing
-                # together multiple user attributes. Here we get the coalese function used,
+                # together multiple user attributes. Here we get the coalesce function used,
                 # and resolve it to the corresponding snuba query
                 resolver = snuba.resolve_column(dataset)
                 snuba_name = FIELD_ALIASES[USER_DISPLAY_ALIAS].get_field()
@@ -1107,8 +1113,15 @@ class SnubaTagStorage(TagStorage):
 
         desc = order_by.startswith("-")
         score_field = order_by.lstrip("-")
+
+        def score_field_to_int(tv: TagValue) -> int:
+            if score_field == "times_seen":
+                # times_seen already an int
+                return int(getattr(tv, score_field))
+            return int(to_timestamp(getattr(tv, score_field)) * 1000)
+
         return SequencePaginator(
-            [(int(to_timestamp(getattr(tv, score_field)) * 1000), tv) for tv in tag_values],
+            [(score_field_to_int(tv), tv) for tv in tag_values],
             reverse=desc,
         )
 

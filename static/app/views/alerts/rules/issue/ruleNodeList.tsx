@@ -5,7 +5,7 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import SelectControl from 'sentry/components/forms/selectControl';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {IssueOwnership, Organization, Project} from 'sentry/types';
 import {
   IssueAlertRuleAction,
   IssueAlertRuleActionTemplate,
@@ -19,6 +19,8 @@ import {
   COMPARISON_TYPE_CHOICES,
 } from 'sentry/views/alerts/utils/constants';
 import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'sentry/views/projectInstall/issueAlertOptions';
+
+import {AlertRuleComparisonType} from '../metric/types';
 
 import RuleNode from './ruleNode';
 
@@ -43,6 +45,7 @@ type Props = {
    */
   placeholder: string;
   project: Project;
+  ownership?: null | IssueOwnership;
   selectType?: 'grouped';
 };
 
@@ -106,7 +109,7 @@ class RuleNodeList extends Component<Props> {
         ),
       };
 
-      if (item.comparisonType === 'percent') {
+      if (item.comparisonType === AlertRuleComparisonType.PERCENT) {
         if (!item.comparisonInterval) {
           // comparisonInterval value in IssueRuleEditor state
           // is undefined even if initial value is defined
@@ -144,13 +147,13 @@ class RuleNodeList extends Component<Props> {
       placeholder,
       items,
       organization,
+      ownership,
       project,
       disabled,
       error,
       selectType,
     } = this.props;
 
-    const shouldUsePrompt = project.features?.includes?.('issue-alerts-targeting');
     const enabledNodes = nodes ? nodes.filter(({enabled}) => enabled) : [];
 
     const createSelectOptions = (actions: IssueAlertRuleActionTemplate[]) =>
@@ -160,7 +163,9 @@ class RuleNodeList extends Component<Props> {
         if (node.id.includes('NotifyEmailAction')) {
           return {
             value: node.id,
-            label: t('Issue Owners, Team, or Member'),
+            label: organization.features?.includes('alert-release-notification-workflow')
+              ? t('Issue Owners, Team, Member, or Release Members')
+              : t('Issue Owners, Team, or Member'),
           };
         }
 
@@ -169,7 +174,7 @@ class RuleNodeList extends Component<Props> {
           label: (
             <Fragment>
               {isNew && <StyledFeatureBadge type="new" noTooltip />}
-              {shouldUsePrompt && node.prompt?.length > 0 ? node.prompt : node.label}
+              {node.prompt?.length ? node.prompt : node.label}
             </Fragment>
           ),
         };
@@ -238,6 +243,7 @@ class RuleNodeList extends Component<Props> {
               organization={organization}
               project={project}
               disabled={disabled}
+              ownership={ownership}
             />
           ))}
         </RuleNodes>

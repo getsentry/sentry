@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
   openInviteMembersModal,
@@ -16,7 +16,6 @@ describe('TeamMembers', function () {
   let createMock;
 
   const organization = TestStubs.Organization();
-  const routerContext = TestStubs.routerContext([{organization}]);
   const team = TestStubs.Team();
   const members = TestStubs.Members();
   const member = TestStubs.Member({
@@ -44,153 +43,98 @@ describe('TeamMembers', function () {
     });
   });
 
-  it('renders', async function () {
-    const wrapper = mountWithTheme(
-      <TeamMembers
-        params={{orgId: organization.slug, teamId: team.slug}}
-        organization={organization}
-      />,
-      routerContext
-    );
-    await tick();
-    wrapper.update();
-  });
-
   it('can add member to team with open membership', async function () {
     const org = TestStubs.Organization({access: [], openMembership: true});
-    const wrapper = mountWithTheme(
-      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
-      routerContext
+    render(
+      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />
     );
 
-    await tick();
-    wrapper.update();
-
-    wrapper.find('DropdownButton[data-test-id="add-member"]').simulate('click');
-    wrapper.find('StyledUserListElement').first().simulate('click');
-
-    await tick();
-    wrapper.update();
+    userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
+    userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
 
     expect(createMock).toHaveBeenCalled();
   });
 
   it('can add member to team with team:admin permission', async function () {
     const org = TestStubs.Organization({access: ['team:admin'], openMembership: false});
-    const wrapper = mountWithTheme(
-      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
-      routerContext
+    render(
+      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />
     );
 
-    await tick();
-    wrapper.update();
-
-    wrapper.find('DropdownButton[data-test-id="add-member"]').simulate('click');
-    wrapper.find('StyledUserListElement').first().simulate('click');
+    userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
+    userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
 
     expect(createMock).toHaveBeenCalled();
   });
 
   it('can add member to team with org:write permission', async function () {
     const org = TestStubs.Organization({access: ['org:write'], openMembership: false});
-    const wrapper = mountWithTheme(
-      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
-      routerContext
+    render(
+      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />
     );
 
-    await tick();
-    wrapper.update();
-
-    wrapper.find('DropdownButton[data-test-id="add-member"]').simulate('click');
-    wrapper.find('StyledUserListElement').first().simulate('click');
+    userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
+    userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
 
     expect(createMock).toHaveBeenCalled();
   });
 
   it('can request access to add member to team without permission', async function () {
     const org = TestStubs.Organization({access: [], openMembership: false});
-    const wrapper = mountWithTheme(
-      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
-      routerContext
+    render(
+      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />
     );
 
-    await tick();
-    wrapper.update();
-
-    wrapper.find('DropdownButton[data-test-id="add-member"]').simulate('click');
-    wrapper.find('StyledUserListElement').first().simulate('click');
+    userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
+    userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
 
     expect(openTeamAccessRequestModal).toHaveBeenCalled();
   });
 
   it('can invite member from team dropdown with access', async function () {
     const org = TestStubs.Organization({access: ['team:admin'], openMembership: false});
-    const wrapper = mountWithTheme(
-      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
-      routerContext
+    render(
+      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />
     );
 
-    await tick();
-    wrapper.update();
-
-    wrapper.find('DropdownButton[data-test-id="add-member"]').simulate('click');
-    wrapper
-      .find('StyledCreateMemberLink[data-test-id="invite-member"]')
-      .simulate('click');
+    userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
+    userEvent.click(screen.getByTestId('invite-member'));
 
     expect(openInviteMembersModal).toHaveBeenCalled();
   });
 
   it('can invite member from team dropdown with access and `Open Membership` enabled', async function () {
     const org = TestStubs.Organization({access: ['team:admin'], openMembership: true});
-    const wrapper = mountWithTheme(
-      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
-      routerContext
+    render(
+      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />
     );
 
-    await tick();
-    wrapper.update();
-
-    wrapper.find('DropdownButton[data-test-id="add-member"]').simulate('click');
-    wrapper
-      .find('StyledCreateMemberLink[data-test-id="invite-member"]')
-      .simulate('click');
+    userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
+    userEvent.click(screen.getByTestId('invite-member'));
 
     expect(openInviteMembersModal).toHaveBeenCalled();
   });
 
   it('can invite member from team dropdown without access and `Open Membership` enabled', async function () {
     const org = TestStubs.Organization({access: [], openMembership: true});
-    const wrapper = mountWithTheme(
-      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
-      routerContext
+    render(
+      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />
     );
 
-    await tick();
-    wrapper.update();
-
-    wrapper.find('DropdownButton[data-test-id="add-member"]').simulate('click');
-    wrapper
-      .find('StyledCreateMemberLink[data-test-id="invite-member"]')
-      .simulate('click');
+    userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
+    userEvent.click(screen.getByTestId('invite-member'));
 
     expect(openInviteMembersModal).toHaveBeenCalled();
   });
 
   it('can invite member from team dropdown without access and `Open Membership` disabled', async function () {
     const org = TestStubs.Organization({access: [], openMembership: false});
-    const wrapper = mountWithTheme(
-      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
-      routerContext
+    render(
+      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />
     );
 
-    await tick();
-    wrapper.update();
-
-    wrapper.find('DropdownButton[data-test-id="add-member"]').simulate('click');
-    wrapper
-      .find('StyledCreateMemberLink[data-test-id="invite-member"]')
-      .simulate('click');
+    userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
+    userEvent.click(screen.getByTestId('invite-member'));
 
     expect(openInviteMembersModal).toHaveBeenCalled();
   });
@@ -200,20 +144,17 @@ describe('TeamMembers', function () {
       url: `/organizations/${organization.slug}/members/${members[0].id}/teams/${team.slug}/`,
       method: 'DELETE',
     });
-    const wrapper = mountWithTheme(
+    render(
       <TeamMembers
         params={{orgId: organization.slug, teamId: team.slug}}
         organization={organization}
-      />,
-      routerContext
+      />
     );
 
-    await tick();
-    wrapper.update();
+    await screen.findAllByRole('button', {name: 'Add Member'});
 
     expect(deleteMock).not.toHaveBeenCalled();
-
-    wrapper.find('Button').at(1).simulate('click');
+    userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
 
     expect(deleteMock).toHaveBeenCalled();
   });
@@ -233,29 +174,77 @@ describe('TeamMembers', function () {
       url: `/organizations/${organization.slug}/members/${me.id}/teams/${team.slug}/`,
       method: 'DELETE',
     });
-    const organizationMember = TestStubs.Organization({
-      access: [],
-    });
+    const organizationMember = TestStubs.Organization({access: []});
 
-    const wrapper = mountWithTheme(
+    render(
       <TeamMembers
         params={{orgId: organization.slug, teamId: team.slug}}
         organization={organizationMember}
-      />,
-      routerContext
+      />
     );
 
-    await tick();
-    wrapper.update();
+    await screen.findAllByRole('button', {name: 'Add Member'});
 
     expect(deleteMock).not.toHaveBeenCalled();
 
-    expect(wrapper.find('IdBadge')).toHaveLength(members.length + 1);
+    expect(screen.getAllByTestId('letter_avatar-avatar')).toHaveLength(
+      members.length + 1
+    );
 
     // Can only remove self
-    expect(wrapper.find('button[aria-label="Remove"]')).toHaveLength(1);
-
-    wrapper.find('button[aria-label="Remove"]').simulate('click');
+    expect(screen.getByRole('button', {name: 'Remove'})).toBeInTheDocument();
+    userEvent.click(screen.getByRole('button', {name: 'Remove'}));
     expect(deleteMock).toHaveBeenCalled();
+  });
+
+  it('does not renders team-level roles', async function () {
+    const me = TestStubs.Member({
+      id: '123',
+      email: 'foo@example.com',
+      role: 'owner',
+    });
+    Client.addMockResponse({
+      url: `/teams/${organization.slug}/${team.slug}/members/`,
+      method: 'GET',
+      body: [...members, me],
+    });
+
+    await render(
+      <TeamMembers
+        params={{orgId: organization.slug, teamId: team.slug}}
+        organization={organization}
+      />
+    );
+
+    const admins = screen.queryByText('Team Admin');
+    expect(admins).not.toBeInTheDocument();
+    const contributors = screen.queryByText('Team Contributor');
+    expect(contributors).not.toBeInTheDocument();
+  });
+
+  it('renders team-level roles with flag', async function () {
+    const manager = TestStubs.Member({
+      id: '123',
+      email: 'foo@example.com',
+      orgRole: 'manager',
+    });
+    Client.addMockResponse({
+      url: `/teams/${organization.slug}/${team.slug}/members/`,
+      method: 'GET',
+      body: [...members, manager],
+    });
+
+    const orgWithTeamRoles = TestStubs.Organization({features: ['team-roles']});
+
+    await render(
+      <TeamMembers
+        params={{orgId: orgWithTeamRoles.slug, teamId: team.slug}}
+        organization={orgWithTeamRoles}
+      />
+    );
+    const admins = screen.queryAllByText('Team Admin');
+    expect(admins).toHaveLength(3);
+    const contributors = screen.queryAllByText('Contributor');
+    expect(contributors).toHaveLength(2);
   });
 });

@@ -44,7 +44,7 @@ function InnerGlobalSdkUpdateAlert(
   const handleReviewUpdatesClick = useCallback(() => {
     SidebarPanelStore.activatePanel(SidebarPanelKey.Broadcasts);
     trackAdvancedAnalyticsEvent('sdk_updates.clicked', {organization});
-  }, []);
+  }, [organization]);
 
   useEffect(() => {
     trackAdvancedAnalyticsEvent('sdk_updates.seen', {organization});
@@ -65,7 +65,7 @@ function InnerGlobalSdkUpdateAlert(
     return () => {
       isUnmounted = true;
     };
-  }, []);
+  }, [api, organization]);
 
   if (!showUpdateAlert || !props.sdkUpdates?.length) {
     return null;

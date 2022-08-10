@@ -25,7 +25,6 @@ from sentry.notifications.utils import (
 from sentry.notifications.utils.actions import MessageAction
 from sentry.notifications.utils.participants import get_participants_for_release
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.compat import zip
 from sentry.utils.http import absolute_uri
 
 from .base import ActivityNotification
@@ -123,7 +122,7 @@ class ReleaseActivityNotification(ActivityNotification):
         resolved_issue_counts = [self.group_counts_by_project.get(p.id, 0) for p in projects]
         return {
             **super().get_recipient_context(recipient, extra_context),
-            "projects": zip(projects, release_links, resolved_issue_counts),
+            "projects": list(zip(projects, release_links, resolved_issue_counts)),
             "project_count": len(projects),
         }
 
@@ -134,7 +133,9 @@ class ReleaseActivityNotification(ActivityNotification):
     def title(self) -> str:
         return self.get_subject()
 
-    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
+    def get_notification_title(
+        self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
+    ) -> str:
         projects_text = ""
         if len(self.projects) == 1:
             projects_text = " for this project"
@@ -142,7 +143,9 @@ class ReleaseActivityNotification(ActivityNotification):
             projects_text = " for these projects"
         return f"Release {self.version_parsed} was deployed to {self.environment}{projects_text}"
 
-    def get_message_actions(self, recipient: Team | User) -> Sequence[MessageAction]:
+    def get_message_actions(
+        self, recipient: Team | User, provider: ExternalProviders
+    ) -> Sequence[MessageAction]:
         if self.release:
             release = get_release(self.activity, self.project.organization)
             if release:
@@ -160,17 +163,22 @@ class ReleaseActivityNotification(ActivityNotification):
     def build_attachment_title(self, recipient: Team | User) -> str:
         return ""
 
-    def get_title_link(self, recipient: Team | User) -> str | None:
+    def get_title_link(self, recipient: Team | User, provider: ExternalProviders) -> str | None:
         return None
 
-    def build_notification_footer(self, recipient: Team | User) -> str:
-        # notification footer only used for Slack for now
-        settings_url = self.get_settings_url(recipient, ExternalProviders.SLACK)
+    def build_notification_footer(self, recipient: Team | User, provider: ExternalProviders) -> str:
+        settings_url = self.get_settings_url(recipient, provider)
 
         # no environment related to a deploy
+        footer = ""
         if self.release:
-            return f"{self.release.projects.all()[0].slug} | <{settings_url}|Notification Settings>"
-        return f"<{settings_url}|Notification Settings>"
+            footer += f"{self.release.projects.all()[0].slug} | "
+
+        footer += (
+            f"{self.format_url(text='Notification Settings', url=settings_url, provider=provider)}"
+        )
+
+        return footer
 
     def send(self) -> None:
         # Don't create a message when the Activity doesn't have a release and deploy.

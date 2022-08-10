@@ -4,7 +4,7 @@ export enum Outcome {
   ACCEPTED = 'accepted',
   FILTERED = 'filtered',
   INVALID = 'invalid',
-  DROPPED = 'dropped',
+  DROPPED = 'dropped', // this is not a real outcome coming from the server
   RATE_LIMITED = 'rate_limited',
   CLIENT_DISCARD = 'client_discard',
 }
@@ -12,10 +12,12 @@ export enum Outcome {
 /**
  * Raw response from API endpoint
  */
-export type UsageSeries = SeriesApi & {
+export interface UsageSeries extends SeriesApi {
+  // index signature is present because we often send this
+  // data to sentry as part of the event context.
   end: string;
   start: string;
-};
+}
 
 export type UsageStat = {
   accepted: number;

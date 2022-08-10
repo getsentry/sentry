@@ -41,7 +41,7 @@ TRANSACTION_METRICS_NAMES = {
     "d:transactions/measurements.lcp@millisecond": PREFIX + 103,
     "d:transactions/measurements.app_start_cold@millisecond": PREFIX + 104,
     "d:transactions/measurements.app_start_warm@millisecond": PREFIX + 105,
-    "d:transactions/measurements.cls@millisecond": PREFIX + 106,
+    "d:transactions/measurements.cls@none": PREFIX + 106,
     "d:transactions/measurements.fid@millisecond": PREFIX + 107,
     "d:transactions/measurements.fp@millisecond": PREFIX + 108,
     "d:transactions/measurements.frames_frozen@none": PREFIX + 109,
@@ -51,14 +51,15 @@ TRANSACTION_METRICS_NAMES = {
     "d:transactions/measurements.frames_total@none": PREFIX + 113,
     "d:transactions/measurements.stall_count@none": PREFIX + 114,
     "d:transactions/measurements.stall_longest_time@millisecond": PREFIX + 115,
-    "d:transactions/measurements.stall_percentage@percent": PREFIX + 116,
+    "d:transactions/measurements.stall_percentage@ratio": PREFIX + 116,
     "d:transactions/measurements.stall_total_time@millisecond": PREFIX + 117,
     "d:transactions/measurements.ttfb@millisecond": PREFIX + 118,
     "d:transactions/measurements.ttfb.requesttime@millisecond": PREFIX + 119,
-    "d:transactions/breakdowns.span_ops.http@millisecond": PREFIX + 120,
-    "d:transactions/breakdowns.span_ops.db@millisecond": PREFIX + 121,
-    "d:transactions/breakdowns.span_ops.browser@millisecond": PREFIX + 122,
-    "d:transactions/breakdowns.span_ops.resource@millisecond": PREFIX + 123,
+    "d:transactions/breakdowns.span_ops.ops.http@millisecond": PREFIX + 120,
+    "d:transactions/breakdowns.span_ops.ops.db@millisecond": PREFIX + 121,
+    "d:transactions/breakdowns.span_ops.ops.browser@millisecond": PREFIX + 122,
+    "d:transactions/breakdowns.span_ops.ops.resource@millisecond": PREFIX + 123,
+    "d:transactions/breakdowns.span_ops.ops.ui@millisecond": PREFIX + 124,
 }
 
 # 200 - 299
@@ -98,8 +99,16 @@ SHARED_TAG_STRINGS = {
     "inlier": PREFIX + 229,
     # added after the initial definition
     "sdk": PREFIX + 230,  # release health
+    "<< unparameterized >>": PREFIX + 231,  # placeholder for high-cardinality transaction names
+    "measurement_rating": PREFIX + 232,
+    "good": PREFIX + 233,
+    "bad": PREFIX + 234,
+    "meh": PREFIX + 235,
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }
 SHARED_STRINGS = {**SESSION_METRIC_NAMES, **TRANSACTION_METRICS_NAMES, **SHARED_TAG_STRINGS}
 REVERSE_SHARED_STRINGS = {v: k for k, v in SHARED_STRINGS.items()}
+
+# Make sure there are no accidental duplicates
+assert len(SHARED_STRINGS) == len(REVERSE_SHARED_STRINGS)

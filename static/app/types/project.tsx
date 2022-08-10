@@ -5,7 +5,7 @@ import type {SDKUpdatesSuggestion} from './event';
 import type {Plugin} from './integrations';
 import type {Organization, Team} from './organization';
 import type {Deploy, Release} from './release';
-import type {SamplingRules} from './sampling';
+import type {SamplingRule} from './sampling';
 
 // Minimal project representation for use with avatars.
 export type AvatarProject = {
@@ -21,7 +21,7 @@ export type Project = {
   // XXX: These are part of the DetailedProject serializer
   dynamicSampling: {
     next_id: number;
-    rules: SamplingRules;
+    rules: SamplingRule[];
   } | null;
   environments: string[];
   eventProcessing: {
@@ -31,6 +31,7 @@ export type Project = {
   features: string[];
   firstEvent: 'string' | null;
   firstTransactionEvent: boolean;
+  groupingAutoUpdate: boolean;
   groupingConfig: string;
   hasAccess: boolean;
   hasSessions: boolean;
@@ -49,6 +50,7 @@ export type Project = {
   hasUserReports?: boolean;
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   latestRelease?: Release;
+  name?: string;
   options?: Record<string, boolean | string>;
   sessionStats?: {
     currentCrashFreeRate: number | null;
@@ -107,7 +109,9 @@ export type Environment = {
   // urlRoutingName: string;
 };
 
-export type TeamWithProjects = Team & {projects: Project[]};
+export interface TeamWithProjects extends Team {
+  projects: Project[];
+}
 
 export type PlatformIntegration = {
   id: PlatformKey;

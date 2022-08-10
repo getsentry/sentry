@@ -1,3 +1,5 @@
+from selenium.webdriver.common.by import By
+
 from sentry.testutils import AcceptanceTestCase
 
 
@@ -85,7 +87,7 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
 
         self.browser.wait_until(".ref-success")
 
-        link = self.browser.find_element_by_link_text("Tesla App")
+        link = self.browser.find_element(by=By.LINK_TEXT, value="Tesla App")
         link.click()
 
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
@@ -102,8 +104,8 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
         self.browser.click('[data-test-id="token-delete"]')
         self.browser.wait_until(".ref-success")
 
-        assert self.browser.find_element_by_xpath(
-            "//div[contains(text(), 'No tokens created yet.')]"
+        assert self.browser.find_element(
+            by=By.XPATH, value="//div[contains(text(), 'No tokens created yet.')]"
         )
 
     def test_add_tokens_internal_app(self):

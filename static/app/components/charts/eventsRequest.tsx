@@ -128,6 +128,10 @@ type EventsRequestPartialProps = {
    */
   currentSeriesNames?: string[];
   /**
+   * Optional callback to further process raw events request response data
+   */
+  dataLoadedCallback?: (any: EventsStats | MultiSeriesEventsStats | null) => void;
+  /**
    * List of environments to query
    */
   environment?: Readonly<string[]>;
@@ -140,7 +144,7 @@ type EventsRequestPartialProps = {
    */
   field?: string[];
   /**
-   * Allows overridding the pathname.
+   * Allows overriding the pathname.
    */
   generatePathname?: (org: OrganizationSummary) => string;
   /**
@@ -326,6 +330,9 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
       timeseriesData,
       fetchedWithPrevious: props.includePrevious,
     });
+    if (props.dataLoadedCallback) {
+      props.dataLoadedCallback(timeseriesData);
+    }
   };
 
   /**
@@ -479,7 +486,8 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
               end: response.end * 1000,
             }
         : undefined;
-    return {
+
+    const processedData = {
       data: transformedData,
       comparisonData: transformedComparisonData,
       allData: data,
@@ -491,6 +499,8 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
       timeAggregatedData,
       timeframe,
     };
+
+    return processedData;
   }
 
   render() {

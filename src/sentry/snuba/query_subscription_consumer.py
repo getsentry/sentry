@@ -12,9 +12,9 @@ from dateutil.parser import parse as parse_date
 from django.conf import settings
 
 from sentry import options
-from sentry.snuba.dataset import EntityKey
+from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.json_schemas import SUBSCRIPTION_PAYLOAD_VERSIONS, SUBSCRIPTION_WRAPPER_SCHEMA
-from sentry.snuba.models import QueryDatasets, QuerySubscription
+from sentry.snuba.models import QuerySubscription
 from sentry.snuba.tasks import _delete_from_snuba
 from sentry.utils import json, kafka_config, metrics
 from sentry.utils.batching_kafka_consumer import create_topics
@@ -53,11 +53,13 @@ class QuerySubscriptionConsumer:
     These values are passed along to a callback associated with the subscription.
     """
 
-    topic_to_dataset: Dict[str, QueryDatasets] = {
-        settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: QueryDatasets.EVENTS,
-        settings.KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: QueryDatasets.TRANSACTIONS,
-        settings.KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS: QueryDatasets.SESSIONS,
-        settings.KAFKA_METRICS_SUBSCRIPTIONS_RESULTS: QueryDatasets.METRICS,
+    topic_to_dataset: Dict[str, Dataset] = {
+        settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: Dataset.Events,
+        settings.KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: Dataset.Transactions,
+        settings.KAFKA_GENERIC_METRICS_DISTRIBUTIONS_SUBSCRIPTIONS_RESULTS: Dataset.PerformanceMetrics,
+        settings.KAFKA_GENERIC_METRICS_SETS_SUBSCRIPTIONS_RESULTS: Dataset.PerformanceMetrics,
+        settings.KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS: Dataset.Sessions,
+        settings.KAFKA_METRICS_SUBSCRIPTIONS_RESULTS: Dataset.Metrics,
     }
 
     def __init__(
@@ -278,7 +280,7 @@ class QuerySubscriptionConsumer:
                         return
             except QuerySubscription.DoesNotExist:
                 metrics.incr("snuba_query_subscriber.subscription_doesnt_exist")
-                logger.error(
+                logger.warning(
                     "Received subscription update, but subscription does not exist",
                     extra={
                         "offset": message.offset(),
@@ -300,11 +302,19 @@ class QuerySubscriptionConsumer:
                                 "Unable to fetch entity from query in message"
                             )
                         entity_key = entity_match.group(2)
-                    _delete_from_snuba(
-                        self.topic_to_dataset[message.topic()],
-                        contents["subscription_id"],
-                        EntityKey(entity_key),
-                    )
+                    topic = message.topic()
+                    if topic in self.topic_to_dataset:
+                        _delete_from_snuba(
+                            self.topic_to_dataset[topic],
+                            contents["subscription_id"],
+                            EntityKey(entity_key),
+                        )
+                    else:
+                        logger.error(
+                            "Topic not registered with QuerySubscriptionConsumer, can't remove "
+                            "non-existent subscription from Snuba",
+                            extra={"topic": topic, "subscription_id": contents["subscription_id"]},
+                        )
                 except InvalidMessageError as e:
                     logger.exception(e)
                 except Exception:

@@ -5,7 +5,7 @@ import {act} from 'sentry-test/reactTestingLibrary';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization} from 'sentry/types';
-import {WebVital} from 'sentry/utils/discover/fields';
+import {WebVital} from 'sentry/utils/fields';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import TransactionEvents from 'sentry/views/performance/transactionSummary/transactionEvents';
 
@@ -61,7 +61,7 @@ describe('Performance > TransactionSummary', function () {
   beforeEach(function () {
     // @ts-ignore no-console
     // eslint-disable-next-line no-console
-    console.error = jest.fn();
+    jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -145,6 +145,17 @@ describe('Performance > TransactionSummary', function () {
       match: [
         (_url, options) => {
           return options.query?.field?.includes('user.display');
+        },
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [{'count()': 5161}],
+      },
+      match: [
+        (_url, options) => {
+          return options.query?.field?.includes('count()');
         },
       ],
     });

@@ -15,7 +15,6 @@ import EventView, {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import withOrganization from 'sentry/utils/withOrganization';
-import {ContextualProps} from 'sentry/views/dashboardsV2/datasetConfig/base';
 import TopResultsIndicator from 'sentry/views/eventsV2/table/topResultsIndicator';
 import {decodeColumnOrder} from 'sentry/views/eventsV2/utils';
 
@@ -33,7 +32,7 @@ type Props = {
   getCustomFieldRenderer?: (
     field: string,
     meta: MetaType,
-    contextualProps?: ContextualProps
+    organization?: Organization
   ) => ReturnType<typeof getFieldRenderer> | null;
   loader?: PanelTableProps['loader'];
   metadata?: TableData['meta'];
@@ -66,15 +65,16 @@ function SimpleTableChart({
   ) {
     return columns.map((column, columnIndex) => {
       const fieldRenderer =
-        getCustomFieldRenderer?.(column.key, tableMeta, {organization}) ??
+        getCustomFieldRenderer?.(column.key, tableMeta, organization) ??
         getFieldRenderer(column.key, tableMeta);
 
+      const unit = tableMeta.units?.[column.key];
       return (
         <TableCell key={`${index}-${columnIndex}:${column.name}`}>
           {topResultsIndicators && columnIndex === 0 && (
             <TopResultsIndicator count={topResultsIndicators} index={index} />
           )}
-          {fieldRenderer(row, {organization, location, eventView})}
+          {fieldRenderer(row, {organization, location, eventView, unit})}
         </TableCell>
       );
     });

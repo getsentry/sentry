@@ -2,6 +2,7 @@ import responses
 
 from fixtures.vercel import SECRET
 from sentry.constants import ObjectStatus
+from sentry.integrations.vercel import VercelClient
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import override_options
@@ -233,9 +234,10 @@ class VercelUninstallWithConfigurationsTest(APITestCase):
         """
         self.login_as(self.user)
         with self.tasks():
+            config_id = "my_config_id"
             responses.add(
                 responses.DELETE,
-                "https://api.vercel.com/v1/integrations/configuration/my_config_id",
+                f"{VercelClient.base_url}{VercelClient.UNINSTALL % config_id}",
                 json={},
             )
             path = (
@@ -277,9 +279,10 @@ class VercelUninstallWithConfigurationsTest(APITestCase):
         }
 
         with self.tasks():
+            config_id = "my_config_id2"
             responses.add(
                 responses.DELETE,
-                "https://api.vercel.com/v1/integrations/configuration/my_config_id2",
+                f"{VercelClient.base_url}{VercelClient.UNINSTALL % config_id}",
                 json={},
             )
             path = (

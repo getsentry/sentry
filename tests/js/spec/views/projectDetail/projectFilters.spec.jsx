@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import ProjectFilters from 'sentry/views/projectDetail/projectFilters';
@@ -13,46 +13,34 @@ describe('ProjectDetail > ProjectFilters', () => {
 
   it('recommends semver search tag', async () => {
     const organization = TestStubs.Organization();
-    tagValueLoader.mockImplementationOnce(() =>
-      Promise.resolve([
-        {
-          count: null,
-          firstSeen: null,
-          key: 'release.version',
-          lastSeen: null,
-          name: 'sentry@0.5.3',
-          value: 'sentry@0.5.3',
-        },
-      ])
-    );
-    const wrapper = mountWithTheme(
+    tagValueLoader.mockResolvedValue([
+      {
+        count: null,
+        firstSeen: null,
+        key: 'release.version',
+        lastSeen: null,
+        name: 'sentry@0.5.3',
+        value: 'sentry@0.5.3',
+      },
+    ]);
+    render(
       <OrganizationContext.Provider value={organization}>
         <ProjectFilters query="" onSearch={onSearch} tagValueLoader={tagValueLoader} />
       </OrganizationContext.Provider>,
-      TestStubs.routerContext()
-    );
-    wrapper.find('SmartSearchBar textarea').simulate('click');
-    wrapper
-      .find('SmartSearchBar textarea')
-      .simulate('change', {target: {value: 'sentry.semv'}});
-
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('[data-test-id="search-autocomplete-item"]').at(0).text()).toBe(
-      'release:'
+      {context: TestStubs.routerContext()}
     );
 
-    wrapper.find('SmartSearchBar textarea').simulate('focus');
-    wrapper
-      .find('SmartSearchBar textarea')
-      .simulate('change', {target: {value: 'release.version:'}});
+    userEvent.click(screen.getByRole('textbox'));
 
-    await tick();
-    wrapper.update();
+    // Should suggest all semver tags
+    await screen.findByText('release');
+    expect(screen.getByText('.build')).toBeInTheDocument();
+    expect(screen.getByText('.package')).toBeInTheDocument();
+    expect(screen.getByText('.stage')).toBeInTheDocument();
+    expect(screen.getByText('.version')).toBeInTheDocument();
 
-    expect(wrapper.find('[data-test-id="search-autocomplete-item"]').at(4).text()).toBe(
-      'sentry@0.5.3'
-    );
+    userEvent.type(screen.getByRole('textbox'), 'release.version:');
+
+    await screen.findByText('sentry@0.5.3');
   });
 });

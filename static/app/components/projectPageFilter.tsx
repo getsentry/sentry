@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
@@ -25,6 +26,7 @@ import useProjects from 'sentry/utils/useProjects';
 type ProjectSelectorProps = React.ComponentProps<typeof ProjectSelector>;
 
 type Props = WithRouterProps & {
+  disabled?: ProjectSelectorProps['disabled'];
   /**
    * Message to display at the bottom of project list
    */
@@ -82,6 +84,7 @@ function ProjectPageFilter({
   specificProjectSlugs,
   maxTitleLength = 30,
   resetParamsOnChange = [],
+  disabled,
   ...otherProps
 }: Props) {
   const [currentSelectedProjects, setCurrentSelectedProjects] = useState<number[] | null>(
@@ -165,11 +168,10 @@ function ProjectPageFilter({
         onStepComplete={actions.open}
       >
         <PageFilterDropdownButton
-          detached
-          hideBottomBorder={false}
           isOpen={isOpen}
           highlighted={desyncedFilters.has('projects')}
           data-test-id="page-filter-project-selector"
+          disabled={disabled}
         >
           <DropdownTitle>
             <PageFilterPinIndicator filter="projects">{icon}</PageFilterPinIndicator>
@@ -207,6 +209,7 @@ function ProjectPageFilter({
       onApplyChange={handleApplyChange}
       customDropdownButton={customProjectDropdown}
       customLoadingIndicator={customLoadingIndicator}
+      disabled={disabled}
       detached
       showPin
       {...otherProps}

@@ -13,6 +13,7 @@ export type AvatarUser = {
   username: string;
   avatar?: Avatar;
   avatarUrl?: string;
+  ip?: string;
   // Compatibility shim with EventUser serializer
   ipAddress?: string;
   lastSeen?: string;
@@ -76,20 +77,20 @@ export type UserEmail = {
  * API tokens and Api Applications.
  */
 // See src/sentry/api/serializers/models/apitoken.py for the differences based on application
-type BaseApiToken = {
+interface BaseApiToken {
   dateCreated: string;
   expiresAt: string;
   id: string;
   scopes: Scope[];
   state: string;
-};
+}
 
 // We include the token for API tokens used for internal apps
-export type InternalAppApiToken = BaseApiToken & {
+export interface InternalAppApiToken extends BaseApiToken {
   application: null;
   refreshToken: string;
   token: string;
-};
+}
 
 export type ApiApplication = {
   allowedOrigins: string[];

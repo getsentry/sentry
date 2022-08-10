@@ -210,6 +210,7 @@ class MsTeamsWebhookTest(APITestCase):
         assert resp.status_code == 204
         assert len(responses.calls) == 2
 
+    @responses.activate
     @mock.patch("sentry.utils.jwt.decode")
     @mock.patch("time.time")
     def test_member_removed(self, mock_time, mock_decode):
@@ -226,6 +227,7 @@ class MsTeamsWebhookTest(APITestCase):
         assert resp.status_code == 204
         assert not Integration.objects.filter(id=integration.id)
 
+    @responses.activate
     @mock.patch("sentry.utils.jwt.decode")
     @mock.patch("time.time")
     def test_different_member_removed(self, mock_time, mock_decode):
@@ -269,7 +271,7 @@ class MsTeamsWebhookTest(APITestCase):
             HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
         )
 
-        assert resp.status_code == 204
+        assert resp.status_code == 201
         assert "Personal Installation of Sentry" in responses.calls[3].request.body.decode("utf-8")
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
 

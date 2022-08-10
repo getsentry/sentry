@@ -24,7 +24,7 @@ import {Organization, UserReport} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
-import UserFeedbackEmpty from './userFeedbackEmpty';
+import {UserFeedbackEmpty} from './userFeedbackEmpty';
 import {getQuery} from './utils';
 
 type State = AsyncView['state'] & {
@@ -121,7 +121,7 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
     const allIssuesQuery = {...query, status: ''};
 
     return (
-      <PageFiltersContainer hideGlobalHeader>
+      <PageFiltersContainer>
         <PageContent>
           <NoProjectMessage organization={organization}>
             <div data-test-id="user-feedback">

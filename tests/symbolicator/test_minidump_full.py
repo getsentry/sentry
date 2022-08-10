@@ -28,7 +28,8 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
         new_prefix = live_server.url
 
         with patch("sentry.auth.system.is_internal_ip", return_value=True), self.options(
-            {"system.internal-url-prefix": new_prefix}
+            # Do not change to internal-url-prefix, otherwise tests break on docker for mac
+            {"system.url-prefix": new_prefix}
         ):
 
             # Run test case:
@@ -66,7 +67,6 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
         "organizations:event-attachments": True,
         "organizations:symbol-sources": False,
         "organizations:custom-symbol-sources": False,
-        "organizations:images-loaded-v2": False,
     }
 
     def test_full_minidump(self):

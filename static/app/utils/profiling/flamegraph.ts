@@ -1,15 +1,19 @@
 import {lastOfArray} from 'sentry/utils';
+import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
 import {Rect} from './gl/utils';
 import {Profile} from './profile/profile';
 import {makeFormatter, makeTimelineFormatter} from './units/units';
 import {CallTreeNode} from './callTreeNode';
-import {FlamegraphFrame} from './flamegraphFrame';
+import {Frame} from './frame';
 
+// Intermediary flamegraph data structure for rendering a profile. Constructs a list of frames from a profile
+// and appends them to a virtual root. Taken mostly from speedscope with a few modifications. This should get
+// removed as we port to our own format for profiles. The general idea is to iterate over profiles while
+// keeping an intermediary stack so as to resemble the execution of the program.
 export class Flamegraph {
   profile: Profile;
   frames: FlamegraphFrame[] = [];
-  roots: FlamegraphFrame[] = [];
 
   profileIndex: number;
 
@@ -18,11 +22,19 @@ export class Flamegraph {
 
   depth = 0;
   configSpace: Rect = new Rect(0, 0, 0, 0);
+  root: FlamegraphFrame = {
+    key: -1,
+    parent: null,
+    frame: new Frame({...Frame.Root}),
+    node: new CallTreeNode(new Frame({...Frame.Root}), null),
+    depth: -1,
+    start: 0,
+    end: 0,
+    children: [],
+  };
 
   formatter: (value: number) => string;
   timelineFormatter: (value: number) => string;
-
-  frameIndex: Record<string, FlamegraphFrame> = {};
 
   static Empty(): Flamegraph {
     return new Flamegraph(Profile.Empty(), 0, {
@@ -51,8 +63,6 @@ export class Flamegraph {
     this.profile = profile;
     this.profileIndex = profileIndex;
 
-    this.roots = [];
-
     // If a custom config space is provided, use it and draw the chart in it
     this.frames = leftHeavy
       ? this.buildLeftHeavyGraph(profile, configSpace ? configSpace.x : 0)
@@ -66,7 +76,9 @@ export class Flamegraph {
     this.configSpace = new Rect(
       0,
       0,
-      this.profile.unit === 'microseconds'
+      this.profile.unit === 'nanoseconds'
+        ? 1e9
+        : this.profile.unit === 'microseconds'
         ? 1e6
         : this.profile.unit === 'milliseconds'
         ? 1e3
@@ -82,12 +94,20 @@ export class Flamegraph {
         this.depth
       );
     }
+
+    const weight = this.root.children.reduce(
+      (acc, frame) => acc + frame.node.totalWeight,
+      0
+    );
+
+    this.root.node.addToTotalWeight(weight);
+    this.root.end = this.root.start + weight;
+    this.root.frame.addToTotalWeight(weight);
   }
 
   buildCallOrderGraph(profile: Profile, offset: number): FlamegraphFrame[] {
     const frames: FlamegraphFrame[] = [];
     const stack: FlamegraphFrame[] = [];
-
     let idx = 0;
 
     const openFrame = (node: CallTreeNode, value: number) => {
@@ -106,13 +126,11 @@ export class Flamegraph {
 
       if (parent) {
         parent.children.push(frame);
+      } else {
+        this.root.children.push(frame);
       }
 
       stack.push(frame);
-
-      if (stack.length === 1) {
-        this.roots.push(frame);
-      }
       idx++;
     };
 
@@ -150,7 +168,20 @@ export class Flamegraph {
 
     sortTree(profile.appendOrderTree);
 
+    const virtualRoot: FlamegraphFrame = {
+      key: -1,
+      frame: CallTreeNode.Root.frame,
+      node: CallTreeNode.Root,
+      parent: null,
+      children: [],
+      depth: 0,
+      start: 0,
+      end: 0,
+    };
+
+    this.root = virtualRoot;
     let idx = 0;
+
     const openFrame = (node: CallTreeNode, value: number) => {
       const parent = lastOfArray(stack);
       const frame: FlamegraphFrame = {
@@ -166,13 +197,11 @@ export class Flamegraph {
 
       if (parent) {
         parent.children.push(frame);
+      } else {
+        this.root.children.push(frame);
       }
 
       stack.push(frame);
-
-      if (stack.length === 1) {
-        this.roots.push(frame);
-      }
       idx++;
     };
 

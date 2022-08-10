@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import abc
+import logging
 from typing import Sequence, Set, Tuple
 
-import sentry_sdk
 from django.template.defaultfilters import pluralize
 from django.urls import reverse
 
@@ -222,8 +222,8 @@ def generate_incident_trigger_email_context(
                 selected_incident=incident,
                 size=ChartSize({"width": 600, "height": 200}),
             )
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
+        except Exception:
+            logging.exception("Error while attempting to build_metric_alert_chart")
 
     return {
         "link": absolute_uri(
@@ -234,7 +234,8 @@ def generate_incident_trigger_email_context(
                     "incident_id": incident.identifier,
                 },
             )
-        ),
+        )
+        + "?referrer=alert_email",
         "rule_link": absolute_uri(
             reverse(
                 "sentry-alert-rule",

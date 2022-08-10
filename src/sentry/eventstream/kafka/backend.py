@@ -2,7 +2,6 @@ import logging
 import signal
 from typing import Any, Literal, Mapping, Optional, Tuple, Union
 
-from confluent_kafka import OFFSET_INVALID, TopicPartition
 from django.conf import settings
 from django.utils.functional import cached_property
 
@@ -14,15 +13,10 @@ from sentry.eventstream.kafka.postprocessworker import (
     PostProcessForwarderType,
     PostProcessForwarderWorker,
     TransactionsPostProcessForwarderWorker,
-    _sampled_eventstream_timer,
-)
-from sentry.eventstream.kafka.protocol import (
-    get_task_kwargs_for_message,
-    get_task_kwargs_for_message_from_headers,
 )
 from sentry.eventstream.snuba import KW_SKIP_SEMANTIC_PARTITIONING, SnubaProtocolEventStream
 from sentry.killswitches import killswitch_matches_context
-from sentry.utils import json, kafka, metrics
+from sentry.utils import json, kafka
 from sentry.utils.batching_kafka_consumer import BatchingKafkaConsumer
 
 logger = logging.getLogger(__name__)
@@ -32,9 +26,17 @@ class KafkaEventStream(SnubaProtocolEventStream):
     def __init__(self, **options):
         self.topic = settings.KAFKA_EVENTS
         self.transactions_topic = settings.KAFKA_TRANSACTIONS
+        self.assign_transaction_partitions_randomly = options.get(
+            "kafka.partition-transactions-randomly"
+        )
 
     @cached_property
     def producer(self):
+        # TODO: The producer is currently hardcoded to KAFKA_EVENTS. This assumes that the transactions
+        # topic is either the same (or is on the same cluster) as the events topic. Since we are in the
+        # process of splitting the topic this will no longer be true. This should be fixed and we should
+        # drop this requirement when the KafkaEventStream is refactored to be agnostic of dataset specific
+        # details and the correct topic should be passed into here instead of hardcoding events.
         return kafka.producers.get(settings.KAFKA_EVENTS)
 
     def delivery_callback(self, error, message):
@@ -63,11 +65,8 @@ class KafkaEventStream(SnubaProtocolEventStream):
                 value = False
             return str(int(value))
 
-        # WARNING: We must remove all None headers. There is a bug in confluent-kafka-python
-        # (used by both Sentry and Snuba) that incorrectly decrements the reference count of
-        # Python's None on any attempt to read header values containing null values, leading
-        # None to eventually get deallocated and crash the interpreter. The bug exists in the
-        # version we are using (1.5) as well as in the latest (at the time of writing) 1.7 version.
+        # we strip `None` values here so later in the pipeline they can be
+        # cleanly encoded without nullability checks
         def strip_none_values(value: Mapping[str, Optional[str]]) -> Mapping[str, str]:
             return {key: value for key, value in value.items() if value is not None}
 
@@ -119,10 +118,14 @@ class KafkaEventStream(SnubaProtocolEventStream):
         **kwargs,
     ):
         message_type = "transaction" if self._is_transaction_event(event) else "error"
-        assign_partitions_randomly = killswitch_matches_context(
-            "kafka.send-project-events-to-random-partitions",
-            {"project_id": event.project_id, "message_type": message_type},
-        )
+
+        if message_type == "transaction" and self.assign_transaction_partitions_randomly:
+            assign_partitions_randomly = True
+        else:
+            assign_partitions_randomly = killswitch_matches_context(
+                "kafka.send-project-events-to-random-partitions",
+                {"project_id": event.project_id, "message_type": message_type},
+            )
 
         if assign_partitions_randomly:
             kwargs[KW_SKIP_SEMANTIC_PARTITIONING] = True
@@ -193,6 +196,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         self,
         entity: Union[Literal["all"], Literal["errors"], Literal["transactions"]],
         consumer_group: str,
+        topic: Optional[str],
         commit_log_topic: str,
         synchronize_commit_group: str,
         commit_batch_size: int = 100,
@@ -200,15 +204,15 @@ class KafkaEventStream(SnubaProtocolEventStream):
         initial_offset_reset: Union[Literal["latest"], Literal["earliest"]] = "latest",
     ):
         concurrency = options.get(_CONCURRENCY_OPTION)
-        logger.info(f"Starting post process forwrader to consume {entity} messages")
+        logger.info(f"Starting post process forwarder to consume {entity} messages")
         if entity == PostProcessForwarderType.TRANSACTIONS:
             cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_TRANSACTIONS]["cluster"]
             worker = TransactionsPostProcessForwarderWorker(concurrency=concurrency)
-            topic = self.transactions_topic
+            default_topic = self.transactions_topic
         elif entity == PostProcessForwarderType.ERRORS:
             cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
             worker = ErrorsPostProcessForwarderWorker(concurrency=concurrency)
-            topic = self.topic
+            default_topic = self.topic
         else:
             # Default implementation which processes both errors and transactions
             # irrespective of values in the header. This would most likely be the case
@@ -217,7 +221,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
             cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
             assert cluster_name == settings.KAFKA_TOPICS[settings.KAFKA_TRANSACTIONS]["cluster"]
             worker = PostProcessForwarderWorker(concurrency=concurrency)
-            topic = self.topic
+            default_topic = self.topic
             assert self.topic == self.transactions_topic
 
         synchronized_consumer = SynchronizedConsumer(
@@ -229,7 +233,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         )
 
         consumer = BatchingKafkaConsumer(
-            topics=topic,
+            topics=topic or default_topic,
             worker=worker,
             max_batch_size=commit_batch_size,
             max_batch_time=commit_batch_timeout_ms,
@@ -242,6 +246,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         self,
         entity: Union[Literal["all"], Literal["errors"], Literal["transactions"]],
         consumer_group: str,
+        topic: Optional[str],
         commit_log_topic: str,
         synchronize_commit_group: str,
         commit_batch_size: int = 100,
@@ -251,6 +256,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         consumer = self._build_consumer(
             entity,
             consumer_group,
+            topic,
             commit_log_topic,
             synchronize_commit_group,
             commit_batch_size,
@@ -266,214 +272,11 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         consumer.run()
 
-    def run_streaming_consumer(
-        self,
-        entity: Union[Literal["all"], Literal["errors"], Literal["transactions"]],
-        consumer_group: str,
-        commit_log_topic: str,
-        synchronize_commit_group: str,
-        commit_batch_size: int = 100,
-        initial_offset_reset: Union[Literal["latest"], Literal["earliest"]] = "latest",
-    ) -> None:
-        cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
-
-        consumer = SynchronizedConsumer(
-            cluster_name=cluster_name,
-            consumer_group=consumer_group,
-            commit_log_topic=commit_log_topic,
-            synchronize_commit_group=synchronize_commit_group,
-            initial_offset_reset=initial_offset_reset,
-        )
-
-        owned_partition_offsets = {}
-
-        def commit(partitions):
-            results = consumer.commit(offsets=partitions, asynchronous=False)
-
-            errors = [i for i in results if i.error is not None]
-            if errors:
-                raise Exception(
-                    "Failed to commit {}/{} partitions: {!r}".format(
-                        len(errors), len(partitions), errors
-                    )
-                )
-
-            return results
-
-        def on_assign(consumer, partitions):
-            logger.info("Received partition assignment: %r", partitions)
-
-            for i in partitions:
-                if i.offset == OFFSET_INVALID:
-                    updated_offset = None
-                elif i.offset < 0:
-                    raise Exception(
-                        f"Received unexpected negative offset during partition assignment: {i!r}"
-                    )
-                else:
-                    updated_offset = i.offset
-
-                key = (i.topic, i.partition)
-                previous_offset = owned_partition_offsets.get(key, None)
-                if previous_offset is not None and previous_offset != updated_offset:
-                    logger.warning(
-                        "Received new offset for owned partition %r, will overwrite previous stored offset %r with %r.",
-                        key,
-                        previous_offset,
-                        updated_offset,
-                    )
-
-                owned_partition_offsets[key] = updated_offset
-
-        def on_revoke(consumer, partitions):
-            logger.info("Revoked partition assignment: %r", partitions)
-
-            offsets_to_commit = []
-
-            for i in partitions:
-                key = (i.topic, i.partition)
-
-                try:
-                    offset = owned_partition_offsets.pop(key)
-                except KeyError:
-                    logger.warning(
-                        "Received unexpected partition revocation for unowned partition: %r",
-                        i,
-                        exc_info=True,
-                    )
-                    continue
-
-                if offset is None:
-                    logger.debug("Skipping commit of unprocessed partition: %r", i)
-                    continue
-
-                offsets_to_commit.append(TopicPartition(i.topic, i.partition, offset))
-
-            if offsets_to_commit:
-                logger.debug(
-                    "Committing offset(s) for %s revoked partition(s): %r",
-                    len(offsets_to_commit),
-                    offsets_to_commit,
-                )
-                commit(offsets_to_commit)
-
-        if entity == "transactions":
-            topic = self.transactions_topic
-        elif entity == "errors":
-            topic = self.topic
-        else:
-            topic = self.topic
-            assert self.topic == self.transactions_topic
-
-        consumer.subscribe([topic], on_assign=on_assign, on_revoke=on_revoke)
-
-        def commit_offsets():
-            offsets_to_commit = []
-            for (topic, partition), offset in owned_partition_offsets.items():
-                if offset is None:
-                    logger.debug("Skipping commit of unprocessed partition: %r", (topic, partition))
-                    continue
-
-                offsets_to_commit.append(TopicPartition(topic, partition, offset))
-
-            if offsets_to_commit:
-                logger.debug(
-                    "Committing offset(s) for %s owned partition(s): %r",
-                    len(offsets_to_commit),
-                    offsets_to_commit,
-                )
-                commit(offsets_to_commit)
-
-        shutdown_requested = False
-
-        def handle_shutdown_request(signum: int, frame: Any) -> None:
-            nonlocal shutdown_requested
-            logger.debug("Received signal %r, requesting shutdown...", signum)
-            shutdown_requested = True
-
-        signal.signal(signal.SIGINT, handle_shutdown_request)
-        signal.signal(signal.SIGTERM, handle_shutdown_request)
-
-        i = 0
-        while not shutdown_requested:
-            message = consumer.poll(0.1)
-            if message is None:
-                continue
-
-            error = message.error()
-            if error is not None:
-                raise Exception(error)
-
-            key = (message.topic(), message.partition())
-            if key not in owned_partition_offsets:
-                logger.warning("Skipping message for unowned partition: %r", key)
-                continue
-
-            i = i + 1
-            owned_partition_offsets[key] = message.offset() + 1
-
-            use_kafka_headers = options.get("post-process-forwarder:kafka-headers")
-
-            if use_kafka_headers is True:
-                try:
-                    with _sampled_eventstream_timer(
-                        instance="get_task_kwargs_for_message_from_headers"
-                    ):
-                        task_kwargs = get_task_kwargs_for_message_from_headers(message.headers())
-
-                    if task_kwargs is not None:
-                        with _sampled_eventstream_timer(
-                            instance="dispatch_post_process_group_task"
-                        ):
-                            if task_kwargs["group_id"] is None:
-                                metrics.incr(
-                                    "eventstream.messages",
-                                    tags={"partition": message.partition(), "type": "transactions"},
-                                )
-                            else:
-                                metrics.incr(
-                                    "eventstream.messages",
-                                    tags={"partition": message.partition(), "type": "errors"},
-                                )
-                            self._dispatch_post_process_group_task(**task_kwargs)
-
-                except Exception as error:
-                    logger.error("Could not forward message: %s", error, exc_info=True)
-                    self._get_task_kwargs_and_dispatch(message)
-
-            else:
-                self._get_task_kwargs_and_dispatch(message)
-
-            if i % commit_batch_size == 0:
-                commit_offsets()
-
-        logger.debug("Committing offsets and closing consumer...")
-        commit_offsets()
-
-        consumer.close()
-
-    def _get_task_kwargs_and_dispatch(self, message) -> None:
-        with metrics.timer("eventstream.duration", instance="get_task_kwargs_for_message"):
-            task_kwargs = get_task_kwargs_for_message(message.value())
-
-        if task_kwargs is not None:
-            if task_kwargs["group_id"] is None:
-                metrics.incr(
-                    "eventstream.messages",
-                    tags={"partition": message.partition(), "type": "transactions"},
-                )
-            else:
-                metrics.incr(
-                    "eventstream.messages",
-                    tags={"partition": message.partition(), "type": "errors"},
-                )
-            with metrics.timer("eventstream.duration", instance="dispatch_post_process_group_task"):
-                self._dispatch_post_process_group_task(**task_kwargs)
-
     def run_post_process_forwarder(
         self,
         entity: Union[Literal["all"], Literal["errors"], Literal["transactions"]],
         consumer_group: str,
+        topic: Optional[str],
         commit_log_topic: str,
         synchronize_commit_group: str,
         commit_batch_size: int = 100,
@@ -482,24 +285,13 @@ class KafkaEventStream(SnubaProtocolEventStream):
     ):
         logger.debug("Starting post-process forwarder...")
 
-        if settings.SENTRY_POST_PROCESS_FORWARDER_BATCHING:
-            logger.info("Starting batching consumer")
-            self.run_batched_consumer(
-                entity,
-                consumer_group,
-                commit_log_topic,
-                synchronize_commit_group,
-                commit_batch_size,
-                commit_batch_timeout_ms,
-                initial_offset_reset,
-            )
-        else:
-            logger.info("Starting streaming consumer")
-            self.run_streaming_consumer(
-                entity,
-                consumer_group,
-                commit_log_topic,
-                synchronize_commit_group,
-                commit_batch_size,
-                initial_offset_reset,
-            )
+        self.run_batched_consumer(
+            entity,
+            consumer_group,
+            topic,
+            commit_log_topic,
+            synchronize_commit_group,
+            commit_batch_size,
+            commit_batch_timeout_ms,
+            initial_offset_reset,
+        )

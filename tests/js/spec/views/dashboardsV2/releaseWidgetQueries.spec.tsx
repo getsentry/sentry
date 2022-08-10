@@ -2,7 +2,11 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
-import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {
+  DashboardFilterKeys,
+  DisplayType,
+  WidgetType,
+} from 'sentry/views/dashboardsV2/types';
 import ReleaseWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/releaseWidgetQueries';
 
 describe('Dashboards > ReleaseWidgetQueries', function () {
@@ -68,6 +72,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
   });
 
   it('can send chart requests', async function () {
+    jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: TestStubs.MetricsField({
@@ -92,7 +97,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     await waitFor(() =>
       expect(children).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          tableResults: [],
+          tableResults: undefined,
           timeseriesResults: [
             {
               data: expect.arrayContaining([
@@ -150,7 +155,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
       '/organizations/org-slug/releases/',
       expect.objectContaining({
         data: {
-          environments: ['prod'],
+          environment: ['prod'],
           per_page: 50,
           project: [1],
           sort: 'date',
@@ -218,6 +223,36 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
           project: [1],
           statsPeriod: '14d',
         },
+      })
+    );
+  });
+
+  it('appends dashboard filters to releases request', async function () {
+    const mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics/data/',
+      body: TestStubs.MetricsSessionUserCountByStatusByRelease(),
+    });
+
+    render(
+      <ReleaseWidgetQueries
+        api={api}
+        widget={singleQueryWidget}
+        organization={organization}
+        selection={selection}
+        dashboardFilters={{[DashboardFilterKeys.RELEASE]: ['abc@1.3.0']}}
+      >
+        {() => <div data-test-id="child" />}
+      </ReleaseWidgetQueries>
+    );
+
+    await screen.findByTestId('child');
+
+    expect(mock).toHaveBeenCalledWith(
+      '/organizations/org-slug/metrics/data/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: ' release:abc@1.3.0 ',
+        }),
       })
     );
   });
@@ -423,6 +458,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
   });
 
   it('can send table requests', async function () {
+    jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: TestStubs.MetricsSessionUserCountByStatusByRelease(),
@@ -515,13 +551,14 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
               title: 'sessions',
             },
           ],
-          timeseriesResults: [],
+          timeseriesResults: undefined,
         })
       )
     );
   });
 
   it('can send big number requests', async function () {
+    jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: TestStubs.MetricsField({
@@ -569,6 +606,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
   });
 
   it('can send multiple API requests', function () {
+    jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
     const metricsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: TestStubs.SessionsField({
@@ -665,6 +703,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
   });
 
   it('adjusts interval based on date window', function () {
+    jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: TestStubs.SessionsField({
@@ -677,7 +716,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
         api={api}
         widget={{...singleQueryWidget, interval: '1m'}}
         organization={organization}
-        selection={{...selection, datetime: {...selection.datetime, period: '90d'}}}
+        selection={{...selection, datetime: {...selection.datetime, period: '14d'}}}
       >
         {() => <div data-test-id="child" />}
       </ReleaseWidgetQueries>
@@ -689,8 +728,8 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          interval: '4h',
-          statsPeriod: '90d',
+          interval: '30m',
+          statsPeriod: '14d',
           environment: ['prod'],
           project: [1],
         }),
@@ -735,6 +774,45 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
         }}
         organization={organization}
         selection={selection}
+      >
+        {children}
+      </ReleaseWidgetQueries>
+    );
+
+    // no additional request has been sent, the total count of requests is still 1
+    expect(mock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not re-fetch when dashboard filter remains the same', () => {
+    const mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics/data/',
+      body: TestStubs.SessionsField({
+        field: `sum(sentry.sessions.session)`,
+      }),
+    });
+    const children = jest.fn(() => <div />);
+
+    const {rerender} = render(
+      <ReleaseWidgetQueries
+        api={api}
+        widget={singleQueryWidget}
+        organization={organization}
+        selection={selection}
+        dashboardFilters={{[DashboardFilterKeys.RELEASE]: ['abc@1.3.0']}}
+      >
+        {children}
+      </ReleaseWidgetQueries>
+    );
+
+    expect(mock).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <ReleaseWidgetQueries
+        api={api}
+        widget={singleQueryWidget}
+        organization={organization}
+        selection={selection}
+        dashboardFilters={{[DashboardFilterKeys.RELEASE]: ['abc@1.3.0']}}
       >
         {children}
       </ReleaseWidgetQueries>

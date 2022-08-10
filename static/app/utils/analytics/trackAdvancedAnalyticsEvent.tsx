@@ -8,7 +8,8 @@ import {
   performanceEventMap,
   PerformanceEventParameters,
 } from './performanceAnalyticsEvents';
-import {profilingEventMap} from './profilingAnalyticsEvents';
+import {profilingEventMap, ProfilingEventParameters} from './profilingAnalyticsEvents';
+import {releasesEventMap, ReleasesEventParameters} from './releasesAnalyticsEvents';
 import {samplingEventMap, SamplingEventParameters} from './samplingAnalyticsEvents';
 import {searchEventMap, SearchEventParameters} from './searchAnalyticsEvents';
 import {settingsEventMap, SettingsEventParameters} from './settingsAnalyticsEvents';
@@ -20,10 +21,12 @@ type EventParameters = GrowthEventParameters &
   DiscoverEventParameters &
   IssueEventParameters &
   PerformanceEventParameters &
+  ProfilingEventParameters &
   SearchEventParameters &
   SettingsEventParameters &
   SamplingEventParameters &
-  TeamInsightsEventParameters;
+  TeamInsightsEventParameters &
+  ReleasesEventParameters;
 
 const allEventMap: Record<string, string | null> = {
   ...coreUIEventMap,
@@ -37,6 +40,7 @@ const allEventMap: Record<string, string | null> = {
   ...searchEventMap,
   ...settingsEventMap,
   ...workflowEventMap,
+  ...releasesEventMap,
 };
 
 /**

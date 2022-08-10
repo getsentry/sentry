@@ -448,7 +448,7 @@ export class Client {
       method,
       body,
       headers,
-      credentials: 'same-origin',
+      credentials: 'include',
       signal: aborter?.signal,
     });
 
@@ -551,7 +551,7 @@ export class Client {
     // This *should* get logged to Sentry only if the promise rejection is not handled
     // (since SDK captures unhandled rejections). Ideally we explicitly ignore rejection
     // or handle with a user friendly error message
-    const preservedError = new Error();
+    const preservedError = new Error('API Request Error');
 
     return new Promise((resolve, reject) =>
       this.request(path, {
@@ -567,11 +567,10 @@ export class Client {
         error: (resp: ResponseMeta) => {
           const errorObjectToUse = createRequestError(
             resp,
-            preservedError.stack,
+            preservedError,
             options.method,
             path
           );
-          errorObjectToUse.removeFrames(2);
 
           // Although `this.request` logs all error responses, this error object can
           // potentially be logged by Sentry's unhandled rejection handler

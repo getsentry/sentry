@@ -48,7 +48,7 @@ describe('IssueList', function () {
     // The tests fail because we have a "component update was not wrapped in act" error.
     // It should be safe to ignore this error, but we should remove the mock once we move to react testing library
     // eslint-disable-next-line no-console
-    console.error = jest.fn();
+    jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
     MockApiClient.clearMockResponses();
     project = TestStubs.ProjectDetails({
@@ -249,7 +249,9 @@ describe('IssueList', function () {
       // Update stores with saved searches
       await tick();
       await tick();
+
       wrapper.update();
+      wrapper.find('SmartSearchBar textarea').simulate('click');
 
       // auxillary requests being made
       expect(recentSearchesRequest).toHaveBeenCalledTimes(1);

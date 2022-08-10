@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useState} from 'react';
-import assign from 'lodash/assign';
 
 import MemberListStore from 'sentry/stores/memberListStore';
 import TagStore from 'sentry/stores/tagStore';
@@ -35,57 +34,49 @@ function withIssueTags<Props extends WithIssueTagsProps>(
 ) {
   function ComponentWithTags(props: Omit<Props, keyof WithIssueTagsProps>) {
     const [state, setState] = useState<WrappedComponentState>({
-      tags: assign(
-        {},
-        TagStore.getAllTags(),
-        TagStore.getIssueAttributes(),
-        TagStore.getBuiltInTags()
-      ),
+      tags: TagStore.getIssueTags(),
       users: MemberListStore.getAll(),
       teams: TeamStore.getAll(),
     });
 
-    const setAssigned = useCallback(
-      (newState: Partial<WrappedComponentState>) => {
-        setState(oldState => {
-          const usernames: string[] = newState.users
-            ? newState.users.map(getUsername)
-            : oldState.users.map(getUsername);
+    const setAssigned = useCallback((newState: Partial<WrappedComponentState>) => {
+      setState(oldState => {
+        const usernames: string[] = newState.users
+          ? newState.users.map(getUsername)
+          : oldState.users.map(getUsername);
 
-          const teamnames: string[] = (newState.teams ? newState.teams : oldState.teams)
-            .filter(team => team.isMember)
-            .map(team => `#${team.slug}`);
+        const teamnames: string[] = (newState.teams ? newState.teams : oldState.teams)
+          .filter(team => team.isMember)
+          .map(team => `#${team.slug}`);
 
-          const allAssigned = ['[me, none]', ...usernames, ...teamnames];
-          allAssigned.unshift('me');
-          usernames.unshift('me');
+        const allAssigned = ['[me, none]', ...usernames, ...teamnames];
+        allAssigned.unshift('me');
+        usernames.unshift('me');
 
-          return {
-            ...oldState,
-            ...newState,
-            tags: {
-              ...oldState.tags,
-              ...newState.tags,
-              assigned: {
-                ...(newState.tags?.assigned ?? oldState.tags?.assigned ?? {}),
-                values: allAssigned,
-              },
-              bookmarks: {
-                ...(newState.tags?.bookmarks ?? oldState.tags?.bookmarks ?? {}),
-                values: usernames,
-              },
-              assigned_or_suggested: {
-                ...(newState.tags?.assigned_or_suggested ??
-                  oldState.tags.assigned_or_suggested ??
-                  {}),
-                values: allAssigned,
-              },
+        return {
+          ...oldState,
+          ...newState,
+          tags: {
+            ...oldState.tags,
+            ...newState.tags,
+            assigned: {
+              ...(newState.tags?.assigned ?? oldState.tags?.assigned ?? {}),
+              values: allAssigned,
             },
-          };
-        });
-      },
-      [state]
-    );
+            bookmarks: {
+              ...(newState.tags?.bookmarks ?? oldState.tags?.bookmarks ?? {}),
+              values: usernames,
+            },
+            assigned_or_suggested: {
+              ...(newState.tags?.assigned_or_suggested ??
+                oldState.tags.assigned_or_suggested ??
+                {}),
+              values: allAssigned,
+            },
+          },
+        };
+      });
+    }, []);
 
     // Listen to team store updates and cleanup listener on unmount
     useEffect(() => {
@@ -94,23 +85,16 @@ function withIssueTags<Props extends WithIssueTagsProps>(
       }, undefined);
 
       return () => unsubscribeTeam();
-    }, []);
+    }, [setAssigned]);
 
     // Listen to tag store updates and cleanup listener on unmount
     useEffect(() => {
-      const unsubscribeTags = TagStore.listen((storeTags: TagCollection) => {
-        const tags = assign(
-          {},
-          storeTags,
-          TagStore.getIssueAttributes(),
-          TagStore.getBuiltInTags()
-        );
-
-        setAssigned({tags});
+      const unsubscribeTags = TagStore.listen(() => {
+        setAssigned({tags: TagStore.getIssueTags()});
       }, undefined);
 
       return () => unsubscribeTags();
-    }, []);
+    }, [setAssigned]);
 
     // Listen to member store updates and cleanup listener on unmount
     useEffect(() => {
@@ -119,7 +103,7 @@ function withIssueTags<Props extends WithIssueTagsProps>(
       }, undefined);
 
       return () => unsubscribeMembers();
-    }, []);
+    }, [setAssigned]);
 
     return <WrappedComponent {...(props as Props)} tags={state.tags} />;
   }

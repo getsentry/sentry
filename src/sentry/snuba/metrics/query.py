@@ -1,14 +1,18 @@
 """ Classes needed to build a metrics query. Inspired by snuba_sdk.query. """
 import math
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Literal, Optional, Sequence, Union
+from typing import Literal, Optional, Sequence, Set, Union
 
 from snuba_sdk import Column, Direction, Function, Granularity, Limit, Offset
 from snuba_sdk.conditions import Condition, ConditionGroup
 
 from sentry.api.utils import InvalidParams
+from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.snuba.metrics.fields import metric_object_factory
 from sentry.snuba.metrics.fields.base import get_derived_metrics
+from sentry.snuba.metrics.naming_layer.mri import parse_mri
 from sentry.utils.dates import to_timestamp
 
 # TODO: Add __all__ to be consistent with sibling modules
@@ -28,6 +32,9 @@ from .utils import (
 class MetricField:
     op: Optional[MetricOperationType]
     metric_name: str
+
+    def __str__(self) -> str:
+        return f"{self.op}({self.metric_name})" if self.op else self.metric_name
 
 
 Tag = str
@@ -114,23 +121,49 @@ class MetricsQuery(MetricsQueryValidationRunner):
                 and condition.lhs.function == "ifNull"
             ):
                 parameter = condition.lhs.parameters[0]
-                if isinstance(parameter, Column) and parameter.name.startswith("tags["):
-                    tag_name = parameter.name.split("tags[")[1].split("]")[0]
+                if isinstance(parameter, Column) and parameter.name.startswith(
+                    ("tags_raw[", "tags[")
+                ):
+                    tag_name = parameter.name.split("[")[1].split("]")[0]
                     if tag_name in UNALLOWED_TAGS:
                         raise InvalidParams(f"Tag name {tag_name} is not a valid query filter")
 
     def validate_orderby(self) -> None:
         if not self.orderby:
             return
-        if len(self.orderby) > 1:
-            raise InvalidParams("Only one 'orderBy' is supported")
 
-        orderby = self.orderby[0]
-        self._validate_field(orderby.field)
+        for orderby in self.orderby:
+            self._validate_field(orderby.field)
 
-        for select_field in self.select:
-            if select_field == orderby.field:
-                return
+        orderby_fields: Set[MetricField] = set()
+        metric_entities: Set[MetricField] = set()
+        for f in self.orderby:
+            orderby_fields.add(f.field)
+
+            metric_mri = get_mri(f.field.metric_name)
+            # Construct a metrics expression
+            metric_field_obj = metric_object_factory(f.field.op, metric_mri)
+
+            parsed_mri = parse_mri(metric_mri)
+            # Find correct use_case_id based on metric_name
+            use_case_id = UseCaseKey.RELEASE_HEALTH
+            if parsed_mri is not None and parsed_mri.namespace == "transaction":
+                use_case_id = UseCaseKey.PERFORMANCE
+
+            entity = metric_field_obj.get_entity(self.project_ids, use_case_id)
+
+            if isinstance(entity, Mapping):
+                metric_entities.update(entity.keys())
+            else:
+                metric_entities.add(entity)
+        # If metric entities set contanis more than 1 metric, we can't orderBy these fields
+        if len(metric_entities) > 1:
+            raise InvalidParams("Selected 'orderBy' columns must belongs to the same entity")
+
+        # validate all orderby columns are presented in provided 'fields'
+        if set(self.select).issuperset(orderby_fields):
+            return
+
         raise InvalidParams("'orderBy' must be one of the provided 'fields'")
 
     @staticmethod

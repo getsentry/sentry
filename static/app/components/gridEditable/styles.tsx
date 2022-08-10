@@ -81,6 +81,7 @@ export const Grid = styled('table')`
 
   z-index: ${Z_INDEX_GRID};
   overflow-x: auto;
+  overflow-y: hidden;
 `;
 
 export const GridRow = styled('tr')`

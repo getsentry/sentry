@@ -31,6 +31,15 @@ def track_memory_usage(metric, **kwargs):
         metrics.timing(metric, get_rss_usage() - before, **kwargs)
 
 
+def load_model_from_db(cls, instance_or_id, allow_cache=True):
+    """Utility function to allow a task to transition to passing ids rather than model instances."""
+    if isinstance(instance_or_id, int):
+        if hasattr(cls.objects, "get_from_cache") and allow_cache:
+            return cls.objects.get_from_cache(pk=instance_or_id)
+        return cls.objects.get(pk=instance_or_id)
+    return instance_or_id
+
+
 def instrumented_task(name, stat_suffix=None, **kwargs):
     def wrapped(func):
         @wraps(func)

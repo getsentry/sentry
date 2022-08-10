@@ -211,6 +211,53 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
         },
       ],
     },
+    {
+      guide: 'releases_widget',
+      requiredTargets: ['releases_widget'],
+      dateThreshold: new Date('2022-06-22'),
+      steps: [
+        {
+          title: t('Releases are here!'),
+          target: 'releases_widget',
+          description: t(
+            'Want to know how your latest release is doing? Monitor release health and crash rates in Dashboards.'
+          ),
+          nextText: t('Sounds Good'),
+        },
+      ],
+    },
+    {
+      guide: 'activate_sampling_rule',
+      requiredTargets: ['sampling_rule_toggle'],
+      dateThreshold: new Date('2022-07-05'),
+      steps: [
+        {
+          title: t('Activate your first rule'),
+          target: 'sampling_rule_toggle',
+          description: t(
+            'Activating a rule will take immediate effect, as well as any changes given to an active rule.'
+          ),
+          nextText: t('Activate Rule'),
+          dismissText: t('Later'),
+          hasNextGuide: true,
+        },
+      ],
+    },
+    {
+      guide: 'create_conditional_rule',
+      requiredTargets: ['add_conditional_rule'],
+      dateThreshold: new Date('2022-07-05'),
+      steps: [
+        {
+          title: t('Create a new sample rule'),
+          target: 'add_conditional_rule',
+          description: t(
+            'Sample transactions under specific conditions, keeping what you need and dropping what you don’t.'
+          ),
+          dismissText: t('Enough already'),
+        },
+      ],
+    },
   ];
 }
 

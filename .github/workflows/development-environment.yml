@@ -7,7 +7,6 @@ on:
       - '.github/workflows/development-environment.yml'
       - 'requirements-*.txt'
       - '.python-version'
-      - '.github/actions/setup-python'
       - '.envrc'
       - 'Brewfile'
       - 'scripts/*'
@@ -29,7 +28,7 @@ jobs:
 
     steps:
       - name: Checkout sentry
-        uses: actions/checkout@v2
+        uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
 
       - name: Set up
         id: info
@@ -49,30 +48,20 @@ jobs:
         run: |
           HOMEBREW_NO_AUTO_UPDATE=1 brew install -v libxmlsec1
 
-      - name: Install volta
-        run: |
-          curl https://get.volta.sh | bash
+      - uses: ./.github/actions/setup-volta
 
       # This handles Python's cache
       - name: Setup Python & cache
-        uses: ./.github/actions/setup-python
-        # Remove this block when 3.8.13 becomes available in:
-        # https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json
+        uses: actions/setup-python@c4e89fac7e8767b327bbad6cb4d859eda999cf08  # v4
         with:
-          python-version: 3.8.12
-
-      - name: Cache (yarn)
-        uses: actions/cache@v1 # We are explicitly using v1 due to perf reasons
-        with:
-          path: ${{ steps.info.outputs.yarn-cache-dir }}
-          key: devenv-${{ runner.os }}-v1-yarn-${{ hashFiles('yarn.lock') }}
+          python-version: 3.8.13
+          cache: 'pip'
+          cache-dependency-path: requirements-dev-frozen.txt
 
       # This tests starting up the dev services, loading mocks and pre-commit installation
       # This can take over 15 minutes
       - name: make bootstrap
         run: |
-          export VOLTA_HOME="$HOME/.volta"
-          export PATH="$HOME/.volta/bin:$PATH"
           python -m venv .venv
           source .venv/bin/activate
           make bootstrap
@@ -88,7 +77,7 @@ jobs:
 
     steps:
       - name: Checkout sentry
-        uses: actions/checkout@v2
+        uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
 
       - name: Install pyenv
         run: |
@@ -110,13 +99,12 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b  # v3
+      - uses: actions/setup-python@c4e89fac7e8767b327bbad6cb4d859eda999cf08  # v4
         with:
-          python-version: 3.8.12
-          cache: 'pip'
-          cache-dependency-path: |
-            requirements-dev-only-frozen.txt
+          python-version: 3.8.13
+          cache: pip
+          cache-dependency-path: requirements-dev-only-frozen.txt
       - name: install dependencies
         run: pip install -r requirements-dev-only-frozen.txt
       - name: run tests

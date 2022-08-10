@@ -15,7 +15,7 @@ function IssueListContainer({children}: Props) {
 
   return (
     <SentryDocumentTitle title={t('Issues')} orgSlug={organization.slug}>
-      <PageFiltersContainer hideGlobalHeader>
+      <PageFiltersContainer>
         <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
       </PageFiltersContainer>
     </SentryDocumentTitle>
