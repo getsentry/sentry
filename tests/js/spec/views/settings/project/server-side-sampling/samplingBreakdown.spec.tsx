@@ -13,12 +13,12 @@ describe('Server-Side Sampling - SamplingBreakdown', function () {
     ServerSideSamplingStore.reset();
   });
 
-  it('does not render content', function () {
+  it('renders empty', function () {
     const {organization} = getMockData();
 
     render(<SamplingBreakdown orgSlug={organization.slug} />);
 
-    expect(screen.queryByText(samplingBreakdownTitle)).not.toBeInTheDocument();
+    expect(screen.getByText('No transactions in the last 24 hours')).toBeInTheDocument();
   });
 
   it('renders project breakdown', function () {
