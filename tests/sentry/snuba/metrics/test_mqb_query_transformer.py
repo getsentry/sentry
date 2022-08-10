@@ -231,8 +231,8 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             totals=None,
         ),
         MetricsQuery(
-            org_id=21,
-            project_ids=[20],
+            org_id=14,
+            project_ids=[13],
             select=[
                 MetricField(
                     op="p95",
