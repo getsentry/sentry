@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import DropdownButtonV2 from 'sentry/components/dropdownButtonV2';
+import DropdownButton from 'sentry/components/dropdownButton';
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import SearchBar from 'sentry/components/searchBar';
 import {t, tn} from 'sentry/locale';
@@ -32,7 +32,7 @@ function SearchBarAction({
     ref,
   }) => (
     <StyledTrigger
-      size="small"
+      size="sm"
       priority={filterSelections && filterSelections.length > 0 ? 'primary' : 'default'}
       ref={ref}
       {...props}
@@ -47,6 +47,7 @@ function SearchBarAction({
     <Wrapper className={className}>
       {filterOptions && (
         <CompactSelect
+          size="sm"
           multiple
           maxMenuHeight={400}
           options={filterOptions}
@@ -121,7 +122,7 @@ const StyledSearchBar = styled(SearchBar)<{blendWithFilter?: boolean}>`
   }
 `;
 
-const StyledTrigger = styled(DropdownButtonV2)`
+const StyledTrigger = styled(DropdownButton)`
   border-radius: ${p => p.theme.borderRadiusLeft};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {

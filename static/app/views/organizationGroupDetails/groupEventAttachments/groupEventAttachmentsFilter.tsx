@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
@@ -30,14 +31,10 @@ const GroupEventAttachmentsFilter = (props: WithRouterProps) => {
   return (
     <FilterWrapper>
       <ButtonBar merged active={activeButton}>
-        <Button barId="all" size="small" to={{pathname, query: allAttachmentsQuery}}>
+        <Button barId="all" size="sm" to={{pathname, query: allAttachmentsQuery}}>
           {t('All Attachments')}
         </Button>
-        <Button
-          barId="onlyCrash"
-          size="small"
-          to={{pathname, query: onlyCrashReportsQuery}}
-        >
+        <Button barId="onlyCrash" size="sm" to={{pathname, query: onlyCrashReportsQuery}}>
           {t('Only Crash Reports')}
         </Button>
       </ButtonBar>

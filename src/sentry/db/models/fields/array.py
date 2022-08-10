@@ -4,7 +4,6 @@ from django.db import models
 
 from sentry.db.models.utils import Creator
 from sentry.utils import json
-from sentry.utils.compat import map
 
 
 # Adapted from django-pgfields
@@ -60,4 +59,4 @@ class ArrayField(models.Field):
                 # This is to accommodate the erroneous exports pre 21.4.0
                 # See getsentry/sentry#23843 for more details
                 value = ast.literal_eval(value)
-        return map(self.of.to_python, value)
+        return [self.of.to_python(x) for x in value]

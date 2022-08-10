@@ -4,9 +4,11 @@ from typing import Any, Mapping, Optional, Set
 
 from django.db.models import Q
 
+from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.indexer.base import KeyCollection, KeyResult, KeyResults, StringIndexer
 from sentry.sentry_metrics.indexer.cache import indexer_cache
-from sentry.sentry_metrics.indexer.models import StringIndexer as StringIndexerTable
+from sentry.sentry_metrics.indexer.db import TABLE_MAPPING, IndexerTable
+from sentry.sentry_metrics.indexer.ratelimiters import writes_limiter
 from sentry.sentry_metrics.indexer.strings import REVERSE_SHARED_STRINGS, SHARED_STRINGS
 from sentry.utils import metrics
 
@@ -24,7 +26,7 @@ class PGStringIndexerV2(StringIndexer):
     and the corresponding reverse lookup.
     """
 
-    def _get_db_records(self, db_keys: KeyCollection) -> Any:
+    def _get_db_records(self, use_case_id: UseCaseKey, db_keys: KeyCollection) -> Any:
         conditions = []
         for pair in db_keys.as_tuples():
             organization_id, string = pair
@@ -32,9 +34,11 @@ class PGStringIndexerV2(StringIndexer):
 
         query_statement = reduce(or_, conditions)
 
-        return StringIndexerTable.objects.filter(query_statement)
+        return self._table(use_case_id).objects.filter(query_statement)
 
-    def bulk_record(self, org_strings: Mapping[int, Set[str]]) -> KeyResults:
+    def bulk_record(
+        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
+    ) -> KeyResults:
         """
         Takes in a mapping with org_ids to sets of strings.
 
@@ -69,7 +73,7 @@ class PGStringIndexerV2(StringIndexer):
         cache_keys = KeyCollection(org_strings)
         metrics.gauge("sentry_metrics.indexer.lookups_per_batch", value=cache_keys.size)
         cache_key_strs = cache_keys.as_strings()
-        cache_results = indexer_cache.get_many(cache_key_strs)
+        cache_results = indexer_cache.get_many(cache_key_strs, use_case_id.value)
 
         hits = [k for k, v in cache_results.items() if v is not None]
         metrics.incr(
@@ -103,7 +107,7 @@ class PGStringIndexerV2(StringIndexer):
         db_read_key_results.add_key_results(
             [
                 KeyResult(org_id=db_obj.organization_id, string=db_obj.string, id=db_obj.id)
-                for db_obj in self._get_db_records(db_read_keys)
+                for db_obj in self._get_db_records(use_case_id, db_read_keys)
             ],
             FetchType.DB_READ,
         )
@@ -122,77 +126,102 @@ class PGStringIndexerV2(StringIndexer):
         )
 
         if db_write_keys.size == 0:
-            indexer_cache.set_many(new_results_to_cache)
+            indexer_cache.set_many(new_results_to_cache, use_case_id.value)
             return cache_key_results.merge(db_read_key_results)
 
-        new_records = []
-        for write_pair in db_write_keys.as_tuples():
-            organization_id, string = write_pair
-            new_records.append(
-                StringIndexerTable(organization_id=int(organization_id), string=string)
-            )
+        with writes_limiter.check_write_limits(use_case_id, db_write_keys) as writes_limiter_state:
+            # After the DB has successfully committed writes, we exit this
+            # context manager and consume quotas. If the DB crashes we
+            # shouldn't consume quota.
+            filtered_db_write_keys = writes_limiter_state.accepted_keys
+            del db_write_keys
 
-        with metrics.timer("sentry_metrics.indexer.pg_bulk_create"):
-            # We use `ignore_conflicts=True` here to avoid race conditions where metric indexer
-            # records might have be created between when we queried in `bulk_record` and the
-            # attempt to create the rows down below.
-            StringIndexerTable.objects.bulk_create(new_records, ignore_conflicts=True)
+            rate_limited_key_results = KeyResults()
+            for dropped_string in writes_limiter_state.dropped_strings:
+                rate_limited_key_results.add_key_result(
+                    dropped_string.key_result,
+                    fetch_type=dropped_string.fetch_type,
+                    fetch_type_ext=dropped_string.fetch_type_ext,
+                )
+
+            if filtered_db_write_keys.size == 0:
+                indexer_cache.set_many(new_results_to_cache, use_case_id.value)
+                return cache_key_results.merge(db_read_key_results).merge(rate_limited_key_results)
+
+            new_records = []
+            for write_pair in filtered_db_write_keys.as_tuples():
+                organization_id, string = write_pair
+                new_records.append(
+                    self._table(use_case_id)(organization_id=int(organization_id), string=string)
+                )
+
+            with metrics.timer("sentry_metrics.indexer.pg_bulk_create"):
+                # We use `ignore_conflicts=True` here to avoid race conditions where metric indexer
+                # records might have be created between when we queried in `bulk_record` and the
+                # attempt to create the rows down below.
+                self._table(use_case_id).objects.bulk_create(new_records, ignore_conflicts=True)
 
         db_write_key_results = KeyResults()
         db_write_key_results.add_key_results(
             [
                 KeyResult(org_id=db_obj.organization_id, string=db_obj.string, id=db_obj.id)
-                for db_obj in self._get_db_records(db_write_keys)
+                for db_obj in self._get_db_records(use_case_id, filtered_db_write_keys)
             ],
             fetch_type=FetchType.FIRST_SEEN,
         )
 
         new_results_to_cache.update(db_write_key_results.get_mapped_key_strings_to_ints())
-        indexer_cache.set_many(new_results_to_cache)
+        indexer_cache.set_many(new_results_to_cache, use_case_id.value)
 
-        return cache_key_results.merge(db_read_key_results).merge(db_write_key_results)
+        return (
+            cache_key_results.merge(db_read_key_results)
+            .merge(db_write_key_results)
+            .merge(rate_limited_key_results)
+        )
 
-    def record(self, org_id: int, string: str) -> int:
+    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
         """Store a string and return the integer ID generated for it"""
-        result = self.bulk_record({org_id: {string}})
+        result = self.bulk_record(use_case_id=use_case_id, org_strings={org_id: {string}})
         return result[org_id][string]
 
-    def resolve(self, org_id: int, string: str) -> Optional[int]:
+    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
         """Lookup the integer ID for a string.
 
         Returns None if the entry cannot be found.
 
         """
         key = f"{org_id}:{string}"
-        result = indexer_cache.get(key)
+        result = indexer_cache.get(key, use_case_id.value)
+        table = self._table(use_case_id)
+
         if result and isinstance(result, int):
             metrics.incr(_INDEXER_CACHE_METRIC, tags={"cache_hit": "true", "caller": "resolve"})
             return result
 
         metrics.incr(_INDEXER_CACHE_METRIC, tags={"cache_hit": "false", "caller": "resolve"})
         try:
-            id: int = (
-                StringIndexerTable.objects.using_replica()
-                .get(organization_id=org_id, string=string)
-                .id
-            )
-        except StringIndexerTable.DoesNotExist:
+            id: int = table.objects.using_replica().get(organization_id=org_id, string=string).id
+        except table.DoesNotExist:
             return None
-        indexer_cache.set(key, id)
+        indexer_cache.set(key, id, use_case_id.value)
 
         return id
 
-    def reverse_resolve(self, id: int) -> Optional[str]:
+    def reverse_resolve(self, use_case_id: UseCaseKey, id: int) -> Optional[str]:
         """Lookup the stored string for a given integer ID.
 
         Returns None if the entry cannot be found.
         """
+        table = self._table(use_case_id)
         try:
-            string: str = StringIndexerTable.objects.get_from_cache(id=id, use_replica=True).string
-        except StringIndexerTable.DoesNotExist:
+            string: str = table.objects.get_from_cache(id=id, use_replica=True).string
+        except table.DoesNotExist:
             return None
 
         return string
+
+    def _table(self, use_case_id: UseCaseKey) -> IndexerTable:
+        return TABLE_MAPPING[get_ingest_config(use_case_id).db_model]
 
 
 class StaticStringsIndexerDecorator(StringIndexer):
@@ -203,10 +232,9 @@ class StaticStringsIndexerDecorator(StringIndexer):
     def __init__(self) -> None:
         self.indexer = PGStringIndexerV2()
 
-    def _get_db_records(self, db_keys: KeyCollection) -> Any:
-        return self.indexer._get_db_records(db_keys)
-
-    def bulk_record(self, org_strings: Mapping[int, Set[str]]) -> KeyResults:
+    def bulk_record(
+        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
+    ) -> KeyResults:
         static_keys = KeyCollection(org_strings)
         static_key_results = KeyResults()
         for org_id, string in static_keys.as_tuples():
@@ -221,21 +249,23 @@ class StaticStringsIndexerDecorator(StringIndexer):
         if org_strings_left.size == 0:
             return static_key_results
 
-        indexer_results = self.indexer.bulk_record(org_strings_left.mapping)
+        indexer_results = self.indexer.bulk_record(
+            use_case_id=use_case_id, org_strings=org_strings_left.mapping
+        )
 
         return static_key_results.merge(indexer_results)
 
-    def record(self, org_id: int, string: str) -> int:
+    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
-        return self.indexer.record(org_id, string)
+        return self.indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)
 
-    def resolve(self, org_id: int, string: str) -> Optional[int]:
+    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
-        return self.indexer.resolve(org_id, string)
+        return self.indexer.resolve(use_case_id=use_case_id, org_id=org_id, string=string)
 
-    def reverse_resolve(self, id: int) -> Optional[str]:
+    def reverse_resolve(self, use_case_id: UseCaseKey, id: int) -> Optional[str]:
         if id in REVERSE_SHARED_STRINGS:
             return REVERSE_SHARED_STRINGS[id]
-        return self.indexer.reverse_resolve(id)
+        return self.indexer.reverse_resolve(use_case_id=use_case_id, id=id)

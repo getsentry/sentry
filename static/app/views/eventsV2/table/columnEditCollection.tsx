@@ -7,7 +7,7 @@ import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import Input from 'sentry/components/forms/controls/input';
+import Input from 'sentry/components/input';
 import {getOffsetOfElement} from 'sentry/components/performance/waterfall/utils';
 import {IconAdd, IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -611,7 +611,7 @@ class ColumnEditCollection extends Component<Props, State> {
         <RowContainer showAliasField={showAliasField} singleColumn={singleColumn}>
           <Actions gap={1} showAliasField={showAliasField}>
             <Button
-              size="small"
+              size="sm"
               aria-label={t('Add a Column')}
               onClick={this.handleAddColumn}
               title={title}
@@ -622,7 +622,7 @@ class ColumnEditCollection extends Component<Props, State> {
             </Button>
             {source !== WidgetType.ISSUE && source !== WidgetType.RELEASE && (
               <Button
-                size="small"
+                size="sm"
                 aria-label={t('Add an Equation')}
                 onClick={this.handleAddEquation}
                 title={title}

@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Callable, Dict, List, Mapping, Match, Optional, Set, Tuple, Union, cast
 
 import sentry_sdk
@@ -16,6 +16,7 @@ from snuba_sdk.function import CurriedFunction, Function
 from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 from snuba_sdk.query import Query
 
+from sentry import options
 from sentry.api.event_search import (
     AggregateFilter,
     ParenExpression,
@@ -40,12 +41,14 @@ from sentry.models.project import Project
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
     DRY_RUN_COLUMNS,
+    DURATION_UNITS,
     EQUALITY_OPERATORS,
     METRICS_GRANULARITIES,
     METRICS_MAX_LIMIT,
     NO_CONVERSION_FIELDS,
     PROJECT_THRESHOLD_CONFIG_ALIAS,
     QUERY_TIPS,
+    SIZE_UNITS,
     TAG_KEY_RE,
     TIMESTAMP_FIELDS,
     TREND_FUNCTION_TYPE_MAP,
@@ -74,7 +77,9 @@ from sentry.search.events.types import (
     WhereType,
 )
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
+from sentry.snuba.metrics.utils import MetricMeta
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
 from sentry.utils.snuba import (
     DATASETS,
@@ -96,6 +101,7 @@ class QueryBuilder:
         params: ParamsType,
         query: Optional[str] = None,
         selected_columns: Optional[List[str]] = None,
+        groupby_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
         auto_fields: bool = False,
@@ -162,6 +168,7 @@ class QueryBuilder:
             query=query,
             use_aggregate_conditions=use_aggregate_conditions,
             selected_columns=selected_columns,
+            groupby_columns=groupby_columns,
             equations=equations,
             orderby=orderby,
         )
@@ -192,6 +199,7 @@ class QueryBuilder:
         query: Optional[str] = None,
         use_aggregate_conditions: bool = False,
         selected_columns: Optional[List[str]] = None,
+        groupby_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
     ) -> None:
@@ -210,7 +218,7 @@ class QueryBuilder:
         with sentry_sdk.start_span(op="QueryBuilder", description="resolve_orderby"):
             self.orderby = self.resolve_orderby(orderby)
         with sentry_sdk.start_span(op="QueryBuilder", description="resolve_groupby"):
-            self.groupby = self.resolve_groupby()
+            self.groupby = self.resolve_groupby(groupby_columns)
 
     def load_config(
         self,
@@ -228,7 +236,7 @@ class QueryBuilder:
             self.config = DiscoverDatasetConfig(self)
         elif self.dataset == Dataset.Sessions:
             self.config = SessionsDatasetConfig(self)
-        elif self.dataset == Dataset.Metrics:
+        elif self.dataset in [Dataset.Metrics, Dataset.PerformanceMetrics]:
             self.config = MetricsDatasetConfig(self)
         else:
             raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
@@ -649,7 +657,9 @@ class QueryBuilder:
             return snql_function.snql_aggregate(arguments, alias)
         return None
 
-    def resolve_division(self, dividend: SelectType, divisor: SelectType, alias: str) -> SelectType:
+    def resolve_division(
+        self, dividend: SelectType, divisor: SelectType, alias: str, fallback: Optional[Any] = None
+    ) -> SelectType:
         return Function(
             "if",
             [
@@ -664,7 +674,7 @@ class QueryBuilder:
                         divisor,
                     ],
                 ),
-                None,
+                fallback,
             ],
             alias,
         )
@@ -765,13 +775,24 @@ class QueryBuilder:
         else:
             return self.resolve_field(field, alias=alias)
 
-    def resolve_groupby(self) -> List[SelectType]:
+    def resolve_groupby(self, groupby_columns: Optional[List[str]] = None) -> List[SelectType]:
         if self.aggregates:
             self.validate_aggregate_arguments()
+            groupby_columns = (
+                [self.resolve_column(column) for column in groupby_columns]
+                if groupby_columns
+                else []
+            )
             return [
-                c
-                for c in self.columns
-                if c not in self.aggregates and not self.is_equation_column(c)
+                column
+                for column in self.columns
+                if column not in self.aggregates and not self.is_equation_column(column)
+            ] + [
+                column
+                for column in groupby_columns
+                if column not in self.aggregates
+                and not self.is_equation_column(column)
+                and column not in self.columns
             ]
         else:
             return []
@@ -957,11 +978,14 @@ class QueryBuilder:
         else:
             return [operator(conditions=combined_conditions)]
 
+    def resolve_aggregate_value(self, aggregate_filter: AggregateFilter) -> SearchValue:
+        return aggregate_filter.value
+
     def convert_aggregate_filter_to_condition(
         self, aggregate_filter: AggregateFilter
     ) -> Optional[WhereType]:
         name = aggregate_filter.key.name
-        value = aggregate_filter.value.value
+        value = self.resolve_aggregate_value(aggregate_filter).value
 
         value = (
             int(to_timestamp(value))
@@ -1058,7 +1082,9 @@ class QueryBuilder:
         # Tags are never null, but promoted tags are columns and so can be null.
         # To handle both cases, use `ifNull` to convert to an empty string and
         # compare so we need to check for empty values.
-        if isinstance(lhs, Column) and lhs.subscriptable == "tags":
+        is_tag = isinstance(lhs, Column) and lhs.subscriptable == "tags"
+        is_context = isinstance(lhs, Column) and lhs.subscriptable == "contexts"
+        if is_tag:
             if operator not in ["IN", "NOT IN"] and not isinstance(value, str):
                 sentry_sdk.set_tag("query.lhs", lhs)
                 sentry_sdk.set_tag("query.rhs", value)
@@ -1068,7 +1094,7 @@ class QueryBuilder:
 
         # Handle checks for existence
         if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
-            if search_filter.key.is_tag:
+            if is_tag or is_context:
                 return Condition(lhs, Op(search_filter.operator), value)
             else:
                 # If not a tag, we can just check that the column is null.
@@ -1154,14 +1180,14 @@ class QueryBuilder:
         return function in self.function_converter
 
     def parse_function(self, match: Match[str]) -> Tuple[str, Optional[str], List[str], str]:
-        """Given a FUNCTION_PATTERN match, seperate the function name, arguments
+        """Given a FUNCTION_PATTERN match, separate the function name, arguments
         and alias out
         """
         raw_function = match.group("function")
         function, combinator = parse_combinator(raw_function)
 
         if not self.is_function(function):
-            raise InvalidSearchQuery(f"{function} is not a valid function")
+            raise self.config.missing_function_error(f"{function} is not a valid function")
 
         arguments = parse_arguments(function, match.group("columns"))
         alias: Union[str, Any, None] = match.group("alias")
@@ -1245,6 +1271,7 @@ class UnresolvedQuery(QueryBuilder):
         query: Optional[str] = None,
         use_aggregate_conditions: bool = False,
         selected_columns: Optional[List[str]] = None,
+        groupby_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
     ) -> None:
@@ -1288,6 +1315,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         query: Optional[str] = None,
         use_aggregate_conditions: bool = False,
         selected_columns: Optional[List[str]] = None,
+        groupby_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
     ) -> None:
@@ -1519,13 +1547,13 @@ class HistogramQueryBuilder(QueryBuilder):
         histogram_params: HistogramParams,
         key_column: Optional[str],
         field_names: Optional[List[Union[str, Any, None]]],
-        groupby: Optional[List[str]],
+        groupby_columns: Optional[List[str]],
         *args: Any,
         **kwargs: Any,
     ):
         kwargs["functions_acl"] = kwargs.get("functions_acl", []) + self.base_function_acl
         super().__init__(*args, **kwargs)
-        self.additional_groupby = groupby
+        self.additional_groupby = groupby_columns
         selected_columns = kwargs["selected_columns"]
 
         resolved_histogram = self.resolve_column(histogram_column)
@@ -1553,15 +1581,7 @@ class HistogramQueryBuilder(QueryBuilder):
             OrderBy(resolved_histogram, Direction.ASC)
         ]
 
-        self.groupby = self.resolve_groupby()
-        self.groupby = self.resolve_additional_groupby()
-
-    def resolve_additional_groupby(self) -> List[SelectType]:
-        base_groupby = self.groupby
-        if base_groupby is not None and self.additional_groupby is not None:
-            base_groupby += [self.resolve_column(field) for field in self.additional_groupby]
-
-        return base_groupby
+        self.groupby = self.resolve_groupby(groupby_columns)
 
 
 class SessionsQueryBuilder(QueryBuilder):
@@ -1575,6 +1595,9 @@ class MetricsQueryBuilder(QueryBuilder):
     def __init__(
         self,
         *args: Any,
+        # Datasets are currently a bit confusing; Dataset.Metrics is actually release health/sessions
+        # Dataset.PerformanceMetrics is MEP. TODO: rename Dataset.Metrics to Dataset.ReleaseMetrics or similar
+        dataset: Optional[Dataset] = None,
         allow_metric_aggregates: Optional[bool] = False,
         dry_run: Optional[bool] = False,
         **kwargs: Any,
@@ -1585,12 +1608,15 @@ class MetricsQueryBuilder(QueryBuilder):
         self.metric_ids: Set[int] = set()
         self.allow_metric_aggregates = allow_metric_aggregates
         self._indexer_cache: Dict[str, Optional[int]] = {}
+        self._custom_measurement_cache: Optional[List[MetricMeta]] = None
         # Don't do any of the actions that would impact performance in anyway
         # Skips all indexer checks, and won't interact with clickhouse
         self.dry_run = dry_run
+        assert dataset is None or dataset in [Dataset.PerformanceMetrics, Dataset.Metrics]
         super().__init__(
-            # Dataset is always Metrics
-            Dataset.Metrics,
+            # TODO: defaulting to Metrics for now so I don't have to update incidents tests. Should be
+            # PerformanceMetrics
+            Dataset.Metrics if dataset is None else dataset,
             *args,
             **kwargs,
         )
@@ -1598,19 +1624,75 @@ class MetricsQueryBuilder(QueryBuilder):
             self.organization_id = self.params["organization_id"]
         else:
             raise InvalidSearchQuery("Organization id required to create a metrics query")
-        self.granularity = self.resolve_granularity()
+
+    @property
+    def is_performance(self) -> bool:
+        return self.dataset is Dataset.PerformanceMetrics
+
+    @property
+    def custom_measurement_map(self) -> List[MetricMeta]:
+        if self._custom_measurement_cache is None:
+            from sentry.snuba.metrics.datasource import get_custom_measurements
+
+            self._custom_measurement_cache = get_custom_measurements(
+                project_ids=self.params["project_id"],
+                organization_id=self.organization_id,
+                start=datetime.today() - timedelta(days=90),
+                end=datetime.today(),
+            )
+        return self._custom_measurement_cache
+
+    def resolve_query(
+        self,
+        query: Optional[str] = None,
+        use_aggregate_conditions: bool = False,
+        selected_columns: Optional[List[str]] = None,
+        groupby_columns: Optional[List[str]] = None,
+        equations: Optional[List[str]] = None,
+        orderby: Optional[List[str]] = None,
+    ) -> None:
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_time_conditions"):
+            # Has to be done early, since other conditions depend on start and end
+            self.resolve_time_conditions()
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_conditions"):
+            self.where, self.having = self.resolve_conditions(
+                query, use_aggregate_conditions=use_aggregate_conditions
+            )
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_granularity"):
+            # Needs to happen before params and after time conditions since granularity can change start&end
+            self.granularity = self.resolve_granularity()
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_params"):
+            # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
+            self.where += self.resolve_params()
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_columns"):
+            self.columns = self.resolve_select(selected_columns, equations)
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_orderby"):
+            self.orderby = self.resolve_orderby(orderby)
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_groupby"):
+            self.groupby = self.resolve_groupby(groupby_columns)
+
+        if len(self.metric_ids) > 0:
+            self.where.append(
+                # Metric id is intentionally sorted so we create consistent queries here both for testing & caching
+                Condition(Column("metric_id"), Op.IN, sorted(self.metric_ids))
+            )
 
     def resolve_column_name(self, col: str) -> str:
         if col.startswith("tags["):
             tag_match = TAG_KEY_RE.search(col)
             col = tag_match.group("tag") if tag_match else col
 
-        if col in DATASETS[Dataset.Metrics]:
-            return str(DATASETS[Dataset.Metrics][col])
+        if col in DATASETS[self.dataset]:
+            return str(DATASETS[self.dataset][col])
         tag_id = self.resolve_metric_index(col)
         if tag_id is None:
             raise InvalidSearchQuery(f"Unknown field: {col}")
-        return f"tags[{tag_id}]"
+        if self.is_performance and options.get(
+            "sentry-metrics.performance.tags-values-are-strings"
+        ):
+            return f"tags_raw[{tag_id}]"
+        else:
+            return f"tags[{tag_id}]"
 
     def column(self, name: str) -> Column:
         """Given an unresolved sentry name and return a snql column.
@@ -1683,6 +1765,7 @@ class MetricsQueryBuilder(QueryBuilder):
             duration
             >= 86400 * 30
         ):
+            self.start = self.start.replace(hour=0, minute=0, second=0, microsecond=0)
             granularity = 86400
         elif (
             # more than 3 days
@@ -1691,8 +1774,10 @@ class MetricsQueryBuilder(QueryBuilder):
         ):
             # Allow 30 minutes for the daily buckets
             if near_midnight(self.start) and near_midnight(self.end):
+                self.start = self.start.replace(hour=0, minute=0, second=0, microsecond=0)
                 granularity = 86400
             else:
+                self.start = self.start.replace(minute=0, second=0, microsecond=0)
                 granularity = 3600
         elif (
             # more than 12 hours
@@ -1701,9 +1786,8 @@ class MetricsQueryBuilder(QueryBuilder):
             and near_hour(self.start)
             and near_hour(self.end)
         ):
+            self.start = self.start.replace(minute=0, second=0, microsecond=0)
             granularity = 3600
-        # We're going from one random minute to another, we could use the 10s bucket, but no reason for that precision
-        # here
         else:
             granularity = 60
         return Granularity(granularity)
@@ -1713,14 +1797,14 @@ class MetricsQueryBuilder(QueryBuilder):
         conditions.append(Condition(self.column("organization_id"), Op.EQ, self.organization_id))
         return conditions
 
-    def resolve_query(self, *args: Any, **kwargs: Any) -> None:
-        super().resolve_query(*args, **kwargs)
-        # Optimization to add metric ids to the filter
-        if len(self.metric_ids) > 0:
-            self.where.append(
-                # Metric id is intentionally sorted so we create consistent queries here both for testing & caching
-                Condition(Column("metric_id"), Op.IN, sorted(self.metric_ids))
-            )
+    def resolve_aggregate_value(self, aggregate_filter: AggregateFilter) -> SearchValue:
+        unit = self.get_function_result_type(aggregate_filter.key.name)
+        value = aggregate_filter.value.value
+        if unit in SIZE_UNITS:
+            return SearchValue(SIZE_UNITS[unit] * value)
+        elif unit in DURATION_UNITS:
+            return SearchValue(DURATION_UNITS[unit] * value)
+        return aggregate_filter.value
 
     def resolve_having(
         self, parsed_terms: ParsedTerms, use_aggregate_conditions: bool
@@ -1783,17 +1867,25 @@ class MetricsQueryBuilder(QueryBuilder):
     def resolve_metric_index(self, value: str) -> Optional[int]:
         """Layer on top of the metric indexer so we'll only hit it at most once per value"""
         if value not in self._indexer_cache:
-            result = indexer.resolve(self.organization_id, value)
+            if self.is_performance:
+                use_case_id = UseCaseKey.PERFORMANCE
+            else:
+                use_case_id = UseCaseKey.RELEASE_HEALTH
+            result = indexer.resolve(use_case_id, self.organization_id, value)  # type: ignore
             self._indexer_cache[value] = result
 
         return self._indexer_cache[value]
 
-    def _resolve_tag_value(self, value: str) -> int:
+    def _resolve_tag_value(self, value: str) -> Union[int, str]:
+        if self.is_performance and options.get(
+            "sentry-metrics.performance.tags-values-are-strings"
+        ):
+            return value
         if self.dry_run:
             return -1
         result = self.resolve_metric_index(value)
         if result is None:
-            raise InvalidSearchQuery("Tag value was not found")
+            raise IncompatibleMetricsQuery("Tag value was not found")
         return result
 
     def _default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
@@ -1805,6 +1897,9 @@ class MetricsQueryBuilder(QueryBuilder):
         value = search_filter.value.value
 
         lhs = self.resolve_column(name)
+        # If this is an aliasedexpression, we don't need the alias here, just the expression
+        if isinstance(lhs, AliasedExpression):
+            lhs = lhs.exp
 
         # resolve_column will try to resolve this name with indexer, and if its a tag the Column will be tags[1]
         is_tag = isinstance(lhs, Column) and lhs.subscriptable == "tags"
@@ -1830,9 +1925,48 @@ class MetricsQueryBuilder(QueryBuilder):
                     "Filter on timestamp is outside of the selected date range."
                 )
 
-        # TODO(wmak): Need to handle `has` queries, basically check that tags.keys has the value?
+        # Handle checks for existence
+        if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
+            if is_tag:
+                return Condition(
+                    Function("has", [Column("tags.key"), self.resolve_metric_index(name)]),
+                    Op.EQ if search_filter.operator == "!=" else Op.NEQ,
+                    1,
+                )
 
         return Condition(lhs, Op(search_filter.operator), value)
+
+    def _resolve_environment_filter_value(self, value: str) -> int:
+        value_id: Optional[int] = self.config.resolve_value(f"{value}")
+        if value_id is None:
+            raise IncompatibleMetricsQuery(f"Environment: {value} was not found")
+
+        return value_id
+
+    def _environment_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        """All of this is copied from the parent class except for the addition of `resolve_value`
+
+        Going to live with the duplicated code since this will go away anyways once we move to the metric layer
+        """
+        # conditions added to env_conditions can be OR'ed
+        env_conditions = []
+        value = search_filter.value.value
+        values_set = set(value if isinstance(value, (list, tuple)) else [value])
+        # sorted for consistency
+        values = sorted(
+            self._resolve_environment_filter_value(value) if value else 0 for value in values_set
+        )
+        environment = self.column("environment")
+        if len(values) == 1:
+            operator = Op.EQ if search_filter.operator in EQUALITY_OPERATORS else Op.NEQ
+            env_conditions.append(Condition(environment, operator, values.pop()))
+        elif values:
+            operator = Op.IN if search_filter.operator in EQUALITY_OPERATORS else Op.NOT_IN
+            env_conditions.append(Condition(environment, operator, values))
+        if len(env_conditions) > 1:
+            return Or(conditions=env_conditions)
+        else:
+            return env_conditions[0]
 
     def get_snql_query(self) -> Request:
         self.validate_having_clause()
@@ -1857,8 +1991,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 select=[
                     column
                     for column in self.columns
-                    if not isinstance(column, CurriedFunction)
-                    or column in primary_framework.functions
+                    if column in primary_framework.functions or column not in self.aggregates
                 ],
                 array_join=self.array_join,
                 where=self.where,
@@ -1868,29 +2001,31 @@ class MetricsQueryBuilder(QueryBuilder):
                 limit=self.limit,
                 offset=self.offset,
                 limitby=self.limitby,
+                granularity=self.granularity,
             ),
             flags=Flags(turbo=self.turbo),
         )
 
     def _create_query_framework(self) -> Tuple[str, Dict[str, QueryFramework]]:
+        prefix = "generic_" if self.dataset is Dataset.PerformanceMetrics else ""
         query_framework: Dict[str, QueryFramework] = {
             "distribution": QueryFramework(
                 orderby=[],
                 having=[],
                 functions=self.distributions,
-                entity=Entity("metrics_distributions", sample=self.sample_rate),
+                entity=Entity(f"{prefix}metrics_distributions", sample=self.sample_rate),
             ),
             "counter": QueryFramework(
                 orderby=[],
                 having=[],
                 functions=self.counters,
-                entity=Entity("metrics_counters", sample=self.sample_rate),
+                entity=Entity(f"{prefix}metrics_counters", sample=self.sample_rate),
             ),
             "set": QueryFramework(
                 orderby=[],
                 having=[],
                 functions=self.sets,
-                entity=Entity("metrics_sets", sample=self.sample_rate),
+                entity=Entity(f"{prefix}metrics_sets", sample=self.sample_rate),
             ),
         }
         primary = None
@@ -2001,7 +2136,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 select = [
                     column
                     for column in self.columns
-                    if not isinstance(column, CurriedFunction) or column in query_details.functions
+                    if column in query_details.functions or column not in self.aggregates
                 ]
                 if groupby_values:
                     # We already got the groupby values we want, add them to the conditions to limit our results so we
@@ -2042,6 +2177,7 @@ class MetricsQueryBuilder(QueryBuilder):
                     limit=self.limit,
                     offset=offset,
                     limitby=self.limitby,
+                    granularity=self.granularity,
                 )
                 request = Request(
                     dataset=self.dataset.value,
@@ -2091,6 +2227,23 @@ class MetricsQueryBuilder(QueryBuilder):
             return 0
         else:
             return None
+
+
+class AlertMetricsQueryBuilder(MetricsQueryBuilder):
+    def __init__(
+        self,
+        *args: Any,
+        granularity: int,
+        **kwargs: Any,
+    ):
+        self._granularity = granularity
+        super().__init__(*args, **kwargs)
+
+    def resolve_limit(self, limit: Optional[int]) -> Optional[Limit]:
+        return None
+
+    def resolve_granularity(self) -> Granularity:
+        return Granularity(self._granularity)
 
 
 class HistogramMetricQueryBuilder(MetricsQueryBuilder):
@@ -2143,15 +2296,18 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         self,
         params: ParamsType,
         interval: int,
+        dataset: Optional[Dataset] = None,
         query: Optional[str] = None,
         selected_columns: Optional[List[str]] = None,
         allow_metric_aggregates: Optional[bool] = False,
         functions_acl: Optional[List[str]] = None,
         dry_run: Optional[bool] = False,
+        limit: Optional[int] = 10000,
     ):
         super().__init__(
             params=params,
             query=query,
+            dataset=dataset,
             selected_columns=selected_columns,
             allow_metric_aggregates=allow_metric_aggregates,
             auto_fields=False,
@@ -2165,6 +2321,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                     break
 
         self.time_column = self.resolve_time_column(interval)
+        self.limit = None if limit is None else Limit(limit)
 
         # This is a timeseries, the groupby will always be time
         self.groupby = [self.time_column]

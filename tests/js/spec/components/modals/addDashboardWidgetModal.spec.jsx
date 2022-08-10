@@ -171,6 +171,16 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       url: `/organizations/org-slug/metrics/meta/`,
       body: TestStubs.MetricsMeta(),
     });
+    MockApiClient.addMockResponse({
+      method: 'POST',
+      url: `/organizations/org-slug/recent-searches/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/tags/event.type/values/`,
+      body: [],
+    });
   });
 
   afterEach(() => {
@@ -253,7 +263,9 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
     // Change the search text on the first query.
     const input = wrapper.find('#smart-search-input').first();
-    input.simulate('change', {target: {value: 'color:blue'}}).simulate('blur');
+    input
+      .simulate('change', {target: {value: 'color:blue'}})
+      .simulate('keydown', {key: 'Enter'});
 
     jest.runAllTimers();
     jest.useRealTimers();
@@ -685,7 +697,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(
       wrapper
-        .find('WidgetQueriesForm SelectControl[name="orderby"] SingleValue div')
+        .find('WidgetQueriesForm SelectControl[name="orderby"] SingleValue')
+        .first()
         .text()
     ).toEqual('count() asc');
 

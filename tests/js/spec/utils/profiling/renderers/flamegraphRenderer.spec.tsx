@@ -6,12 +6,12 @@ import {
   makeFlamegraph,
 } from 'sentry-test/profiling/utils';
 
+import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphSearch';
 import {
   LightFlamegraphTheme,
   LightFlamegraphTheme as theme,
 } from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
@@ -182,10 +182,6 @@ describe('flamegraphRenderer', () => {
         getContext: jest.fn().mockReturnValue(context),
       }) as HTMLCanvasElement;
 
-      // @ts-ignore partial mock, we dont need the actual frame,
-      // only f0 matched a search result
-      const results: Record<string, FlamegraphFrame> = {f00: 1};
-
       const flamegraph = makeFlamegraph(
         {
           startValue: 0,
@@ -215,6 +211,10 @@ describe('flamegraphRenderer', () => {
         },
         [{name: 'f0'}, {name: 'f1'}]
       );
+
+      const results: FlamegraphSearch['results'] = new Map();
+      // @ts-ignore we just need a partial frame
+      results.set('f00', {});
 
       const flamegraphCanvas = new FlamegraphCanvas(canvas, vec2.fromValues(0, 0));
       const flamegraphView = new FlamegraphView({
@@ -276,7 +276,10 @@ describe('flamegraphRenderer', () => {
       });
       const renderer = new FlamegraphRenderer(canvas, flamegraph, theme);
 
-      renderer.draw(flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace));
+      renderer.draw(
+        flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace),
+        new Map()
+      );
       expect(context.drawArrays).toHaveBeenCalledTimes(2);
     });
   });

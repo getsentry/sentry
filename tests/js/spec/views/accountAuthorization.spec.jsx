@@ -1,6 +1,4 @@
-import * as PropTypes from 'prop-types';
-
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import AccountAuthorizations from 'sentry/views/settings/account/accountAuthorizations';
@@ -17,17 +15,10 @@ describe('AccountAuthorizations', function () {
       body: [],
     });
 
-    const wrapper = mountWithTheme(<AccountAuthorizations />, {
-      context: {
-        location: TestStubs.location(),
-        router: TestStubs.router(),
-      },
-      childContextTypes: {
-        location: PropTypes.object,
-        router: PropTypes.object,
-      },
+    const wrapper = render(<AccountAuthorizations />, {
+      context: TestStubs.routerContext(),
     });
 
-    expect(wrapper).toSnapshot();
+    expect(wrapper.container).toSnapshot();
   });
 });

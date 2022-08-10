@@ -14,6 +14,7 @@ import ReleasesList from 'sentry/views/releases/list/';
 import {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
 import {ReleasesSortOption} from 'sentry/views/releases/list/releasesSortOptions';
 import {ReleasesStatusOption} from 'sentry/views/releases/list/releasesStatusOptions';
+import {RouteContext} from 'sentry/views/routeContext';
 
 describe('ReleasesList', () => {
   const {organization, routerContext, router} = initializeOrg();
@@ -42,7 +43,7 @@ describe('ReleasesList', () => {
   let endpointMock, sessionApiMock;
 
   beforeEach(() => {
-    ProjectsStore.loadInitialData(organization.projects);
+    act(() => ProjectsStore.loadInitialData(organization.projects));
     endpointMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
       body: [
@@ -95,27 +96,46 @@ describe('ReleasesList', () => {
 
   it('displays the right empty state', async () => {
     let location;
+
     const project = TestStubs.Project({
       id: '3',
       slug: 'test-slug',
       name: 'test-name',
       features: ['releases'],
     });
-    const org = TestStubs.Organization({projects: [project]});
+    const projectWithouReleases = TestStubs.Project({
+      id: '4',
+      slug: 'test-slug-2',
+      name: 'test-name-2',
+      features: [],
+    });
+    const org = TestStubs.Organization({projects: [project, projectWithouReleases]});
     ProjectsStore.loadInitialData(org.projects);
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
       body: [],
     });
-
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sentry-apps/',
+      body: [],
+    });
     // does not have releases set up and no releases
     location = {query: {}};
-    const {rerender} = render(<ReleasesList location={location} {...props} />, {
-      context: routerContext,
-      organization,
-    });
-    expect(await screen.findByText('Demystify Releases')).toBeInTheDocument();
+    const {rerender} = render(
+      <RouteContext.Provider value={routerContext}>
+        <ReleasesList
+          location={location}
+          {...props}
+          selection={{...props.selection, projects: [4]}}
+        />
+      </RouteContext.Provider>,
+      {
+        context: routerContext,
+        organization,
+      }
+    );
+
+    expect(await screen.findByText('Set up Releases')).toBeInTheDocument();
     expect(screen.queryByTestId('release-panel')).not.toBeInTheDocument();
 
     // has releases set up and no releases
@@ -537,11 +557,11 @@ describe('ReleasesList', () => {
     });
     const smartSearchBar = await screen.findByTestId('smart-search-input');
 
-    fireEvent.change(smartSearchBar, {target: {value: 'sentry.semv'}});
-    fireEvent.submit(smartSearchBar);
+    userEvent.clear(smartSearchBar);
+    fireEvent.change(smartSearchBar, {target: {value: 'release'}});
 
     const autocompleteItems = await screen.findAllByTestId('search-autocomplete-item');
-    expect(autocompleteItems.at(0)).toHaveTextContent('release:');
+    expect(autocompleteItems.at(0)).toHaveTextContent('release');
 
     userEvent.clear(smartSearchBar);
     fireEvent.change(smartSearchBar, {target: {value: 'release.version:'}});

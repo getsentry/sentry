@@ -7,6 +7,7 @@ from hashlib import md5
 from typing import TypeVar
 from unittest import mock
 
+import freezegun
 import pytest
 from django.conf import settings
 from sentry_sdk import Hub
@@ -19,6 +20,8 @@ V = TypeVar("V")
 TEST_ROOT = os.path.normpath(
     os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir, os.pardir, "tests")
 )
+
+TEST_REDIS_DB = 9
 
 
 def pytest_configure(config):
@@ -110,10 +113,16 @@ def pytest_configure(config):
     settings.BROKER_BACKEND = "memory"
     settings.BROKER_URL = "memory://"
     settings.CELERY_ALWAYS_EAGER = False
+    settings.CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = True
+    settings.PICKLED_OBJECT_FIELD_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = True
     settings.CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
 
     settings.DEBUG_VIEWS = True
     settings.SERVE_UPLOADED_FILES = True
+
+    # Disable internal error collection during tests.
+    settings.SENTRY_PROJECT = None
+    settings.SENTRY_PROJECT_KEY = None
 
     settings.SENTRY_ENCRYPTION_SCHEMES = ()
 
@@ -130,17 +139,18 @@ def pytest_configure(config):
         settings.SENTRY_TSDB = "sentry.tsdb.redissnuba.RedisSnubaTSDB"
         settings.SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
 
-    if os.environ.get("DISABLE_TEST_SDK", False):
-        settings.SENTRY_SDK_CONFIG = {}
-
     if not hasattr(settings, "SENTRY_OPTIONS"):
         settings.SENTRY_OPTIONS = {}
 
     settings.SENTRY_OPTIONS.update(
         {
-            "redis.clusters": {"default": {"hosts": {0: {"db": 9}}}},
+            "redis.clusters": {"default": {"hosts": {0: {"db": TEST_REDIS_DB}}}},
             "mail.backend": "django.core.mail.backends.locmem.EmailBackend",
             "system.url-prefix": "http://testserver",
+            "system.base-hostname": "testserver",
+            "system.organization-base-hostname": "{slug}.{region}.testserver",
+            "system.organization-url-template": "http://{hostname}",
+            "system.region": "us",
             "system.secret-key": "a" * 52,
             "slack.client-id": "slack-client-id",
             "slack.client-secret": "slack-client-secret",
@@ -200,6 +210,7 @@ def pytest_configure(config):
     from sentry.runner.initializer import initialize_app
 
     initialize_app({"settings": settings, "options": None})
+    Hub.main.bind_client(None)
     register_extensions()
 
     from sentry.utils.redis import clusters
@@ -213,6 +224,8 @@ def pytest_configure(config):
     from sentry.celery import app  # NOQA
 
     http.DISALLOWED_IPS = set()
+
+    freezegun.configure(extend_ignore_list=["sentry.utils.retries"])
 
 
 def register_extensions():

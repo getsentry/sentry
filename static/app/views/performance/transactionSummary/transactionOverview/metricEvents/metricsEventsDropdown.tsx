@@ -1,5 +1,7 @@
+import {ReactNode} from 'react';
+
 import Feature from 'sentry/components/acl/feature';
-import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import CompactSelect from 'sentry/components/forms/compactSelect';
 import {t} from 'sentry/locale';
 import {
   AutoSampleState,
@@ -9,36 +11,37 @@ import {
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 
 interface MetricsEventsOption {
-  field: MEPState;
   label: string;
-  prefix: string;
+  prefix: ReactNode;
+  value: MEPState;
 }
 
 const autoTextMap: Record<AutoSampleState, string> = {
   [AutoSampleState.unset]: t('Auto'),
-  [AutoSampleState.metrics]: t('Auto (ingested)'),
-  [AutoSampleState.transactions]: t('Auto (stored)'),
+  [AutoSampleState.metrics]: t('Auto (metrics)'),
+  [AutoSampleState.transactions]: t('Auto (transactions)'),
 };
 
 function getOptions(mepContext: MetricsEnhancedSettingContext): MetricsEventsOption[] {
   const autoText = autoTextMap[mepContext.autoSampleState];
-  const prefix = t('Sample');
+
+  const prefix = <span>{t('Dataset')}</span>;
 
   return [
     {
-      field: MEPState.auto,
+      value: MEPState.auto,
       prefix,
       label: autoText,
     },
     {
-      field: MEPState.metricsOnly,
+      value: MEPState.metricsOnly,
       prefix,
-      label: t('Ingested only'),
+      label: t('Processed'),
     },
     {
-      field: MEPState.transactionsOnly,
+      value: MEPState.transactionsOnly,
       prefix,
-      label: t('Stored only'),
+      label: t('Indexed'),
     },
   ];
 }
@@ -57,23 +60,14 @@ function InnerDropdown() {
   const options = getOptions(mepSetting);
 
   const currentOption =
-    options.find(({field}) => field === mepSetting.metricSettingState) || options[0];
+    options.find(({value}) => value === mepSetting.metricSettingState) || options[0];
 
   return (
-    <DropdownControl
-      buttonProps={{prefix: currentOption.prefix}}
-      label={currentOption.label}
-    >
-      {options.map(option => (
-        <DropdownItem
-          key={option.field}
-          eventKey={option.field}
-          isActive={option.field === currentOption.field}
-          onSelect={key => mepSetting.setMetricSettingState(key)}
-        >
-          {option.label}
-        </DropdownItem>
-      ))}
-    </DropdownControl>
+    <CompactSelect
+      triggerProps={{prefix: currentOption.prefix}}
+      value={currentOption.value}
+      options={options}
+      onChange={opt => mepSetting.setMetricSettingState(opt.value)}
+    />
   );
 }

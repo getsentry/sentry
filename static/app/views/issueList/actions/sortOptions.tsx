@@ -57,11 +57,12 @@ const IssueListSortOptions = ({onSelect, sort, query}: Props) => {
     <Feature features={['issue-list-trend-sort']}>
       {({hasFeature: hasTrendSort}) => (
         <CompactSelect
+          size="sm"
           onChange={opt => onSelect(opt.value)}
           options={getSortOptions(sortKeys, hasTrendSort)}
           value={sortKey}
           triggerProps={{
-            size: 'xsmall',
+            size: 'xs',
             icon: <IconSort size="xs" />,
           }}
         />

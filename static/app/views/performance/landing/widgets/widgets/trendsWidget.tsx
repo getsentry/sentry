@@ -1,4 +1,5 @@
 import {Fragment, useMemo, useState} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter} from 'react-router';
 
 import Button from 'sentry/components/button';
@@ -109,7 +110,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
                     projectPlatforms: getSelectedProjectPlatforms(location, projects),
                   })
                 }
-                size="small"
+                size="sm"
                 data-test-id="view-all-button"
               >
                 {t('View All')}

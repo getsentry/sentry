@@ -1,4 +1,9 @@
-import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {
+  DashboardDetails,
+  DisplayType,
+  Widget,
+  WidgetType,
+} from 'sentry/views/dashboardsV2/types';
 import {
   constructWidgetFromQuery,
   eventViewFromWidget,
@@ -8,6 +13,8 @@ import {
   getNumEquations,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
+  hasUnsavedFilterChanges,
+  isCustomMeasurementWidget,
 } from 'sentry/views/dashboardsV2/utils';
 
 describe('Dashboards util', () => {
@@ -296,6 +303,95 @@ describe('Dashboards util', () => {
 
     it('returns 0 if the possible equations array is empty', function () {
       expect(getNumEquations([])).toBe(0);
+    });
+  });
+
+  describe('isCustomMeasurementWidget', function () {
+    it('returns false on a non custom measurement widget', function () {
+      const widget: Widget = {
+        title: 'Title',
+        interval: '5m',
+        displayType: DisplayType.LINE,
+        widgetType: WidgetType.DISCOVER,
+        queries: [
+          {
+            conditions: '',
+            fields: [],
+            aggregates: ['count()', 'p99(measurements.lcp)'],
+            columns: [],
+            name: 'widget',
+            orderby: '',
+          },
+        ],
+      };
+      expect(isCustomMeasurementWidget(widget)).toBe(false);
+    });
+
+    it('returns true on a custom measurement widget', function () {
+      const widget: Widget = {
+        title: 'Title',
+        interval: '5m',
+        displayType: DisplayType.LINE,
+        widgetType: WidgetType.DISCOVER,
+        queries: [
+          {
+            conditions: '',
+            fields: [],
+            aggregates: ['p99(measurements.custom.measurement)'],
+            columns: [],
+            name: 'widget',
+            orderby: '',
+          },
+        ],
+      };
+      expect(isCustomMeasurementWidget(widget)).toBe(true);
+    });
+  });
+
+  describe('hasUnsavedFilterChanges', function () {
+    it('ignores the order of projects', function () {
+      const initialDashboard = {
+        projects: [1, 2],
+      } as DashboardDetails;
+      const location = {
+        ...TestStubs.location(),
+        query: {
+          project: ['2', '1'],
+        },
+      };
+
+      expect(hasUnsavedFilterChanges(initialDashboard, location)).toBe(false);
+    });
+
+    it('ignores the order of environments', function () {
+      const initialDashboard = {
+        environment: ['alpha', 'beta'],
+      } as DashboardDetails;
+      const location = {
+        ...TestStubs.location(),
+        query: {
+          environment: ['beta', 'alpha'],
+        },
+      };
+
+      expect(hasUnsavedFilterChanges(initialDashboard, location)).toBe(false);
+    });
+
+    it('ignores the order of releases', function () {
+      const initialDashboard = {
+        filters: {
+          release: ['v1', 'v2'],
+        },
+      } as DashboardDetails;
+
+      expect(
+        hasUnsavedFilterChanges(initialDashboard, {
+          ...TestStubs.location(),
+          query: {
+            release: ['v2', 'v1'],
+          },
+        })
+      ).toBe(false);
     });
   });
 });

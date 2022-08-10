@@ -1,4 +1,5 @@
 from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.common.by import By
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.utils.retries import TimedRetryPolicy
@@ -47,7 +48,7 @@ class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
             selector = '[data-test-id="autocomplete-list"] [data-test-id="badge-display-name"]'
             self.browser.wait_until(selector)
 
-            return self.browser.find_elements_by_css_selector(selector)
+            return self.browser.find_elements(by=By.CSS_SELECTOR, value=selector)
 
         transition_urls = [
             OrganizationSwitchTest.url_creator(page, self.organization.slug)

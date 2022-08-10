@@ -3,13 +3,12 @@ from typing import Sequence
 
 from django.db.models import Count, Max
 from rest_framework import serializers
-from rest_framework.exceptions import PermissionDenied
 
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.constants import ALL_ACCESS_PROJECTS
-from sentry.discover.arithmetic import categorize_columns
+from sentry.discover.arithmetic import ArithmeticError, categorize_columns
 from sentry.discover.models import MAX_TEAM_KEY_TRANSACTIONS, TeamKeyTransaction
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Team
@@ -139,7 +138,7 @@ class DiscoverQuerySerializer(serializers.Serializer):
 
 
 class DiscoverSavedQuerySerializer(serializers.Serializer):
-    name = serializers.CharField(required=True)
+    name = serializers.CharField(required=True, max_length=255)
     projects = ListField(child=serializers.IntegerField(), required=False, default=[])
     start = serializers.DateTimeField(required=False, allow_null=True)
     end = serializers.DateTimeField(required=False, allow_null=True)
@@ -172,17 +171,9 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
     }
 
     def validate_projects(self, projects):
-        projects = set(projects)
+        from sentry.api.validators import validate_project_ids
 
-        # Don't need to check all projects or my projects
-        if projects == ALL_ACCESS_PROJECTS or len(projects) == 0:
-            return projects
-
-        # Check that there aren't projects in the query the user doesn't have access to
-        if len(projects - set(self.context["params"]["project_id"])) > 0:
-            raise PermissionDenied
-
-        return projects
+        return validate_project_ids(projects, self.context["params"]["project_id"])
 
     def validate(self, data):
         query = {}
@@ -229,7 +220,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
                     orderby=query.get("orderby"),
                 )
                 builder.get_snql_query().validate()
-            except InvalidSearchQuery as err:
+            except (InvalidSearchQuery, ArithmeticError) as err:
                 raise serializers.ValidationError(f"Cannot save invalid query: {err}")
 
         return {

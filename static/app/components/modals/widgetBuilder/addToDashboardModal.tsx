@@ -20,11 +20,16 @@ import {DateString, Organization, PageFilters, SelectValue} from 'sentry/types';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 import {
+  DashboardDetails,
   DashboardListItem,
   DisplayType,
   MAX_WIDGETS,
   Widget,
 } from 'sentry/views/dashboardsV2/types';
+import {
+  getSavedFiltersAsPageFilters,
+  getSavedPageFilters,
+} from 'sentry/views/dashboardsV2/utils';
 import {NEW_DASHBOARD_ID} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 
@@ -66,11 +71,50 @@ function AddToDashboardModal({
 }: Props) {
   const api = useApi();
   const [dashboards, setDashboards] = useState<DashboardListItem[] | null>(null);
+  const [selectedDashboard, setSelectedDashboard] = useState<DashboardDetails | null>(
+    null
+  );
   const [selectedDashboardId, setSelectedDashboardId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchDashboards(api, organization.slug).then(setDashboards);
-  }, []);
+    // Track mounted state so we dont call setState on unmounted components
+    let unmounted = false;
+
+    fetchDashboards(api, organization.slug).then(response => {
+      // If component has unmounted, dont set state
+      if (unmounted) {
+        return;
+      }
+
+      setDashboards(response);
+    });
+
+    return () => {
+      unmounted = true;
+    };
+  }, [api, organization.slug]);
+
+  useEffect(() => {
+    // Track mounted state so we dont call setState on unmounted components
+    let unmounted = false;
+
+    if (selectedDashboardId === NEW_DASHBOARD_ID || selectedDashboardId === null) {
+      setSelectedDashboard(null);
+    } else {
+      fetchDashboard(api, organization.slug, selectedDashboardId).then(response => {
+        // If component has unmounted, dont set state
+        if (unmounted) {
+          return;
+        }
+
+        setSelectedDashboard(response);
+      });
+    }
+
+    return () => {
+      unmounted = true;
+    };
+  }, [api, organization.slug, selectedDashboardId]);
 
   function handleGoToBuilder() {
     const pathname =
@@ -80,13 +124,19 @@ function AddToDashboardModal({
 
     router.push({
       pathname,
-      query: widgetAsQueryParams,
+      query: {
+        ...widgetAsQueryParams,
+        ...(organization.features.includes('dashboards-top-level-filter') &&
+        selectedDashboard
+          ? getSavedPageFilters(selectedDashboard)
+          : {}),
+      },
     });
     closeModal();
   }
 
   async function handleAddAndStayInDiscover() {
-    if (selectedDashboardId === null || selectedDashboardId === NEW_DASHBOARD_ID) {
+    if (selectedDashboard === null) {
       return;
     }
 
@@ -103,10 +153,9 @@ function AddToDashboardModal({
     };
 
     try {
-      const dashboard = await fetchDashboard(api, organization.slug, selectedDashboardId);
       const newDashboard = {
-        ...dashboard,
-        widgets: [...dashboard.widgets, newWidget],
+        ...selectedDashboard,
+        widgets: [...selectedDashboard.widgets, newWidget],
       };
 
       await updateDashboard(api, organization.slug, newDashboard);
@@ -127,9 +176,8 @@ function AddToDashboardModal({
       <Header closeButton>
         <h4>{t('Add to Dashboard')}</h4>
       </Header>
-
       <Body>
-        <SelectControlWrapper>
+        <Wrapper>
           <SelectControl
             disabled={dashboards === null}
             menuPlacement="auto"
@@ -159,8 +207,14 @@ function AddToDashboardModal({
               setSelectedDashboardId(option.value);
             }}
           />
-        </SelectControlWrapper>
-        {t('This is a preview of how the widget will appear in your dashboard.')}
+        </Wrapper>
+        <Wrapper>
+          {organization.features.includes('dashboards-top-level-filter')
+            ? t(
+                'Any conflicting filters from this query will be overridden by Dashboard filters. This is a preview of how the widget will appear in your dashboard.'
+              )
+            : t('This is a preview of how the widget will appear in your dashboard.')}
+        </Wrapper>
         <WidgetCard
           api={api}
           organization={organization}
@@ -168,7 +222,17 @@ function AddToDashboardModal({
           isEditing={false}
           isSorting={false}
           widgetLimitReached={false}
-          selection={selection}
+          selection={
+            organization.features.includes('dashboards-top-level-filter') &&
+            selectedDashboard
+              ? getSavedFiltersAsPageFilters(selectedDashboard)
+              : selection
+          }
+          dashboardFilters={
+            organization.features.includes('dashboards-top-level-filter')
+              ? selectedDashboard?.filters
+              : {}
+          }
           widget={widget}
           showStoredAlert
         />
@@ -199,7 +263,7 @@ function AddToDashboardModal({
 
 export default AddToDashboardModal;
 
-const SelectControlWrapper = styled('div')`
+const Wrapper = styled('div')`
   margin-bottom: ${space(2)};
 `;
 

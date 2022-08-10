@@ -36,8 +36,8 @@ class OrganizationSerializerTest(TestCase):
             "dashboards-edit",
             "discover-basic",
             "discover-query",
+            "duplicate-alert-rule",
             "event-attachments",
-            "images-loaded-v2",
             "integrations-alert-rule",
             "integrations-chat-unfurl",
             "integrations-event-hooks",
@@ -47,7 +47,6 @@ class OrganizationSerializerTest(TestCase):
             "integrations-ticket-rules",
             "invite-members",
             "invite-members-rate-limits",
-            "metric-alert-snql",
             "minute-resolution-sessions",
             "open-membership",
             "relay",
@@ -56,6 +55,8 @@ class OrganizationSerializerTest(TestCase):
             "sso-saml2",
             "symbol-sources",
             "team-insights",
+            "discover-frontend-use-events-endpoint",
+            "performance-frontend-use-events-endpoint",
         }
 
     @mock.patch("sentry.features.batch_has")

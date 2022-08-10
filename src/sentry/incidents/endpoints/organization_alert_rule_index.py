@@ -129,9 +129,11 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 ),
             )
             issue_rules = issue_rules.annotate(date_triggered=far_past_date)
+        alert_rules_count = alert_rules.count()
+        issue_rules_count = issue_rules.count()
         alert_rule_intermediary = CombinedQuerysetIntermediary(alert_rules, sort_key)
         rule_intermediary = CombinedQuerysetIntermediary(issue_rules, rule_sort_key)
-        return self.paginate(
+        response = self.paginate(
             request,
             paginator_cls=CombinedQuerysetPaginator,
             on_results=lambda x: serialize(x, request.user, CombinedRuleSerializer(expand=expand)),
@@ -141,6 +143,9 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             cursor_cls=StringCursor if case_insensitive else Cursor,
             case_insensitive=case_insensitive,
         )
+        response["X-Sentry-Issue-Rule-Hits"] = issue_rules_count
+        response["X-Sentry-Alert-Rule-Hits"] = alert_rules_count
+        return response
 
 
 class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):

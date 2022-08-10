@@ -22,9 +22,9 @@ import {
   AGGREGATIONS,
   Column,
   ColumnType,
+  ColumnValueType,
   explodeFieldString,
   Field,
-  FIELDS,
   getAggregateAlias,
   getColumnsAndAggregates,
   getEquation,
@@ -37,6 +37,12 @@ import {
 } from 'sentry/utils/discover/fields';
 import {DisplayModes, TOP_N} from 'sentry/utils/discover/types';
 import {getTitle} from 'sentry/utils/events';
+import {
+  DISCOVER_FIELDS,
+  FIELDS,
+  FieldValueType,
+  getFieldDefinition,
+} from 'sentry/utils/fields';
 import localStorage from 'sentry/utils/localStorage';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
@@ -97,7 +103,7 @@ export function decodeColumnOrder(
       column.isSortable = aggregate && aggregate.isSortable;
     } else if (col.kind === 'field') {
       if (FIELDS.hasOwnProperty(col.field)) {
-        column.type = FIELDS[col.field];
+        column.type = FIELDS[col.field].valueType as ColumnValueType;
       } else if (isMeasurement(col.field)) {
         column.type = measurementType(col.field);
       } else if (isSpanOperationBreakdownField(col.field)) {
@@ -179,13 +185,13 @@ function disableMacros(value: string | null | boolean | number) {
 export function downloadAsCsv(tableData, columnOrder, filename) {
   const {data} = tableData;
   const headings = columnOrder.map(column => column.name);
+  const keys = columnOrder.map(column => column.key);
 
   const csvContent = Papa.unparse({
     fields: headings,
     data: data.map(row =>
-      headings.map(col => {
-        col = getAggregateAlias(col);
-        return disableMacros(row[col]);
+      keys.map(key => {
+        return disableMacros(row[key]);
       })
     ),
   });
@@ -439,7 +445,8 @@ function generateExpandedConditions(
 type FieldGeneratorOpts = {
   organization: OrganizationSummary;
   aggregations?: Record<string, Aggregation>;
-  fields?: Record<string, ColumnType>;
+  customMeasurements?: {functions: string[]; key: string}[] | null;
+  fieldKeys?: string[];
   measurementKeys?: string[] | null;
   spanOperationBreakdownKeys?: string[];
   tagKeys?: string[] | null;
@@ -450,10 +457,10 @@ export function generateFieldOptions({
   tagKeys,
   measurementKeys,
   spanOperationBreakdownKeys,
+  customMeasurements,
   aggregations = AGGREGATIONS,
-  fields = FIELDS,
+  fieldKeys = DISCOVER_FIELDS,
 }: FieldGeneratorOpts) {
-  let fieldKeys = Object.keys(fields).sort();
   let functions = Object.keys(aggregations);
 
   // Strip tracing features if the org doesn't have access.
@@ -498,7 +505,8 @@ export function generateFieldOptions({
         kind: FieldValueKind.FIELD,
         meta: {
           name: field,
-          dataType: fields[field],
+          dataType: (getFieldDefinition(field)?.valueType ??
+            FieldValueType.STRING) as ColumnType,
         },
       },
     };
@@ -512,6 +520,25 @@ export function generateFieldOptions({
         value: {
           kind: FieldValueKind.MEASUREMENT,
           meta: {name: measurement, dataType: measurementType(measurement)},
+        },
+      };
+    });
+  }
+
+  if (customMeasurements !== undefined && customMeasurements !== null) {
+    customMeasurements.sort(({key: currentKey}, {key: nextKey}) =>
+      currentKey > nextKey ? 1 : currentKey === nextKey ? 0 : -1
+    );
+    customMeasurements.forEach(({key, functions: supportedFunctions}) => {
+      fieldOptions[`measurement:${key}`] = {
+        label: key,
+        value: {
+          kind: FieldValueKind.CUSTOM_MEASUREMENT,
+          meta: {
+            name: key,
+            dataType: measurementType(key),
+            functions: supportedFunctions,
+          },
         },
       };
     });
@@ -534,7 +561,7 @@ export function generateFieldOptions({
     tagKeys.sort();
     tagKeys.forEach(tag => {
       const tagValue =
-        fields.hasOwnProperty(tag) || AGGREGATIONS.hasOwnProperty(tag)
+        fieldKeys.includes(tag) || AGGREGATIONS.hasOwnProperty(tag)
           ? `tags[${tag}]`
           : tag;
       fieldOptions[`tag:${tag}`] = {

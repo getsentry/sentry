@@ -70,8 +70,8 @@ export interface ChoiceMapperProps extends DefaultProps {
    * Example - Selects differ for each of the items available:
    *
    * {
-   *   'my_object_value':  {'colum_key1': {...select1}, 'column_key2': {...select2}},
-   *   'other_object_val': {'colum_key1': {...select3}, 'column_key2': {...select4}},
+   *   'my_object_value':  {'column_key1': {...select1}, 'column_key2': {...select2}},
+   *   'other_object_val': {'column_key1': {...select3}, 'column_key2': {...select4}},
    * }
    */
   mappedSelectors: MappedSelectors;
@@ -178,7 +178,7 @@ export default class ChoiceMapper extends Component<ChoiceMapperFieldProps> {
           <DropdownButton
             icon={<IconAdd size="xs" isCircled />}
             isOpen={isOpen}
-            size="xsmall"
+            size="xs"
             disabled={disabled}
           >
             {addButtonText}
@@ -226,7 +226,7 @@ export default class ChoiceMapper extends Component<ChoiceMapperFieldProps> {
                   <Actions>
                     <Button
                       icon={<IconDelete />}
-                      size="small"
+                      size="sm"
                       disabled={disabled}
                       onClick={() => removeRow(itemKey)}
                       aria-label={t('Delete')}

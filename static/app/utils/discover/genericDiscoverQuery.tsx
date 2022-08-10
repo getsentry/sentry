@@ -61,6 +61,11 @@ type BaseDiscoverQueryProps = {
    */
   cursor?: string;
   /**
+   * Appends a raw string to query to be able to sidestep the tokenizer.
+   * @deprecated
+   */
+  forceAppendRawQueryString?: string;
+  /**
    * Record limit to get.
    */
   limit?: number;
@@ -173,7 +178,10 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
     const {cursor, limit, noPagination, referrer} = props;
     const payload = this.props.getRequestPayload
       ? this.props.getRequestPayload(props)
-      : props.eventView.getEventsAPIPayload(props.location);
+      : props.eventView.getEventsAPIPayload(
+          props.location,
+          props.forceAppendRawQueryString
+        );
 
     if (cursor) {
       payload.cursor = cursor;
@@ -324,7 +332,7 @@ export function doDiscoverQuery<T>(
   api: Client,
   url: string,
   params: DiscoverQueryRequestParams
-): Promise<[T, string | undefined, ResponseMeta | undefined]> {
+): Promise<[T, string | undefined, ResponseMeta<T> | undefined]> {
   return api.requestPromise(url, {
     method: 'GET',
     includeAllArgs: true,

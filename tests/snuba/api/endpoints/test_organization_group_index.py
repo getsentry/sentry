@@ -2227,7 +2227,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         """
         Test that ensures that if we basically know the next release when clicking on Resolved
         In Next Release because that release exists, then we can short circuit setting
-        GroupResolution to type "inNextRelease", and then having `clear_exrired_resolutions` run
+        GroupResolution to type "inNextRelease", and then having `clear_expired_resolutions` run
         once a new release is created to convert GroupResolution to in_release and set Activity.
         Basically we treat "ResolvedInNextRelease" as "ResolvedInRelease" when there is a release
         that was created after the last release associated with the group being resolved

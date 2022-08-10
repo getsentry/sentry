@@ -48,11 +48,10 @@ repos:
       log_file: '.artifacts/flake8.pycodestyle.log'
     - id: lint-requirements
       name: lint-requirements
-      entry: bin/lint-requirements
-      language: python
-      files: requirements-base.txt
+      entry: python -m tools.lint_requirements
+      language: system
+      files: requirements-frozen.txt
       pass_filenames: false
-      additional_dependencies: [packaging==21.3]
     - id: pyright
       name: pyright
       entry: pyright
@@ -63,8 +62,8 @@ repos:
       additional_dependencies: [ "pyright@1.1.186" ]
       args: [ '--project', 'pyrightconfig-commithook.json' ]
 
--   repo: https://github.com/sirosen/check-jsonschema
-    rev: 0.3.0
+-   repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.16.0
     hooks:
     - id: check-github-actions
     - id: check-github-workflows

@@ -1,20 +1,28 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {selectByValue} from 'sentry-test/select-new';
+import selectEvent from 'react-select-event';
+
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import CustomResolutionModal from 'sentry/components/customResolutionModal';
+import ConfigStore from 'sentry/stores/configStore';
 
-describe('CustomResolutionModal', function () {
+describe('CustomResolutionModal', () => {
   let releasesMock;
-  beforeEach(function () {
+  beforeEach(() => {
+    ConfigStore.init();
     releasesMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/releases/',
-      body: [TestStubs.Release()],
+      body: [TestStubs.Release({authors: [TestStubs.User()]})],
     });
   });
 
-  it('can select a version', async function () {
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+    ConfigStore.teardown();
+  });
+
+  it('can select a version', async () => {
     const onSelected = jest.fn();
-    const wrapper = mountWithTheme(
+    render(
       <CustomResolutionModal
         Header={p => p.children}
         Body={p => p.children}
@@ -25,25 +33,34 @@ describe('CustomResolutionModal', function () {
         closeModal={jest.fn()}
       />
     );
-
     expect(releasesMock).toHaveBeenCalled();
-    await tick();
-    wrapper.update();
 
-    expect(wrapper.find('Select').prop('options')).toEqual([
-      expect.objectContaining({
-        value: 'sentry-android-shop@1.2.0',
-        label: expect.anything(),
-      }),
-    ]);
+    selectEvent.openMenu(screen.getByText('e.g. 1.0.4'));
+    expect(await screen.findByText('1.2.0')).toBeInTheDocument();
+    userEvent.click(screen.getByText('1.2.0'));
 
-    selectByValue(wrapper, 'sentry-android-shop@1.2.0', {
-      selector: 'SelectAsyncControl[name="version"]',
-    });
-
-    wrapper.find('form').simulate('submit');
+    userEvent.click(screen.getByText('Save Changes'));
     expect(onSelected).toHaveBeenCalledWith({
       inRelease: 'sentry-android-shop@1.2.0',
     });
+  });
+
+  it('indicates which releases had commits from the user', async () => {
+    const user = TestStubs.User();
+    ConfigStore.set('user', user);
+    render(
+      <CustomResolutionModal
+        Header={p => p.children}
+        Body={p => p.children}
+        Footer={p => p.children}
+        orgSlug="org-slug"
+        projectSlug="project-slug"
+        closeModal={jest.fn()}
+      />
+    );
+    expect(releasesMock).toHaveBeenCalled();
+
+    selectEvent.openMenu(screen.getByText('e.g. 1.0.4'));
+    expect(await screen.findByText(/You committed/)).toBeInTheDocument();
   });
 });

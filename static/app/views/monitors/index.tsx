@@ -14,12 +14,7 @@ const Body = styled('div')`
 const MonitorsContainer: React.FC = ({children}) => {
   return (
     <Feature features={['monitors']} renderDisabled>
-      <PageFiltersContainer
-        showEnvironmentSelector={false}
-        showDateSelector={false}
-        resetParamsOnChange={['cursor']}
-        hideGlobalHeader
-      >
+      <PageFiltersContainer>
         <PageContent>
           <Body>{children}</Body>
         </PageContent>

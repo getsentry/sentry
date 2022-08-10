@@ -1,13 +1,12 @@
-import type {DebugImage} from 'sentry/components/events/interfaces/debugMeta/types';
 import type {TraceContextType} from 'sentry/components/events/interfaces/spans/types';
 import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import type {PlatformKey} from 'sentry/data/platformCategories';
 
 import type {RawCrumb} from './breadcrumbs';
+import type {Image} from './debugImage';
 import type {IssueAttachment} from './group';
 import type {Release} from './release';
 import type {RawStacktrace, StackTraceMechanism, StacktraceType} from './stacktrace';
-
 // TODO(epurkhiser): objc and cocoa should almost definitely be moved into PlatformKey
 export type PlatformType = PlatformKey | 'objc' | 'cocoa';
 
@@ -210,11 +209,13 @@ export enum EntryType {
   THREADS = 'threads',
   DEBUGMETA = 'debugmeta',
   SPANS = 'spans',
+  SPANTREE = 'spantree',
+  PERFORMANCE = 'performance',
 }
 
 type EntryDebugMeta = {
   data: {
-    images: Array<DebugImage>;
+    images: Array<Image | null>;
   };
   type: EntryType.DEBUGMETA;
 };
@@ -248,6 +249,18 @@ type EntrySpans = {
   type: EntryType.SPANS; // data is not used
 };
 
+export type EntrySpanTree = {
+  data: {
+    focusedSpanIds: string[];
+  };
+  type: EntryType.SPANTREE;
+};
+
+export type EntryPerformance = {
+  data: any; // data is not used
+  type: EntryType.PERFORMANCE;
+};
+
 type EntryMessage = {
   data: {
     formatted: string;
@@ -263,14 +276,14 @@ export type EntryRequest = {
     cookies?: [key: string, value: string][];
     data?: string | null | Record<string, any> | [key: string, value: any][];
     env?: Record<string, string>;
-    fragment?: string;
+    fragment?: string | null;
     headers?: [key: string, value: string][];
     inferredContentType?:
       | null
       | 'application/json'
       | 'application/x-www-form-urlencoded'
       | 'multipart/form-data';
-    query?: [key: string, value: string][];
+    query?: [key: string, value: string][] | string;
   };
   type: EntryType.REQUEST;
 };
@@ -297,6 +310,8 @@ export type Entry =
   | EntryException
   | EntryStacktrace
   | EntrySpans
+  | EntrySpanTree
+  | EntryPerformance
   | EntryMessage
   | EntryRequest
   | EntryTemplate
@@ -306,9 +321,10 @@ export type Entry =
 // Contexts
 type RuntimeContext = {
   type: 'runtime';
-  version: number;
   build?: string;
   name?: string;
+  raw_description?: string;
+  version?: number;
 };
 
 type DeviceContext = {
@@ -330,11 +346,14 @@ type EventContexts = {
   client_os?: OSContext;
   device?: DeviceContext;
   os?: OSContext;
+  // TODO (udameli): add better types here
+  // once perf issue data shape is more clear
+  performance_issue?: any;
   runtime?: RuntimeContext;
   trace?: TraceContextType;
 };
 
-export type Measurement = {value: number};
+export type Measurement = {value: number; unit?: string};
 
 export type EventTag = {key: string; value: string};
 
@@ -347,7 +366,7 @@ export type EventUser = {
   username?: string | null;
 };
 
-type EventBase = {
+interface EventBase {
   contexts: EventContexts;
   crashFile: IssueAttachment | null;
   culprit: string;
@@ -376,6 +395,7 @@ type EventBase = {
     | EventOrGroupType.EXPECTSTAPLE
     | EventOrGroupType.HPKP;
   user: EventUser | null;
+  _meta?: Record<string, any>;
   context?: Record<string, any>;
   dateCreated?: string;
   device?: Record<string, any>;
@@ -396,29 +416,32 @@ type EventBase = {
   } | null;
   sdkUpdates?: Array<SDKUpdatesSuggestion>;
   userReport?: any;
-};
+}
 
-export type EventTransaction = Omit<EventBase, 'entries' | 'type'> & {
+interface TraceEventContexts extends EventContexts {
+  trace?: TraceContextType;
+}
+export interface EventTransaction
+  extends Omit<EventBase, 'entries' | 'type' | 'contexts'> {
+  contexts: TraceEventContexts;
   endTimestamp: number;
   entries: (EntrySpans | EntryRequest)[];
   startTimestamp: number;
   type: EventOrGroupType.TRANSACTION;
-  contexts?: {
-    trace?: TraceContextType;
-  };
-  title?: string;
-};
+}
 
-export type EventError = Omit<EventBase, 'entries' | 'type'> & {
+export interface EventError extends Omit<EventBase, 'entries' | 'type'> {
   entries: (
     | EntryException
     | EntryStacktrace
     | EntryRequest
     | EntryThreads
     | EntryDebugMeta
+    | EntryPerformance
+    | EntrySpanTree
   )[];
   type: EventOrGroupType.ERROR;
-};
+}
 
 export type Event = EventError | EventTransaction | EventBase;
 

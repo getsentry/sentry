@@ -58,5 +58,5 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
         recipient_member = self.get_member(recipient)
         return (
             "You are receiving this notification because you're listed as an organization "
-            f"{self.get_role_string(recipient_member)} | <{settings_url}|Notification Settings>"
+            f"{self.get_role_string(recipient_member)} | {settings_url}"
         )

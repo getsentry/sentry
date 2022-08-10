@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+import pytest
 import pytz
 import requests
 import responses
@@ -12,13 +13,15 @@ from sentry.api.serializers import serialize
 from sentry.incidents.models import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
 from sentry.models import AuditLogEntry, Integration
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
-from sentry.snuba.models import QueryDatasets
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils import json
 from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
+
+pytestmark = [pytest.mark.sentry_metrics, pytest.mark.broken_under_tags_values_as_strings]
 
 
 class AlertRuleListEndpointTest(APITestCase):
@@ -52,7 +55,7 @@ class AlertRuleListEndpointTest(APITestCase):
     def test_no_perf_alerts(self):
         self.create_team(organization=self.organization, members=[self.user])
         alert_rule = self.create_alert_rule()
-        perf_alert_rule = self.create_alert_rule(query="p95", dataset=QueryDatasets.TRANSACTIONS)
+        perf_alert_rule = self.create_alert_rule(query="p95", dataset=Dataset.Transactions)
         self.login_as(self.user)
         with self.feature("organizations:incidents"):
             resp = self.get_success_response(self.organization.slug, self.project.slug)
@@ -467,7 +470,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
     def test_no_perf_alerts(self):
         self.create_team(organization=self.organization, members=[self.user])
         self.create_alert_rule()
-        perf_alert_rule = self.create_alert_rule(query="p95", dataset=QueryDatasets.TRANSACTIONS)
+        perf_alert_rule = self.create_alert_rule(query="p95", dataset=Dataset.Transactions)
         self.login_as(self.user)
         with self.feature("organizations:incidents"):
             resp = self.get_success_response(self.organization.slug, self.project.slug)
@@ -736,7 +739,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
         assert resp.data == serialize(alert_rule, self.user)
 
     def test_simple_crash_rate_alerts_for_sessions_drops_event_types(self):
-        self.valid_alert_rule["eventTypes"] = ["sessions", "events"]
+        self.valid_alert_rule["eventTypes"] = ["error"]
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             resp = self.get_success_response(
                 self.organization.slug, self.project.slug, status_code=201, **self.valid_alert_rule
@@ -765,8 +768,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
             )
         assert (
             resp.data["nonFieldErrors"][0]
-            == f"Only crash free percentage queries are supported for subscriptions"
-            f"over the {self.valid_alert_rule['dataset']} dataset"
+            == "Only crash free percentage queries are supported for crash rate alerts"
         )
 
     @patch(
@@ -830,4 +832,6 @@ class MetricsCrashRateAlertCreationTest(AlertRuleCreateEndpointTestCrashRateAler
             "init",
             "crashed",
         ]:
-            indexer.record(self.organization.id, tag)
+            indexer.record(
+                use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=self.organization.id, string=tag
+            )

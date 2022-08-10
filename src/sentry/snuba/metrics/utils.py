@@ -31,6 +31,8 @@ __all__ = (
     "combine_dictionary_of_list_values",
     "get_intervals",
     "OP_REGEX",
+    "CUSTOM_MEASUREMENT_DATASETS",
+    "DATASET_COLUMNS",
 )
 
 
@@ -75,7 +77,24 @@ MetricOperationType = Literal[
     "p99",
     "histogram",
 ]
-MetricUnit = Literal["seconds"]
+MetricUnit = Literal[
+    "nanosecond",
+    "microsecond",
+    "millisecond",
+    "second",
+    "minute",
+    "hour",
+    "day",
+    "week",
+    "bit",
+    "byte",
+    "kibibyte",
+    "mebibyte",
+    "gibibyte",
+    "tebibyte",
+    "pebibyte",
+    "exbibyte",
+]
 #: The type of metric, which determines the snuba entity to query
 MetricType = Literal["counter", "set", "distribution", "numeric"]
 
@@ -97,6 +116,11 @@ OP_TO_SNUBA_FUNCTION = {
     },
     "metrics_sets": {"count_unique": "uniqIf"},
 }
+GENERIC_OP_TO_SNUBA_FUNCTION = {
+    "generic_metrics_counters": OP_TO_SNUBA_FUNCTION["metrics_counters"],
+    "generic_metrics_distributions": OP_TO_SNUBA_FUNCTION["metrics_distributions"],
+    "generic_metrics_sets": OP_TO_SNUBA_FUNCTION["metrics_sets"],
+}
 
 
 def generate_operation_regex():
@@ -115,15 +139,21 @@ OP_REGEX = generate_operation_regex()
 AVAILABLE_OPERATIONS = {
     type_: sorted(mapping.keys()) for type_, mapping in OP_TO_SNUBA_FUNCTION.items()
 }
+AVAILABLE_GENERIC_OPERATIONS = {
+    type_: sorted(mapping.keys()) for type_, mapping in GENERIC_OP_TO_SNUBA_FUNCTION.items()
+}
 OPERATIONS_TO_ENTITY = {
     op: entity for entity, operations in AVAILABLE_OPERATIONS.items() for op in operations
 }
 
-# ToDo add guages/summaries
+# ToDo add gauges/summaries
 METRIC_TYPE_TO_ENTITY: Mapping[MetricType, EntityKey] = {
     "counter": EntityKey.MetricsCounters,
     "set": EntityKey.MetricsSets,
     "distribution": EntityKey.MetricsDistributions,
+    "generic_counter": EntityKey.GenericMetricsCounters,
+    "generic_set": EntityKey.GenericMetricsSets,
+    "generic_distribution": EntityKey.GenericMetricsDistributions,
 }
 
 FIELD_ALIAS_MAPPINGS = {"project": "project_id"}
@@ -143,6 +173,7 @@ class MetricMeta(TypedDict):
     type: MetricType
     operations: Collection[MetricOperationType]
     unit: Optional[MetricUnit]
+    metric_id: Optional[int]
 
 
 class MetricMetaWithTagKeys(MetricMeta):
@@ -183,6 +214,10 @@ DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[flo
 }
 UNIT_TO_TYPE = {"sessions": "count", "percentage": "percentage", "users": "count"}
 UNALLOWED_TAGS = {"session.status"}
+DATASET_COLUMNS = {"project_id", "metric_id"}
+
+# Custom measurements are always extracted as a distribution
+CUSTOM_MEASUREMENT_DATASETS = {"generic_distribution"}
 
 
 def combine_dictionary_of_list_values(main_dict, other_dict):

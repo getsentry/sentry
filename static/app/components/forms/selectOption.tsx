@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import {components as selectComponents} from 'react-select';
+import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import MenuListItem from 'sentry/components/menuListItem';
-import Tooltip from 'sentry/components/tooltip';
 import {IconCheckmark} from 'sentry/icons';
 import {defined} from 'sentry/utils';
 
@@ -22,16 +22,10 @@ function SelectOption(props: Props) {
     isFocused,
     isDisabled,
     innerProps,
+    innerRef,
   } = props;
-  const {showDividers} = selectProps;
-  const {
-    value,
-    tooltip,
-    tooltipOptions = {delay: 500},
-    selectionMode,
-    priority,
-    ...itemProps
-  } = data;
+  const {showDividers, size} = selectProps;
+  const {value, selectionMode, priority, ...itemProps} = data;
 
   const isMultiple = defined(selectionMode) ? selectionMode === 'multiple' : isMulti;
 
@@ -40,35 +34,44 @@ function SelectOption(props: Props) {
   const itemPriority = priority ?? (isSelected && !isMultiple ? 'primary' : 'default');
 
   return (
-    <Tooltip skipWrapper title={tooltip} {...tooltipOptions}>
-      <MenuListItem
-        {...itemProps}
-        {...innerProps}
-        as="div"
-        className="option"
-        value={value}
-        label={label}
-        isDisabled={isDisabled}
-        isFocused={isFocused}
-        showDivider={showDividers}
-        priority={itemPriority}
-        innerWrapProps={{'data-test-id': value}}
-        labelProps={{as: typeof label === 'string' ? 'p' : 'div'}}
-        leadingItems={
-          <Fragment>
-            <CheckWrap isMultiple={isMultiple} isSelected={isSelected}>
-              {isSelected && (
-                <IconCheckmark
-                  size={isMultiple ? 'xs' : 'sm'}
-                  color={isMultiple ? 'white' : undefined}
-                />
-              )}
-            </CheckWrap>
-            {data.leadingItems}
-          </Fragment>
-        }
-      />
-    </Tooltip>
+    <ClassNames>
+      {({cx}) => (
+        <MenuListItem
+          {...itemProps}
+          {...innerProps}
+          ref={innerRef}
+          className={cx({
+            option: true,
+            'option--is-disabled': isDisabled,
+            'option--is-focused': isFocused,
+            'option--is-selected': isSelected,
+          })}
+          as="div"
+          value={value}
+          label={label}
+          isDisabled={isDisabled}
+          isFocused={isFocused}
+          showDivider={showDividers}
+          priority={itemPriority}
+          size={size}
+          innerWrapProps={{'data-test-id': value}}
+          labelProps={{as: typeof label === 'string' ? 'p' : 'div'}}
+          leadingItems={
+            <Fragment>
+              <CheckWrap isMultiple={isMultiple} isSelected={isSelected}>
+                {isSelected && (
+                  <IconCheckmark
+                    size={isMultiple ? 'xs' : 'sm'}
+                    color={isMultiple ? 'white' : undefined}
+                  />
+                )}
+              </CheckWrap>
+              {data.leadingItems}
+            </Fragment>
+          }
+        />
+      )}
+    </ClassNames>
   );
 }
 

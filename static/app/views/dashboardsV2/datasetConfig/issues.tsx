@@ -1,17 +1,26 @@
 import {Client} from 'sentry/api';
+import {joinQuery, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
+import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import {Group, PageFilters} from 'sentry/types';
+import {Group, Organization, PageFilters} from 'sentry/types';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import {queryToObj} from 'sentry/utils/stream';
-import {DISCOVER_EXCLUSION_FIELDS, IssueSortOptions} from 'sentry/views/issueList/utils';
+import {
+  DISCOVER_EXCLUSION_FIELDS,
+  getSortLabel,
+  IssueSortOptions,
+} from 'sentry/views/issueList/utils';
 
 import {DEFAULT_TABLE_LIMIT, DisplayType, WidgetQuery} from '../types';
+import {IssuesSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/issuesSearchBar';
 import {ISSUE_FIELD_TO_HEADER_MAP} from '../widgetBuilder/issueWidget/fields';
-import {generateIssueWidgetFieldOptions} from '../widgetBuilder/issueWidget/utils';
+import {
+  generateIssueWidgetFieldOptions,
+  ISSUE_WIDGET_SORT_OPTIONS,
+} from '../widgetBuilder/issueWidget/utils';
 
-import {ContextualProps, DatasetConfig} from './base';
+import {DatasetConfig} from './base';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
@@ -42,18 +51,43 @@ type EndpointParams = Partial<PageFilters['datetime']> & {
 
 export const IssuesConfig: DatasetConfig<never, Group[]> = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
+  enableEquations: false,
+  disableSortOptions,
   getTableRequest,
   getCustomFieldRenderer: getIssueFieldRenderer,
-  getTableFieldOptions: () => generateIssueWidgetFieldOptions(),
+  SearchBar: IssuesSearchBar,
+  getTableSortOptions,
+  getTableFieldOptions: (_organization: Organization) =>
+    generateIssueWidgetFieldOptions(),
   fieldHeaderMap: ISSUE_FIELD_TO_HEADER_MAP,
   supportedDisplayTypes: [DisplayType.TABLE],
   transformTable: transformIssuesResponseToTable,
 };
 
+function disableSortOptions(_widgetQuery: WidgetQuery) {
+  return {
+    disableSort: false,
+    disableSortDirection: true,
+    disableSortReason: t('Issues dataset does not yet support descending order'),
+  };
+}
+
+function getTableSortOptions(organization: Organization, _widgetQuery: WidgetQuery) {
+  const sortOptions = [...ISSUE_WIDGET_SORT_OPTIONS];
+  if (organization.features.includes('issue-list-trend-sort')) {
+    sortOptions.push(IssueSortOptions.TREND);
+  }
+  return sortOptions.map(sortOption => ({
+    label: getSortLabel(sortOption),
+    value: sortOption,
+  }));
+}
+
 export function transformIssuesResponseToTable(
   data: Group[],
   widgetQuery: WidgetQuery,
-  contextualProps?: ContextualProps
+  _organization: Organization,
+  pageFilters: PageFilters
 ): TableData {
   GroupStore.add(data);
   const transformedTableResults: TableDataRow[] = [];
@@ -102,27 +136,15 @@ export function transformIssuesResponseToTable(
 
       // Discover Url properties
       const query = widgetQuery.conditions;
-      const queryTerms: string[] = [];
-      if (typeof query === 'string') {
-        const queryObj = queryToObj(query);
-        for (const queryTag in queryObj) {
-          if (!DISCOVER_EXCLUSION_FIELDS.includes(queryTag)) {
-            const queryVal = queryObj[queryTag].includes(' ')
-              ? `"${queryObj[queryTag]}"`
-              : queryObj[queryTag];
-            queryTerms.push(`${queryTag}:${queryVal}`);
-          }
-        }
+      const parsedResult = parseSearch(query);
+      const filteredTerms = parsedResult?.filter(
+        p => !(p.type === Token.Filter && DISCOVER_EXCLUSION_FIELDS.includes(p.key.text))
+      );
 
-        if (queryObj.__text) {
-          queryTerms.push(queryObj.__text);
-        }
-      }
-      transformedTableResult.discoverSearchQuery =
-        (queryTerms.length ? ' ' : '') + queryTerms.join(' ');
+      transformedTableResult.discoverSearchQuery = joinQuery(filteredTerms, true);
       transformedTableResult.projectId = project.id;
 
-      const {period, start, end} = contextualProps?.pageFilters?.datetime || {};
+      const {period, start, end} = pageFilters.datetime || {};
       if (start && end) {
         transformedTableResult.start = getUtcDateString(start);
         transformedTableResult.end = getUtcDateString(end);
@@ -137,15 +159,16 @@ export function transformIssuesResponseToTable(
 function getTableRequest(
   api: Client,
   query: WidgetQuery,
-  contextualProps?: ContextualProps,
+  organization: Organization,
+  pageFilters: PageFilters,
   limit?: number,
   cursor?: string
 ) {
-  const groupListUrl = `/organizations/${contextualProps?.organization?.slug}/issues/`;
+  const groupListUrl = `/organizations/${organization.slug}/issues/`;
 
   const params: EndpointParams = {
-    project: contextualProps?.pageFilters?.projects ?? [],
-    environment: contextualProps?.pageFilters?.environments ?? [],
+    project: pageFilters.projects ?? [],
+    environment: pageFilters.environments ?? [],
     query: query.conditions,
     sort: query.orderby || DEFAULT_SORT,
     expand: DEFAULT_EXPAND,
@@ -153,17 +176,17 @@ function getTableRequest(
     cursor,
   };
 
-  if (contextualProps?.pageFilters?.datetime.period) {
-    params.statsPeriod = contextualProps?.pageFilters?.datetime.period;
+  if (pageFilters.datetime.period) {
+    params.statsPeriod = pageFilters.datetime.period;
   }
-  if (contextualProps?.pageFilters?.datetime.end) {
-    params.end = getUtcDateString(contextualProps?.pageFilters?.datetime.end);
+  if (pageFilters.datetime.end) {
+    params.end = getUtcDateString(pageFilters.datetime.end);
   }
-  if (contextualProps?.pageFilters?.datetime.start) {
-    params.start = getUtcDateString(contextualProps?.pageFilters?.datetime.start);
+  if (pageFilters.datetime.start) {
+    params.start = getUtcDateString(pageFilters.datetime.start);
   }
-  if (contextualProps?.pageFilters?.datetime.utc) {
-    params.utc = contextualProps?.pageFilters?.datetime.utc;
+  if (pageFilters.datetime.utc) {
+    params.utc = pageFilters.datetime.utc;
   }
 
   return api.requestPromise(groupListUrl, {

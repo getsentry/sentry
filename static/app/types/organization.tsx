@@ -8,31 +8,32 @@ import type {User} from './user';
 /**
  * Organization summaries are sent when you request a list of all organizations
  */
-export type OrganizationSummary = {
+export interface OrganizationSummary {
   avatar: Avatar;
   dateCreated: string;
   features: string[];
   id: string;
   isEarlyAdopter: boolean;
   name: string;
+  organizationUrl: string;
   require2FA: boolean;
   slug: string;
   status: {
     id: ObjectStatus;
     name: string;
   };
-};
+}
 
 /**
  * Detailed organization (e.g. when requesting details for a single org)
  */
-export type Organization = OrganizationSummary & {
+export interface Organization extends OrganizationSummary {
   access: Scope[];
   alertsMemberWrite: boolean;
   allowJoinRequests: boolean;
   allowSharedIssues: boolean;
   attachmentsRole: string;
-  availableRoles: {id: string; name: string}[];
+  availableRoles: {id: string; name: string}[]; // Deprecated, use orgRoleList
   dataScrubber: boolean;
   dataScrubberDefaults: boolean;
   debugFilesRole: string;
@@ -43,6 +44,7 @@ export type Organization = OrganizationSummary & {
   isDefault: boolean;
   onboardingTasks: OnboardingTaskStatus[];
   openMembership: boolean;
+  orgRoleList: OrgRole[];
   pendingAccessRequests: number;
   quota: {
     accountLimit: number | null;
@@ -56,13 +58,14 @@ export type Organization = OrganizationSummary & {
   scrubIPAddresses: boolean;
   sensitiveFields: string[];
   storeCrashReports: number;
+  teamRoleList: TeamRole[];
   trustedRelays: Relay[];
   orgRole?: string;
   /**
    * @deprecated use orgRole instead
    */
   role?: string;
-};
+}
 
 export type Team = {
   avatar: Avatar;
@@ -78,26 +81,26 @@ export type Team = {
 };
 
 // TODO: Rename to BaseRole
-export type MemberRole = {
+export interface MemberRole {
   desc: string;
   id: string;
   name: string;
   allowed?: boolean;
-};
-export type OrgRole = MemberRole & {
+}
+export interface OrgRole extends MemberRole {
   minimumTeamRole: string;
   isGlobal?: boolean;
   isRetired?: boolean;
   is_global?: boolean; // Deprecated: use isGlobal
-};
-export type TeamRole = MemberRole & {
+}
+export interface TeamRole extends MemberRole {
   isMinimumRoleFor: string;
-};
+}
 
 /**
  * Returned from /organizations/org/users/
  */
-export type Member = {
+export interface Member {
   dateCreated: string;
   email: string;
   expired: boolean;
@@ -124,14 +127,20 @@ export type Member = {
 
   teamRoleList: TeamRole[]; // TODO: Move to global store
   teamRoles: {
-    isActive: boolean;
-    role: TeamRole['id'];
-    team: string;
+    role: string | null;
+    teamSlug: string;
   }[];
   teams: string[]; // # Deprecated, use teamRoles
-
   user: User;
-};
+}
+
+/**
+ * Returned from TeamMembersEndpoint
+ */
+export interface TeamMember extends Member {
+  teamRole?: string | null;
+  teamSlug?: string;
+}
 
 /**
  * Minimal organization shape used on shared issue views.
@@ -170,7 +179,7 @@ export type AccessRequest = {
  */
 export type SavedQueryVersions = 1 | 2;
 
-export type NewQuery = {
+export interface NewQuery {
   fields: Readonly<string[]>;
   id: string | undefined;
   name: string;
@@ -197,13 +206,13 @@ export type NewQuery = {
 
   // Graph
   yAxis?: string[];
-};
+}
 
-export type SavedQuery = NewQuery & {
+export interface SavedQuery extends NewQuery {
   dateCreated: string;
   dateUpdated: string;
   id: string;
-};
+}
 
 export type SavedQueryState = {
   hasError: boolean;
@@ -219,6 +228,12 @@ export type EventsStats = {
   data: EventsStatsData;
   end?: number;
   isMetricsData?: boolean;
+  meta?: {
+    fields: Record<string, string>;
+    isMetricsData: boolean;
+    tips: {columns?: string; query?: string};
+    units: Record<string, string>;
+  };
   order?: number;
   start?: number;
   totals?: {count: number};
@@ -229,24 +244,37 @@ export type MultiSeriesEventsStats = {
   [seriesName: string]: EventsStats;
 };
 
+export type EventsStatsSeries = {
+  data: {
+    axis: string;
+    values: number[];
+  }[];
+  meta: {
+    dataset: string;
+    end: number;
+    start: number;
+  };
+  timestamps: number[];
+};
+
 /**
  * Session API types.
  */
 // Base type for series style API response
-export type SeriesApi = {
+export interface SeriesApi {
   groups: {
     by: Record<string, string | number>;
     series: Record<string, number[]>;
     totals: Record<string, number>;
   }[];
   intervals: string[];
-};
+}
 
-export type SessionApiResponse = SeriesApi & {
+export interface SessionApiResponse extends SeriesApi {
   end: string;
   query: string;
   start: string;
-};
+}
 
 export enum SessionFieldWithOperation {
   SESSIONS = 'sum(session)',

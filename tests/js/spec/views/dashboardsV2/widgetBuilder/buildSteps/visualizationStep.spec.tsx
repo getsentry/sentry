@@ -36,6 +36,12 @@ function mockRequests(orgSlug: Organization['slug']) {
     body: [],
   });
 
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/measurements-meta/',
+    method: 'GET',
+    body: {'measurements.custom.measurement': {functions: ['p99']}},
+  });
+
   return {eventsv2Mock};
 }
 
@@ -77,6 +83,8 @@ describe('VisualizationStep', function () {
           createdBy: undefined,
           dateCreated: '2020-01-01T00:00:00.000Z',
           widgets: [],
+          projects: [],
+          filters: {},
         }}
         onSave={jest.fn()}
         params={{
@@ -90,9 +98,9 @@ describe('VisualizationStep', function () {
       }
     );
 
-    await screen.findByText('Table');
+    await waitFor(() => expect(eventsv2Mock).toHaveBeenCalledTimes(1));
 
-    userEvent.type(screen.getByPlaceholderText('Alias'), 'First Alias{enter}');
+    userEvent.type(await screen.findByPlaceholderText('Alias'), 'abc');
     act(() => {
       jest.advanceTimersByTime(DEFAULT_DEBOUNCE_DURATION + 1);
     });
@@ -124,6 +132,8 @@ describe('VisualizationStep', function () {
           createdBy: undefined,
           dateCreated: '2020-01-01T00:00:00.000Z',
           widgets: [],
+          projects: [],
+          filters: {},
         }}
         onSave={jest.fn()}
         params={{

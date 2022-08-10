@@ -7,7 +7,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Meta, MetaError} from 'sentry/types';
+import {MetaError} from 'sentry/types';
 
 import Chunks from './chunks';
 import {getTooltipText} from './utils';
@@ -16,7 +16,7 @@ import ValueElement from './valueElement';
 type Props = {
   value: React.ReactNode;
   className?: string;
-  meta?: Meta;
+  meta?: Record<any, any>;
 };
 
 const AnnotatedText = ({value, meta, className, ...props}: Props) => {
@@ -25,14 +25,17 @@ const AnnotatedText = ({value, meta, className, ...props}: Props) => {
       return <Chunks chunks={meta.chunks} />;
     }
 
-    const element = <ValueElement value={value} meta={meta} />;
-
     if (meta?.rem?.length) {
-      const title = getTooltipText({rule_id: meta.rem[0][0], remark: meta.rem[0][1]});
-      return <Tooltip title={title}>{element}</Tooltip>;
+      return (
+        <Tooltip
+          title={getTooltipText({rule_id: meta.rem[0][0], remark: meta.rem[0][1]})}
+        >
+          <ValueElement value={value} meta={meta} />
+        </Tooltip>
+      );
     }
 
-    return element;
+    return <ValueElement value={value} meta={meta} />;
   };
 
   const formatErrorKind = (kind: string) => {
@@ -86,7 +89,7 @@ const AnnotatedText = ({value, meta, className, ...props}: Props) => {
   };
 
   return (
-    <span className={className} {...props}>
+    <span role="text" className={className} {...props}>
       {renderValue()}
       {meta?.err && renderErrors(meta.err)}
     </span>

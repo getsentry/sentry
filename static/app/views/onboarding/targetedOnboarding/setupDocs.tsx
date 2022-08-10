@@ -1,22 +1,24 @@
 import 'prism-sentry/index.css';
 
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {motion} from 'framer-motion';
+import {AnimatePresence, motion} from 'framer-motion';
 import * as qs from 'query-string';
 
 import {loadDocs} from 'sentry/actionCreators/projects';
 import Alert, {alertStyles} from 'sentry/components/alert';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
+import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Integration, IntegrationProvider, Project} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
+import {logExperiment} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';
@@ -25,10 +27,7 @@ import withProjects from 'sentry/utils/withProjects';
 
 import FirstEventFooter from './components/firstEventFooter';
 import FullIntroduction from './components/fullIntroduction';
-import IntegrationInstaller from './components/integrationInstaller';
-import IntegrationSidebarSection from './components/integrationSidebarSection';
 import ProjectSidebarSection from './components/projectSidebarSection';
-import SetupIntegrationsFooter from './components/setupIntegrationsFooter';
 import {StepProps} from './types';
 import {usePersistedOnboardingState} from './utils';
 
@@ -38,28 +37,159 @@ import {usePersistedOnboardingState} from './utils';
  */
 const INCOMPLETE_DOC_FLAG = 'TODO-ADD-VERIFICATION-EXAMPLE';
 
-type PlatformDoc = {html: string; link: string};
+type PlatformDoc = {html: string; link: string; wizardSetup: string};
 
 type Props = {
-  configurations: Integration[];
   projects: Project[];
-  providers: IntegrationProvider[];
   search: string;
   loadingProjects?: boolean;
 } & StepProps;
+
+function ProjecDocs(props: {
+  hasError: boolean;
+  onRetry: () => void;
+  organization: Organization;
+  platform: PlatformKey | null;
+  platformDocs: PlatformDoc | null;
+  project: Project;
+}) {
+  const testOnlyAlert = (
+    <Alert type="warning">
+      Platform documentation is not rendered in for tests in CI
+    </Alert>
+  );
+  const missingExampleWarning = () => {
+    const missingExample =
+      props.platformDocs && props.platformDocs.html.includes(INCOMPLETE_DOC_FLAG);
+
+    if (!missingExample) {
+      return null;
+    }
+
+    return (
+      <Alert type="warning" showIcon>
+        {tct(
+          `Looks like this getting started example is still undergoing some
+           work and doesn't include an example for triggering an event quite
+           yet. If you have trouble sending your first event be sure to consult
+           the [docsLink:full documentation] for [platform].`,
+          {
+            docsLink: <ExternalLink href={props.platformDocs?.link} />,
+            platform: platforms.find(p => p.id === props.platform)?.name,
+          }
+        )}
+      </Alert>
+    );
+  };
+
+  useEffect(() => {
+    props.platformDocs?.wizardSetup &&
+      logExperiment({
+        key: 'OnboardingHighlightWizardExperiment',
+        organization: props.organization,
+      });
+  }, [props.organization, props.platformDocs?.wizardSetup]);
+
+  const showWizardSetup =
+    props.organization.experiments.OnboardingHighlightWizardExperiment;
+  const [wizardSetupDetailsCollapsed, setWizardSetupDetailsCollapsed] = useState(true);
+  const [interacted, setInteracted] = useState(false);
+  const docs =
+    props.platformDocs !== null &&
+    (showWizardSetup && props.platformDocs.wizardSetup ? (
+      <DocsWrapper key={props.platformDocs.html}>
+        <Content
+          dangerouslySetInnerHTML={{__html: props.platformDocs.wizardSetup}}
+          onMouseDown={() => {
+            !interacted &&
+              trackAdvancedAnalyticsEvent('growth.onboarding_wizard_interacted', {
+                organization: props.organization,
+                project_id: props.project.id,
+                platform: props.platform || 'unknown',
+                wizard_instructions: true,
+              });
+            setInteracted(true);
+          }}
+        />
+        <Button
+          priority="link"
+          onClick={() => {
+            trackAdvancedAnalyticsEvent('growth.onboarding_wizard_clicked_more_details', {
+              organization: props.organization,
+              project_id: props.project.id,
+              platform: props.platform || 'unknown',
+            });
+            setWizardSetupDetailsCollapsed(!wizardSetupDetailsCollapsed);
+          }}
+        >
+          <IconChevron
+            direction={wizardSetupDetailsCollapsed ? 'down' : 'up'}
+            style={{marginRight: space(1)}}
+          />
+          {wizardSetupDetailsCollapsed ? t('More Details') : t('Less Details')}
+        </Button>
+
+        <AnimatePresence>
+          {!wizardSetupDetailsCollapsed && (
+            <AnimatedContentWrapper>
+              <Content dangerouslySetInnerHTML={{__html: props.platformDocs.html}} />
+              {missingExampleWarning()}
+            </AnimatedContentWrapper>
+          )}
+        </AnimatePresence>
+      </DocsWrapper>
+    ) : (
+      <DocsWrapper key={props.platformDocs.html}>
+        <Content
+          dangerouslySetInnerHTML={{__html: props.platformDocs.html}}
+          onMouseDown={() => {
+            !interacted &&
+              trackAdvancedAnalyticsEvent('growth.onboarding_wizard_interacted', {
+                organization: props.organization,
+                project_id: props.project.id,
+                platform: props.platform || undefined,
+                wizard_instructions: false,
+              });
+            setInteracted(true);
+          }}
+        />
+        {missingExampleWarning()}
+      </DocsWrapper>
+    ));
+  const loadingError = (
+    <LoadingError
+      message={t(
+        'Failed to load documentation for the %s platform.',
+        props.project?.platform
+      )}
+      onRetry={props.onRetry}
+    />
+  );
+
+  const currentPlatform = props.platform ?? props.project?.platform ?? 'other';
+  return (
+    <Fragment>
+      <FullIntroduction
+        currentPlatform={currentPlatform}
+        organization={props.organization}
+      />
+      {getDynamicText({
+        value: !props.hasError ? docs : loadingError,
+        fixed: testOnlyAlert,
+      })}
+    </Fragment>
+  );
+}
 
 function SetupDocs({
   organization,
   projects: rawProjects,
   search,
-  configurations,
-  providers,
   loadingProjects,
 }: Props) {
   const api = useApi();
   const [clientState, setClientState] = usePersistedOnboardingState();
   const selectedPlatforms = clientState?.selectedPlatforms || [];
-  const selectedIntegrations = clientState?.selectedIntegrations || [];
   const platformToProjectIdMap = clientState?.platformToProjectIdMap || {};
   // id is really slug here
   const projectSlugs = selectedPlatforms
@@ -87,53 +217,18 @@ function SetupDocs({
     return !!hasFirstEventMap[project.id];
   };
 
-  // TODO: Check no projects
-  const {
-    sub_step: rawSubStep,
-    project_id: rawProjectId,
-    integration: rawActiveIntegration,
-  } = qs.parse(search);
-  const subStep = rawSubStep === 'integration' ? 'integration' : 'project';
+  const {project_id: rawProjectId} = qs.parse(search);
   const rawProjectIndex = projects.findIndex(p => p.id === rawProjectId);
   const firstProjectNoError = projects.findIndex(
     p => selectedProjectsSet.has(p.slug) && !checkProjectHasFirstEvent(p)
   );
   // Select a project based on search params. If non exist, use the first project without first event.
   const projectIndex = rawProjectIndex >= 0 ? rawProjectIndex : firstProjectNoError;
-  const project = subStep === 'project' ? projects[projectIndex] : null;
+  const project = projects[projectIndex];
   // find the next project that doesn't have a first event
   const nextProject = projects.find(
     (p, i) => i > projectIndex && !checkProjectHasFirstEvent(p)
   );
-
-  // integration installation
-  const [installedIntegrations, setInstalledIntegrations] = useState(
-    new Set(configurations.map(config => config.provider.slug))
-  );
-  const integrationsNotInstalled = selectedIntegrations.filter(
-    i => !installedIntegrations.has(i)
-  );
-  const setIntegrationInstalled = (integration: string) =>
-    setInstalledIntegrations(new Set([...installedIntegrations, integration]));
-
-  const rawActiveIntegrationIndex = selectedIntegrations.findIndex(
-    i => i === rawActiveIntegration
-  );
-
-  const firstUninstalledIntegrationIndex = selectedIntegrations.findIndex(
-    i => !installedIntegrations.has(i)
-  );
-
-  const activeIntegrationIndex =
-    rawActiveIntegrationIndex >= 0
-      ? rawActiveIntegrationIndex
-      : firstUninstalledIntegrationIndex;
-
-  const activeIntegration =
-    subStep === 'integration' ? selectedIntegrations[activeIntegrationIndex] : null;
-  const activeProvider = activeIntegration
-    ? providers.find(p => p.key === activeIntegration)
-    : null;
 
   useEffect(() => {
     // should not redirect if we don't have an active client state or projects aren't loaded
@@ -141,10 +236,8 @@ function SetupDocs({
       return;
     }
     if (
-      // no integrations left on integration step
-      (subStep === 'integration' && !activeIntegration) ||
-      // If no projects remaining and no integrations to install, then we can leave
-      (subStep === 'project' && !project && !integrationsNotInstalled.length)
+      // If no projects remaining, then we can leave
+      !project
     ) {
       browserHistory.push('/');
     }
@@ -152,8 +245,7 @@ function SetupDocs({
 
   const currentPlatform = loadedPlatform ?? project?.platform ?? 'other';
 
-  const fetchData = async () => {
-    // const {platform} = project || {};
+  const fetchData = useCallback(async () => {
     // TODO: add better error handling logic
     if (!project?.platform) {
       return;
@@ -172,14 +264,13 @@ function SetupDocs({
       setHasError(error);
       throw error;
     }
-  };
+  }, [project, api, organization]);
 
   useEffect(() => {
     fetchData();
-  }, [project]);
+  }, [fetchData]);
 
-  // TODO: add better error handling logic
-  if (!project && subStep === 'project') {
+  if (!project) {
     return null;
   }
 
@@ -206,73 +297,6 @@ function SetupDocs({
     setNewProject(newProjectId);
   };
 
-  const setNewActiveIntegration = (integration: string) => {
-    const searchParams = new URLSearchParams({
-      integration,
-      sub_step: 'integration',
-    });
-    browserHistory.push(`${window.location.pathname}?${searchParams}`);
-    if (clientState) {
-      setClientState({
-        ...clientState,
-        state: 'integrations_selected',
-        url: `setup-docs/?${searchParams}`,
-      });
-    }
-  };
-
-  const selectActiveIntegration = (integration: string) => {
-    trackAdvancedAnalyticsEvent('growth.onboarding_clicked_integration_in_sidebar', {
-      organization,
-      integration,
-    });
-    setNewActiveIntegration(integration);
-  };
-
-  const missingExampleWarning = () => {
-    const missingExample =
-      platformDocs && platformDocs.html.includes(INCOMPLETE_DOC_FLAG);
-
-    if (!missingExample) {
-      return null;
-    }
-
-    return (
-      <Alert type="warning" showIcon>
-        {tct(
-          `Looks like this getting started example is still undergoing some
-           work and doesn't include an example for triggering an event quite
-           yet. If you have trouble sending your first event be sure to consult
-           the [docsLink:full documentation] for [platform].`,
-          {
-            docsLink: <ExternalLink href={platformDocs?.link} />,
-            platform: platforms.find(p => p.id === loadedPlatform)?.name,
-          }
-        )}
-      </Alert>
-    );
-  };
-
-  const docs = platformDocs !== null && (
-    <DocsWrapper key={platformDocs.html}>
-      <Content dangerouslySetInnerHTML={{__html: platformDocs.html}} />
-      {missingExampleWarning()}
-    </DocsWrapper>
-  );
-
-  const loadingError = (
-    <LoadingError
-      message={t('Failed to load documentation for the %s platform.', project?.platform)}
-      onRetry={fetchData}
-    />
-  );
-
-  const testOnlyAlert = (
-    <Alert type="warning">
-      Platform documentation is not rendered in for tests in CI
-    </Alert>
-  );
-
   return (
     <Fragment>
       <Wrapper>
@@ -288,39 +312,16 @@ function SetupDocs({
             activeProject={project}
             {...{checkProjectHasFirstEvent, selectProject}}
           />
-          {selectedIntegrations.length &&
-          organization.experiments.TargetedOnboardingIntegrationSelectExperiment ? (
-            <IntegrationSidebarSection
-              {...{
-                installedIntegrations,
-                selectedIntegrations,
-                activeIntegration,
-                selectActiveIntegration,
-                providers,
-              }}
-            />
-          ) : null}
         </SidebarWrapper>
         <MainContent>
-          {subStep === 'project' ? (
-            <Fragment>
-              <FullIntroduction
-                currentPlatform={currentPlatform}
-                organization={organization}
-              />
-              {getDynamicText({
-                value: !hasError ? docs : loadingError,
-                fixed: testOnlyAlert,
-              })}
-            </Fragment>
-          ) : null}
-          {activeProvider && (
-            <IntegrationInstaller
-              provider={activeProvider}
-              isInstalled={installedIntegrations.has(activeProvider.slug)}
-              setIntegrationInstalled={() => setIntegrationInstalled(activeProvider.slug)}
-            />
-          )}
+          <ProjecDocs
+            platform={loadedPlatform}
+            organization={organization}
+            project={project}
+            hasError={hasError}
+            platformDocs={platformDocs}
+            onRetry={fetchData}
+          />
         </MainContent>
       </Wrapper>
 
@@ -347,10 +348,6 @@ function SetupDocs({
             // if we have a next project, switch to that
             if (nextProject) {
               setNewProject(nextProject.id);
-              // if we have integrations to install switch to that
-            } else if (integrationsNotInstalled.length) {
-              setNewActiveIntegration(integrationsNotInstalled[0]);
-              // otherwise no integrations and no projects so we're done
             } else {
               setClientState({
                 ...clientState,
@@ -365,80 +362,11 @@ function SetupDocs({
           }}
         />
       )}
-      {activeIntegration && (
-        <SetupIntegrationsFooter
-          organization={organization}
-          onClickSetupLater={() => {
-            trackAdvancedAnalyticsEvent(
-              'growth.onboarding_clicked_setup_integration_later',
-              {
-                organization,
-                integration: activeIntegration,
-                integration_index: activeIntegrationIndex,
-              }
-            );
-            // find the next uninstalled integration
-            const nextIntegration = selectedIntegrations.find(
-              (i, index) =>
-                !installedIntegrations.has(i) && index > activeIntegrationIndex
-            );
-            // check if we have an integration to set up next
-            if (nextIntegration) {
-              setNewActiveIntegration(nextIntegration);
-            } else {
-              // client state should always exist
-              clientState &&
-                setClientState({
-                  ...clientState,
-                  state: 'finished',
-                });
-              const nextUrl = `/organizations/${organization.slug}/issues/`;
-              browserHistory.push(nextUrl);
-            }
-          }}
-        />
-      )}
     </Fragment>
   );
 }
 
-type WrapperState = {
-  configurations: Integration[] | null;
-  information: {providers: IntegrationProvider[]} | null;
-} & AsyncComponent['state'];
-
-type WrapperProps = {
-  projects: Project[];
-  search: string;
-} & StepProps &
-  AsyncComponent['props'];
-
-class SetupDocsWrapper extends AsyncComponent<WrapperProps, WrapperState> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {slug, experiments} = this.props.organization;
-    // would be better to check the onboarding state for integrations instead of the experiment
-    // but we can't access a hook from a class component
-    if (!experiments.TargetedOnboardingIntegrationSelectExperiment) {
-      return [];
-    }
-    return [
-      ['information', `/organizations/${slug}/config/integrations/`],
-      ['configurations', `/organizations/${slug}/integrations/?includeConfig=0`],
-    ];
-  }
-  renderBody() {
-    const {configurations, information} = this.state;
-    return (
-      <SetupDocs
-        {...this.props}
-        configurations={configurations ?? []}
-        providers={information?.providers || []}
-      />
-    );
-  }
-}
-
-export default withProjects(SetupDocsWrapper);
+export default withProjects(SetupDocs);
 
 type AlertType = React.ComponentProps<typeof Alert>['type'];
 
@@ -452,6 +380,21 @@ const mapAlertStyles = (p: {theme: Theme}, type: AlertType) =>
       display: block;
     }
   `;
+
+const AnimatedContentWrapper = styled(motion.div)`
+  overflow: hidden;
+`;
+AnimatedContentWrapper.defaultProps = {
+  initial: {
+    height: 0,
+  },
+  animate: {
+    height: 'auto',
+  },
+  exit: {
+    height: 0,
+  },
+};
 
 const Content = styled(motion.div)`
   h1,

@@ -2,12 +2,13 @@ import {ComponentProps, useEffect} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
+import PanelAlert from 'sentry/components/panels/panelAlert';
 import {Organization} from 'sentry/types';
 import theme from 'sentry/utils/theme';
 import withOrganization from 'sentry/utils/withOrganization';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 
-import {Widget} from './types';
+import {DashboardFilters, Widget} from './types';
 import DnDKitWidgetWrapper from './widgetWrapper';
 
 const TABLE_ITEM_LIMIT = 20;
@@ -22,6 +23,8 @@ type Props = {
   organization: Organization;
   widget: Widget;
   widgetLimitReached: boolean;
+  dashboardFilters?: DashboardFilters;
+  hasUnsavedFilters?: boolean;
   isMobile?: boolean;
   isPreview?: boolean;
   windowWidth?: number;
@@ -32,6 +35,7 @@ function SortableWidget(props: Props) {
     organization,
     widget,
     dragId,
+    hasUnsavedFilters,
     isEditing,
     widgetLimitReached,
     onDelete,
@@ -41,6 +45,7 @@ function SortableWidget(props: Props) {
     isMobile,
     windowWidth,
     index,
+    dashboardFilters,
   } = props;
 
   const {
@@ -81,6 +86,15 @@ function SortableWidget(props: Props) {
     isPreview,
     showWidgetViewerButton: organization.features.includes('widget-viewer-modal'),
     index,
+    dashboardFilters,
+    hasUnsavedFilters,
+    renderErrorMessage: errorMessage => {
+      return (
+        typeof errorMessage === 'string' && (
+          <PanelAlert type="error">{errorMessage}</PanelAlert>
+        )
+      );
+    },
   };
 
   if (organization.features.includes('dashboard-grid-layout')) {

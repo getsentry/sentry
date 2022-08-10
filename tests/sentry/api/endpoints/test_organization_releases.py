@@ -1039,6 +1039,26 @@ class OrganizationReleasesStatsTest(APITestCase):
 
 
 class OrganizationReleaseCreateTest(APITestCase):
+    def test_empty_release_version(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+        project = self.create_project(name="foo", organization=org, teams=[team])
+        project2 = self.create_project(name="bar", organization=org, teams=[team])
+
+        self.create_member(teams=[team], user=user, organization=org)
+        self.login_as(user=user)
+
+        url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
+        response = self.client.post(
+            url, data={"version": "", "projects": [project.slug, project2.slug]}
+        )
+
+        assert response.status_code == 400
+
     def test_minimal(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
@@ -1455,7 +1475,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         # Simulate a concurrent request by using an existing release
         # that has its commit lock taken out.
         release = self.create_release(project, self.user, version="1.2.1")
-        lock = locks.get(Release.get_lock_key(org.id, release.id), duration=10)
+        lock = locks.get(Release.get_lock_key(org.id, release.id), duration=10, name="release")
         lock.acquire()
 
         url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})

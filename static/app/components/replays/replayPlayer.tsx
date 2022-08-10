@@ -3,17 +3,15 @@ import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
 import {Panel as _Panel} from 'sentry/components/panels';
+import BufferingOverlay from 'sentry/components/replays/player/bufferingOverlay';
+import FastForwardBadge from 'sentry/components/replays/player/fastForwardBadge';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-
-import BufferingOverlay from './player/bufferingOverlay';
-import FastForwardBadge from './player/fastForwardBadge';
 
 interface Props {
   className?: string;
-  height?: number;
 }
 
-function BasePlayerRoot({className, height = Infinity}: Props) {
+function BasePlayerRoot({className}: Props) {
   const {
     initRoot,
     dimensions: videoDimensions,
@@ -55,11 +53,9 @@ function BasePlayerRoot({className, height = Infinity}: Props) {
   // Update the scale of the view whenever dimensions have changed.
   useEffect(() => {
     if (viewEl.current) {
-      const windowHeight = height === Infinity ? windowDimensions.height : height;
-
       const scale = Math.min(
         windowDimensions.width / videoDimensions.width,
-        windowHeight / videoDimensions.height,
+        windowDimensions.height / videoDimensions.height,
         1
       );
       if (scale) {
@@ -69,14 +65,10 @@ function BasePlayerRoot({className, height = Infinity}: Props) {
         viewEl.current.style.height = `${videoDimensions.height * scale}px`;
       }
     }
-  }, [windowDimensions, videoDimensions, height]);
+  }, [windowDimensions, videoDimensions]);
+
   return (
-    <SizingWindow
-      ref={windowEl}
-      className="sr-block"
-      minHeight={height}
-      isLoaded={videoDimensions.height !== 0}
-    >
+    <SizingWindow ref={windowEl} className="sr-block">
       <div ref={viewEl} className={className} />
       {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
       {isBuffering ? <PositionedBuffering /> : null}
@@ -87,20 +79,17 @@ function BasePlayerRoot({className, height = Infinity}: Props) {
 // Center the viewEl inside the windowEl.
 // This is useful when the window is inside a container that has large fixed
 // dimensions, like when in fullscreen mode.
-const SizingWindow = styled('div')<{isLoaded: boolean; minHeight: number}>`
+// If the container has a dimensions that can grow/shrink then it is
+// important to also set `overflow: hidden` on the container, so that the
+// SizingWindow can calculate size as things shrink.
+const SizingWindow = styled('div')`
   width: 100%;
-  height: 100%;
-  ${p =>
-    p.isLoaded
-      ? ''
-      : p.minHeight !== Infinity
-      ? `min-height: ${p.minHeight}px !important;`
-      : ''}
-
   display: flex;
+  flex-grow: 1;
   justify-content: center;
   align-items: center;
   position: relative;
+  overflow: hidden;
 
   background-color: ${p => p.theme.backgroundSecondary};
   background-image: repeating-linear-gradient(
@@ -136,7 +125,6 @@ const PositionedBuffering = styled(BufferingOverlay)`
 // Base styles, to make the Replayer instance work
 const PlayerRoot = styled(BasePlayerRoot)`
   .replayer-wrapper {
-    background: white;
     user-select: none;
   }
   .replayer-wrapper > .replayer-mouse-tail {
@@ -147,6 +135,7 @@ const PlayerRoot = styled(BasePlayerRoot)`
   /* Override default user-agent styles */
   .replayer-wrapper > iframe {
     border: none;
+    background: white;
   }
 `;
 

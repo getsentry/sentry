@@ -1,9 +1,9 @@
-import {useCallback} from 'react';
-import {browserHistory} from 'react-router';
+import {useCallback, useEffect} from 'react';
+import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -20,27 +20,34 @@ import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
-import {useProfiles} from 'sentry/utils/profiling/hooks/useProfiles';
 import {useProfileTransactions} from 'sentry/utils/profiling/hooks/useProfileTransactions';
+import {generateProfilingOnboardingRoute} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-import {ProfilingScatterChart} from './landing/profilingScatterChart';
+import {ProfileCharts} from './landing/profileCharts';
 
 interface ProfilingContentProps {
   location: Location;
+  router: InjectedRouter;
 }
 
-function ProfilingContent({location}: ProfilingContentProps) {
+function ProfilingContent({location, router}: ProfilingContentProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const cursor = decodeScalar(location.query.cursor);
   const query = decodeScalar(location.query.query, '');
   const profileFilters = useProfileFilters({query: '', selection});
-  const profiles = useProfiles({cursor, query, selection});
   const transactions = useProfileTransactions({cursor, query, selection});
+
+  useEffect(() => {
+    trackAdvancedAnalyticsEvent('profiling_views.landing', {
+      organization,
+    });
+  }, [organization]);
 
   const handleSearch: SmartSearchBarProps['onSearch'] = useCallback(
     (searchQuery: string) => {
@@ -56,15 +63,20 @@ function ProfilingContent({location}: ProfilingContentProps) {
     [location]
   );
 
+  const onSetupProfilingClick = useCallback(() => {
+    browserHistory.push(generateProfilingOnboardingRoute({orgSlug: organization.slug}));
+  }, [organization.slug]);
+
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
-      <PageFiltersContainer hideGlobalHeader>
+      <PageFiltersContainer>
         <NoProjectMessage organization={organization}>
           <StyledPageContent>
             <Layout.Header>
-              <Layout.HeaderContent>
+              <StyledLayoutHeaderContent>
                 <StyledHeading>{t('Profiling')}</StyledHeading>
-              </Layout.HeaderContent>
+                <Button onClick={onSetupProfilingClick}>Set Up Profiling</Button>
+              </StyledLayoutHeaderContent>
             </Layout.Header>
             <Layout.Body>
               <Layout.Main fullWidth>
@@ -84,23 +96,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                     maxQueryLength={MAX_QUERY_LENGTH}
                   />
                 </ActionBar>
-                {profiles.type === 'errored' && (
-                  <Alert type="error" showIcon>
-                    {t('Unable to load profiles')}
-                  </Alert>
-                )}
-                <ProfilingScatterChart
-                  datetime={
-                    selection?.datetime ?? {
-                      start: null,
-                      end: null,
-                      period: null,
-                      utc: null,
-                    }
-                  }
-                  traces={profiles.type === 'resolved' ? profiles.data.traces : []}
-                  isLoading={profiles.type === 'loading'}
-                />
+                <ProfileCharts router={router} query={query} selection={selection} />
                 <ProfileTransactionsTable
                   error={
                     transactions.type === 'errored' ? t('Unable to load profiles') : null
@@ -126,6 +122,12 @@ function ProfilingContent({location}: ProfilingContentProps) {
 
 const StyledPageContent = styled(PageContent)`
   padding: 0;
+`;
+
+const StyledLayoutHeaderContent = styled(Layout.HeaderContent)`
+  display: flex;
+  justify-content: space-between;
+  flex-direction: row;
 `;
 
 const StyledHeading = styled(PageHeading)`

@@ -75,7 +75,7 @@ function BroadcastSdkUpdates({projects, sdkUpdates, organization}: Props) {
           return (
             <div key={sdkName}>
               <Header>
-                <SdkProjectBadge project={project} />
+                <SdkProjectBadge project={project} organization={organization} />
                 {isDeprecated && <Tag type="warning">{t('Deprecated')}</Tag>}
               </Header>
               <SdkOutdatedVersion>
@@ -85,7 +85,7 @@ function BroadcastSdkUpdates({projects, sdkUpdates, organization}: Props) {
                   ),
                 })}
               </SdkOutdatedVersion>
-              <StyledList>
+              <UpdateSuggestions>
                 {suggestions.map((suggestion, i) => (
                   <ListItem key={i}>
                     {getSdkUpdateSuggestion({
@@ -99,7 +99,7 @@ function BroadcastSdkUpdates({projects, sdkUpdates, organization}: Props) {
                     })}
                   </ListItem>
                 ))}
-              </StyledList>
+              </UpdateSuggestions>
             </div>
           );
         });
@@ -148,7 +148,7 @@ function BroadcastSdkUpdates({projects, sdkUpdates, organization}: Props) {
 
 export default withSdkUpdates(withProjects(withOrganization(BroadcastSdkUpdates)));
 
-const UpdatesList = styled('div')`
+export const UpdatesList = styled('div')`
   margin-top: ${space(3)};
   display: grid;
   grid-auto-flow: row;
@@ -163,16 +163,16 @@ const Header = styled('div')`
   align-items: center;
 `;
 
-const SdkOutdatedVersion = styled('div')`
+export const SdkOutdatedVersion = styled('div')`
   /* 24px + 8px to be aligned with the SdkProjectBadge data */
   padding-left: calc(24px + ${space(1)});
 `;
 
-const OutdatedVersion = styled('span')`
+export const OutdatedVersion = styled('span')`
   color: ${p => p.theme.gray400};
 `;
 
-const SdkProjectBadge = styled(ProjectBadge)`
+export const SdkProjectBadge = styled(ProjectBadge)`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   line-height: 1;
 `;
@@ -181,8 +181,10 @@ const StyledAlert = styled(Alert)`
   margin-top: ${space(2)};
 `;
 
-const StyledList = styled(List)`
+export const UpdateSuggestions = styled(List)`
   /* 24px + 8px to be aligned with the project name
   * displayed by the SdkProjectBadge component */
   padding-left: calc(24px + ${space(1)});
 `;
+
+export const UpdateSuggestion = styled(ListItem)``;

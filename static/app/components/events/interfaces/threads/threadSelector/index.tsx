@@ -87,7 +87,7 @@ const ThreadSelector = ({
           emptyHidesInput
         >
           {({isOpen, selectedItem}) => (
-            <StyledDropdownButton isOpen={isOpen} size="small" align="left">
+            <StyledDropdownButton isOpen={isOpen} size="sm" align="left">
               {selectedItem ? (
                 <SelectedOption
                   id={selectedItem.thread.id}

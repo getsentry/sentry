@@ -252,7 +252,7 @@ def truncate_denormalizations(project, group):
 
     # XXX: This can cause a race condition with the ``FirstSeenEventCondition``
     # where notifications can be erroneously sent if they occur in this group
-    # before the reprocessing of the denormalizated data completes, since a new
+    # before the reprocessing of the denormalized data completes, since a new
     # ``GroupEnvironment`` will be created.
     for instance in GroupEnvironment.objects.filter(group_id=group.id):
         instance.delete()

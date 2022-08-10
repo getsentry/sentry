@@ -56,7 +56,9 @@ describe('TextRenderer', () => {
 
     expect(textRenderer.textCache.test).toBe(undefined);
     expect(textRenderer.textCache).toEqual({
-      'Who knows if this changed, font-display: swap wont tell me': 20,
+      'Who knows if this changed, font-display: swap wont tell me': {
+        width: 20,
+      },
     });
   });
   it('caches measure text', () => {
@@ -114,7 +116,7 @@ describe('TextRenderer', () => {
 
     const textRenderer = new TextRenderer(canvas as HTMLCanvasElement, flamegraph, Theme);
 
-    textRenderer.draw(new Rect(0, 0, 200, 2), mat3.identity(mat3.create()));
+    textRenderer.draw(new Rect(0, 0, 200, 2), mat3.identity(mat3.create()), new Map());
 
     expect(context.fillText).toHaveBeenCalledTimes(2);
   });
@@ -154,7 +156,8 @@ describe('TextRenderer', () => {
 
     textRenderer.draw(
       new Rect(0, 0, Math.floor(longFrameName.length / 2), 10),
-      mat3.identity(mat3.create())
+      mat3.identity(mat3.create()),
+      new Map()
     );
 
     expect(context.fillText).toHaveBeenCalledTimes(1);
@@ -162,7 +165,7 @@ describe('TextRenderer', () => {
       trimTextCenter(
         longFrameName,
         Math.floor(longFrameName.length / 2) - Theme.SIZES.BAR_PADDING * 2
-      ),
+      ).text,
       Theme.SIZES.BAR_PADDING,
       Theme.SIZES.BAR_HEIGHT - Theme.SIZES.BAR_FONT_SIZE / 2 // center text vertically inside the rect
     );
@@ -208,7 +211,8 @@ describe('TextRenderer', () => {
         Math.floor(longFrameName.length / 2 / 2),
         10
       ),
-      mat3.identity(mat3.create())
+      mat3.identity(mat3.create()),
+      new Map()
     );
 
     expect(context.fillText).toHaveBeenCalledTimes(1);
@@ -216,7 +220,7 @@ describe('TextRenderer', () => {
       trimTextCenter(
         longFrameName,
         Math.floor(longFrameName.length / 2 / 2) - Theme.SIZES.BAR_PADDING * 2
-      ),
+      ).text,
       Math.floor(longFrameName.length / 2) + Theme.SIZES.BAR_PADDING,
       Theme.SIZES.BAR_HEIGHT - Theme.SIZES.BAR_FONT_SIZE / 2 // center text vertically inside the rect
     );

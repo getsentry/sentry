@@ -1,4 +1,4 @@
-from sentry.models import ProjectOption
+from sentry.models import Project, ProjectOption
 from sentry.signals import buffer_incr_complete
 
 
@@ -9,4 +9,6 @@ def bump_reprocessing_revision_receiver(filters, **_):
     from sentry.reprocessing import REPROCESSING_OPTION, bump_reprocessing_revision
 
     if filters.get("key") == REPROCESSING_OPTION:
-        bump_reprocessing_revision(filters["project"], use_buffer=False)
+        bump_reprocessing_revision(
+            Project.objects.get_from_cache(id=filters["project_id"]), use_buffer=False
+        )

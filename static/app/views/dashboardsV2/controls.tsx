@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
@@ -14,6 +15,7 @@ import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
+import {UNSAVED_FILTERS_MESSAGE} from './detail';
 import {DashboardListItem, DashboardState, MAX_WIDGETS} from './types';
 
 type Props = {
@@ -26,12 +28,14 @@ type Props = {
   onEdit: () => void;
   organization: Organization;
   widgetLimitReached: boolean;
+  hasUnsavedFilters?: boolean;
 };
 
 function Controls({
   organization,
   dashboardState,
   dashboards,
+  hasUnsavedFilters,
   widgetLimitReached,
   onEdit,
   onCommit,
@@ -129,35 +133,44 @@ function Controls({
                 onEdit();
               }}
               icon={<IconEdit />}
-              disabled={!hasFeature}
+              disabled={!hasFeature || hasUnsavedFilters}
+              title={hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE}
               priority="default"
             >
               {t('Edit Dashboard')}
             </Button>
             {hasFeature ? (
               <Tooltip
-                title={tct('Max widgets ([maxWidgets]) per dashboard reached.', {
-                  maxWidgets: MAX_WIDGETS,
-                })}
-                disabled={!!!widgetLimitReached}
+                title={
+                  (hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE) ||
+                  tct('Max widgets ([maxWidgets]) per dashboard reached.', {
+                    maxWidgets: MAX_WIDGETS,
+                  })
+                }
+                disabled={!!!widgetLimitReached && !!!hasUnsavedFilters}
               >
-                <Button
-                  data-test-id="add-widget-library"
-                  priority="primary"
-                  disabled={widgetLimitReached}
-                  icon={<IconAdd isCircled />}
-                  onClick={() => {
-                    trackAdvancedAnalyticsEvent(
-                      'dashboards_views.widget_library.opened',
-                      {
-                        organization,
-                      }
-                    );
-                    onAddWidget();
-                  }}
+                <GuideAnchor
+                  disabled={!!!organization.features.includes('dashboards-releases')}
+                  target="releases_widget"
                 >
-                  {t('Add Widget')}
-                </Button>
+                  <Button
+                    data-test-id="add-widget-library"
+                    priority="primary"
+                    disabled={widgetLimitReached || hasUnsavedFilters}
+                    icon={<IconAdd isCircled />}
+                    onClick={() => {
+                      trackAdvancedAnalyticsEvent(
+                        'dashboards_views.widget_library.opened',
+                        {
+                          organization,
+                        }
+                      );
+                      onAddWidget();
+                    }}
+                  >
+                    {t('Add Widget')}
+                  </Button>
+                </GuideAnchor>
               </Tooltip>
             ) : null}
           </Fragment>

@@ -80,30 +80,11 @@ class IssueWidgetQueriesForm extends Component<Props, State> {
         >
           <SearchConditionsWrapper>
             <IssuesSearchBar
-              query={query}
-              selection={selection}
+              widgetQuery={query}
+              pageFilters={selection}
               organization={organization}
-              onSearch={field => {
-                // IssueListSearchBar will call handlers for both onSearch and onBlur
-                // when selecting a value from the autocomplete dropdown. This can
-                // cause state issues for the search bar in our use case. To prevent
-                // this, we set a timer in our onSearch handler to block our onBlur
-                // handler from firing if it is within 200ms, ie from clicking an
-                // autocomplete value.
-                if (this.state.blurTimeout) {
-                  window.clearTimeout(this.state.blurTimeout);
-                }
-                this.setState({
-                  blurTimeout: window.setTimeout(() => {
-                    this.setState({blurTimeout: undefined});
-                  }, 200),
-                });
-                return this.handleFieldChange('conditions')(field);
-              }}
-              onBlur={field => {
-                if (!this.state.blurTimeout) {
-                  this.handleFieldChange('conditions')(field);
-                }
+              onClose={field => {
+                this.handleFieldChange('conditions')(field);
               }}
             />
           </SearchConditionsWrapper>

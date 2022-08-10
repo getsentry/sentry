@@ -1,4 +1,5 @@
 import {Fragment, useMemo, useRef, useState} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -64,6 +65,10 @@ type Props = WithRouterProps & {
    */
   disableMultipleProjectSelection?: boolean;
   /**
+   * Disable the dropdown
+   */
+  disabled?: boolean;
+  /**
    * Message to show in the footer
    */
   footerMessage?: React.ReactNode;
@@ -88,7 +93,7 @@ type Props = WithRouterProps & {
    */
   shouldForceProject?: boolean;
   /**
-   * Link back to the issues strean
+   * Link back to the issues stream
    *
    * @deprecated
    */
@@ -130,7 +135,7 @@ function ProjectSelector({
   // Used to determine if we should show the 'apply' changes button
   const [hasChanges, setHasChanges] = useState(false);
 
-  // Used to keep selected proects sorted in the same order when opening /
+  // Used to keep selected projects sorted in the same order when opening /
   // closing the project selector
   const lastSelected = useRef(value);
 
@@ -374,7 +379,7 @@ function ProjectSelector({
             <InputActions>
               {showPin && (
                 <GuideAnchor target="new_page_filter_pin" position="bottom">
-                  <PageFilterPinButton size="xsmall" filter="projects" />
+                  <PageFilterPinButton size="xs" filter="projects" />
                 </GuideAnchor>
               )}
             </InputActions>

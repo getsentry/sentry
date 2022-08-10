@@ -9,11 +9,7 @@ import PageLayout from '../pageLayout';
 import Tab from '../tabs';
 
 import SpansContent from './content';
-import {
-  generateSpansEventView,
-  SPAN_RELATIVE_PERIODS,
-  SPAN_RETENTION_DAYS,
-} from './utils';
+import {generateSpansEventView} from './utils';
 
 type Props = {
   location: Location;
@@ -33,8 +29,6 @@ function TransactionSpans(props: Props) {
       getDocumentTitle={getDocumentTitle}
       generateEventView={generateSpansEventView}
       childComponent={SpansContent}
-      relativeDateOptions={SPAN_RELATIVE_PERIODS}
-      maxPickableDays={SPAN_RETENTION_DAYS}
     />
   );
 }

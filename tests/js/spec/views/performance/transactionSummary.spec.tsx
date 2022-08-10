@@ -58,7 +58,7 @@ describe('Performance > TransactionSummary', function () {
   beforeEach(function () {
     // @ts-ignore no-console
     // eslint-disable-next-line no-console
-    console.error = jest.fn();
+    jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -606,7 +606,7 @@ describe('Performance > TransactionSummary', function () {
         screen.getByRole('button', {name: 'Filter Slow Transactions (p95)'})
       );
 
-      userEvent.click(screen.getByRole('button', {name: 'Slow Transactions (p95)'}));
+      userEvent.click(screen.getAllByText('Slow Transactions (p95)')[1]);
 
       // Check the navigation.
       expect(browserHistory.push).toHaveBeenCalledWith({
@@ -1014,7 +1014,7 @@ describe('Performance > TransactionSummary', function () {
         screen.getByRole('button', {name: 'Filter Slow Transactions (p95)'})
       );
 
-      userEvent.click(screen.getByRole('button', {name: 'Slow Transactions (p95)'}));
+      userEvent.click(screen.getAllByText('Slow Transactions (p95)')[1]);
 
       // Check the navigation.
       expect(browserHistory.push).toHaveBeenCalledWith({

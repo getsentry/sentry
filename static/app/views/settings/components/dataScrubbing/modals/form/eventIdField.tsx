@@ -2,8 +2,8 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import Input from 'sentry/components/forms/controls/input';
 import Field from 'sentry/components/forms/field';
+import Input from 'sentry/components/input';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
@@ -43,13 +43,13 @@ class EventIdField extends Component<Props, State> {
 
     switch (status) {
       case EventIdStatus.INVALID:
-        return t('This event ID is invalid.');
+        return t('This event ID is invalid');
       case EventIdStatus.ERROR:
         return t(
-          'An error occurred while fetching the suggestions based on this event ID.'
+          'An error occurred while fetching the suggestions based on this event ID'
         );
       case EventIdStatus.NOT_FOUND:
-        return t('The chosen event ID was not found in projects you have access to.');
+        return t('The chosen event ID was not found in projects you have access to');
       default:
         return undefined;
     }

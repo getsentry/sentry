@@ -88,12 +88,14 @@ class ProfilesProcessTaskTest(TestCase):
             return json.loads(f.read())
 
     def test_normalize_ios_profile(self):
-        profile = _normalize(profile=self.ios_profile, organization=self.organization)
+        profile = self.ios_profile
+        _normalize(profile=profile, organization=self.organization)
         for k in ["device_os_build_number", "device_classification"]:
             assert k in profile
 
     def test_normalize_android_profile(self):
-        profile = _normalize(profile=self.android_profile, organization=self.organization)
+        profile = self.android_profile
+        _normalize(profile=profile, organization=self.organization)
         for k in ["android_api_level", "device_classification"]:
             assert k in profile
 
@@ -142,7 +144,7 @@ class ProfilesProcessTaskTest(TestCase):
             }
         )
         project = Project.objects.get_from_cache(id=profile["project_id"])
-        profile = _deobfuscate(profile, project)
+        _deobfuscate(profile, project)
         frames = profile["profile"]["methods"]
 
         assert frames[0]["name"] == "getClassContext"
@@ -194,7 +196,7 @@ class ProfilesProcessTaskTest(TestCase):
         )
 
         project = Project.objects.get_from_cache(id=profile["project_id"])
-        profile = _deobfuscate(profile, project)
+        _deobfuscate(profile, project)
         frames = profile["profile"]["methods"]
 
         assert sum(len(f.get("inline_frames", [{}])) for f in frames) == 4
@@ -258,6 +260,6 @@ class ProfilesProcessTaskTest(TestCase):
 
         project = Project.objects.get_from_cache(id=profile["project_id"])
         obfuscated_frames = profile["profile"]["methods"].copy()
-        profile = _deobfuscate(profile, project)
+        _deobfuscate(profile, project)
 
         assert profile["profile"]["methods"] == obfuscated_frames

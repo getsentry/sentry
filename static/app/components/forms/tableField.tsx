@@ -5,9 +5,9 @@ import flatten from 'lodash/flatten';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import Input from 'sentry/components/forms/controls/input';
 import InputField, {InputFieldProps} from 'sentry/components/forms/inputField';
 import {TableType} from 'sentry/components/forms/type';
+import Input from 'sentry/components/input';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -99,7 +99,7 @@ export default class TableField extends Component<InputFieldProps> {
       <Button
         icon={<IconAdd size="xs" isCircled />}
         onClick={addRow}
-        size="xsmall"
+        size="xs"
         disabled={disabled}
       >
         {addButtonText}
@@ -158,7 +158,7 @@ export default class TableField extends Component<InputFieldProps> {
                     <RemoveButton>
                       <Button
                         icon={<IconDelete />}
-                        size="small"
+                        size="sm"
                         disabled={disabled}
                         aria-label={t('delete')}
                       />

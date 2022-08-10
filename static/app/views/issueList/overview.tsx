@@ -28,6 +28,7 @@ import {extractSelectionParameters} from 'sentry/components/organizations/pageFi
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import QueryCount from 'sentry/components/queryCount';
+import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import StreamGroup from 'sentry/components/stream/group';
 import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
@@ -708,6 +709,10 @@ class IssueListOverview extends Component<Props, State> {
   onRealtimeChange = (realtime: boolean) => {
     Cookies.set('realtimeActive', realtime.toString());
     this.setState({realtimeActive: realtime});
+    trackAdvancedAnalyticsEvent('issues_stream.realtime_clicked', {
+      organization: this.props.organization,
+      enabled: realtime,
+    });
   };
 
   onSelectStatsPeriod = (period: string) => {
@@ -1300,6 +1305,7 @@ class IssueListOverview extends Component<Props, State> {
                   loading={tagsLoading}
                   tags={tags}
                   query={query}
+                  parsedQuery={parseSearch(query) || []}
                   onQueryChange={this.onIssueListSidebarSearch}
                   tagValueLoader={this.tagValueLoader}
                 />

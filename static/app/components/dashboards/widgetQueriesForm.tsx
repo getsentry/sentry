@@ -4,9 +4,9 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import Button from 'sentry/components/button';
 import SearchBar from 'sentry/components/events/searchBar';
-import Input from 'sentry/components/forms/controls/input';
 import Field from 'sentry/components/forms/field';
 import SelectControl from 'sentry/components/forms/selectControl';
+import Input from 'sentry/components/input';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -131,22 +131,12 @@ class WidgetQueriesForm extends Component<Props> {
 
     return widgetType === WidgetType.RELEASE ? (
       <ReleaseSearchBar
-        orgSlug={organization.slug}
-        query={widgetQuery}
-        onSearch={field => {
-          // SearchBar will call handlers for both onSearch and onBlur
-          // when selecting a value from the autocomplete dropdown. This can
-          // cause state issues for the search bar in our use case. To prevent
-          // this, we set a timer in our onSearch handler to block our onBlur
-          // handler from firing if it is within 200ms, ie from clicking an
-          // autocomplete value.
-          window.clearTimeout(this.blurTimeout);
-          this.blurTimeout = window.setTimeout(() => {
-            this.blurTimeout = undefined;
-          }, 200);
-          return this.handleFieldChange(queryIndex, 'conditions')(field);
+        organization={organization}
+        widgetQuery={widgetQuery}
+        onClose={field => {
+          this.handleFieldChange(queryIndex, 'conditions')(field);
         }}
-        projectIds={selection.projects}
+        pageFilters={selection}
       />
     ) : (
       <StyledSearchBar
@@ -155,25 +145,8 @@ class WidgetQueriesForm extends Component<Props> {
         projectIds={selection.projects}
         query={widgetQuery.conditions}
         fields={[]}
-        onSearch={field => {
-          // SearchBar will call handlers for both onSearch and onBlur
-          // when selecting a value from the autocomplete dropdown. This can
-          // cause state issues for the search bar in our use case. To prevent
-          // this, we set a timer in our onSearch handler to block our onBlur
-          // handler from firing if it is within 200ms, ie from clicking an
-          // autocomplete value.
-          if (this.blurTimeout) {
-            window.clearTimeout(this.blurTimeout);
-          }
-          this.blurTimeout = window.setTimeout(() => {
-            this.blurTimeout = undefined;
-          }, 200);
+        onClose={field => {
           this.handleFieldChange(queryIndex, 'conditions')(field);
-        }}
-        onBlur={field => {
-          if (!this.blurTimeout) {
-            this.handleFieldChange(queryIndex, 'conditions')(field);
-          }
         }}
         useFormWrapper={false}
         maxQueryLength={MAX_QUERY_LENGTH}
@@ -247,7 +220,7 @@ class WidgetQueriesForm extends Component<Props> {
         })}
         {canAddSearchConditions && (
           <Button
-            size="small"
+            size="sm"
             icon={<IconAdd isCircled />}
             onClick={(event: React.MouseEvent) => {
               event.preventDefault();

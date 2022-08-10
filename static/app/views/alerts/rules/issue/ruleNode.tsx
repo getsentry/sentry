@@ -5,14 +5,14 @@ import {openModal} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
-import Input from 'sentry/components/forms/controls/input';
 import SelectControl from 'sentry/components/forms/selectControl';
+import Input from 'sentry/components/input';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconDelete, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Choices, Organization, Project} from 'sentry/types';
+import {Choices, IssueOwnership, Organization, Project} from 'sentry/types';
 import {
   AssigneeTargetType,
   IssueAlertRuleAction,
@@ -125,6 +125,9 @@ function MailActionFields({
         {value: MailActionTargetType.IssueOwners, label: t('Issue Owners')},
         {value: MailActionTargetType.Team, label: t('Team')},
         {value: MailActionTargetType.Member, label: t('Member')},
+        ...(organization.features?.includes('alert-release-notification-workflow')
+          ? [{value: MailActionTargetType.ReleaseMembers, label: t('Release Members')}]
+          : []),
       ]}
       memberValue={MailActionTargetType.Member}
       teamValue={MailActionTargetType.Team}
@@ -227,6 +230,7 @@ interface Props {
   organization: Organization;
   project: Project;
   node?: IssueAlertRuleActionTemplate | IssueAlertRuleConditionTemplate | null;
+  ownership?: null | IssueOwnership;
 }
 
 function RuleNode({
@@ -239,6 +243,7 @@ function RuleNode({
   onDelete,
   onPropertyChange,
   onReset,
+  ownership,
 }: Props) {
   const handleDelete = useCallback(() => {
     onDelete(index);
@@ -335,7 +340,7 @@ function RuleNode({
               "This project doesn't support sessions. [link:View supported platforms]",
               {
                 link: (
-                  <ExternalLink href="https://docs.sentry.io/product/releases/health/setup/" />
+                  <ExternalLink href="https://docs.sentry.io/product/releases/setup/#release-health" />
                 ),
               }
             )}
@@ -365,7 +370,7 @@ function RuleNode({
           trailingItems={
             <Button
               href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error"
-              size="xsmall"
+              size="xs"
             >
               {t('Learn More')}
             </Button>
@@ -382,23 +387,59 @@ function RuleNode({
     ) {
       return (
         <MarginlessAlert type="warning">
-          {tct(
-            'If there are no matching [issueOwners], ownership is determined by the [ownershipSettings].',
-            {
-              issueOwners: (
-                <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/">
-                  {t('issue owners')}
-                </ExternalLink>
-              ),
-              ownershipSettings: (
-                <ExternalLink
-                  href={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
-                >
-                  {t('ownership settings')}
-                </ExternalLink>
-              ),
-            }
-          )}
+          {!ownership
+            ? tct(
+                'If there are no matching [issueOwners], ownership is determined by the [ownershipSettings].',
+                {
+                  issueOwners: (
+                    <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/">
+                      {t('issue owners')}
+                    </ExternalLink>
+                  ),
+                  ownershipSettings: (
+                    <ExternalLink
+                      href={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
+                    >
+                      {t('ownership settings')}
+                    </ExternalLink>
+                  ),
+                }
+              )
+            : ownership.fallthrough
+            ? tct(
+                'If there are no matching [issueOwners], all project members will receive this alert. To change this behavior, see [ownershipSettings].',
+                {
+                  issueOwners: (
+                    <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/">
+                      {t('issue owners')}
+                    </ExternalLink>
+                  ),
+                  ownershipSettings: (
+                    <ExternalLink
+                      href={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
+                    >
+                      {t('ownership settings')}
+                    </ExternalLink>
+                  ),
+                }
+              )
+            : tct(
+                'If there are no matching [issueOwners], this action will have no effect. To change this behavior, see [ownershipSettings].',
+                {
+                  issueOwners: (
+                    <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/">
+                      {t('issue owners')}
+                    </ExternalLink>
+                  ),
+                  ownershipSettings: (
+                    <ExternalLink
+                      href={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
+                    >
+                      {t('ownership settings')}
+                    </ExternalLink>
+                  ),
+                }
+              )}
         </MarginlessAlert>
       );
     }
@@ -465,7 +506,7 @@ function RuleNode({
           {renderRow()}
           {ticketRule && node && (
             <Button
-              size="small"
+              size="sm"
               icon={<IconSettings size="xs" />}
               type="button"
               onClick={() =>
@@ -488,7 +529,7 @@ function RuleNode({
           )}
           {sentryAppRule && node && (
             <Button
-              size="small"
+              size="sm"
               icon={<IconSettings size="xs" />}
               type="button"
               disabled={Boolean(data.disabled) || disabled}
@@ -517,7 +558,7 @@ function RuleNode({
           aria-label={t('Delete Node')}
           onClick={handleDelete}
           type="button"
-          size="small"
+          size="sm"
           icon={<IconDelete />}
         />
       </RuleRow>

@@ -1,5 +1,6 @@
 import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -43,7 +44,11 @@ import {
   transactionSummaryRouteWithQuery,
 } from './transactionSummary/utils';
 import {COLUMN_TITLES} from './data';
-import {getSelectedProjectPlatforms} from './utils';
+import {
+  createUnnamedTransactionsDiscoverTarget,
+  getSelectedProjectPlatforms,
+  UNPARAMETERIZED_TRANSACTION,
+} from './utils';
 
 export function getProjectID(
   eventData: EventData,
@@ -192,12 +197,18 @@ class _Table extends Component<Props, State> {
         ]);
       }
       summaryView.query = summaryView.getQueryWithAdditionalConditions();
-      const target = transactionSummaryRouteWithQuery({
-        orgSlug: organization.slug,
-        transaction: String(dataRow.transaction) || '',
-        query: summaryView.generateQueryStringObject(),
-        projectID,
-      });
+      const isUnparameterizedRow = dataRow.transaction === UNPARAMETERIZED_TRANSACTION;
+      const target = isUnparameterizedRow
+        ? createUnnamedTransactionsDiscoverTarget({
+            organization,
+            location,
+          })
+        : transactionSummaryRouteWithQuery({
+            orgSlug: organization.slug,
+            transaction: String(dataRow.transaction) || '',
+            query: summaryView.generateQueryStringObject(),
+            projectID,
+          });
 
       return (
         <CellAction
@@ -350,12 +361,14 @@ class _Table extends Component<Props, State> {
       if (teamKeyTransactionColumn) {
         if (isHeader) {
           const star = (
-            <IconStar
-              key="keyTransaction"
-              color="yellow300"
-              isSolid
-              data-test-id="team-key-transaction-header"
-            />
+            <TeamKeyTransactionWrapper>
+              <IconStar
+                key="keyTransaction"
+                color="yellow300"
+                isSolid
+                data-test-id="team-key-transaction-header"
+              />
+            </TeamKeyTransactionWrapper>
           );
           return [this.renderHeadCell(tableData?.meta, teamKeyTransactionColumn, star)];
         }
@@ -424,44 +437,48 @@ class _Table extends Component<Props, State> {
     return (
       <div>
         <MEPConsumer>
-          {value => (
-            <DiscoverQuery
-              eventView={sortedEventView}
-              orgSlug={organization.slug}
-              location={location}
-              setError={error => setError(error?.message)}
-              referrer="api.performance.landing-table"
-              transactionName={transaction}
-              transactionThreshold={transactionThreshold}
-              queryExtras={getMEPQueryParams(value)}
-              useEvents={useEvents}
-            >
-              {({pageLinks, isLoading, tableData}) => (
-                <Fragment>
-                  <GridEditable
-                    isLoading={isLoading}
-                    data={tableData ? tableData.data : []}
-                    columnOrder={columnOrder}
-                    columnSortBy={columnSortBy}
-                    grid={{
-                      onResizeColumn: this.handleResizeColumn,
-                      renderHeadCell: this.renderHeadCellWithMeta(tableData?.meta) as any,
-                      renderBodyCell: this.renderBodyCellWithData(tableData) as any,
-                      renderPrependColumns: this.renderPrependCellWithData(
-                        tableData
-                      ) as any,
-                      prependColumnWidths,
-                    }}
-                    location={location}
-                  />
-                  <Pagination
-                    pageLinks={pageLinks}
-                    paginationAnalyticsEvent={this.paginationAnalyticsEvent}
-                  />
-                </Fragment>
-              )}
-            </DiscoverQuery>
-          )}
+          {value => {
+            return (
+              <DiscoverQuery
+                eventView={sortedEventView}
+                orgSlug={organization.slug}
+                location={location}
+                setError={error => setError(error?.message)}
+                referrer="api.performance.landing-table"
+                transactionName={transaction}
+                transactionThreshold={transactionThreshold}
+                queryExtras={getMEPQueryParams(value)}
+                useEvents={useEvents}
+              >
+                {({pageLinks, isLoading, tableData}) => (
+                  <Fragment>
+                    <GridEditable
+                      isLoading={isLoading}
+                      data={tableData ? tableData.data : []}
+                      columnOrder={columnOrder}
+                      columnSortBy={columnSortBy}
+                      grid={{
+                        onResizeColumn: this.handleResizeColumn,
+                        renderHeadCell: this.renderHeadCellWithMeta(
+                          tableData?.meta
+                        ) as any,
+                        renderBodyCell: this.renderBodyCellWithData(tableData) as any,
+                        renderPrependColumns: this.renderPrependCellWithData(
+                          tableData
+                        ) as any,
+                        prependColumnWidths,
+                      }}
+                      location={location}
+                    />
+                    <Pagination
+                      pageLinks={pageLinks}
+                      paginationAnalyticsEvent={this.paginationAnalyticsEvent}
+                    />
+                  </Fragment>
+                )}
+              </DiscoverQuery>
+            );
+          }}
         </MEPConsumer>
       </div>
     );
@@ -474,5 +491,11 @@ function Table(props: Omit<Props, 'summaryConditions'> & {summaryConditions?: st
 
   return <_Table {...props} summaryConditions={summaryConditions} />;
 }
+
+// Align the contained IconStar with the IconStar buttons in individual table
+// rows, which have 2px padding + 1px border.
+const TeamKeyTransactionWrapper = styled('div')`
+  padding: 3px;
+`;
 
 export default Table;

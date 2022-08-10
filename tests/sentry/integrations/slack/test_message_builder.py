@@ -10,9 +10,13 @@ from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models import IncidentStatus
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
-from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
+from sentry.integrations.slack.message_builder.issues import (
+    SlackIssuesMessageBuilder,
+    SlackReleaseIssuesMessageBuilder,
+)
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.models import Group, Team, User
+from sentry.notifications.notifications.active_release import ActiveReleaseIssueNotification
 from sentry.testutils import TestCase
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
@@ -135,6 +139,52 @@ class BuildGroupAttachmentTest(TestCase):
             SlackIssuesMessageBuilder(warning_event.group, warning_event).build()["color"]
             == "#FFC227"
         )
+
+    def test_build_group_release_attachment(self):
+        group = self.create_group(
+            project=self.project,
+            data={
+                "type": "error",
+                "metadata": {"function": "First line of Text\n Some more details"},
+            },
+        )
+        release = self.create_release(version="1.0.0", project=self.project)
+
+        release_link = ActiveReleaseIssueNotification.slack_release_url(release)
+        attachments = SlackReleaseIssuesMessageBuilder(
+            group, last_release=release, last_release_link=release_link
+        ).build()
+        group_link = f"http://testserver/organizations/{group.organization.slug}/issues/{group.id}/?referrer=alert_slack_release"
+
+        assert attachments["title"] == f"Release <{release_link}|{release.version}> has a new issue"
+        assert attachments["text"] == f"<{group_link}|*{group.title}*> \nFirst line of Text"
+        assert "title_link" not in attachments
+
+    def test_build_group_release_with_commits_attachment(self):
+        group = self.create_group(project=self.project)
+        release = self.create_release(version="1.0.0", project=self.project)
+
+        release_link = ActiveReleaseIssueNotification.slack_release_url(release)
+        release_commits = [
+            {"author": None, "key": "sha789", "subject": "third commit"},
+            {"author": self.user, "key": "sha456", "subject": "second commit"},
+            {"author": self.user, "key": "sha123", "subject": "first commit"},
+        ]
+        attachments = SlackReleaseIssuesMessageBuilder(
+            group,
+            last_release=release,
+            last_release_link=release_link,
+            release_commits=release_commits,
+        ).build()
+
+        group_link = f"http://testserver/organizations/{group.organization.slug}/issues/{group.id}/?referrer=alert_slack_release"
+        assert attachments["title"] == f"Release <{release_link}|{release.version}> has a new issue"
+
+        assert (
+            attachments["text"]
+            == f"<{group_link}|*{group.title}*> \n{SlackReleaseIssuesMessageBuilder.commit_data_text(release_commits)}\n"
+        )
+        assert "title_link" not in attachments
 
 
 class BuildIncidentAttachmentTest(TestCase):

@@ -24,7 +24,7 @@ import IgnoreActions from 'sentry/components/actions/ignore';
 import ResolveActions from 'sentry/components/actions/resolve';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
-import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
+import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
 import Tooltip from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -349,6 +349,7 @@ class Actions extends Component<Props, State> {
 
     const orgFeatures = new Set(organization.features);
 
+    const bookmarkKey = isBookmarked ? 'unbookmark' : 'bookmark';
     const bookmarkTitle = isBookmarked ? t('Remove bookmark') : t('Bookmark');
     const hasRelease = !!project.features?.includes('releases');
 
@@ -357,7 +358,7 @@ class Actions extends Component<Props, State> {
 
     return (
       <Wrapper>
-        <GuideAnchor target="resolve" position="bottom" offset={space(3)}>
+        <GuideAnchor target="resolve" position="bottom" offset={20}>
           <ResolveActions
             disabled={disabled}
             disableDropdown={disabled}
@@ -372,7 +373,7 @@ class Actions extends Component<Props, State> {
             }
           />
         </GuideAnchor>
-        <GuideAnchor target="ignore_delete_discard" position="bottom" offset={space(3)}>
+        <GuideAnchor target="ignore_delete_discard" position="bottom" offset={20}>
           <IgnoreActions
             isIgnored={isIgnored}
             onUpdate={this.onUpdate}
@@ -421,16 +422,16 @@ class Actions extends Component<Props, State> {
         />
         <Access organization={organization} access={['event:admin']}>
           {({hasAccess}) => (
-            <DropdownMenuControlV2
+            <DropdownMenuControl
               triggerProps={{
                 'aria-label': t('More Actions'),
                 icon: <IconEllipsis size="xs" />,
                 showChevron: false,
-                size: 'xsmall',
+                size: 'xs',
               }}
               items={[
                 {
-                  key: 'bookmark',
+                  key: bookmarkKey,
                   label: bookmarkTitle,
                   hidden: false,
                   onAction: this.onToggleBookmark,

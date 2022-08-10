@@ -115,6 +115,8 @@ class GroupEventToolbar extends Component<Props> {
       evt.dateReceived &&
       Math.abs(+moment(evt.dateReceived) - +moment(evt.dateCreated)) > latencyThreshold;
 
+    const isPerformanceIssue = !!evt.contexts?.performance_issue;
+
     return (
       <StyledDataSection>
         <StyledNavigationButtonGroup
@@ -130,7 +132,7 @@ class GroupEventToolbar extends Component<Props> {
           onOlderClick={() => this.handleNavigationClick('older')}
           onNewerClick={() => this.handleNavigationClick('newer')}
           onNewestClick={() => this.handleNavigationClick('newest')}
-          size="small"
+          size="sm"
         />
         <Heading>
           {t('Event')}{' '}
@@ -163,12 +165,15 @@ class GroupEventToolbar extends Component<Props> {
           project={project}
           organization={organization}
         />
-        <QuickTrace
-          event={evt}
-          group={group}
-          organization={organization}
-          location={location}
-        />
+        {/* If this is a Performance issue, the QuickTrace will be rendered along with the embedded span tree instead */}
+        {!isPerformanceIssue && (
+          <QuickTrace
+            event={evt}
+            group={group}
+            organization={organization}
+            location={location}
+          />
+        )}
       </StyledDataSection>
     );
   }

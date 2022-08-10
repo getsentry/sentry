@@ -7,8 +7,8 @@ import pick from 'lodash/pick';
 import moment from 'moment';
 
 import {DateTimeObject} from 'sentry/components/charts/utils';
-import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import CompactSelect from 'sentry/components/forms/compactSelect';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -231,26 +231,11 @@ export class OrganizationStats extends Component<Props> {
     return (
       <Fragment>
         <DropdownDataCategory
-          label={
-            <DropdownLabel>
-              <span>{t('Event Type: ')}</span>
-              <span>{this.dataCategoryName}</span>
-            </DropdownLabel>
-          }
-        >
-          {CHART_OPTIONS_DATACATEGORY.map(option => (
-            <DropdownItem
-              key={option.value}
-              isActive={option.value === this.dataCategory}
-              eventKey={option.value}
-              onSelect={(val: string) =>
-                this.setStateOnUrl({dataCategory: val as DataCategory})
-              }
-            >
-              {option.label}
-            </DropdownItem>
-          ))}
-        </DropdownDataCategory>
+          triggerProps={{prefix: t('Category')}}
+          value={this.dataCategory}
+          options={CHART_OPTIONS_DATACATEGORY}
+          onChange={opt => this.setStateOnUrl({dataCategory: opt.value as DataCategory})}
+        />
 
         <StyledPageTimeRangeSelector
           organization={organization}
@@ -284,7 +269,7 @@ export class OrganizationStats extends Component<Props> {
                   </PageHeader>
                   <p>
                     {t(
-                      'We collect usage metrics on three types of events: errors, transactions, and attachments. The charts below reflect events that Sentry has received across your entire organization. You can also find them broken down by project in the table.'
+                      'We collect usage metrics on three categories: errors, transactions, and attachments. The charts below reflect data that Sentry has received across your entire organization. You can also find them broken down by project in the table.'
                     )}
                   </p>
                 </Fragment>
@@ -341,21 +326,12 @@ const PageGrid = styled('div')`
   }
 `;
 
-const DropdownDataCategory = styled(DropdownControl)`
-  height: 42px;
+const DropdownDataCategory = styled(CompactSelect)`
   grid-column: auto / span 1;
-  justify-self: stretch;
-  align-self: stretch;
-  z-index: ${p => p.theme.zIndex.orgStats.dataCategory};
 
-  button {
+  button[aria-haspopup='listbox'] {
     width: 100%;
     height: 100%;
-
-    > span {
-      display: flex;
-      justify-content: space-between;
-    }
   }
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
@@ -368,23 +344,12 @@ const DropdownDataCategory = styled(DropdownControl)`
 
 const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
   grid-column: auto / span 1;
-  z-index: ${p => p.theme.zIndex.orgStats.timeRange};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-column: auto / span 2;
   }
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-column: auto / span 3;
-  }
-`;
-
-const DropdownLabel = styled('span')`
-  text-align: left;
-  font-weight: 600;
-  color: ${p => p.theme.textColor};
-
-  > span:last-child {
-    font-weight: 400;
   }
 `;
 

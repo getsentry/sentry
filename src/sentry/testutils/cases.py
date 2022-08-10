@@ -15,7 +15,7 @@ __all__ = (
     "AcceptanceTestCase",
     "IntegrationTestCase",
     "SnubaTestCase",
-    "SessionMetricsTestCase",
+    "BaseMetricsTestCase",
     "BaseIncidentsTest",
     "IntegrationRepositoryTestCase",
     "ReleaseCommitPatchTest",
@@ -35,7 +35,7 @@ import os.path
 import time
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 from unittest import mock
 from unittest.mock import patch
 from urllib.parse import urlencode
@@ -102,14 +102,14 @@ from sentry.models import (
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.plugins.base import plugins
 from sentry.search.events.constants import (
-    METRIC_FALSE_TAG_VALUE,
-    METRIC_MISERABLE_TAG_KEY,
-    METRIC_SATISFIED_TAG_KEY,
-    METRIC_TOLERATED_TAG_KEY,
-    METRIC_TRUE_TAG_VALUE,
+    METRIC_FRUSTRATED_TAG_VALUE,
+    METRIC_SATISFACTION_TAG_KEY,
+    METRIC_SATISFIED_TAG_VALUE,
+    METRIC_TOLERATED_TAG_VALUE,
     METRICS_MAP,
 )
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import iso_format
@@ -121,7 +121,7 @@ from sentry.utils.pytest.selenium import Browser
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snuba import _snuba_pool
 
-from ..snuba.metrics.naming_layer.mri import SessionMRI
+from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
 from . import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
@@ -140,6 +140,8 @@ DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, li
 
 DETECT_TESTCASE_MISUSE = os.environ.get("SENTRY_DETECT_TESTCASE_MISUSE") == "1"
 SILENCE_MIXED_TESTCASE_MISUSE = os.environ.get("SENTRY_SILENCE_MIXED_TESTCASE_MISUSE") == "1"
+
+SessionOrTransactionMRI = Union[SessionMRI, TransactionMRI]
 
 
 class BaseTestCase(Fixtures, Exam):
@@ -1068,9 +1070,7 @@ class SnubaTestCase(BaseTestCase):
         )
 
 
-class SessionMetricsTestCase(SnubaTestCase):
-    """Store metrics instead of sessions"""
-
+class BaseMetricsTestCase(SnubaTestCase):
     snuba_endpoint = "/tests/entities/{entity}/insert"
 
     def store_session(self, session):
@@ -1079,106 +1079,132 @@ class SessionMetricsTestCase(SnubaTestCase):
         https://github.com/getsentry/relay/blob/e3c064e213281c36bde5d2b6f3032c6d36e22520/relay-server/src/actors/envelopes.rs#L357
         """
         user = session.get("distinct_id")
+        org_id = session["org_id"]
+        project_id = session["project_id"]
+        base_tags = {}
+        if session.get("release") is not None:
+            base_tags["release"] = session["release"]
+        if session.get("environment") is not None:
+            base_tags["environment"] = session["environment"]
 
         # This check is not yet reflected in relay, see https://getsentry.atlassian.net/browse/INGEST-464
         user_is_nil = user is None or user == "00000000-0000-0000-0000-000000000000"
 
+        def push(type, mri: str, tags, value):
+            self.store_metric(
+                org_id,
+                project_id,
+                type,
+                mri,
+                {**tags, **base_tags},
+                session["started"],
+                value,
+                use_case_id=UseCaseKey.RELEASE_HEALTH,
+            )
+
         # seq=0 is equivalent to relay's session.init, init=True is transformed
         # to seq=0 in Relay.
         if session["seq"] == 0:  # init
-            self._push_metric(
-                session, "counter", SessionMRI.SESSION, {"session.status": "init"}, +1
-            )
-            if not user_is_nil:
-                self._push_metric(session, "set", SessionMRI.USER, {"session.status": "init"}, user)
+            push("counter", SessionMRI.SESSION.value, {"session.status": "init"}, +1)
 
         status = session["status"]
 
         # Mark the session as errored, which includes fatal sessions.
         if session.get("errors", 0) > 0 or status not in ("ok", "exited"):
-            self._push_metric(session, "set", SessionMRI.ERROR, {}, session["session_id"])
+            push("set", SessionMRI.ERROR.value, {}, session["session_id"])
             if not user_is_nil:
-                self._push_metric(
-                    session, "set", SessionMRI.USER, {"session.status": "errored"}, user
-                )
+                push("set", SessionMRI.USER.value, {"session.status": "errored"}, user)
+        elif not user_is_nil:
+            push("set", SessionMRI.USER.value, {}, user)
 
         if status in ("abnormal", "crashed"):  # fatal
-            self._push_metric(
-                session, "counter", SessionMRI.SESSION, {"session.status": status}, +1
-            )
+            push("counter", SessionMRI.SESSION.value, {"session.status": status}, +1)
             if not user_is_nil:
-                self._push_metric(session, "set", SessionMRI.USER, {"session.status": status}, user)
+                push("set", SessionMRI.USER.value, {"session.status": status}, user)
 
-        if status != "ok":  # terminal
+        if status == "exited":
             if session["duration"] is not None:
-                self._push_metric(
-                    session,
+                push(
                     "distribution",
-                    SessionMRI.RAW_DURATION,
+                    SessionMRI.RAW_DURATION.value,
                     {"session.status": status},
                     session["duration"],
                 )
-
-        # Also extract user for non-init healthy sessions
-        # (see # https://github.com/getsentry/relay/pull/1275)
-        if session["seq"] > 0 and status in ("ok", "exited") and not user_is_nil:
-            self._push_metric(session, "set", SessionMRI.USER, {"session.status": "ok"}, user)
 
     def bulk_store_sessions(self, sessions):
         for session in sessions:
             self.store_session(session)
 
     @classmethod
-    def _push_metric(cls, session, type, key: SessionMRI, tags, value):
-        org_id = session["org_id"]
+    def store_metric(
+        cls,
+        org_id: int,
+        project_id: int,
+        type: str,
+        name: str,
+        tags: Dict[str, str],
+        timestamp: int | float,
+        value,
+        use_case_id: UseCaseKey,
+    ):
+        mapping_meta = {}
 
-        def metric_id(key: SessionMRI):
-            res = indexer.record(org_id, key.value)
+        def metric_id(key: str):
+            assert isinstance(key, str)
+            res = indexer.record(use_case_id=use_case_id, org_id=org_id, string=key)
             assert res is not None, key
+            mapping_meta[str(res)] = key
             return res
 
         def tag_key(name):
-            res = indexer.record(org_id, name)
+            assert isinstance(name, str)
+            res = indexer.record(use_case_id=use_case_id, org_id=org_id, string=name)
             assert res is not None, name
+            mapping_meta[str(res)] = name
             return res
 
         def tag_value(name):
-            res = indexer.record(org_id, name)
+            assert isinstance(name, str)
+            res = indexer.record(use_case_id=use_case_id, org_id=org_id, string=name)
             assert res is not None, name
+            mapping_meta[str(res)] = name
             return res
 
-        base_tags = {
-            tag_key(tag): tag_value(session[tag])
-            for tag in (
-                "release",
-                "environment",
-            )
-            if session[tag] is not None
-        }
-
-        extra_tags = {tag_key(k): tag_value(v) for k, v in tags.items()}
+        assert not isinstance(value, list)
 
         if type == "set":
             # Relay uses a different hashing algorithm, but that's ok
-            value = [int.from_bytes(hashlib.md5(value.encode()).digest()[:8], "big")]
+            value = [int.from_bytes(hashlib.md5(str(value).encode()).digest()[:8], "big")]
         elif type == "distribution":
             value = [value]
 
         msg = {
-            "org_id": session["org_id"],
-            "project_id": session["project_id"],
-            "metric_id": metric_id(key),
-            "timestamp": session["started"],
-            "tags": {**base_tags, **extra_tags},
+            "org_id": org_id,
+            "project_id": project_id,
+            "metric_id": metric_id(name),
+            "timestamp": timestamp,
+            "tags": {tag_key(key): tag_value(value) for key, value in tags.items()},
             "type": {"counter": "c", "set": "s", "distribution": "d"}[type],
             "value": value,
             "retention_days": 90,
+            "use_case_id": use_case_id,
         }
 
-        cls._send_buckets([msg], entity=f"metrics_{type}s")
+        msg["mapping_meta"] = {}
+        msg["mapping_meta"][msg["type"]] = mapping_meta
+
+        if use_case_id == UseCaseKey.PERFORMANCE:
+            entity = f"generic_metrics_{type}s"
+        else:
+            entity = f"metrics_{type}s"
+
+        cls._send_buckets([msg], entity)
 
     @classmethod
     def _send_buckets(cls, buckets, entity):
+        # XXX(markus): do not use this method in your tests, use store_metric
+        # instead. we need to be able to make changes to the indexer's output
+        # protocol without having to update a million tests
         assert (
             requests.post(
                 settings.SENTRY_SNUBA + cls.snuba_endpoint.format(entity=entity),
@@ -1188,11 +1214,11 @@ class SessionMetricsTestCase(SnubaTestCase):
         )
 
 
-class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
+class MetricsEnhancedPerformanceTestCase(BaseMetricsTestCase, TestCase):
     TYPE_MAP = {
-        "metrics_distributions": "d",
-        "metrics_sets": "s",
-        "metrics_counters": "c",
+        "metrics_distributions": "distribution",
+        "metrics_sets": "set",
+        "metrics_counters": "counter",
     }
     ENTITY_MAP = {
         "transaction.duration": "metrics_distributions",
@@ -1201,6 +1227,7 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
         "measurements.fcp": "metrics_distributions",
         "measurements.fid": "metrics_distributions",
         "measurements.cls": "metrics_distributions",
+        "measurements.frames_frozen_rate": "metrics_distributions",
         "spans.http": "metrics_distributions",
         "user": "metrics_sets",
     }
@@ -1217,39 +1244,34 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
             "environment",
             "http.status",
             "transaction.status",
-            METRIC_SATISFIED_TAG_KEY,
-            METRIC_TOLERATED_TAG_KEY,
-            METRIC_MISERABLE_TAG_KEY,
-            METRIC_TRUE_TAG_VALUE,
-            METRIC_FALSE_TAG_VALUE,
+            METRIC_TOLERATED_TAG_VALUE,
+            METRIC_SATISFIED_TAG_VALUE,
+            METRIC_FRUSTRATED_TAG_VALUE,
+            METRIC_SATISFACTION_TAG_KEY,
             *self.METRIC_STRINGS,
             *list(SPAN_STATUS_NAME_TO_CODE.keys()),
             *list(METRICS_MAP.values()),
         ]
         org_strings = {self.organization.id: set(strings)}
-        indexer.bulk_record(org_strings=org_strings)
+        indexer.bulk_record(use_case_id=UseCaseKey.PERFORMANCE, org_strings=org_strings)
 
-    def store_metric(
+    def store_transaction_metric(
         self,
         value: List[int] | int,
         metric: str = "transaction.duration",
+        internal_metric: Optional[str] = None,
+        entity: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
         timestamp: Optional[datetime] = None,
         project: Optional[id] = None,
+        use_case_id: UseCaseKey = UseCaseKey.PERFORMANCE,
     ):
-        internal_metric = METRICS_MAP[metric]
-        entity = self.ENTITY_MAP[metric]
+        internal_metric = METRICS_MAP[metric] if internal_metric is None else internal_metric
+        entity = self.ENTITY_MAP[metric] if entity is None else entity
         org_id = self.organization.id
 
         if tags is None:
             tags = {}
-        else:
-            tags = {
-                indexer.record(self.organization.id, key): indexer.record(
-                    self.organization.id, value
-                )
-                for key, value in tags.items()
-            }
 
         if timestamp is None:
             metric_timestamp = self.DEFAULT_METRIC_TIMESTAMP.timestamp()
@@ -1261,22 +1283,17 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
 
         if not isinstance(value, list):
             value = [value]
-
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": project,
-                    "metric_id": indexer.resolve(org_id, internal_metric),
-                    "timestamp": metric_timestamp,
-                    "tags": tags,
-                    "type": self.TYPE_MAP[entity],
-                    "value": value,
-                    "retention_days": 90,
-                }
-            ],
-            entity=entity,
-        )
+        for subvalue in value:
+            self.store_metric(
+                org_id,
+                project,
+                self.TYPE_MAP[entity],
+                internal_metric,
+                tags,
+                metric_timestamp,
+                subvalue,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
 
 
 class BaseIncidentsTest(SnubaTestCase):
@@ -1556,11 +1573,18 @@ class TestMigrations(TransactionTestCase):
     def migrate_to(self):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
+    @property
+    def connection(self):
+        return "default"
+
     def setUp(self):
         super().setUp()
+        self.setup_initial_state()
+
         self.migrate_from = [(self.app, self.migrate_from)]
         self.migrate_to = [(self.app, self.migrate_to)]
 
+        connection = connections[self.connection]
         executor = MigrationExecutor(connection)
         matching_migrations = [m for m in executor.loader.applied_migrations if m[0] == self.app]
         if not matching_migrations:
@@ -1589,7 +1613,19 @@ class TestMigrations(TransactionTestCase):
         executor.loader.build_graph()  # reload.
         executor.migrate(self.current_migration)
 
+    def setup_initial_state(self):
+        # Add code here that will run before we roll back the database to the `migrate_from`
+        # migration. This can be useful to allow us to use the various `self.create_*` convenience
+        # methods.
+        # Any objects created here will need to be converted over to migration models if any further
+        # database operations are required.
+        pass
+
     def setup_before_migration(self, apps):
+        # Add code here to run after we have rolled the database back to the `migrate_from`
+        # migration. This code must use `apps` to create any database models, and not directly
+        # access Django models.
+        # It's preferable to create models here, when not overly complex to do so.
         pass
 
 
@@ -1705,13 +1741,62 @@ class SlackActivityNotificationTest(ActivityTestCase):
         self.short_id = self.group.qualified_short_id
 
 
+class MSTeamsActivityNotificationTest(ActivityTestCase):
+    def setUp(self):
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.MSTEAMS,
+            NotificationSettingTypes.WORKFLOW,
+            NotificationSettingOptionValues.ALWAYS,
+            user=self.user,
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.MSTEAMS,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.ALWAYS,
+            user=self.user,
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.MSTEAMS,
+            NotificationSettingTypes.DEPLOY,
+            NotificationSettingOptionValues.ALWAYS,
+            user=self.user,
+        )
+        UserOption.objects.create(user=self.user, key="self_notifications", value="1")
+
+        self.tenant_id = "50cccd00-7c9c-4b32-8cda-58a084f9334a"
+        self.integration = self.create_integration(
+            self.organization,
+            self.tenant_id,
+            metadata={
+                "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "service_url": "https://testserviceurl.com/testendpoint/",
+                "installation_type": "tenant",
+                "expires_at": 1234567890,
+                "tenant_id": self.tenant_id,
+            },
+            name="Personal Installation",
+            provider="msteams",
+        )
+        self.idp = self.create_identity_provider(
+            integration=self.integration, type="msteams", external_id=self.tenant_id, config={}
+        )
+        self.user_id_1 = "29:1XJKJMvc5GBtc2JwZq0oj8tHZmzrQgFmB39ATiQWA85gQtHieVkKilBZ9XHoq9j7Zaqt7CZ-NJWi7me2kHTL3Bw"
+        self.user_1 = self.user
+        self.identity_1 = self.create_identity(
+            user=self.user_1, identity_provider=self.idp, external_id=self.user_id_1
+        )
+
+
 @apply_feature_flag_on_cls("organizations:metrics")
 @pytest.mark.usefixtures("reset_snuba")
-class MetricsAPIBaseTestCase(SessionMetricsTestCase, APITestCase):
+class MetricsAPIBaseTestCase(BaseMetricsTestCase, APITestCase):
     ...
 
 
 class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
+    def __indexer_record(self, org_id: int, value: str) -> int:
+        return indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=value)
+
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
@@ -1724,11 +1809,15 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": indexer.record(org_id, "metric1"),
+                    "metric_id": self.__indexer_record(org_id, "metric1"),
                     "timestamp": now,
                     "tags": {
-                        indexer.record(org_id, "tag1"): indexer.record(org_id, "value1"),
-                        indexer.record(org_id, "tag2"): indexer.record(org_id, "value2"),
+                        self.__indexer_record(org_id, "tag1"): self.__indexer_record(
+                            org_id, "value1"
+                        ),
+                        self.__indexer_record(org_id, "tag2"): self.__indexer_record(
+                            org_id, "value2"
+                        ),
                     },
                     "type": "c",
                     "value": 1,
@@ -1737,10 +1826,12 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": indexer.record(org_id, "metric1"),
+                    "metric_id": self.__indexer_record(org_id, "metric1"),
                     "timestamp": now,
                     "tags": {
-                        indexer.record(org_id, "tag3"): indexer.record(org_id, "value3"),
+                        self.__indexer_record(org_id, "tag3"): self.__indexer_record(
+                            org_id, "value3"
+                        ),
                     },
                     "type": "c",
                     "value": 1,
@@ -1754,12 +1845,18 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": indexer.record(org_id, "metric2"),
+                    "metric_id": self.__indexer_record(org_id, "metric2"),
                     "timestamp": now,
                     "tags": {
-                        indexer.record(org_id, "tag4"): indexer.record(org_id, "value3"),
-                        indexer.record(org_id, "tag1"): indexer.record(org_id, "value2"),
-                        indexer.record(org_id, "tag2"): indexer.record(org_id, "value1"),
+                        self.__indexer_record(org_id, "tag4"): self.__indexer_record(
+                            org_id, "value3"
+                        ),
+                        self.__indexer_record(org_id, "tag1"): self.__indexer_record(
+                            org_id, "value2"
+                        ),
+                        self.__indexer_record(org_id, "tag2"): self.__indexer_record(
+                            org_id, "value1"
+                        ),
                     },
                     "type": "s",
                     "value": [123],
@@ -1768,7 +1865,7 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": indexer.record(org_id, "metric3"),
+                    "metric_id": self.__indexer_record(org_id, "metric3"),
                     "timestamp": now,
                     "tags": {},
                     "type": "s",

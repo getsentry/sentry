@@ -219,13 +219,8 @@ class MetricAlertDetails extends Component<Props, State> {
       <PageFiltersContainer
         skipLoadLastUsed
         skipInitializeUrlParams
-        isGlobalSelectionReady={isGlobalSelectionReady}
         shouldForceProject={isGlobalSelectionReady}
         forceProject={project}
-        forceEnvironment={rule?.environment ?? ''}
-        lockedMessageSubject={t('alert rule')}
-        showDateSelector={false}
-        hideGlobalHeader
       >
         <SentryDocumentTitle title={rule?.name ?? ''} />
 

@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
-import Input from 'sentry/components/forms/controls/input';
+import Input from 'sentry/components/input';
 import {IconChevron, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -20,6 +20,7 @@ import {getWidgetDiscoverUrl} from 'sentry/views/dashboardsV2/utils';
 export type DashboardWidgetQuerySelectorModalOptions = {
   organization: Organization;
   widget: Widget;
+  isMetricsData?: boolean;
 };
 
 type Props = ModalRenderProps &
@@ -31,7 +32,7 @@ type Props = ModalRenderProps &
 
 class DashboardWidgetQuerySelectorModal extends Component<Props> {
   renderQueries() {
-    const {organization, widget, selection} = this.props;
+    const {organization, widget, selection, isMetricsData} = this.props;
     const querySearchBars = widget.queries.map((query, index) => {
       const discoverLocation = getWidgetDiscoverUrl(
         {
@@ -39,7 +40,9 @@ class DashboardWidgetQuerySelectorModal extends Component<Props> {
           queries: [query],
         },
         selection,
-        organization
+        organization,
+        0,
+        isMetricsData
       );
       return (
         <Fragment key={index}>

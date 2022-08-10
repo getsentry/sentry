@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 __all__ = ["FeatureHandler", "BatchFeatureHandler"]
 
 import abc
@@ -12,17 +14,17 @@ if TYPE_CHECKING:
 class FeatureHandler:
     features: MutableSet[str] = set()
 
-    def __call__(self, feature: "Feature", actor: "User") -> Optional[bool]:
+    def __call__(self, feature: Feature, actor: User) -> Optional[bool]:
         if feature.name not in self.features:
             return None
 
         return self.has(feature, actor)
 
     @abc.abstractmethod
-    def has(self, feature: "Feature", actor: "User", skip_entity: Optional[bool] = False) -> bool:
+    def has(self, feature: Feature, actor: User, skip_entity: Optional[bool] = False) -> bool:
         raise NotImplementedError
 
-    def has_for_batch(self, batch: "FeatureCheckBatch") -> Mapping["Project", bool]:
+    def has_for_batch(self, batch: FeatureCheckBatch) -> Mapping[Project, bool]:
         # If not overridden, iterate over objects in the batch individually.
         return {
             obj: self.has(feature, batch.actor)
@@ -33,9 +35,9 @@ class FeatureHandler:
     def batch_has(
         self,
         feature_names: Sequence[str],
-        actor: "User",
-        projects: Optional[Sequence["Project"]] = None,
-        organization: Optional["Organization"] = None,
+        actor: User,
+        projects: Optional[Sequence[Project]] = None,
+        organization: Optional[Organization] = None,
         batch: bool = True,
     ) -> Optional[Mapping[str, Mapping[str, bool]]]:
         raise NotImplementedError
@@ -49,14 +51,12 @@ class FeatureHandler:
 
 class BatchFeatureHandler(FeatureHandler):
     @abc.abstractmethod
-    def _check_for_batch(
-        self, feature_name: str, organization: "Organization", actor: "User"
-    ) -> bool:
+    def _check_for_batch(self, feature_name: str, entity: Organization | User, actor: User) -> bool:
         raise NotImplementedError
 
-    def has(self, feature: "Feature", actor: "User", skip_entity: Optional[bool] = False) -> bool:
-        return self._check_for_batch(feature.name, feature.get_organization(), actor)
+    def has(self, feature: Feature, actor: User, skip_entity: Optional[bool] = False) -> bool:
+        return self._check_for_batch(feature.name, feature.get_subject(), actor)
 
-    def has_for_batch(self, batch: "FeatureCheckBatch") -> Mapping["Project", bool]:
-        flag = self._check_for_batch(batch.feature_name, batch.organization, batch.actor)
+    def has_for_batch(self, batch: FeatureCheckBatch) -> Mapping[Project, bool]:
+        flag = self._check_for_batch(batch.feature_name, batch.subject, batch.actor)
         return {obj: flag for obj in batch.objects}

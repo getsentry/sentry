@@ -10,7 +10,13 @@ from sentry.testutils import TestCase
 
 
 class MockBatchHandler(features.BatchFeatureHandler):
-    features = frozenset(["auth:register", "organizations:feature", "projects:feature"])
+    features = frozenset(
+        [
+            "auth:register",
+            "organizations:feature",
+            "projects:feature",
+        ]
+    )
 
     def has(
         self,
@@ -30,6 +36,17 @@ class MockBatchHandler(features.BatchFeatureHandler):
 
     def _check_for_batch(self, feature_name, organization, actor):
         return True if feature_name in self.features else None
+
+
+class MockUserBatchHandler(features.BatchFeatureHandler):
+    features = frozenset(
+        [
+            "users:feature",
+        ]
+    )
+
+    def _check_for_batch(self, feature_name, user, actor):
+        return user.name == "steve"
 
 
 class FeatureManagerTest(TestCase):
@@ -209,3 +226,16 @@ class FeatureManagerTest(TestCase):
         assert manager.has("organizations:feature", actor=self.user, organization=self.organization)
         assert manager.has("projects:feature", actor=self.user, project=self.project)
         assert manager.has("auth:register", actor=self.user)
+
+    def test_user_flag(self):
+        manager = features.FeatureManager()
+        manager.add("users:feature", features.UserFeature)
+        manager.add_handler(MockUserBatchHandler())
+        steve = self.create_user(name="steve")
+        other_user = self.create_user(name="neo")
+        assert manager.has("users:feature", steve, actor=steve)
+        assert not manager.has("users:feature", other_user, actor=steve)
+        with self.assertRaisesMessage(
+            NotImplementedError, "User flags not allowed with entity_feature=True"
+        ):
+            manager.add("users:feature-2", features.UserFeature, True)

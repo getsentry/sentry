@@ -26,15 +26,18 @@ import type {User} from './user';
  * The Hooks type mapping is the master interface for all external Hooks into
  * the sentry frontend application.
  */
-export type Hooks = {_: any} & RouteHooks &
-  ComponentHooks &
-  CustomizationHooks &
-  AnalyticsHooks &
-  FeatureDisabledHooks &
-  InterfaceChromeHooks &
-  OnboardingHooks &
-  SettingsHooks &
-  CallbackHooks;
+export interface Hooks
+  extends RouteHooks,
+    ComponentHooks,
+    CustomizationHooks,
+    AnalyticsHooks,
+    FeatureDisabledHooks,
+    InterfaceChromeHooks,
+    OnboardingHooks,
+    SettingsHooks,
+    CallbackHooks {
+  _: any;
+}
 
 export type HookName = keyof Hooks;
 
@@ -88,10 +91,15 @@ type CodeOwnersCTAProps = {
   addCodeOwner?: () => void;
   handleRequest?: () => void;
 };
+
+type AlertsHeaderProps = {
+  organization: Organization;
+};
 /**
  * Component wrapping hooks
  */
 export type ComponentHooks = {
+  'component:alerts-header': () => React.ComponentType<AlertsHeaderProps>;
   'component:codeowners-cta': () => React.ComponentType<CodeOwnersCTAProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;

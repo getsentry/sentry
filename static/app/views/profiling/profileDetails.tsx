@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {browserHistory, Link} from 'react-router';
 import styled from '@emotion/styled';
 import Fuse from 'fuse.js';
@@ -14,10 +14,12 @@ import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
-import {generateProfileFlamegraphRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {renderTableHead} from 'sentry/utils/profiling/tableRenderer';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
@@ -63,6 +65,12 @@ function ProfileDetails() {
   const [state] = useProfileGroup();
   const organization = useOrganization();
 
+  useEffect(() => {
+    trackAdvancedAnalyticsEvent('profiling_views.profile_summary', {
+      organization,
+    });
+  }, [organization]);
+
   const cursor = useMemo<number>(() => {
     const cursorQuery = decodeScalar(location.query.cursor, '');
     return parseInt(cursorQuery, 10) || 0;
@@ -105,7 +113,7 @@ function ProfileDetails() {
 
   useEffectAfterFirstRender(() => {
     setSlowestFunctions(search(query));
-  }, [allFunctions]);
+  }, [allFunctions, query, search]);
 
   const pageLinks = useMemo(() => {
     const prevResults = cursor >= RESULTS_PER_PAGE ? 'true' : 'false';
@@ -127,7 +135,7 @@ function ProfileDetails() {
 
   const handleSearch = useCallback(
     searchString => {
-      browserHistory.push({
+      browserHistory.replace({
         ...location,
         query: {
           ...location.query,
@@ -164,7 +172,12 @@ function ProfileDetails() {
               data={slowestFunctions.slice(cursor, cursor + RESULTS_PER_PAGE)}
               columnOrder={COLUMN_ORDER.map(key => COLUMNS[key])}
               columnSortBy={[]}
-              grid={{renderBodyCell: renderFunctionCell}}
+              grid={{
+                renderHeadCell: renderTableHead({
+                  rightAlignedColumns: RIGHT_ALIGNED_COLUMNS,
+                }),
+                renderBodyCell: renderFunctionCell,
+              }}
               location={location}
             />
             <Pagination pageLinks={pageLinks} />
@@ -174,6 +187,8 @@ function ProfileDetails() {
     </Fragment>
   );
 }
+
+const RIGHT_ALIGNED_COLUMNS = new Set<TableColumnKey>(['self weight', 'total weight']);
 
 const ActionBar = styled('div')`
   display: grid;
@@ -224,7 +239,7 @@ function ProfilingFunctionsTableCell({
       return (
         <Container>
           <Link
-            to={generateProfileFlamegraphRouteWithQuery({
+            to={generateProfileFlamechartRouteWithQuery({
               orgSlug: orgId,
               projectSlug: projectId,
               profileId: eventId,

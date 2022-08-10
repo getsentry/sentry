@@ -27,7 +27,6 @@ import {
   isEquation,
   isLegalYAxisType,
   Sort,
-  WebVital,
 } from 'sentry/utils/discover/fields';
 import {
   CHART_AXIS_OPTIONS,
@@ -47,12 +46,17 @@ import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transaction
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 
 import {statsPeriodToDays} from '../dates';
+import {WebVital} from '../fields';
 import {MutableSearch} from '../tokenizeSearch';
 
 import {getSortField} from './fieldRenderers';
 
 // Metadata mapping for discover results.
-export type MetaType = Record<string, ColumnType> & {isMetricsData?: boolean};
+export type MetaType = Record<string, ColumnType> & {
+  isMetricsData?: boolean;
+  tips?: {columns: string; query: string};
+  units?: Record<string, string>;
+};
 export type EventsMetaType = {fields: Record<string, ColumnType>} & {
   isMetricsData?: boolean;
 };
@@ -286,7 +290,7 @@ class EventView {
   interval: string | undefined;
   expired?: boolean;
   createdBy: User | undefined;
-  additionalConditions: MutableSearch; // This allows views to always add additional conditins to the query to get specific data. It should not show up in the UI unless explicitly called.
+  additionalConditions: MutableSearch; // This allows views to always add additional conditions to the query to get specific data. It should not show up in the UI unless explicitly called.
 
   constructor(props: {
     additionalConditions: MutableSearch;
@@ -548,9 +552,9 @@ class EventView {
 
       if (currentValue && otherValue) {
         const currentDateTime = moment.utc(currentValue);
-        const othereDateTime = moment.utc(otherValue);
+        const otherDateTime = moment.utc(otherValue);
 
-        if (!currentDateTime.isSame(othereDateTime)) {
+        if (!currentDateTime.isSame(otherDateTime)) {
           return false;
         }
       }
@@ -1106,7 +1110,10 @@ class EventView {
   }
 
   // Takes an EventView instance and converts it into the format required for the events API
-  getEventsAPIPayload(location: Location): EventQuery & LocationQuery {
+  getEventsAPIPayload(
+    location: Location,
+    forceAppendRawQueryString?: string
+  ): EventQuery & LocationQuery {
     // pick only the query strings that we care about
     const picked = pickRelevantLocationQueryStrings(location);
 
@@ -1124,6 +1131,11 @@ class EventView {
     const project = this.project.map(proj => String(proj));
     const environment = this.environment as string[];
 
+    let queryString = this.getQueryWithAdditionalConditions();
+    if (forceAppendRawQueryString) {
+      queryString += ' ' + forceAppendRawQueryString;
+    }
+
     // generate event query
     const eventQuery = Object.assign(
       omit(picked, DATETIME_QUERY_STRING_KEYS),
@@ -1135,7 +1147,7 @@ class EventView {
         field: [...new Set(fields)],
         sort,
         per_page: DEFAULT_PER_PAGE,
-        query: this.getQueryWithAdditionalConditions(),
+        query: queryString,
       }
     ) as EventQuery & LocationQuery;
 

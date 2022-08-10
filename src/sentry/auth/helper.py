@@ -207,7 +207,7 @@ class AuthIdentityHandler:
 
         # If the user is either currently *pending* invite acceptance (as indicated
         # from the pending-invite cookie) OR an existing invite exists on this
-        # organziation for the email provided by the identity provider.
+        # organization for the email provided by the identity provider.
         invite_helper = ApiInviteHelper.from_cookie_or_email(
             request=self.request, organization=self.organization, email=user.email
         )
@@ -731,7 +731,11 @@ class AuthHelper(Pipeline):
         auth_provider = self.provider_model
         user_id = identity["id"]
 
-        lock = locks.get(f"sso:auth:{auth_provider.id}:{md5_text(user_id).hexdigest()}", duration=5)
+        lock = locks.get(
+            f"sso:auth:{auth_provider.id}:{md5_text(user_id).hexdigest()}",
+            duration=5,
+            name="sso_auth",
+        )
         with TimedRetryPolicy(5)(lock.acquire):
             try:
                 auth_identity = AuthIdentity.objects.select_related("user").get(

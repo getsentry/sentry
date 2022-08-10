@@ -6,7 +6,7 @@ import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Button from 'sentry/components/button';
-import {Hovercard} from 'sentry/components/hovercard';
+import {Divider, Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
 import {IconCommit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -87,9 +87,9 @@ class SuggestedOwnerHovercard extends Component<Props, State> {
           <HovercardBody>
             {commits !== undefined && (
               <Fragment>
-                <div className="divider">
+                <Divider>
                   <h6>{t('Commits')}</h6>
-                </div>
+                </Divider>
                 <div>
                   {commits
                     .slice(0, commitsExpanded ? commits.length : 3)
@@ -116,9 +116,9 @@ class SuggestedOwnerHovercard extends Component<Props, State> {
             )}
             {defined(rules) && (
               <Fragment>
-                <div className="divider">
+                <Divider>
                   <h6>{t('Matching Ownership Rules')}</h6>
-                </div>
+                </Divider>
                 <div>
                   {rules
                     .slice(0, rulesExpanded ? rules.length : 3)
@@ -227,7 +227,6 @@ const EmailAlert = styled(Alert)`
   margin: 10px -13px -13px;
   border-radius: 0;
   border-color: #ece0b0;
-  padding: 10px;
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: normal;
   box-shadow: none;

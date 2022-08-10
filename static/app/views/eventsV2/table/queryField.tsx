@@ -3,8 +3,8 @@ import {components, SingleValueProps} from 'react-select';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import Input, {InputProps} from 'sentry/components/forms/controls/input';
 import SelectControl, {ControlProps} from 'sentry/components/forms/selectControl';
+import Input, {InputProps} from 'sentry/components/input';
 import Tag from 'sentry/components/tag';
 import Tooltip from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
@@ -14,7 +14,7 @@ import space from 'sentry/styles/space';
 import {SelectValue} from 'sentry/types';
 import {
   AggregateParameter,
-  AggregationKey,
+  AggregationKeyWithAlias,
   AGGREGATIONS,
   Column,
   ColumnType,
@@ -66,7 +66,10 @@ type Props = {
   /**
    * Function to filter the options that are used as parameters for function/aggregate.
    */
-  filterAggregateParameters?: (option: FieldValueOption) => boolean;
+  filterAggregateParameters?: (
+    option: FieldValueOption,
+    fieldValue?: QueryFieldValue
+  ) => boolean;
   /**
    * Filter the options in the primary selector. Useful if you only want to
    * show a subset of selectable items.
@@ -142,6 +145,7 @@ class QueryField extends Component<Props> {
     switch (value.kind) {
       case FieldValueKind.TAG:
       case FieldValueKind.MEASUREMENT:
+      case FieldValueKind.CUSTOM_MEASUREMENT:
       case FieldValueKind.BREAKDOWN:
       case FieldValueKind.FIELD:
         fieldValue = {kind: 'field', field: value.meta.name};
@@ -157,7 +161,7 @@ class QueryField extends Component<Props> {
           fieldValue = {
             kind: 'function',
             function: [
-              value.meta.name as AggregationKey,
+              value.meta.name as AggregationKeyWithAlias,
               current.function[1],
               current.function[2],
               current.function[3],
@@ -166,7 +170,12 @@ class QueryField extends Component<Props> {
         } else {
           fieldValue = {
             kind: 'function',
-            function: [value.meta.name as AggregationKey, '', undefined, undefined],
+            function: [
+              value.meta.name as AggregationKeyWithAlias,
+              '',
+              undefined,
+              undefined,
+            ],
           };
         }
         break;
@@ -194,6 +203,7 @@ class QueryField extends Component<Props> {
             (field.kind === FieldValueKind.FIELD ||
               field.kind === FieldValueKind.TAG ||
               field.kind === FieldValueKind.MEASUREMENT ||
+              field.kind === FieldValueKind.CUSTOM_MEASUREMENT ||
               field.kind === FieldValueKind.METRICS ||
               field.kind === FieldValueKind.BREAKDOWN) &&
             validateColumnTypes(param.columnTypes as ValidateColumnTypes, field)
@@ -266,7 +276,10 @@ class QueryField extends Component<Props> {
     this.props.onChange(fieldValue);
   }
 
-  getFieldOrTagOrMeasurementValue(name: string | undefined): FieldValue | null {
+  getFieldOrTagOrMeasurementValue(
+    name: string | undefined,
+    functions: string[] = []
+  ): FieldValue | null {
     const {fieldOptions} = this.props;
     if (name === undefined) {
       return null;
@@ -301,9 +314,21 @@ class QueryField extends Component<Props> {
       return fieldOptions[tagName].value;
     }
 
-    // Likely a tag that was deleted but left behind in a saved query
-    // Cook up a tag option so select control works.
     if (name.length > 0) {
+      // Custom Measurement. Probably not appearing in field options because
+      // no metrics found within selected time range
+      if (name.startsWith('measurements.')) {
+        return {
+          kind: FieldValueKind.CUSTOM_MEASUREMENT,
+          meta: {
+            name,
+            dataType: 'number',
+            functions,
+          },
+        };
+      }
+      // Likely a tag that was deleted but left behind in a saved query
+      // Cook up a tag option so select control works.
       return {
         kind: FieldValueKind.TAG,
         meta: {
@@ -346,7 +371,8 @@ class QueryField extends Component<Props> {
         (param, index: number): ParameterDescription => {
           if (param.kind === 'column') {
             const fieldParameter = this.getFieldOrTagOrMeasurementValue(
-              fieldValue.function[1]
+              fieldValue.function[1],
+              [fieldValue.function[0]]
             );
             fieldOptions = this.appendFieldIfUnknown(fieldOptions, fieldParameter);
             return {
@@ -358,6 +384,7 @@ class QueryField extends Component<Props> {
                   (value.kind === FieldValueKind.FIELD ||
                     value.kind === FieldValueKind.TAG ||
                     value.kind === FieldValueKind.MEASUREMENT ||
+                    value.kind === FieldValueKind.CUSTOM_MEASUREMENT ||
                     value.kind === FieldValueKind.METRICS ||
                     value.kind === FieldValueKind.BREAKDOWN) &&
                   validateColumnTypes(param.columnTypes as ValidateColumnTypes, value)
@@ -405,6 +432,12 @@ class QueryField extends Component<Props> {
       // Clone the options so we don't mutate other rows.
       fieldOptions = Object.assign({}, fieldOptions);
       fieldOptions[field.meta.name] = {label: field.meta.name, value: field};
+    } else if (field && field.kind === FieldValueKind.CUSTOM_MEASUREMENT) {
+      fieldOptions = Object.assign({}, fieldOptions);
+      fieldOptions[`measurement:${field.meta.name}`] = {
+        label: field.meta.name,
+        value: field,
+      };
     }
 
     return fieldOptions;
@@ -417,6 +450,7 @@ class QueryField extends Component<Props> {
       filterAggregateParameters,
       hideParameterSelector,
       skipParameterPlaceholder,
+      fieldValue,
     } = this.props;
 
     const inputs = parameters.map((descriptor: ParameterDescription, index: number) => {
@@ -425,7 +459,9 @@ class QueryField extends Component<Props> {
           return null;
         }
         const aggregateParameters = filterAggregateParameters
-          ? descriptor.options.filter(filterAggregateParameters)
+          ? descriptor.options.filter(option =>
+              filterAggregateParameters(option, fieldValue)
+            )
           : descriptor.options;
 
         aggregateParameters.forEach(opt => {
@@ -538,6 +574,7 @@ class QueryField extends Component<Props> {
         text = 'f(x)';
         tagType = 'success';
         break;
+      case FieldValueKind.CUSTOM_MEASUREMENT:
       case FieldValueKind.MEASUREMENT:
         text = 'field';
         tagType = 'highlight';
