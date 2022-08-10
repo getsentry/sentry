@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import DateTime from 'sentry/components/dateTime';
@@ -36,53 +35,48 @@ function ReplayContent({eventSlug, orgId}: Props) {
   }
 
   return (
-    <Fragment>
-      <table className="table key-value">
-        <tbody>
-          <tr key="replay">
-            <td className="key">{t('Replay')}</td>
-            <td className="value">
-              <ReplayContextProvider replay={replay} initialTimeOffset={0}>
-                <PlayerContainer ref={fullscreenRef}>
-                  <ReplayView
-                    toggleFullscreen={toggleFullscreen}
-                    showAddressBar={false}
-                  />
-                </PlayerContainer>
-              </ReplayContextProvider>
-            </td>
-          </tr>
-          <tr key="id">
-            <td className="key">{t('Id')}</td>
-            <td className="value">
-              <pre className="val-string">{replayRecord.replay_id}</pre>
-            </td>
-          </tr>
-          <tr key="url">
-            <td className="key">{t('URL')}</td>
-            <td className="value">
-              <pre className="val-string">{replayEvent.culprit}</pre>
-            </td>
-          </tr>
-          <tr key="timestamp">
-            <td className="key">{t('Timestamp')}</td>
-            <td className="value">
-              <pre className="val-string">
-                <DateTime year seconds utc date={replayRecord.started_at} />
-              </pre>
-            </td>
-          </tr>
-          <tr key="duration">
-            <td className="key">{t('Duration')}</td>
-            <td className="value">
-              <pre className="val-string">
-                <Duration seconds={replayRecord.duration / 1000} fixedDigits={0} />
-              </pre>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </Fragment>
+    <table className="table key-value">
+      <tbody>
+        <tr key="replay">
+          <td className="key">{t('Replay')}</td>
+          <td className="value">
+            <ReplayContextProvider replay={replay} initialTimeOffset={0}>
+              <PlayerContainer ref={fullscreenRef}>
+                <ReplayView toggleFullscreen={toggleFullscreen} showAddressBar={false} />
+              </PlayerContainer>
+            </ReplayContextProvider>
+          </td>
+        </tr>
+        <tr key="id">
+          <td className="key">{t('Id')}</td>
+          <td className="value">
+            <pre className="val-string">{replayRecord.replay_id}</pre>
+          </td>
+        </tr>
+        <tr key="url">
+          <td className="key">{t('URL')}</td>
+          <td className="value">
+            <pre className="val-string">{replayEvent.culprit}</pre>
+          </td>
+        </tr>
+        <tr key="timestamp">
+          <td className="key">{t('Timestamp')}</td>
+          <td className="value">
+            <pre className="val-string">
+              <DateTime year seconds utc date={replayRecord.started_at} />
+            </pre>
+          </td>
+        </tr>
+        <tr key="duration">
+          <td className="key">{t('Duration')}</td>
+          <td className="value">
+            <pre className="val-string">
+              <Duration seconds={replayRecord.duration / 1000} fixedDigits={0} />
+            </pre>
+          </td>
+        </tr>
+      </tbody>
+    </table>
   );
 }
 
