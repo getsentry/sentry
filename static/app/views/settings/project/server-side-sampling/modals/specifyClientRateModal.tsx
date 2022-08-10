@@ -9,11 +9,13 @@ import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
+import {SamplingProjectIncompatibleAlert} from '../samplingProjectIncompatibleAlert';
 import {isValidSampleRate, SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
+import {useRecommendedSdkUpgrades} from '../utils/useRecommendedSdkUpgrades';
 
 import {FooterActions, Stepper, StyledNumberField} from './uniformRateModal';
 
-export type RecommendedStepsModalProps = ModalRenderProps & {
+type SpecifyClientRateModalProps = ModalRenderProps & {
   onChange: (value: number | undefined) => void;
   onGoNext: () => void;
   onReadDocs: () => void;
@@ -33,7 +35,12 @@ export function SpecifyClientRateModal({
   projectId,
   value,
   onChange,
-}: RecommendedStepsModalProps) {
+}: SpecifyClientRateModalProps) {
+  const {isProjectIncompatible} = useRecommendedSdkUpgrades({
+    orgSlug: organization.slug,
+    projectId,
+  });
+
   function handleReadDocs() {
     trackAdvancedAnalyticsEvent('sampling.settings.modal.specify.client.rate_read_docs', {
       organization,
@@ -83,6 +90,11 @@ export function SpecifyClientRateModal({
           flexibleControlStateSize
           inline={false}
         />
+        <SamplingProjectIncompatibleAlert
+          organization={organization}
+          projectId={projectId}
+          isProjectIncompatible={isProjectIncompatible}
+        />
       </Body>
       <Footer>
         <FooterActions>
@@ -95,7 +107,7 @@ export function SpecifyClientRateModal({
             <Button
               priority="primary"
               onClick={handleGoNext}
-              disabled={!isValid}
+              disabled={!isValid || isProjectIncompatible}
               title={!isValid ? t('Sample rate is not valid') : undefined}
             >
               {t('Next')}

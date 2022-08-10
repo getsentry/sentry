@@ -6,6 +6,7 @@ import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {NumberField} from 'sentry/components/forms';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels';
@@ -26,7 +27,7 @@ import {formatPercentage} from 'sentry/utils/formatters';
 import {Outcome} from 'sentry/views/organizationStats/types';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import {SamplingSDKUpgradesAlert} from '../samplingSDKUpgradesAlert';
+import {SamplingProjectIncompatibleAlert} from '../samplingProjectIncompatibleAlert';
 import {
   getClientSampleRates,
   isValidSampleRate,
@@ -102,9 +103,11 @@ export function UniformRateModal({
     groupBy: useMemo(() => ['outcome', 'reason'], []),
   });
 
-  const {recommendedSdkUpgrades, incompatibleProjects} = useRecommendedSdkUpgrades({
-    orgSlug: organization.slug,
-  });
+  const {recommendedSdkUpgrades, affectedProjects, isProjectIncompatible} =
+    useRecommendedSdkUpgrades({
+      orgSlug: organization.slug,
+      projectId: project.id,
+    });
 
   const loading = loading30d || !projectStats;
 
@@ -128,7 +131,6 @@ export function UniformRateModal({
   }, [loading, projectStats30d]);
 
   const shouldUseConservativeSampleRate =
-    recommendedSdkUpgrades.length === 0 &&
     hasFirstBucketsEmpty(projectStats30d, 27) &&
     hasFirstBucketsEmpty(projectStats, 3) &&
     !defined(specifiedClientRate);
@@ -517,14 +519,10 @@ export function UniformRateModal({
             </Fragment>
           </StyledPanelTable>
 
-          <SamplingSDKUpgradesAlert
+          <SamplingProjectIncompatibleAlert
             organization={organization}
             projectId={project.id}
-            rules={rules}
-            recommendedSdkUpgrades={recommendedSdkUpgrades}
-            incompatibleProjects={incompatibleProjects}
-            showLinkToTheModal={false}
-            onReadDocs={onReadDocs}
+            isProjectIncompatible={isProjectIncompatible}
           />
 
           {shouldUseConservativeSampleRate && (
@@ -532,6 +530,35 @@ export function UniformRateModal({
               {t(
                 "For accurate suggestions, we need at least 48hrs to ingest transactions. Meanwhile, here's a conservative server-side sampling rate which can be changed later on."
               )}
+            </Alert>
+          )}
+
+          {affectedProjects.length > 0 && (
+            <Alert
+              data-test-id="affected-sdk-alert"
+              type="info"
+              showIcon
+              trailingItems={
+                <Button
+                  href={`${SERVER_SIDE_SAMPLING_DOC_LINK}#traces--propagation-of-sampling-decisions`}
+                  priority="link"
+                  borderless
+                  external
+                >
+                  {t('Learn More')}
+                </Button>
+              }
+            >
+              {t('This rate will affect the transactions for the following projects:')}
+              <Projects>
+                {affectedProjects.map(affectedProject => (
+                  <ProjectBadge
+                    key={affectedProject.id}
+                    project={affectedProject}
+                    avatarSize={16}
+                  />
+                ))}
+              </Projects>
             </Alert>
           )}
         </Fragment>
@@ -558,7 +585,12 @@ export function UniformRateModal({
             <Button
               priority="primary"
               onClick={handlePrimaryButtonClick}
-              disabled={saving || !isValid || selectedStrategy === Strategy.CURRENT}
+              disabled={
+                saving ||
+                !isValid ||
+                selectedStrategy === Strategy.CURRENT ||
+                isProjectIncompatible
+              }
               title={
                 selectedStrategy === Strategy.CURRENT
                   ? t('Current sampling values selected')
@@ -644,4 +676,12 @@ const ServerWarningColumn = styled('div')`
 const RefreshRatesColumn = styled('div')`
   padding: ${space(2)} ${space(2)} ${space(2)} ${space(1)};
   display: inline-flex;
+`;
+
+const Projects = styled('div')`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${space(1.5)};
+  justify-content: flex-start;
+  margin-top: ${space(1)};
 `;

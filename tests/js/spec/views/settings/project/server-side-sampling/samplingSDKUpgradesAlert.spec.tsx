@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import GlobalModal from 'sentry/components/globalModal';
 import {SamplingSDKUpgradesAlert} from 'sentry/views/settings/project/server-side-sampling/samplingSDKUpgradesAlert';
 
-import {getMockData, mockedProjects, recommendedSdkUpgrades, uniformRule} from './utils';
+import {getMockData, mockedProjects, recommendedSdkUpgrades} from './utils';
 
 describe('Server-Side Sampling - Sdk Upgrades Alert', function () {
   it('does not render content', function () {
@@ -16,10 +16,7 @@ describe('Server-Side Sampling - Sdk Upgrades Alert', function () {
         organization={organization}
         projectId={project.id}
         onReadDocs={jest.fn()}
-        rules={[uniformRule]}
         recommendedSdkUpgrades={[]}
-        incompatibleProjects={[]}
-        showLinkToTheModal
       />
     );
 
@@ -38,10 +35,7 @@ describe('Server-Side Sampling - Sdk Upgrades Alert', function () {
           organization={organization}
           projectId={project.id}
           onReadDocs={jest.fn()}
-          rules={[uniformRule]}
           recommendedSdkUpgrades={recommendedSdkUpgrades}
-          showLinkToTheModal
-          incompatibleProjects={[]}
         />
       </Fragment>
     );
@@ -72,30 +66,5 @@ describe('Server-Side Sampling - Sdk Upgrades Alert', function () {
         name: 'Update the following SDK versions',
       })
     ).toBeInTheDocument();
-  });
-
-  it('renders incompatible sdks', function () {
-    const {organization, project} = getMockData();
-
-    render(
-      <SamplingSDKUpgradesAlert
-        organization={organization}
-        projectId={project.id}
-        onReadDocs={jest.fn()}
-        rules={[uniformRule]}
-        recommendedSdkUpgrades={recommendedSdkUpgrades}
-        showLinkToTheModal
-        incompatibleProjects={[TestStubs.Project({slug: 'angular', platform: 'angular'})]}
-      />
-    );
-
-    expect(screen.getByTestId('recommended-sdk-upgrades-alert')).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'The following projects are currently incompatible with Server-Side Sampling:'
-      )
-    ).toBeInTheDocument();
-
-    expect(screen.getByTestId('platform-icon-angular')).toBeInTheDocument();
   });
 });

@@ -9,14 +9,14 @@ import {mockedSamplingSdkVersions} from '../utils';
 describe('useRecommendedSdkUpgrades', function () {
   it('works', function () {
     ProjectsStore.loadInitialData([
-      TestStubs.Project({id: 1, slug: 'sentry'}),
-      TestStubs.Project({id: 2, slug: 'java'}),
-      TestStubs.Project({id: 3, slug: 'angular'}),
+      TestStubs.Project({id: '1', slug: 'sentry'}),
+      TestStubs.Project({id: '2', slug: 'java'}),
+      TestStubs.Project({id: '3', slug: 'angular'}),
     ]);
     ServerSideSamplingStore.loadSamplingSdkVersionsSuccess(mockedSamplingSdkVersions);
 
     const {result} = reactHooks.renderHook(() =>
-      useRecommendedSdkUpgrades({orgSlug: 'org-slug'})
+      useRecommendedSdkUpgrades({orgSlug: 'org-slug', projectId: '3'})
     );
 
     expect(result.current.recommendedSdkUpgrades.length).toBe(2);
@@ -45,5 +45,7 @@ describe('useRecommendedSdkUpgrades', function () {
         slug: 'angular',
       }),
     ]);
+    expect(result.current.isProjectIncompatible).toBe(true);
+    expect(result.current.affectedProjects.length).toBe(3);
   });
 });
