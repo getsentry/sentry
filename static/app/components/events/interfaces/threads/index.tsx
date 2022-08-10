@@ -4,9 +4,10 @@ import EventDataSection from 'sentry/components/events/eventDataSection';
 import CrashActions from 'sentry/components/events/interfaces/crashHeader/crashActions';
 import CrashTitle from 'sentry/components/events/interfaces/crashHeader/crashTitle';
 import {t} from 'sentry/locale';
-import {Event, Project, STACK_TYPE, STACK_VIEW, Thread} from 'sentry/types';
+import {EntryType, Event, Project, STACK_TYPE, STACK_VIEW, Thread} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
+import {PermalinkTitle} from '../../traceEventDataSection';
 import {isStacktraceNewestFirst} from '../utils';
 
 import findBestThread from './threadSelector/findBestThread';
@@ -24,7 +25,6 @@ type Props = Pick<
   };
   event: Event;
   projectId: Project['id'];
-  type: string;
   hideGuide?: boolean;
 };
 
@@ -52,7 +52,6 @@ function Threads({
   data,
   event,
   projectId,
-  type,
   hasHierarchicalGrouping,
   groupingCurrentLevel,
   hideGuide = false,
@@ -112,7 +111,7 @@ function Threads({
 
   return (
     <EventDataSection
-      type={type}
+      type={EntryType.THREADS}
       title={
         hasMoreThanOneThread ? (
           <CrashTitle
@@ -133,12 +132,14 @@ function Threads({
             }
           />
         ) : (
-          <CrashTitle
-            title={t('Stack Trace')}
-            newestFirst={newestFirst}
-            hideGuide={hideGuide}
-            onChange={!stackTraceNotFound ? handleChangeNewestFirst : undefined}
-          />
+          <PermalinkTitle>
+            <CrashTitle
+              title={t('Stack Trace')}
+              newestFirst={newestFirst}
+              hideGuide={hideGuide}
+              onChange={!stackTraceNotFound ? handleChangeNewestFirst : undefined}
+            />
+          </PermalinkTitle>
         )
       }
       actions={
@@ -155,7 +156,6 @@ function Threads({
           />
         )
       }
-      showPermalink={!hasMoreThanOneThread}
       wrapTitle={false}
     >
       <Content

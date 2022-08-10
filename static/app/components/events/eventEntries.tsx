@@ -15,16 +15,15 @@ import EventAttachments from 'sentry/components/events/eventAttachments';
 import EventCause from 'sentry/components/events/eventCause';
 import EventCauseEmpty from 'sentry/components/events/eventCauseEmpty';
 import EventDataSection from 'sentry/components/events/eventDataSection';
-import EventExtraData from 'sentry/components/events/eventExtraData/eventExtraData';
-import EventSdk from 'sentry/components/events/eventSdk';
+import EventExtraData from 'sentry/components/events/eventExtraData';
+import {EventSdk} from 'sentry/components/events/eventSdk';
 import {EventTags} from 'sentry/components/events/eventTags';
 import EventGroupingInfo from 'sentry/components/events/groupingInfo';
-import EventPackageData from 'sentry/components/events/packageData';
+import {EventPackageData} from 'sentry/components/events/packageData';
 import RRWebIntegration from 'sentry/components/events/rrwebIntegration';
 import EventSdkUpdates from 'sentry/components/events/sdkUpdates';
 import {DataSection} from 'sentry/components/events/styles';
 import EventUserFeedback from 'sentry/components/events/userFeedback';
-import LazyLoad from 'sentry/components/lazyLoad';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -52,6 +51,7 @@ import {projectProcessingIssuesMessages} from 'sentry/views/settings/project/pro
 import findBestThread from './interfaces/threads/threadSelector/findBestThread';
 import getThreadException from './interfaces/threads/threadSelector/getThreadException';
 import EventEntry from './eventEntry';
+import EventReplay from './eventReplay';
 import EventTagsAndScreenshot from './eventTagsAndScreenshot';
 
 const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =
@@ -70,7 +70,6 @@ type Props = Pick<React.ComponentProps<typeof EventEntry>, 'route' | 'router'> &
   className?: string;
   event?: Event;
   group?: Group;
-  isBorderless?: boolean;
   isShare?: boolean;
   showExampleCommit?: boolean;
   showTagSummary?: boolean;
@@ -90,7 +89,6 @@ const EventEntries = memo(
     isShare = false,
     showExampleCommit = false,
     showTagSummary = true,
-    isBorderless = false,
   }: Props) => {
     const [isLoading, setIsLoading] = useState(true);
     const [proGuardErrors, setProGuardErrors] = useState<ProGuardErrors>([]);
@@ -390,7 +388,6 @@ const EventEntries = memo(
               location={location}
               isShare={isShare}
               hasContext={hasContext}
-              isBorderless={isBorderless}
               attachments={attachments}
               onDeleteScreenshot={handleDeleteAttachment}
             />
@@ -422,7 +419,9 @@ const EventEntries = memo(
             onDeleteAttachment={handleDeleteAttachment}
           />
         )}
-        {event.sdk && !objectIsEmpty(event.sdk) && <EventSdk sdk={event.sdk} />}
+        {event.sdk && !objectIsEmpty(event.sdk) && (
+          <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
+        )}
         {!isShare && event?.sdkUpdates && event.sdkUpdates.length > 0 && (
           <EventSdkUpdates event={{sdkUpdates: event.sdkUpdates, ...event}} />
         )}
@@ -446,12 +445,7 @@ const EventEntries = memo(
           />
         )}
         {!isShare && replayId && orgFeatures.includes('session-replay') && (
-          <LazyLoad
-            component={() => import('./eventReplay')}
-            replayId={replayId}
-            orgSlug={orgSlug}
-            projectSlug={projectSlug}
-          />
+          <EventReplay replayId={replayId} orgSlug={orgSlug} projectSlug={projectSlug} />
         )}
       </div>
     );

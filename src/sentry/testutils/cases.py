@@ -26,6 +26,7 @@ __all__ = (
     "MetricsEnhancedPerformanceTestCase",
     "MetricsAPIBaseTestCase",
     "OrganizationMetricMetaIntegrationTestCase",
+    "ReplaysSnubaTestCase",
 )
 
 import hashlib
@@ -1227,6 +1228,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsTestCase, TestCase):
         "measurements.fcp": "metrics_distributions",
         "measurements.fid": "metrics_distributions",
         "measurements.cls": "metrics_distributions",
+        "measurements.frames_frozen_rate": "metrics_distributions",
         "spans.http": "metrics_distributions",
         "user": "metrics_sets",
     }
@@ -1339,6 +1341,18 @@ class OutcomesSnubaTest(TestCase):
             ).status_code
             == 200
         )
+
+
+@pytest.mark.snuba
+@requires_snuba
+class ReplaysSnubaTestCase(TestCase):
+    def setUp(self):
+        super().setUp()
+        assert requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop").status_code == 200
+
+    def store_replays(self, replay):
+        response = requests.post(settings.SENTRY_SNUBA + "/tests/replays/insert", json=[replay])
+        assert response.status_code == 200
 
 
 class IntegrationRepositoryTestCase(APITestCase):
@@ -1745,6 +1759,18 @@ class MSTeamsActivityNotificationTest(ActivityTestCase):
         NotificationSetting.objects.update_settings(
             ExternalProviders.MSTEAMS,
             NotificationSettingTypes.WORKFLOW,
+            NotificationSettingOptionValues.ALWAYS,
+            user=self.user,
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.MSTEAMS,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.ALWAYS,
+            user=self.user,
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.MSTEAMS,
+            NotificationSettingTypes.DEPLOY,
             NotificationSettingOptionValues.ALWAYS,
             user=self.user,
         )

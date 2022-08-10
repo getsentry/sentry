@@ -255,6 +255,7 @@ from .endpoints.organization_events_has_measurements import (
 from .endpoints.organization_events_histogram import OrganizationEventsHistogramEndpoint
 from .endpoints.organization_events_meta import (
     OrganizationEventsMetaEndpoint,
+    OrganizationEventsMetricsCompatiblity,
     OrganizationEventsRelatedIssuesEndpoint,
 )
 from .endpoints.organization_events_span_ops import OrganizationEventsSpanOpsEndpoint
@@ -407,6 +408,7 @@ from .endpoints.project_processingissues import (
 from .endpoints.project_profiling_profile import (
     ProjectProfilingFunctionsEndpoint,
     ProjectProfilingProfileEndpoint,
+    ProjectProfilingRawProfileEndpoint,
     ProjectProfilingTransactionIDProfileIDEndpoint,
 )
 from .endpoints.project_release_activity import ProjectReleaseActivityEndpoint
@@ -1170,6 +1172,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-meta/$",
                     OrganizationEventsMetaEndpoint.as_view(),
                     name="sentry-api-0-organization-events-meta",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/events-metrics-compatibility/$",
+                    OrganizationEventsMetricsCompatiblity.as_view(),
+                    name="sentry-api-0-organization-events-metrics-compatibility",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-histogram/$",
@@ -2293,6 +2300,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/profiles/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
                     ProjectProfilingProfileEndpoint.as_view(),
                     name="sentry-api-0-project-profiling-profile",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/raw_profiles/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
+                    ProjectProfilingRawProfileEndpoint.as_view(),
+                    name="sentry-api-0-project-profiling-raw-profile",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/transactions/(?P<transaction_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",

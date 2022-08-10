@@ -7,6 +7,10 @@ import {makeFormatter, makeTimelineFormatter} from './units/units';
 import {CallTreeNode} from './callTreeNode';
 import {Frame} from './frame';
 
+// Intermediary flamegraph data structure for rendering a profile. Constructs a list of frames from a profile
+// and appends them to a virtual root. Taken mostly from speedscope with a few modifications. This should get
+// removed as we port to our own format for profiles. The general idea is to iterate over profiles while
+// keeping an intermediary stack so as to resemble the execution of the program.
 export class Flamegraph {
   profile: Profile;
   frames: FlamegraphFrame[] = [];
@@ -31,8 +35,6 @@ export class Flamegraph {
 
   formatter: (value: number) => string;
   timelineFormatter: (value: number) => string;
-
-  frameIndex: Record<string, FlamegraphFrame> = {};
 
   static Empty(): Flamegraph {
     return new Flamegraph(Profile.Empty(), 0, {

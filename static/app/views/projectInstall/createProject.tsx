@@ -113,6 +113,7 @@ class CreateProject extends Component<Props, State> {
           <TeamSelectInput>
             <TeamSelector
               name="select-team"
+              menuPlacement="auto"
               clearable={false}
               value={team}
               placeholder={t('Select a Team')}

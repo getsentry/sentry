@@ -3,7 +3,7 @@ from typing import Mapping, Set
 import pytest
 
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.indexer.base import FetchType, KeyCollection, Metadata
+from sentry.sentry_metrics.indexer.base import FetchType, FetchTypeExt, KeyCollection, Metadata
 from sentry.sentry_metrics.indexer.cache import indexer_cache
 from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer, StringIndexer
 from sentry.sentry_metrics.indexer.postgres import PGStringIndexer
@@ -13,6 +13,7 @@ from sentry.sentry_metrics.indexer.postgres_v2 import (
 )
 from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.utils.cache import cache
 
 
@@ -40,16 +41,16 @@ class PostgresIndexerTest(TestCase):
 
         # test resolve and reverse_resolve
         obj = MetricsKeyIndexer.objects.get(string="hello")
-        assert PGStringIndexer().resolve(org_id, "hello") == obj.id
-        assert PGStringIndexer().reverse_resolve(obj.id) == obj.string
+        assert PGStringIndexer().resolve(UseCaseKey.RELEASE_HEALTH, org_id, "hello") == obj.id
+        assert PGStringIndexer().reverse_resolve(UseCaseKey.RELEASE_HEALTH, obj.id) == obj.string
 
         # test record on a string that already exists
         PGStringIndexer().record(org_id, "hello")
-        assert PGStringIndexer().resolve(org_id, "hello") == obj.id
+        assert PGStringIndexer().resolve(UseCaseKey.RELEASE_HEALTH, org_id, "hello") == obj.id
 
         # test invalid values
-        assert PGStringIndexer().resolve(org_id, "beep") is None
-        assert PGStringIndexer().reverse_resolve(1234) is None
+        assert PGStringIndexer().resolve(UseCaseKey.RELEASE_HEALTH, org_id, "beep") is None
+        assert PGStringIndexer().reverse_resolve(UseCaseKey.RELEASE_HEALTH, 1234) is None
 
 
 class StaticStringsIndexerTest(TestCase):
@@ -268,3 +269,90 @@ class PostgresIndexerV2Test(TestCase):
 
         assert indexer_cache.get(string.id, self.cache_namespace) is None
         assert indexer_cache.get(key, self.cache_namespace) is None
+
+    def test_rate_limited(self):
+        """
+        Assert that rate limits per-org and globally are applied at all.
+
+        Since we don't have control over ordering in sets/dicts, we have no
+        control over which string gets rate-limited. That makes assertions
+        quite awkward and imprecise.
+        """
+        org_strings = {1: {"a", "b", "c"}, 2: {"e", "f"}, 3: {"g"}}
+
+        with override_options(
+            {
+                "sentry-metrics.writes-limiter.limits.releasehealth.per-org": [
+                    {"window_seconds": 10, "granularity_seconds": 10, "limit": 1}
+                ],
+            }
+        ):
+            results = self.indexer.bulk_record(
+                use_case_id=self.use_case_id, org_strings=org_strings
+            )
+
+        assert len(results[1]) == 3
+        assert len(results[2]) == 2
+        assert len(results[3]) == 1
+        assert results[3]["g"] is not None
+
+        rate_limited_strings = set()
+
+        for org_id in 1, 2, 3:
+            for k, v in results[org_id].items():
+                if v is None:
+                    rate_limited_strings.add((org_id, k))
+
+        assert len(rate_limited_strings) == 3
+        assert (3, "g") not in rate_limited_strings
+
+        for org_id, string in rate_limited_strings:
+            assert results.get_fetch_metadata()[org_id][string] == Metadata(
+                id=None,
+                fetch_type=FetchType.RATE_LIMITED,
+                fetch_type_ext=FetchTypeExt(is_global=False),
+            )
+
+        org_strings = {1: {"x", "y", "z"}}
+
+        # attempt to index even more strings, and assert that we can't get any indexed
+        with override_options(
+            {
+                "sentry-metrics.writes-limiter.limits.releasehealth.per-org": [
+                    {"window_seconds": 10, "granularity_seconds": 10, "limit": 1}
+                ],
+            }
+        ):
+            results = self.indexer.bulk_record(
+                use_case_id=self.use_case_id, org_strings=org_strings
+            )
+
+        assert results[1] == {"x": None, "y": None, "z": None}
+        for letter in "xyz":
+            assert results.get_fetch_metadata()[1][letter] == Metadata(
+                id=None,
+                fetch_type=FetchType.RATE_LIMITED,
+                fetch_type_ext=FetchTypeExt(is_global=False),
+            )
+
+        org_strings = {1: rate_limited_strings}
+
+        # assert that if we reconfigure limits, the quota resets
+        with override_options(
+            {
+                "sentry-metrics.writes-limiter.limits.releasehealth.global": [
+                    {"window_seconds": 10, "granularity_seconds": 10, "limit": 2}
+                ],
+            }
+        ):
+            results = self.indexer.bulk_record(
+                use_case_id=self.use_case_id, org_strings=org_strings
+            )
+
+        rate_limited_strings2 = set()
+        for k, v in results[1].items():
+            if v is None:
+                rate_limited_strings2.add(k)
+
+        assert len(rate_limited_strings2) == 1
+        assert len(rate_limited_strings - rate_limited_strings2) == 2

@@ -657,7 +657,9 @@ class QueryBuilder:
             return snql_function.snql_aggregate(arguments, alias)
         return None
 
-    def resolve_division(self, dividend: SelectType, divisor: SelectType, alias: str) -> SelectType:
+    def resolve_division(
+        self, dividend: SelectType, divisor: SelectType, alias: str, fallback: Optional[Any] = None
+    ) -> SelectType:
         return Function(
             "if",
             [
@@ -672,7 +674,7 @@ class QueryBuilder:
                         divisor,
                     ],
                 ),
-                None,
+                fallback,
             ],
             alias,
         )
@@ -1185,7 +1187,7 @@ class QueryBuilder:
         function, combinator = parse_combinator(raw_function)
 
         if not self.is_function(function):
-            raise InvalidSearchQuery(f"{function} is not a valid function")
+            raise self.config.missing_function_error(f"{function} is not a valid function")
 
         arguments = parse_arguments(function, match.group("columns"))
         alias: Union[str, Any, None] = match.group("alias")
@@ -1869,7 +1871,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 use_case_id = UseCaseKey.PERFORMANCE
             else:
                 use_case_id = UseCaseKey.RELEASE_HEALTH
-            result = indexer.resolve(self.organization_id, value, use_case_id=use_case_id)  # type: ignore
+            result = indexer.resolve(use_case_id, self.organization_id, value)  # type: ignore
             self._indexer_cache[value] = result
 
         return self._indexer_cache[value]
@@ -1883,7 +1885,7 @@ class MetricsQueryBuilder(QueryBuilder):
             return -1
         result = self.resolve_metric_index(value)
         if result is None:
-            raise InvalidSearchQuery("Tag value was not found")
+            raise IncompatibleMetricsQuery("Tag value was not found")
         return result
 
     def _default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
@@ -1934,6 +1936,13 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return Condition(lhs, Op(search_filter.operator), value)
 
+    def _resolve_environment_filter_value(self, value: str) -> int:
+        value_id: Optional[int] = self.config.resolve_value(f"{value}")
+        if value_id is None:
+            raise IncompatibleMetricsQuery(f"Environment: {value} was not found")
+
+        return value_id
+
     def _environment_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         """All of this is copied from the parent class except for the addition of `resolve_value`
 
@@ -1945,7 +1954,7 @@ class MetricsQueryBuilder(QueryBuilder):
         values_set = set(value if isinstance(value, (list, tuple)) else [value])
         # sorted for consistency
         values = sorted(
-            self.config.resolve_value(f"{value}") if value else 0 for value in values_set
+            self._resolve_environment_filter_value(value) if value else 0 for value in values_set
         )
         environment = self.column("environment")
         if len(values) == 1:

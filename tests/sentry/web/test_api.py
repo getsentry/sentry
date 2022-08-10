@@ -3,6 +3,14 @@ from unittest import mock
 from django.urls import reverse
 from exam import fixture
 
+from sentry.models import (
+    ApiToken,
+    Organization,
+    OrganizationMember,
+    OrganizationStatus,
+    ScheduledDeletion,
+)
+from sentry.tasks.deletion import run_deletion
 from sentry.testutils import TestCase
 from sentry.utils import json
 
@@ -259,3 +267,137 @@ class ClientConfigViewTest(TestCase):
             assert data["lastOrganization"] == self.organization.slug
             assert data["sentryUrl"] == "http://testserver"
             assert data["organizationUrl"] == f"ftp://{self.organization.slug}.us.testserver"
+
+    def test_deleted_last_organization(self):
+        self.login_as(self.user)
+
+        # Check lastOrganization
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+
+        data = json.loads(resp.content)
+
+        assert data["isAuthenticated"] is True
+        assert data["lastOrganization"] is None
+        assert "activeorg" not in self.client.session
+
+        # Induce last active organization
+        resp = self.client.get(
+            reverse("sentry-api-0-organization-projects", args=[self.organization.slug])
+        )
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+
+        # Check lastOrganization
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+
+        data = json.loads(resp.content)
+
+        assert data["isAuthenticated"] is True
+        assert data["lastOrganization"] == self.organization.slug
+        assert self.client.session["activeorg"] == self.organization.slug
+
+        # Delete lastOrganization
+        assert Organization.objects.filter(slug=self.organization.slug).count() == 1
+        assert ScheduledDeletion.objects.count() == 0
+
+        self.organization.update(status=OrganizationStatus.PENDING_DELETION)
+        deletion = ScheduledDeletion.schedule(self.organization, days=0)
+        deletion.update(in_progress=True)
+
+        with self.tasks():
+            run_deletion(deletion.id)
+
+        assert Organization.objects.filter(slug=self.organization.slug).count() == 0
+
+        # Check lastOrganization
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+
+        data = json.loads(resp.content)
+
+        assert data["isAuthenticated"] is True
+        assert data["lastOrganization"] is None
+        assert "activeorg" not in self.client.session
+
+    def test_not_member_of_last_org(self):
+        self.login_as(self.user)
+        other_org = self.create_organization(
+            name="other_org", owner=self.create_user("bar@example.com")
+        )
+        member_om = self.create_member(user=self.user, organization=other_org, role="owner")
+
+        # Check lastOrganization
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+
+        data = json.loads(resp.content)
+
+        assert data["isAuthenticated"] is True
+        assert data["lastOrganization"] is None
+        assert "activeorg" not in self.client.session
+
+        # Induce last active organization
+        resp = self.client.get(reverse("sentry-api-0-organization-projects", args=[other_org.slug]))
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+
+        # Check lastOrganization
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+
+        data = json.loads(resp.content)
+
+        assert data["isAuthenticated"] is True
+        assert data["lastOrganization"] == other_org.slug
+        assert self.client.session["activeorg"] == other_org.slug
+
+        # Delete membership
+        assert OrganizationMember.objects.filter(id=member_om.id).exists()
+        resp = self.client.delete(
+            reverse("sentry-api-0-organization-member-details", args=[other_org.slug, member_om.id])
+        )
+        assert resp.status_code == 204
+        assert not OrganizationMember.objects.filter(id=member_om.id).exists()
+
+        # Check lastOrganization
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+
+        data = json.loads(resp.content)
+
+        assert data["isAuthenticated"] is True
+        assert data["lastOrganization"] is None
+        assert "activeorg" not in self.client.session
+
+    def test_api_token(self):
+        api_token = ApiToken.objects.create(user=self.user, scope_list=["org:write", "org:read"])
+        HTTP_AUTHORIZATION = f"Bearer {api_token.token}"
+
+        # Induce last active organization
+        resp = self.client.get(
+            reverse("sentry-api-0-organization-projects", args=[self.organization.slug]),
+            HTTP_AUTHORIZATION=HTTP_AUTHORIZATION,
+        )
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+        assert "activeorg" not in self.client.session
+
+        # Load client config
+        response = self.client.get(self.path, HTTP_AUTHORIZATION=HTTP_AUTHORIZATION)
+        assert response.status_code == 200
+        assert response["Content-Type"] == "application/json"
+
+        data = json.loads(response.content)
+
+        assert data["isAuthenticated"] is True
+        assert data["lastOrganization"] is None
+        assert data["sentryUrl"] == "http://testserver"
+        assert data["organizationUrl"] is None

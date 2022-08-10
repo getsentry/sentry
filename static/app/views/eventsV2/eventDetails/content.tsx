@@ -18,7 +18,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import TagsTable from 'sentry/components/tagsTable';
+import {TagsTable} from 'sentry/components/tagsTable';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -30,7 +30,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {formatTagKey} from 'sentry/utils/discover/fields';
 import {eventDetailsRoute} from 'sentry/utils/discover/urls';
 import {getMessage} from 'sentry/utils/events';
-import * as QuickTraceContext from 'sentry/utils/performance/quickTrace/quickTraceContext';
+import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 import TraceMetaQuery, {
   TraceMetaQueryChildrenProps,
@@ -241,7 +241,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                         api={this.api}
                         router={router}
                         route={route}
-                        isBorderless
                       />
                     </QuickTraceContext.Provider>
                   </SpanEntryContext.Provider>
