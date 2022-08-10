@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence
+from typing import TYPE_CHECKING, Any, Iterable, List, Mapping, MutableMapping, Sequence
 
 from sentry import features
 from sentry.models import (
@@ -401,18 +401,18 @@ def get_recipients_by_provider(
 
 def get_teams_by_provider(
     project: Project, teams: Iterable[Team], notification_type: NotificationSettingTypes
-):
+) -> Mapping[ExternalProviders, set[Team]]:
     # figure out which teams have external actors for the right platform
-    team_actor_ids = list(map(lambda x: x.actor_id, teams))
+    team_actor_ids: List[int] = list(map(lambda x: x.actor_id, teams))
     external_actors = ExternalActor.objects.filter(
         actor_id__in=team_actor_ids,
         provider__in=list(map(lambda x: x.value, list(AVAILABLE_TEAM_PROVIDERS))),
     )
-    team_by_actor_id = {}
+    team_by_actor_id: Mapping[Any, Team] = {}
     for team in teams:
         team_by_actor_id[team.actor_id] = team
 
-    teams_with_mappings_by_provider = defaultdict(set)
+    teams_with_mappings_by_provider: Mapping[ExternalProviders, set[Team]] = defaultdict(set)
     for external_actor in external_actors:
         teams_with_mappings_by_provider[external_actor.provider].add(
             team_by_actor_id[external_actor.actor_id].id
@@ -424,7 +424,7 @@ def get_teams_by_provider(
     )
 
     # check against our external actors
-    teams_by_provider = defaultdict(set)
+    teams_by_provider: Mapping[ExternalProviders, set[Team]] = defaultdict(set)
     for provider in AVAILABLE_TEAM_PROVIDERS:
         for unfiltered_team in unfiltered_teams_by_provider[provider]:
             if unfiltered_team.id in teams_with_mappings_by_provider[provider.value]:
