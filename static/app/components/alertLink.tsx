@@ -2,35 +2,37 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
+import Link, {LinkProps} from 'sentry/components/links/link';
 import {IconChevron} from 'sentry/icons';
 import space from 'sentry/styles/space';
 
 type Size = 'small' | 'normal';
 type Priority = 'info' | 'warning' | 'success' | 'error' | 'muted';
 
-type LinkProps = React.ComponentPropsWithoutRef<typeof Link>;
-
-type OtherProps = {
+interface OtherProps {
   children?: React.ReactNode;
   ['data-test-id']?: string;
   icon?: string | React.ReactNode;
   onClick?: (e: React.MouseEvent) => void;
-};
+}
 
-type DefaultProps = {
+interface DefaultProps {
   openInNewTab: boolean;
   priority: Priority;
   size: Size;
   withoutMarginBottom: boolean;
   href?: string;
-};
+}
 
-type Props = OtherProps & Partial<DefaultProps> & Partial<Pick<LinkProps, 'to'>>;
+interface Props
+  extends OtherProps,
+    Partial<DefaultProps>,
+    Partial<Pick<LinkProps, 'to'>> {}
 
-type StyledLinkProps = DefaultProps &
-  Partial<Pick<LinkProps, 'to'>> &
-  Omit<LinkProps, 'to' | 'size'>;
+interface StyledLinkProps
+  extends DefaultProps,
+    Partial<Pick<LinkProps, 'to'>>,
+    Omit<LinkProps, 'to' | 'size'> {}
 
 function AlertLink({
   size = 'normal',

@@ -179,17 +179,17 @@ export function updateNote(
   return promise;
 }
 
-type ParamsType = {
+interface ParamsType {
   environment?: string | Array<string> | null;
   itemIds?: Array<number> | Array<string>;
   project?: Array<number> | null;
   query?: string;
-};
+}
 
-type UpdateParams = ParamsType & {
+interface UpdateParams extends ParamsType {
   orgId: string;
   projectId?: string;
-};
+}
 
 type QueryArgs =
   | {
@@ -302,10 +302,10 @@ export function bulkDelete(
   );
 }
 
-type BulkUpdateParams = UpdateParams & {
+interface BulkUpdateParams extends UpdateParams {
   data?: any;
   failSilently?: boolean;
-};
+}
 
 export function bulkUpdate(
   api: Client,

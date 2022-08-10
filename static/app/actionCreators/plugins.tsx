@@ -12,7 +12,7 @@ const activeFetch = {};
 // PluginsStore always exists, so api client should be independent of component lifecycle
 const api = new Client();
 
-type Slugs = {
+interface Slugs {
   /**
    * Organization slug
    */
@@ -27,11 +27,11 @@ type Slugs = {
    * Project slug
    */
   projectId: string;
-};
+}
 
-type DoUpdateParams = Slugs & {
+interface DoUpdateParams extends Slugs, Partial<RequestOptions> {
   update: Partial<Plugin>;
-} & Partial<RequestOptions>;
+}
 
 function doUpdate({orgId, projectId, pluginId, update, ...params}: DoUpdateParams) {
   PluginActions.update(pluginId, update);

@@ -78,7 +78,9 @@ type DateTimeUpdate = Pick<PageFiltersUpdate, 'start' | 'end' | 'period' | 'utc'
 /**
  * Output object used for updating query parameters
  */
-type PageFilterQuery = PageFiltersStringified & Record<string, Location['query'][string]>;
+interface PageFilterQuery
+  extends PageFiltersStringified,
+    Record<string, Location['query'][string]> {}
 
 /**
  * This can be null which will not perform any router side effects, and instead updates store.

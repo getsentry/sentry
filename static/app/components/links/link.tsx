@@ -9,7 +9,7 @@ import {linkStyles} from './styles';
 
 export interface LinkProps
   extends Omit<
-    React.DetailedHTMLProps<React.HTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>,
+    React.HTMLAttributes<HTMLAnchorElement>,
     'href' | 'target' | 'as' | 'css'
   > {
   /**

@@ -22,8 +22,12 @@ const doCallback = (
 /**
  * Note these are both slugs
  */
-type OrgSlug = {orgId: string};
-type OrgAndTeamSlug = OrgSlug & {teamId: string};
+interface OrgSlug {
+  orgId: string;
+}
+interface OrgAndTeamSlug extends OrgSlug {
+  teamId: string;
+}
 
 /**
  * This is the actual internal id, not username or email
