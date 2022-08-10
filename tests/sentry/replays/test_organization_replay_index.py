@@ -44,6 +44,9 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 seq1_timestamp,
                 project.id,
                 replay1_id,
+                # NOTE: This is commented out due to a bug in CI.  This will not affect
+                # production use and have been verfied as working as of 08/10/2022.
+                #
                 # error_ids=[uuid.uuid4().hex, replay1_id],  # duplicate error-id
                 urls=[
                     "http://localhost:3000/",
