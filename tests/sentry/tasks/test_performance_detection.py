@@ -175,7 +175,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                     .with_op("http.client")
                     .with_description("http://example.com")
                     .build(),
-                    501.0,
+                    1001.0,
                 )
             ]
             * 1,
