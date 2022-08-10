@@ -166,6 +166,42 @@ class PerformanceDetectionTest(unittest.TestCase):
             ]
         )
 
+    def test_calls_partial_span_op_allowed(self):
+        span_event = {
+            "event_id": "a" * 16,
+            "spans": [
+                modify_span_duration(
+                    SpanBuilder()
+                    .with_op("http.client")
+                    .with_description("http://example.com")
+                    .build(),
+                    501.0,
+                )
+            ]
+            * 1,
+        }
+
+        sdk_span_mock = Mock()
+
+        _detect_performance_issue(span_event, sdk_span_mock)
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 3
+        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
+            [
+                call(
+                    "_pi_all_issue_count",
+                    1,
+                ),
+                call(
+                    "_pi_transaction",
+                    "aaaaaaaaaaaaaaaa",
+                ),
+                call(
+                    "_pi_slow_span",
+                    "bbbbbbbbbbbbbbbb",
+                ),
+            ]
+        )
+
     def test_calls_detect_sequential(self):
         no_sequential_event = {
             "event_id": "a" * 16,

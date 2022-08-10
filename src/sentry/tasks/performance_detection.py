@@ -170,6 +170,12 @@ class PerformanceDetector(ABC):
     def init(self):
         raise NotImplementedError
 
+    def is_span_op_allowed(self, span_op: str):
+        allowed_span_ops = self.settings.get("allowed_span_ops", [])
+        if len(allowed_span_ops) <= 0:
+            return True
+        return any(span_op.startswith(op) for op in allowed_span_ops)
+
     @property
     @abstractmethod
     def settings_key(self) -> DetectorType:
@@ -207,11 +213,10 @@ class DuplicateSpanDetector(PerformanceDetector):
 
         fingerprint = fingerprint_span(span)
 
-        allowed_span_ops = self.settings.get("allowed_span_ops")
         duplicate_count_threshold = self.settings.get("count")
         duplicate_duration_threshold = self.settings.get("cumulative_duration")
 
-        if not fingerprint or op not in allowed_span_ops:
+        if not fingerprint or not self.is_span_op_allowed(op):
             return
 
         span_duration = get_span_duration(span)
@@ -253,10 +258,9 @@ class SlowSpanDetector(PerformanceDetector):
 
         fingerprint = fingerprint_span(span)
 
-        allowed_span_ops = self.settings.get("allowed_span_ops")
         slow_span_duration_threshold = self.settings.get("duration_threshold")
 
-        if not fingerprint or op not in allowed_span_ops:
+        if not fingerprint or not self.is_span_op_allowed(op):
             return
 
         span_duration = get_span_duration(span)
@@ -291,11 +295,10 @@ class SequentialSlowSpanDetector(PerformanceDetector):
 
         fingerprint = fingerprint_span_op(span)
 
-        allowed_span_ops = self.settings.get("allowed_span_ops")
         count_threshold = self.settings.get("count")
         duration_threshold = self.settings.get("cumulative_duration")
 
-        if not fingerprint or op not in allowed_span_ops:
+        if not fingerprint or not self.is_span_op_allowed(op):
             return
 
         span_duration = get_span_duration(span)
