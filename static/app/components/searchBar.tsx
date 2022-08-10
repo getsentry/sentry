@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import Button from 'sentry/components/button';
-import Input, {InputProps} from 'sentry/components/forms/controls/input';
+import Input, {InputProps} from 'sentry/components/input';
 import {IconSearch} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';

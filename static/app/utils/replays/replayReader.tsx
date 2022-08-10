@@ -90,37 +90,37 @@ export default class ReplayReader {
       .filter(Boolean) as string[];
 
     this.replayRecord = {
-      count_errors: this.getRawCrumbs().filter(
+      countErrors: this.getRawCrumbs().filter(
         crumb => crumb.category === BreadcrumbType.ERROR
       ).length,
-      count_segments: 0,
-      count_urls: urls.length,
+      countSegments: 0,
+      countUrls: urls.length,
+      errorIds: [],
       dist: this.event.dist,
       duration: endTimestampMs - startTimestampMs,
       environment: null,
-      finished_at: new Date(endTimestampMs),
-      ip_address_v4: this.event.user?.ip_address,
-      ip_address_v6: null,
-      longest_transaction: 0,
+      finishedAt: new Date(endTimestampMs), // TODO(replay): Convert from string to Date when reading API
+      longestTransaction: 0,
       platform: this.event.platform,
-      project_id: this.event.projectID,
-      project_slug: '',
+      projectId: this.event.projectID,
+      projectSlug: '', // TODO(replay): Read from useProject to fill this in
       release: null, // event.release is not a string, expected to be `version@1.4`
-      replay_id: this.event.id,
-      sdk_name: this.event.sdk?.name,
-      sdk_version: this.event.sdk?.version,
-      started_at: new Date(startTimestampMs),
+      replayId: this.event.id,
+      sdkName: this.event.sdk?.name,
+      sdkVersion: this.event.sdk?.version,
+      startedAt: new Date(startTimestampMs), // TODO(replay): Convert from string to Date when reading API
       tags: this.event.tags.reduce((tags, {key, value}) => {
         tags[key] = value;
         return tags;
       }, {} as ReplayRecord['tags']),
       title: this.event.title,
-      trace_ids: [],
+      traceIds: [],
       urls,
+      userAgent: '',
       user: {
         email: this.event.user?.email,
         id: this.event.user?.id,
-        ip: this.event.user?.ip_address,
+        ipAddress: this.event.user?.ip_address,
         name: this.event.user?.name,
       },
     } as ReplayRecord;

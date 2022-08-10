@@ -281,8 +281,15 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
         referrer = request.GET.get("referrer")
         use_metrics = (
-            features.has(
-                "organizations:mep-rollout-flag", organization=organization, actor=request.user
+            (
+                features.has(
+                    "organizations:mep-rollout-flag", organization=organization, actor=request.user
+                )
+                and features.has(
+                    "organizations:server-side-sampling",
+                    organization=organization,
+                    actor=request.user,
+                )
             )
             or features.has(
                 "organizations:performance-use-metrics",
