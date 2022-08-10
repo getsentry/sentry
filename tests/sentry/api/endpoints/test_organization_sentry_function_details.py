@@ -20,7 +20,13 @@ class OrganizationSentryFunctionDetails(APITestCase):
         with Feature("organizations:sentry-functions"):
             self.creation_response = self.client.post(
                 self.creation_endpoint,
-                data={"name": "foo", "author": "bar", "code": "baz", "overview": "qux"},
+                data={
+                    "name": "foo",
+                    "author": "bar",
+                    "code": "baz",
+                    "overview": "qux",
+                    "envVariables": [],
+                },
             )
 
     def test_get_valid_function(self):
@@ -49,7 +55,13 @@ class OrganizationSentryFunctionDetails(APITestCase):
             )
             edit_response = self.client.put(
                 edit_function_endpoint,
-                data={"name": "foo", "author": "bar", "code": "newEditedCode", "overview": "qux"},
+                data={
+                    "name": "foo",
+                    "author": "bar",
+                    "code": "newEditedCode",
+                    "overview": "qux",
+                    "envVariables": [],
+                },
             )
             assert edit_response.status_code == 201
             assert edit_response.data["name"] == "foo"
@@ -57,7 +69,7 @@ class OrganizationSentryFunctionDetails(APITestCase):
             assert edit_response.data["overview"] == "qux"
             assert edit_response.data["author"] == "bar"
             mock_update_func.assert_called_once_with(
-                "newEditedCode", self.creation_response.data["external_id"], "qux"
+                "newEditedCode", self.creation_response.data["external_id"], "qux", {}
             )
 
     def test_edit_invalid_function(self):
