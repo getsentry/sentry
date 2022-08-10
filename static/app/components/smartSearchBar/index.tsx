@@ -930,6 +930,10 @@ class SmartSearchBar extends Component<Props, State> {
     return false;
   }
 
+  get shouldShowAutocomplete() {
+    return this.state.showDropdown && !this.shouldShowDatePicker;
+  }
+
   /**
    * Get the current cursor position within the input
    */
@@ -1568,11 +1572,9 @@ class SmartSearchBar extends Component<Props, State> {
           if (valueToken.text === '[]') {
             clauseStart += 1;
             clauseEnd -= 2;
-          } else {
             // For ISO date values, we want to keep the cursor within the token
-            if (item.type !== ItemType.TAG_VALUE_ISO_DATE) {
-              replaceToken += ' ';
-            }
+          } else if (item.type !== ItemType.TAG_VALUE_ISO_DATE) {
+            replaceToken += ' ';
           }
         }
       } else if (isWithinToken(cursorToken.key, cursor)) {
@@ -1786,7 +1788,7 @@ class SmartSearchBar extends Component<Props, State> {
           />
         )}
 
-        {this.state.showDropdown && !this.shouldShowDatePicker && (
+        {this.shouldShowAutocomplete && (
           <SearchDropdown
             className={dropdownClassName}
             items={searchGroups}
