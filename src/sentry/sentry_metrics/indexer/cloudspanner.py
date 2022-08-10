@@ -1,8 +1,8 @@
 from typing import Mapping, Optional, Set
 
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.id_generator import reverse_bits
 from sentry.sentry_metrics.indexer.base import KeyResult, KeyResults, StringIndexer
+from sentry.sentry_metrics.indexer.id_generator import reverse_bits
 from sentry.utils.codecs import Codec
 
 EncodedId = int
