@@ -143,6 +143,12 @@ class _Status(TypedDict):
     name: str
 
 
+class _Links(TypedDict):
+    organizationUrl: str
+    regionUrl: str
+    sentryUrl: str
+
+
 class OrganizationSerializerResponse(TypedDict):
     id: str
     slug: str
@@ -151,7 +157,6 @@ class OrganizationSerializerResponse(TypedDict):
     dateCreated: datetime
     isEarlyAdopter: bool
     organizationUrl: str
-    regionUrl: str
     require2FA: bool
     requireEmailVerification: bool
     avatar: Any  # TODO replace with Avatar
@@ -246,8 +251,6 @@ class OrganizationSerializer(Serializer):  # type: ignore
             "name": obj.name or obj.slug,
             "dateCreated": obj.date_added,
             "isEarlyAdopter": bool(obj.flags.early_adopter),
-            "organizationUrl": generate_organization_url(obj.slug),
-            "regionUrl": generate_region_url(),
             "require2FA": bool(obj.flags.require_2fa),
             "requireEmailVerification": bool(
                 features.has("organizations:required-email-verification", obj)
@@ -255,6 +258,10 @@ class OrganizationSerializer(Serializer):  # type: ignore
             ),
             "avatar": avatar,
             "features": feature_list,
+            "links": {
+                "organizationUrl": generate_organization_url(obj.slug),
+                "regionUrl": generate_region_url(),
+            },
         }
 
 
