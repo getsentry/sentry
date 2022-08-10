@@ -1099,6 +1099,7 @@ describe('Dashboards > Detail', function () {
             ...TestStubs.location(),
             query: {
               statsPeriod: '7d',
+              release: ['sentry-android-shop@1.2.0'],
             },
           },
         },
@@ -1113,11 +1114,7 @@ describe('Dashboards > Detail', function () {
         {context: testData.routerContext, organization: testData.organization}
       );
 
-      await screen.findByText('7D');
-      userEvent.click(await screen.findByText('All Releases'));
-      userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
-
-      userEvent.click(screen.getByText('Save'));
+      userEvent.click(await screen.findByText('Save'));
 
       expect(mockPut).toHaveBeenCalledWith(
         '/organizations/org-slug/dashboards/1/',
