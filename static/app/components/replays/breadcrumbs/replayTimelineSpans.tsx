@@ -5,7 +5,7 @@ import {divide, flattenSpans} from 'sentry/components/replays/utils';
 import Tooltip from 'sentry/components/tooltip';
 import {tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type {ReplaySpan} from 'sentry/views/replays/types';
 
 type Props = {
@@ -32,9 +32,7 @@ type Props = {
 
 function ReplayTimelineEvents({className, durationMs, spans, startTimestampMs}: Props) {
   const flattenedSpans = flattenSpans(spans);
-  const {setActiveTab, getActiveTab} = useActiveReplayTab();
-
-  const activeTab = getActiveTab();
+  const {setActiveTab} = useActiveReplayTab();
 
   return (
     <Spans className={className}>
@@ -65,7 +63,6 @@ function ReplayTimelineEvents({className, durationMs, spans, startTimestampMs}: 
             <Span
               startPct={startPct}
               widthPct={widthPct}
-              activeTab={activeTab}
               onClick={() => setActiveTab('network')}
             />
           </Tooltip>
@@ -87,8 +84,8 @@ const Spans = styled('ul')`
   pointer-events: none;
 `;
 
-const Span = styled('li')<{activeTab: TabKey; startPct: number; widthPct: number}>`
-  ${p => p.activeTab !== 'network' && 'cursor: pointer;'}
+const Span = styled('li')<{startPct: number; widthPct: number}>`
+  cursor: pointer;
   display: block;
   position: absolute;
   left: ${p => p.startPct * 100}%;
