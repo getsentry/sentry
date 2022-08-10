@@ -41,16 +41,16 @@ class PostgresIndexerTest(TestCase):
 
         # test resolve and reverse_resolve
         obj = MetricsKeyIndexer.objects.get(string="hello")
-        assert PGStringIndexer().resolve(org_id, "hello") == obj.id
-        assert PGStringIndexer().reverse_resolve(obj.id) == obj.string
+        assert PGStringIndexer().resolve(UseCaseKey.RELEASE_HEALTH, org_id, "hello") == obj.id
+        assert PGStringIndexer().reverse_resolve(UseCaseKey.RELEASE_HEALTH, obj.id) == obj.string
 
         # test record on a string that already exists
         PGStringIndexer().record(org_id, "hello")
-        assert PGStringIndexer().resolve(org_id, "hello") == obj.id
+        assert PGStringIndexer().resolve(UseCaseKey.RELEASE_HEALTH, org_id, "hello") == obj.id
 
         # test invalid values
-        assert PGStringIndexer().resolve(org_id, "beep") is None
-        assert PGStringIndexer().reverse_resolve(1234) is None
+        assert PGStringIndexer().resolve(UseCaseKey.RELEASE_HEALTH, org_id, "beep") is None
+        assert PGStringIndexer().reverse_resolve(UseCaseKey.RELEASE_HEALTH, 1234) is None
 
 
 class StaticStringsIndexerTest(TestCase):

@@ -47,7 +47,7 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
         )
         old_resolve = indexer.resolve
 
-        def new_resolve(org_id, string, use_case_id):
+        def new_resolve(use_case_id, org_id, string):
             if (
                 use_case_id == UseCaseKey.PERFORMANCE
                 and tag_values_are_strings
@@ -56,7 +56,7 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
                 pytest.fail(
                     f"stop right there, thief! you're about to resolve the string {string!r}. that looks like a tag value, but in this test mode, tag values are stored in clickhouse. the indexer might not have the value!"
                 )
-            return old_resolve(org_id, string, use_case_id)
+            return old_resolve(use_case_id, org_id, string)
 
         monkeypatch.setattr(indexer, "resolve", new_resolve)
 

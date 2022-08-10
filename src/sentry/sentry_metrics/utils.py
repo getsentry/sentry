@@ -33,7 +33,7 @@ def reverse_resolve_tag_value(
 
 def reverse_resolve(use_case_id: UseCaseKey, index: int) -> str:
     assert index > 0
-    resolved = indexer.reverse_resolve(index, use_case_id=use_case_id)
+    resolved = indexer.reverse_resolve(use_case_id, index)
     # The indexer should never return None for integers > 0:
     if resolved is None:
         raise MetricIndexNotFound()
@@ -60,7 +60,7 @@ def resolve(
     org_id: int,
     string: str,
 ) -> int:
-    resolved = indexer.resolve(org_id, string, use_case_id=use_case_id)
+    resolved = indexer.resolve(use_case_id, org_id, string)
     if resolved is None:
         raise MetricIndexNotFound(f"Unknown string: {string!r}")
 
@@ -108,7 +108,7 @@ def resolve_weak(use_case_id: UseCaseKey, org_id: int, string: str) -> int:
     useful to make the WHERE-clause "impossible" with `WHERE x = -1` instead of
     explicitly handling that exception.
     """
-    resolved = indexer.resolve(org_id, string, use_case_id=use_case_id)
+    resolved = indexer.resolve(use_case_id, org_id, string)
     if resolved is None:
         return STRING_NOT_FOUND
 

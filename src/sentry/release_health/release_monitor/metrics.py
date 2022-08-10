@@ -133,7 +133,7 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                                 Column("metric_id"),
                                 Op.EQ,
                                 indexer.resolve(
-                                    org_id, SessionMRI.SESSION.value, UseCaseKey.RELEASE_HEALTH
+                                    UseCaseKey.RELEASE_HEALTH, org_id, SessionMRI.SESSION.value
                                 ),
                             ),
                         ],
@@ -162,11 +162,9 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                         data = data[:-1]
 
                     for row in data:
-                        env_name = indexer.reverse_resolve(
-                            row[env_key], use_case_id=UseCaseKey.RELEASE_HEALTH
-                        )
+                        env_name = indexer.reverse_resolve(UseCaseKey.RELEASE_HEALTH, row[env_key])
                         release_name = indexer.reverse_resolve(
-                            row[release_key], use_case_id=UseCaseKey.RELEASE_HEALTH
+                            UseCaseKey.RELEASE_HEALTH, row[release_key]
                         )
                         row_totals = totals[row["project_id"]].setdefault(
                             env_name, {"total_sessions": 0, "releases": defaultdict(int)}  # type: ignore
