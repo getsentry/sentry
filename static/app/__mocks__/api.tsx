@@ -31,7 +31,7 @@ interface MatchCallable {
   (url: string, options: ApiNamespace.RequestOptions): boolean;
 }
 
-type ResponseType = ApiNamespace.ResponseMeta & {
+interface ResponseType extends ApiNamespace.ResponseMeta {
   body: any;
   callCount: 0;
   headers: Record<string, string>;
@@ -39,7 +39,7 @@ type ResponseType = ApiNamespace.ResponseMeta & {
   method: string;
   statusCode: number;
   url: string;
-};
+}
 
 type MockResponse = [resp: ResponseType, mock: jest.Mock];
 

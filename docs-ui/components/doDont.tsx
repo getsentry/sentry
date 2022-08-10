@@ -3,16 +3,16 @@ import styled from '@emotion/styled';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import space from 'sentry/styles/space';
 
-type BoxContent = {
+interface BoxContent {
   text: string;
   img?: {
     alt: string;
     src: string;
   };
-};
-type BoxProps = BoxContent & {
+}
+interface BoxProps extends BoxContent {
   variant: 'do' | 'dont';
-};
+}
 type DoDontProps = {
   doBox: BoxContent;
   dontBox: BoxContent;

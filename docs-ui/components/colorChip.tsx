@@ -5,11 +5,11 @@ import Color from 'color';
 import space from 'sentry/styles/space';
 import {Theme} from 'sentry/utils/theme';
 
-type SizeProp = {
+interface SizeProps {
   size: 'md' | 'lg';
-};
+}
 
-type Props = SizeProp & {
+interface Props extends SizeProps {
   /**
    * value is either a CSS color string (e.g. #000)
    * or a key in the theme object (e.g. 'blue300')
@@ -20,16 +20,16 @@ type Props = SizeProp & {
    * to replace the parsed color name with a custom name
    */
   textOverwrite?: string;
-};
+}
 
-type WrapperProps = SizeProp & {
+interface WrapperProps extends SizeProps {
   noText: boolean;
-};
+}
 
-type ColorSwatchProps = SizeProp & {
+interface ColorSwatchProps extends SizeProps {
   background: string;
   border: boolean;
-};
+}
 
 function ColorChip({value, size = 'md', noText = false, textOverwrite}: Props) {
   const theme = useTheme();
@@ -91,7 +91,7 @@ const Wrapper = styled('span')<WrapperProps>`
         `};
 `;
 
-const Text = styled('span')<SizeProp>`
+const Text = styled('span')<SizeProps>`
   margin-bottom: 0;
   line-height: 1.2;
   text-transform: capitalize;

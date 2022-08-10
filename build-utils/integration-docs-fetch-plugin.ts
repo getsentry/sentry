@@ -25,7 +25,9 @@ type Platform = {
   type: 'language' | 'framework';
 };
 
-type PlatformItem = {_self: Platform} & Record<string, Platform>;
+interface PlatformItem extends Record<string, Platform> {
+  _self: Platform;
+}
 
 type PlatformsData = {
   platforms: Record<string, PlatformItem>;

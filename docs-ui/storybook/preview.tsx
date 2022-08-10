@@ -18,7 +18,7 @@ import {darkTheme, lightTheme, Theme} from 'sentry/utils/theme';
 
 import {DocsGlobalStyles, StoryGlobalStyles} from './globalStyles';
 
-type ExtendedTheme = Theme & {
+interface ExtendedTheme extends Theme {
   /**
    * [For Storybook only, do not use inside the app.]
    *
@@ -27,7 +27,7 @@ type ExtendedTheme = Theme & {
    * its own object value.
    */
   docsBackground?: string;
-};
+}
 
 // Theme decorator for stories
 const WithThemeStory: DecoratorFn = (Story, context) => {

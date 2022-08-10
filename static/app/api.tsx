@@ -211,7 +211,7 @@ export type RequestCallbacks = {
   success?: (data: any, textStatus?: string, resp?: ResponseMeta) => void;
 };
 
-export type RequestOptions = RequestCallbacks & {
+export interface RequestOptions extends RequestCallbacks {
   /**
    * Values to attach to the body of the request.
    */
@@ -230,7 +230,7 @@ export type RequestOptions = RequestCallbacks & {
    * Query parameters to add to the requested URL.
    */
   query?: Record<string, any>;
-};
+}
 
 type ClientOptions = {
   /**
