@@ -222,8 +222,12 @@ export function FrameStackTable({
           contextMenu={contextMenu}
         />
         <TableItemsContainer>
-          <div ref={clickedGhostRowRef} />
+          {/*
+          The order of these two matters because we want clicked state to
+          be on top of hover in cases where user is hovering a clicked row.
+           */}
           <div ref={hoveredGhostRowRef} />
+          <div ref={clickedGhostRowRef} />
           <div
             ref={ref => setScrollContainerRef(ref)}
             style={scrollContainerStyles}
@@ -253,7 +257,7 @@ const TableItemsContainer = styled('div')`
   position: relative;
   height: 100%;
   overflow: hidden;
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
 `;
 
 const GhostRowContainer = styled('div')`
@@ -272,12 +276,12 @@ const TableHeaderButton = styled('button')`
   justify-content: space-between;
   padding: 0 ${space(1)};
   border: none;
-  background-color: ${props => props.theme.surface400};
+  background-color: ${props => props.theme.surface100};
   transition: background-color 100ms ease-in-out;
   line-height: 24px;
 
   &:hover {
-    background-color: #edecee;
+    background-color: ${props => props.theme.surface400};
   }
 
   svg {
