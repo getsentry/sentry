@@ -8,7 +8,6 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import OrganizationMemberWithProjectsSerializer
 from sentry.models import OrganizationMember, OrganizationMemberTeam, ProjectTeam
-from sentry.utils.cursors import Cursor
 
 
 class OrganizationUsersEndpoint(OrganizationEndpoint, EnvironmentMixin):
@@ -52,7 +51,6 @@ class OrganizationUsersEndpoint(OrganizationEndpoint, EnvironmentMixin):
             request=request,
             queryset=queryset,
             paginator_cls=OffsetPaginator,
-            cursor_cls=Cursor,
             on_results=lambda x: serialize(
                 x,
                 request.user,
