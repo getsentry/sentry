@@ -9,14 +9,18 @@ export function fetchSamplingSdkVersions({
   api,
   orgSlug,
   projectID,
+  projects,
+  statsPeriod,
 }: {
   api: Client;
   orgSlug: Organization['slug'];
-  projectID: Project['id'];
+  projectID?: Project['id']; // TODO: Remove conditional on this when projects is removed.
+  projects?: number[]; // TODO: Remove this later since we do not need this for source check in the long term.
+  statsPeriod?: string;
 }): Promise<SamplingSdkVersion[]> {
   const {samplingDistribution} = ServerSideSamplingStore.getState();
 
-  const projectIds = [
+  const projectIds = projects ?? [
     projectID,
     ...(samplingDistribution.project_breakdown?.map(
       projectBreakdown => projectBreakdown.project_id
@@ -28,7 +32,7 @@ export function fetchSamplingSdkVersions({
     {
       query: {
         project: projectIds,
-        statsPeriod: '24h',
+        statsPeriod: statsPeriod ?? '24h',
       },
     }
   );

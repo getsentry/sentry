@@ -11,6 +11,9 @@ export function addMetricsDataMock(settings?: {
   nullCount: number;
   unparamCount: number;
   dynamicSampledProjects?: number[];
+  mockingSourceCheck?: {
+    compatible: boolean;
+  };
 }) {
   const metricsCount = settings?.metricsCount ?? 10;
   const unparamCount = settings?.unparamCount ?? 0;
@@ -31,14 +34,22 @@ export function addMetricsDataMock(settings?: {
     },
   });
 
-  MockApiClient.addMockResponse({
-    method: 'GET',
-    url: `/organizations/org-slug/events/`,
-    body: {
-      data: [{}],
-      meta: {},
-    },
-  });
+  if (settings?.mockingSourceCheck) {
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/dynamic-sampling/sdk-versions/`,
+      body: [
+        {
+          isSendingSampleRate: true,
+          isSendingSource: settings.mockingSourceCheck.compatible,
+          isSupportedPlatform: true,
+          latestSDKName: 'sentry.python',
+          latestSDKVersion: '1.7.2',
+          project: 'sentry',
+        },
+      ],
+    });
+  }
 }
 
 const WrappedComponent = ({data, withStaticFilters = true}) => {
@@ -115,6 +126,14 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
       method: 'GET',
       url: `/organizations/org-slug/events-histogram/`,
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events/`,
+      body: {
+        data: [{}],
+        meta: {},
+      },
     });
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -212,6 +231,9 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
       metricsCount: 100,
       nullCount: 1,
       unparamCount: 0,
+      mockingSourceCheck: {
+        compatible: false,
+      },
     });
     const project = TestStubs.Project();
     const data = initializeData({
@@ -227,11 +249,34 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
     ).toBeInTheDocument();
   });
 
+  it('renders with feature flag and incompatible metrics data but with a transaction source', async function () {
+    addMetricsDataMock({
+      metricsCount: 100,
+      nullCount: 1,
+      unparamCount: 0,
+      mockingSourceCheck: {
+        compatible: true,
+      },
+    });
+    const project = TestStubs.Project();
+    const data = initializeData({
+      project: project.id,
+      projects: [project],
+      features,
+    });
+
+    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+    expect(await screen.findByTestId('transaction-search-bar')).toBeInTheDocument();
+  });
+
   it('renders with feature flag and any incompatible transactions on multiple projects', async function () {
     addMetricsDataMock({
       metricsCount: 100,
       nullCount: 1,
       unparamCount: 0,
+      mockingSourceCheck: {
+        compatible: false,
+      },
     });
     const project = TestStubs.Project({id: 1});
     const project2 = TestStubs.Project({id: 2});

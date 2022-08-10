@@ -46,6 +46,7 @@ import {
 import {COLUMN_TITLES} from './data';
 import {
   createUnnamedTransactionsDiscoverTarget,
+  filterDataForMetrics,
   getSelectedProjectPlatforms,
   UNPARAMETERIZED_TRANSACTION,
 } from './utils';
@@ -454,7 +455,7 @@ class _Table extends Component<Props, State> {
                   <Fragment>
                     <GridEditable
                       isLoading={isLoading}
-                      data={tableData ? tableData.data : []}
+                      data={tableData ? filterDataForMetrics(tableData.data as any) : []}
                       columnOrder={columnOrder}
                       columnSortBy={columnSortBy}
                       grid={{

@@ -1,12 +1,14 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {fetchSamplingSdkVersions} from 'sentry/actionCreators/serverSideSampling';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Organization} from 'sentry/types';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
+import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReactTransaction';
 import {
   canUseMetricsData,
   MEPState,
@@ -16,10 +18,13 @@ import MetricsCompatibilityQuery, {
   MetricsCompatibilityData,
 } from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
+import useApi from 'sentry/utils/useApi';
 
 export interface MetricDataSwitcherOutcome {
   forceTransactionsOnly: boolean;
   compatibleProjects?: number[];
+  dynamicSampledProjects?: number[]; // TODO: temporary
+  hasIncompatibleSource?: boolean; // TODO: temporary
   shouldNotifyUnnamedTransactions?: boolean;
   shouldWarnIncompatibleSDK?: boolean;
 }
@@ -39,6 +44,10 @@ interface MetricDataSwitchProps {
  */
 export function MetricsDataSwitcher(props: MetricDataSwitchProps) {
   const isUsingMetrics = canUseMetricsData(props.organization);
+  useEffect(() => {
+    const transaction = getCurrentSentryReactTransaction();
+    transaction?.setTag('usingMetrics', isUsingMetrics);
+  }, [isUsingMetrics]);
 
   if (!isUsingMetrics) {
     return (
@@ -62,13 +71,7 @@ export function MetricsDataSwitcher(props: MetricDataSwitchProps) {
       <MetricsCompatibilityQuery eventView={_eventView} {...baseDiscoverProps}>
         {data => {
           if (data.isLoading && !props.hideLoadingIndicator) {
-            return (
-              <Fragment>
-                <LoadingContainer>
-                  <LoadingIndicator />
-                </LoadingContainer>
-              </Fragment>
-            );
+            return <Loading />;
           }
 
           const outcome = getMetricsOutcome(data.tableData, !!data.error);
@@ -76,6 +79,7 @@ export function MetricsDataSwitcher(props: MetricDataSwitchProps) {
             <MetricsSwitchHandler
               eventView={props.eventView}
               location={props.location}
+              organization={props.organization}
               outcome={outcome}
               switcherChildren={props.children}
             />
@@ -112,6 +116,7 @@ function adjustEventViewTime(eventView: EventView) {
 interface SwitcherHandlerProps {
   eventView: EventView;
   location: Location;
+  organization: Organization;
   outcome: MetricDataSwitcherOutcome;
   switcherChildren: MetricDataSwitchProps['children'];
 }
@@ -120,8 +125,12 @@ function MetricsSwitchHandler({
   switcherChildren,
   outcome,
   location,
+  organization,
   eventView,
 }: SwitcherHandlerProps) {
+  const api = useApi();
+  const [modifiedOutcome, setModifiedOutcome] = useState(outcome);
+  const [isLoadingSource, setIsLoadingSource] = useState(outcome.hasIncompatibleSource);
   const {query} = location;
   const mepSearchState = decodeScalar(query[METRIC_SEARCH_SETTING_PARAM], '');
   const hasQuery = decodeScalar(query.query, '');
@@ -129,6 +138,11 @@ function MetricsSwitchHandler({
 
   const shouldAdjustQuery =
     hasQuery && queryIsTransactionsBased && !outcome.forceTransactionsOnly;
+
+  useEffect(() => {
+    const transaction = getCurrentSentryReactTransaction();
+    transaction?.setTag('metricsDataSide', !!outcome.forceTransactionsOnly);
+  }, [outcome.forceTransactionsOnly]);
 
   useEffect(() => {
     if (shouldAdjustQuery) {
@@ -143,13 +157,52 @@ function MetricsSwitchHandler({
       });
     }
   }, [shouldAdjustQuery, location]);
+  useEffect(() => {
+    async function getSource() {
+      if (outcome.hasIncompatibleSource) {
+        // Temporary check against the source data on transactions dataset directly.
+        const sourceData = await fetchSamplingSdkVersions({
+          api,
+          orgSlug: organization.slug,
+          statsPeriod: '1h',
+        });
+        const projectsAreCompatible = sourceData.every(s => s.isSendingSource);
+        if (projectsAreCompatible) {
+          setModifiedOutcome({
+            ...outcome,
+            shouldWarnIncompatibleSDK: false,
+            forceTransactionsOnly: false,
+          });
+        }
 
-  if (hasQuery && queryIsTransactionsBased && !outcome.forceTransactionsOnly) {
+        setIsLoadingSource(false);
+      }
+    }
+    getSource();
+  }, [
+    outcome,
+    outcome.hasIncompatibleSource,
+    outcome.dynamicSampledProjects,
+    api,
+    organization.slug,
+  ]);
+
+  if (hasQuery && queryIsTransactionsBased && !modifiedOutcome.forceTransactionsOnly) {
     eventView.query = ''; // TODO: Create switcher provider and move it to the route level to remove the need for this.
   }
 
-  return <Fragment>{switcherChildren(outcome)}</Fragment>;
+  if (isLoadingSource) {
+    return <Loading />;
+  }
+
+  return <Fragment>{switcherChildren(modifiedOutcome)}</Fragment>;
 }
+
+const Loading = () => (
+  <LoadingContainer>
+    <LoadingIndicator />
+  </LoadingContainer>
+);
 
 /**
  * Logic for picking sides of metrics vs. transactions along with the associated warnings.
@@ -157,7 +210,7 @@ function MetricsSwitchHandler({
 function getMetricsOutcome(
   dataCounts: MetricsCompatibilityData | null,
   hasOtherFallbackCondition: boolean
-) {
+): MetricDataSwitcherOutcome {
   const fallbackOutcome: MetricDataSwitcherOutcome = {
     forceTransactionsOnly: true,
   };
@@ -189,6 +242,8 @@ function getMetricsOutcome(
     return {
       shouldWarnIncompatibleSDK: true,
       forceTransactionsOnly: true,
+      hasIncompatibleSource: true, // TODO: Remove this and the additional query later.
+      dynamicSampledProjects: dataCounts.dynamic_sampling_projects, // TODO: Remove this after and the additional query later.
       compatibleProjects,
     };
   }

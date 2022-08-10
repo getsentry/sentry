@@ -341,3 +341,20 @@ export function getSelectedProjectPlatforms(location: Location, projects: Projec
   const selectedProjectPlatforms = getSelectedProjectPlatformsArray(location, projects);
   return selectedProjectPlatforms.join(', ');
 }
+
+/**
+ * Since returning compound conditions in the query is complicated without changing how eventview parses tokens,
+ * we're simply omitting 'null' as a row from the table for now.
+ */
+export function filterDataForMetrics(data: {transaction: string}[]) {
+  return data.filter(d => {
+    const transactionName = d.transaction;
+    if (typeof transactionName === 'undefined') {
+      return true;
+    }
+    if (transactionName !== 'null' && transactionName !== null) {
+      return true;
+    }
+    return false;
+  });
+}
