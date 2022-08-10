@@ -19,6 +19,7 @@ import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
@@ -46,6 +47,20 @@ function hasSetupProfilingForAtLeastOneProject(
     },
     {}
   );
+
+  if (selectedProjects[0] === ALL_ACCESS_PROJECTS || selectedProjects.length === 0) {
+    const projectWithProfiles = projects.find(p => {
+      const project = projectIDsToProjectTable[String(p)];
+
+      if (!project) {
+        // Shouldnt happen, but lets be safe and just not do anything
+        return false;
+      }
+      return project.hasProfiles;
+    });
+
+    return projectWithProfiles !== undefined;
+  }
 
   const projectWithProfiles = selectedProjects.find(p => {
     const project = projectIDsToProjectTable[String(p)];
@@ -102,7 +117,11 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
   }, []);
 
   const shouldShowProfilingOnboardingPanel = useMemo((): boolean => {
-    if (transactions.type === 'resolved' && transactions.data.transactions.length > 0) {
+    if (transactions.type !== 'resolved') {
+      return false;
+    }
+    hasSetupProfilingForAtLeastOneProject(selection.projects, projects);
+    if (transactions.data.transactions.length > 0) {
       return false;
     }
     return !hasSetupProfilingForAtLeastOneProject(selection.projects, projects);
