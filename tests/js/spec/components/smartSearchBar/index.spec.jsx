@@ -1511,8 +1511,12 @@ describe('SmartSearchBar', function () {
       expect(screen.getByRole('textbox')).toHaveValue('lastSeen:>');
       expect(screen.getByTestId('search-bar-date-picker')).toBeInTheDocument();
 
-      // Select a day on the calendar
+      // For whatever reason, need this line to get the lazily-loaded datepicker
+      // to show up in this test. Without it, the datepicker never shows up
+      // no matter how long the timeout is set to.
       await tick();
+
+      // Select a day on the calendar
       const dateInput = await screen.findByTestId('date-picker');
       fireEvent.change(dateInput, {target: {value: '2022-01-02'}});
 
