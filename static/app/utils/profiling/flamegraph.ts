@@ -243,15 +243,29 @@ export class Flamegraph {
     return frames;
   }
 
-  findAllMatchingFrames(frame: FlamegraphFrame): FlamegraphFrame[] {
+  findAllMatchingFrames(
+    frameOrName: FlamegraphFrame | string,
+    packageName?: string
+  ): FlamegraphFrame[] {
     const matches: FlamegraphFrame[] = [];
 
-    for (let i = 0; i < this.frames.length; i++) {
-      if (
-        this.frames[i].frame.name === frame.node.frame.name &&
-        this.frames[i].frame.image === frame.node.frame.image
-      ) {
-        matches.push(this.frames[i]);
+    if (typeof frameOrName === 'string') {
+      for (let i = 0; i < this.frames.length; i++) {
+        if (
+          this.frames[i].frame.name === frameOrName &&
+          this.frames[i].frame.image === packageName
+        ) {
+          matches.push(this.frames[i]);
+        }
+      }
+    } else {
+      for (let i = 0; i < this.frames.length; i++) {
+        if (
+          this.frames[i].frame.name === frameOrName.node.frame.name &&
+          this.frames[i].frame.image === frameOrName.node.frame.image
+        ) {
+          matches.push(this.frames[i]);
+        }
       }
     }
 

@@ -324,46 +324,47 @@ export function FlamegraphStateProvider(
   });
 
   useEffect(() => {
-    if (reducer[0].profiles.highlightFrame && profileGroup.type === 'resolved') {
-      const candidate = profileGroup.data.profiles.reduce<FlamegraphCandidate>(
-        (prevCandidate, profile) => {
-          const flamegraph = new Flamegraph(profile, profile.threadId, {
-            inverted: false,
-            leftHeavy: false,
-            configSpace: undefined,
-          });
+    if (reducer[0].profiles.threadId === null) {
+      if (reducer[0].profiles.highlightFrame && profileGroup.type === 'resolved') {
+        const candidate = profileGroup.data.profiles.reduce<FlamegraphCandidate>(
+          (prevCandidate, profile) => {
+            const flamegraph = new Flamegraph(profile, profile.threadId, {
+              inverted: false,
+              leftHeavy: false,
+              configSpace: undefined,
+            });
 
-          const score = scoreFlamegraph(flamegraph, reducer[0].profiles.highlightFrame);
+            const score = scoreFlamegraph(flamegraph, reducer[0].profiles.highlightFrame);
 
-          return score <= prevCandidate.score
-            ? prevCandidate
-            : {
-                score,
-                threadId: profile.threadId,
-              };
-        },
-        {score: 0, threadId: null}
-      );
+            return score <= prevCandidate.score
+              ? prevCandidate
+              : {
+                  score,
+                  threadId: profile.threadId,
+                };
+          },
+          {score: 0, threadId: null}
+        );
 
-      if (typeof candidate.threadId === 'number') {
-        reducer[1]({type: 'set thread id', payload: candidate.threadId});
-        return;
+        if (typeof candidate.threadId === 'number') {
+          reducer[1]({type: 'set thread id', payload: candidate.threadId});
+          return;
+        }
       }
-    }
 
-    if (
-      profileGroup.type === 'resolved' &&
-      reducer[0].profiles.threadId === null &&
-      typeof profileGroup.data.activeProfileIndex === 'number'
-    ) {
-      const threadID =
-        profileGroup.data.profiles[profileGroup.data.activeProfileIndex].threadId;
+      if (
+        profileGroup.type === 'resolved' &&
+        typeof profileGroup.data.activeProfileIndex === 'number'
+      ) {
+        const threadID =
+          profileGroup.data.profiles[profileGroup.data.activeProfileIndex].threadId;
 
-      if (threadID) {
-        reducer[1]({
-          type: 'set thread id',
-          payload: threadID,
-        });
+        if (threadID) {
+          reducer[1]({
+            type: 'set thread id',
+            payload: threadID,
+          });
+        }
       }
     }
   }, [props.initialState?.profiles?.threadId, profileGroup, reducer]);

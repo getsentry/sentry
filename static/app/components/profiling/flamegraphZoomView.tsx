@@ -44,6 +44,7 @@ function isHighlightingAllOccurences(
     selectedNodes.includes(node)
   );
 }
+
 interface FlamegraphZoomViewProps {
   canvasBounds: Rect;
   canvasPoolManager: CanvasPoolManager;
@@ -714,11 +715,19 @@ function FlamegraphZoomView({
       return;
     }
 
+    const matches: FlamegraphFrame[] = [];
+
+    for (let i = 0; i < flamegraph.frames.length; i++) {
+      if (
+        flamegraph.frames[i].frame.name ===
+        hoveredNodeOnContextMenuOpen.current.node.frame.name
+      ) {
+        matches.push(flamegraph.frames[i]);
+      }
+    }
+
     setHighlightingAllOccurences(true);
-    canvasPoolManager.dispatch('highlight frame', [
-      flamegraph.findAllMatchingFrames(hoveredNodeOnContextMenuOpen.current),
-      'selected',
-    ]);
+    canvasPoolManager.dispatch('highlight frame', [matches, 'selected']);
   }, [canvasPoolManager, flamegraph, scheduler]);
 
   return (
@@ -729,7 +738,7 @@ function FlamegraphZoomView({
         onMouseUp={onCanvasMouseUp}
         onMouseMove={onCanvasMouseMove}
         onMouseLeave={onCanvasMouseLeave}
-        onContextMenu={contextMenu.handleContextMenu}
+        onContextMenu={handleContextMenuOpen}
         style={{cursor: lastInteraction === 'pan' ? 'grab' : 'default'}}
       />
       <Canvas
@@ -738,7 +747,12 @@ function FlamegraphZoomView({
           pointerEvents: 'none',
         }}
       />
-      <FlamegraphOptionsContextMenu contextMenu={contextMenu} />
+      <FlamegraphOptionsContextMenu
+        contextMenu={contextMenu}
+        hoveredNode={hoveredNodeOnContextMenuOpen.current}
+        isHighlightingAllOccurences={highlightingAllOccurences}
+        onHighlightAllOccurencesClick={handleHighlightAllFramesClick}
+      />
       {flamegraphCanvas &&
       flamegraphRenderer &&
       flamegraphView &&
