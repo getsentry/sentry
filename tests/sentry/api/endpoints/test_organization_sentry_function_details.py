@@ -9,8 +9,8 @@ from sentry.testutils.helpers import Feature
 class OrganizationSentryFunctionDetails(APITestCase):
     endpoint = "sentry-api-0-organization-sentry-function-details"
 
-    @patch("sentry.api.endpoints.organization_sentry_function.create_function")
-    def setUp(self, mock_func):
+    # @patch("sentry.api.endpoints.organization_sentry_function.create_function")
+    def setUp(self):
         super().setUp()
         self.create_organization(owner=self.user, name="RowdyTiger")
         self.login_as(user=self.user)
@@ -20,7 +20,7 @@ class OrganizationSentryFunctionDetails(APITestCase):
             author="bar",
             code="baz",
             overview="qux",
-            envVariables=[],
+            env_variables={},
         )
 
     def test_get_valid_function(self):
