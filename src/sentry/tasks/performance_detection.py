@@ -122,16 +122,6 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
             len(sequential_performance_fingerprints),
         )
 
-    metrics.incr(
-        "performance.performance_issue.detected",
-        instance=str(bool(all_fingerprints)),
-        tags={
-            "duplicates": bool(len(duplicate_performance_fingerprints)),
-            "slow_span": bool(len(slow_performance_fingerprints)),
-            "sequential": bool(len(sequential_performance_fingerprints)),
-        },
-    )
-
     uncompressed_asset_performance_issues = detectors[
         DetectorType.UNCOMPRESSED_ASSET_SPAN
     ].stored_issues
@@ -143,6 +133,17 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
         sdk_span.containing_transaction.set_tag(
             "_pi_uncompressed_asset", first_uncompressed_asset_span["span_id"]
         )
+
+    metrics.incr(
+        "performance.performance_issue.detected",
+        instance=str(bool(all_fingerprints)),
+        tags={
+            "duplicates": bool(len(duplicate_performance_fingerprints)),
+            "slow_span": bool(len(slow_performance_fingerprints)),
+            "sequential": bool(len(sequential_performance_fingerprints)),
+            "uncompressed_asset": bool(len(uncompressed_asset_fingerprints)),
+        },
+    )
 
 
 # Creates a stable fingerprint given the same span details using sha1.
