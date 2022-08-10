@@ -17,6 +17,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 
 import ReleasesSelectControl from './releasesSelectControl';
 import {DashboardFilters} from './types';
+import {getReleaseParams} from './utils';
 
 type FiltersBarProps = {
   filters: DashboardFilters;
@@ -28,14 +29,6 @@ type FiltersBarProps = {
   onDashboardFilterChange: (activeFilters: DashboardFilters) => void;
   onSave: () => void;
 };
-
-function getReleaseParams(release: string | string[]) {
-  if (Array.isArray(release)) {
-    return release;
-  }
-
-  return [release];
-}
 
 export default function FiltersBar({
   filters,

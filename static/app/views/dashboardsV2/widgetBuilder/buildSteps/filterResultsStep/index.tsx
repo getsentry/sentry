@@ -1,5 +1,6 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
+import {Location} from '@sentry/react/types/types';
 
 import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
@@ -18,12 +19,14 @@ import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
 import {getDatasetConfig} from 'sentry/views/dashboardsV2/datasetConfig/base';
 import ReleasesSelectControl from 'sentry/views/dashboardsV2/releasesSelectControl';
 import {DashboardFilters, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {getReleaseParams} from 'sentry/views/dashboardsV2/utils';
 
 import {BuildStep} from '../buildStep';
 
 interface Props {
   canAddSearchConditions: boolean;
   hideLegendAlias: boolean;
+  location: Location;
   onAddSearchConditions: () => void;
   onQueryChange: (queryIndex: number, newQuery: WidgetQuery) => void;
   onQueryRemove: (queryIndex: number) => void;
@@ -39,6 +42,7 @@ interface Props {
 export function FilterResultsStep({
   canAddSearchConditions,
   dashboardFilters,
+  location,
   queries,
   onQueryRemove,
   onAddSearchConditions,
@@ -98,7 +102,11 @@ export function FilterResultsStep({
         <FilterButtons>
           <ReleasesProvider organization={organization} selection={selection}>
             <StyledReleasesSelectControl
-              selectedReleases={dashboardFilters?.release ?? []}
+              selectedReleases={
+                ('release' in location.query
+                  ? getReleaseParams(location.query.release)
+                  : dashboardFilters?.release) ?? []
+              }
               isDisabled
               className="widget-release-select"
             />

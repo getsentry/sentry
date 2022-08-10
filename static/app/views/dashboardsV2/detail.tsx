@@ -43,6 +43,7 @@ import withProjects from 'sentry/utils/withProjects';
 import {
   cloneDashboard,
   getCurrentPageFilters,
+  getReleaseParams,
   hasSavedPageFilters,
   hasUnsavedFilterChanges,
   isWidgetUsingTransactionName,
@@ -523,6 +524,9 @@ class DashboardDetail extends Component<Props, State> {
             newModifiedDashboard = {
               ...cloneDashboard(modifiedDashboard),
               ...getCurrentPageFilters(location),
+              filters: {
+                release: getReleaseParams(location.query?.release),
+              },
             };
           }
           createDashboard(
@@ -546,7 +550,7 @@ class DashboardDetail extends Component<Props, State> {
               browserHistory.replace({
                 pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
                 query: {
-                  ...location.query,
+                  query: omit(location.query, 'release'),
                 },
               });
             },
@@ -850,6 +854,9 @@ class DashboardDetail extends Component<Props, State> {
                       const newModifiedDashboard = {
                         ...cloneDashboard(modifiedDashboard ?? dashboard),
                         ...getCurrentPageFilters(location),
+                        filters: {
+                          release: getReleaseParams(location.query?.release),
+                        },
                       };
                       updateDashboard(api, organization.slug, newModifiedDashboard).then(
                         (newDashboard: DashboardDetails) => {

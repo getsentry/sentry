@@ -517,3 +517,15 @@ export function getCurrentPageFilters(
     utc: defined(utc) ? utc === 'true' : undefined,
   };
 }
+
+export function getReleaseParams(release?: string | string[]): string[] {
+  if (!defined(release)) {
+    return [];
+  }
+
+  if (Array.isArray(release)) {
+    return release;
+  }
+
+  return [release];
+}
