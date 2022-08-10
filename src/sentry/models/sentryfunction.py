@@ -6,11 +6,8 @@ from sentry.db.models.fields.array import ArrayField
 
 class SentryFunctionManager(BaseManager):
     def get_sentry_functions(self, organization_id, event_type):
-        # TODO: check events
-        functions = self.filter(
-            organization_id=organization_id,
-        )
-        return filter(lambda fn: event_type in fn.events, list(functions))
+        functions = self.filter(organization_id=organization_id, events__contains=event_type)
+        return list(functions)
 
 
 class SentryFunction(DefaultFieldsModel):
