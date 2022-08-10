@@ -89,15 +89,11 @@ def send_comment_webhooks(organization, issue, user, event, data=None):
     if features.has("organizations:sentry-functions", organization, actor=user):
         if user:
             try:
-                data["user"] = serialize(User.objects.get(id=user.id), user, UserSerializer())
+                data["user"] = serialize(user, serializer=UserSerializer())
             except User.DoesNotExist:
                 pass
-        try:
-            data["comment"] = serialize(Group.objects.get(id=issue.id))
-        except Group.DoesNotExist:
-            pass
         for fn in SentryFunction.objects.get_sentry_functions(organization, "comment"):
-            send_sentry_function_webhook.delay(fn.external_id, event, data)
+            send_sentry_function_webhook.delay(fn.external_id, event, issue.id, data)
 
 
 def send_workflow_webhooks(
@@ -120,15 +116,11 @@ def send_workflow_webhooks(
     if features.has("organizations:sentry-functions", organization, actor=user):
         if user:
             try:
-                data["user"] = serialize(User.objects.get(id=user.id), user, UserSerializer())
+                data["user"] = serialize(user, serializer=UserSerializer())
             except User.DoesNotExist:
                 pass
-        try:
-            data["issue"] = serialize(Group.objects.get(id=issue.id))
-        except Group.DoesNotExist:
-            pass
         for fn in SentryFunction.objects.get_sentry_functions(organization, "issue"):
-            send_sentry_function_webhook.delay(fn.external_id, event, data)
+            send_sentry_function_webhook.delay(fn.external_id, event, issue.id, data)
 
 
 def installations_to_notify(organization, event):

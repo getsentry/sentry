@@ -5,16 +5,7 @@ from unittest.mock import patch
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user import UserSerializer
 from sentry.constants import SentryAppInstallationStatus
-from sentry.models import (
-    Activity,
-    Commit,
-    Group,
-    GroupAssignee,
-    GroupLink,
-    Release,
-    Repository,
-    User,
-)
+from sentry.models import Activity, Commit, GroupAssignee, GroupLink, Release, Repository
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.faux import faux
@@ -194,13 +185,11 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
         with Feature("organizations:sentry-functions"):
             self.update_issue()
             sub_data = {"resolution_type": "now"}
-            sub_data["user"] = serialize(
-                User.objects.get(id=self.user.id), self.user, UserSerializer()
-            )
-            sub_data["issue"] = serialize(Group.objects.get(id=self.issue.id))
+            sub_data["user"] = serialize(self.user, UserSerializer())
             assert faux(delay).called_with(
                 self.sentryFunction.external_id,
                 "issue.resolved",
+                self.issue.id,
                 sub_data,
             )
 
@@ -213,13 +202,11 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
                 {"statusDetails": {"inCommit": {"repository": repo.name, "commit": commit.key}}}
             )
             sub_data = {"resolution_type": "in_commit"}
-            sub_data["user"] = serialize(
-                User.objects.get(id=self.user.id), self.user, UserSerializer()
-            )
-            sub_data["issue"] = serialize(Group.objects.get(id=self.issue.id))
+            sub_data["user"] = serialize(self.user, UserSerializer())
             assert faux(delay).called_with(
                 self.sentryFunction.external_id,
                 "issue.resolved",
+                self.issue.id,
                 sub_data,
             )
 
@@ -229,13 +216,11 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
             release = self.create_release(project=self.project)
             self.update_issue({"statusDetails": {"inRelease": release.version}})
             sub_data = {"resolution_type": "in_release"}
-            sub_data["user"] = serialize(
-                User.objects.get(id=self.user.id), self.user, UserSerializer()
-            )
-            sub_data["issue"] = serialize(Group.objects.get(id=self.issue.id))
+            sub_data["user"] = serialize(self.user, UserSerializer())
             assert faux(delay).called_with(
                 self.sentryFunction.external_id,
                 "issue.resolved",
+                self.issue.id,
                 sub_data,
             )
 
@@ -246,13 +231,11 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
 
             self.update_issue({"statusDetails": {"inRelease": "latest"}})
             sub_data = {"resolution_type": "in_release"}
-            sub_data["user"] = serialize(
-                User.objects.get(id=self.user.id), self.user, UserSerializer()
-            )
-            sub_data["issue"] = serialize(Group.objects.get(id=self.issue.id))
+            sub_data["user"] = serialize(self.user, UserSerializer())
             assert faux(delay).called_with(
                 self.sentryFunction.external_id,
                 "issue.resolved",
+                self.issue.id,
                 sub_data,
             )
 
@@ -263,13 +246,11 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
             self.update_issue({"statusDetails": {"inNextRelease": True}})
 
             sub_data = {"resolution_type": "in_next_release"}
-            sub_data["user"] = serialize(
-                User.objects.get(id=self.user.id), self.user, UserSerializer()
-            )
-            sub_data["issue"] = serialize(Group.objects.get(id=self.issue.id))
+            sub_data["user"] = serialize(self.user, UserSerializer())
             assert faux(delay).called_with(
                 self.sentryFunction.external_id,
                 "issue.resolved",
+                self.issue.id,
                 sub_data,
             )
 
@@ -303,10 +284,10 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
                 ]
             )
             sub_data = {"resolution_type": "with_commit"}
-            sub_data["issue"] = serialize(Group.objects.get(id=self.issue.id))
             assert faux(delay).called_with(
                 self.sentryFunction.external_id,
                 "issue.resolved",
+                self.issue.id,
                 sub_data,
             )
 
@@ -315,13 +296,11 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
         with Feature("organizations:sentry-functions"):
             self.update_issue({"status": "ignored"})
             sub_data = {}
-            sub_data["user"] = serialize(
-                User.objects.get(id=self.user.id), self.user, UserSerializer()
-            )
-            sub_data["issue"] = serialize(Group.objects.get(id=self.issue.id))
+            sub_data["user"] = serialize(self.user, UserSerializer())
             assert faux(delay).called_with(
                 self.sentryFunction.external_id,
                 "issue.ignored",
+                self.issue.id,
                 sub_data,
             )
 
@@ -404,11 +383,11 @@ class TestIssueAssignedSentryFunctions(APITestCase):
                 "email": self.assignee.email,
             }
         }
-        sub_data["user"] = serialize(User.objects.get(id=self.user.id), self.user, UserSerializer())
-        sub_data["issue"] = serialize(Group.objects.get(id=self.issue.id))
+        sub_data["user"] = serialize(self.user, UserSerializer())
         assert faux(delay).called_with(
             self.sentryFunction.external_id,
             "issue.assigned",
+            self.issue.id,
             sub_data,
         )
 
@@ -426,11 +405,11 @@ class TestIssueAssignedSentryFunctions(APITestCase):
                 "id": self.assignee.id,
             }
         }
-        sub_data["user"] = serialize(User.objects.get(id=self.user.id), self.user, UserSerializer())
-        sub_data["issue"] = serialize(Group.objects.get(id=self.issue.id))
+        sub_data["user"] = serialize(self.user, UserSerializer())
         assert faux(delay).called_with(
             self.sentryFunction.external_id,
             "issue.assigned",
+            self.issue.id,
             sub_data,
         )
 
@@ -537,11 +516,11 @@ class TestCommentsSentryFunctions(APITestCase):
                 "comment": "hello world",
                 "project_slug": self.project.slug,
             }
-            data["user"] = serialize(User.objects.get(id=self.user.id), self.user, UserSerializer())
-            data["comment"] = serialize(Group.objects.get(id=self.issue.id))
+            data["user"] = serialize(self.user, UserSerializer())
             assert faux(delay).called_with(
                 self.sentryFunction.external_id,
                 "comment.created",
+                self.issue.id,
                 data,
             )
 
@@ -558,11 +537,11 @@ class TestCommentsSentryFunctions(APITestCase):
                 "comment": "goodbye cruel world",
                 "project_slug": self.project.slug,
             }
-            data["user"] = serialize(User.objects.get(id=self.user.id), self.user, UserSerializer())
-            data["comment"] = serialize(Group.objects.get(id=self.issue.id))
+            data["user"] = serialize(self.user, UserSerializer())
             assert faux(delay).called_with(
                 self.sentryFunction.external_id,
                 "comment.updated",
+                self.issue.id,
                 data,
             )
 
@@ -577,10 +556,10 @@ class TestCommentsSentryFunctions(APITestCase):
                 "comment": "hello world",
                 "project_slug": self.project.slug,
             }
-            data["user"] = serialize(User.objects.get(id=self.user.id), self.user, UserSerializer())
-            data["comment"] = serialize(Group.objects.get(id=self.issue.id))
+            data["user"] = serialize(self.user, UserSerializer())
             assert faux(delay).called_with(
                 self.sentryFunction.external_id,
                 "comment.deleted",
+                self.issue.id,
                 data,
             )

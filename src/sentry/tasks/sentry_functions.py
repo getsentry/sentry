@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from sentry.api.serializers import serialize
+from sentry.models import Group
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 from sentry.utils.cloudfunctions import publish_message
@@ -11,6 +13,12 @@ TASK_OPTIONS = {
 }
 
 
-@instrumented_task("sentry.tasks.sentry_functions.send_sentry_function_webhook", **TASK_OPTIONS)
-def send_sentry_function_webhook(sentry_function_id, event, data=None):
+@instrumented_task(
+    "sentry.tasks.sentry_functions.send_sentry_function_webhook", acks_late=True, **TASK_OPTIONS
+)
+def send_sentry_function_webhook(sentry_function_id, event, issue_id, data=None):
+    try:
+        data[event.split(".")[0]] = serialize(Group.objects.get(id=issue_id))
+    except Group.DoesNotExist:
+        pass
     publish_message(sentry_function_id, json.dumps({"data": data, "type": event}).encode())
