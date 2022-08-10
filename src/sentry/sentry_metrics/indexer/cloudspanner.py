@@ -15,10 +15,6 @@ class CloudSpannerIndexer(StringIndexer):
     def __init__(self, instance_id: str, database_id: str) -> None:
         self.instance_id = instance_id
         self.database_id = database_id
-        self.instance = None
-        self.database = None
-
-    def setup(self) -> None:
         spanner_client = spanner.Client()
         self.instance = spanner_client.instance(self.instance_id)
         self.database = self.instance.database(self.database_id)
