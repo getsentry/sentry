@@ -4,7 +4,7 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Union
 
 import sentry_sdk
 from django.utils.functional import cached_property
-from snuba_sdk import AliasedExpression, Column, Function
+from snuba_sdk import Column, Function
 
 from sentry import options
 from sentry.api.event_search import SearchFilter
@@ -50,6 +50,7 @@ class MetricsDatasetConfig(DatasetConfig):
             constants.TEAM_KEY_TRANSACTION_ALIAS: self._resolve_team_key_transaction_alias,
             constants.TITLE_ALIAS: self._resolve_title_alias,
             constants.PROJECT_THRESHOLD_CONFIG_ALIAS: lambda _: self._resolve_project_threshold_config,
+            "transaction": self._resolve_transaction_alias,
         }
 
     def resolve_metric(self, value: str) -> int:
@@ -662,7 +663,7 @@ class MetricsDatasetConfig(DatasetConfig):
     # Field Aliases
     def _resolve_title_alias(self, alias: str) -> SelectType:
         """title == transaction in discover"""
-        return AliasedExpression(self.builder.resolve_column("transaction"), alias)
+        return self._resolve_transaction_alias(alias)
 
     def _resolve_team_key_transaction_alias(self, _: str) -> SelectType:
         if self.builder.dry_run:
@@ -675,6 +676,17 @@ class MetricsDatasetConfig(DatasetConfig):
         if self.builder.dry_run:
             return field_aliases.dry_run_default(self.builder, alias)
         return field_aliases.resolve_project_slug_alias(self.builder, alias)
+
+    def _resolve_transaction_alias(self, alias: str) -> SelectType:
+        return Function(
+            "transform",
+            [
+                Column(f"tags[{self.resolve_value('transaction')}]"),
+                [0],
+                [self.resolve_tag_value("<< unparameterized >>")],
+            ],
+            alias,
+        )
 
     @cached_property
     def _resolve_project_threshold_config(self) -> SelectType:
