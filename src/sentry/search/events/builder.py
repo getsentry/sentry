@@ -2179,6 +2179,8 @@ class MetricsQueryBuilder(QueryBuilder):
                     limitby=self.limitby,
                     granularity=self.granularity,
                 )
+
+                print(query.__dict__)
                 request = Request(
                     dataset=self.dataset.value,
                     app_id="default",
@@ -2402,6 +2404,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                 "meta": [],
             }
         if queries:
+            print(queries)
             results = bulk_snql_query(queries, referrer, use_cache)
         else:
             results = []

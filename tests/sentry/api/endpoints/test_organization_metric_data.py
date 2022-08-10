@@ -439,6 +439,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 "totals": {"sum(sentry.sessions.session)": 5.0},
             },
         }
+        print(response.data)
         for grp in response.data["groups"]:
             prj_id = grp["by"]["project_id"]
             assert grp == expected_output[prj_id]

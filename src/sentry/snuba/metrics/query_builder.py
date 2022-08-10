@@ -110,6 +110,8 @@ def resolve_tags(
                 parameters=input_.parameters
                 and [resolve_tags(use_case_id, org_id, item) for item in input_.parameters],
             )
+        # ToDo support tuples functions
+
     if (
         isinstance(input_, Or)
         and len(input_.conditions) == 2
