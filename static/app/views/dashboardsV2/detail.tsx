@@ -43,7 +43,6 @@ import withProjects from 'sentry/utils/withProjects';
 import {
   cloneDashboard,
   getCurrentPageFilters,
-  hasSavedPageFilters,
   hasUnsavedFilterChanges,
   isWidgetUsingTransactionName,
   resetPageFilters,
@@ -670,10 +669,6 @@ class DashboardDetail extends Component<Props, State> {
             period: DEFAULT_STATS_PERIOD,
           },
         }}
-        skipLoadLastUsed={
-          organization.features.includes('dashboards-top-level-filter') &&
-          hasSavedPageFilters(dashboard)
-        }
       >
         <PageContent>
           <NoProjectMessage organization={organization}>
@@ -776,10 +771,6 @@ class DashboardDetail extends Component<Props, State> {
               period: DEFAULT_STATS_PERIOD,
             },
           }}
-          skipLoadLastUsed={
-            organization.features.includes('dashboards-top-level-filter') &&
-            hasSavedPageFilters(dashboard)
-          }
         >
           <StyledPageContent>
             <NoProjectMessage organization={organization}>
