@@ -32,6 +32,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationError,
     IntegrationFormError,
 )
+from sentry.tasks.integrations import migrate_issues
 from sentry.utils.decorators import classproperty
 from sentry.utils.http import absolute_uri
 
@@ -956,6 +957,14 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         return ResolveSyncAction.from_resolve_unresolve(
             should_resolve=c_to in done_statuses and c_from not in done_statuses,
             should_unresolve=c_from in done_statuses and c_to not in done_statuses,
+        )
+
+    def migrate_issues(self):
+        migrate_issues.apply_async(
+            kwargs={
+                "integration_id": self.model.id,
+                "organization_id": self.organization_id,
+            }
         )
 
 
