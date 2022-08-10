@@ -8,7 +8,7 @@ from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.indexer.base import KeyCollection, KeyResult, KeyResults, StringIndexer
 from sentry.sentry_metrics.indexer.cache import indexer_cache
 from sentry.sentry_metrics.indexer.db import TABLE_MAPPING, IndexerTable
-from sentry.sentry_metrics.indexer.ratelimiters import writes_limiter
+from sentry.sentry_metrics.indexer.ratelimiters import WritesLimitingStringIndexerDecorator
 from sentry.sentry_metrics.indexer.strings import REVERSE_SHARED_STRINGS, SHARED_STRINGS
 from sentry.utils import metrics
 
@@ -35,6 +35,67 @@ class PGStringIndexerV2(StringIndexer):
         query_statement = reduce(or_, conditions)
 
         return self._table(use_case_id).objects.filter(query_statement)
+
+    def bulk_resolve(
+        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
+    ) -> KeyResults:
+        cache_keys = KeyCollection(org_strings)
+        metrics.gauge("sentry_metrics.indexer.lookups_per_batch", value=cache_keys.size)
+        cache_key_strs = cache_keys.as_strings()
+        cache_results = indexer_cache.get_many(cache_key_strs, use_case_id.value)
+
+        hits = [k for k, v in cache_results.items() if v is not None]
+        metrics.incr(
+            _INDEXER_CACHE_METRIC,
+            tags={"cache_hit": "true", "caller": "get_many_ids"},
+            amount=len(hits),
+        )
+        metrics.incr(
+            _INDEXER_CACHE_METRIC,
+            tags={"cache_hit": "false", "caller": "get_many_ids"},
+            amount=len(cache_results) - len(hits),
+        )
+        # used to compare to pre org_id indexer cache fetch metric
+        metrics.incr(
+            _INDEXER_CACHE_FETCH_METRIC,
+            amount=cache_keys.size,
+        )
+
+        cache_key_results = KeyResults()
+        cache_key_results.add_key_results(
+            [KeyResult.from_string(k, v) for k, v in cache_results.items() if v is not None],
+            FetchType.CACHE_HIT,
+        )
+
+        db_read_keys = cache_key_results.get_unmapped_keys(cache_keys)
+
+        if db_read_keys.size == 0:
+            return cache_key_results
+
+        db_read_key_results = KeyResults()
+        raw_read_key_results = [
+            KeyResult(org_id=db_obj.organization_id, string=db_obj.string, id=db_obj.id)
+            for db_obj in self._get_db_records(use_case_id, db_read_keys)
+        ]
+        db_read_key_results.add_key_results(
+            raw_read_key_results,
+            FetchType.DB_READ,
+        )
+
+        metrics.incr(
+            _INDEXER_DB_METRIC,
+            tags={"db_hit": "true"},
+            amount=len(raw_read_key_results),
+        )
+        metrics.incr(
+            _INDEXER_DB_METRIC,
+            tags={"db_hit": "false"},
+            amount=(db_read_keys.size - len(raw_read_key_results)),
+        )
+
+        new_results_to_cache = db_read_key_results.get_mapped_key_strings_to_ints()
+        indexer_cache.set_many(new_results_to_cache, use_case_id.value)
+        return cache_key_results.merge(db_read_key_results)
 
     def bulk_record(
         self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
@@ -70,114 +131,37 @@ class PGStringIndexerV2(StringIndexer):
             e.g. return cache_key_results.merge(db_read_key_results)
         """
 
-        cache_keys = KeyCollection(org_strings)
-        metrics.gauge("sentry_metrics.indexer.lookups_per_batch", value=cache_keys.size)
-        cache_key_strs = cache_keys.as_strings()
-        cache_results = indexer_cache.get_many(cache_key_strs, use_case_id.value)
+        if not org_strings:
+            return KeyResults()
 
-        hits = [k for k, v in cache_results.items() if v is not None]
-        metrics.incr(
-            _INDEXER_CACHE_METRIC,
-            tags={"cache_hit": "true", "caller": "get_many_ids"},
-            amount=len(hits),
-        )
-        metrics.incr(
-            _INDEXER_CACHE_METRIC,
-            tags={"cache_hit": "false", "caller": "get_many_ids"},
-            amount=len(cache_results) - len(hits),
-        )
-        # used to compare to pre org_id indexer cache fetch metric
-        metrics.incr(
-            _INDEXER_CACHE_FETCH_METRIC,
-            amount=cache_keys.size,
-        )
+        db_write_keys = KeyCollection(org_strings)
 
-        cache_key_results = KeyResults()
-        cache_key_results.add_key_results(
-            [KeyResult.from_string(k, v) for k, v in cache_results.items() if v is not None],
-            FetchType.CACHE_HIT,
-        )
+        new_records = []
+        for write_pair in db_write_keys.as_tuples():
+            organization_id, string = write_pair
+            new_records.append(
+                self._table(use_case_id)(organization_id=int(organization_id), string=string)
+            )
 
-        db_read_keys = cache_key_results.get_unmapped_keys(cache_keys)
-
-        if db_read_keys.size == 0:
-            return cache_key_results
-
-        db_read_key_results = KeyResults()
-        db_read_key_results.add_key_results(
-            [
-                KeyResult(org_id=db_obj.organization_id, string=db_obj.string, id=db_obj.id)
-                for db_obj in self._get_db_records(use_case_id, db_read_keys)
-            ],
-            FetchType.DB_READ,
-        )
-        new_results_to_cache = db_read_key_results.get_mapped_key_strings_to_ints()
-        db_write_keys = db_read_key_results.get_unmapped_keys(db_read_keys)
-
-        metrics.incr(
-            _INDEXER_DB_METRIC,
-            tags={"db_hit": "true"},
-            amount=(db_read_keys.size - db_write_keys.size),
-        )
-        metrics.incr(
-            _INDEXER_DB_METRIC,
-            tags={"db_hit": "false"},
-            amount=db_write_keys.size,
-        )
-
-        if db_write_keys.size == 0:
-            indexer_cache.set_many(new_results_to_cache, use_case_id.value)
-            return cache_key_results.merge(db_read_key_results)
-
-        with writes_limiter.check_write_limits(use_case_id, db_write_keys) as writes_limiter_state:
-            # After the DB has successfully committed writes, we exit this
-            # context manager and consume quotas. If the DB crashes we
-            # shouldn't consume quota.
-            filtered_db_write_keys = writes_limiter_state.accepted_keys
-            del db_write_keys
-
-            rate_limited_key_results = KeyResults()
-            for dropped_string in writes_limiter_state.dropped_strings:
-                rate_limited_key_results.add_key_result(
-                    dropped_string.key_result,
-                    fetch_type=dropped_string.fetch_type,
-                    fetch_type_ext=dropped_string.fetch_type_ext,
-                )
-
-            if filtered_db_write_keys.size == 0:
-                indexer_cache.set_many(new_results_to_cache, use_case_id.value)
-                return cache_key_results.merge(db_read_key_results).merge(rate_limited_key_results)
-
-            new_records = []
-            for write_pair in filtered_db_write_keys.as_tuples():
-                organization_id, string = write_pair
-                new_records.append(
-                    self._table(use_case_id)(organization_id=int(organization_id), string=string)
-                )
-
-            with metrics.timer("sentry_metrics.indexer.pg_bulk_create"):
-                # We use `ignore_conflicts=True` here to avoid race conditions where metric indexer
-                # records might have be created between when we queried in `bulk_record` and the
-                # attempt to create the rows down below.
-                self._table(use_case_id).objects.bulk_create(new_records, ignore_conflicts=True)
+        with metrics.timer("sentry_metrics.indexer.pg_bulk_create"):
+            # We use `ignore_conflicts=True` here to avoid race conditions where metric indexer
+            # records might have be created between when we queried in `bulk_record` and the
+            # attempt to create the rows down below.
+            self._table(use_case_id).objects.bulk_create(new_records, ignore_conflicts=True)
 
         db_write_key_results = KeyResults()
         db_write_key_results.add_key_results(
             [
                 KeyResult(org_id=db_obj.organization_id, string=db_obj.string, id=db_obj.id)
-                for db_obj in self._get_db_records(use_case_id, filtered_db_write_keys)
+                for db_obj in self._get_db_records(use_case_id, db_write_keys)
             ],
             fetch_type=FetchType.FIRST_SEEN,
         )
 
-        new_results_to_cache.update(db_write_key_results.get_mapped_key_strings_to_ints())
+        new_results_to_cache = db_write_key_results.get_mapped_key_strings_to_ints()
         indexer_cache.set_many(new_results_to_cache, use_case_id.value)
 
-        return (
-            cache_key_results.merge(db_read_key_results)
-            .merge(db_write_key_results)
-            .merge(rate_limited_key_results)
-        )
+        return db_write_key_results
 
     def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
         """Store a string and return the integer ID generated for it"""
@@ -230,7 +214,30 @@ class StaticStringsIndexerDecorator(StringIndexer):
     """
 
     def __init__(self) -> None:
-        self.indexer = PGStringIndexerV2()
+        self.indexer = WritesLimitingStringIndexerDecorator(PGStringIndexerV2())
+
+    def bulk_resolve(
+        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
+    ) -> KeyResults:
+        static_keys = KeyCollection(org_strings)
+        static_key_results = KeyResults()
+        for org_id, string in static_keys.as_tuples():
+            if string in SHARED_STRINGS:
+                id = SHARED_STRINGS[string]
+                static_key_results.add_key_result(
+                    KeyResult(org_id, string, id), FetchType.HARDCODED
+                )
+
+        org_strings_left = static_key_results.get_unmapped_keys(static_keys)
+
+        if org_strings_left.size == 0:
+            return static_key_results
+
+        indexer_results = self.indexer.bulk_resolve(
+            use_case_id=use_case_id, org_strings=org_strings_left.mapping
+        )
+
+        return static_key_results.merge(indexer_results)
 
     def bulk_record(
         self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]

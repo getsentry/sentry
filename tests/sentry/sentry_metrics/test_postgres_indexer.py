@@ -11,6 +11,7 @@ from sentry.sentry_metrics.indexer.postgres_v2 import (
     PGStringIndexerV2,
     StaticStringsIndexerDecorator,
 )
+from sentry.sentry_metrics.indexer.ratelimiters import WritesLimitingStringIndexerDecorator
 from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
@@ -97,7 +98,7 @@ class StaticStringsIndexerTest(TestCase):
 class PostgresIndexerV2Test(TestCase):
     def setUp(self) -> None:
         self.strings = {"hello", "hey", "hi"}
-        self.indexer = PGStringIndexerV2()
+        self.indexer = WritesLimitingStringIndexerDecorator(PGStringIndexerV2())
         self.org2 = self.create_organization()
         self.use_case_id = UseCaseKey("release-health")
         self.cache_namespace = self.use_case_id.value
@@ -265,7 +266,7 @@ class PostgresIndexerV2Test(TestCase):
         assert indexer_cache.get(key, self.cache_namespace) is None
         assert indexer_cache.get(string.id, self.cache_namespace) is None
 
-        self.indexer._get_db_records(self.use_case_id, collection)
+        self.indexer.indexer._get_db_records(self.use_case_id, collection)
 
         assert indexer_cache.get(string.id, self.cache_namespace) is None
         assert indexer_cache.get(key, self.cache_namespace) is None

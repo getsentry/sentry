@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Any, MutableMapping, Optional, Sequence, Tuple
+from typing import Any, Mapping, MutableMapping, Optional, Sequence, Set, Tuple
 
 from sentry import options
 from sentry.ratelimits.sliding_windows import (
@@ -12,10 +12,19 @@ from sentry.ratelimits.sliding_windows import (
     Timestamp,
 )
 from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
-from sentry.sentry_metrics.indexer.base import FetchType, FetchTypeExt, KeyCollection, KeyResult
+from sentry.sentry_metrics.indexer.base import (
+    FetchType,
+    FetchTypeExt,
+    KeyCollection,
+    KeyResult,
+    KeyResults,
+    StringIndexer,
+)
 from sentry.utils import metrics
 
 OrgId = int
+
+_INDEXER_DB_METRIC = "sentry_metrics.indexer.postgres"
 
 
 def _build_quota_key(use_case_id: UseCaseKey, org_id: Optional[OrgId] = None) -> str:
@@ -180,3 +189,65 @@ class WritesLimiter:
 
 
 writes_limiter = WritesLimiter()
+
+
+class WritesLimitingStringIndexerDecorator(StringIndexer):
+    def __init__(self, indexer: StringIndexer):
+        self.indexer = indexer
+
+    def bulk_resolve(
+        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
+    ) -> KeyResults:
+        return self.indexer.bulk_resolve(use_case_id, org_strings)
+
+    def bulk_record(
+        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
+    ) -> KeyResults:
+        if not org_strings:
+            return KeyResults()
+
+        # we do a double-take on which strings already exist, so we know which
+        # ones to rate limit. hopefully this call does not go directly to
+        # postgres but a memcached first.
+        db_read_keys = KeyCollection(org_strings)
+        db_read_key_results = self.indexer.bulk_resolve(use_case_id, org_strings)
+        db_write_keys = db_read_key_results.get_unmapped_keys(db_read_keys)
+
+        if db_write_keys.size == 0:
+            return db_read_key_results
+
+        with writes_limiter.check_write_limits(use_case_id, db_write_keys) as writes_limiter_state:
+            # After the DB has successfully committed writes, we exit this
+            # context manager and consume quotas. If the DB crashes we
+            # shouldn't consume quota.
+            filtered_db_write_keys = writes_limiter_state.accepted_keys
+            del db_write_keys
+
+            rate_limited_key_results = KeyResults()
+            for dropped_string in writes_limiter_state.dropped_strings:
+                rate_limited_key_results.add_key_result(
+                    dropped_string.key_result,
+                    fetch_type=dropped_string.fetch_type,
+                    fetch_type_ext=dropped_string.fetch_type_ext,
+                )
+
+            if filtered_db_write_keys.size == 0:
+                return db_read_key_results.merge(rate_limited_key_results)
+
+            filtered_org_strings = {}
+            for org_id, string in filtered_db_write_keys.as_tuples():
+                filtered_org_strings.setdefault(org_id, set()).add(string)
+
+            db_write_key_results = self.indexer.bulk_record(use_case_id, filtered_org_strings)
+
+        return db_read_key_results.merge(db_write_key_results).merge(rate_limited_key_results)
+
+    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+        result = self.bulk_record(use_case_id=use_case_id, org_strings={org_id: {string}})
+        return result[org_id][string]
+
+    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+        return self.indexer.resolve(use_case_id, org_id, string)
+
+    def reverse_resolve(self, use_case_id: UseCaseKey, id: int) -> Optional[str]:
+        return self.indexer.reverse_resolve(use_case_id, id)

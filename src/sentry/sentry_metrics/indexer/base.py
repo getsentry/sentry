@@ -198,11 +198,24 @@ class StringIndexer(Service):
     Check `sentry.snuba.metrics` for convenience functions.
     """
 
-    __all__ = ("record", "resolve", "reverse_resolve", "bulk_record")
+    __all__ = ("record", "resolve", "reverse_resolve", "bulk_record", "bulk_resolve")
 
     def bulk_record(
         self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
     ) -> KeyResults:
+        """
+        Store a set of strings and return corresponding integer IDs.
+        """
+        raise NotImplementedError()
+
+    def bulk_resolve(
+        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
+    ) -> KeyResults:
+        """
+        Lookup the integer IDs for a set of strings.
+
+        Returns a partial key collection if entries cannot be found.
+        """
         raise NotImplementedError()
 
     def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
@@ -217,9 +230,6 @@ class StringIndexer(Service):
         """Lookup the integer ID for a string.
 
         Does not affect the lifetime of the entry.
-
-        Callers should not rely on the default use_case_id -- it exists only
-        as a temporary workaround.
 
         Returns None if the entry cannot be found.
         """
