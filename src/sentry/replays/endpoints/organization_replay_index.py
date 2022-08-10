@@ -4,7 +4,8 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
 from sentry.models.organization import Organization
-from sentry.replays.utils import proxy_replays_service
+from sentry.replays.post_process import process_raw_response
+from sentry.replays.query import query_replays_collection
 
 
 class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
@@ -17,10 +18,25 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
         try:
             filter_params = self.get_filter_params(request, organization)
         except NoProjects:
-            return Response([])
+            return Response({"data": []}, status=200)
 
         for key, value in request.query_params.items():
             if key not in filter_params:
                 filter_params[key] = value
 
-        return proxy_replays_service("GET", "/api/v1/replays/", filter_params)
+        snuba_response = query_replays_collection(
+            project_ids=filter_params["project_id"],
+            start=filter_params["start"],
+            end=filter_params["end"],
+            environment=filter_params.get("environment"),
+            sort=filter_params.get("sort"),
+            limit=filter_params.get("limit"),
+            offset=filter_params.get("offset"),
+        )
+
+        response = process_raw_response(
+            snuba_response,
+            fields=request.query_params.getlist("field"),
+        )
+
+        return Response({"data": response}, status=200)

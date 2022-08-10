@@ -1,0 +1,74 @@
+#!/usr/bin/env python
+from sentry.runner import configure
+
+configure()
+
+import datetime
+import pathlib
+
+import click
+import requests
+from django.conf import settings
+
+from sentry.models import File, Organization, Project
+from sentry.replays.models import ReplayRecordingSegment
+from sentry.replays.testutils import mock_replay
+
+
+def store_replay(replay):
+    response = requests.post(settings.SENTRY_SNUBA + "/tests/replays/insert", json=[replay])
+    assert response.status_code == 200
+
+
+def create_recording_segment(replay_id, project_id, filename, segment_id):
+    with open(filename, "rb") as f:
+        file = File.objects.create(name=filename, type="application/octet-stream")
+        file.putfile(f)
+
+    ReplayRecordingSegment.objects.create(
+        replay_id=replay_id.replace("-", ""),
+        project_id=project_id,
+        segment_id=segment_id,
+        file_id=file.id,
+    )
+
+
+def make_filename(filename: str) -> str:
+    parent_dir = pathlib.Path(__file__).parent.resolve()
+    return f"{parent_dir}/rrweb-output/{filename}"
+
+
+def main():
+    project_name = "Replay Test"
+
+    if settings.SENTRY_SINGLE_ORGANIZATION:
+        org = Organization.get_default()
+        click.echo(f"Mocking org {org.name}")
+    else:
+        click.echo("Mocking org {}".format("Default"))
+        org, _ = Organization.objects.get_or_create(slug="default")
+
+    click.echo(f"  > Mocking project {project_name}")
+    project, _ = Project.objects.get_or_create(
+        name=project_name,
+        defaults={
+            "organization": org,
+            "flags": Project.flags.has_releases,
+        },
+    )
+
+    replay_id = "44c586f7-bd12-4c1b-b609-189344a19e92"
+    seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+    seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+
+    click.echo("Creating Clickhouse entries...")
+    store_replay(mock_replay(seq1_timestamp, project.id, replay_id, segment_id=0))
+    store_replay(mock_replay(seq2_timestamp, project.id, replay_id, segment_id=1))
+
+    click.echo("Creating Postgres entries...")
+    create_recording_segment(replay_id, project.id, make_filename("rrweb-1658770770892.json"), 0)
+    create_recording_segment(replay_id, project.id, make_filename("rrweb-1658770772903.json"), 1)
+
+
+if __name__ == "__main__":
+    main()

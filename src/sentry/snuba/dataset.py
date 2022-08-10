@@ -12,6 +12,7 @@ class Dataset(Enum):
     # Actually Release Health
     Metrics = "metrics"
     PerformanceMetrics = "generic_metrics"
+    Replays = "replays"
 
 
 @unique
