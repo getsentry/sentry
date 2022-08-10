@@ -7,10 +7,7 @@ from sentry.sentry_metrics.indexer.base import FetchType, FetchTypeExt, KeyColle
 from sentry.sentry_metrics.indexer.cache import indexer_cache
 from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer, StringIndexer
 from sentry.sentry_metrics.indexer.postgres import PGStringIndexer
-from sentry.sentry_metrics.indexer.postgres_v2 import (
-    PGStringIndexerV2,
-    StaticStringsIndexerDecorator,
-)
+from sentry.sentry_metrics.indexer.postgres_v2 import PGStringIndexerV2, PostgresIndexer
 from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
@@ -55,7 +52,7 @@ class PostgresIndexerTest(TestCase):
 
 class StaticStringsIndexerTest(TestCase):
     def setUp(self) -> None:
-        self.indexer = StaticStringsIndexerDecorator()
+        self.indexer = PostgresIndexer()
         self.use_case_id = UseCaseKey("release-health")
 
     def test_static_strings_only(self) -> None:
