@@ -30,6 +30,15 @@ export function addMetricsDataMock(settings?: {
       },
     },
   });
+
+  MockApiClient.addMockResponse({
+    method: 'GET',
+    url: `/organizations/org-slug/events/`,
+    body: {
+      data: [{}],
+      meta: {},
+    },
+  });
 }
 
 const WrappedComponent = ({data, withStaticFilters = true}) => {

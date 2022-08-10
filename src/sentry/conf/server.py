@@ -667,6 +667,7 @@ CELERY_QUEUES = [
     Queue("update", routing_key="update"),
     Queue("profiles.process", routing_key="profiles.process"),
     Queue("release_health.duplex", routing_key="release_health.duplex"),
+    Queue("get_suspect_resolutions", routing_key="get_suspect_resolutions"),
 ]
 
 for queue in CELERY_QUEUES:
@@ -943,8 +944,6 @@ SENTRY_FEATURES = {
     "auth:register": True,
     # Workflow 2.0 Alpha Functionality for sentry users only
     "organizations:active-release-monitor-alpha": False,
-    # Workflow 2.0 Experimental ReleaseMembers who opt-in to get notified as a release committer
-    "organizations:active-release-notification-opt-in": False,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Use metrics as the dataset for crash free metric alerts
@@ -1007,8 +1006,6 @@ SENTRY_FEATURES = {
     "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
-    # Enable having the issue ID in the breadcrumbs on Issue Details
-    "organizations:issue-id-breadcrumbs": False,
     # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
     # sentry at the moment.
     "organizations:issue-search-use-cdc-primary": False,
@@ -1146,8 +1143,10 @@ SENTRY_FEATURES = {
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
-    # Enable the server-side sampling feature (frontend, backend, relay)
+    # Enable the server-side sampling feature (backend + relay)
     "organizations:server-side-sampling": False,
+    # Enable the server-side sampling feature (frontend)
+    "organizations:server-side-sampling-ui": False,
     # Enable the mobile screenshots feature
     "organizations:mobile-screenshots": False,
     # Enable the release details performance section
@@ -1181,6 +1180,8 @@ SENTRY_FEATURES = {
     "projects:rate-limits": True,
     # Enable functionality to trigger service hooks upon event ingestion.
     "projects:servicehooks": False,
+    # Enable suspect resolutions feature
+    "projects:suspect-resolutions": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
     "projects:kafka-ingest": False,
     # Workflow 2.0 Auto associate commits to commit sha release

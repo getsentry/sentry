@@ -165,18 +165,7 @@ class GetSentToReleaseMembersTest(TestCase):
     def test_default_committer(self, spy_get_release_committers):
         event = self.store_event("empty.lol")
         event.group = self.group
-        with self.feature("organizations:active-release-notification-opt-in"):
-            assert self.get_send_to_release_members(event) == {ExternalProviders.EMAIL: {self.user}}
-            assert spy_get_release_committers.call_count == 1
-
-    @mock.patch(
-        "sentry.notifications.utils.participants.get_release_committers",
-        wraps=get_release_committers,
-    )
-    def test_flag_off_should_no_release_members(self, spy_get_release_committers):
-        event = self.store_event("empty.lol")
-        event.group = self.group
-        assert not self.get_send_to_release_members(event)
+        assert self.get_send_to_release_members(event) == {ExternalProviders.EMAIL: {self.user}}
         assert spy_get_release_committers.call_count == 1
 
 

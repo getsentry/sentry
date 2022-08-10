@@ -46,4 +46,5 @@ class MSTeamsMessageBuilder(AbstractMessageBuilder):
             "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
             "version": "1.2",
             "actions": actions or [],
+            "msteams": {"width": "Full"},
         }

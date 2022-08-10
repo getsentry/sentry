@@ -183,6 +183,8 @@ useRecommendedSdkUpgrades.mockImplementation(() => ({
     },
   ],
   incompatibleProjects: [],
+  isProjectIncompatible: true,
+  affectedProjects: [mockedProjects[1]],
   fetching: false,
 }));
 
@@ -194,7 +196,7 @@ export function getMockData({
     ...initializeOrg(),
     organization: {
       ...initializeOrg().organization,
-      features: ['server-side-sampling'],
+      features: ['server-side-sampling', 'server-side-sampling-ui'],
       access: access ?? initializeOrg().organization.access,
       projects,
     },

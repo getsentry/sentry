@@ -166,11 +166,13 @@ stack.function:mylibrary_* +app`}
     label: t('Automatically Update Grouping'),
     saveOnBlur: false,
     help: t(
-      'When enabled projects will automatically update to the latest grouping algorithm.'
+      'When enabled projects will in the future automatically update to the latest grouping algorithm. Right now this setting does nothing.'
     ),
     saveMessage: ({value}) =>
       value
-        ? t('Enabling automatic upgrading will take effect on the next incoming event.')
+        ? t(
+            'Enabling automatic upgrading will take effect on the next incoming event once auto updating has been rolled out.'
+          )
         : t(
             'Disabling auto updates will cause you to no longer receive improvements to the grouping algorithm.'
           ),
