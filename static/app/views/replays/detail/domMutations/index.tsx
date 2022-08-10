@@ -13,11 +13,13 @@ import type ReplayReader from 'sentry/utils/replays/replayReader';
 
 type Props = {
   replay: ReplayReader;
+  width: number;
 };
 
-function DomMutations({replay}: Props) {
+function DomMutations({replay, width}: Props) {
   const {isLoading, actions} = useExtractedCrumbHtml({replay});
   const startTimestampMs = replay.getReplay().startedAt.getTime();
+  const isWideView = width > 768;
 
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
@@ -35,7 +37,7 @@ function DomMutations({replay}: Props) {
           onMouseLeave={() => handleMouseLeave(mutation.crumb)}
         >
           <StepConnector />
-          <MutationItemContainer>
+          <MutationItemContainer isWideView={isWideView}>
             <div>
               <MutationMetadata>
                 <IconWrapper color={mutation.crumb.color}>
@@ -89,13 +91,9 @@ const MutationListItem = styled('li')`
   }
 `;
 
-const MutationItemContainer = styled('div')`
+const MutationItemContainer = styled('div')<{isWideView: boolean}>`
   display: grid;
-  grid-template-columns: 1fr;
-
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: 280px 1fr;
-  }
+  grid-template-columns: ${p => (p.isWideView ? '280px 1fr' : '1fr')};
 `;
 
 const MutationMetadata = styled('div')`

@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -8,6 +8,7 @@ import space from 'sentry/styles/space';
 import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
 import {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
 import useUrlParams from 'sentry/utils/replays/hooks/useUrlParams';
+import useWidth from 'sentry/utils/replays/hooks/useWidth';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import FocusArea from 'sentry/views/replays/detail/focusArea';
 import FocusTabs from 'sentry/views/replays/detail/focusTabs';
@@ -37,6 +38,8 @@ function ReplayLayout({
   showVideo = true,
 }: Props) {
   const {ref: fullscreenRef, toggle: toggleFullscreen} = useFullscreen();
+  const focusAreaRef = useRef<HTMLDivElement>(null);
+  const focusAreaWidth = useWidth(focusAreaRef);
 
   const timeline = showTimeline ? (
     <ErrorBoundary mini>
@@ -60,8 +63,8 @@ function ReplayLayout({
 
   const content = (
     <ErrorBoundary mini>
-      <FluidPanel title={<FocusTabs />}>
-        <FocusArea />
+      <FluidPanel title={<FocusTabs />} bodyRef={focusAreaRef}>
+        <FocusArea width={focusAreaWidth} />
       </FluidPanel>
     </ErrorBoundary>
   );

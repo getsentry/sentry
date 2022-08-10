@@ -16,7 +16,9 @@ import MemoryChart from 'sentry/views/replays/detail/memoryChart';
 import NetworkList from 'sentry/views/replays/detail/network';
 import Trace from 'sentry/views/replays/detail/trace';
 
-type Props = {};
+type Props = {
+  width: number;
+};
 
 function getBreadcrumbsByCategory(breadcrumbs: Crumb[], categories: string[]) {
   return breadcrumbs
@@ -24,7 +26,7 @@ function getBreadcrumbsByCategory(breadcrumbs: Crumb[], categories: string[]) {
     .filter(breadcrumb => categories.includes(breadcrumb.category || ''));
 }
 
-function FocusArea({}: Props) {
+function FocusArea({width = 0}: Props) {
   const {getActiveTab} = useActiveReplayTab();
   const {currentTime, currentHoverTime, replay, setCurrentTime, setCurrentHoverTime} =
     useReplayContext();
@@ -87,7 +89,7 @@ function FocusArea({}: Props) {
         <IssueList replayId={replayRecord.replayId} projectId={replayRecord.projectId} />
       );
     case 'dom':
-      return <DomMutations replay={replay} />;
+      return <DomMutations width={width} replay={replay} />;
     case 'memory':
       return (
         <MemoryChart
