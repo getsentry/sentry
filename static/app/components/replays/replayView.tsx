@@ -11,12 +11,13 @@ import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 type Props = {
   toggleFullscreen: () => void;
+  showAddressBar?: boolean;
 };
 
-function ReplayView({toggleFullscreen}: Props) {
+function ReplayView({toggleFullscreen, showAddressBar = true}: Props) {
   return (
     <Fragment>
-      <ReplayCurrentUrl />
+      {showAddressBar && <ReplayCurrentUrl />}
       <PlayerContainer>
         <Panel>
           <ReplayPlayer />
