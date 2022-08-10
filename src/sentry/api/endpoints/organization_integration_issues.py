@@ -6,6 +6,8 @@ from sentry.integrations.mixins import IssueSyncMixin
 
 
 class OrganizationIntegrationIssuesEndpoint(OrganizationIntegrationBaseEndpoint):
+    private = True
+
     def put(self, request: Request, organization, integration_id) -> Response:
         """
         Migrate plugin linked issues to integration linked issues
