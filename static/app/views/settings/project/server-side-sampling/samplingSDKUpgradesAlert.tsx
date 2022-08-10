@@ -8,44 +8,33 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {RecommendedSdkUpgrade, SamplingRule} from 'sentry/types/sampling';
+import {RecommendedSdkUpgrade} from 'sentry/types/sampling';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 import {
   RecommendedStepsModal,
   RecommendedStepsModalProps,
 } from './modals/recommendedStepsModal';
-import {isUniformRule} from './utils';
 
 type Props = Pick<RecommendedStepsModalProps, 'projectId' | 'onReadDocs'> & {
   organization: Organization;
   recommendedSdkUpgrades: RecommendedSdkUpgrade[];
-  rules: SamplingRule[];
-  showLinkToTheModal?: boolean;
 };
 
 export function SamplingSDKUpgradesAlert({
   organization,
   projectId,
   recommendedSdkUpgrades,
-  rules,
   onReadDocs,
-  showLinkToTheModal = true,
 }: Props) {
   useEffect(() => {
-    if (recommendedSdkUpgrades.length === 0) {
-      return;
+    if (recommendedSdkUpgrades.length > 0) {
+      trackAdvancedAnalyticsEvent('sampling.sdk.updgrades.alert', {
+        organization,
+        project_id: projectId,
+      });
     }
-
-    trackAdvancedAnalyticsEvent('sampling.sdk.updgrades.alert', {
-      organization,
-      project_id: projectId,
-    });
   }, [recommendedSdkUpgrades.length, organization, projectId]);
-
-  if (recommendedSdkUpgrades.length === 0) {
-    return null;
-  }
 
   function handleOpenRecommendedSteps() {
     openModal(modalProps => (
@@ -59,7 +48,9 @@ export function SamplingSDKUpgradesAlert({
     ));
   }
 
-  const uniformRule = rules.find(isUniformRule);
+  if (recommendedSdkUpgrades.length === 0) {
+    return null;
+  }
 
   return (
     <Alert
@@ -67,11 +58,9 @@ export function SamplingSDKUpgradesAlert({
       type="info"
       showIcon
       trailingItems={
-        showLinkToTheModal && uniformRule ? (
-          <Button onClick={handleOpenRecommendedSteps} priority="link" borderless>
-            {t('Learn More')}
-          </Button>
-        ) : undefined
+        <Button onClick={handleOpenRecommendedSteps} priority="link" borderless>
+          {t('Learn More')}
+        </Button>
       }
     >
       {t(

@@ -9,12 +9,10 @@ import {
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
-import useUrlParam from 'sentry/utils/replays/hooks/useUrlParams';
+import useReplayLayout from 'sentry/utils/replays/hooks/useReplayLayout';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 import Layout from 'sentry/views/replays/detail/layout';
 import Page from 'sentry/views/replays/detail/page';
-
-const LAYOUT_NAMES = ['topbar', 'sidebar_right', 'sidebar_left'];
 
 function ReplayDetails() {
   const {
@@ -71,7 +69,7 @@ function ReplayDetails() {
 }
 
 function LoadedDetails({orgId}: {orgId: string}) {
-  const {getParamValue} = useUrlParam('l_page', 'topbar');
+  const {getLayout} = useReplayLayout();
   const {replay} = useReplayContext();
   const durationMs = replay?.getDurationMs();
 
@@ -82,12 +80,7 @@ function LoadedDetails({orgId}: {orgId: string}) {
       durationMs={durationMs}
       replayRecord={replay?.getReplay()}
     >
-      <Layout
-        layout={
-          // TODO(replay): If we end up keeping this, we'll fix up the typing
-          LAYOUT_NAMES.includes(getParamValue()) ? (getParamValue() as any) : 'topbar'
-        }
-      />
+      <Layout layout={getLayout()} />
     </Page>
   );
 }

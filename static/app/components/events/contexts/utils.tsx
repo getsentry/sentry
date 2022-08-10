@@ -1,11 +1,14 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
+import ContextData from 'sentry/components/contextData';
 import {t} from 'sentry/locale';
 import plugins from 'sentry/plugins';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
+import {Event, KeyValueListData} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 const CONTEXT_TYPES = {
@@ -101,6 +104,84 @@ export function getFullLanguageDescription(locale: string) {
   } catch {
     return locale;
   }
+}
+
+export function geKnownData<Data, DataType>({
+  data,
+  knownDataTypes,
+  meta,
+  onGetKnownDataDetails,
+}: {
+  data: Data;
+  knownDataTypes: string[];
+  onGetKnownDataDetails: (props: {data: Data; type: DataType}) =>
+    | {
+        subject: string;
+        value?: React.ReactNode;
+      }
+    | undefined;
+  meta?: Record<any, any>;
+}): KeyValueListData {
+  const filteredTypes = knownDataTypes.filter(knownDataType => {
+    if (
+      typeof data[knownDataType] !== 'number' &&
+      typeof data[knownDataType] !== 'boolean' &&
+      !data[knownDataType]
+    ) {
+      return !!meta?.[knownDataType];
+    }
+    return true;
+  });
+
+  return filteredTypes
+    .map(type => {
+      const knownDataDetails = onGetKnownDataDetails({
+        data,
+        type: type as unknown as DataType,
+      });
+
+      if (!knownDataDetails) {
+        return null;
+      }
+
+      return {
+        key: type,
+        ...knownDataDetails,
+        value: (
+          <ContextData
+            data={knownDataDetails.value}
+            meta={meta?.[type]}
+            withAnnotatedText
+          />
+        ),
+      };
+    })
+    .filter(defined);
+}
+
+export function getUnknownData({
+  allData,
+  knownKeys,
+  meta,
+}: {
+  allData: Record<string, any>;
+  knownKeys: string[];
+  meta?: NonNullable<Event['_meta']>[keyof Event['_meta']];
+}): KeyValueListData {
+  return Object.entries(allData)
+    .filter(
+      ([key]) =>
+        key !== 'type' &&
+        key !== 'title' &&
+        !knownKeys.includes(key) &&
+        (typeof allData[key] !== 'number' && !allData[key] ? !!meta?.[key]?.[''] : true)
+    )
+    .map(([key, value]) => ({
+      key,
+      value,
+      subject: startCase(key),
+      meta: meta?.[key]?.[''],
+    }));
 }
 
 const RelativeTime = styled('span')`

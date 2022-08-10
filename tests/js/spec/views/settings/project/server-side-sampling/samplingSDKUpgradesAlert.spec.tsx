@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import GlobalModal from 'sentry/components/globalModal';
 import {SamplingSDKUpgradesAlert} from 'sentry/views/settings/project/server-side-sampling/samplingSDKUpgradesAlert';
 
-import {getMockData, mockedProjects, recommendedSdkUpgrades, uniformRule} from './utils';
+import {getMockData, mockedProjects, recommendedSdkUpgrades} from './utils';
 
 describe('Server-Side Sampling - Sdk Upgrades Alert', function () {
   it('does not render content', function () {
@@ -16,9 +16,7 @@ describe('Server-Side Sampling - Sdk Upgrades Alert', function () {
         organization={organization}
         projectId={project.id}
         onReadDocs={jest.fn()}
-        rules={[uniformRule]}
         recommendedSdkUpgrades={[]}
-        showLinkToTheModal
       />
     );
 
@@ -37,9 +35,7 @@ describe('Server-Side Sampling - Sdk Upgrades Alert', function () {
           organization={organization}
           projectId={project.id}
           onReadDocs={jest.fn()}
-          rules={[uniformRule]}
           recommendedSdkUpgrades={recommendedSdkUpgrades}
-          showLinkToTheModal
         />
       </Fragment>
     );
