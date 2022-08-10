@@ -38,19 +38,19 @@ class ReleaseActivitySerializerTest(TestCase):
                 "id": acts[0].id,
                 "type": ReleaseActivityType.CREATED.name,
                 "data": {},
-                "date_added": now,
+                "dateAdded": now,
             },
             {
                 "id": acts[1].id,
                 "type": ReleaseActivityType.DEPLOYED.name,
                 "data": {"environment": str(self.environment.name)},
-                "date_added": now,
+                "dateAdded": now,
             },
             {
                 "id": acts[2].id,
                 "type": ReleaseActivityType.FINISHED.name,
                 "data": {},
-                "date_added": now,
+                "dateAdded": now,
             },
         ]
 
@@ -67,7 +67,7 @@ class ReleaseActivitySerializerTest(TestCase):
             "id": issue_act.id,
             "type": ReleaseActivityType(issue_act.type).name,
             "data": {"group_id": 1111, "group": None},
-            "date_added": now,
+            "dateAdded": now,
         }
 
     def test_resolve_group_id(self):
@@ -86,7 +86,7 @@ class ReleaseActivitySerializerTest(TestCase):
             "id": issue_act.id,
             "type": ReleaseActivityType(issue_act.type).name,
             "data": {"group_id": self.group.id, "group": serialized_group},
-            "date_added": now,
+            "dateAdded": now,
         }
 
 

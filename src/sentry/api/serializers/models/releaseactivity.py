@@ -12,7 +12,7 @@ class ReleaseActivityResponse(TypedDict):
     id: int
     type: str
     data: Mapping[str, JSONData]
-    date_added: datetime
+    dateAdded: datetime
 
 
 @register(ReleaseActivity)
@@ -46,5 +46,5 @@ class ReleaseActivitySerializer(Serializer):  # type: ignore
             "id": obj.id,
             "type": str(ReleaseActivityType(obj.type).name),
             "data": attrs,
-            "date_added": obj.date_added,
+            "dateAdded": obj.date_added,
         }
