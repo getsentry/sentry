@@ -43,15 +43,14 @@ class ReleaseSummaryTestCase(ActivityTestCase):
         self.commit2 = self.another_commit(1, "b", self.user2, repository)
 
     def test_simple(self):
-        with self.feature("organizations:active-release-notification-opt-in"):
-            release_summary = ReleaseSummaryActivityNotification(
-                Activity(
-                    project=self.project,
-                    user=self.user1,
-                    type=ActivityType.DEPLOY.value,
-                    data={"version": self.release.version, "deploy_id": self.deploy.id},
-                )
+        release_summary = ReleaseSummaryActivityNotification(
+            Activity(
+                project=self.project,
+                user=self.user1,
+                type=ActivityType.DEPLOY.value,
+                data={"version": self.release.version, "deploy_id": self.deploy.id},
             )
+        )
 
         # user1 is included because they committed
         participants = release_summary.get_participants_with_group_subscription_reason()[
