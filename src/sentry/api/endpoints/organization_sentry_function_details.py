@@ -41,7 +41,9 @@ class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
         data = serializer.validated_data
         function.update(**data)
 
-        update_function(function.code, function.external_id, data.get("overview", None))
+        update_function(
+            function.code, function.external_id, data.get("overview", None), data["env_variables"]
+        )
 
         return Response(serialize(function), status=201)
 
