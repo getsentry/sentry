@@ -3,10 +3,10 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.models import Deploy, Group, GroupRelease, GroupStatus
-from sentry.suspect_resolutions.resolved_in_active_release import (
+from sentry.testutils import TestCase
+from sentry.utils.suspect_resolutions.resolved_in_active_release import (
     is_resolved_issue_within_active_release,
 )
-from sentry.testutils import TestCase
 
 
 class ResolvedInActiveReleaseTest(TestCase):
