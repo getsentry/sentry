@@ -57,8 +57,8 @@ export function formatTime(ms: number, showMs?: boolean): string {
   }
 
   if (showMs) {
-    const milliSeconds = Math.floor(ms % SECOND);
-    formattedTime = `${formattedTime}.${padZero(milliSeconds, 3)}`;
+    const milliseconds = Math.floor(ms % SECOND);
+    formattedTime = `${formattedTime}.${padZero(milliseconds, 3)}`;
   }
 
   return formattedTime;
