@@ -149,7 +149,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
         </Item>
         <Item {...columnHandlers} numeric>
           <UnstyledButton onClick={() => handleClick(networkStartTimestamp)}>
-            {showPlayerTime(networkStartTimestamp, startTimestampMs)}
+            {showPlayerTime(networkStartTimestamp, startTimestampMs, true)}
           </UnstyledButton>
         </Item>
       </Fragment>
