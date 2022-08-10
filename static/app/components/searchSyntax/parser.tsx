@@ -1035,10 +1035,10 @@ const getAggregateInvalidArgumentMessage = (
   }
 
   if (invalidArgs.length === 1) {
-    return `'${keyName}' does not take '${invalidArgs[0]}' as an argument.`;
+    return `'${keyName}' is not expecting '${invalidArgs[0]}' as an argument.`;
   }
 
   const quotedArgs = invalidArgs.map(arg => `'${arg}'`);
 
-  return `${keyName}' does not take ${quotedArgs.join(', ')} as arguments.`;
+  return `${keyName}' is not expecting ${quotedArgs.join(', ')} as arguments.`;
 };
