@@ -3,9 +3,10 @@ import styled from '@emotion/styled';
 
 import {PanelItem} from 'sentry/components/panels';
 import {IconInput} from 'sentry/icons';
+import space from 'sentry/styles/space';
 import {Organization, SentryFunction} from 'sentry/types';
 
-import SentryFunctionRowButtons from './sentryFunctionRowButtons';
+import ActionButtons from '../sentryFunctionRow/actionButtons';
 
 type Props = {
   onRemoveFunction: (org: Organization, sentryFn: SentryFunction) => void;
@@ -19,7 +20,7 @@ export default function SentryFunctionRow(props: Props) {
   return (
     <SentryFunctionHolder>
       <StyledFlex>
-        <StyledIconInput />
+        <IconInput size="xl" />
         <SentryFunctionBox>
           <SentryFunctionName>
             <Link
@@ -30,10 +31,10 @@ export default function SentryFunctionRow(props: Props) {
           </SentryFunctionName>
         </SentryFunctionBox>
         <Box>
-          <SentryFunctionRowButtons
+          <ActionButtons
             org={organization}
             sentryFn={sentryFunction}
-            onClickRemove={onRemoveFunction}
+            onDelete={onRemoveFunction}
           />
         </Box>
       </StyledFlex>
@@ -49,23 +50,17 @@ const Box = styled('div')``;
 
 const SentryFunctionHolder = styled(PanelItem)`
   flex-direction: column;
-  padding: 5px;
+  padding: ${space(0.5)};
 `;
 
 const StyledFlex = styled(Flex)`
   justify-content: center;
-  padding: 10px;
+  padding: ${space(1)};
 `;
 
 const SentryFunctionBox = styled('div')`
-  padding-left: 15px;
-  padding-right: 15px;
+  padding: 0 15px;
   flex: 1;
-`;
-
-const StyledIconInput = styled(IconInput)`
-  height: 36px;
-  width: 36px;
 `;
 
 const SentryFunctionName = styled('div')`
