@@ -10,9 +10,18 @@ type SetRootNode = {
   type: 'set selected root';
 };
 
-type FlamegraphProfilesAction = SetProfilesThreadId | SetRootNode;
+type SetHighlightFrame = {
+  payload: {
+    name: string;
+    package: string;
+  } | null;
+  type: 'set highlight frame';
+};
+
+type FlamegraphProfilesAction = SetHighlightFrame | SetProfilesThreadId | SetRootNode;
 
 export type FlamegraphProfiles = {
+  highlightFrame: {name: string; package: string} | null;
   selectedRoot: FlamegraphFrame | null;
   threadId: number | null;
 };
@@ -22,6 +31,12 @@ export function flamegraphProfilesReducer(
   action: FlamegraphProfilesAction
 ): FlamegraphProfiles {
   switch (action.type) {
+    case 'set highlight frame': {
+      return {
+        ...state,
+        highlightFrame: action.payload,
+      };
+    }
     case 'set selected root': {
       return {...state, selectedRoot: action.payload};
     }

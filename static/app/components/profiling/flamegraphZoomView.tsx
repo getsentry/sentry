@@ -44,7 +44,6 @@ function isHighlightingAllOccurences(
     selectedNodes.includes(node)
   );
 }
-
 interface FlamegraphZoomViewProps {
   canvasBounds: Rect;
   canvasPoolManager: CanvasPoolManager;
@@ -715,19 +714,11 @@ function FlamegraphZoomView({
       return;
     }
 
-    const matches: FlamegraphFrame[] = [];
-
-    for (let i = 0; i < flamegraph.frames.length; i++) {
-      if (
-        flamegraph.frames[i].frame.name ===
-        hoveredNodeOnContextMenuOpen.current.node.frame.name
-      ) {
-        matches.push(flamegraph.frames[i]);
-      }
-    }
-
     setHighlightingAllOccurences(true);
-    canvasPoolManager.dispatch('highlight frame', [matches, 'selected']);
+    canvasPoolManager.dispatch('highlight frame', [
+      flamegraph.findAllMatchingFrames(hoveredNodeOnContextMenuOpen.current),
+      'selected',
+    ]);
   }, [canvasPoolManager, flamegraph, scheduler]);
 
   return (

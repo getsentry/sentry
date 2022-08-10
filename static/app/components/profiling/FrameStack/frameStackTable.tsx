@@ -111,7 +111,6 @@ export function FrameStackTable({
     useState<VirtualizedTreeNode<FlamegraphFrame> | null>(null);
 
   const contextMenu = useContextMenu({container: scrollContainerRef});
-
   const handleZoomIntoFrameClick = useCallback(() => {
     if (!clickedContextMenuNode) {
       return;
@@ -129,17 +128,10 @@ export function FrameStackTable({
       return;
     }
 
-    const matches: FlamegraphFrame[] = [];
-
-    for (let i = 0; i < flamegraph.frames.length; i++) {
-      if (flamegraph.frames[i].frame.key === clickedContextMenuNode.node.frame.key) {
-        matches.push(flamegraph.frames[i]);
-      }
-    }
-
-    if (matches.length > 0) {
-      canvasPoolManager.dispatch('highlight frame', [matches, 'selected']);
-    }
+    canvasPoolManager.dispatch('highlight frame', [
+      flamegraph.findAllMatchingFrames(clickedContextMenuNode.node),
+      'selected',
+    ]);
   }, [canvasPoolManager, clickedContextMenuNode, flamegraph]);
 
   const renderRow: UseVirtualizedListProps<FlamegraphFrame>['renderRow'] = useCallback(

@@ -243,6 +243,21 @@ export class Flamegraph {
     return frames;
   }
 
+  findAllMatchingFrames(frame: FlamegraphFrame): FlamegraphFrame[] {
+    const matches: FlamegraphFrame[] = [];
+
+    for (let i = 0; i < this.frames.length; i++) {
+      if (
+        this.frames[i].frame.name === frame.node.frame.name &&
+        this.frames[i].frame.image === frame.node.frame.image
+      ) {
+        matches.push(this.frames[i]);
+      }
+    }
+
+    return matches;
+  }
+
   setConfigSpace(configSpace: Rect): Flamegraph {
     this.configSpace = configSpace;
     return this;

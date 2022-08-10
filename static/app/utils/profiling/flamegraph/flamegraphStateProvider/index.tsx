@@ -3,6 +3,8 @@ import {browserHistory} from 'react-router';
 import {Query} from 'history';
 
 import {DeepPartial} from 'sentry/types/utils';
+import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {makeCombinedReducers} from 'sentry/utils/useCombinedReducer';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -23,9 +25,43 @@ import {
   FlamegraphSorting,
   FlamegraphViewOptions,
 } from './flamegraphPreferences';
-import {flamegraphProfilesReducer} from './flamegraphProfiles';
+import {FlamegraphProfiles, flamegraphProfilesReducer} from './flamegraphProfiles';
 import {flamegraphSearchReducer} from './flamegraphSearch';
 import {flamegraphZoomPositionReducer} from './flamegraphZoomPosition';
+
+type FlamegraphCandidate = {
+  score: number;
+  threadId: number | null;
+};
+
+// Compute the total weight of all instances of the frame in the flamegraph.
+function scoreFlamegraph(
+  flamegraph: Flamegraph,
+  highlightFrame: FlamegraphProfiles['highlightFrame']
+): number {
+  if (!highlightFrame) {
+    return 0;
+  }
+
+  let score = 0;
+
+  const frames: FlamegraphFrame[] = [...flamegraph.root.children];
+  while (frames.length > 0) {
+    const frame = frames.pop()!;
+    if (
+      frame.frame.name === highlightFrame.name &&
+      frame.frame.image === highlightFrame.package
+    ) {
+      score += frame.node.totalWeight;
+    }
+
+    for (let i = 0; i < frame.children.length; i++) {
+      frames.push(frame.children[i]);
+    }
+  }
+
+  return score;
+}
 
 // Intersect the types so we can properly guard
 type PossibleQuery =
@@ -79,6 +115,13 @@ export function decodeFlamegraphStateFromQueryParams(
 ): DeepPartial<FlamegraphState> {
   return {
     profiles: {
+      highlightFrame:
+        typeof query.frameName === 'string' && typeof query.framePackage === 'string'
+          ? {
+              name: query.frameName,
+              package: query.framePackage,
+            }
+          : null,
       threadId:
         typeof query.tid === 'string' && !isNaN(parseInt(query.tid, 10))
           ? parseInt(query.tid, 10)
@@ -107,12 +150,20 @@ export function decodeFlamegraphStateFromQueryParams(
 }
 
 export function encodeFlamegraphStateToQueryParams(state: FlamegraphState) {
+  const highlightFrame = state.profiles.highlightFrame
+    ? {
+        frameName: state.profiles.highlightFrame?.name,
+        framePackage: state.profiles.highlightFrame?.package,
+      }
+    : {};
+
   return {
     colorCoding: state.preferences.colorCoding,
     sorting: state.preferences.sorting,
     view: state.preferences.view,
     xAxis: state.preferences.xAxis,
     query: state.search.query,
+    ...highlightFrame,
     ...(state.position.view.isEmpty()
       ? {fov: undefined}
       : {fov: Rect.encode(state.position.view)}),
@@ -136,6 +187,14 @@ type FlamegraphAction = React.Dispatch<
 
 type FlamegraphStateReducer = UndoableReducer<typeof combinedReducers>;
 
+function maybeOmitHighlightedFrame(query, state: FlamegraphState) {
+  if (!state.profiles.highlightFrame && query.frameName && query.framePackage) {
+    const {frameName: _, framePackage: __, ...rest} = query;
+    return rest;
+  }
+  return query;
+}
+
 export function FlamegraphStateQueryParamSync() {
   const location = useLocation();
   const state = useFlamegraphStateValue();
@@ -144,7 +203,7 @@ export function FlamegraphStateQueryParamSync() {
     browserHistory.replace({
       ...location,
       query: {
-        ...location.query,
+        ...maybeOmitHighlightedFrame(location.query, state),
         ...encodeFlamegraphStateToQueryParams(state),
       },
     });
@@ -199,6 +258,7 @@ interface FlamegraphStateProviderProps {
 
 export const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
   profiles: {
+    highlightFrame: null,
     selectedRoot: null,
     threadId: null,
   },
@@ -226,6 +286,11 @@ export function FlamegraphStateProvider(
 
   const reducer = useUndoableReducer(combinedReducers, {
     profiles: {
+      // @ts-ignore
+      highlightFrame:
+        props.initialState?.profiles?.highlightFrame ??
+        DEFAULT_FLAMEGRAPH_STATE.profiles.highlightFrame ??
+        null,
       selectedRoot: null,
       threadId:
         props.initialState?.profiles?.threadId ??
@@ -259,6 +324,33 @@ export function FlamegraphStateProvider(
   });
 
   useEffect(() => {
+    if (reducer[0].profiles.highlightFrame && profileGroup.type === 'resolved') {
+      const candidate = profileGroup.data.profiles.reduce<FlamegraphCandidate>(
+        (prevCandidate, profile) => {
+          const flamegraph = new Flamegraph(profile, profile.threadId, {
+            inverted: false,
+            leftHeavy: false,
+            configSpace: undefined,
+          });
+
+          const score = scoreFlamegraph(flamegraph, reducer[0].profiles.highlightFrame);
+
+          return score <= prevCandidate.score
+            ? prevCandidate
+            : {
+                score,
+                threadId: profile.threadId,
+              };
+        },
+        {score: 0, threadId: null}
+      );
+
+      if (typeof candidate.threadId === 'number') {
+        reducer[1]({type: 'set thread id', payload: candidate.threadId});
+        return;
+      }
+    }
+
     if (
       profileGroup.type === 'resolved' &&
       reducer[0].profiles.threadId === null &&
