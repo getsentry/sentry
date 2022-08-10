@@ -234,7 +234,7 @@ class WritesLimitingStringIndexerDecorator(StringIndexer):
             if filtered_db_write_keys.size == 0:
                 return db_read_key_results.merge(rate_limited_key_results)
 
-            filtered_org_strings = {}
+            filtered_org_strings: MutableMapping[int, Set[str]] = {}
             for org_id, string in filtered_db_write_keys.as_tuples():
                 filtered_org_strings.setdefault(org_id, set()).add(string)
 
