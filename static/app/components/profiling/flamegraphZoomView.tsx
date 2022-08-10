@@ -33,6 +33,18 @@ function formatWeightToProfileDuration(frame: CallTreeNode, flamegraph: Flamegra
   return `(${Math.round((frame.totalWeight / flamegraph.profile.duration) * 100)}%)`;
 }
 
+function isHighlightingAllOccurences(
+  node: FlamegraphFrame | null,
+  selectedNodes: FlamegraphFrame[] | null
+) {
+  return !!(
+    selectedNodes &&
+    node &&
+    selectedNodes.length > 1 &&
+    selectedNodes.includes(node)
+  );
+}
+
 interface FlamegraphZoomViewProps {
   canvasBounds: Rect;
   canvasPoolManager: CanvasPoolManager;
@@ -305,29 +317,26 @@ function FlamegraphZoomView({
     flamegraphSearch,
   ]);
 
+  const selectedFramesRef = useRef<FlamegraphFrame[] | null>(null);
   useEffect(() => {
     if (!flamegraphCanvas || !flamegraphView || !selectedFrameRenderer) {
       return undefined;
     }
-
-    const state: {focusedFrames: FlamegraphFrame[] | null} = {
-      focusedFrames: null,
-    };
 
     const onNodeHighlight = (
       node: FlamegraphFrame[] | null,
       mode: 'hover' | 'selected'
     ) => {
       if (mode === 'selected') {
-        state.focusedFrames = node;
+        selectedFramesRef.current = node;
       }
       scheduler.draw();
     };
 
     const drawSelectedFrameBorder = () => {
-      if (state.focusedFrames) {
+      if (selectedFramesRef.current) {
         selectedFrameRenderer.draw(
-          state.focusedFrames.map(frame => {
+          selectedFramesRef.current.map(frame => {
             return new Rect(frame.start, frame.depth, frame.end - frame.start, 1);
           }),
           {
@@ -341,6 +350,7 @@ function FlamegraphZoomView({
 
     scheduler.on('highlight frame', onNodeHighlight);
     scheduler.registerAfterFrameCallback(drawSelectedFrameBorder);
+    scheduler.draw();
 
     return () => {
       scheduler.off('highlight frame', onNodeHighlight);
@@ -670,7 +680,55 @@ function FlamegraphZoomView({
     };
   }, [flamegraphCanvasRef, zoom, scroll]);
 
+  const hoveredNodeOnContextMenuOpen = useRef<FlamegraphFrame | null>(null);
   const contextMenu = useContextMenu({container: flamegraphCanvasRef});
+  const [highlightingAllOccurences, setHighlightingAllOccurences] = useState(
+    isHighlightingAllOccurences(hoveredNode, selectedFramesRef.current)
+  );
+
+  const handleContextMenuOpen = useCallback(
+    (event: React.MouseEvent) => {
+      hoveredNodeOnContextMenuOpen.current = hoveredNode;
+      contextMenu.handleContextMenu(event);
+      // Make sure we set the highlight state relative to the newly hovered node
+      setHighlightingAllOccurences(
+        isHighlightingAllOccurences(hoveredNode, selectedFramesRef.current)
+      );
+    },
+    [contextMenu, hoveredNode]
+  );
+
+  const handleHighlightAllFramesClick = useCallback(() => {
+    if (!hoveredNodeOnContextMenuOpen.current) {
+      return;
+    }
+
+    if (
+      isHighlightingAllOccurences(
+        hoveredNodeOnContextMenuOpen.current,
+        selectedFramesRef.current
+      )
+    ) {
+      setHighlightingAllOccurences(false);
+      canvasPoolManager.dispatch('highlight frame', [null, 'selected']);
+      scheduler.draw();
+      return;
+    }
+
+    const matches: FlamegraphFrame[] = [];
+
+    for (let i = 0; i < flamegraph.frames.length; i++) {
+      if (
+        flamegraph.frames[i].frame.name ===
+        hoveredNodeOnContextMenuOpen.current.node.frame.name
+      ) {
+        matches.push(flamegraph.frames[i]);
+      }
+    }
+
+    setHighlightingAllOccurences(true);
+    canvasPoolManager.dispatch('highlight frame', [matches, 'selected']);
+  }, [canvasPoolManager, flamegraph, scheduler]);
 
   return (
     <CanvasContainer>

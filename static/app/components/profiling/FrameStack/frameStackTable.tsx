@@ -124,7 +124,7 @@ export function FrameStackTable({
     ]);
   }, [canvasPoolManager, clickedContextMenuNode]);
 
-  const handleHighlightAllFramesClick = useCallback(() => {
+  const onHighlightAllOccurencesClick = useCallback(() => {
     if (!clickedContextMenuNode) {
       return;
     }
@@ -239,7 +239,7 @@ export function FrameStackTable({
         </FrameCallersTableHeader>
         <FrameStackContextMenu
           onZoomIntoFrameClick={handleZoomIntoFrameClick}
-          onHighlightAllFramesClick={handleHighlightAllFramesClick}
+          onHighlightAllFramesClick={onHighlightAllOccurencesClick}
           contextMenu={contextMenu}
         />
         <TableItemsContainer>
