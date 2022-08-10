@@ -2,6 +2,7 @@ import Feature from 'sentry/components/acl/feature';
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import {IconSort} from 'sentry/icons/iconSort';
 import {t} from 'sentry/locale';
+import {SelectValue} from 'sentry/types';
 import {getSortLabel, IssueSortOptions, Query} from 'sentry/views/issueList/utils';
 
 type Props = {
@@ -30,7 +31,10 @@ function getSortTooltip(key: IssueSortOptions) {
   }
 }
 
-function getSortOptions(sortKeys: IssueSortOptions[], hasTrendSort = false) {
+function getSortOptions(
+  sortKeys: IssueSortOptions[],
+  hasTrendSort = false
+): SelectValue<IssueSortOptions>[] {
   const combinedSortKeys = [
     ...sortKeys,
     ...(hasTrendSort ? [IssueSortOptions.TREND] : []),
@@ -39,6 +43,7 @@ function getSortOptions(sortKeys: IssueSortOptions[], hasTrendSort = false) {
     value: key,
     label: getSortLabel(key),
     tooltip: getSortTooltip(key),
+    tooltipOptions: {position: 'left'},
   }));
 }
 
