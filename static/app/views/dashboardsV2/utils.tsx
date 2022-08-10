@@ -39,6 +39,7 @@ import {DisplayModes} from 'sentry/utils/discover/types';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {
   DashboardDetails,
+  DashboardFilters,
   DisplayType,
   Widget,
   WidgetQuery,
@@ -518,7 +519,7 @@ export function getCurrentPageFilters(
   };
 }
 
-export function getReleaseParams(release?: string | string[]): string[] {
+export function getReleaseParams(release?: null | string | string[]): string[] {
   if (!defined(release)) {
     return [];
   }
@@ -528,4 +529,20 @@ export function getReleaseParams(release?: string | string[]): string[] {
   }
 
   return [release];
+}
+
+export function getDashboardFiltersFromURL(location: Location): DashboardFilters | null {
+  const filterKeys = new Set(['release']);
+
+  // If any of the query params appears are filter keys, return a filter object
+  if (
+    new Set(Object.keys(location.query).filter(queryParam => filterKeys.has(queryParam)))
+      .size
+  ) {
+    return {
+      release: getReleaseParams(location.query?.release),
+    };
+  }
+
+  return null;
 }

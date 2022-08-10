@@ -1,6 +1,6 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
-import {Location} from '@sentry/react/types/types';
+import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
