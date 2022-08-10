@@ -25,7 +25,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
     # Totals Query
     pytest.param(
         Query(
-            match=Entity("metrics_distributions"),
+            match=Entity("generic_metrics_distributions"),
             select=[
                 Function(
                     function="count_web_vitals_measurements",
@@ -148,7 +148,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
     ),
     pytest.param(
         Query(
-            match=Entity("metrics_distributions"),
+            match=Entity("generic_metrics_distributions"),
             select=[
                 Function(
                     function="p95",
@@ -301,7 +301,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
     ),
     pytest.param(
         Query(
-            match=Entity("metrics_distributions"),
+            match=Entity("generic_metrics_distributions"),
             select=[
                 Function(
                     function="e:transactions/apdex@ratio",
@@ -436,7 +436,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
     ),
     pytest.param(
         Query(
-            match=Entity("metrics_sets"),
+            match=Entity("generic_metrics_sets"),
             select=[
                 Function(
                     function="count_unique",
@@ -560,7 +560,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
     ),
     pytest.param(
         Query(
-            match=Entity("metrics_sets"),
+            match=Entity("generic_metrics_sets"),
             select=[
                 Function(
                     function="count_unique",
@@ -628,7 +628,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
     # Histogram Query
     pytest.param(
         Query(
-            match=Entity("metrics_distributions"),
+            match=Entity("generic_metrics_distributions"),
             select=[
                 Function(
                     function="histogram",
