@@ -306,9 +306,9 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         # XXX(gilbert): remove this when organizations:active-release-notification-opt-in is removed
         # injects the notification settings since no Notification settings will exist in the db
         from sentry import features
-        from sentry.models import User
+        from sentry.models import Project, User
 
-        if parent.organization:
+        if isinstance(parent, Project) and parent.organization:
             notification_settings_by_recipient = dict(notification_settings_by_recipient)
             for user_recipient in filter(lambda x: isinstance(x, User), recipients):
                 if type == NotificationSettingTypes.ACTIVE_RELEASE and features.has(
