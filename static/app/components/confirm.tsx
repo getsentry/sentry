@@ -191,21 +191,22 @@ function Confirm({
   return cloneElement(children, {disabled, onClick: triggerModal}) as any;
 }
 
-type ModalProps = ModalRenderProps &
-  Pick<
-    Props,
-    | 'priority'
-    | 'renderMessage'
-    | 'renderConfirmButton'
-    | 'renderCancelButton'
-    | 'message'
-    | 'confirmText'
-    | 'cancelText'
-    | 'header'
-    | 'onConfirm'
-    | 'onCancel'
-    | 'disableConfirmButton'
-  >;
+interface ModalProps
+  extends ModalRenderProps,
+    Pick<
+      Props,
+      | 'priority'
+      | 'renderMessage'
+      | 'renderConfirmButton'
+      | 'renderCancelButton'
+      | 'message'
+      | 'confirmText'
+      | 'cancelText'
+      | 'header'
+      | 'onConfirm'
+      | 'onCancel'
+      | 'disableConfirmButton'
+    > {}
 
 type ModalState = {
   /**

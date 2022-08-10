@@ -75,7 +75,7 @@ const TooltipContent = styled(Overlay)`
   text-align: center;
 `;
 
-interface TooltipProps extends InternalTooltipProps {
+export interface TooltipProps extends InternalTooltipProps {
   /**
    * Stops tooltip from being opened during tooltip visual acceptance.
    * Should be set to true if tooltip contains unisolated data (eg. dates)

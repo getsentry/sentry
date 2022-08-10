@@ -60,11 +60,12 @@ const StyledChevron = styled(IconChevron)`
   flex-shrink: 0;
 `;
 
-const StyledButton = styled(Button)<
-  Required<Pick<DropdownButtonProps, 'isOpen' | 'disabled' | 'priority'>> & {
-    hasPrefix: boolean;
-  }
->`
+interface StyledButtonProps
+  extends Required<Pick<DropdownButtonProps, 'isOpen' | 'disabled' | 'priority'>> {
+  hasPrefix: boolean;
+}
+
+const StyledButton = styled(Button)<StyledButtonProps>`
   position: relative;
   max-width: 100%;
   z-index: 2;

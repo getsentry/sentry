@@ -31,22 +31,20 @@ type BannerWrapperProps = {
   backgroundImg?: string;
 };
 
-type Props = BannerWrapperProps & {
+interface Props extends BannerWrapperProps {
+  children?: React.ReactNode;
   className?: string;
+  /**
+   * Helper function to hide banners outside of their usage
+   */
+  dismiss?: typeof dismissBanner;
   dismissKey?: string;
   isDismissable?: boolean;
   subtitle?: string;
   title?: string;
-};
+}
 
-type BannerType = React.FC<Props> & {
-  /**
-   * Helper function to hide banners outside of their usage
-   */
-  dismiss: typeof dismissBanner;
-};
-
-const Banner: BannerType = ({
+const Banner = ({
   title,
   subtitle,
   isDismissable = true,
@@ -55,7 +53,7 @@ const Banner: BannerType = ({
   backgroundImg,
   backgroundComponent,
   children,
-}) => {
+}: Props) => {
   const [dismissed, dismiss] = useDismissable(dismissKey);
 
   if (dismissed) {

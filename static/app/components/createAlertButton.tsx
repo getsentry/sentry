@@ -9,7 +9,7 @@ import {
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import Access from 'sentry/components/acl/access';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Button, {ButtonProps} from 'sentry/components/button';
+import Button, {ButtonPropsWithoutAriaLabel} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {IconSiren} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
@@ -24,7 +24,8 @@ import {
   DEFAULT_WIZARD_TEMPLATE,
 } from 'sentry/views/alerts/wizard/options';
 
-export type CreateAlertFromViewButtonProps = ButtonProps & {
+export interface CreateAlertFromViewButtonProps
+  extends Omit<ButtonPropsWithoutAriaLabel, 'children'> {
   /**
    * Discover query used to create the alert
    */
@@ -38,7 +39,7 @@ export type CreateAlertFromViewButtonProps = ButtonProps & {
    */
   onClick?: () => void;
   referrer?: string;
-};
+}
 
 /**
  * Provide a button that can create an alert from an event view.
@@ -93,9 +94,12 @@ function CreateAlertFromViewButton({
   );
 }
 
-type CreateAlertButtonProps = {
+interface CreateAlertButtonProps
+  extends WithRouterProps,
+    Omit<ButtonPropsWithoutAriaLabel, 'children'> {
   organization: Organization;
   alertOption?: keyof typeof AlertWizardAlertNames;
+  children?: React.ReactNode;
   hideIcon?: boolean;
   iconProps?: SVGIconProps;
   /**
@@ -107,8 +111,7 @@ type CreateAlertButtonProps = {
   projectSlug?: string;
   referrer?: string;
   showPermissionGuide?: boolean;
-} & WithRouterProps &
-  ButtonProps;
+}
 
 const CreateAlertButton = withRouter(
   ({

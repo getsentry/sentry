@@ -2,15 +2,15 @@ import styled from '@emotion/styled';
 
 import Clipboard from 'sentry/components/clipboard';
 import TextOverflow from 'sentry/components/textOverflow';
-import Tooltip from 'sentry/components/tooltip';
+import Tooltip, {TooltipProps} from 'sentry/components/tooltip';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-type Props = Omit<React.ComponentProps<typeof Tooltip>, 'isHoverable' | 'title'> & {
+interface Props extends Omit<TooltipProps, 'isHoverable' | 'title'> {
   title: string;
   onSuccess?: () => void;
-};
+}
 
 function ClipboardTooltip({title, onSuccess, ...props}: Props) {
   return (

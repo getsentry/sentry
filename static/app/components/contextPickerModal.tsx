@@ -19,7 +19,7 @@ import Projects from 'sentry/utils/projects';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import IntegrationIcon from 'sentry/views/organizationIntegrations/integrationIcon';
 
-type Props = ModalRenderProps & {
+interface Props extends ModalRenderProps {
   integrationConfigs: Integration[];
 
   loading: boolean;
@@ -65,7 +65,7 @@ type Props = ModalRenderProps & {
    * on which the modal was opened
    */
   comingFromProjectId?: string;
-};
+}
 
 const selectStyles: StylesConfig = {
   menu: provided => ({
