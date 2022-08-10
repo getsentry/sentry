@@ -149,7 +149,7 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
                 ],
                 "unit": "millisecond",
                 "metric_id": indexer.resolve(
-                    self.organization.id, something_custom_metric, UseCaseKey.PERFORMANCE
+                    UseCaseKey.PERFORMANCE, self.organization.id, something_custom_metric
                 ),
             }
         ]
@@ -197,7 +197,7 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
                 ],
                 "unit": "millisecond",
                 "metric_id": indexer.resolve(
-                    self.organization.id, something_custom_metric, UseCaseKey.PERFORMANCE
+                    UseCaseKey.PERFORMANCE, self.organization.id, something_custom_metric
                 ),
             }
         ]
