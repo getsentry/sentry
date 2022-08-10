@@ -25,7 +25,7 @@ export function transformEventsRequestToArea<T extends WidgetDataConstraint>(
     return {
       mean: meanData,
       outputType: aggregateOutputType(series.seriesName),
-      label: axisLabelFormatter(meanData, series.seriesName),
+      label: axisLabelFormatter(meanData, aggregateOutputType(series.seriesName)),
     };
   });
 

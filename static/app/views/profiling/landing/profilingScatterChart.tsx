@@ -26,6 +26,7 @@ import {Series} from 'sentry/types/echarts';
 import {Trace} from 'sentry/types/profiling/core';
 import {defined} from 'sentry/utils';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {getDuration} from 'sentry/utils/formatters';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {Theme} from 'sentry/utils/theme';
@@ -232,7 +233,8 @@ function makeScatterChartOptions({
     yAxis: {
       axisLabel: {
         color: theme.chartLabel,
-        formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
+        formatter: (value: number) =>
+          axisLabelFormatter(value, aggregateOutputType('p50()')),
       },
     },
     legend: {

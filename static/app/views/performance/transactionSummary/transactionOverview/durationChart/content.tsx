@@ -106,7 +106,7 @@ function Content({
         color: theme.chartLabel,
         // p50() coerces the axis to be time based
         formatter: (value: number) => {
-          return axisLabelFormatter(value, 'p50()', undefined, durationUnit);
+          return axisLabelFormatter(value, 'duration', undefined, durationUnit);
         },
       },
     },

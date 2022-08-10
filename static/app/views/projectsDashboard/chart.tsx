@@ -5,6 +5,7 @@ import BaseChart from 'sentry/components/charts/baseChart';
 import {t} from 'sentry/locale';
 import {Project} from 'sentry/types';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 
 import NoEvents from './noEvents';
 
@@ -141,7 +142,8 @@ const Chart = ({firstEvent, stats, transactionStats}: Props) => {
         fontFamily: theme.text.family,
         inside: true,
         lineHeight: 12,
-        formatter: (value: number) => axisLabelFormatter(value, 'count()', true),
+        formatter: (value: number) =>
+          axisLabelFormatter(value, aggregateOutputType('count()'), true),
         textBorderColor: theme.backgroundSecondary,
         textBorderWidth: 1,
       },

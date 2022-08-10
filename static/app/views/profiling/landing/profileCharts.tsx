@@ -12,6 +12,7 @@ import space from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {useProfileStats} from 'sentry/utils/profiling/hooks/useProfileStats';
 
 interface ProfileChartsProps {
@@ -132,7 +133,7 @@ export function ProfileCharts({query, router, selection}: ProfileChartsProps) {
                 axisLabel: {
                   color: theme.chartLabel,
                   formatter(value: number) {
-                    return axisLabelFormatter(value, 'count()');
+                    return axisLabelFormatter(value, aggregateOutputType('count()'));
                   },
                 },
               },
@@ -142,7 +143,7 @@ export function ProfileCharts({query, router, selection}: ProfileChartsProps) {
                 axisLabel: {
                   color: theme.chartLabel,
                   formatter(value: number) {
-                    return axisLabelFormatter(value, 'p75()');
+                    return axisLabelFormatter(value, aggregateOutputType('p75()'));
                   },
                 },
               },

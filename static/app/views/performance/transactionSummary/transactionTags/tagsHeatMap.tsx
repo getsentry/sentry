@@ -28,6 +28,7 @@ import {Organization, Project} from 'sentry/types';
 import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {
@@ -185,7 +186,8 @@ const TagsHeatMap = (
         show: true,
         showMinLabel: true,
         showMaxLabel: true,
-        formatter: (value: number) => axisLabelFormatter(value, 'Count'),
+        formatter: (value: number) =>
+          axisLabelFormatter(value, aggregateOutputType('Count')),
       },
       axisLine: {},
       axisPointer: {
