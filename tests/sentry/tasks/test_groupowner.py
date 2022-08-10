@@ -405,3 +405,48 @@ class TestGroupOwners(TestCase):
         assert GroupOwner.objects.get(user=self.user.id)
         assert GroupOwner.objects.get(user=self.user3.id)
         assert not GroupOwner.objects.filter(user=self.user2.id).exists()
+
+    @patch("sentry.tasks.groupowner.get_event_file_committers")
+    def test_low_suspect_committer_score(self, patched_committers):
+        self.user = self.create_user()
+        patched_committers.return_value = [
+            {
+                # score < MIN_COMMIT_SCORE
+                "commits": [(None, 1)],
+                "author": {
+                    "id": self.user.id,
+                },
+            },
+        ]
+        event_frames = get_frame_paths(self.event)
+        process_suspect_commits(
+            event_id=self.event.event_id,
+            event_platform=self.event.platform,
+            event_frames=event_frames,
+            group_id=self.event.group_id,
+            project_id=self.event.project_id,
+        )
+
+        assert not GroupOwner.objects.filter(user=self.user.id).exists()
+
+    def test_owners_count(self):
+        self.set_release_commits(self.user.email)
+        self.user = self.create_user()
+        event_frames = get_frame_paths(self.event)
+
+        process_suspect_commits(
+            event_id=self.event.event_id,
+            event_platform=self.event.platform,
+            event_frames=event_frames,
+            group_id=self.event.group_id,
+            project_id=self.event.project_id,
+        )
+
+        owners = GroupOwner.objects.filter(
+            group_id=self.event.group_id,
+            project=self.event.project,
+            organization_id=self.event.project.organization_id,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+        )
+
+        assert owners.count() == 1
