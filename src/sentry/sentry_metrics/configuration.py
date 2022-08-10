@@ -22,6 +22,7 @@ class UseCaseKey(Enum):
 class DbKey(Enum):
     STRING_INDEXER = "StringIndexer"
     PERF_STRING_INDEXER = "PerfStringIndexer"
+    SCALABLE_PERF_STRING_INDEXER = "ScalablePerfStringIndexer"
 
 
 @dataclass(frozen=True)
