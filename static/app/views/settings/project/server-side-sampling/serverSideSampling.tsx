@@ -469,7 +469,7 @@ export function ServerSideSampling({project}: Props) {
           />
         )}
 
-        <SamplingBreakdown orgSlug={organization.slug} />
+        {hasAccess && <SamplingBreakdown orgSlug={organization.slug} />}
         {!rules.length ? (
           <SamplingPromo
             onGetStarted={handleGetStarted}
