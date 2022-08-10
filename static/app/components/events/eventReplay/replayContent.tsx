@@ -50,7 +50,7 @@ function ReplayContent({eventSlug, orgId}: Props) {
         <tr key="id">
           <td className="key">{t('Id')}</td>
           <td className="value">
-            <pre className="val-string">{replayRecord.replay_id}</pre>
+            <pre className="val-string">{replayRecord.replayId}</pre>
           </td>
         </tr>
         <tr key="url">
@@ -63,7 +63,7 @@ function ReplayContent({eventSlug, orgId}: Props) {
           <td className="key">{t('Timestamp')}</td>
           <td className="value">
             <pre className="val-string">
-              <DateTime year seconds utc date={replayRecord.started_at} />
+              <DateTime year seconds utc date={replayRecord.startedAt} />
             </pre>
           </td>
         </tr>
