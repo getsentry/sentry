@@ -4,6 +4,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 import {
+  makeColorMapByFrequency,
   makeColorMapByImage,
   makeColorMapByRecursion,
   makeColorMapBySystemVsApplication,
@@ -45,6 +46,12 @@ function FlamegraphThemeProvider(
         return {
           ...base,
           COLORS: {...base.COLORS, COLOR_MAP: makeColorMapBySystemVsApplication},
+        };
+      }
+      case 'by frequency': {
+        return {
+          ...base,
+          COLORS: {...base.COLORS, COLOR_MAP: makeColorMapByFrequency},
         };
       }
       default: {

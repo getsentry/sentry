@@ -23,6 +23,7 @@ const FLAMEGRAPH_COLOR_CODINGS: FlamegraphColorCodings = [
   'by system / application',
   'by library',
   'by recursion',
+  'by frequency',
 ];
 const FLAMEGRAPH_VIEW_OPTIONS: FlamegraphViewOptions = ['top down', 'bottom up'];
 const FLAMEGRAPH_SORTING_OPTIONS: FlamegraphSorting = ['left heavy', 'call order'];

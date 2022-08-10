@@ -249,3 +249,38 @@ export const makeColorMapBySystemVsApplication = (
 
   return colors;
 };
+
+export const makeColorMapByFrequency = (
+  frames: ReadonlyArray<FlamegraphFrame>,
+  colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
+): Map<FlamegraphFrame['frame']['key'], ColorChannels> => {
+  let max = 0;
+
+  const countMap = new Map<FlamegraphFrame['frame']['key'], number>();
+  const colors = new Map<FlamegraphFrame['key'], ColorChannels>();
+
+  for (let i = 0; i < frames.length; i++) {
+    const frame = frames[i];
+    const key = frame.frame.name + frame.frame.image;
+
+    if (!countMap.has(key)) {
+      countMap.set(key, 0);
+    }
+
+    const previousCount = countMap.get(key)!;
+
+    countMap.set(key, previousCount + 1);
+    max = Math.max(max, previousCount + 1);
+  }
+
+  for (let i = 0; i < frames.length; i++) {
+    const key = frames[i].frame.name + frames[i].frame.image;
+    const count = countMap.get(key)!;
+    const [r, g, b] = colorBucket(0.7, frames[i].frame);
+    const color: ColorChannels = [r, g, b, Math.max(count / max, 0.1)];
+
+    colors.set(frames[i].key, color);
+  }
+
+  return colors;
+};
