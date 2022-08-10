@@ -8,6 +8,7 @@ import {
   FlamegraphViewOptions,
 } from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphPreferences';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
+import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 
 import {
@@ -31,6 +32,7 @@ const FLAMEGRAPH_AXIS_OPTIONS: FlamegraphAxisOptions = ['standalone', 'transacti
 
 interface FlameGraphOptionsContextMenuProps {
   contextMenu: ReturnType<typeof useContextMenu>;
+  hoveredNode: FlamegraphFrame | null;
   isHighlightingAllOccurences: boolean;
   onHighlightAllOccurencesClick: () => void;
 }
@@ -50,22 +52,24 @@ export function FlamegraphOptionsContextMenu(props: FlameGraphOptionsContextMenu
           maxHeight: props.contextMenu.containerCoordinates?.height ?? 'auto',
         }}
       >
-        <ProfilingContextMenuGroup>
-          <ProfilingContextMenuHeading>{t('Frame')}</ProfilingContextMenuHeading>
-          <ProfilingContextMenuItemCheckbox
-            {...props.contextMenu.getMenuItemProps({
-              onClick: props.onHighlightAllOccurencesClick,
-            })}
-            onClick={e => {
-              // We need to prevent the click from propagating to the context menu layer.
-              e.preventDefault();
-              props.onHighlightAllOccurencesClick();
-            }}
-            checked={props.isHighlightingAllOccurences}
-          >
-            {t('Highlight all occurrences')}
-          </ProfilingContextMenuItemCheckbox>
-        </ProfilingContextMenuGroup>
+        {props.hoveredNode ? (
+          <ProfilingContextMenuGroup>
+            <ProfilingContextMenuHeading>{t('Frame')}</ProfilingContextMenuHeading>
+            <ProfilingContextMenuItemCheckbox
+              {...props.contextMenu.getMenuItemProps({
+                onClick: props.onHighlightAllOccurencesClick,
+              })}
+              onClick={e => {
+                // We need to prevent the click from propagating to the context menu layer.
+                e.preventDefault();
+                props.onHighlightAllOccurencesClick();
+              }}
+              checked={props.isHighlightingAllOccurences}
+            >
+              {t('Highlight all occurrences')}
+            </ProfilingContextMenuItemCheckbox>
+          </ProfilingContextMenuGroup>
+        ) : null}
         <ProfilingContextMenuGroup>
           <ProfilingContextMenuHeading>{t('Color Coding')}</ProfilingContextMenuHeading>
           {FLAMEGRAPH_COLOR_CODINGS.map((coding, idx) => (
