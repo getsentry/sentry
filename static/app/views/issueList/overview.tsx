@@ -818,6 +818,11 @@ class IssueListOverview extends Component<Props, State> {
   };
 
   onSortChange = (sort: string) => {
+    trackAdvancedAnalyticsEvent('issues_stream.sort_changed', {
+      organization: this.props.organization,
+      sort,
+    });
+
     this.transitionTo({sort});
   };
 
