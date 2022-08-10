@@ -18,7 +18,7 @@ class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
         self.login_as(user=self.user)
         self.project.update_option("sentry:dynamic_sampling", "something-it-doesn't-matter")
         # Don't create any txn on this, don't set its DS rules, it shouldn't show up anywhere
-        self.create_project()
+        self.bad_project = self.create_project()
 
     def test_unparameterized_transactions(self):
         # Make current project incompatible
@@ -32,6 +32,7 @@ class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
+        assert response.data["incompatible_projects"] == [self.project.id, self.bad_project.id]
         assert response.data["compatible_projects"] == []
         assert response.data["dynamic_sampling_projects"] == [self.project.id]
 
@@ -45,6 +46,7 @@ class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
+        assert response.data["incompatible_projects"] == [self.project.id, self.bad_project.id]
         assert response.data["compatible_projects"] == []
         assert response.data["dynamic_sampling_projects"] == [self.project.id]
 
@@ -57,6 +59,7 @@ class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
+        assert response.data["incompatible_projects"] == [self.project.id, self.bad_project.id]
         assert response.data["compatible_projects"] == []
         assert response.data["dynamic_sampling_projects"] == [self.project.id]
 
@@ -71,6 +74,7 @@ class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
+        assert response.data["incompatible_projects"] == [self.bad_project.id]
         assert response.data["compatible_projects"] == [self.project.id]
         assert response.data["dynamic_sampling_projects"] == [self.project.id]
 
@@ -110,6 +114,9 @@ class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
+        assert response.data["incompatible_projects"] == sorted(
+            [project2.id, project3.id, project4.id, self.bad_project.id]
+        )
         assert response.data["compatible_projects"] == [self.project.id]
         assert response.data["dynamic_sampling_projects"] == [
             self.project.id,

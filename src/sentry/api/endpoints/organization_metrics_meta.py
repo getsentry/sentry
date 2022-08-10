@@ -21,6 +21,7 @@ class OrganizationMetricsCompatibility(OrganizationEventsEndpointBase):
 
     def get(self, request: Request, organization) -> Response:
         data = {
+            "incompatible_projects": [],
             "compatible_projects": [],
             "dynamic_sampling_projects": [],
         }
@@ -29,6 +30,7 @@ class OrganizationMetricsCompatibility(OrganizationEventsEndpointBase):
             params = self.get_snuba_params(request, organization, check_global_views=False)
         except NoProjects:
             return Response(data)
+        original_project_ids = params["project_id"].copy()
         data["compatible_projects"] = params["project_id"]
         for project in params["project_objects"]:
             dynamic_sampling = project.get_option("sentry:dynamic_sampling")
@@ -62,6 +64,11 @@ class OrganizationMetricsCompatibility(OrganizationEventsEndpointBase):
             )
             data["compatible_projects"] = sorted(
                 row["project.id"] for row in compatible_results["data"]
+            )
+            data["incompatible_projects"] = sorted(
+                list(set(original_project_ids) - set(data["compatible_projects"]))[
+                    : request.GET.get("per_page", 50)
+                ]
             )
 
         return Response(data)
