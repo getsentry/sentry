@@ -20,6 +20,11 @@ describe('GroupStore', function () {
 
       expect(GroupStore.items).toEqual([{id: 1, foo: 'bar'}, {id: 2}, {id: 3}]);
     });
+
+    it('should attempt to preserve order of ids', function () {
+      GroupStore.add([{id: 2}, {id: 1}, {id: 3}]);
+      expect(GroupStore.getAllItemIds()).toEqual([2, 1, 3]);
+    });
   });
 
   describe('remove()', function () {

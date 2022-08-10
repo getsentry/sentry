@@ -58,15 +58,14 @@ class TextRenderer {
     configViewToPhysicalSpace: mat3,
     flamegraphSearchResults: FlamegraphSearch['results']
   ): void {
-    this.maybeInvalidateCache();
-
-    const fontSize = this.theme.SIZES.BAR_FONT_SIZE * window.devicePixelRatio;
-    this.context.font = `${fontSize}px ${this.theme.FONTS.FRAME_FONT}`;
-
+    // Make sure we set font size before we measure text for the first draw
+    const FONT_SIZE = this.theme.SIZES.BAR_FONT_SIZE * window.devicePixelRatio;
+    this.context.font = `${FONT_SIZE}px ${this.theme.FONTS.FRAME_FONT}`;
     this.context.textBaseline = 'alphabetic';
 
-    const minWidth = this.measureAndCacheText(ELLIPSIS).width;
+    this.maybeInvalidateCache();
 
+    const MIN_WIDTH = this.measureAndCacheText(ELLIPSIS).width;
     const SIDE_PADDING = 2 * this.theme.SIZES.BAR_PADDING * window.devicePixelRatio;
     const HALF_SIDE_PADDING = SIDE_PADDING / 2;
     const BASELINE_OFFSET =
@@ -110,7 +109,7 @@ class TextRenderer {
       const paddedRectangleWidth = frameWidth - SIDE_PADDING;
 
       // Since children of a frame cannot be wider than the frame itself, we can exit early and discard the entire subtree
-      if (paddedRectangleWidth <= minWidth) {
+      if (paddedRectangleWidth <= MIN_WIDTH) {
         continue;
       }
 
@@ -143,9 +142,9 @@ class TextRenderer {
         frame.depth * configViewToPhysicalSpace[4] +
         configViewToPhysicalSpace[7];
 
-      // We want to draw the text in the vertical center of the frame, so we substract half the height of the text
-      const y = frameY + BASELINE_OFFSET;
-      // Offset x by 1x the padding
+      // We want to draw the text in the vertical center of the frame, so we substract half the height of the text.
+      // Since the origin of the rect in the inverted view is also inverted, we need to add the height.
+      const y = frameY + (frameHeight < 0 ? frameHeight : 0) + BASELINE_OFFSET;
       const x = frameX + (frameWidth < 0 ? frameWidth : 0) + HALF_SIDE_PADDING;
 
       const trim = trimTextCenter(
@@ -173,9 +172,9 @@ class TextRenderer {
 
           this.context.fillRect(
             x + this.measureAndCacheText(frontMatter).width,
-            frameY + (frameHeight < 0 ? frameHeight : 0) + fontSize / 2,
+            y + FONT_SIZE / 2 - BASELINE_OFFSET,
             highlightWidth,
-            fontSize
+            FONT_SIZE
           );
         }
       }

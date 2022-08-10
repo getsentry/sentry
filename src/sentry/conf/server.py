@@ -667,6 +667,7 @@ CELERY_QUEUES = [
     Queue("update", routing_key="update"),
     Queue("profiles.process", routing_key="profiles.process"),
     Queue("release_health.duplex", routing_key="release_health.duplex"),
+    Queue("get_suspect_resolutions", routing_key="get_suspect_resolutions"),
 ]
 
 for queue in CELERY_QUEUES:
@@ -943,8 +944,6 @@ SENTRY_FEATURES = {
     "auth:register": True,
     # Workflow 2.0 Alpha Functionality for sentry users only
     "organizations:active-release-monitor-alpha": False,
-    # Workflow 2.0 Experimental ReleaseMembers who opt-in to get notified as a release committer
-    "organizations:active-release-notification-opt-in": False,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Use metrics as the dataset for crash free metric alerts
@@ -1181,6 +1180,8 @@ SENTRY_FEATURES = {
     "projects:rate-limits": True,
     # Enable functionality to trigger service hooks upon event ingestion.
     "projects:servicehooks": False,
+    # Enable suspect resolutions feature
+    "projects:suspect-resolutions": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
     "projects:kafka-ingest": False,
     # Workflow 2.0 Auto associate commits to commit sha release
