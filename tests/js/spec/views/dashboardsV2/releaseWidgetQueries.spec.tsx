@@ -782,4 +782,43 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     // no additional request has been sent, the total count of requests is still 1
     expect(mock).toHaveBeenCalledTimes(1);
   });
+
+  it('does not re-fetch when dashboard filter remains the same', () => {
+    const mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics/data/',
+      body: TestStubs.SessionsField({
+        field: `sum(sentry.sessions.session)`,
+      }),
+    });
+    const children = jest.fn(() => <div />);
+
+    const {rerender} = render(
+      <ReleaseWidgetQueries
+        api={api}
+        widget={singleQueryWidget}
+        organization={organization}
+        selection={selection}
+        dashboardFilters={{[DashboardFilterKeys.RELEASE]: ['abc@1.3.0']}}
+      >
+        {children}
+      </ReleaseWidgetQueries>
+    );
+
+    expect(mock).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <ReleaseWidgetQueries
+        api={api}
+        widget={singleQueryWidget}
+        organization={organization}
+        selection={selection}
+        dashboardFilters={{[DashboardFilterKeys.RELEASE]: ['abc@1.3.0']}}
+      >
+        {children}
+      </ReleaseWidgetQueries>
+    );
+
+    // no additional request has been sent, the total count of requests is still 1
+    expect(mock).toHaveBeenCalledTimes(1);
+  });
 });

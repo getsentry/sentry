@@ -405,6 +405,15 @@ class DashboardDetail extends Component<Props, State> {
     const {dashboard, location} = this.props;
     const {modifiedDashboard} = this.state;
     const newModifiedDashboard = modifiedDashboard || dashboard;
+
+    if (
+      Object.keys(activeFilters).every(
+        key => !!!newModifiedDashboard.filters[key] && activeFilters[key].length === 0
+      )
+    ) {
+      return;
+    }
+
     this.setState({
       modifiedDashboard: {
         ...newModifiedDashboard,

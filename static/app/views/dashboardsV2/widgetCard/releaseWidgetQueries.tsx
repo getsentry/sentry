@@ -244,8 +244,8 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     const ignoredQueryProps = ['name', 'fields', 'aggregates', 'columns'];
     return (
       limit !== prevProps.limit ||
-      dashboardFilters !== prevProps.dashboardFilters ||
       organization.slug !== prevProps.organization.slug ||
+      !isEqual(dashboardFilters, prevProps.dashboardFilters) ||
       !isSelectionEqual(selection, prevProps.selection) ||
       // If the widget changed (ignore unimportant fields, + queries as they are handled lower)
       !isEqual(
