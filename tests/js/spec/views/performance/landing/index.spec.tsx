@@ -80,6 +80,14 @@ describe('Performance > Landing > Index', function () {
       url: `/organizations/org-slug/eventsv2/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events/`,
+      body: {
+        data: [{}],
+        meta: {},
+      },
+    });
   });
 
   afterEach(function () {
