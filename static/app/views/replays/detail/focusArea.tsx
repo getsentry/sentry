@@ -26,7 +26,7 @@ function getBreadcrumbsByCategory(breadcrumbs: Crumb[], categories: string[]) {
     .filter(breadcrumb => categories.includes(breadcrumb.category || ''));
 }
 
-function FocusArea({width = 0}: Props) {
+function FocusArea({width}: Props) {
   const {getActiveTab} = useActiveReplayTab();
   const {currentTime, currentHoverTime, replay, setCurrentTime, setCurrentHoverTime} =
     useReplayContext();

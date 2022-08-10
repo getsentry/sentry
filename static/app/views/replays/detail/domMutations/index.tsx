@@ -156,7 +156,7 @@ const StepConnector = styled('div')`
   position: absolute;
   height: 100%;
   top: 28px;
-  left: 28px;
+  left: 27px;
   border-right: 1px ${p => p.theme.border} dashed;
 `;
 
