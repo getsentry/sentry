@@ -1,11 +1,18 @@
 import pytest
+from django.conf import settings
 
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.indexer.cache import indexer_cache
+from sentry.sentry_metrics.indexer.cache import StringIndexerCache
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
 pytestmark = pytest.mark.sentry_metrics
+
+_PARTITION_KEY = "test"
+
+indexer_cache = StringIndexerCache(
+    **settings.SENTRY_STRING_INDEXER_CACHE_OPTIONS, partition_key=_PARTITION_KEY
+)
 
 
 @pytest.fixture
