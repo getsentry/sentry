@@ -140,9 +140,9 @@ class ReleaseActivityTest(APITestCase):
             response = self.get_response(project.organization.slug, project.slug, release.version)
             assert response.status_code == 200
             assert len(response.data) == 4
-            assert response.data[0]["type"] == ReleaseActivityType.FINISHED.name
-            assert response.data[1]["type"] == ReleaseActivityType.ISSUE.name
-            assert response.data[1]["data"].get("group_id") == self.group.id
-            assert response.data[1]["data"]["group"] == serialize(self.group, self.user)
-            assert response.data[2]["type"] == ReleaseActivityType.DEPLOYED.name
-            assert response.data[3]["type"] == ReleaseActivityType.CREATED.name
+            assert response.data[0]["type"] == ReleaseActivityType.CREATED.name
+            assert response.data[1]["type"] == ReleaseActivityType.DEPLOYED.name
+            assert response.data[2]["type"] == ReleaseActivityType.ISSUE.name
+            assert response.data[2]["data"].get("group_id") == self.group.id
+            assert response.data[2]["data"]["group"] == serialize(self.group, self.user)
+            assert response.data[3]["type"] == ReleaseActivityType.FINISHED.name
