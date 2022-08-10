@@ -107,6 +107,19 @@ class GetSendToTeamTest(TestCase):
             NotificationSettingOptionValues.ALWAYS,
             team=self.team,
         )
+        integration = self.create_integration(
+            self.organization,
+            self.team.id,
+            name="Github Installation",
+            provider="github",
+        )
+        ExternalActor.objects.create(
+            actor=self.team.actor,
+            organization=self.team.organization,
+            integration=integration,
+            provider=ExternalProviders.GITHUB.value,
+            external_name="my-name",
+        )
 
         assert self.get_send_to_team() == {ExternalProviders.EMAIL: {self.user}}
 
