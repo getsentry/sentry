@@ -9,7 +9,7 @@ class OrganizationIntegrationIssuesEndpoint(OrganizationIntegrationBaseEndpoint)
     def put(self, request: Request, organization, integration_id) -> Response:
         """
         Migrate plugin linked issues to integration linked issues
-        ````````````````````````````````````````````````````````
+        `````````````````````````````````````````````````````````
         :pparam string organization: the organization the integration is installed in
         :pparam string integration_id: the id of the integration
         """

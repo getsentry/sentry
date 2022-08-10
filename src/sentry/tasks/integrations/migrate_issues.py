@@ -2,7 +2,6 @@ from django.db import IntegrityError, transaction
 
 from sentry.models import (
     ExternalIssue,
-    Group,
     GroupLink,
     GroupMeta,
     Integration,
@@ -40,10 +39,8 @@ def migrate_issues(integration_id: int, organization_id: int) -> None:
         ) != integration.metadata.get("base_url").rstrip("/")
         if is_different_jira_instance:
             continue
-        groups = Group.objects.filter(project=project.id)
-        # this seems expensive but I don't think there are other options
         plugin_issues = GroupMeta.objects.filter(
-            key=f"{plugin.slug}:tid", group__id__in=[group.id for group in groups]
+            key=f"{plugin.slug}:tid", group__project__id=project.id
         )
         for plugin_issue in plugin_issues:
             external_issue, _ = ExternalIssue.objects.get_or_create(
