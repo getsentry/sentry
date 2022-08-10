@@ -22,6 +22,7 @@ type Extraction = {
   crumb: Crumb;
   html: string;
   timestamp: number;
+  truncated: boolean;
 };
 
 type HookOpts = {
@@ -133,13 +134,19 @@ class BreadcrumbReferencesPlugin {
         // @ts-expect-error
         const node = mirror.getNode(crumb.data?.nodeId || '');
         // @ts-expect-error
-        const html = node?.outerHTML || node?.textContent || '';
+        const html = node?.outerHTML || node?.textContent;
 
-        this.activities.push({
-          crumb,
-          html,
-          timestamp: nextTimestamp,
-        });
+        const truncated = html?.length > 1500;
+
+        if (html) {
+          this.activities.push({
+            crumb,
+            html: truncated ? html.substring(0, 1500) : html,
+            timestamp: nextTimestamp,
+            truncated,
+          });
+        }
+
         this.crumbs.shift();
       }
     }
