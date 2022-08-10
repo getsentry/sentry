@@ -58,7 +58,7 @@ from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.metrics.query import MetricField
 from sentry.snuba.metrics.query_builder import QueryDefinition
-from sentry.testutils import BaseMetricsTestCase, TestCase
+from sentry.testutils import TestCase
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -964,7 +964,7 @@ def test_translate_meta_results_with_duplicates():
     )
 
 
-class QueryDefinitionTestCase(TestCase, BaseMetricsTestCase):
+class QueryDefinitionTestCase(TestCase):
     def test_valid_latest_release_alias_filter(self):
         self.create_release(version="foo", project=self.project)
 
