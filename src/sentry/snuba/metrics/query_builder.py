@@ -193,6 +193,7 @@ def parse_query(query_string: str, projects: Sequence[Project]) -> Sequence[Cond
             Dataset.Sessions,
             params={
                 "project_id": [project.id for project in projects],
+                "organization_id": org_id_from_projects(projects) if projects else None,
             },
         )
         where, _ = query_builder.resolve_conditions(query_string, use_aggregate_conditions=True)
