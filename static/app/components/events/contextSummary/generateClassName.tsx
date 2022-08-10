@@ -1,7 +1,7 @@
 import {defined} from 'sentry/utils';
 
-function generateClassname(name?: string, version?: string): string {
-  if (!defined(name)) {
+function generateClassname(name?: string | boolean | null, version?: string): string {
+  if (!defined(name) || typeof name === 'boolean') {
     return '';
   }
 
