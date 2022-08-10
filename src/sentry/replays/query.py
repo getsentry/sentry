@@ -171,6 +171,20 @@ def make_select_statement() -> List[Union[Column, Function]]:
             ],
             alias="traceIds",
         ),
+        Function(
+            "arrayMap",
+            parameters=[
+                Lambda(
+                    ["error_id"],
+                    Function("toString", parameters=[Identifier("error_id")]),
+                ),
+                Function(
+                    "groupUniqArrayArray",
+                    parameters=[Column("error_ids")],
+                ),
+            ],
+            alias="errorIds",
+        ),
         # Aggregations.
         Function("min", parameters=[Column("replay_start_timestamp")], alias="startedAt"),
         Function("max", parameters=[Column("timestamp")], alias="finishedAt"),
