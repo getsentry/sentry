@@ -41,7 +41,12 @@ class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
         data = serializer.validated_data
 
         try:
-            update_function(data.get("code"), function.external_id, data.get("overview", None), data["env_variables"])
+            update_function(
+                data.get("code"),
+                function.external_id,
+                data.get("overview", None),
+                data["env_variables"],
+            )
             function.update(**data)
             return Response(serialize(function), status=201)
         except FailedPrecondition:
