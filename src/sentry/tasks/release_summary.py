@@ -7,6 +7,7 @@ from sentry.models import Activity, Release, ReleaseActivity, ReleaseCommit
 from sentry.notifications.notifications.activity.release_summary import (
     ReleaseSummaryActivityNotification,
 )
+from sentry.notifications.utils.participants import _get_release_committers
 from sentry.tasks.base import instrumented_task
 from sentry.types.activity import ActivityType
 from sentry.types.releaseactivity import ReleaseActivityType
@@ -31,6 +32,12 @@ def prepare_release_summary():
             organization_id=release.organization_id, release=release
         ).exists()
         if not release_has_commits:
+            continue
+
+        # Check if any participants are members of the feature flag
+        # TODO(workflow): can remove with active-release-notification-opt-in
+        participants = _get_release_committers(release)
+        if not participants:
             continue
 
         # Find the activity created in Deploy.notify_if_ready
