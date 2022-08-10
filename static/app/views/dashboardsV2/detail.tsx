@@ -43,7 +43,7 @@ import withProjects from 'sentry/utils/withProjects';
 import {
   cloneDashboard,
   getCurrentPageFilters,
-  getReleaseParams,
+  getDashboardFiltersFromURL,
   hasSavedPageFilters,
   hasUnsavedFilterChanges,
   isWidgetUsingTransactionName,
@@ -516,9 +516,7 @@ class DashboardDetail extends Component<Props, State> {
             newModifiedDashboard = {
               ...cloneDashboard(modifiedDashboard),
               ...getCurrentPageFilters(location),
-              filters: {
-                release: getReleaseParams(location.query?.release),
-              },
+              filters: getDashboardFiltersFromURL(location) ?? modifiedDashboard.filters,
             };
           }
           createDashboard(
@@ -846,9 +844,9 @@ class DashboardDetail extends Component<Props, State> {
                       const newModifiedDashboard = {
                         ...cloneDashboard(modifiedDashboard ?? dashboard),
                         ...getCurrentPageFilters(location),
-                        filters: {
-                          release: getReleaseParams(location.query?.release),
-                        },
+                        filters:
+                          getDashboardFiltersFromURL(location) ??
+                          (modifiedDashboard ?? dashboard).filters,
                       };
                       updateDashboard(api, organization.slug, newModifiedDashboard).then(
                         (newDashboard: DashboardDetails) => {
