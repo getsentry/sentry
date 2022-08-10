@@ -82,9 +82,7 @@ const SearchBarDatePicker = ({
 
   return (
     <SearchBarFlyout
-      onMouseDown={e => {
-        e.stopPropagation();
-      }}
+      onMouseDown={e => e.stopPropagation()}
       data-test-id="search-bar-date-picker"
     >
       <DatePicker
