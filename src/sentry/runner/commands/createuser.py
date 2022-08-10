@@ -74,9 +74,6 @@ def createuser(email, password, superuser, staff, no_password, no_input, force_u
 
     from django.conf import settings
 
-    if not (settings.SENTRY_SELF_HOSTED or settings.SENTRY_SINGLE_ORGANIZATION):
-        return
-
     if not no_input:
         if not email:
             email = _get_email()
@@ -154,7 +151,7 @@ def createuser(email, password, superuser, staff, no_password, no_input, force_u
         user.set_password(password)
         user.save()
 
-    if superuser:
+    if superuser and (settings.SENTRY_SELF_HOSTED or settings.SENTRY_SINGLE_ORGANIZATION):
         _set_superadmin(user)
 
     click.echo(f"User {verb}: {email}")

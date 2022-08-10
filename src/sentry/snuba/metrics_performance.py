@@ -34,9 +34,7 @@ def resolve_tags(results: Any, query_definition: MetricsQueryBuilder) -> Any:
         for tag in tags:
             for row in results["data"]:
                 if row[tag] not in cached_resolves:
-                    resolved_tag = indexer.reverse_resolve(
-                        row[tag], use_case_id=UseCaseKey.PERFORMANCE
-                    )
+                    resolved_tag = indexer.reverse_resolve(UseCaseKey.PERFORMANCE, row[tag])
                     cached_resolves[row[tag]] = resolved_tag
                 row[tag] = cached_resolves[row[tag]]
             if tag in results["meta"]:

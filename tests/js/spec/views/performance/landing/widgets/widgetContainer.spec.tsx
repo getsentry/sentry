@@ -99,6 +99,15 @@ describe('Performance > Widgets > WidgetContainer', function () {
       url: '/organizations/org-slug/events-trends-stats/',
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events/`,
+      body: {
+        data: [{}],
+        meta: {},
+      },
+    });
   });
 
   afterEach(function () {

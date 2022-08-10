@@ -400,6 +400,17 @@ class DashboardDetail extends Component<Props, State> {
 
   handleChangeFilter = (activeFilters: DashboardFilters) => {
     const {dashboard, location} = this.props;
+    const {modifiedDashboard} = this.state;
+    const newModifiedDashboard = modifiedDashboard || dashboard;
+
+    if (
+      Object.keys(activeFilters).every(
+        key => !!!newModifiedDashboard.filters[key] && activeFilters[key].length === 0
+      )
+    ) {
+      return;
+    }
+
     if (!isEqual(activeFilters, dashboard.filters?.release)) {
       browserHistory.push({
         ...location,
