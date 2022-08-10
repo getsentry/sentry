@@ -3,9 +3,9 @@ import {Fragment} from 'react';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import {Event} from 'sentry/types';
 
-import {getUnknownData} from '../getUnknownData';
+import {geKnownData, getUnknownData} from '../utils';
 
-import {getOperatingSystemKnownData} from './getOperatingSystemKnownData';
+import {getOperatingSystemKnownDataDetails} from './getOperatingSystemKnownDataDetails';
 import {
   OperatingSystemIgnoredDataType,
   OperatingSystemKnownData,
@@ -30,7 +30,14 @@ export function OperatingSystemEventContext({data, event}: Props) {
   const meta = event._meta?.contexts?.os ?? {};
   return (
     <Fragment>
-      <ContextBlock data={getOperatingSystemKnownData({data, meta})} />
+      <ContextBlock
+        data={geKnownData<OperatingSystemKnownData, OperatingSystemKnownDataType>({
+          data,
+          meta,
+          knownDataTypes: operatingSystemKnownDataValues,
+          onGetKnownDataDetails: v => getOperatingSystemKnownDataDetails(v),
+        })}
+      />
       <ContextBlock
         data={getUnknownData({
           allData: data,

@@ -3,9 +3,9 @@ import {Fragment} from 'react';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import {Event} from 'sentry/types/event';
 
-import {getUnknownData} from '../getUnknownData';
+import {geKnownData, getUnknownData} from '../utils';
 
-import {getDeviceKnownData} from './getDeviceKnownData';
+import {getDeviceKnownDataDetails} from './getDeviceKnownDataDetails';
 import {DeviceData, DeviceKnownDataType} from './types';
 import {getInferredData} from './utils';
 
@@ -62,7 +62,17 @@ export function DeviceEventContext({data, event}: Props) {
 
   return (
     <Fragment>
-      <ContextBlock data={getDeviceKnownData({event, data: inferredData, meta})} />
+      <ContextBlock
+        data={geKnownData<DeviceData, DeviceKnownDataType>({
+          data: inferredData,
+          meta,
+          knownDataTypes: deviceKnownDataValues,
+          onGetKnownDataDetails: v => getDeviceKnownDataDetails({...v, event}),
+        }).map(v => ({
+          ...v,
+          subjectDataTestId: `device-context-${v.key.toLowerCase()}-value`,
+        }))}
+      />
       <ContextBlock
         data={getUnknownData({
           allData: inferredData,
