@@ -129,17 +129,17 @@ function CreateNewIntegrationModal({
                 }/`
           }
           onClick={() => {
-            if (option !== 'sentry-fx') {
-              trackIntegrationAnalytics(
-                option === 'public'
-                  ? PlatformEvents.CHOSE_PUBLIC
-                  : PlatformEvents.CHOSE_INTERNAL,
-                {
-                  organization,
-                  view: analyticsView,
-                }
-              );
-            }
+            trackIntegrationAnalytics(
+              option === 'sentry-fx'
+                ? PlatformEvents.CHOSE_SENTRY_FX
+                : option === 'public'
+                ? PlatformEvents.CHOSE_PUBLIC
+                : PlatformEvents.CHOSE_INTERNAL,
+              {
+                organization,
+                view: analyticsView,
+              }
+            );
           }}
         >
           {t('Next')}
