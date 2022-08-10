@@ -25,7 +25,7 @@ class ProjectReleaseActivityEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by="-date_added",
+            order_by="date_added",
             on_results=lambda x: serialize([act for act in x], request.user),
             paginator_cls=DateTimePaginator,
         )
