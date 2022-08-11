@@ -1789,6 +1789,12 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
     def test_include_release_committers_owners(self):
         with self.feature("organizations:release-committer-assignees"):
+            # project = self.create_project(name="foo")
+            release = Release.objects.create(
+                organization_id=self.project.organization_id, version="1"
+            )
+            release.add_project(self.project)
+
             event = self.store_event(
                 data={
                     "timestamp": iso_format(before_now(seconds=500)),
@@ -1797,6 +1803,36 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 },
                 project_id=self.project.id,
             )
+
+            # setup release commits
+            group = event.group
+            assert Group.objects.get(id=group.id)
+            assert GroupRelease.objects.filter(
+                group_id=group.id, organization=self.project.organization
+            ).exists()
+
+            repo = Repository.objects.create(
+                organization_id=self.project.organization_id, name=self.project.name
+            )
+            commit = Commit.objects.create(
+                organization_id=self.project.organization_id, repository_id=repo.id, key="a" * 40
+            )
+            commit2 = Commit.objects.create(
+                organization_id=self.project.organization_id, repository_id=repo.id, key="b" * 40
+            )
+            ReleaseCommit.objects.create(
+                organization_id=self.project.organization_id,
+                release=release,
+                commit=commit,
+                order=1,
+            )
+            ReleaseCommit.objects.create(
+                organization_id=self.project.organization_id,
+                release=release,
+                commit=commit2,
+                order=0,
+            )
+
             query = "status:unresolved"
             self.login_as(user=self.user)
             # Test with no owner
@@ -1805,31 +1841,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
             assert len(response.data) == 1
             assert int(response.data[0]["id"]) == event.group.id
             assert response.data[0]["owners"] is None
-
-            # setup release commits
-            group = event.group
-            assert Group.objects.get(id=group.id)
-
-            assert GroupRelease.objects.filter(group_id=group.id).exists()
-
-            project = self.create_project(name="foo")
-            release = Release.objects.create(organization_id=project.organization_id, version="1")
-            release.add_project(project)
-            repo = Repository.objects.create(
-                organization_id=project.organization_id, name=project.name
-            )
-            commit = Commit.objects.create(
-                organization_id=project.organization_id, repository_id=repo.id, key="a" * 40
-            )
-            commit2 = Commit.objects.create(
-                organization_id=project.organization_id, repository_id=repo.id, key="b" * 40
-            )
-            ReleaseCommit.objects.create(
-                organization_id=project.organization_id, release=release, commit=commit, order=1
-            )
-            ReleaseCommit.objects.create(
-                organization_id=project.organization_id, release=release, commit=commit2, order=0
-            )
 
             # Test with owners
             GroupOwner.objects.create(
@@ -1846,6 +1857,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 type=GroupOwnerType.OWNERSHIP_RULE.value,
                 team=self.team,
             )
+
             response = self.get_response(sort_by="date", limit=10, query=query, expand="owners")
             assert response.status_code == 200
             assert len(response.data) == 1
