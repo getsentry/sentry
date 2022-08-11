@@ -1,15 +1,11 @@
+import padStart from 'lodash/padStart';
+
 import {Crumb} from 'sentry/types/breadcrumbs';
 import type {ReplaySpan} from 'sentry/views/replays/types';
 
 function padZero(num: number, len = 2): string {
-  let str = String(num);
-  const threshold = Math.pow(10, len - 1);
-  if (num < threshold) {
-    while (String(threshold).length > str.length) {
-      str = '0' + num;
-    }
-  }
-  return str;
+  const str = String(num);
+  return padStart(str, len, '0');
 }
 
 const SECOND = 1000;
@@ -30,25 +26,42 @@ export function relativeTimeInMs(
 
 export function showPlayerTime(
   timestamp: ConstructorParameters<typeof Date>[0],
-  relativeTimeMs: number
+  relativeTimeMs: number,
+  showMs: boolean = false
 ): string {
-  return formatTime(relativeTimeInMs(timestamp, relativeTimeMs));
+  return formatTime(relativeTimeInMs(timestamp, relativeTimeMs), showMs);
 }
 
 // TODO: move into 'sentry/utils/formatters'
-export function formatTime(ms: number): string {
+export function formatTime(ms: number, showMs?: boolean): string {
   if (ms <= 0 || isNaN(ms)) {
+    if (showMs) {
+      return '00:00.000';
+    }
+
     return '00:00';
   }
+
   const hour = Math.floor(ms / HOUR);
   ms = ms % HOUR;
   const minute = Math.floor(ms / MINUTE);
   ms = ms % MINUTE;
   const second = Math.floor(ms / SECOND);
+
+  let formattedTime = '00:00';
+
   if (hour) {
-    return `${padZero(hour)}:${padZero(minute)}:${padZero(second)}`;
+    formattedTime = `${padZero(hour)}:${padZero(minute)}:${padZero(second)}`;
+  } else {
+    formattedTime = `${padZero(minute)}:${padZero(second)}`;
   }
-  return `${padZero(minute)}:${padZero(second)}`;
+
+  if (showMs) {
+    const milliseconds = Math.floor(ms % SECOND);
+    formattedTime = `${formattedTime}.${padZero(milliseconds, 3)}`;
+  }
+
+  return formattedTime;
 }
 
 /**
