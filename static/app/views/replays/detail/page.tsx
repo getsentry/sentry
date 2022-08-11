@@ -24,7 +24,7 @@ type Props = {
 
 function Page({children, crumbs, durationMs, orgId, replayRecord}: Props) {
   const title = replayRecord
-    ? `${replayRecord.replayId} - Replays - ${orgId}`
+    ? `${replayRecord.id} - Replays - ${orgId}`
     : `Replays - ${orgId}`;
 
   const header = (

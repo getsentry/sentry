@@ -1,26 +1,44 @@
 import type {eventWithTime} from 'rrweb/typings/types';
 
 import type {RawCrumb} from 'sentry/types/breadcrumbs';
+import type {Project} from 'sentry/types/project';
 
 // Keep this in sync with the backend blueprint
 // "ReplayRecord" is distinct from the common: "replay = new ReplayReader()"
 export type ReplayRecord = {
+  browser: {
+    name: null | string;
+    version: null | string;
+  };
   countErrors: number;
   countSegments: number;
   countUrls: number;
+  device: {
+    brand: null | string;
+    family: null | string;
+    model: null | string;
+    name: null | string;
+  };
   dist: null | string;
-  duration: number;
+  duration: number; // Seconds
   environment: null | string;
   errorIds: string[];
   finishedAt: Date; // API will send a string, needs to be hydrated
+  id: string;
   longestTransaction: number;
+  os: {
+    name: null | string;
+    version: null | string;
+  };
   platform: string;
+  project: undefined | Project;
   projectId: string;
-  projectSlug: string;
+  // projectSlug: string; // need to call `useProjects()` and look it up ourself
   release: null | string;
-  replayId: string;
-  sdkName: string;
-  sdkVersion: string;
+  sdk: {
+    name: string;
+    version: string;
+  };
   startedAt: Date; // API will send a string, needs to be hydrated
   tags: Record<string, string>;
   title: string;
@@ -29,17 +47,17 @@ export type ReplayRecord = {
   user: {
     email: null | string;
     id: null | string;
-    ipAddress: null | string;
+    ip_address: null | string; // TODO: ip_address
     name: null | string;
   };
   userAgent: string;
 };
 
 export type ReplaySegment = {
-  date_added: string;
-  project_id: number;
-  replay_id: string;
-  segment_id: number;
+  dateAdded: string;
+  projectId: string;
+  replayId: string;
+  segmentId: number;
 };
 
 export type ReplayDiscoveryListItem = {

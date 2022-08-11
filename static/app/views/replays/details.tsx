@@ -23,12 +23,12 @@ type Props = RouteComponentProps<
 
 function ReplayDetails(props: Props) {
   const {
-    params: {orgId, replaySlug},
     location: {
       query: {
         t: initialTimeOffset, // Time, in seconds, where the video should start
       },
     },
+    params: {orgId, replaySlug},
   } = props;
 
   const {fetching, onRetry, replay} = useReplayData({

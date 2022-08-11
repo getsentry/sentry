@@ -1,8 +1,11 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
+import range from 'lodash/range';
 import {inflate} from 'pako';
 
+import type {ResponseMeta} from 'sentry/api';
 import flattenListOfObjects from 'sentry/utils/replays/flattenListOfObjects';
+import useMapResponseToReplayRecord from 'sentry/utils/replays/hooks/useMapResponseToReplayRecord';
 import useReplayErrors from 'sentry/utils/replays/hooks/useReplayErrors';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import RequestError from 'sentry/utils/requestError/requestError';
@@ -12,7 +15,7 @@ import type {
   ReplayCrumb,
   ReplayError,
   ReplayRecord,
-  ReplaySegment,
+  // ReplaySegment,
   ReplaySpan,
 } from 'sentry/views/replays/types';
 
@@ -109,6 +112,30 @@ const INITIAL_STATE: State = Object.freeze({
   spans: undefined,
 });
 
+async function decompressSegmentData(
+  data: any,
+  _textStatus: string | undefined,
+  resp: ResponseMeta | undefined
+) {
+  // for non-compressed events, parse and return
+  try {
+    return mapRRWebAttachments(JSON.parse(data));
+  } catch (error) {
+    // swallow exception.. if we can't parse it, it's going to be compressed
+  }
+
+  // for non-compressed events, parse and return
+  try {
+    // for compressed events, inflate the blob and map the events
+    const responseBlob = await resp?.rawResponse.blob();
+    const responseArray = (await responseBlob?.arrayBuffer()) as Uint8Array;
+    const parsedPayload = JSON.parse(inflate(responseArray, {to: 'string'}));
+    return mapRRWebAttachments(parsedPayload);
+  } catch (error) {
+    return {};
+  }
+}
+
 /**
  * A react hook to load core replay data over the network.
  *
@@ -131,52 +158,37 @@ function useReplayData({replaySlug, orgId}: Options): Result {
   const [projectId, replayId] = replaySlug.split(':');
 
   const api = useApi();
+  const mapResponseToReplayRecord = useMapResponseToReplayRecord();
   const [state, setState] = useState<State>(INITIAL_STATE);
 
-  const fetchReplay = useCallback(() => {
-    return api.requestPromise(
+  // Fetch every field of the replay. We're overfetching, not every field is needed
+  const fetchReplay = useCallback(async () => {
+    const response = await api.requestPromise(
       `/projects/${orgId}/${projectId}/replays/${replayId}/`
-    ) as Promise<{data: ReplayRecord}>;
+    );
+    return response.data;
   }, [api, orgId, projectId, replayId]);
 
-  const fetchRRWebEvents = useCallback(async () => {
-    // TODO(replay): can we use 'count_sequences' instead of making another (N) calls to list the segments available
-    const segments = (await api.requestPromise(
-      `/projects/${orgId}/${projectId}/replays/${replayId}/recording-segments/`
-    )) as {data: ReplaySegment[]};
+  const fetchRRWebEvents = useCallback(
+    async (segmentIds: number[]) => {
+      const attachments = await Promise.all(
+        segmentIds.map(async segmentId => {
+          const response = await api.requestPromise(
+            `/projects/${orgId}/${projectId}/replays/${replayId}/recording-segments/${segmentId}/?download`,
+            {
+              includeAllArgs: true,
+            }
+          );
 
-    const attachments = await Promise.all(
-      segments.data.map(async segment => {
-        const response = await api.requestPromise(
-          `/projects/${orgId}/${projectId}/replays/${replayId}/recording-segments/${segment.segment_id}/?download`,
-          {
-            includeAllArgs: true,
-          }
-        );
+          return decompressSegmentData(...response);
+        })
+      );
 
-        // for non-compressed events, parse and return
-        try {
-          return mapRRWebAttachments(JSON.parse(response[0]));
-        } catch (error) {
-          // swallow exception.. if we can't parse it, it's going to be compressed
-        }
-
-        // for non-compressed events, parse and return
-        try {
-          // for compressed events, inflate the blob and map the events
-          const responseBlob = await response[2]?.rawResponse.blob();
-          const responseArray = (await responseBlob?.arrayBuffer()) as Uint8Array;
-          const parsedPayload = JSON.parse(inflate(responseArray, {to: 'string'}));
-          return mapRRWebAttachments(parsedPayload);
-        } catch (error) {
-          return {};
-        }
-      })
-    );
-
-    // ReplayAttachment[] => ReplayAttachment (merge each key of ReplayAttachment)
-    return flattenListOfObjects(attachments);
-  }, [api, replayId, orgId, projectId]);
+      // ReplayAttachment[] => ReplayAttachment (merge each key of ReplayAttachment)
+      return flattenListOfObjects(attachments);
+    },
+    [api, replayId, orgId, projectId]
+  );
 
   const {isLoading: isErrorsFetching, data: errors} = useReplayErrors({
     replayId,
@@ -197,18 +209,17 @@ function useReplayData({replaySlug, orgId}: Options): Result {
     setState(INITIAL_STATE);
 
     try {
-      const [replayResponse, attachments] = await Promise.all([
-        fetchReplay(),
-        fetchRRWebEvents(),
-      ]);
+      const record = await fetchReplay();
+
+      // Instead of fetching the list of segments from the segment list endpoint
+      // we're going to execute `N=record.countSegments` requests and assume that
+      // all segmentId's exist.
+      // `/projects/${orgId}/${projectId}/replays/${replayId}/recording-segments/`
+      const attachments = await fetchRRWebEvents(range(record.countSegments));
 
       setState(prev => ({
         ...prev,
-        replayRecord: {
-          ...replayResponse.data,
-          started_at: new Date(replayResponse.data.started_at),
-          finished_at: new Date(replayResponse.data.finished_at),
-        },
+        replayRecord: mapResponseToReplayRecord(record),
         fetchError: undefined,
         fetching: prev.isErrorsFetching || false,
         rrwebEvents: attachments.recording,
@@ -223,7 +234,7 @@ function useReplayData({replaySlug, orgId}: Options): Result {
         fetching: false,
       });
     }
-  }, [fetchReplay, fetchRRWebEvents]);
+  }, [fetchReplay, fetchRRWebEvents, mapResponseToReplayRecord]);
 
   useEffect(() => {
     loadEvents();
