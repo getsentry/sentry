@@ -70,6 +70,10 @@ describe('ReleaseActivity', () => {
     expect(await screen.findByText('Release Created')).toBeInTheDocument();
     expect(screen.getByText('Deployed to production')).toBeInTheDocument();
     expect(screen.getByText(group.culprit)).toBeInTheDocument();
-    expect(screen.getByText('Waiting for issues in this release...')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Waiting for new issues in this release to notify release participants ...'
+      )
+    ).toBeInTheDocument();
   });
 });

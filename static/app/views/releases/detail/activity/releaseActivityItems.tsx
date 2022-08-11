@@ -43,7 +43,9 @@ export function ReleaseActivityWaiting() {
       iconColor="gray500"
       hideConnector
     >
-      <WaitingContainer>{t('Waiting for issues in this release...')}</WaitingContainer>
+      <WaitingContainer>
+        {t('Waiting for new issues in this release to notify release participants ...')}
+      </WaitingContainer>
     </ReleaseActivityRow>
   );
 }
