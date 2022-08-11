@@ -35,5 +35,5 @@ const ThreadId = styled(TextOverflow)`
 `;
 
 const Label = styled(ThreadId)`
-  color: ${p => p.theme.blue300};
+  font-weight: 400;
 `;

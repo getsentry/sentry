@@ -13,8 +13,8 @@ function getView({
   view,
 }: {
   data: Props['data'];
-  meta: Record<any, any>;
   view: View;
+  meta?: Record<any, any>;
 }) {
   switch (view) {
     case 'report':
@@ -40,8 +40,8 @@ function getView({
 
 type Props = {
   data: Record<string, any> | null;
-  meta: Record<string, any>;
   type: string;
+  meta?: Record<string, any>;
 };
 
 type View = 'report' | 'raw';

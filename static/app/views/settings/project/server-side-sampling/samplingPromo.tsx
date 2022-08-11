@@ -11,11 +11,17 @@ import {SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
 
 type Props = {
   hasAccess: boolean;
+  isProjectIncompatible: boolean;
   onGetStarted: () => void;
   onReadDocs: () => void;
 };
 
-export function SamplingPromo({onGetStarted, onReadDocs, hasAccess}: Props) {
+export function SamplingPromo({
+  onGetStarted,
+  onReadDocs,
+  hasAccess,
+  isProjectIncompatible,
+}: Props) {
   return (
     <OnboardingPanel image={<img src={onboardingServerSideSampling} />}>
       <h3>{t('Sample for relevancy')}</h3>
@@ -28,7 +34,7 @@ export function SamplingPromo({onGetStarted, onReadDocs, hasAccess}: Props) {
         <Button
           priority="primary"
           onClick={onGetStarted}
-          disabled={!hasAccess}
+          disabled={!hasAccess || isProjectIncompatible}
           title={hasAccess ? undefined : t('You do not have permission to set up rules')}
         >
           {t('Start Setup')}

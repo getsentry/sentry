@@ -90,7 +90,9 @@ type Props = {
 };
 
 const ReleasesPromo = ({organization, project}: Props) => {
-  const {data, renderComponent, isLoading} = useApiRequests({
+  const {data, renderComponent, isLoading} = useApiRequests<{
+    internalIntegrations: SentryApp[];
+  }>({
     endpoints: [
       [
         'internalIntegrations',
@@ -105,7 +107,7 @@ const ReleasesPromo = ({organization, project}: Props) => {
   const [selectedItem, selectItem] = useState<Pick<Item, 'label' | 'value'> | null>(null);
 
   useEffect(() => {
-    if (!isLoading) {
+    if (!isLoading && data.internalIntegrations) {
       setIntegrations(data.internalIntegrations);
     }
   }, [isLoading, data.internalIntegrations]);

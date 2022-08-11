@@ -292,19 +292,20 @@ const TriggerTitleText = styled('h4')`
 const TriggerStep = styled('div')`
   display: grid;
   grid-template-columns: 40px 1fr;
-  align-items: flex-start;
+  align-items: stretch;
 `;
 
 const TriggerActions = styled('div')`
   display: grid;
   grid-template-columns: repeat(1fr);
   gap: ${space(0.25)};
+  align-items: center;
 `;
 
 const TriggerText = styled('span')`
   display: block;
   background-color: ${p => p.theme.surface100};
-  padding: 0 ${space(0.75)};
+  padding: ${space(0.25)} ${space(0.75)};
   border-radius: ${p => p.theme.borderRadius};
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeSmall};
