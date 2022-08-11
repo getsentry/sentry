@@ -198,96 +198,98 @@ export function TraceEventDataSection({
       title={
         <Header>
           <Title>{cloneElement(title, {type})}</Title>
-          {!stackTraceNotFound && (
-            <Fragment>
-              {!state.display.includes('raw-stack-trace') && (
-                <Tooltip
-                  title={t('Only full version available')}
-                  disabled={hasAppOnlyFrames}
-                >
-                  <ButtonBar active={state.fullStackTrace ? 'full' : 'relevant'} merged>
-                    <Button
-                      type="button"
-                      size="xs"
-                      barId="relevant"
-                      onClick={() =>
-                        setState({
-                          ...state,
-                          fullStackTrace: false,
-                        })
-                      }
-                      disabled={!hasAppOnlyFrames}
-                    >
-                      {t('Most Relevant')}
-                    </Button>
-                    <Button
-                      type="button"
-                      size="xs"
-                      barId="full"
-                      priority={!hasAppOnlyFrames ? 'primary' : undefined}
-                      onClick={() =>
-                        setState({
-                          ...state,
-                          fullStackTrace: true,
-                        })
-                      }
-                    >
-                      {t('Full Stack Trace')}
-                    </Button>
-                  </ButtonBar>
-                </Tooltip>
-              )}
-              {state.display.includes('raw-stack-trace') && nativePlatform && (
-                <Button
-                  size="xs"
-                  href={rawStackTraceDownloadLink}
-                  title={t('Download raw stack trace file')}
-                >
-                  {t('Download')}
-                </Button>
-              )}
-              <CompactSelect
-                triggerProps={{
-                  icon: <IconSort />,
-                  size: 'xs',
-                  title: sortByTooltip,
-                }}
-                isDisabled={!!sortByTooltip}
-                placement="bottom right"
-                onChange={selectedOption => {
-                  setState({...state, sortBy: selectedOption.value});
-                }}
-                value={state.sortBy}
-                options={Object.entries(sortByOptions).map(([value, label]) => ({
-                  label,
-                  value,
-                }))}
-              />
-              <CompositeSelect
-                triggerProps={{
-                  icon: <IconEllipsis />,
-                  size: 'xs',
-                  showChevron: false,
-                  'aria-label': t('Options'),
-                }}
-                triggerLabel=""
-                placement="bottom right"
-                sections={[
-                  {
-                    label: t('Display'),
-                    value: 'display',
-                    defaultValue: state.display,
-                    multiple: true,
-                    options: getDisplayOptions().map(option => ({
-                      ...option,
-                      value: String(option.value),
-                    })),
-                    onChange: display => setState({...state, display}),
-                  },
-                ]}
-              />
-            </Fragment>
-          )}
+          <ActionWrapper>
+            {!stackTraceNotFound && (
+              <Fragment>
+                {!state.display.includes('raw-stack-trace') && (
+                  <Tooltip
+                    title={t('Only full version available')}
+                    disabled={hasAppOnlyFrames}
+                  >
+                    <ButtonBar active={state.fullStackTrace ? 'full' : 'relevant'} merged>
+                      <Button
+                        type="button"
+                        size="xs"
+                        barId="relevant"
+                        onClick={() =>
+                          setState({
+                            ...state,
+                            fullStackTrace: false,
+                          })
+                        }
+                        disabled={!hasAppOnlyFrames}
+                      >
+                        {t('Most Relevant')}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="xs"
+                        barId="full"
+                        priority={!hasAppOnlyFrames ? 'primary' : undefined}
+                        onClick={() =>
+                          setState({
+                            ...state,
+                            fullStackTrace: true,
+                          })
+                        }
+                      >
+                        {t('Full Stack Trace')}
+                      </Button>
+                    </ButtonBar>
+                  </Tooltip>
+                )}
+                {state.display.includes('raw-stack-trace') && nativePlatform && (
+                  <Button
+                    size="xs"
+                    href={rawStackTraceDownloadLink}
+                    title={t('Download raw stack trace file')}
+                  >
+                    {t('Download')}
+                  </Button>
+                )}
+                <CompactSelect
+                  triggerProps={{
+                    icon: <IconSort />,
+                    size: 'xs',
+                    title: sortByTooltip,
+                  }}
+                  isDisabled={!!sortByTooltip}
+                  placement="bottom right"
+                  onChange={selectedOption => {
+                    setState({...state, sortBy: selectedOption.value});
+                  }}
+                  value={state.sortBy}
+                  options={Object.entries(sortByOptions).map(([value, label]) => ({
+                    label,
+                    value,
+                  }))}
+                />
+                <CompositeSelect
+                  triggerProps={{
+                    icon: <IconEllipsis />,
+                    size: 'xs',
+                    showChevron: false,
+                    'aria-label': t('Options'),
+                  }}
+                  triggerLabel=""
+                  placement="bottom right"
+                  sections={[
+                    {
+                      label: t('Display'),
+                      value: 'display',
+                      defaultValue: state.display,
+                      multiple: true,
+                      options: getDisplayOptions().map(option => ({
+                        ...option,
+                        value: String(option.value),
+                      })),
+                      onChange: display => setState({...state, display}),
+                    },
+                  ]}
+                />
+              </Fragment>
+            )}
+          </ActionWrapper>
         </Header>
       }
       showPermalink={false}
@@ -343,7 +345,12 @@ const Header = styled('div')`
 
 const Title = styled('div')`
   flex: 1;
-  & > *:first-child {
-    width: auto;
+  @media (min-width: ${props => props.theme.breakpoints.small}) {
+    flex: unset;
   }
+`;
+
+const ActionWrapper = styled('div')`
+  display: flex;
+  gap: ${space(1)};
 `;

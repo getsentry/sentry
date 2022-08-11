@@ -110,7 +110,6 @@ const ThreadSelector = ({
 export default ThreadSelector;
 
 const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
-  width: 100%;
   min-width: 300px;
   @media (min-width: ${theme.breakpoints.small}) {
     width: 500px;
@@ -122,11 +121,14 @@ const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
 
 const StyledDropdownButton = styled(DropdownButton)`
   > *:first-child {
-    grid-template-columns: 1fr 15px;
+    justify-content: space-between;
+    width: 100%;
   }
   width: 100%;
   min-width: 150px;
-  @media (min-width: ${props => props.theme.breakpoints.xlarge}) {
-    max-width: 420px;
+  @media (min-width: ${props => props.theme.breakpoints.small}) {
+    > *:first-child {
+      width: auto;
+    }
   }
 `;
