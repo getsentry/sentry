@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 pytestmark = pytest.mark.sentry_metrics
 
-MESSAGE_PROCESSOR = MessageProcessor(UseCaseKey.RELEASE_HEALTH)
+MESSAGE_PROCESSOR = MessageProcessor(get_ingest_config(UseCaseKey.RELEASE_HEALTH, "test-db"))
 
 
 def compare_messages_ignoring_mapping_metadata(actual: Message, expected: Message) -> None:
@@ -295,7 +295,7 @@ def test_process_messages() -> None:
 
 
 def test_transform_step() -> None:
-    config = get_ingest_config(UseCaseKey.RELEASE_HEALTH)
+    config = get_ingest_config(UseCaseKey.RELEASE_HEALTH, INDEXER_DB)
 
     message_payloads = [counter_payload, distribution_payload, set_payload]
 

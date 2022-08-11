@@ -3,7 +3,7 @@ import logging
 from arroyo.types import Message
 
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.configuration import MetricsIngestConfiguration
 from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch
 from sentry.sentry_metrics.consumers.indexer.common import MessageBatch
 from sentry.utils import metrics
@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 class MessageProcessor:
     # todo: update message processor to take config instead of just use case
     # and use the config to initialize indexer vs using service model
-    def __init__(self, use_case_id: UseCaseKey):
-        self._use_case_id = use_case_id
+    def __init__(self, config: MetricsIngestConfiguration):
+        self._config = config
         self._indexer = indexer
 
     def process_messages(
@@ -40,13 +40,13 @@ class MessageProcessor:
         The value of the message is what we need to parse and then translate
         using the indexer.
         """
-        batch = IndexerBatch(self._use_case_id, outer_message)
+        batch = IndexerBatch(self._config.use_case_id, outer_message)
 
         org_strings = batch.extract_strings()
 
         with metrics.timer("metrics_consumer.bulk_record"):
             record_result = self._indexer.bulk_record(
-                use_case_id=self._use_case_id, org_strings=org_strings
+                use_case_id=self._config.use_case_id, org_strings=org_strings
             )
 
         mapping = record_result.get_mapped_results()

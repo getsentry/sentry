@@ -17,6 +17,8 @@ from sentry.sentry_metrics.consumers.last_seen_updater import (
 from sentry.sentry_metrics.indexer.postgres.models import StringIndexer
 from sentry.testutils.cases import TestCase
 
+INDEXER_DB = "test-db"
+
 
 def mixed_payload():
     return bytes(
@@ -96,7 +98,7 @@ class TestLastSeenUpdaterEndToEnd(TestCase):
     @staticmethod
     def processing_factory():
         return _last_seen_updater_processing_factory(
-            ingest_config=get_ingest_config(UseCaseKey.RELEASE_HEALTH),
+            ingest_config=get_ingest_config(UseCaseKey.RELEASE_HEALTH, INDEXER_DB),
             max_batch_time=1.0,
             max_batch_size=1,
         )
