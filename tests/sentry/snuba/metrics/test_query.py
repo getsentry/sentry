@@ -110,7 +110,7 @@ def test_validate_select():
     with pytest.raises(
         InvalidParams,
         match=(
-            "Invalid operation 'foo'. Must be one of avg, count_unique, count, max, sum, "
+            "Invalid operation 'foo'. Must be one of avg, count_unique, count, max, min, sum, "
             "histogram, p50, p75, p90, p95, p99"
         ),
     ):
@@ -142,7 +142,7 @@ def test_validate_order_by():
     with pytest.raises(
         InvalidParams,
         match=(
-            "Invalid operation 'foo'. Must be one of avg, count_unique, count, max, sum, "
+            "Invalid operation 'foo'. Must be one of avg, count_unique, count, max, min, sum, "
             "histogram, p50, p75, p90, p95, p99"
         ),
     ):
