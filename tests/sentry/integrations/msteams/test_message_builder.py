@@ -392,6 +392,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert "Unassign" == assign_action["title"]
 
 
+@customer_silo_test
 class MSTeamsNotificationMessageBuilderTest(TestCase):
     def setUp(self):
         owner = self.create_user()

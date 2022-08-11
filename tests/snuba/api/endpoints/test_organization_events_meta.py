@@ -363,6 +363,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
         assert int(response.data[0]["id"]) == event.group_id
 
 
+@customer_silo_test
 class OrganizationEventsMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
     def setUp(self):
         super().setUp()

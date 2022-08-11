@@ -6,6 +6,7 @@ from sentry.testutils.helpers.notifications import (
     DummyNotification,
     DummyNotificationWithMoreFields,
 )
+from sentry.testutils.servermode import customer_silo_test
 
 TEST_CARD = {"type": "test_card"}
 
@@ -27,6 +28,7 @@ TEST_CARD = {"type": "test_card"}
     Mock(return_value={"members": [{"user": "some_user", "tenantId": "some_tenant_id"}]}),
 )
 @patch("sentry.integrations.msteams.MsTeamsAbstractClient.send_card")
+@customer_silo_test
 class MSTeamsNotificationTest(TestCase):
     def _install_msteams_personal(self):
         self.tenant_id = "50cccd00-7c9c-4b32-8cda-58a084f9334a"

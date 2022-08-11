@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, Mock, patch
 from sentry.models import Activity
 from sentry.notifications.notifications.activity import UnassignedActivityNotification
 from sentry.testutils.cases import MSTeamsActivityNotificationTest
+from sentry.testutils.servermode import customer_silo_test
 from sentry.types.activity import ActivityType
 
 
@@ -11,6 +12,7 @@ from sentry.types.activity import ActivityType
     Mock(return_value="some_conversation_id"),
 )
 @patch("sentry.integrations.msteams.MsTeamsAbstractClient.send_card")
+@customer_silo_test
 class MSTeamsUnassignedNotificationTest(MSTeamsActivityNotificationTest):
     def test_unassigned(self, mock_send_card: MagicMock):
         """
