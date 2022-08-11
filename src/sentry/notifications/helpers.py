@@ -39,6 +39,11 @@ def _get_notification_setting_default(
     Slack notifications if they install Slack and link their identity.
     Approval notifications always default to Slack being on.
     """
+    from sentry.models import Team
+
+    # every team default is off
+    if isinstance(recipient, Team):
+        return NotificationSettingOptionValues.NEVER
     return NOTIFICATION_SETTING_DEFAULTS[provider][type]
 
 

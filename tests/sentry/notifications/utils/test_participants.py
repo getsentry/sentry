@@ -142,7 +142,8 @@ class GetSendToTeamTest(TestCase):
         project_2 = self.create_project(organization=self.organization, teams=[team_2])
 
         assert self.get_send_to_team(project_2, team_2.id) == {
-            ExternalProviders.SLACK: {team_2},
+            ExternalProviders.EMAIL: {user_2},
+            ExternalProviders.SLACK: {user_2},
         }
         assert self.get_send_to_team(self.project, team_2.id) == {}
 
@@ -153,7 +154,8 @@ class GetSendToTeamTest(TestCase):
         project_2 = self.create_project(organization=org_2, teams=[team_2])
 
         assert self.get_send_to_team(project_2, team_2.id) == {
-            ExternalProviders.SLACK: {team_2},
+            ExternalProviders.EMAIL: {user_2},
+            ExternalProviders.SLACK: {user_2},
         }
         assert self.get_send_to_team(self.project, team_2.id) == {}
 
@@ -259,12 +261,6 @@ class GetSendToOwnersTest(TestCase):
         )
 
         # turn off slack for teams
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.NEVER,
-            team=self.team,
-        )
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
