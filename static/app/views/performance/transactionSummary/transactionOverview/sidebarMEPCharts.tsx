@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
-// eslint-disable-next-line no-restricted-imports
 import {InjectedRouter, withRouter, WithRouterProps} from 'react-router';
+// eslint-disable-next-line no-restricted-imports
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -73,8 +73,16 @@ type Props = Pick<ContainerProps, 'organization' | 'isLoading' | 'error' | 'tota
 };
 
 function SidebarCharts(props: Props) {
-  const {isShowingMetricsEventCount, start, end, utc, router, statsPeriod, chartData} =
-    props;
+  const {
+    isShowingMetricsEventCount,
+    start,
+    end,
+    utc,
+    router,
+    statsPeriod,
+    chartData,
+    metricsChartData,
+  } = props;
   const placeholderHeight = isShowingMetricsEventCount ? '200px' : '300px';
   const boxHeight = isShowingMetricsEventCount ? '300px' : '400px';
   return (
@@ -116,6 +124,25 @@ function SidebarCharts(props: Props) {
   );
 }
 
+function getDataCounts({
+  chartData,
+  metricsChartData,
+}: {
+  chartData?: ChartData;
+  metricsChartData?: ChartData;
+}) {
+  const transactionCount =
+    chartData?.series[0]?.data.reduce((sum, {value}) => sum + value, 0) ?? 0;
+  const metricsCount =
+    metricsChartData?.series[0]?.data.reduce((sum, {value}) => sum + value, 0) ?? 0;
+  const missingMetrics = !metricsCount && transactionCount;
+  return {
+    transactionCount,
+    metricsCount,
+    missingMetrics,
+  };
+}
+
 function ChartLabels({
   organization,
   isLoading,
@@ -130,10 +157,11 @@ function ChartLabels({
   );
 
   if (isShowingMetricsEventCount) {
-    const transactionCount =
-      chartData?.series[0]?.data.reduce((sum, {value}) => sum + value, 0) ?? 0;
-    const metricsCount =
-      metricsChartData?.series[0]?.data.reduce((sum, {value}) => sum + value, 0) ?? 0;
+    const {transactionCount, metricsCount, missingMetrics} = getDataCounts({
+      chartData,
+      metricsChartData,
+    });
+
     return (
       <Fragment>
         <ChartLabel top="0px">
@@ -153,10 +181,14 @@ function ChartLabels({
             error={error}
             value={
               totals
-                ? tct('[txnCount] of [metricCount]', {
-                    txnCount: formatAbbreviatedNumber(transactionCount),
-                    metricCount: formatAbbreviatedNumber(metricsCount),
-                  })
+                ? missingMetrics
+                  ? tct('[txnCount]', {
+                      txnCount: formatAbbreviatedNumber(transactionCount),
+                    })
+                  : tct('[txnCount] of [metricCount]', {
+                      txnCount: formatAbbreviatedNumber(transactionCount),
+                      metricCount: formatAbbreviatedNumber(metricsCount),
+                    })
                 : null
             }
           />
@@ -500,6 +532,12 @@ function SidebarChartsContainer({
                   }))
                 : [];
 
+              const chartData = {series, errored, loading, reloading, chartOptions};
+              const _metricsChartData = {
+                ...metricsChartData,
+                series: metricSeries,
+                chartOptions,
+              };
               if (isShowingMetricsEventCount && metricSeries.length) {
                 const countSeries = series[0];
 
@@ -511,19 +549,27 @@ function SidebarChartsContainer({
                     series[0] = {...countSeries, ...trimmed};
                   }
                 }
+
+                const {missingMetrics} = getDataCounts({
+                  chartData,
+                  metricsChartData: _metricsChartData,
+                });
+
                 const metricsCountSeries = metricSeries[0];
-                if (metricsCountSeries) {
-                  metricsCountSeries.seriesName = t('Processed Events');
-                  metricsCountSeries.lineStyle = {
-                    type: 'dashed',
-                    width: 1.5,
-                  };
-                  const trimmed = trimLeadingTrailingZeroCounts(metricsCountSeries);
-                  if (trimmed) {
-                    metricSeries[0] = {...metricsCountSeries, ...trimmed};
+                if (!missingMetrics) {
+                  if (metricsCountSeries) {
+                    metricsCountSeries.seriesName = t('Processed Events');
+                    metricsCountSeries.lineStyle = {
+                      type: 'dashed',
+                      width: 1.5,
+                    };
+                    const trimmed = trimLeadingTrailingZeroCounts(metricsCountSeries);
+                    if (trimmed) {
+                      metricSeries[0] = {...metricsCountSeries, ...trimmed};
+                    }
                   }
+                  series.push(metricsCountSeries);
                 }
-                series.push(metricsCountSeries);
               }
 
               return (
@@ -532,13 +578,9 @@ function SidebarChartsContainer({
                   transactionName={transactionName}
                   location={location}
                   eventView={eventView}
-                  chartData={{series, errored, loading, reloading, chartOptions}}
+                  chartData={chartData}
                   isShowingMetricsEventCount={isShowingMetricsEventCount}
-                  metricsChartData={{
-                    ...metricsChartData,
-                    series: metricSeries,
-                    chartOptions,
-                  }}
+                  metricsChartData={_metricsChartData}
                 />
               );
             }}
