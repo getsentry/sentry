@@ -32,6 +32,7 @@ export type SearchEventParameters = {
     multi: boolean;
   };
   'search.operator_autocompleted': SearchEventBase & {search_operator: string};
+  'search.search_with_invalid': SearchEventBase;
   'search.searched': SearchEventBase & {search_source?: string};
   'search.shortcut_used': SearchEventBase & {
     shortcut_method: 'hotkey' | 'click';
@@ -52,6 +53,7 @@ export const searchEventMap: Record<SearchEventKey, string | null> = {
   'search.searched': 'Search: Performed search',
   'search.operator_autocompleted': 'Search: Operator Autocompleted',
   'search.shortcut_used': 'Search: Shortcut Used',
+  'search.search_with_invalid': 'Search: Attempted Invalid Search',
   'organization_saved_search.selected':
     'Organization Saved Search: Selected saved search',
   'settings_search.open': 'settings_search Open',

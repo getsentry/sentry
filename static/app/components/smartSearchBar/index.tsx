@@ -425,19 +425,20 @@ class SmartSearchBar extends Component<Props, State> {
   async doSearch() {
     this.blur();
 
+    const query = removeSpace(this.state.query);
+    const {organization, savedSearchType, searchSource} = this.props;
+
     if (!this.hasValidSearch) {
+      trackAdvancedAnalyticsEvent('search.search_with_invalid', {
+        organization,
+        query,
+        search_type: savedSearchType === 0 ? 'issues' : 'events',
+        search_source: searchSource,
+      });
       return;
     }
 
-    const query = removeSpace(this.state.query);
-    const {
-      onSearch,
-      onSavedRecentSearch,
-      api,
-      organization,
-      savedSearchType,
-      searchSource,
-    } = this.props;
+    const {onSearch, onSavedRecentSearch, api} = this.props;
     trackAdvancedAnalyticsEvent('search.searched', {
       organization,
       query,
