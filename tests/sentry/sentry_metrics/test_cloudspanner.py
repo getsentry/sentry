@@ -14,16 +14,6 @@ def test_spanner_indexer_service():
     span_indexer.setup()
     span_indexer.validate()
 
-    CloudSpannerModel = CloudSpannerIndexer.CloudSpannerModel(
-        id=10000,
-        decoded_id=12345,
-        string="string",
-        organization_id=20000,
-        date_added=datetime.datetime.now(),
-        last_seen=datetime.datetime.now(),
-        retention_days=90,
-    )
-
 
 @pytest.mark.skip(reason="TODO: Implement it correctly")
 def test_spanner_indexer_write_dml():

@@ -17,9 +17,9 @@ class SpannerIndexerModel:
 
     def to_values_format_dml(self) -> str:
         """
-        Returns a string in the format of (id, string, organization_id,
-        date_added, last_seen, retention_days) which can be used in the
-        VALUES section of INSERT statement.
+        Returns a string in the format of (id, decoded_id, string,
+        organization_id, date_added, last_seen, retention_days) which can be
+        used in the VALUES section of INSERT statement.
         # TODO: Revisit this later for SQL injection.
         """
         parametrized_format = "(%d, %d, '%s', %d, '%s', '%s', %d)"
