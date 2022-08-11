@@ -1594,7 +1594,7 @@ class SmartSearchBar extends Component<Props, State> {
     if (clauseStart !== null && clauseEnd !== null) {
       const beforeClause = query.substring(0, clauseStart);
       const endClause = query.substring(clauseEnd);
-      // Adds a space between the relaceToken and endClause when necessary
+      // Adds a space between the replaceToken and endClause when necessary
       const replaceTokenEndClauseJoiner =
         !endClause ||
         endClause.startsWith(' ') ||
