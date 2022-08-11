@@ -1,4 +1,4 @@
-from typing import Any, Mapping, Optional, Set
+from typing import Mapping, Optional, Set
 
 from django.conf import settings
 from google.cloud import spanner
@@ -85,5 +85,9 @@ class RawCloudSpannerIndexer(StringIndexer):
 
 
 class CloudSpannerIndexer(StaticStringIndexer):
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(CachingIndexer(indexer_cache, RawCloudSpannerIndexer(**kwargs)))
+    def __init__(self) -> None:
+        instance = settings.SENTRY_METRICS_CLOUDSPANNER_INSTANCE
+        db = settings.SENTRY_METRICS_CLOUDSPANNER_DB
+        assert instance is not None, "CloudSpanner instance not configured"
+        assert db is not None, "CloudSpanner DB not configured"
+        super().__init__(CachingIndexer(indexer_cache, RawCloudSpannerIndexer(instance, db)))
