@@ -40,7 +40,8 @@ class MetricsDatasetConfig(DatasetConfig):
             "transaction.duration": self._duration_filter_converter,  # Only for dry_run
             "environment": self.builder._environment_filter_converter,
             "transaction": self._transaction_filter_converter,
-            "title": self._transaction_filter_converter,
+            "tags[transaction]": self._transaction_filter_converter,
+            constants.TITLE_ALIAS: self._transaction_filter_converter,
         }
 
     @property
@@ -52,6 +53,7 @@ class MetricsDatasetConfig(DatasetConfig):
             constants.TITLE_ALIAS: self._resolve_title_alias,
             constants.PROJECT_THRESHOLD_CONFIG_ALIAS: lambda _: self._resolve_project_threshold_config,
             "transaction": self._resolve_transaction_alias,
+            "tags[transaction]": self._resolve_transaction_alias,
         }
 
     def resolve_metric(self, value: str) -> int:
@@ -195,7 +197,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                         "equals",
                                         [
                                             self.builder.column("transaction"),
-                                            self.resolve_tag_value("<< unparameterized >>"),
+                                            self.builder.resolve_tag_value("<< unparameterized >>"),
                                         ],
                                     ),
                                 ],
@@ -261,7 +263,9 @@ class MetricsDatasetConfig(DatasetConfig):
                                                 "notEquals",
                                                 [
                                                     self.builder.column("transaction"),
-                                                    self.resolve_tag_value("<< unparameterized >>"),
+                                                    self.builder.resolve_tag_value(
+                                                        "<< unparameterized >>"
+                                                    ),
                                                 ],
                                             ),
                                         ],
@@ -446,7 +450,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     calculated_args=[
                         {
                             "name": "resolved_val",
-                            "fn": lambda args: self.resolve_tag_value(args["if_val"]),
+                            "fn": lambda args: self.builder.resolve_tag_value(args["if_val"]),
                         }
                     ],
                     snql_counter=lambda args, alias: Function(
@@ -510,7 +514,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     calculated_args=[
                         {
                             "name": "resolved_val",
-                            "fn": lambda args: self.resolve_tag_value(args["if_val"]),
+                            "fn": lambda args: self.builder.resolve_tag_value(args["if_val"]),
                         }
                     ],
                     snql_set=lambda args, alias: Function(
@@ -681,8 +685,8 @@ class MetricsDatasetConfig(DatasetConfig):
             "transform",
             [
                 Column(f"tags[{self.resolve_value('transaction')}]"),
-                [0],
-                [self.resolve_tag_value("<< unparameterized >>")],
+                [0 if not self.builder.tag_values_are_strings else ""],
+                [self.builder.resolve_tag_value("<< unparameterized >>")],
             ],
             alias,
         )
@@ -765,7 +769,7 @@ class MetricsDatasetConfig(DatasetConfig):
                 # and no project configs were set, we can skip it in the final query
                 continue
 
-            transaction_id = self.resolve_tag_value(transaction)
+            transaction_id = self.builder.resolve_tag_value(transaction)
             # Don't add to the config if we can't resolve it
             if transaction_id is None:
                 continue
@@ -907,9 +911,9 @@ class MetricsDatasetConfig(DatasetConfig):
                 return None
 
         if isinstance(value, list):
-            value = [self.resolve_tag_value(v) for v in value]
+            value = [self.builder.resolve_tag_value(v) for v in value]
         else:
-            value = self.resolve_tag_value(value)
+            value = self.builder.resolve_tag_value(value)
 
         return Condition(Column(f"tags[{self.resolve_value('transaction')}]"), Op(operator), value)
 
@@ -946,8 +950,8 @@ class MetricsDatasetConfig(DatasetConfig):
                 "Cannot query apdex with a threshold parameter on the metrics dataset"
             )
 
-        metric_satisfied = self.resolve_tag_value(constants.METRIC_SATISFIED_TAG_VALUE)
-        metric_tolerated = self.resolve_tag_value(constants.METRIC_TOLERATED_TAG_VALUE)
+        metric_satisfied = self.builder.resolve_tag_value(constants.METRIC_SATISFIED_TAG_VALUE)
+        metric_tolerated = self.builder.resolve_tag_value(constants.METRIC_TOLERATED_TAG_VALUE)
 
         # Nothing is satisfied or tolerated, the score must be 0
         if metric_satisfied is None and metric_tolerated is None:
@@ -1016,7 +1020,7 @@ class MetricsDatasetConfig(DatasetConfig):
             raise IncompatibleMetricsQuery(
                 "Cannot query misery with a threshold parameter on the metrics dataset"
             )
-        metric_frustrated = self.resolve_tag_value(constants.METRIC_FRUSTRATED_TAG_VALUE)
+        metric_frustrated = self.builder.resolve_tag_value(constants.METRIC_FRUSTRATED_TAG_VALUE)
 
         # Nobody is miserable, we can return 0
         if metric_frustrated is None:
@@ -1090,7 +1094,9 @@ class MetricsDatasetConfig(DatasetConfig):
         _: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
-        statuses = [self.resolve_tag_value(status) for status in constants.NON_FAILURE_STATUS]
+        statuses = [
+            self.builder.resolve_tag_value(status) for status in constants.NON_FAILURE_STATUS
+        ]
         return self._resolve_count_if(
             Function(
                 "equals",
@@ -1178,7 +1184,7 @@ class MetricsDatasetConfig(DatasetConfig):
                 alias,
             )
 
-        quality_id = self.resolve_tag_value(quality)
+        quality_id = self.builder.resolve_tag_value(quality)
         if quality_id is None:
             return Function(
                 # This matches the type from doing `select toTypeName(count()) ...` from clickhouse
