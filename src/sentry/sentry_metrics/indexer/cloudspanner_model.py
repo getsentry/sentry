@@ -29,8 +29,8 @@ class SpannerIndexerModel:
                                    self.last_seen.strftime(_TIMESTAMP_TZ_FORMAT),
                                    self.retention_days)
 
-    @staticmethod
-    def to_columns_format_dml() -> str:
+    @classmethod
+    def to_columns_format_dml(cls) -> str:
         """
         Returns a string which can be used in the COLUMNS section of
         INSERT statement.
@@ -39,8 +39,8 @@ class SpannerIndexerModel:
         return "(id, decoded_id, string, organization_id, date_added, " \
                "last_seen, retention_days)"
 
-    @staticmethod
-    def to_columns_format_batch() -> Sequence[str]:
+    @classmethod
+    def to_columns_format_batch(cls) -> Sequence[str]:
         """
         Returns the set of columns which can be used in the columns parameter of
         batch inserts/updates.
