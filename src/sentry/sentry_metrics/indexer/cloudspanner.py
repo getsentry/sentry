@@ -1,5 +1,7 @@
 from typing import Mapping, Optional, Set
 
+from google.cloud import spanner
+
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.base import KeyResult, KeyResults, StringIndexer
 from sentry.sentry_metrics.indexer.id_generator import reverse_bits
@@ -24,6 +26,29 @@ class IdCodec(Codec[DecodedId, EncodedId]):
 
 
 class CloudSpannerIndexer(StringIndexer):
+    """
+    Provides integer IDs for metric names, tag keys and tag values
+    and the corresponding reverse lookup.
+    """
+
+    def __init__(self, instance_id: str, database_id: str) -> None:
+        self.instance_id = instance_id
+        self.database_id = database_id
+        spanner_client = spanner.Client()
+        self.instance = spanner_client.instance(self.instance_id)
+        self.database = self.instance.database(self.database_id)
+
+    def validate(self) -> None:
+        """
+        Run a simple query to ensure the database is accessible.
+        """
+        with self.database.snapshot() as snapshot:
+            try:
+                snapshot.execute_sql("SELECT 1")
+            except ValueError:
+                # TODO: What is the correct way to handle connection errors?
+                pass
+
     def bulk_record(
         self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
     ) -> KeyResults:
