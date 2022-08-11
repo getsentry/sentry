@@ -109,8 +109,8 @@ export function FilterResultsStep({
             <StyledReleasesSelectControl
               selectedReleases={
                 (DashboardFilterKeys.RELEASE in location.query
-                  ? decodeList(location.query.release)
-                  : dashboardFilters?.release) ?? []
+                  ? decodeList(location.query[DashboardFilterKeys.RELEASE])
+                  : dashboardFilters?.[DashboardFilterKeys.RELEASE]) ?? []
               }
               isDisabled
               className="widget-release-select"

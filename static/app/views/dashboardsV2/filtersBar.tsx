@@ -17,7 +17,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 import ReleasesSelectControl from './releasesSelectControl';
-import {DashboardFilters} from './types';
+import {DashboardFilterKeys, DashboardFilters} from './types';
 
 type FiltersBarProps = {
   filters: DashboardFilters;
@@ -44,8 +44,9 @@ export default function FiltersBar({
   const organization = useOrganization();
 
   const selectedReleases =
-    (location.query?.release ? decodeList(location.query.release) : filters?.release) ??
-    [];
+    (location.query?.[DashboardFilterKeys.RELEASE]
+      ? decodeList(location.query[DashboardFilterKeys.RELEASE])
+      : filters?.[DashboardFilterKeys.RELEASE]) ?? [];
 
   return (
     <Wrapper>
