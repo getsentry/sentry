@@ -432,25 +432,59 @@ const EventEntries = memo(
             showGroupingConfig={orgFeatures.includes('set-grouping-config')}
           />
         )}
-        {!isShare && !replayId && hasEventAttachmentsFeature && (
-          <RRWebIntegration
+        {!isShare && (
+          <MiniReplayView
             event={event}
-            orgId={orgSlug}
-            projectId={projectSlug}
-            renderer={children => (
-              <StyledReplayEventDataSection type="context-replay" title={t('Replay')}>
-                {children}
-              </StyledReplayEventDataSection>
-            )}
+            orgFeatures={orgFeatures}
+            orgSlug={orgSlug}
+            projectSlug={projectSlug}
+            replayId={replayId}
           />
-        )}
-        {!isShare && replayId && orgFeatures.includes('session-replay') && (
-          <EventReplay replayId={replayId} orgSlug={orgSlug} projectSlug={projectSlug} />
         )}
       </div>
     );
   }
 );
+
+type MiniReplayViewProps = {
+  event: Event;
+  orgFeatures: string[];
+  orgSlug: string;
+  projectSlug: string;
+  replayId: undefined | string;
+};
+
+function MiniReplayView({
+  event,
+  orgFeatures,
+  orgSlug,
+  projectSlug,
+  replayId,
+}: MiniReplayViewProps) {
+  const hasEventAttachmentsFeature = orgFeatures.includes('event-attachments');
+  const hasSessionReplayFeature = orgFeatures.includes('session-replay');
+
+  if (replayId && hasSessionReplayFeature) {
+    return (
+      <EventReplay replayId={replayId} orgSlug={orgSlug} projectSlug={projectSlug} />
+    );
+  }
+  if (hasEventAttachmentsFeature) {
+    return (
+      <RRWebIntegration
+        event={event}
+        orgId={orgSlug}
+        projectId={projectSlug}
+        renderer={children => (
+          <StyledReplayEventDataSection type="context-replay" title={t('Replay')}>
+            {children}
+          </StyledReplayEventDataSection>
+        )}
+      />
+    );
+  }
+  return null;
+}
 
 const StyledEventDataSection = styled(EventDataSection)`
   /* Hiding the top border because of the event section appears at this breakpoint */
