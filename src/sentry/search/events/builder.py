@@ -1901,7 +1901,11 @@ class MetricsQueryBuilder(QueryBuilder):
         if isinstance(lhs, AliasedExpression):
             lhs = lhs.exp
         # Special case transaction or title since they're actually transforms
-        if is_txn_query := (lhs.function == "transform" and lhs.alias in ["title", "transaction"]):
+        if is_txn_query := (
+            isinstance(lhs, Function)
+            and lhs.function == "transform"
+            and lhs.alias in ["title", "transaction"]
+        ):
             lhs = lhs.parameters[0]
 
         # resolve_column will try to resolve this name with indexer, and if its a tag the Column will be tags[1]
