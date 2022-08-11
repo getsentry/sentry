@@ -36,7 +36,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 
-import {getMEPQueryParams} from '../../landing/widgets/utils';
 import {
   anomaliesRouteWithQuery,
   ANOMALY_FLAG,
@@ -250,7 +249,6 @@ function SidebarChartsContainer({
 }: ContainerProps) {
   const api = useApi();
   const theme = useTheme();
-  const mepSetting = useMEPSettingContext();
 
   const colors = theme.charts.getColorPalette(3);
   const statsPeriod = eventView.statsPeriod;
