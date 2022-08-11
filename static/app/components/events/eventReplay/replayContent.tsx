@@ -18,19 +18,18 @@ type Props = {
 
 function ReplayContent({eventSlug, orgId}: Props) {
   const {fetching, replay, fetchError} = useReplayData({
-    eventSlug,
+    replaySlug: eventSlug,
     orgId,
   });
   const {ref: fullscreenRef, toggle: toggleFullscreen} = useFullscreen();
 
   const replayRecord = replay?.getReplay();
-  const replayEvent = replay?.getEvent();
 
   if (fetchError) {
     throw new Error('Failed to load Replay');
   }
 
-  if (fetching || !replayRecord || !replayEvent) {
+  if (fetching || !replayRecord) {
     return <StyledPlaceholder height="400px" width="100%" />;
   }
 
@@ -56,7 +55,7 @@ function ReplayContent({eventSlug, orgId}: Props) {
         <tr key="url">
           <td className="key">{t('URL')}</td>
           <td className="value">
-            <pre className="val-string">{replayEvent.culprit}</pre>
+            <pre className="val-string">{replayRecord.tags.url}</pre>
           </td>
         </tr>
         <tr key="timestamp">
