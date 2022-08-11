@@ -142,14 +142,14 @@ function NetworkList({replayRecord, networkSpans}: Props) {
           )}
         </Item>
         <Item {...columnHandlers}>
-          <Text>{network.op}</Text>
+          <Text>{network.op.replace('resource.', '')}</Text>
         </Item>
         <Item {...columnHandlers} numeric>
           {`${(networkEndTimestamp - networkStartTimestamp).toFixed(2)}ms`}
         </Item>
         <Item {...columnHandlers} numeric>
           <UnstyledButton onClick={() => handleClick(networkStartTimestamp)}>
-            {showPlayerTime(networkStartTimestamp, startTimestampMs)}
+            {showPlayerTime(networkStartTimestamp, startTimestampMs, true)}
           </UnstyledButton>
         </Item>
       </Fragment>
