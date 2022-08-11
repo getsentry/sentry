@@ -54,7 +54,7 @@ describe('SentryAppExternalIssueActions', () => {
     });
 
     it('renders a link to open the modal', () => {
-      expect(wrapper.find('IntegrationLink a').text()).toEqual(
+      expect(wrapper.find('StyledIntegrationLink a').text()).toEqual(
         `${component.sentryApp.name} Issue`
       );
     });
