@@ -23,11 +23,15 @@ class SpannerIndexerModel:
         # TODO: Revisit this later for SQL injection.
         """
         parametrized_format = "(%d, %d, '%s', %d, '%s', '%s', %d)"
-        return parametrized_format % (self.id, self.decoded_id, self.string,
-                                   self.organization_id,
-                                   self.date_added.strftime(_TIMESTAMP_TZ_FORMAT),
-                                   self.last_seen.strftime(_TIMESTAMP_TZ_FORMAT),
-                                   self.retention_days)
+        return parametrized_format % (
+            self.id,
+            self.decoded_id,
+            self.string,
+            self.organization_id,
+            self.date_added.strftime(_TIMESTAMP_TZ_FORMAT),
+            self.last_seen.strftime(_TIMESTAMP_TZ_FORMAT),
+            self.retention_days,
+        )
 
     @classmethod
     def to_columns_format_dml(cls) -> str:
@@ -36,8 +40,7 @@ class SpannerIndexerModel:
         INSERT statement.
         Only useful when you want to insert all columns of the model.
         """
-        return "(id, decoded_id, string, organization_id, date_added, " \
-               "last_seen, retention_days)"
+        return "(id, decoded_id, string, organization_id, date_added, " "last_seen, retention_days)"
 
     @classmethod
     def to_columns_format_batch(cls) -> Sequence[str]:
@@ -46,5 +49,12 @@ class SpannerIndexerModel:
         batch inserts/updates.
         Only useful when you want to insert all columns of the model.
         """
-        return ["id", "decoded_id", "string", "organization_id", "date_added",
-                "last_seen", "retention_days"]
+        return [
+            "id",
+            "decoded_id",
+            "string",
+            "organization_id",
+            "date_added",
+            "last_seen",
+            "retention_days",
+        ]
