@@ -390,7 +390,6 @@ function SidebarChartsContainer({
       yAxis={['apdex()', 'failure_rate()', 'epm()']}
       partial
       referrer="api.performance.transaction-summary.sidebar-chart"
-      queryExtras={getMEPQueryParams(mepSetting)}
     >
       {({results, errored, loading, reloading}) => {
         const series = results
