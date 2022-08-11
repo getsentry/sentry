@@ -197,11 +197,15 @@ function SplitPanel(props: Props) {
     onPositionChange: handlePositionChange,
   });
 
+  const activeTrackingProps = mousedown
+    ? mouseTrackingProps
+    : {ref: mouseTrackingProps.ref};
+
   if ('left' in props) {
     const {left: a, right: b} = props;
 
     return (
-      <SplitPanelContainer orientation="columns" size={sizeCSS} {...mouseTrackingProps}>
+      <SplitPanelContainer orientation="columns" size={sizeCSS} {...activeTrackingProps}>
         <Panel>{getValFromSide(a, 'content') || a}</Panel>
         <Divider
           slideDirection="leftright"
@@ -214,7 +218,7 @@ function SplitPanel(props: Props) {
   }
   const {top: a, bottom: b} = props;
   return (
-    <SplitPanelContainer orientation="rows" size={sizeCSS} {...mouseTrackingProps}>
+    <SplitPanelContainer orientation="rows" size={sizeCSS} {...activeTrackingProps}>
       <Panel>{getValFromSide(a, 'content') || a}</Panel>
       <Divider
         slideDirection="updown"
