@@ -222,7 +222,7 @@ class OrganizationReleasesEndpoint(
             request,
             organization,
             project_ids=project_ids,
-            include_all_accessible=False if "GET" == request.method else True,
+            include_all_accessible="GET" != request.method,
         )
 
     def get(self, request: Request, organization) -> Response:
