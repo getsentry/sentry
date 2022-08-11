@@ -23,7 +23,7 @@ type Props = {
 
 const ALIASED_RELEASES = [
   {
-    label: 'Latest Release(s)',
+    label: t('Latest Release(s)'),
     value: 'latest',
   },
 ];
