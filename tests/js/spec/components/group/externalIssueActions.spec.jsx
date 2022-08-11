@@ -22,7 +22,7 @@ describe('ExternalIssueActions', function () {
       expect(wrapper).toSnapshot();
     });
 
-    it('renders Link GitHub Issue when no issues currently linked', function () {
+    it('renders GitHub Issue when no issues currently linked', function () {
       expect(wrapper.find('IntegrationLink a').text()).toEqual('GitHub Issue');
     });
 
@@ -68,7 +68,7 @@ describe('ExternalIssueActions', function () {
       expect(wrapper.find('IssueSyncElement')).toHaveLength(0);
     });
 
-    it('renders Link GitHub Issue when no issues currently linked', function () {
+    it('renders GitHub Issue when no issues currently linked', function () {
       expect(wrapper.find('IntegrationLink a').text()).toEqual('getsentry/sentry#2');
     });
 
