@@ -1,4 +1,4 @@
-from typing import Mapping, Optional, Set
+from typing import Any, Mapping, Optional, Set
 
 from django.conf import settings
 from google.cloud import spanner
@@ -83,5 +83,5 @@ class RawCloudSpannerIndexer(StringIndexer):
 
 
 class CloudSpannerIndexer(StaticStringIndexer):
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(CachingIndexer(indexer_cache, RawCloudSpannerIndexer(**kwargs)))
