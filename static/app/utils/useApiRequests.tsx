@@ -15,16 +15,28 @@ import PermissionDenied from 'sentry/views/permissionDenied';
 import RouteError from 'sentry/views/routeError';
 
 import RequestError from './requestError/requestError';
+import {useEffectAfterFirstRender} from './useEffectAfterFirstRender';
 
-type State = {
+/**
+ * Turn {foo: X} into {foo: X, fooPageLinks: string}
+ */
+type UseApiRequestData<T extends Record<string, any>> = {
+  // Keys can be null on error
+  [Property in keyof T]: T[Property] | null;
+} & {
+  // Make request cursors available
+  [Property in keyof T as `${Property & string}PageLinks`]: string | null;
+};
+
+interface State<T> {
   /**
    * Mapping of results from the configured endpoints
    */
-  data: {[key: string]: any};
+  data: UseApiRequestData<T>;
   /**
    * Errors from the configured endpoionts
    */
-  errors: {[key: string]: RequestError};
+  errors: Record<string, RequestError>;
   /**
    * Did *any* of the endpoints fail?
    */
@@ -41,9 +53,9 @@ type State = {
    * How many requests are still pending?
    */
   remainingRequests: number;
-};
+}
 
-type Result = State & {
+interface Result<T extends Record<string, any>> extends State<T> {
   /**
    * renderComponent is a helper function that is used to render loading and
    * errors state for you, and will only render your component once all endpoints
@@ -58,7 +70,7 @@ type Result = State & {
    * The react element will only be rendered once all endpoints have been loaded.
    */
   renderComponent: (children: React.ReactElement) => React.ReactElement;
-};
+}
 
 type EndpointRequestOptions = {
   /**
@@ -75,15 +87,15 @@ type EndpointRequestOptions = {
   paginate?: boolean;
 };
 
-type EndpointDefinition = [
-  key: string,
+export type EndpointDefinition<T extends Record<string, any>> = [
+  key: keyof T,
   url: string,
-  urlOptions?: {query?: {[key: string]: string}},
+  urlOptions?: {query?: Record<string, string>},
   requestOptions?: EndpointRequestOptions
 ];
 
-type Options = {
-  endpoints: EndpointDefinition[];
+type Options<T extends Record<string, any>> = {
+  endpoints: EndpointDefinition<T>[];
   /**
    * If a request fails and is not a bad request, and if `disableErrorReport`
    * is set to false, the UI will display an error modal.
@@ -93,8 +105,8 @@ type Options = {
    */
   disableErrorReport?: boolean;
   onLoadAllEndpointsSuccess?: () => void;
-  onRequestError?: (error: RequestError, args: Options['endpoints'][0]) => void;
-  onRequestSuccess?: (data: {data: any; stateKey: string; resp?: ResponseMeta}) => void;
+  onRequestError?: (error: RequestError, args: Options<T>['endpoints'][0]) => void;
+  onRequestSuccess?: (data: {data: any; stateKey: keyof T; resp?: ResponseMeta}) => void;
   /**
    * Override this flag to have the component reload its state when the window
    * becomes visible again. This will set the loading and reloading state, but
@@ -122,8 +134,8 @@ function renderLoading() {
   return <LoadingIndicator />;
 }
 
-function useApiRequests({
-  endpoints = [],
+function useApiRequests<T extends Record<string, any>>({
+  endpoints,
   reloadOnVisible = false,
   shouldReload = false,
   shouldRenderBadRequests = false,
@@ -131,15 +143,15 @@ function useApiRequests({
   onLoadAllEndpointsSuccess = () => {},
   onRequestSuccess = _data => {},
   onRequestError = (_error, _args) => {},
-}: Options): Result {
+}: Options<T>): Result<T> {
   const api = useApi();
   const location = useLocation<any>();
   const params = useParams();
 
   // Memoize the initialState so we can easily reuse it later
-  const initialState = useMemo<State>(
+  const initialState = useMemo<State<T>>(
     () => ({
-      data: {},
+      data: {} as T,
       isLoading: false,
       hasError: false,
       isReloading: false,
@@ -149,14 +161,14 @@ function useApiRequests({
     [endpoints.length]
   );
 
-  const [state, setState] = useState<State>(initialState);
+  const [state, setState] = useState<State<T>>(initialState);
 
   // Begin measuring the use of the hook for the given route
   const triggerMeasurement = useMeasureApiRequests();
 
   const handleRequestSuccess = useCallback(
     (
-      {stateKey, data, resp}: {data: any; stateKey: string; resp?: ResponseMeta},
+      {stateKey, data, resp}: {data: any; stateKey: keyof T; resp?: ResponseMeta},
       initialRequest?: boolean
     ) => {
       setState(prevState => {
@@ -165,7 +177,7 @@ function useApiRequests({
           data: {
             ...prevState.data,
             [stateKey]: data,
-            [`${stateKey}PageLinks`]: resp?.getResponseHeader('Link'),
+            [`${stateKey as string}PageLinks`]: resp?.getResponseHeader('Link'),
           },
         };
 
@@ -186,7 +198,7 @@ function useApiRequests({
   );
 
   const handleError = useCallback(
-    (error: RequestError, args: EndpointDefinition) => {
+    (error: RequestError, args: EndpointDefinition<T>) => {
       const [stateKey] = args;
 
       if (error && error.responseText) {
@@ -223,12 +235,12 @@ function useApiRequests({
   );
 
   const fetchData = useCallback(
-    async (extraState: Partial<State> = {}) => {
+    async (extraState: Partial<State<T>> = {}) => {
       // Nothing to fetch if enpoints are empty
       if (!endpoints.length) {
         setState(prevState => ({
           ...prevState,
-          data: {},
+          data: {} as T,
           isLoading: false,
           hasError: false,
         }));
@@ -301,8 +313,12 @@ function useApiRequests({
   }, [initialState, reloadData, fetchData, shouldReload]);
 
   // Trigger fetch on location or parameter change
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => void handleFullReload(), [location?.search, location?.state, params]);
+  // useEffectAfterFirstRender to avoid calling at the same time as handleMount
+  useEffectAfterFirstRender(
+    () => void handleFullReload(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [location?.search, location?.state, params]
+  );
 
   const visibilityReloader = useCallback(
     () => !state.isLoading && !document.hidden && reloadData(),
