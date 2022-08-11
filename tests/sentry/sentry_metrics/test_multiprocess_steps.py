@@ -476,7 +476,7 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
     from sentry.sentry_metrics.indexer import backend
 
     # Insert a None-value into the mock-indexer to simulate a rate-limit.
-    backend._strings[1]["rate_limited_test"] = None
+    backend.indexer._strings[1]["rate_limited_test"] = None
 
     with caplog.at_level(logging.ERROR):
         new_batch = process_messages(

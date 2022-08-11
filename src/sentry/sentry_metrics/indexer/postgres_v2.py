@@ -7,7 +7,7 @@ from django.db.models import Q
 
 from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.indexer.base import KeyCollection, KeyResult, KeyResults, StringIndexer
-from sentry.sentry_metrics.indexer.cache import StringIndexerCache
+from sentry.sentry_metrics.indexer.cache import CachingIndexer, StringIndexerCache
 from sentry.sentry_metrics.indexer.db import TABLE_MAPPING, IndexerTable
 from sentry.sentry_metrics.indexer.ratelimiters import writes_limiter
 from sentry.sentry_metrics.indexer.static_strings import StaticStringIndexer
@@ -15,24 +15,17 @@ from sentry.utils import metrics
 
 from .base import FetchType
 
-__all__ = "PostgresIndexer"
+__all__ = ["PostgresIndexer"]
 
 
 _INDEXER_CACHE_METRIC = "sentry_metrics.indexer.memcache"
 _INDEXER_DB_METRIC = "sentry_metrics.indexer.postgres"
-# only used to compare to the older version of the PGIndexer
-_INDEXER_CACHE_FETCH_METRIC = "sentry_metrics.indexer.memcache.fetch"
 
 _PARTITION_KEY = "pg"
 
 indexer_cache = StringIndexerCache(
     **settings.SENTRY_STRING_INDEXER_CACHE_OPTIONS, partition_key=_PARTITION_KEY
 )
-
-
-class PostgresIndexer(StaticStringIndexer):
-    def __init__(self) -> None:
-        super().__init__(PGStringIndexerV2())
 
 
 class PGStringIndexerV2(StringIndexer):
@@ -54,69 +47,7 @@ class PGStringIndexerV2(StringIndexer):
     def bulk_record(
         self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
     ) -> KeyResults:
-        """
-        Takes in a mapping with org_ids to sets of strings.
-
-        Ultimately returns a mapping of those org_ids to a
-        string -> id mapping, for each string in the set.
-
-        There are three steps to getting the ids for strings:
-            1. ids from cache
-            2. ids from existing db records
-            3. ids from newly created db records
-
-        Each step will start off with a KeyCollection and KeyResults:
-            keys = KeyCollection(mapping)
-            key_results = KeyResults()
-
-        Then the work to get the ids (either from cache, db, etc)
-            .... # work to add results to KeyResults()
-
-        Those results will be added to `mapped_results` which can
-        be retrieved
-            key_results.get_mapped_results()
-
-        Remaining unmapped keys get turned into a new
-        KeyCollection for the next step:
-            new_keys = key_results.get_unmapped_keys(mapping)
-
-        When the last step is reached or a step resolves all the remaining
-        unmapped keys the key_results objects are merged and returned:
-            e.g. return cache_key_results.merge(db_read_key_results)
-        """
-
-        cache_keys = KeyCollection(org_strings)
-        metrics.gauge("sentry_metrics.indexer.lookups_per_batch", value=cache_keys.size)
-        cache_key_strs = cache_keys.as_strings()
-        cache_results = indexer_cache.get_many(cache_key_strs, use_case_id.value)
-
-        hits = [k for k, v in cache_results.items() if v is not None]
-        metrics.incr(
-            _INDEXER_CACHE_METRIC,
-            tags={"cache_hit": "true", "caller": "get_many_ids"},
-            amount=len(hits),
-        )
-        metrics.incr(
-            _INDEXER_CACHE_METRIC,
-            tags={"cache_hit": "false", "caller": "get_many_ids"},
-            amount=len(cache_results) - len(hits),
-        )
-        # used to compare to pre org_id indexer cache fetch metric
-        metrics.incr(
-            _INDEXER_CACHE_FETCH_METRIC,
-            amount=cache_keys.size,
-        )
-
-        cache_key_results = KeyResults()
-        cache_key_results.add_key_results(
-            [KeyResult.from_string(k, v) for k, v in cache_results.items() if v is not None],
-            FetchType.CACHE_HIT,
-        )
-
-        db_read_keys = cache_key_results.get_unmapped_keys(cache_keys)
-
-        if db_read_keys.size == 0:
-            return cache_key_results
+        db_read_keys = KeyCollection(org_strings)
 
         db_read_key_results = KeyResults()
         db_read_key_results.add_key_results(
@@ -126,7 +57,6 @@ class PGStringIndexerV2(StringIndexer):
             ],
             FetchType.DB_READ,
         )
-        new_results_to_cache = db_read_key_results.get_mapped_key_strings_to_ints()
         db_write_keys = db_read_key_results.get_unmapped_keys(db_read_keys)
 
         metrics.incr(
@@ -141,8 +71,7 @@ class PGStringIndexerV2(StringIndexer):
         )
 
         if db_write_keys.size == 0:
-            indexer_cache.set_many(new_results_to_cache, use_case_id.value)
-            return cache_key_results.merge(db_read_key_results)
+            return db_read_key_results
 
         with writes_limiter.check_write_limits(use_case_id, db_write_keys) as writes_limiter_state:
             # After the DB has successfully committed writes, we exit this
@@ -160,8 +89,7 @@ class PGStringIndexerV2(StringIndexer):
                 )
 
             if filtered_db_write_keys.size == 0:
-                indexer_cache.set_many(new_results_to_cache, use_case_id.value)
-                return cache_key_results.merge(db_read_key_results).merge(rate_limited_key_results)
+                return db_read_key_results.merge(rate_limited_key_results)
 
             new_records = []
             for write_pair in filtered_db_write_keys.as_tuples():
@@ -185,14 +113,7 @@ class PGStringIndexerV2(StringIndexer):
             fetch_type=FetchType.FIRST_SEEN,
         )
 
-        new_results_to_cache.update(db_write_key_results.get_mapped_key_strings_to_ints())
-        indexer_cache.set_many(new_results_to_cache, use_case_id.value)
-
-        return (
-            cache_key_results.merge(db_read_key_results)
-            .merge(db_write_key_results)
-            .merge(rate_limited_key_results)
-        )
+        return db_read_key_results.merge(db_write_key_results).merge(rate_limited_key_results)
 
     def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
         """Store a string and return the integer ID generated for it"""
@@ -205,20 +126,11 @@ class PGStringIndexerV2(StringIndexer):
         Returns None if the entry cannot be found.
 
         """
-        key = f"{org_id}:{string}"
-        result = indexer_cache.get(key, use_case_id.value)
         table = self._table(use_case_id)
-
-        if result and isinstance(result, int):
-            metrics.incr(_INDEXER_CACHE_METRIC, tags={"cache_hit": "true", "caller": "resolve"})
-            return result
-
-        metrics.incr(_INDEXER_CACHE_METRIC, tags={"cache_hit": "false", "caller": "resolve"})
         try:
             id: int = table.objects.using_replica().get(organization_id=org_id, string=string).id
         except table.DoesNotExist:
             return None
-        indexer_cache.set(key, id, use_case_id.value)
 
         return id
 
@@ -237,3 +149,8 @@ class PGStringIndexerV2(StringIndexer):
 
     def _table(self, use_case_id: UseCaseKey) -> IndexerTable:
         return TABLE_MAPPING[get_ingest_config(use_case_id).db_model]
+
+
+class PostgresIndexer(StaticStringIndexer):
+    def __init__(self) -> None:
+        super().__init__(CachingIndexer(indexer_cache, PGStringIndexerV2()))

@@ -203,6 +203,38 @@ class StringIndexer(Service):
     def bulk_record(
         self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
     ) -> KeyResults:
+        """
+        Takes in a mapping with org_ids to sets of strings.
+
+        Ultimately returns a mapping of those org_ids to a
+        string -> id mapping, for each string in the set.
+
+        There are three steps to getting the ids for strings:
+            0. ids from static strings (StaticStringIndexer)
+            1. ids from cache (CachingIndexer)
+            2. ids from existing db records (postgres/spanner)
+            3. ids that have been rate limited (postgres/spanner)
+            4. ids from newly created db records (postgres/spanner)
+
+        Each step will start off with a KeyCollection and KeyResults:
+            keys = KeyCollection(mapping)
+            key_results = KeyResults()
+
+        Then the work to get the ids (either from cache, db, etc)
+            .... # work to add results to KeyResults()
+
+        Those results will be added to `mapped_results` which can
+        be retrieved
+            key_results.get_mapped_results()
+
+        Remaining unmapped keys get turned into a new
+        KeyCollection for the next step:
+            new_keys = key_results.get_unmapped_keys(mapping)
+
+        When the last step is reached or a step resolves all the remaining
+        unmapped keys the key_results objects are merged and returned:
+            e.g. return cache_key_results.merge(db_read_key_results)
+        """
         raise NotImplementedError()
 
     def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
