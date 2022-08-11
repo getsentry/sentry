@@ -8,6 +8,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {NumberField} from 'sentry/components/forms';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
@@ -91,9 +92,9 @@ export function UniformRateModal({
   const modalStore = useLegacyStore(ModalStore);
 
   const {
+    onRefetch: onRefetch30d,
     projectStats: projectStats30d,
-    // TODO(sampling): check how to render this error in the UI
-    error: _error30d,
+    error: error30d,
     loading: loading30d,
   } = useProjectStats({
     orgSlug: organization.slug,
@@ -258,14 +259,18 @@ export function UniformRateModal({
     });
   }
 
-  if (activeStep === undefined || loading) {
+  if (activeStep === undefined || loading || error30d) {
     return (
       <Fragment>
         <Header closeButton>
-          <Placeholder height="22px" />
+          {error30d ? (
+            <h4>{t('Set a global sample rate')}</h4>
+          ) : (
+            <Placeholder height="22px" />
+          )}
         </Header>
         <Body>
-          <LoadingIndicator />
+          {error30d ? <LoadingError onRetry={onRefetch30d} /> : <LoadingIndicator />}
         </Body>
         <Footer>
           <FooterActions>
@@ -278,7 +283,17 @@ export function UniformRateModal({
             </Button>
             <ButtonBar gap={1}>
               <Button onClick={closeModal}>{t('Cancel')}</Button>
-              <Placeholder height="40px" width="80px" />
+              {error30d ? (
+                <Button
+                  priority="primary"
+                  title={t('There was an error loading data')}
+                  disabled
+                >
+                  {t('Done')}
+                </Button>
+              ) : (
+                <Placeholder height="40px" width="80px" />
+              )}
             </ButtonBar>
           </FooterActions>
         </Footer>
@@ -345,7 +360,6 @@ export function UniformRateModal({
             }
           )}
         </TextBlock>
-
         <Fragment>
           <UniformRateChart
             series={
@@ -358,7 +372,6 @@ export function UniformRateModal({
                     specifiedClientRate
                   )
             }
-            isLoading={loading30d}
           />
 
           <StyledPanelTable
