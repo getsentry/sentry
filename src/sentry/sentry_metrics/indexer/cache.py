@@ -166,6 +166,4 @@ class CachingIndexer(StringIndexer):
         return id
 
     def reverse_resolve(self, use_case_id: UseCaseKey, id: int) -> Optional[str]:
-        # XXX: We don't cache here at all -- never did in the original
-        # implementation either.
         return self.indexer.reverse_resolve(use_case_id, id)

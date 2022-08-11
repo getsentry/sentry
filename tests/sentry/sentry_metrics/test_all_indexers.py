@@ -253,6 +253,9 @@ def test_rate_limited(indexer):
     control over which string gets rate-limited. That makes assertions
     quite awkward and imprecise.
     """
+    if isinstance(indexer, RawSimpleIndexer):
+        pytest.skip("mock indexer does not support rate limiting")
+
     org_strings = {1: {"a", "b", "c"}, 2: {"e", "f"}, 3: {"g"}}
 
     with override_options(

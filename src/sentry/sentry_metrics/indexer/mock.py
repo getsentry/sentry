@@ -10,7 +10,6 @@ from sentry.sentry_metrics.indexer.base import (
     KeyResults,
     StringIndexer,
 )
-from sentry.sentry_metrics.indexer.ratelimiters import writes_limiter
 from sentry.sentry_metrics.indexer.strings import StaticStringsIndexer
 
 
@@ -43,32 +42,14 @@ class RawSimpleIndexer(StringIndexer):
         if db_write_keys.size == 0:
             return db_read_key_results
 
-        with writes_limiter.check_write_limits(use_case_id, db_write_keys) as writes_limiter_state:
-            # After the DB has successfully committed writes, we exit this
-            # context manager and consume quotas. If the DB crashes we
-            # shouldn't consume quota.
-            filtered_db_write_keys = writes_limiter_state.accepted_keys
-            del db_write_keys
+        db_write_key_results = KeyResults()
+        for org_id, string in db_write_keys.as_tuples():
+            db_write_key_results.add_key_result(
+                KeyResult(org_id=org_id, string=string, id=self._record(org_id, string)),
+                fetch_type=FetchType.FIRST_SEEN,
+            )
 
-            rate_limited_key_results = KeyResults()
-            for dropped_string in writes_limiter_state.dropped_strings:
-                rate_limited_key_results.add_key_result(
-                    dropped_string.key_result,
-                    fetch_type=dropped_string.fetch_type,
-                    fetch_type_ext=dropped_string.fetch_type_ext,
-                )
-
-            if filtered_db_write_keys.size == 0:
-                return db_read_key_results.merge(rate_limited_key_results)
-
-            db_write_key_results = KeyResults()
-            for org_id, string in filtered_db_write_keys.as_tuples():
-                db_write_key_results.add_key_result(
-                    KeyResult(org_id=org_id, string=string, id=self._record(org_id, string)),
-                    fetch_type=FetchType.FIRST_SEEN,
-                )
-
-        return db_read_key_results.merge(db_write_key_results).merge(rate_limited_key_results)
+        return db_read_key_results.merge(db_write_key_results)
 
     def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
         return self._record(org_id, string)
