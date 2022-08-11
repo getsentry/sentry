@@ -7,9 +7,13 @@ import useApiRequests from 'sentry/utils/useApiRequests';
 import {RouteContext} from 'sentry/views/routeContext';
 
 describe('useApiRequests', () => {
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
   describe('error handling', () => {
     function HomePage() {
-      const {renderComponent, data} = useApiRequests({
+      const {renderComponent, data} = useApiRequests<{message: {value?: string}}>({
         endpoints: [['message', '/some/path/to/something/']],
         shouldRenderBadRequests: true,
       });
@@ -26,6 +30,7 @@ describe('useApiRequests', () => {
         shouldRenderBadRequests: true,
       });
 
+      // @ts-expect-error
       return renderComponent(<div>{data.message?.value}</div>);
     }
 
@@ -50,8 +55,7 @@ describe('useApiRequests', () => {
       );
     }
     it('renders on successful request', async function () {
-      MockApiClient.clearMockResponses();
-      MockApiClient.addMockResponse({
+      const mockRequest = MockApiClient.addMockResponse({
         url: '/some/path/to/something/',
         method: 'GET',
         body: {
@@ -62,10 +66,10 @@ describe('useApiRequests', () => {
       await waitFor(() => {
         expect(screen.getByText('hi')).toBeInTheDocument();
       });
+      expect(mockRequest).toHaveBeenCalledTimes(1);
     });
 
     it('renders error message', async function () {
-      MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         url: '/some/path/to/something/',
         method: 'GET',
@@ -81,7 +85,6 @@ describe('useApiRequests', () => {
     });
 
     it('renders only unique error message', async function () {
-      MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         url: '/first/path/',
         method: 'GET',
