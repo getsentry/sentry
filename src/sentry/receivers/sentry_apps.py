@@ -88,10 +88,7 @@ def send_comment_webhooks(organization, issue, user, event, data=None):
         )
     if features.has("organizations:sentry-functions", organization, actor=user):
         if user:
-            try:
-                data["user"] = serialize(user, serializer=UserSerializer())
-            except User.DoesNotExist:
-                pass
+            data["user"] = serialize(user, serializer=UserSerializer())
         for fn in SentryFunction.objects.get_sentry_functions(organization, "comment"):
             send_sentry_function_webhook.delay(fn.external_id, event, issue.id, data)
 
@@ -115,10 +112,7 @@ def send_workflow_webhooks(
         )
     if features.has("organizations:sentry-functions", organization, actor=user):
         if user:
-            try:
-                data["user"] = serialize(user, serializer=UserSerializer())
-            except User.DoesNotExist:
-                pass
+            data["user"] = serialize(user, serializer=UserSerializer())
         for fn in SentryFunction.objects.get_sentry_functions(organization, "issue"):
             send_sentry_function_webhook.delay(fn.external_id, event, issue.id, data)
 
