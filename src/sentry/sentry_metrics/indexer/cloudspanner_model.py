@@ -20,9 +20,9 @@ class SpannerIndexerModel:
         Returns a string in the format of (id, string, organization_id,
         date_added, last_seen, retention_days) which can be used in the
         VALUES section of INSERT statement.
-        # TODO: Revisit this to see whether it is prone to SQL injection.
+        # TODO: Revisit this later for SQL injection.
         """
-        parametrized_format = "(%d, %d, %s, %d, '%s', '%s', %d)"
+        parametrized_format = "(%d, %d, '%s', %d, '%s', '%s', %d)"
         return parametrized_format % (self.id, self.decoded_id, self.string,
                                    self.organization_id,
                                    self.date_added.strftime(_TIMESTAMP_TZ_FORMAT),

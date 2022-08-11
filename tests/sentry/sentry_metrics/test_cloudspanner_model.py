@@ -37,5 +37,5 @@ def test_cloudspanner_model_value_format():
     )
     assert (
         model.to_values_format_dml()
-        == "(10000, 12345, string, 20000, '%s', '%s', 90)" % (now_str, now_str)
+        == "(10000, 12345, 'string', 20000, '%s', '%s', 90)" % (now_str, now_str)
     )
