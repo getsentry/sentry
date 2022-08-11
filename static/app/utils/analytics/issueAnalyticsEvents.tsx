@@ -43,6 +43,9 @@ export type IssueEventParameters = {
     assigned_suggestion_reason?: string;
   };
   'issues_stream.issue_clicked': IssueStream;
+  'issues_stream.paginate': {
+    next_page: number;
+  };
   'issues_stream.realtime_clicked': {
     enabled: boolean;
   };
@@ -76,6 +79,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issues_stream.issue_clicked': 'Clicked Issue from Issues Stream',
   'issues_stream.issue_assigned': 'Assigned Issue from Issues Stream',
   'issues_stream.sort_changed': 'Changed Sort on Issues Stream',
+  'issues_stream.paginate': 'Paginate Issues Stream',
   'issue.shared_publicly': 'Issue Shared Publicly',
   resolve_issue: 'Resolve Issue',
   'tag.clicked': 'Tag: Clicked',

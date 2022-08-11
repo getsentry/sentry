@@ -849,6 +849,11 @@ class IssueListOverview extends Component<Props, State> {
       nextPage = undefined;
     }
 
+    trackAdvancedAnalyticsEvent('issues_stream.paginate', {
+      organization: this.props.organization,
+      next_page: nextPage ?? 0,
+    });
+
     this.transitionTo({cursor, page: nextPage});
   };
 
