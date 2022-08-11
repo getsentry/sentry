@@ -73,7 +73,9 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/server-side-sampling/`,
           title: t('Server-Side Sampling'),
-          show: () => !!organization?.features?.includes('server-side-sampling'),
+          show: () =>
+            !!organization?.features?.includes('server-side-sampling') &&
+            !!organization?.features?.includes('server-side-sampling-ui'),
           description: t(
             "Per-Project basis solution to configure sampling rules within Sentry's UI"
           ),
@@ -176,6 +178,4 @@ export default function getConfiguration({
 
 const NarrowFeatureBadge = styled(FeatureBadge)`
   max-width: 25px;
-  position: relative;
-  top: 1px;
 `;

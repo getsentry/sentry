@@ -78,12 +78,9 @@ export function canUseMetricsData(organization: Organization) {
     'performance-transaction-name-only-search'
   ); // TODO: Swap this flag out.
 
-  const samplingRolloutFlag = organization.features.includes(
-    'organizations:server-side-sampling'
-  );
+  const samplingRolloutFlag = organization.features.includes('server-side-sampling');
   const isRollingOut =
-    samplingRolloutFlag &&
-    organization.features.includes('organizations:mep-rollout-flag');
+    samplingRolloutFlag && organization.features.includes('mep-rollout-flag');
 
   return isDevFlagOn || isInternalViewOn || isRollingOut;
 }

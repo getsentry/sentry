@@ -84,6 +84,20 @@ function CreateNewIntegrationModal({
     ],
   ] as [string, ReactNode, ReactNode][];
 
+  if (organization.features.includes('sentry-functions')) {
+    choices.push([
+      'sentry-fx',
+      <RadioChoiceHeader data-test-id="sentry-function" key="header-sentryfx">
+        {t('Sentry Function')}
+      </RadioChoiceHeader>,
+      <RadioChoiceDescription key="description-sentry-function">
+        {t(
+          'A Sentry Function is a new type of integration leveraging the power of cloud functions.'
+        )}
+      </RadioChoiceDescription>,
+    ]);
+  }
+
   return (
     <Fragment>
       <Header>
@@ -107,12 +121,18 @@ function CreateNewIntegrationModal({
         <Button
           priority="primary"
           size="sm"
-          to={`/settings/${organization.slug}/developer-settings/${
-            option === 'public' ? 'new-public' : 'new-internal'
-          }/`}
+          to={
+            option === 'sentry-fx'
+              ? `/settings/${organization.slug}/developer-settings/sentry-functions/new/`
+              : `/settings/${organization.slug}/developer-settings/${
+                  option === 'public' ? 'new-public' : 'new-internal'
+                }/`
+          }
           onClick={() => {
             trackIntegrationAnalytics(
-              option === 'public'
+              option === 'sentry-fx'
+                ? PlatformEvents.CHOSE_SENTRY_FX
+                : option === 'public'
                 ? PlatformEvents.CHOSE_PUBLIC
                 : PlatformEvents.CHOSE_INTERNAL,
               {

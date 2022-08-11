@@ -12,6 +12,9 @@ from sentry.models import Team, User
 from sentry.notifications.notifications.activity import (
     AssignedActivityNotification,
     NoteActivityNotification,
+    ReleaseActivityNotification,
+    ResolvedActivityNotification,
+    ResolvedInReleaseActivityNotification,
     UnassignedActivityNotification,
 )
 from sentry.notifications.notifications.base import BaseNotification
@@ -33,6 +36,9 @@ SUPPORTED_NOTIFICATION_TYPES = [
     AssignedActivityNotification,
     UnassignedActivityNotification,
     AlertRuleNotification,
+    ResolvedActivityNotification,
+    ResolvedInReleaseActivityNotification,
+    ReleaseActivityNotification,
 ]
 MESSAGE_BUILDERS = {
     "SlackNotificationsMessageBuilder": MSTeamsNotificationsMessageBuilder,
@@ -64,7 +70,9 @@ def send_notification_as_msteams(
     extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None,
 ):
     if not is_supported_notification_type(notification):
-        logger.info(f"Unsupported notification type for Microsoft Teams {notification}")
+        logger.info(
+            f"Unsupported notification type for Microsoft Teams {notification.__class__.__name__}"
+        )
         return
 
     with sentry_sdk.start_span(
