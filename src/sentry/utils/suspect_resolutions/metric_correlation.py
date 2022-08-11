@@ -53,10 +53,10 @@ def is_issue_error_rate_correlated(
     return results, resolution_time, start_time, end_time
 
 
-def calculate_pearson_correlation_coefficient(x: List[int], y: List[int]) -> int:
+def calculate_pearson_correlation_coefficient(x: List[int], y: List[int]) -> float:
     # source: https://inside-machinelearning.com/en/pearson-formula-in-python-linear-correlation-coefficient/
     if len(x) == 0 or len(y) == 0:
-        return 0
+        return 0.0
 
     mean_x = sum(x) / len(x)
     mean_y = sum(y) / len(y)
@@ -68,7 +68,7 @@ def calculate_pearson_correlation_coefficient(x: List[int], y: List[int]) -> int
 
     st_dev_x_y = st_dev_x * st_dev_y
 
-    if st_dev_x_y == 0:
-        return 0
+    if st_dev_x_y == 0 or st_dev_x_y == 0.0:
+        return 0.0
 
     return cov / st_dev_x_y
