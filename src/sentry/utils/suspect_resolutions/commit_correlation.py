@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Set
 
-from sentry.models import CommitFileChange, GroupRelease, Project, ReleaseCommit
+from sentry.models import CommitFileChange, GroupRelease, ReleaseCommit
 
 
 def is_issue_commit_correlated(resolved_issue: int, candidate_issue: int, project: int) -> bool:
@@ -19,8 +19,8 @@ def is_issue_commit_correlated(resolved_issue: int, candidate_issue: int, projec
     )
 
 
-def get_files_changed(issue_id: int, project: Project) -> Set:
-    releases = GroupRelease.objects.filter(group_id=issue_id, project_id=project.id).values_list(
+def get_files_changed(issue_id: int, project_id: int) -> Set:
+    releases = GroupRelease.objects.filter(group_id=issue_id, project_id=project_id).values_list(
         "release_id", flat=True
     )
 
