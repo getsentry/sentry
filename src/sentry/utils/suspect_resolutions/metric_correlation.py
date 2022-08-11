@@ -66,6 +66,9 @@ def calculate_pearson_correlation_coefficient(x: List[int], y: List[int]) -> int
     st_dev_x = (sum((a - mean_x) ** 2 for a in x) / len(x)) ** 0.5
     st_dev_y = (sum((b - mean_y) ** 2 for b in y) / len(y)) ** 0.5
 
-    result = cov / (st_dev_x * st_dev_y)
+    st_dev_x_y = st_dev_x * st_dev_y
 
-    return result
+    if st_dev_x_y == 0:
+        return 0
+
+    return cov / (st_dev_x * st_dev_y)
