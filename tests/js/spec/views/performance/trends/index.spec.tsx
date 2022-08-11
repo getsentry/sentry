@@ -376,13 +376,13 @@ describe('Performance > Trends', function () {
     );
 
     const input = await screen.findByTestId('smart-search-input');
-    enterSearch(input, 'transaction.duration:>9000');
+    enterSearch(input, 'transaction.duration:>9000m');
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: undefined,
       query: expect.objectContaining({
         project: ['1'],
-        query: 'transaction.duration:>9000',
+        query: 'transaction.duration:>9000m',
         improvedCursor: undefined,
         regressionCursor: undefined,
       }),
