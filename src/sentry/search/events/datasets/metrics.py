@@ -4,7 +4,7 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Union
 
 import sentry_sdk
 from django.utils.functional import cached_property
-from snuba_sdk import Column, Function
+from snuba_sdk import Column, Condition, Function, Op
 
 from sentry import options
 from sentry.api.event_search import SearchFilter
@@ -40,6 +40,8 @@ class MetricsDatasetConfig(DatasetConfig):
             constants.TEAM_KEY_TRANSACTION_ALIAS: self._key_transaction_filter_converter,
             "transaction.duration": self._duration_filter_converter,  # Only for dry_run
             "environment": self.builder._environment_filter_converter,
+            "transaction": self._transaction_filter_converter,
+            "title": self._transaction_filter_converter,
         }
 
     @property
@@ -892,6 +894,27 @@ class MetricsDatasetConfig(DatasetConfig):
             return None
 
         return self.builder._default_filter_converter(search_filter)
+
+    def _transaction_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        operator = search_filter.operator
+        value = search_filter.value.value
+
+        if operator in ("=", "!=") and value == "":
+            # !has:transaction
+            if operator == "=":
+                raise InvalidSearchQuery(
+                    "All events have a transaction so this query wouldn't return anything"
+                )
+            else:
+                # All events have a "transaction" since we map null -> unparam so no need to filter
+                return None
+
+        if isinstance(value, list):
+            value = [self.resolve_tag_value(v) for v in value]
+        else:
+            value = self.resolve_tag_value(value)
+
+        return Condition(Column(f"tags[{self.resolve_value('transaction')}]"), Op(operator), value)
 
     # Query Functions
     def _resolve_count_if(

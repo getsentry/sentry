@@ -1900,13 +1900,6 @@ class MetricsQueryBuilder(QueryBuilder):
         # If this is an aliasedexpression, we don't need the alias here, just the expression
         if isinstance(lhs, AliasedExpression):
             lhs = lhs.exp
-        # Special case transaction or title since they're actually transforms
-        if is_txn_query := (
-            isinstance(lhs, Function)
-            and lhs.function == "transform"
-            and lhs.alias in ["title", "transaction"]
-        ):
-            lhs = lhs.parameters[0]
 
         # resolve_column will try to resolve this name with indexer, and if its a tag the Column will be tags[1]
         is_tag = isinstance(lhs, Column) and lhs.subscriptable == "tags"
@@ -1934,15 +1927,6 @@ class MetricsQueryBuilder(QueryBuilder):
 
         # Handle checks for existence
         if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
-            if is_txn_query:
-                # !has:transaction
-                if search_filter.operator == "=":
-                    raise InvalidSearchQuery(
-                        "All events have a transaction so this query wouldn't return anything"
-                    )
-                else:
-                    # All events have a "transaction" since we map null -> unparam so no need to filter
-                    return None
             if is_tag:
                 return Condition(
                     Function("has", [Column("tags.key"), self.resolve_metric_index(name)]),
