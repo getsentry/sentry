@@ -81,37 +81,57 @@ def get_owner_details(group_list):
         from sentry.api.serializers import get_users_for_authors
         from sentry.models import GroupRelease, ReleaseCommit
 
-        # if ReleaseCommit.objects.filter(
-        #         commit__pullrequestcommit__pull_request__in=pr_ids
-        # ).exists():
-        # pr_ids = PullRequest.objects.filter(
-        #     pullrequestcommit__commit=latest_issue_commit_resolution.linked_id
-        # ).values_list("id", flat=True)
-        # # assume that this commit has been released if any commits in this PR have been released
-        # if ReleaseCommit.objects.filter(
-        #         commit__pullrequestcommit__pull_request__in=pr_ids
-        # ).exists():
-        # group_id -> GroupRelease -> Release ->
         group_releases = GroupRelease.objects.filter(group_id=group_id).values_list(
             "release_id", flat=True
         )
 
-        # ReleaseCommit -> Commit -> CommitAuthor
-        release_commits = ReleaseCommit.objects.filter(release__in=group_releases).select_related(
-            "commit", "release", "commit__author"
+        release_commits = list(
+            filter(
+                lambda rc: rc.commit and rc.commit.author,
+                list(
+                    ReleaseCommit.objects.filter(release__in=group_releases).select_related(
+                        "commit", "release", "commit__author"
+                    )
+                ),
+            )
         )
 
-        if not release_commits.exists():
+        if not release_commits:
             return []
 
         author_to_user = get_users_for_authors(
             release_commits[0].organization_id,
-            [_rc.commit.author for _rc in release_commits if _rc.commit and _rc.commit.author],
+            [_rc.commit.author for _rc in release_commits],
         )
+
+        # (release_commit, user)
+        rc_user = [
+            (rc, author_to_user.get(str(rc.commit.author.id)))
+            for rc in release_commits
+            if author_to_user.get(str(rc.commit.author.id))
+        ]
+
+        # aggregate all release commits to a user
+        # [user.id: [rc1, rc2, ...]]
+        user_to_rc = defaultdict(list)
+        for rc, user in rc_user:
+            if user.get("id"):
+                user_to_rc[user.get("id")].append(rc)
+
+        # reduce the list of release commits for a user by the latest commit.date_added
+        # [user.id: rc]
+        user_to_latest_rc = {
+            user_id: max(rc_list, key=lambda rc: rc.commit.date_added)
+            for user_id, rc_list in user_to_rc.items()
+        }
+
         return [
-            {"type": "releaseCommitters", "owner": f"user:{user.id}", "date_added": ""}
-            for user in author_to_user
-            if user.get("id")
+            {
+                "type": "releaseCommitters",
+                "owner": f"user:{user_id}",
+                "date_added": f"{latest_rc.commit.date_added}",
+            }
+            for user_id, latest_rc in user_to_latest_rc.items()
         ]
 
     org = next(iter([g.organization for g in group_owners] or []), None)
@@ -119,8 +139,9 @@ def get_owner_details(group_list):
 
     if org and features.has("organizations:release-committer-assignees", org):
         for g in group_ids:
-            release_committers = _get_release_committers_for_group(g)
-            for rc in release_committers:
-                owner_details[g].append(rc)
+            # TODO: optimize this to bulk grab committer data for all groups
+            release_committers_owners = _get_release_committers_for_group(g)
+            for rc_owner in release_committers_owners:
+                owner_details[g].append(rc_owner)
 
     return owner_details
