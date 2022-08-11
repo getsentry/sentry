@@ -52,7 +52,7 @@ from sentry.search.events.constants import (
     SEMVER_PACKAGE_ALIAS,
 )
 from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers import parse_link_header
+from sentry.testutils.helpers import parse_link_header, with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.types.activity import ActivityType
 from sentry.utils import json
@@ -80,6 +80,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             org = args[0]
         return super().get_response(org, **kwargs)
 
+    @with_feature("organizations:release-committer-assignees")
     def test_sort_by_date_with_tag(self):
         # XXX(dcramer): this tests a case where an ambiguous column name existed
         event = self.store_event(
@@ -93,6 +94,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group.id)
 
+    @with_feature("organizations:release-committer-assignees")
     def test_sort_by_trend(self):
         group = self.store_event(
             data={
@@ -154,6 +156,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
         assert [item["id"] for item in response.data] == [str(group_2.id)]
 
+    @with_feature("organizations:release-committer-assignees")
     def test_sort_by_inbox(self):
         group_1 = self.store_event(
             data={
@@ -189,6 +192,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
         assert [item["id"] for item in response.data] == [str(group_2.id)]
 
+    @with_feature("organizations:release-committer-assignees")
     def test_sort_by_inbox_me_or_none(self):
         group_1 = self.store_event(
             data={
@@ -274,6 +278,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
         assert [item["id"] for item in response.data] == [str(group_1.id), str(group_2.id)]
 
+    @with_feature("organizations:release-committer-assignees")
     def test_trace_search(self):
         event = self.store_event(
             data={
@@ -300,6 +305,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(event.group.id)
 
+    @with_feature("organizations:release-committer-assignees")
     def test_feature_gate(self):
         # ensure there are two or more projects
         self.create_project(organization=self.project.organization)
@@ -313,6 +319,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             response = self.get_response()
             assert response.status_code == 200
 
+    @with_feature("organizations:release-committer-assignees")
     def test_with_all_projects(self):
         # ensure there are two or more projects
         self.create_project(organization=self.project.organization)
@@ -322,6 +329,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             response = self.get_success_response(project_id=[-1])
             assert response.status_code == 200
 
+    @with_feature("organizations:release-committer-assignees")
     def test_boolean_search_feature_flag(self):
         self.login_as(user=self.user)
         response = self.get_response(sort_by="date", query="title:hello OR title:goodbye")
@@ -338,6 +346,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             == 'Error parsing search query: Boolean statements containing "OR" or "AND" are not supported in this search'
         )
 
+    @with_feature("organizations:release-committer-assignees")
     def test_invalid_query(self):
         now = timezone.now()
         self.create_group(last_seen=now - timedelta(seconds=1))
@@ -347,6 +356,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400
         assert "Invalid number" in response.data["detail"]
 
+    @with_feature("organizations:release-committer-assignees")
     def test_valid_numeric_query(self):
         now = timezone.now()
         self.create_group(last_seen=now - timedelta(seconds=1))
@@ -355,6 +365,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_response(sort_by="date", query="timesSeen:>1k")
         assert response.status_code == 200
 
+    @with_feature("organizations:release-committer-assignees")
     def test_invalid_sort_key(self):
         now = timezone.now()
         self.create_group(last_seen=now - timedelta(seconds=1))
@@ -363,6 +374,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_response(sort="meow", query="is:unresolved")
         assert response.status_code == 400
 
+    @with_feature("organizations:release-committer-assignees")
     def test_simple_pagination(self):
         event1 = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=2)), "fingerprint": ["group-1"]},
@@ -394,6 +406,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert links["previous"]["results"] == "true"
         assert links["next"]["results"] == "false"
 
+    @with_feature("organizations:release-committer-assignees")
     def test_stats_period(self):
         # TODO(dcramer): this test really only checks if validation happens
         # on groupStatsPeriod
@@ -409,6 +422,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_response(groupStatsPeriod="48h")
         assert response.status_code == 400
 
+    @with_feature("organizations:release-committer-assignees")
     def test_environment(self):
         self.store_event(
             data={
@@ -435,6 +449,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_response(environment="garbage")
         assert response.status_code == 404
 
+    @with_feature("organizations:release-committer-assignees")
     def test_auto_resolved(self):
         project = self.project
         project.update_option("sentry:resolve_age", 1)
@@ -453,6 +468,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group2.id)
 
+    @with_feature("organizations:release-committer-assignees")
     def test_lookup_by_event_id(self):
         project = self.project
         project.update_option("sentry:resolve_age", 1)
@@ -470,6 +486,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["id"] == str(event.group.id)
         assert response.data[0]["matchingEventId"] == event_id
 
+    @with_feature("organizations:release-committer-assignees")
     def test_lookup_by_event_id_incorrect_project_id(self):
         self.store_event(
             data={"event_id": "a" * 32, "timestamp": iso_format(self.min_ago)},
@@ -493,6 +510,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["id"] == str(event.group.id)
         assert response.data[0]["matchingEventId"] == event_id
 
+    @with_feature("organizations:release-committer-assignees")
     def test_lookup_by_event_id_with_whitespace(self):
         project = self.project
         project.update_option("sentry:resolve_age", 1)
@@ -509,6 +527,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["id"] == str(event.group.id)
         assert response.data[0]["matchingEventId"] == event_id
 
+    @with_feature("organizations:release-committer-assignees")
     def test_lookup_by_unknown_event_id(self):
         project = self.project
         project.update_option("sentry:resolve_age", 1)
@@ -519,6 +538,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_success_response(query="c" * 32)
         assert len(response.data) == 0
 
+    @with_feature("organizations:release-committer-assignees")
     def test_lookup_by_short_id(self):
         group = self.group
         short_id = group.qualified_short_id
@@ -527,6 +547,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_success_response(query=short_id, shortIdLookup=1)
         assert len(response.data) == 1
 
+    @with_feature("organizations:release-committer-assignees")
     def test_lookup_by_short_id_ignores_project_list(self):
         organization = self.create_organization()
         project = self.create_project(organization=organization)
@@ -544,6 +565,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
         assert len(response.data) == 1
 
+    @with_feature("organizations:release-committer-assignees")
     def test_lookup_by_short_id_no_perms(self):
         organization = self.create_organization()
         project = self.create_project(organization=organization)
@@ -558,6 +580,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_success_response(organization.slug, query=short_id, shortIdLookup=1)
         assert len(response.data) == 0
 
+    @with_feature("organizations:release-committer-assignees")
     def test_lookup_by_group_id(self):
         self.login_as(user=self.user)
         response = self.get_success_response(group=self.group.id)
@@ -567,6 +590,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_success_response(group=[self.group.id, group_2.id])
         assert {g["id"] for g in response.data} == {str(self.group.id), str(group_2.id)}
 
+    @with_feature("organizations:release-committer-assignees")
     def test_lookup_by_group_id_no_perms(self):
         organization = self.create_organization()
         project = self.create_project(organization=organization)
@@ -577,6 +601,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_response(group=[group.id])
         assert response.status_code == 403
 
+    @with_feature("organizations:release-committer-assignees")
     def test_lookup_by_first_release(self):
         self.login_as(self.user)
         project = self.project
@@ -602,6 +627,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert int(issues[0]["id"]) == event2.group.id
         assert int(issues[1]["id"]) == event.group.id
 
+    @with_feature("organizations:release-committer-assignees")
     def test_lookup_by_release(self):
         self.login_as(self.user)
         project = self.project
@@ -620,6 +646,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(issues) == 1
         assert int(issues[0]["id"]) == event.group.id
 
+    @with_feature("organizations:release-committer-assignees")
     def test_lookup_by_release_wildcard(self):
         self.login_as(self.user)
         project = self.project
@@ -638,6 +665,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(issues) == 1
         assert int(issues[0]["id"]) == event.group.id
 
+    @with_feature("organizations:release-committer-assignees")
     def test_lookup_by_regressed_in_release(self):
         self.login_as(self.user)
         project = self.project
@@ -654,6 +682,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         issues = json.loads(response.content)
         assert [int(issue["id"]) for issue in issues] == [event.group.id]
 
+    @with_feature("organizations:release-committer-assignees")
     def test_pending_delete_pending_merge_excluded(self):
         events = []
         for i in "abcd":
@@ -677,6 +706,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(events[1].group.id)
 
+    @with_feature("organizations:release-committer-assignees")
     def test_filters_based_on_retention(self):
         self.login_as(user=self.user)
 
@@ -687,6 +717,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         assert len(response.data) == 0
 
+    @with_feature("organizations:release-committer-assignees")
     def test_token_auth(self):
         token = ApiToken.objects.create(user=self.user, scope_list=["event:read"])
         response = self.client.get(
@@ -696,6 +727,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
         assert response.status_code == 200, response.content
 
+    @with_feature("organizations:release-committer-assignees")
     def test_date_range(self):
         with self.options({"system.event-retention-days": 2}):
             event = self.store_event(
@@ -712,6 +744,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             response = self.get_success_response(statsPeriod="1h")
             assert len(response.data) == 0
 
+    @with_feature("organizations:release-committer-assignees")
     @patch("sentry.analytics.record")
     def test_advanced_search_errors(self, mock_record):
         self.login_as(user=self.user)
@@ -739,6 +772,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
     # This seems like a random override, but this test needed a way to override
     # the orderby being sent to snuba for a certain call. This function has a simple
     # return value and can be used to set variables in the snuba payload.
+    @with_feature("organizations:release-committer-assignees")
     @patch("sentry.utils.snuba.get_query_params_to_update_for_projects")
     def test_assigned_to_pagination(self, patched_params_update):
         old_sample_size = options.get("snuba.search.hits-sample-size")
@@ -796,6 +830,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         assert options.set("snuba.search.hits-sample-size", old_sample_size)
 
+    @with_feature("organizations:release-committer-assignees")
     def test_assigned_me_none(self):
         self.login_as(user=self.user)
         groups = []
@@ -823,6 +858,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_response(limit=10, query="assigned:[me, none]")
         assert len(response.data) == 4
 
+    @with_feature("organizations:release-committer-assignees")
     def test_seen_stats(self):
         self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -919,6 +955,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             before_now_100_seconds
         ).replace(tzinfo=timezone.utc)
 
+    @with_feature("organizations:release-committer-assignees")
     def test_semver_seen_stats(self):
         release_1 = self.create_release(version="test@1.2.3")
         release_2 = self.create_release(version="test@1.2.4")
@@ -991,6 +1028,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert int(group_data["lifetime"]["count"]) == 3
         assert int(group_data["filtered"]["count"]) == 1
 
+    @with_feature("organizations:release-committer-assignees")
     def test_inbox_search(self):
         self.store_event(
             data={
@@ -1031,6 +1069,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["inbox"] is not None
         assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
 
+    @with_feature("organizations:release-committer-assignees")
     def test_inbox_search_outside_retention(self):
         self.login_as(user=self.user)
         response = self.get_response(
@@ -1045,6 +1084,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert len(response.data) == 0
 
+    @with_feature("organizations:release-committer-assignees")
     def test_assigned_or_suggested_search(self):
         event = self.store_event(
             data={
@@ -1224,6 +1264,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert len(response.data) == 0
 
+    @with_feature("organizations:release-committer-assignees")
     def test_semver(self):
         release_1 = self.create_release(version="test@1.2.3")
         release_2 = self.create_release(version="test@1.2.4")
@@ -1315,6 +1356,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             release_3_g_2,
         ]
 
+    @with_feature("organizations:release-committer-assignees")
     def test_release_stage(self):
         replaced_release = self.create_release(
             version="replaced_release",
@@ -1419,6 +1461,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             adopted_release_g_2,
         ]
 
+    @with_feature("organizations:release-committer-assignees")
     def test_semver_package(self):
         release_1 = self.create_release(version="test@1.2.3")
         release_2 = self.create_release(version="test2@1.2.4")
@@ -1463,6 +1506,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             release_2_g_1,
         ]
 
+    @with_feature("organizations:release-committer-assignees")
     def test_semver_build(self):
         release_1 = self.create_release(version="test@1.2.3+123")
         release_2 = self.create_release(version="test2@1.2.4+124")
@@ -1505,6 +1549,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             release_2_g_1,
         ]
 
+    @with_feature("organizations:release-committer-assignees")
     def test_aggregate_stats_regression_test(self):
         self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -1519,6 +1564,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert len(response.data) == 1
 
+    @with_feature("organizations:release-committer-assignees")
     def test_skipped_fields(self):
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -1546,6 +1592,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["lifetime"] is not None
         assert response.data[0]["filtered"] is not None
 
+    @with_feature("organizations:release-committer-assignees")
     def test_inbox_fields(self):
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -1580,6 +1627,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["inbox"]["reason"] == GroupInboxReason.UNIGNORED.value
         assert response.data[0]["inbox"]["reason_details"] == snooze_details
 
+    @with_feature("organizations:release-committer-assignees")
     def test_expand_string(self):
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -1596,6 +1644,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
         assert response.data[0]["inbox"]["reason_details"] is None
 
+    @with_feature("organizations:release-committer-assignees")
     def test_expand_owners(self):
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -1640,6 +1689,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             response.data[0]["owners"][1]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.OWNERSHIP_RULE]
         )
 
+    @with_feature("organizations:release-committer-assignees")
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_ratelimit(self):
         self.login_as(user=self.user)
@@ -1648,6 +1698,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 self.get_success_response()
             self.get_error_response(status_code=status.HTTP_429_TOO_MANY_REQUESTS)
 
+    @with_feature("organizations:release-committer-assignees")
     def test_filter_not_unresolved(self):
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -1661,6 +1712,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert [int(r["id"]) for r in response.data] == [event.group.id]
 
+    @with_feature("organizations:release-committer-assignees")
     def test_collapse_stats(self):
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -1681,6 +1733,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert "lifetime" not in response.data[0]
         assert "filtered" not in response.data[0]
 
+    @with_feature("organizations:release-committer-assignees")
     def test_collapse_lifetime(self):
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -1701,6 +1754,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert "lifetime" not in response.data[0]
         assert "filtered" in response.data[0]
 
+    @with_feature("organizations:release-committer-assignees")
     def test_collapse_filtered(self):
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -1721,6 +1775,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert "lifetime" in response.data[0]
         assert "filtered" not in response.data[0]
 
+    @with_feature("organizations:release-committer-assignees")
     def test_collapse_lifetime_and_filtered(self):
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -1741,6 +1796,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert "lifetime" not in response.data[0]
         assert "filtered" not in response.data[0]
 
+    @with_feature("organizations:release-committer-assignees")
     def test_collapse_base(self):
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -1764,6 +1820,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert "lifetime" in response.data[0]
         assert "filtered" in response.data[0]
 
+    @with_feature("organizations:release-committer-assignees")
     def test_collapse_stats_group_snooze_bug(self):
         # There was a bug where we tried to access attributes on seen_stats if this feature is active
         # but seen_stats could be null when we collapse stats.
@@ -1787,97 +1844,93 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == event.group.id
 
+    @with_feature("organizations:release-committer-assignees")
     def test_include_release_committers_owners(self):
-        with self.feature("organizations:release-committer-assignees"):
-            release = self.create_release(project=self.project, version="1.0.0")
-            event = self.store_event(
-                data={
-                    "timestamp": iso_format(before_now(seconds=500)),
-                    "fingerprint": ["group-1"],
-                    "release": release.version,
-                },
-                project_id=self.project.id,
-            )
-            group = event.group
-            assert Group.objects.get(id=group.id)
-            assert GroupRelease.objects.filter(
-                group_id=group.id, project_id=self.project.id
-            ).exists()
+        release = self.create_release(project=self.project, version="1.0.0")
+        event = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=500)),
+                "fingerprint": ["group-1"],
+                "release": release.version,
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
+        assert Group.objects.get(id=group.id)
+        assert GroupRelease.objects.filter(group_id=group.id, project_id=self.project.id).exists()
 
-            repo = Repository.objects.create(
-                organization_id=self.project.organization_id, name=self.project.name
-            )
-            user2 = self.create_user()
-            self.create_member(organization=self.organization, user=user2)
-            author = self.create_commit_author(project=self.project, user=user2)
-            commit = Commit.objects.create(
-                organization_id=self.project.organization_id,
-                repository_id=repo.id,
-                key="a" * 40,
-                author=author,
-            )
-            commit2 = Commit.objects.create(
-                organization_id=self.project.organization_id,
-                repository_id=repo.id,
-                key="b" * 40,
-                author=author,
-            )
-            ReleaseCommit.objects.create(
-                organization_id=self.project.organization_id,
-                release=release,
-                commit=commit,
-                order=1,
-            )
-            ReleaseCommit.objects.create(
-                organization_id=self.project.organization_id,
-                release=release,
-                commit=commit2,
-                order=0,
-            )
+        repo = Repository.objects.create(
+            organization_id=self.project.organization_id, name=self.project.name
+        )
+        user2 = self.create_user()
+        self.create_member(organization=self.organization, user=user2)
+        author = self.create_commit_author(project=self.project, user=user2)
+        commit = Commit.objects.create(
+            organization_id=self.project.organization_id,
+            repository_id=repo.id,
+            key="a" * 40,
+            author=author,
+        )
+        commit2 = Commit.objects.create(
+            organization_id=self.project.organization_id,
+            repository_id=repo.id,
+            key="b" * 40,
+            author=author,
+        )
+        ReleaseCommit.objects.create(
+            organization_id=self.project.organization_id,
+            release=release,
+            commit=commit,
+            order=1,
+        )
+        ReleaseCommit.objects.create(
+            organization_id=self.project.organization_id,
+            release=release,
+            commit=commit2,
+            order=0,
+        )
 
-            query = "status:unresolved"
-            self.login_as(user=self.user)
-            # Test with no owner
-            response = self.get_response(sort_by="date", limit=10, query=query, expand="owners")
-            assert response.status_code == 200
-            assert len(response.data) == 1
-            assert int(response.data[0]["id"]) == event.group.id
-            assert response.data[0]["owners"] is None
+        query = "status:unresolved"
+        self.login_as(user=self.user)
+        # Test with no owner
+        response = self.get_response(sort_by="date", limit=10, query=query, expand="owners")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert response.data[0]["owners"] is None
 
-            # Test with owners
-            GroupOwner.objects.create(
-                group=event.group,
-                project=event.project,
-                organization=event.project.organization,
-                type=GroupOwnerType.SUSPECT_COMMIT.value,
-                user=self.user,
-            )
-            GroupOwner.objects.create(
-                group=event.group,
-                project=event.project,
-                organization=event.project.organization,
-                type=GroupOwnerType.OWNERSHIP_RULE.value,
-                team=self.team,
-            )
+        # Test with owners
+        GroupOwner.objects.create(
+            group=event.group,
+            project=event.project,
+            organization=event.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user=self.user,
+        )
+        GroupOwner.objects.create(
+            group=event.group,
+            project=event.project,
+            organization=event.project.organization,
+            type=GroupOwnerType.OWNERSHIP_RULE.value,
+            team=self.team,
+        )
 
-            response = self.get_response(sort_by="date", limit=10, query=query, expand="owners")
-            assert response.status_code == 200
-            assert len(response.data) == 1
-            assert int(response.data[0]["id"]) == event.group.id
-            assert response.data[0]["owners"] is not None
-            assert len(response.data[0]["owners"]) == 3
-            assert response.data[0]["owners"][0]["owner"] == f"user:{self.user.id}"
-            assert (
-                response.data[0]["owners"][0]["type"]
-                == GROUP_OWNER_TYPE[GroupOwnerType.SUSPECT_COMMIT]
-            )
-            assert response.data[0]["owners"][1]["owner"] == f"team:{self.team.id}"
-            assert (
-                response.data[0]["owners"][1]["type"]
-                == GROUP_OWNER_TYPE[GroupOwnerType.OWNERSHIP_RULE]
-            )
-            assert response.data[0]["owners"][2]["owner"] == f"user:{user2.id}"
-            assert response.data[0]["owners"][2]["type"] == "releaseCommitters"
+        response = self.get_response(sort_by="date", limit=10, query=query, expand="owners")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert response.data[0]["owners"] is not None
+        assert len(response.data[0]["owners"]) == 3
+        assert response.data[0]["owners"][0]["owner"] == f"user:{self.user.id}"
+        assert (
+            response.data[0]["owners"][0]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.SUSPECT_COMMIT]
+        )
+        assert response.data[0]["owners"][1]["owner"] == f"team:{self.team.id}"
+        assert (
+            response.data[0]["owners"][1]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.OWNERSHIP_RULE]
+        )
+        assert response.data[0]["owners"][2]["owner"] == f"user:{user2.id}"
+        assert response.data[0]["owners"][2]["type"] == "releaseCommitters"
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
