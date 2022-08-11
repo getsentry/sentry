@@ -3,7 +3,7 @@ import random
 from abc import ABC, abstractmethod
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import sentry_sdk
 
@@ -18,9 +18,9 @@ PerformanceIssues = Dict[str, Any]
 
 class DetectorType(Enum):
     SLOW_SPAN = "slow_span"
-    DUPLICATE_SPANS = "duplicate_spans"
-    SEQUENTIAL_SLOW_SPANS = "sequential_slow_spans"
-    LONG_TASK_SPANS = "long_task_spans"
+    DUPLICATE_SPANS = "duplicates"
+    SEQUENTIAL_SLOW_SPANS = "sequential"
+    LONG_TASK_SPANS = "long_task"
 
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion
@@ -30,7 +30,9 @@ def detect_performance_issue(data: Event):
         if rate and rate > random.random():
             # Add an experimental tag to be able to find these spans in production while developing. Should be removed later.
             sentry_sdk.set_tag("_did_analyze_performance_issue", "true")
-            with sentry_sdk.start_span(
+            with metrics.timer(
+                "performance.detect_performance_issue", sample_rate=0.01
+            ), sentry_sdk.start_span(
                 op="py.detect_performance_issue", description="none"
             ) as sdk_span:
                 _detect_performance_issue(data, sdk_span)
@@ -40,7 +42,7 @@ def detect_performance_issue(data: Event):
 
 # Gets some of the thresholds to perform performance detection. Can be made configurable later.
 # Thresholds are in milliseconds.
-def get_detection_settings():
+def get_default_detection_settings():
     return {
         DetectorType.DUPLICATE_SPANS: {
             "count": 5,
@@ -49,11 +51,11 @@ def get_detection_settings():
         },
         DetectorType.SEQUENTIAL_SLOW_SPANS: {
             "count": 3,
-            "cumulative_duration": 600.0,  # ms
+            "cumulative_duration": 1200.0,  # ms
             "allowed_span_ops": ["db", "http", "ui"],
         },
         DetectorType.SLOW_SPAN: {
-            "duration_threshold": 500.0,  # ms
+            "duration_threshold": 1000.0,  # ms
             "allowed_span_ops": ["db", "http"],
         },
         DetectorType.LONG_TASK_SPANS: {
@@ -67,7 +69,7 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
     event_id = data.get("event_id", None)
     spans: TransactionSpans = data.get("spans", [])
 
-    detection_settings = get_detection_settings()
+    detection_settings = get_default_detection_settings()
     detectors = {
         DetectorType.DUPLICATE_SPANS: DuplicateSpanDetector(detection_settings),
         DetectorType.SLOW_SPAN: SlowSpanDetector(detection_settings),
@@ -146,6 +148,7 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
             "long_task": bool(len(long_task_span_performance_fingerprints)),
         },
     )
+    report_metrics_for_detectors(event_id, detectors, sdk_span)
 
 
 # Creates a stable fingerprint given the same span details using sha1.
@@ -178,6 +181,18 @@ def get_span_duration(span: Span):
     )
 
 
+class PerformanceSpanIssue:
+    __slots__ = ("span_id", "allowed_op", "spans_involved")
+    """
+    A class representing a detected performance issue caused by a performance span
+    """
+
+    def __init__(self, span_id: str, allowed_op: str, spans_involved: List[str]):
+        self.span_id = span_id
+        self.allowed_op = allowed_op
+        self.spans_involved = spans_involved
+
+
 class PerformanceDetector(ABC):
     """
     Classes of this type have their visit functions called as the event is walked once and will store a performance issue if one is detected.
@@ -190,6 +205,12 @@ class PerformanceDetector(ABC):
     @abstractmethod
     def init(self):
         raise NotImplementedError
+
+    def span_op_allowed(self, span_op: str):
+        allowed_span_ops = self.settings.get("allowed_span_ops", [])
+        if len(allowed_span_ops) <= 0:
+            return True
+        return next((op for op in allowed_span_ops if span_op.startswith(op)), False)
 
     @property
     @abstractmethod
@@ -228,11 +249,11 @@ class DuplicateSpanDetector(PerformanceDetector):
 
         fingerprint = fingerprint_span(span)
 
-        allowed_span_ops = self.settings.get("allowed_span_ops")
         duplicate_count_threshold = self.settings.get("count")
         duplicate_duration_threshold = self.settings.get("cumulative_duration")
+        allowed_op = self.span_op_allowed(op)
 
-        if not fingerprint or op not in allowed_span_ops:
+        if not fingerprint or not allowed_op:
             return
 
         span_duration = get_span_duration(span)
@@ -251,7 +272,10 @@ class DuplicateSpanDetector(PerformanceDetector):
             if duplicate_spans_counts >= duplicate_count_threshold and self.cumulative_durations[
                 fingerprint
             ] >= timedelta(milliseconds=duplicate_duration_threshold):
-                self.stored_issues[fingerprint] = {"span_id": span_id}
+                spans_involved = self.duplicate_spans_involved[fingerprint]
+                self.stored_issues[fingerprint] = PerformanceSpanIssue(
+                    span_id, allowed_op, spans_involved
+                )
 
 
 class SlowSpanDetector(PerformanceDetector):
@@ -274,10 +298,10 @@ class SlowSpanDetector(PerformanceDetector):
 
         fingerprint = fingerprint_span(span)
 
-        allowed_span_ops = self.settings.get("allowed_span_ops")
         slow_span_duration_threshold = self.settings.get("duration_threshold")
+        allowed_op = self.span_op_allowed(op)
 
-        if not fingerprint or op not in allowed_span_ops:
+        if not fingerprint or not allowed_op:
             return
 
         span_duration = get_span_duration(span)
@@ -285,7 +309,10 @@ class SlowSpanDetector(PerformanceDetector):
         if span_duration >= timedelta(
             milliseconds=slow_span_duration_threshold
         ) and not self.stored_issues.get(fingerprint, False):
-            self.stored_issues[fingerprint] = {"span_id": span_id}
+            spans_involved = [span_id]
+            self.stored_issues[fingerprint] = PerformanceSpanIssue(
+                span_id, allowed_op, spans_involved
+            )
 
 
 class SequentialSlowSpanDetector(PerformanceDetector):
@@ -312,11 +339,11 @@ class SequentialSlowSpanDetector(PerformanceDetector):
 
         fingerprint = fingerprint_span_op(span)
 
-        allowed_span_ops = self.settings.get("allowed_span_ops")
         count_threshold = self.settings.get("count")
         duration_threshold = self.settings.get("cumulative_duration")
+        allowed_op = self.span_op_allowed(op)
 
-        if not fingerprint or op not in allowed_span_ops:
+        if not fingerprint or not allowed_op:
             return
 
         span_duration = get_span_duration(span)
@@ -351,7 +378,10 @@ class SequentialSlowSpanDetector(PerformanceDetector):
             if spans_counts >= count_threshold and self.cumulative_durations[
                 fingerprint
             ] >= timedelta(milliseconds=duration_threshold):
-                self.stored_issues[fingerprint] = {"span_id": span_id}
+                spans_involved = self.spans_involved[fingerprint]
+                self.stored_issues[fingerprint] = PerformanceSpanIssue(
+                    span_id, allowed_op, spans_involved
+                )
 
 
 class LongTaskSpanDetector(PerformanceDetector):
@@ -391,3 +421,44 @@ class LongTaskSpanDetector(PerformanceDetector):
                 "span_id": span_id,
                 "long_task_spans": self.long_task_spans,
             }
+
+
+# Reports metrics and creates spans for detection
+def report_metrics_for_detectors(
+    event_id: Optional[str], detectors: Dict[str, PerformanceDetector], sdk_span: Any
+):
+    all_detected_issues = [i for _, d in detectors.items() for i in d.stored_issues]
+    has_detected_issues = bool(all_detected_issues)
+
+    if has_detected_issues:
+        sdk_span.containing_transaction.set_tag("_pi_all_issue_count", len(all_detected_issues))
+        metrics.incr(
+            "performance.performance_issue.aggregate",
+            len(all_detected_issues),
+        )
+        if event_id:
+            sdk_span.containing_transaction.set_tag("_pi_transaction", event_id)
+
+    detected_tags = {}
+    for detector_enum, detector in detectors.items():
+        detector_key = detector_enum.value
+        detected_issues = detector.stored_issues
+        detected_issue_keys = list(detected_issues.keys())
+        detected_tags[detector_key] = bool(len(detected_issue_keys))
+
+        if not detected_issue_keys:
+            continue
+
+        first_issue = detected_issues[detected_issue_keys[0]]
+        sdk_span.containing_transaction.set_tag(f"_pi_{detector_key}", first_issue.span_id)
+        metrics.incr(
+            f"performance.performance_issue.{detector_key}",
+            len(detected_issue_keys),
+            tags={f"op_{n.allowed_op}": True for n in detected_issues.values()},
+        )
+
+    metrics.incr(
+        "performance.performance_issue.detected",
+        instance=str(has_detected_issues),
+        tags=detected_tags,
+    )
