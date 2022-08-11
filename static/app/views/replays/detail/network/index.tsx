@@ -1,13 +1,15 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {PanelTable, PanelTableHeader} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
-import {showPlayerTime} from 'sentry/components/replays/utils';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {relativeTimeInMs, showPlayerTime} from 'sentry/components/replays/utils';
+import Tooltip from 'sentry/components/tooltip';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import theme from 'sentry/utils/theme';
+import {ColorOrAlias} from 'sentry/utils/theme';
 import {
   ISortConfig,
   NetworkSpan,
@@ -21,12 +23,41 @@ type Props = {
 };
 
 function NetworkList({replayRecord, networkSpans}: Props) {
-  const startTimestampMs = replayRecord.started_at.getTime();
+  const startTimestampMs = replayRecord.startedAt.getTime();
+  const {setCurrentHoverTime, setCurrentTime} = useReplayContext();
   const [sortConfig, setSortConfig] = useState<ISortConfig>({
     by: 'startTimestamp',
     asc: true,
     getValue: row => row[sortConfig.by],
   });
+
+  const handleMouseEnter = useCallback(
+    (timestamp: number) => {
+      if (startTimestampMs) {
+        setCurrentHoverTime(relativeTimeInMs(timestamp, startTimestampMs));
+      }
+    },
+    [setCurrentHoverTime, startTimestampMs]
+  );
+
+  const handleMouseLeave = useCallback(() => {
+    setCurrentHoverTime(undefined);
+  }, [setCurrentHoverTime]);
+
+  const handleClick = useCallback(
+    (timestamp: number) => {
+      setCurrentTime(relativeTimeInMs(timestamp, startTimestampMs));
+    },
+    [setCurrentTime, startTimestampMs]
+  );
+
+  const getColumnHandlers = useCallback(
+    (startTime: number) => ({
+      onMouseEnter: () => handleMouseEnter(startTime),
+      onMouseLeave: handleMouseLeave,
+    }),
+    [handleMouseEnter, handleMouseLeave]
+  );
 
   function handleSort(fieldName: keyof NetworkSpan): void;
   function handleSort(key: string, getValue: (row: NetworkSpan) => any): void;
@@ -88,19 +119,39 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     const networkStartTimestamp = network.startTimestamp * 1000;
     const networkEndTimestamp = network.endTimestamp * 1000;
 
+    const columnHandlers = getColumnHandlers(networkStartTimestamp);
+
     return (
       <Fragment key={index}>
-        <Item>{<StatusPlaceHolder height="20px" />}</Item>
-        <Item color={theme.gray400}>
-          <Text>{network.description || <Placeholder height="24px" />}</Text>
+        <Item center {...columnHandlers}>
+          <StatusPlaceHolder height="20px" />
         </Item>
-        <Item>
-          <Text>{network.op}</Text>
+        <Item color="gray400" {...columnHandlers}>
+          {network.description ? (
+            <Tooltip
+              title={network.description}
+              isHoverable
+              overlayStyle={{
+                maxWidth: '500px !important',
+              }}
+            >
+              <Text>{network.description}</Text>
+            </Tooltip>
+          ) : (
+            <EmptyText>({t('Missing path')})</EmptyText>
+          )}
         </Item>
-        <Item numeric>
+        <Item {...columnHandlers}>
+          <Text>{network.op.replace('resource.', '')}</Text>
+        </Item>
+        <Item {...columnHandlers} numeric>
           {`${(networkEndTimestamp - networkStartTimestamp).toFixed(2)}ms`}
         </Item>
-        <Item numeric>{showPlayerTime(networkStartTimestamp, startTimestampMs)}</Item>
+        <Item {...columnHandlers} numeric>
+          <UnstyledButton onClick={() => handleClick(networkStartTimestamp)}>
+            {showPlayerTime(networkStartTimestamp, startTimestampMs, true)}
+          </UnstyledButton>
+        </Item>
       </Fragment>
     );
   };
@@ -119,16 +170,14 @@ function NetworkList({replayRecord, networkSpans}: Props) {
   );
 }
 
-const Item = styled('div')<{color?: string; numeric?: boolean}>`
+const Item = styled('div')<{center?: boolean; color?: ColorOrAlias; numeric?: boolean}>`
   display: flex;
   align-items: center;
+  ${p => p.center && 'justify-content: center;'}
   max-height: 28px;
-  color: ${p => p.color || p.theme.subText};
-  border-radius: 0;
+  color: ${p => p.theme[p.color || 'subText']};
   padding: ${space(0.75)} ${space(1.5)};
   background-color: ${p => p.theme.background};
-  min-width: 0;
-  line-height: 16px;
 
   ${p => p.numeric && 'font-variant-numeric: tabular-nums;'}
 `;
@@ -189,12 +238,22 @@ const Text = styled('p')`
   overflow: hidden;
 `;
 
+const EmptyText = styled(Text)`
+  font-style: italic;
+  color: ${p => p.theme.subText};
+`;
+
 const SortItem = styled('span')`
   cursor: pointer;
 
   svg {
     vertical-align: text-top;
   }
+`;
+
+const UnstyledButton = styled('button')`
+  border: 0;
+  background: none;
 `;
 
 export default NetworkList;

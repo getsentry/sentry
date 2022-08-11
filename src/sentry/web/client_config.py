@@ -10,8 +10,9 @@ from sentry import features, options
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.user import DetailedSelfUserSerializer
 from sentry.api.utils import generate_organization_url
+from sentry.auth.access import get_cached_organization_member
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import ProjectKey
+from sentry.models import Organization, OrganizationMember, ProjectKey
 from sentry.utils import auth
 from sentry.utils.assets import get_frontend_app_asset_url
 from sentry.utils.email import is_smtp_enabled
@@ -99,6 +100,28 @@ def _get_public_dsn():
     return result
 
 
+def _delete_activeorg(session):
+    if session and "activeorg" in session:
+        del session["activeorg"]
+
+
+def _resolve_last_org_slug(session, user):
+    last_org_slug = session["activeorg"] if session and "activeorg" in session else None
+    if not last_org_slug:
+        return None
+    try:
+        last_org = Organization.objects.get_from_cache(slug=last_org_slug)
+        if user is not None and not isinstance(user, AnonymousUser):
+            try:
+                get_cached_organization_member(user.id, last_org.id)
+                return last_org_slug
+            except OrganizationMember.DoesNotExist:
+                return None
+    except Organization.DoesNotExist:
+        pass
+    return None
+
+
 def get_client_config(request=None):
     """
     Provides initial bootstrap data needed to boot the frontend application.
@@ -139,7 +162,9 @@ def get_client_config(request=None):
 
     public_dsn = _get_public_dsn()
 
-    last_organization = session["activeorg"] if session and "activeorg" in session else None
+    last_org_slug = _resolve_last_org_slug(session, user)
+    if last_org_slug is None:
+        _delete_activeorg(session)
 
     context = {
         "singleOrganization": settings.SENTRY_SINGLE_ORGANIZATION,
@@ -163,7 +188,7 @@ def get_client_config(request=None):
         # Note `lastOrganization` should not be expected to update throughout frontend app lifecycle
         # It should only be used on a fresh browser nav to a path where an
         # organization is not in context
-        "lastOrganization": last_organization,
+        "lastOrganization": last_org_slug,
         "languageCode": language_code,
         "userIdentity": user_identity,
         "csrfCookieName": settings.CSRF_COOKIE_NAME,
@@ -187,9 +212,7 @@ def get_client_config(request=None):
         "enableAnalytics": settings.ENABLE_ANALYTICS,
         "validateSUForm": getattr(settings, "VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON", False),
         "sentryUrl": options.get("system.url-prefix"),
-        "organizationUrl": generate_organization_url(last_organization)
-        if last_organization
-        else None,
+        "organizationUrl": generate_organization_url(last_org_slug) if last_org_slug else None,
     }
     if user and user.is_authenticated:
         context.update(

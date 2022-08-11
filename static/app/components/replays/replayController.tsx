@@ -4,7 +4,6 @@ import {useResizeObserver} from '@react-aria/utils';
 
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import CompositeSelect from 'sentry/components/forms/compositeSelect';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {formatTime, relativeTimeInMs} from 'sentry/components/replays/utils';
@@ -85,11 +84,11 @@ function ReplayPlayPauseBar({isCompact}: {isCompact: boolean}) {
           title={t('Next breadcrumb')}
           icon={<IconNext size="sm" />}
           onClick={() => {
-            const startTimestampMs = replay?.getReplay().started_at?.getTime();
+            const startTimestampMs = replay?.getReplay().startedAt?.getTime();
             if (!startTimestampMs) {
               return;
             }
-            const transformedCrumbs = transformCrumbs(replay?.getRawCrumbs() || []);
+            const transformedCrumbs = replay?.getRawCrumbs() || [];
             const next = getNextBreadcrumb({
               crumbs: transformedCrumbs.filter(crumb =>
                 USER_ACTIONS.includes(crumb.type)
@@ -114,7 +113,7 @@ function ReplayCurrentTime() {
 
   return (
     <span>
-      {formatTime(currentTime)} / {durationMs ? formatTime(durationMs) : '??:??'}
+      {formatTime(currentTime)} / {durationMs ? formatTime(durationMs) : '--:--'}
     </span>
   );
 }

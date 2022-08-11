@@ -27,8 +27,8 @@ function EventMetaData({crumbs, durationMs, replayRecord}: Props) {
       {replayRecord ? (
         <ProjectBadge
           project={
-            projects.find(p => p.id === replayRecord.project_id) || {
-              slug: replayRecord.project_slug || '',
+            projects.find(p => p.id === replayRecord.projectId) || {
+              slug: replayRecord.projectSlug || '',
             }
           }
           avatarSize={16}
@@ -41,7 +41,7 @@ function EventMetaData({crumbs, durationMs, replayRecord}: Props) {
         {replayRecord ? (
           <React.Fragment>
             <IconCalendar color="gray300" />
-            <TimeSince date={replayRecord.started_at} shorten />
+            <TimeSince date={replayRecord.startedAt} shorten />
           </React.Fragment>
         ) : (
           <HeaderPlaceholder />

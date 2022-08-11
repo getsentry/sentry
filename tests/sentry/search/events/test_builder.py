@@ -706,6 +706,21 @@ class QueryBuilderTest(TestCase):
             ],
         )
 
+    def test_missing_function(self):
+        with pytest.raises(InvalidSearchQuery):
+            QueryBuilder(
+                Dataset.Discover,
+                self.params,
+                "",
+                selected_columns=[
+                    "count_all_the_things_that_i_want()",
+                    "transaction",
+                ],
+                groupby_columns=[
+                    "transaction",
+                ],
+            )
+
 
 def _metric_percentile_definition(
     org_id, quantile, field="transaction.duration", alias=None
@@ -724,7 +739,7 @@ def _metric_percentile_definition(
                         [
                             Column("metric_id"),
                             indexer.resolve(
-                                org_id, constants.METRICS_MAP[field], UseCaseKey.PERFORMANCE
+                                UseCaseKey.PERFORMANCE, org_id, constants.METRICS_MAP[field]
                             ),
                         ],
                     ),
@@ -742,7 +757,7 @@ def _metric_conditions(org_id, metrics) -> List[Condition]:
             Column("metric_id"),
             Op.IN,
             sorted(
-                indexer.resolve(org_id, constants.METRICS_MAP[metric], UseCaseKey.PERFORMANCE)
+                indexer.resolve(UseCaseKey.PERFORMANCE, org_id, constants.METRICS_MAP[metric])
                 for metric in metrics
             ),
         )
@@ -841,13 +856,13 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             [
                 AliasedExpression(
                     Column(
-                        f"tags[{indexer.resolve(self.organization.id, 'transaction', UseCaseKey.PERFORMANCE)}]"
+                        f"tags[{indexer.resolve(UseCaseKey.PERFORMANCE, self.organization.id, 'transaction')}]"
                     ),
                     "tags[transaction]",
                 ),
                 AliasedExpression(
                     Column(
-                        f"tags[{indexer.resolve(self.organization.id, 'transaction', UseCaseKey.PERFORMANCE)}]"
+                        f"tags[{indexer.resolve(UseCaseKey.PERFORMANCE, self.organization.id, 'transaction')}]"
                     ),
                     "transaction",
                 ),
@@ -942,9 +957,9 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                                     [
                                         Column("metric_id"),
                                         indexer.resolve(
+                                            UseCaseKey.PERFORMANCE,
                                             self.organization.id,
                                             constants.METRICS_MAP["transaction.duration"],
-                                            UseCaseKey.PERFORMANCE,
                                         ),
                                     ],
                                 ),
@@ -1013,9 +1028,9 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                             [
                                 Column("metric_id"),
                                 indexer.resolve(
+                                    UseCaseKey.PERFORMANCE,
                                     self.organization.id,
                                     constants.METRICS_MAP["transaction.duration"],
-                                    UseCaseKey.PERFORMANCE,
                                 ),
                             ],
                         ),
@@ -1116,7 +1131,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             pytest.skip("test does not apply if tag values are in clickhouse")
 
         with pytest.raises(
-            InvalidSearchQuery,
+            IncompatibleMetricsQuery,
             match=re.escape("Tag value was not found"),
         ):
             MetricsQueryBuilder(
@@ -1130,7 +1145,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         if options.get("sentry-metrics.performance.tags-values-are-strings"):
             pytest.skip("test does not apply if tag values are in clickhouse")
         with pytest.raises(
-            InvalidSearchQuery,
+            IncompatibleMetricsQuery,
             match=re.escape("Tag value was not found"),
         ):
             MetricsQueryBuilder(
@@ -2172,34 +2187,26 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-        expected = [
-            mock.call(self.organization.id, "transaction", use_case_id=UseCaseKey.PERFORMANCE)
-        ]
+        expected = [mock.call(UseCaseKey.PERFORMANCE, self.organization.id, "transaction")]
 
         if not options.get("sentry-metrics.performance.tags-values-are-strings"):
             expected.append(
-                mock.call(
-                    self.organization.id, "foo_transaction", use_case_id=UseCaseKey.PERFORMANCE
-                )
+                mock.call(UseCaseKey.PERFORMANCE, self.organization.id, "foo_transaction")
             )
 
         expected.extend(
             [
                 mock.call(
+                    UseCaseKey.PERFORMANCE,
                     self.organization.id,
                     constants.METRICS_MAP["measurements.lcp"],
-                    use_case_id=UseCaseKey.PERFORMANCE,
                 ),
-                mock.call(
-                    self.organization.id, "measurement_rating", use_case_id=UseCaseKey.PERFORMANCE
-                ),
+                mock.call(UseCaseKey.PERFORMANCE, self.organization.id, "measurement_rating"),
             ]
         )
 
         if not options.get("sentry-metrics.performance.tags-values-are-strings"):
-            expected.append(
-                mock.call(self.organization.id, "good", use_case_id=UseCaseKey.PERFORMANCE)
-            )
+            expected.append(mock.call(UseCaseKey.PERFORMANCE, self.organization.id, "good"))
 
         self.assertCountEqual(mock_indexer.mock_calls, expected)
 
@@ -2269,6 +2276,20 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 ),
             ],
         )
+
+    def test_missing_function(self):
+        with pytest.raises(IncompatibleMetricsQuery):
+            MetricsQueryBuilder(
+                self.params,
+                query="",
+                selected_columns=[
+                    "count_all_the_things_that_i_want()",
+                    "transaction",
+                ],
+                groupby_columns=[
+                    "transaction",
+                ],
+            )
 
 
 class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
@@ -2382,7 +2403,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         if options.get("sentry-metrics.performance.tags-values-are-strings"):
             pytest.skip("test does not apply if tag values are in clickhouse")
         with pytest.raises(
-            InvalidSearchQuery,
+            IncompatibleMetricsQuery,
             match=re.escape("Tag value was not found"),
         ):
             TimeseriesMetricQueryBuilder(
@@ -2397,7 +2418,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         if options.get("sentry-metrics.performance.tags-values-are-strings"):
             pytest.skip("test does not apply if tag values are in clickhouse")
         with pytest.raises(
-            InvalidSearchQuery,
+            IncompatibleMetricsQuery,
             match=re.escape("Tag value was not found"),
         ):
             TimeseriesMetricQueryBuilder(

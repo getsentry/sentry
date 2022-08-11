@@ -26,9 +26,11 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {formatPercentage} from 'sentry/utils/formatters';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
+import {SamplingProjectIncompatibleAlert} from '../samplingProjectIncompatibleAlert';
 import {isValidSampleRate, SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
 import {projectStatsToSampleRates} from '../utils/projectStatsToSampleRates';
 import useProjectStats from '../utils/useProjectStats';
+import {useRecommendedSdkUpgrades} from '../utils/useRecommendedSdkUpgrades';
 
 import {FooterActions, Stepper} from './uniformRateModal';
 
@@ -63,6 +65,10 @@ export function RecommendedStepsModal({
   recommendedSampleRate,
   onSetRules,
 }: RecommendedStepsModalProps) {
+  const {isProjectIncompatible} = useRecommendedSdkUpgrades({
+    orgSlug: organization.slug,
+    projectId,
+  });
   const [saving, setSaving] = useState(false);
   const {projectStats} = useProjectStats({
     orgSlug: organization.slug,
@@ -70,6 +76,7 @@ export function RecommendedStepsModal({
     interval: '1h',
     statsPeriod: '48h',
     disable: !!clientSampleRate,
+    groupBy: 'outcome',
   });
   const {maxSafeSampleRate} = projectStatsToSampleRates(projectStats);
   const suggestedClientSampleRate = clientSampleRate ?? maxSafeSampleRate;
@@ -182,6 +189,10 @@ export function RecommendedStepsModal({
                   <span className="token function">init</span>
                   <span className="token punctuation">(</span>
                   <span className="token punctuation">{'{'}</span>
+                  <span className="token comment">
+                    {' // '}
+                    {t('JavaScript Example')}
+                  </span>
                   <br />
                   <span className="token punctuation">{'  ...'}</span>
                   <br />
@@ -204,6 +215,11 @@ export function RecommendedStepsModal({
                 </code>
               </pre>
             </div>
+            <SamplingProjectIncompatibleAlert
+              organization={organization}
+              projectId={projectId}
+              isProjectIncompatible={isProjectIncompatible}
+            />
           </ListItem>
         </List>
       </Body>
@@ -223,7 +239,7 @@ export function RecommendedStepsModal({
             <Button
               priority="primary"
               onClick={handleDone}
-              disabled={onSubmit ? saving || !isValid : false} // do not disable the button if there's on onSubmit handler (modal was opened from the sdk alert)
+              disabled={onSubmit ? saving || !isValid || isProjectIncompatible : false} // do not disable the button if there's on onSubmit handler (modal was opened from the sdk alert)
               title={
                 onSubmit
                   ? !isValid

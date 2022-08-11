@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 import pytest
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 from freezegun import freeze_time
 
@@ -674,8 +675,14 @@ class SetRefsTest(SetRefsTestCase):
         assert len(mock_fetch_commit.method_calls) == 0
 
     def test_invalid_version(self):
-        release = Release.objects.create(organization=self.org)
-        assert not release.is_valid_version(None)
+        cases = ["", "latest", ".", "..", "\t", "\n", "  "]
+
+        for case in cases:
+            with pytest.raises(ValidationError):
+                Release.objects.create(version=case, organization=self.org)
+
+        with pytest.raises(ValidationError):
+            Release.objects.create(organization=self.org)
 
     @staticmethod
     def test_invalid_chars_in_version():

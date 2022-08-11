@@ -89,6 +89,18 @@ class MetricsQuery(MetricsQueryValidationRunner):
     histogram_to: Optional[float] = None
 
     @staticmethod
+    def _use_case_id(metric_mri: str) -> UseCaseKey:
+        """Find correct use_case_id based on metric_name"""
+        parsed_mri = parse_mri(metric_mri)
+        if parsed_mri is not None:
+            if parsed_mri.namespace == "transactions":
+                return UseCaseKey.PERFORMANCE
+            elif parsed_mri.namespace == "sessions":
+                return UseCaseKey.RELEASE_HEALTH
+            raise ValueError("Can't find correct use_case_id based on metric MRI")
+        raise ValueError("Can't parse metric MRI")
+
+    @staticmethod
     def _validate_field(field: MetricField) -> None:
         derived_metrics_mri = get_derived_metrics(exclude_private=True)
         metric_mri = get_mri(field.metric_name)
@@ -108,8 +120,13 @@ class MetricsQuery(MetricsQueryValidationRunner):
     def validate_select(self) -> None:
         if len(self.select) == 0:
             raise InvalidParams('Request is missing a "field"')
+        use_case_ids = set()
         for field in self.select:
+            metric_mri = get_mri(field.metric_name)
+            use_case_ids.add(self._use_case_id(metric_mri))
             self._validate_field(field)
+        if len(use_case_ids) > 1:
+            raise InvalidParams("All select fields should have the same use_case_id")
 
     def validate_where(self) -> None:
         if not self.where:
@@ -144,12 +161,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
             # Construct a metrics expression
             metric_field_obj = metric_object_factory(f.field.op, metric_mri)
 
-            parsed_mri = parse_mri(metric_mri)
-            # Find correct use_case_id based on metric_name
-            use_case_id = UseCaseKey.RELEASE_HEALTH
-            if parsed_mri is not None and parsed_mri.namespace == "transaction":
-                use_case_id = UseCaseKey.PERFORMANCE
-
+            use_case_id = self._use_case_id(metric_mri)
             entity = metric_field_obj.get_entity(self.project_ids, use_case_id)
 
             if isinstance(entity, Mapping):

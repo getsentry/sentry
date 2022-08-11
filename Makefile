@@ -1,3 +1,6 @@
+.PHONY: all
+all: develop
+
 PIP := python -m pip --disable-pip-version-check
 WEBPACK := yarn build-acceptance
 

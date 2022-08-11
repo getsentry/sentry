@@ -18,7 +18,6 @@ import Access from 'sentry/components/acl/access';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import Input from 'sentry/components/forms/controls/input';
 import Field from 'sentry/components/forms/field';
 import FieldHelp from 'sentry/components/forms/field/fieldHelp';
 import Form from 'sentry/components/forms/form';
@@ -27,6 +26,7 @@ import SelectControl from 'sentry/components/forms/selectControl';
 import SelectField from 'sentry/components/forms/selectField';
 import TeamSelector from 'sentry/components/forms/teamSelector';
 import IdBadge from 'sentry/components/idBadge';
+import Input from 'sentry/components/input';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
@@ -149,12 +149,9 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   pollingTimeout: number | undefined = undefined;
 
   get isDuplicateRule(): boolean {
-    const {location, organization} = this.props;
+    const {location} = this.props;
     const createFromDuplicate = location?.query.createFromDuplicate === 'true';
-    const hasDuplicateAlertRules = organization.features.includes('duplicate-alert-rule');
-    return (
-      hasDuplicateAlertRules && createFromDuplicate && location?.query.duplicateRuleId
-    );
+    return createFromDuplicate && location?.query.duplicateRuleId;
   }
 
   componentWillUnmount() {
@@ -203,13 +200,11 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {
-      organization,
       location: {query},
       params: {ruleId, orgId},
     } = this.props;
     // project in state isn't initialized when getEndpoints is first called
     const project = this.state?.project ?? this.props.project;
-    const hasDuplicateAlertRules = organization.features.includes('duplicate-alert-rule');
 
     const endpoints = [
       [
@@ -229,12 +224,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       endpoints.push(['rule', `/projects/${orgId}/${project.slug}/rules/${ruleId}/`]);
     }
 
-    if (
-      hasDuplicateAlertRules &&
-      !ruleId &&
-      query.createFromDuplicate &&
-      query.duplicateRuleId
-    ) {
+    if (!ruleId && query.createFromDuplicate && query.duplicateRuleId) {
       endpoints.push([
         'duplicateTargetRule',
         `/projects/${orgId}/${project.slug}/rules/${query.duplicateRuleId}/`,
