@@ -3,9 +3,10 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
+from sentry.api.event_search import SearchFilter, parse_search_query
 from sentry.models.organization import Organization
 from sentry.replays.post_process import process_raw_response
-from sentry.replays.query import query_replays_collection
+from sentry.replays.query import query_replays_collection, replay_config
 
 
 class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
@@ -24,6 +25,9 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
             if key not in filter_params:
                 filter_params[key] = value
 
+        search_filters = parse_search_query(request.query_params.get("query", ""), replay_config)
+        search_filters = [term for term in search_filters if isinstance(term, SearchFilter)]
+
         snuba_response = query_replays_collection(
             project_ids=filter_params["project_id"],
             start=filter_params["start"],
@@ -32,6 +36,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
             sort=filter_params.get("sort"),
             limit=filter_params.get("limit"),
             offset=filter_params.get("offset"),
+            search_filters=search_filters,
         )
 
         response = process_raw_response(

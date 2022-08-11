@@ -300,3 +300,87 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response_data = response.json()
             assert "data" in response_data
             assert len(response_data["data"]) == 0
+
+    def test_get_replays_user_filters(self):
+        """Test replays conform to the interchange format."""
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = "44c586f7-bd12-4c1b-b609-189344a19e92"
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        self.store_replays(
+            mock_replay(
+                seq1_timestamp,
+                project.id,
+                replay1_id,
+                platform="javascript",
+                dist="abc123",
+                user_id="123",
+                user_email="username@example.com",
+                user_name="username123",
+                user_ip_address="127.0.0.1",
+                sdk_name="sentry.javascript.react",
+                sdk_version="6.18.10",
+                os_name="macOS",
+                os_version="15",
+                browser_name="Firefox",
+                browser_version="99",
+                device_name="Macbook",
+                device_brand="Apple",
+                device_family="Macintosh",
+                device_model="10",
+            )
+        )
+        self.store_replays(
+            mock_replay(
+                seq2_timestamp,
+                project.id,
+                replay1_id,
+                os_name=None,
+                os_version=None,
+                browser_name=None,
+                browser_version=None,
+                device_name=None,
+                device_brand=None,
+                device_family=None,
+                device_model=None,
+            )
+        )
+
+        with self.feature(REPLAYS_FEATURES):
+            # Run all the queries individually to determine compliance.
+            queries = [
+                ("platform", "javascript"),
+                ("duration", "17"),
+                ("user.id", "123"),
+                ("user.name", "username123"),
+                ("user.email", "username@example.com"),
+                ("user.ipAddress", "127.0.0.1"),
+                ("sdkName", "sentry.javascript.react"),
+                ("sdkVersion", "6.18.10"),
+                ("osName", "macOS"),
+                ("osVersion", "15"),
+                ("browserName", "Firefox"),
+                ("browserVersion", "99"),
+                ("dist", "abc123"),
+                ("countSegments", "2"),
+                ("deviceName", "Macbook"),
+                ("deviceBrand", "Apple"),
+                ("deviceFamily", "Macintosh"),
+                ("deviceModel", "10"),
+            ]
+
+            for key, value in queries:
+                response = self.client.get(self.url + f"?query={key}:{value}")
+                assert response.status_code == 200
+                response_data = response.json()
+                assert len(response_data["data"]) == 1, key
+
+            # Test all queries as a single AND expression.
+            raw_queries = [f"{key}:{value}" for key, value in queries]
+            all_queries = " ".join(raw_queries)
+
+            response = self.client.get(self.url + f"?query={all_queries}")
+            assert response.status_code == 200
+            response_data = response.json()
+            assert len(response_data["data"]) == 1, "all queries"
