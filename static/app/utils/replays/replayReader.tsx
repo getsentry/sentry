@@ -163,7 +163,7 @@ export default class ReplayReader {
     return span.op === 'memory';
   };
 
-  isNotMemorySpan = (span: ReplaySpan) => {
-    return !this.isMemorySpan(span);
+  isNetworkSpan = (span: ReplaySpan) => {
+    return !this.isMemorySpan(span) && !span.op.includes('paint');
   };
 }
