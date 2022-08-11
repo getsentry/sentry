@@ -37,8 +37,10 @@ import {
 } from 'sentry/utils/discover/fields';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
+import {decodeList} from 'sentry/utils/queryString';
 import {
   DashboardDetails,
+  DashboardFilterKeys,
   DashboardFilters,
   DisplayType,
   Widget,
@@ -519,30 +521,13 @@ export function getCurrentPageFilters(
   };
 }
 
-export function getReleaseParams(release?: null | string | string[]): string[] {
-  if (!defined(release)) {
-    return [];
-  }
-
-  if (Array.isArray(release)) {
-    return release;
-  }
-
-  return [release];
-}
-
 export function getDashboardFiltersFromURL(location: Location): DashboardFilters | null {
-  const filterKeys = new Set(['release']);
-
-  // If any of the query params appears are filter keys, return a filter object
-  if (
-    new Set(Object.keys(location.query).filter(queryParam => filterKeys.has(queryParam)))
-      .size
-  ) {
-    return {
-      release: getReleaseParams(location.query?.release),
-    };
-  }
-
-  return null;
+  const filterKeys = new Set([DashboardFilterKeys.RELEASE]);
+  const dashboardFilters: DashboardFilters = {};
+  filterKeys.forEach(key => {
+    if (location.query?.[key]) {
+      dashboardFilters[key] = decodeList(location.query?.[key]);
+    }
+  });
+  return !isEmpty(dashboardFilters) ? dashboardFilters : null;
 }

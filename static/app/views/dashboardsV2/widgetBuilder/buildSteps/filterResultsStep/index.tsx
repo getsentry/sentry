@@ -15,11 +15,16 @@ import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
+import {decodeList} from 'sentry/utils/queryString';
 import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
 import {getDatasetConfig} from 'sentry/views/dashboardsV2/datasetConfig/base';
 import ReleasesSelectControl from 'sentry/views/dashboardsV2/releasesSelectControl';
-import {DashboardFilters, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
-import {getReleaseParams} from 'sentry/views/dashboardsV2/utils';
+import {
+  DashboardFilterKeys,
+  DashboardFilters,
+  WidgetQuery,
+  WidgetType,
+} from 'sentry/views/dashboardsV2/types';
 
 import {BuildStep} from '../buildStep';
 
@@ -103,8 +108,8 @@ export function FilterResultsStep({
           <ReleasesProvider organization={organization} selection={selection}>
             <StyledReleasesSelectControl
               selectedReleases={
-                ('release' in location.query
-                  ? getReleaseParams(location.query.release)
+                (DashboardFilterKeys.RELEASE in location.query
+                  ? decodeList(location.query.release)
                   : dashboardFilters?.release) ?? []
               }
               isDisabled

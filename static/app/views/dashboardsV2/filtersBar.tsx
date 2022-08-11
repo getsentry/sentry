@@ -11,13 +11,13 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {decodeList} from 'sentry/utils/queryString';
 import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 import ReleasesSelectControl from './releasesSelectControl';
 import {DashboardFilters} from './types';
-import {getReleaseParams} from './utils';
 
 type FiltersBarProps = {
   filters: DashboardFilters;
@@ -44,9 +44,8 @@ export default function FiltersBar({
   const organization = useOrganization();
 
   const selectedReleases =
-    (location.query?.release
-      ? getReleaseParams(location.query.release)
-      : filters?.release) ?? [];
+    (location.query?.release ? decodeList(location.query.release) : filters?.release) ??
+    [];
 
   return (
     <Wrapper>

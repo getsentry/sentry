@@ -70,6 +70,7 @@ import {
 import DashboardTitle from './title';
 import {
   DashboardDetails,
+  DashboardFilterKeys,
   DashboardFilters,
   DashboardListItem,
   DashboardState,
@@ -551,7 +552,7 @@ class DashboardDetail extends Component<Props, State> {
               browserHistory.replace({
                 pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
                 query: {
-                  query: omit(location.query, 'release'),
+                  query: omit(location.query, DashboardFilterKeys.RELEASE),
                 },
               });
             },
@@ -870,7 +871,7 @@ class DashboardDetail extends Component<Props, State> {
                           addSuccessMessage(t('Dashboard filters updated'));
                           browserHistory.replace({
                             pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
-                            query: omit(location.query, 'release'),
+                            query: omit(location.query, DashboardFilterKeys.RELEASE),
                           });
                         },
                         () => undefined
