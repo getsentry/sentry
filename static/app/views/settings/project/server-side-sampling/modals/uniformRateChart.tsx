@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {BarChart} from 'sentry/components/charts/barChart';
 import {ChartContainer, HeaderTitle} from 'sentry/components/charts/styles';
-import TransitionChart from 'sentry/components/charts/transitionChart';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -24,35 +23,32 @@ function UniformRateChart({series}: Props) {
   return (
     <ChartPanel>
       <ChartContainer>
-        <TransitionChart loading={false} reloading={false} height="224px">
-          <HeaderTitle>{t('Transactions (Last 30 days) ')}</HeaderTitle>
+        <HeaderTitle>{t('Transactions (Last 30 days) ')}</HeaderTitle>
+        {getDynamicText({
+          value: (
+            <BarChart
+              legend={legend}
+              series={series}
+              grid={{
+                left: '10px',
+                right: '10px',
+                top: '40px',
+                bottom: '0px',
+              }}
+              height={200}
+              isGroupedByDate
+              showTimeInTooltip={false}
+              tooltip={{valueFormatter: value => formatAbbreviatedNumber(value)}}
+              yAxis={{
+                axisLabel: {
+                  formatter: (value: number) => formatAbbreviatedNumber(value),
+                },
+              }}
+            />
+          ),
 
-          {getDynamicText({
-            value: (
-              <BarChart
-                legend={legend}
-                series={series}
-                grid={{
-                  left: '10px',
-                  right: '10px',
-                  top: '40px',
-                  bottom: '0px',
-                }}
-                height={200}
-                isGroupedByDate
-                showTimeInTooltip={false}
-                tooltip={{valueFormatter: value => formatAbbreviatedNumber(value)}}
-                yAxis={{
-                  axisLabel: {
-                    formatter: (value: number) => formatAbbreviatedNumber(value),
-                  },
-                }}
-              />
-            ),
-
-            fixed: <Placeholder height="224px" />,
-          })}
-        </TransitionChart>
+          fixed: <Placeholder height="224px" />,
+        })}
       </ChartContainer>
     </ChartPanel>
   );
