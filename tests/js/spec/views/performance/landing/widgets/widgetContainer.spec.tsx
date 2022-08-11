@@ -355,7 +355,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       1,
       expect.anything(),
       expect.objectContaining({
-        query: expect.objectContaining({dataset: 'metricsEnhanced'}),
+        query: expect.objectContaining({dataset: 'metrics'}),
       })
     );
     expect(await screen.findByTestId('has-metrics-data-tag')).toHaveTextContent(
@@ -393,7 +393,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       1,
       expect.anything(),
       expect.objectContaining({
-        query: expect.objectContaining({dataset: 'metricsEnhanced'}),
+        query: expect.objectContaining({dataset: 'metrics'}),
       })
     );
   });
@@ -427,7 +427,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       1,
       expect.anything(),
       expect.objectContaining({
-        query: expect.objectContaining({dataset: 'metricsEnhanced'}),
+        query: expect.objectContaining({dataset: 'metrics'}),
       })
     );
     expect(await screen.findByTestId('has-metrics-data-tag')).toHaveTextContent(
