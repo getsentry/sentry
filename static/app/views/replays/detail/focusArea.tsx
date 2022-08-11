@@ -44,7 +44,7 @@ function FocusArea({}: Props) {
   const startTimestampMs = replayRecord.startedAt.getTime();
 
   const getNetworkSpans = () => {
-    return replay.getRawSpans().filter(replay.isNotMemoryNorWebVitalSpan);
+    return replay.getRawSpans().filter(replay.isNetworkSpan);
   };
 
   switch (getActiveTab()) {
