@@ -1,3 +1,4 @@
+import pytest
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 
@@ -71,12 +72,15 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
+    @pytest.mark.flaky(reruns=5)
     def test_add_uniform_rule_with_recommended_sampling_values(self):
         with self.feature(FEATURE_NAME):
             self.wait_until_page_loaded()
 
             # Open uniform rate modal
             self.browser.element('[aria-label="Start Setup"]').click()
+
+            self.browser.wait_until('[id="recommended-client-sampling"]')
 
             # Click on the recommended sampling values option
             self.browser.element('[id="sampling-recommended"]').click()
@@ -101,6 +105,7 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                 == serializer.validated_data["rules"][0]
             )
 
+    @pytest.mark.flaky(reruns=5)
     def test_add_uniform_rule_with_custom_sampling_values(self):
         with self.feature(FEATURE_NAME):
             self.wait_until_page_loaded()
@@ -108,13 +113,17 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             # Open uniform rate modal
             self.browser.element('[aria-label="Start Setup"]').click()
 
+            self.browser.wait_until('[id="recommended-client-sampling"]')
+
             # Enter a custom value for client side sampling
-            self.browser.element('[id="recommended-client-sampling"]').clear()
-            self.browser.element('[id="recommended-client-sampling"]').send_keys(80, Keys.ENTER)
+            self.browser.element('[id="recommended-client-sampling"]').send_keys(
+                Keys.BACK_SPACE, Keys.BACK_SPACE, Keys.BACK_SPACE, 80, Keys.ENTER
+            )
 
             # Enter a custom value for server side sampling
-            self.browser.element('[id="recommended-server-sampling"]').clear()
-            self.browser.element('[id="recommended-server-sampling"]').send_keys(50, Keys.ENTER)
+            self.browser.element('[id="recommended-server-sampling"]').send_keys(
+                Keys.BACK_SPACE, Keys.BACK_SPACE, 50, Keys.ENTER
+            )
 
             # Click on next button
             self.browser.element('[aria-label="Next"]').click()
