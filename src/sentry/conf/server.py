@@ -348,6 +348,7 @@ INSTALLED_APPS = (
     "sentry.plugins.sentry_urls.apps.Config",
     "sentry.plugins.sentry_useragents.apps.Config",
     "sentry.plugins.sentry_webhooks.apps.Config",
+    "sentry.utils.suspect_resolutions.apps.Config",
     "social_auth",
     "sudo",
     "sentry.eventstream",
@@ -596,6 +597,7 @@ CELERY_IMPORTS = (
     "sentry.profiles.task",
     "sentry.release_health.duplex",
     "sentry.release_health.tasks",
+    "sentry.utils.suspect_resolutions.get_suspect_resolutions",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -1126,8 +1128,10 @@ SENTRY_FEATURES = {
     "organizations:relay": True,
     # Enable Sentry Functions
     "organizations:sentry-functions": False,
-    # Enable experimental session replay features
+    # Enable experimental session replay UI
     "organizations:session-replay": False,
+    # Enable experimental session replay SDK for recording on Sentry
+    "organizations:session-replay-sdk": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
@@ -1465,7 +1469,7 @@ SENTRY_METRICS_PREFIX = "sentry."
 SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
 
 # Metrics product
-SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres_v2.StaticStringsIndexerDecorator"
+SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres_v2.PostgresIndexer"
 SENTRY_METRICS_INDEXER_OPTIONS = {}
 SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
 

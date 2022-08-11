@@ -11,7 +11,7 @@ from freezegun import freeze_time
 
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, SessionMRI, TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import (
     SessionMetricKey,
     TransactionMetricKey,
@@ -48,6 +48,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         )
         org_id = self.organization.id
         self.session_metric = rh_indexer_record(org_id, SessionMRI.SESSION.value)
+        self.session_duration = rh_indexer_record(org_id, SessionMRI.DURATION.value)
         self.session_error_metric = rh_indexer_record(org_id, SessionMRI.ERROR.value)
 
     def test_missing_field(self):
@@ -503,6 +504,59 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
         # Request for single project gives a counter of one:
         assert count_sessions(project_id=self.project2.id) == 1
+
+    def test_max_and_min_on_distributions(self):
+        # Record some strings
+        org_id = self.organization.id
+        k_transaction = perf_indexer_record(org_id, "transaction")
+        v_foo = perf_indexer_record(org_id, "/foo")
+        v_bar = perf_indexer_record(org_id, "/bar")
+        v_baz = perf_indexer_record(org_id, "/baz")
+
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.transaction_lcp_metric,
+                    "timestamp": int(time.time()),
+                    "tags": {
+                        k_transaction: v_transaction,
+                    },
+                    "type": "d",
+                    "value": [123.4 * count],
+                    "retention_days": 90,
+                }
+                for v_transaction, count in ((v_foo, 1), (v_bar, 3), (v_baz, 2))
+            ],
+            entity="metrics_distributions",
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=[
+                f"max({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+                f"min({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+            ],
+            query="",
+            statsPeriod="1h",
+            interval="1h",
+            per_page=3,
+            useCase="performance",
+            includeSeries="0",
+        )
+        groups = response.data["groups"]
+
+        assert len(groups) == 1
+        assert groups == [
+            {
+                "by": {},
+                "totals": {
+                    "max(transaction.measurements.lcp)": 3 * 123.4,
+                    "min(transaction.measurements.lcp)": 1 * 123.4,
+                },
+            }
+        ]
 
     def test_orderby(self):
         # Record some strings
@@ -1451,12 +1505,13 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             ],
             entity="metrics_sets",
         )
+
         self._send_buckets(
             [
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": self.transaction_lcp_metric,
+                    "metric_id": self.session_duration,
                     "timestamp": int(time.time()),
                     "type": "d",
                     "value": numbers,
@@ -1473,10 +1528,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         response = self.get_success_response(
             self.organization.slug,
             field=[
-                # TODO: avoid of mixing in single test release_health
-                # and performnace metrics at the same time
-                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
-                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})",
+                f"p50({SessionMetricKey.DURATION.value})",
                 SessionMetricKey.ERRORED.value,
                 "sum(sentry.sessions.session)",
             ],
@@ -1549,10 +1601,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         response = self.get_success_response(
             self.organization.slug,
             field=[
-                # TODO: avoid of mixing in single test release_health
-                # and performnace metrics at the same time
-                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
-                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})",
+                f"p50({SessionMetricKey.DURATION.value})",
                 SessionMetricKey.ERRORED.value,
                 "sum(sentry.sessions.session)",
             ],
@@ -1743,15 +1792,17 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         self.tx_user_metric = perf_indexer_record(self.organization.id, TransactionMRI.USER.value)
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
+    @patch("sentry.snuba.metrics.query.parse_mri")
     @patch("sentry.snuba.metrics.fields.base.get_public_name_from_mri")
     @patch("sentry.snuba.metrics.query_builder.get_mri")
     @patch("sentry.snuba.metrics.query.get_mri")
     def test_derived_metric_incorrectly_defined_as_singular_entity(
-        self, mocked_get_mri, mocked_get_mri_query, mocked_reverse_mri
+        self, mocked_get_mri, mocked_get_mri_query, mocked_reverse_mri, mocked_parse_mri
     ):
         mocked_get_mri.return_value = "crash_free_fake"
         mocked_get_mri_query.return_value = "crash_free_fake"
         mocked_reverse_mri.return_value = "crash_free_fake"
+        mocked_parse_mri.return_value = ParsedMRI("e", "sessions", "crash_free_fake", "none")
         for status in ["ok", "crashed"]:
             for minute in range(4):
                 self.store_session(
@@ -1766,6 +1817,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             field=["crash_free_fake"],
             statsPeriod="6m",
             interval="1m",
+            useCase="release-health",
         )
         assert response.status_code == 400
         assert response.json()["detail"] == (
