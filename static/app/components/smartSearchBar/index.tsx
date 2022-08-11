@@ -581,6 +581,29 @@ class SmartSearchBar extends Component<Props, State> {
     }
   };
 
+  logShortcutEvent = (shortcutType: ShortcutType, shortcutMethod: 'click' | 'hotkey') => {
+    const {searchSource, savedSearchType, organization} = this.props;
+    const {query} = this.state;
+    trackAdvancedAnalyticsEvent('search.shortcut_used', {
+      organization,
+      search_type: savedSearchType === 0 ? 'issues' : 'events',
+      search_source: searchSource,
+      shortcut_method: shortcutMethod,
+      shortcut_type: shortcutType,
+      query,
+    });
+  };
+
+  runShortcutOnClick = (shortcut: Shortcut) => {
+    this.runShortcut(shortcut);
+    this.logShortcutEvent(shortcut.shortcutType, 'click');
+  };
+
+  runShortcutOnHotkeyPress = (shortcut: Shortcut) => {
+    this.runShortcut(shortcut);
+    this.logShortcutEvent(shortcut.shortcutType, 'hotkey');
+  };
+
   runShortcut = (shortcut: Shortcut) => {
     const token = this.cursorToken;
     const filterTokens = this.filterTokens;
@@ -1731,7 +1754,7 @@ class SmartSearchBar extends Component<Props, State> {
       >
         <SearchHotkeysListener
           visibleShortcuts={visibleShortcuts}
-          runShortcut={this.runShortcut}
+          runShortcut={this.runShortcutOnHotkeyPress}
         />
         <SearchLabel htmlFor="smart-search-input" aria-label={t('Search events')}>
           <IconSearch />
@@ -1795,7 +1818,7 @@ class SmartSearchBar extends Component<Props, State> {
             onClick={this.onAutoComplete}
             loading={loading}
             searchSubstring={searchTerm}
-            runShortcut={this.runShortcut}
+            runShortcut={this.runShortcutOnClick}
             visibleShortcuts={visibleShortcuts}
             maxMenuHeight={maxMenuHeight}
           />
