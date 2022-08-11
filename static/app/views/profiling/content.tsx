@@ -120,7 +120,7 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
     if (transactions.type !== 'resolved') {
       return false;
     }
-    hasSetupProfilingForAtLeastOneProject(selection.projects, projects);
+
     if (transactions.data.transactions.length > 0) {
       return false;
     }
