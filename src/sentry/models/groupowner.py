@@ -129,7 +129,7 @@ def get_owner_details(group_list):
             {
                 "type": "releaseCommitters",
                 "owner": f"user:{user_id}",
-                "date_added": f"{latest_rc.commit.date_added}",
+                "date_added": latest_rc.commit.date_added,
             }
             for user_id, latest_rc in user_to_latest_rc.items()
         ]
