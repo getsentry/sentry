@@ -3,7 +3,11 @@ import uuid
 
 import pytest
 
-from sentry.sentry_metrics.indexer.cloudspanner import CloudSpannerIndexer, IdCodec, SpannerIndexerModel
+from sentry.sentry_metrics.indexer.cloudspanner import (
+    CloudSpannerIndexer,
+    IdCodec,
+    SpannerIndexerModel,
+)
 from sentry.sentry_metrics.indexer.id_generator import get_id
 
 
@@ -37,8 +41,7 @@ def test_spanner_indexer_service():
 @pytest.mark.skip(reason="TODO: Implement it correctly")
 def test_spanner_indexer_write_dml():
     # TODO: Provide instance_id and database_id when running the test
-    spanner_indexer = CloudSpannerIndexer(
-        instance_id="", database_id="")
+    spanner_indexer = CloudSpannerIndexer(instance_id="", database_id="")
     spanner_indexer.validate()
 
     model = SpannerIndexerModel(
@@ -52,7 +55,9 @@ def test_spanner_indexer_write_dml():
     )
 
     def insert_perfstringindexer(transaction):
-        full_statememt = "INSERT INTO perfstringindexer %s VALUES %s" % (SpannerIndexerModel.to_columns_format_dml(), model.to_values_format_dml())
+        full_statememt = "INSERT INTO perfstringindexer {} VALUES {}".format(
+            SpannerIndexerModel.to_columns_format_dml(), model.to_values_format_dml()
+        )
         transaction.execute_update(full_statememt)
 
     spanner_indexer.database.run_in_transaction(insert_perfstringindexer)
