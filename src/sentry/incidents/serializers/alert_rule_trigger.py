@@ -87,7 +87,7 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
                         "access": self.context["access"],
                         "user": self.context["user"],
                         "use_async_lookup": self.context.get("use_async_lookup"),
-                        "validate_channel_id": self.context.get("validate_channel_id"),
+                        "validate_channel_id": self.context.get("validate_channel_id", True),
                         "input_channel_id": action_data.pop("input_channel_id", None),
                     },
                     instance=action_instance,

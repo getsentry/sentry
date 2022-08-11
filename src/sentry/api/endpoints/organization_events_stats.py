@@ -145,7 +145,14 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
             use_metrics = (
                 batch_features.get("organizations:performance-use-metrics", False)
                 or batch_features.get("organizations:dashboards-mep", False)
-                or batch_features.get("organizations:mep-rollout-flag", False)
+                or (
+                    batch_features.get("organizations:mep-rollout-flag", False)
+                    and features.has(
+                        "organizations:server-side-sampling",
+                        organization=organization,
+                        actor=request.user,
+                    )
+                )
             )
             performance_dry_run_mep = batch_features.get(
                 "organizations:performance-dry-run-mep", False

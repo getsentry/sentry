@@ -210,6 +210,7 @@ export enum EntryType {
   DEBUGMETA = 'debugmeta',
   SPANS = 'spans',
   SPANTREE = 'spantree',
+  PERFORMANCE = 'performance',
 }
 
 type EntryDebugMeta = {
@@ -255,6 +256,11 @@ export type EntrySpanTree = {
   type: EntryType.SPANTREE;
 };
 
+export type EntryPerformance = {
+  data: any; // data is not used
+  type: EntryType.PERFORMANCE;
+};
+
 type EntryMessage = {
   data: {
     formatted: string;
@@ -270,14 +276,14 @@ export type EntryRequest = {
     cookies?: [key: string, value: string][];
     data?: string | null | Record<string, any> | [key: string, value: any][];
     env?: Record<string, string>;
-    fragment?: string;
+    fragment?: string | null;
     headers?: [key: string, value: string][];
     inferredContentType?:
       | null
       | 'application/json'
       | 'application/x-www-form-urlencoded'
       | 'multipart/form-data';
-    query?: [key: string, value: string][];
+    query?: [key: string, value: string][] | string;
   };
   type: EntryType.REQUEST;
 };
@@ -305,6 +311,7 @@ export type Entry =
   | EntryStacktrace
   | EntrySpans
   | EntrySpanTree
+  | EntryPerformance
   | EntryMessage
   | EntryRequest
   | EntryTemplate
@@ -359,7 +366,7 @@ export type EventUser = {
   username?: string | null;
 };
 
-type EventBase = {
+interface EventBase {
   contexts: EventContexts;
   crashFile: IssueAttachment | null;
   culprit: string;
@@ -409,29 +416,32 @@ type EventBase = {
   } | null;
   sdkUpdates?: Array<SDKUpdatesSuggestion>;
   userReport?: any;
-};
+}
 
-export type EventTransaction = Omit<EventBase, 'entries' | 'type'> & {
+interface TraceEventContexts extends EventContexts {
+  trace?: TraceContextType;
+}
+export interface EventTransaction
+  extends Omit<EventBase, 'entries' | 'type' | 'contexts'> {
+  contexts: TraceEventContexts;
   endTimestamp: number;
   entries: (EntrySpans | EntryRequest)[];
   startTimestamp: number;
   type: EventOrGroupType.TRANSACTION;
-  contexts?: {
-    trace?: TraceContextType;
-  };
-  title?: string;
-};
+}
 
-export type EventError = Omit<EventBase, 'entries' | 'type'> & {
+export interface EventError extends Omit<EventBase, 'entries' | 'type'> {
   entries: (
     | EntryException
     | EntryStacktrace
     | EntryRequest
     | EntryThreads
     | EntryDebugMeta
+    | EntryPerformance
+    | EntrySpanTree
   )[];
   type: EventOrGroupType.ERROR;
-};
+}
 
 export type Event = EventError | EventTransaction | EventBase;
 

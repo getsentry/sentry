@@ -95,17 +95,22 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
      */
     dsn: SPA_DSN || sentryConfig?.dsn,
     /**
-     * Frontend can be built with a `SENTRY_RELEASE_VERSION` environment variable for release string, useful if frontend is
-     * deployed separately from backend.
+     * Frontend can be built with a `SENTRY_RELEASE_VERSION` environment
+     * variable for release string, useful if frontend is deployed separately
+     * from backend.
      */
     release: SENTRY_RELEASE_VERSION ?? sentryConfig?.release,
     allowUrls: SPA_DSN ? SPA_MODE_ALLOW_URLS : sentryConfig?.whitelistUrls,
     integrations: getSentryIntegrations(sentryConfig, hasReplays, routes),
     tracesSampleRate,
     /**
-     * There is a bug in Safari, that causes `AbortError` when fetch is aborted, and you are in the middle of reading the response.
-     * In Chrome and other browsers, it is handled gracefully, where in Safari, it produces additional error, that is jumping
-     * outside of the original Promise chain and bubbles up to the `unhandledRejection` handler, that we then captures as error.
+     * There is a bug in Safari, that causes `AbortError` when fetch is
+     * aborted, and you are in the middle of reading the response. In Chrome
+     * and other browsers, it is handled gracefully, where in Safari, it
+     * produces additional error, that is jumping outside of the original
+     * Promise chain and bubbles up to the `unhandledRejection` handler, that
+     * we then captures as error.
+     *
      * Ref: https://bugs.webkit.org/show_bug.cgi?id=215771
      */
     ignoreErrors: ['AbortError: Fetch is aborted'],

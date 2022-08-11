@@ -8,6 +8,7 @@ import {
   RecommendedSdkUpgrade,
   SamplingConditionOperator,
   SamplingDistribution,
+  SamplingInnerName,
   SamplingInnerOperator,
   SamplingRule,
   SamplingRuleType,
@@ -21,8 +22,8 @@ import importedUseProjectStats from 'sentry/views/settings/project/server-side-s
 import {useRecommendedSdkUpgrades as importedUseRecommendedSdkUpgrades} from 'sentry/views/settings/project/server-side-sampling/utils/useRecommendedSdkUpgrades';
 
 export const outcomesWithoutClientDiscarded = {
-  ...TestStubs.Outcomes(),
-  groups: TestStubs.Outcomes().groups.filter(
+  ...TestStubs.OutcomesWithReason(),
+  groups: TestStubs.OutcomesWithReason().groups.filter(
     group => group.by.outcome !== Outcome.CLIENT_DISCARD
   ),
 };
@@ -47,7 +48,7 @@ export const specificRule: SamplingRule = {
     inner: [
       {
         op: SamplingInnerOperator.GLOB_MATCH,
-        name: 'trace.release',
+        name: SamplingInnerName.TRACE_RELEASE,
         value: ['1.2.2'],
       },
     ],
@@ -92,12 +93,32 @@ export const mockedSamplingSdkVersions: SamplingSdkVersion[] = [
     latestSDKVersion: '1.0.3',
     latestSDKName: 'sentry.javascript.react',
     isSendingSampleRate: true,
+    isSendingSource: true,
+    isSupportedPlatform: true,
   },
   {
     project: mockedProjects[1].slug,
     latestSDKVersion: '1.0.2',
     latestSDKName: 'sentry.python',
     isSendingSampleRate: false,
+    isSendingSource: false,
+    isSupportedPlatform: true,
+  },
+  {
+    project: 'java',
+    latestSDKVersion: '1.0.2',
+    latestSDKName: 'sentry.java',
+    isSendingSampleRate: true,
+    isSendingSource: false,
+    isSupportedPlatform: true,
+  },
+  {
+    project: 'angular',
+    latestSDKVersion: '1.0.2',
+    latestSDKName: 'sentry.javascript.angular',
+    isSendingSampleRate: false,
+    isSendingSource: false,
+    isSupportedPlatform: false,
   },
 ];
 
@@ -140,7 +161,7 @@ const useProjectStats = importedUseProjectStats as jest.MockedFunction<
   typeof importedUseProjectStats
 >;
 useProjectStats.mockImplementation(() => ({
-  projectStats: TestStubs.Outcomes(),
+  projectStats: TestStubs.OutcomesWithReason(),
   loading: false,
   error: undefined,
   projectStatsSeries: [],
@@ -161,6 +182,9 @@ useRecommendedSdkUpgrades.mockImplementation(() => ({
       latestSDKVersion: mockedSamplingSdkVersions[1].latestSDKVersion,
     },
   ],
+  incompatibleProjects: [],
+  isProjectIncompatible: true,
+  affectedProjects: [mockedProjects[1]],
   fetching: false,
 }));
 
@@ -172,7 +196,7 @@ export function getMockData({
     ...initializeOrg(),
     organization: {
       ...initializeOrg().organization,
-      features: ['server-side-sampling'],
+      features: ['server-side-sampling', 'server-side-sampling-ui'],
       access: access ?? initializeOrg().organization.access,
       projects,
     },

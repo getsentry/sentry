@@ -62,7 +62,6 @@ export class FlamegraphRenderer2d {
       throw new Error('No canvas to draw on');
     }
 
-    const queue: FlamegraphFrame[] = [...this.flamegraph.root.children];
     const context = this.canvas.getContext('2d');
 
     if (!context) {
@@ -72,6 +71,7 @@ export class FlamegraphRenderer2d {
     context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     const border = window.devicePixelRatio;
 
+    const queue: FlamegraphFrame[] = [...this.flamegraph.root.children];
     while (queue.length > 0) {
       const frame = queue.pop()!;
 

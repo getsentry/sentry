@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -6,8 +6,8 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
-import Input from 'sentry/components/forms/controls/input';
 import Field from 'sentry/components/forms/field';
+import Input from 'sentry/components/input';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {IconAdd, IconDelete} from 'sentry/icons';
@@ -49,28 +49,9 @@ export function FilterResultsStep({
   widgetType,
   selection,
 }: Props) {
-  const blurTimeoutRef = useRef<number | undefined>(undefined);
-
-  useEffect(() => {
-    return () => {
-      window.clearTimeout(blurTimeoutRef.current);
-    };
-  }, []);
-
   const handleSearch = useCallback(
     (queryIndex: number) => {
       return (field: string) => {
-        // SearchBar will call handlers for both onSearch and onBlur
-        // when selecting a value from the autocomplete dropdown. This can
-        // cause state issues for the search bar in our use case. To prevent
-        // this, we set a timer in our onSearch handler to block our onBlur
-        // handler from firing if it is within 200ms, ie from clicking an
-        // autocomplete value.
-        window.clearTimeout(blurTimeoutRef.current);
-        blurTimeoutRef.current = window.setTimeout(() => {
-          blurTimeoutRef.current = undefined;
-        }, 200);
-
         const newQuery: WidgetQuery = {
           ...queries[queryIndex],
           conditions: field,
@@ -82,16 +63,14 @@ export function FilterResultsStep({
     [onQueryChange, queries]
   );
 
-  const handleBlur = useCallback(
+  const handleClose = useCallback(
     (queryIndex: number) => {
       return (field: string) => {
-        if (!blurTimeoutRef.current) {
-          const newQuery: WidgetQuery = {
-            ...queries[queryIndex],
-            conditions: field,
-          };
-          onQueryChange(queryIndex, newQuery);
-        }
+        const newQuery: WidgetQuery = {
+          ...queries[queryIndex],
+          conditions: field,
+        };
+        onQueryChange(queryIndex, newQuery);
       };
     },
     [onQueryChange, queries]
@@ -140,7 +119,7 @@ export function FilterResultsStep({
                 <datasetConfig.SearchBar
                   organization={organization}
                   pageFilters={selection}
-                  onBlur={handleBlur(queryIndex)}
+                  onClose={handleClose(queryIndex)}
                   onSearch={handleSearch(queryIndex)}
                   widgetQuery={query}
                 />
