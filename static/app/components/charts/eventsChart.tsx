@@ -34,6 +34,7 @@ import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {
   aggregateMultiPlotType,
+  aggregateOutputType,
   getEquation,
   isEquation,
 } from 'sentry/utils/discover/fields';
@@ -302,7 +303,8 @@ class Chart extends React.Component<ChartProps, State> {
       yAxis: {
         axisLabel: {
           color: theme.chartLabel,
-          formatter: (value: number) => axisLabelFormatter(value, yAxis),
+          formatter: (value: number) =>
+            axisLabelFormatter(value, aggregateOutputType(yAxis)),
         },
       },
       ...(chartOptionsProp ?? {}),

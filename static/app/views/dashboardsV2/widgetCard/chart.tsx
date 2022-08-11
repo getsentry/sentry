@@ -32,6 +32,7 @@ import {
 } from 'sentry/utils/discover/charts';
 import {getFieldFormatter} from 'sentry/utils/discover/fieldRenderers';
 import {
+  aggregateOutputType,
   getAggregateArg,
   getEquation,
   getMeasurementSlug,
@@ -419,7 +420,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
           formatter: (value: number) =>
             timeseriesResultsType
               ? axisLabelFormatterUsingAggregateOutputType(value, timeseriesResultsType)
-              : axisLabelFormatter(value, axisLabel),
+              : axisLabelFormatter(value, aggregateOutputType(axisLabel)),
         },
       },
     };

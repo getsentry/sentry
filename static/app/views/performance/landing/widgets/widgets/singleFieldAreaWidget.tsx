@@ -9,6 +9,7 @@ import {getInterval, getPreviousSeriesName} from 'sentry/components/charts/utils
 import {t} from 'sentry/locale';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {
   QueryBatchNode,
   Transform,
@@ -135,7 +136,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
 
                 return (
                   <HighlightNumber key={fieldName} color={props.chartColor}>
-                    {axisLabelFormatter(value, fieldName)}
+                    {axisLabelFormatter(value, aggregateOutputType(fieldName))}
                   </HighlightNumber>
                 );
               })}

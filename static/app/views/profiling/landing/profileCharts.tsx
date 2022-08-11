@@ -132,7 +132,7 @@ export function ProfileCharts({query, router, selection}: ProfileChartsProps) {
                 axisLabel: {
                   color: theme.chartLabel,
                   formatter(value: number) {
-                    return axisLabelFormatter(value, 'count()');
+                    return axisLabelFormatter(value, 'integer');
                   },
                 },
               },
@@ -142,7 +142,7 @@ export function ProfileCharts({query, router, selection}: ProfileChartsProps) {
                 axisLabel: {
                   color: theme.chartLabel,
                   formatter(value: number) {
-                    return axisLabelFormatter(value, 'p75()');
+                    return axisLabelFormatter(value, 'duration');
                   },
                 },
               },

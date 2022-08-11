@@ -3,7 +3,7 @@ import {LegendComponentOption} from 'echarts';
 import {t} from 'sentry/locale';
 import {Series} from 'sentry/types/echarts';
 import {defined, formatBytesBase2} from 'sentry/utils';
-import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {aggregateOutputType, AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
   DAY,
   formatAbbreviatedNumber,
@@ -57,13 +57,13 @@ export function tooltipFormatterUsingAggregateOutputType(
  */
 export function axisLabelFormatter(
   value: number,
-  seriesName: string,
+  outputType: AggregationOutputType,
   abbreviation: boolean = false,
   durationUnit?: number
 ): string {
   return axisLabelFormatterUsingAggregateOutputType(
     value,
-    aggregateOutputType(seriesName),
+    outputType,
     abbreviation,
     durationUnit
   );
