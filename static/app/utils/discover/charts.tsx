@@ -3,7 +3,7 @@ import {LegendComponentOption} from 'echarts';
 import {t} from 'sentry/locale';
 import {Series} from 'sentry/types/echarts';
 import {defined, formatBytesBase2} from 'sentry/utils';
-import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {aggregateOutputType, AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
   DAY,
   formatAbbreviatedNumber,
@@ -31,7 +31,7 @@ export function tooltipFormatter(value: number | null, seriesName: string = ''):
  */
 export function tooltipFormatterUsingAggregateOutputType(
   value: number | null,
-  type: string
+  type: AggregationOutputType
 ): string {
   if (!defined(value)) {
     return '\u2014';

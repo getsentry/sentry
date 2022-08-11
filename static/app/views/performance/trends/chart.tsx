@@ -20,6 +20,7 @@ import {
   axisLabelFormatter,
   getDurationUnit,
   tooltipFormatter,
+  tooltipFormatterUsingAggregateOutputType,
 } from 'sentry/utils/discover/charts';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {decodeList} from 'sentry/utils/queryString';
@@ -166,7 +167,10 @@ function getIntervalLine(
         '<div>',
         `<span class="tooltip-label"><strong>${t('Past Baseline')}</strong></span>`,
         // p50() coerces the axis to be time based
-        tooltipFormatter(transaction.aggregate_range_1, 'p50()'),
+        tooltipFormatterUsingAggregateOutputType(
+          transaction.aggregate_range_1,
+          'duration'
+        ),
         '</div>',
         '</div>',
         '<div class="tooltip-arrow"></div>',
@@ -186,7 +190,10 @@ function getIntervalLine(
         '<div>',
         `<span class="tooltip-label"><strong>${t('Present Baseline')}</strong></span>`,
         // p50() coerces the axis to be time based
-        tooltipFormatter(transaction.aggregate_range_2, 'p50()'),
+        tooltipFormatterUsingAggregateOutputType(
+          transaction.aggregate_range_2,
+          'duration'
+        ),
         '</div>',
         '</div>',
         '<div class="tooltip-arrow"></div>',
