@@ -348,6 +348,7 @@ INSTALLED_APPS = (
     "sentry.plugins.sentry_urls.apps.Config",
     "sentry.plugins.sentry_useragents.apps.Config",
     "sentry.plugins.sentry_webhooks.apps.Config",
+    "sentry.utils.suspect_resolutions.apps.Config",
     "social_auth",
     "sudo",
     "sentry.eventstream",
@@ -596,6 +597,7 @@ CELERY_IMPORTS = (
     "sentry.profiles.task",
     "sentry.release_health.duplex",
     "sentry.release_health.tasks",
+    "sentry.utils.suspect_resolutions.get_suspect_resolutions",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
