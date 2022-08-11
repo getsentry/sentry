@@ -20,6 +20,7 @@ class DetectorType(Enum):
     SLOW_SPAN = "slow_span"
     DUPLICATE_SPANS = "duplicate_spans"
     SEQUENTIAL_SLOW_SPANS = "sequential_slow_spans"
+    LONG_TASK_SPANS = "long_task_spans"
 
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion
@@ -55,6 +56,10 @@ def get_detection_settings():
             "duration_threshold": 500.0,  # ms
             "allowed_span_ops": ["db", "http"],
         },
+        DetectorType.LONG_TASK_SPANS: {
+            "cumulative_duration": 500.0,  # ms
+            "allowed_span_ops": ["ui.long-task", "ui.sentry.long-task"],
+        },
     }
 
 
@@ -67,6 +72,7 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
         DetectorType.DUPLICATE_SPANS: DuplicateSpanDetector(detection_settings),
         DetectorType.SLOW_SPAN: SlowSpanDetector(detection_settings),
         DetectorType.SEQUENTIAL_SLOW_SPANS: SequentialSlowSpanDetector(detection_settings),
+        DetectorType.LONG_TASK_SPANS: LongTaskSpanDetector(detection_settings),
     }
 
     for span in spans:
@@ -116,6 +122,20 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
             len(sequential_performance_fingerprints),
         )
 
+    long_task_span_performance_issues = detectors[DetectorType.LONG_TASK_SPANS].stored_issues
+    long_task_span_performance_fingerprints = list(long_task_span_performance_issues.keys())
+    if long_task_span_performance_fingerprints:
+        first_long_task_span = long_task_span_performance_issues[
+            long_task_span_performance_fingerprints[0]
+        ]
+        sdk_span.containing_transaction.set_tag(
+            "_pi_long_task_span", first_long_task_span["span_id"]
+        )
+        metrics.incr(
+            "performance.performance_issue.long_task_span",
+            len(long_task_span_performance_fingerprints),
+        )
+
     metrics.incr(
         "performance.performance_issue.detected",
         instance=str(bool(all_fingerprints)),
@@ -123,6 +143,7 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
             "duplicates": bool(len(duplicate_performance_fingerprints)),
             "slow_span": bool(len(slow_performance_fingerprints)),
             "sequential": bool(len(sequential_performance_fingerprints)),
+            "long_task": bool(len(long_task_span_performance_fingerprints)),
         },
     )
 
@@ -331,3 +352,42 @@ class SequentialSlowSpanDetector(PerformanceDetector):
                 fingerprint
             ] >= timedelta(milliseconds=duration_threshold):
                 self.stored_issues[fingerprint] = {"span_id": span_id}
+
+
+class LongTaskSpanDetector(PerformanceDetector):
+    """
+    Checks for ui.long-task spans, where the cumulative duration of the spans exceeds our threshold
+    """
+
+    __slots__ = ("cumulative_duration", "long_task_spans", "stored_issues")
+
+    settings_key = DetectorType.LONG_TASK_SPANS
+
+    def init(self):
+        self.cumulative_duration = timedelta(0)
+        self.long_task_spans = []
+        self.stored_issues = {}
+
+    def visit_span(self, span: Span):
+        op = span.get("op", None)
+        span_id = span.get("span_id", None)
+        if not op or not span_id:
+            return
+
+        fingerprint = fingerprint_span(span)
+
+        allowed_span_ops = self.settings.get("allowed_span_ops")
+        duration_threshold = self.settings.get("cumulative_duration")
+
+        if not fingerprint or op not in allowed_span_ops:
+            return
+
+        span_duration = get_span_duration(span)
+        self.cumulative_duration += span_duration
+        self.long_task_spans.append(span_id)
+
+        if self.cumulative_duration >= timedelta(milliseconds=duration_threshold):
+            self.stored_issues[fingerprint] = {
+                "span_id": span_id,
+                "long_task_spans": self.long_task_spans,
+            }
