@@ -20,11 +20,12 @@ import {IssuesConfig} from './issues';
 import {ReleasesConfig} from './releases';
 
 export type WidgetBuilderSearchBarProps = {
-  onBlur: SearchBarProps['onBlur'];
   onSearch: SearchBarProps['onSearch'];
   organization: Organization;
   pageFilters: PageFilters;
   widgetQuery: WidgetQuery;
+  onBlur?: SearchBarProps['onBlur'];
+  onClose?: SearchBarProps['onClose'];
 };
 
 export interface DatasetConfig<SeriesResponse, TableResponse> {

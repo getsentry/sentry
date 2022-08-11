@@ -16,15 +16,17 @@ import {
 import IssueListSearchBar from 'sentry/views/issueList/searchBar';
 
 interface Props {
-  onClose: SearchBarProps['onClose'];
   organization: Organization;
   pageFilters: PageFilters;
   tags: TagCollection;
   widgetQuery: WidgetQuery;
+  onBlur?: SearchBarProps['onBlur'];
+  onClose?: SearchBarProps['onClose'];
 }
 
 function IssuesSearchBarContainer({
   tags,
+  onBlur,
   onClose,
   widgetQuery,
   organization,
@@ -50,6 +52,7 @@ function IssuesSearchBarContainer({
           searchSource="widget_builder"
           query={widgetQuery.conditions || ''}
           sort=""
+          onBlur={onBlur}
           onClose={onClose}
           excludeEnvironment
           supportedTags={tags}
