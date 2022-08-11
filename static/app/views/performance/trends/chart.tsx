@@ -353,7 +353,7 @@ export function Chart({
         formatter: (value: number) =>
           axisLabelFormatter(
             value,
-            aggregateOutputType('p50()'),
+            'duration',
             undefined,
             durationUnit
           ),
