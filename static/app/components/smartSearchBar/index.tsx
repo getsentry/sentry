@@ -339,8 +339,6 @@ class SmartSearchBar extends Component<Props, State> {
 
     this.inputResizeObserver = new ResizeObserver(this.updateActionsVisible);
     this.inputResizeObserver.observe(this.containerRef.current);
-
-    document.addEventListener('pointerup', this.onBackgroundPointerUp);
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -625,10 +623,12 @@ class SmartSearchBar extends Component<Props, State> {
   close = () => {
     this.setState({showDropdown: false});
     callIfFunction(this.props.onClose, this.state.query);
+    document.removeEventListener('pointerup', this.onBackgroundPointerUp);
   };
 
   open = () => {
     this.setState({showDropdown: true});
+    document.addEventListener('pointerup', this.onBackgroundPointerUp);
   };
 
   onQueryFocus = () => {
