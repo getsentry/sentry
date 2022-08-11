@@ -103,7 +103,7 @@ export const MEPSettingProvider = ({
   const allowedStates = [MEPState.metricsOnly, MEPState.transactionsOnly];
   const _metricSettingFromParam = location
     ? decodeScalar(location.query[METRIC_SETTING_PARAM])
-    : MEPState.transactionsOnly;
+    : MEPState.metricsOnly;
   let defaultMetricsState = MEPState.metricsOnly;
 
   if (forceTransactions) {
