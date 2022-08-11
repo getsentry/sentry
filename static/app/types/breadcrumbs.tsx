@@ -107,7 +107,7 @@ export type Crumb = RawCrumb & {
 };
 
 export function isBreadcrumbTypeDefault(
-  breadcrumb: RawCrumb
-): breadcrumb is BreadcrumbTypeDefault {
+  breadcrumb: Crumb
+): breadcrumb is Extract<Crumb, BreadcrumbTypeDefault> {
   return ![BreadcrumbType.HTTP, BreadcrumbType.NAVIGATION].includes(breadcrumb.type);
 }

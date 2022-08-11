@@ -337,5 +337,36 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     expect(
       await screen.findByRole('heading', {name: 'Set a global sample rate'})
     ).toBeInTheDocument();
+
+    // Close Modal
+    userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+    await waitForElementToBeRemoved(() => screen.queryByLabelText('Cancel'));
+  });
+
+  it('display request error message', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/stats_v2/',
+      statusCode: 500,
+    });
+
+    const {organization, project} = getMockData();
+
+    render(<GlobalModal />);
+
+    openModal(modalProps => (
+      <UniformRateModal
+        {...modalProps}
+        organization={organization}
+        project={project}
+        projectStats={outcomesWithoutClientDiscarded}
+        rules={[]}
+        onSubmit={jest.fn()}
+        onReadDocs={jest.fn()}
+      />
+    ));
+
+    expect(
+      await screen.findByText(/There was an error loading data/)
+    ).toBeInTheDocument();
   });
 });

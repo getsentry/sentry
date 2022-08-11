@@ -165,6 +165,7 @@ useProjectStats.mockImplementation(() => ({
   loading: false,
   error: undefined,
   projectStatsSeries: [],
+  onRefetch: jest.fn(),
 }));
 
 jest.mock(
@@ -183,6 +184,8 @@ useRecommendedSdkUpgrades.mockImplementation(() => ({
     },
   ],
   incompatibleProjects: [],
+  isProjectIncompatible: true,
+  affectedProjects: [mockedProjects[1]],
   fetching: false,
 }));
 

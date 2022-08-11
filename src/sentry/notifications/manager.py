@@ -290,7 +290,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
     def filter_to_accepting_recipients(
         self,
-        parent: Project,
+        parent: Organization,
         recipients: Iterable[Team | User],
         type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
     ) -> Mapping[ExternalProviders, Iterable[Team | User]]:
@@ -303,6 +303,27 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         notification_settings_by_recipient = transform_to_notification_settings_by_recipient(
             notification_settings, recipients
         )
+        # XXX(gilbert): remove this when organizations:active-release-notification-opt-in is removed
+        # injects the notification settings since no Notification settings will exist in the db
+        from sentry import features
+        from sentry.models import User
+
+        notification_settings_by_recipient = dict(notification_settings_by_recipient)
+        for user_recipient in filter(lambda x: isinstance(x, User), recipients):
+            if type == NotificationSettingTypes.ACTIVE_RELEASE and features.has(
+                "organizations:active-release-notification-opt-in",
+                parent,
+                actor=user_recipient,
+            ):
+                notification_settings_by_recipient[user_recipient] = {
+                    {
+                        NotificationScopeType.USER: {
+                            ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS,
+                            ExternalProviders.SLACK: NotificationSettingOptionValues.ALWAYS,
+                        }
+                    }
+                }
+
         mapping = defaultdict(set)
         for recipient in recipients:
             providers = where_should_recipient_be_notified(

@@ -24,7 +24,6 @@ import RRWebIntegration from 'sentry/components/events/rrwebIntegration';
 import EventSdkUpdates from 'sentry/components/events/sdkUpdates';
 import {DataSection} from 'sentry/components/events/styles';
 import EventUserFeedback from 'sentry/components/events/userFeedback';
-import LazyLoad from 'sentry/components/lazyLoad';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -52,6 +51,7 @@ import {projectProcessingIssuesMessages} from 'sentry/views/settings/project/pro
 import findBestThread from './interfaces/threads/threadSelector/findBestThread';
 import getThreadException from './interfaces/threads/threadSelector/getThreadException';
 import EventEntry from './eventEntry';
+import EventReplay from './eventReplay';
 import EventTagsAndScreenshot from './eventTagsAndScreenshot';
 
 const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =
@@ -433,7 +433,7 @@ const EventEntries = memo(
           />
         )}
         {!isShare && (
-          <EventReplay
+          <MiniReplayView
             event={event}
             orgFeatures={orgFeatures}
             orgSlug={orgSlug}
@@ -446,7 +446,7 @@ const EventEntries = memo(
   }
 );
 
-type EventReplayProps = {
+type MiniReplayViewProps = {
   event: Event;
   orgFeatures: string[];
   orgSlug: string;
@@ -454,24 +454,19 @@ type EventReplayProps = {
   replayId: undefined | string;
 };
 
-function EventReplay({
+function MiniReplayView({
   event,
   orgFeatures,
   orgSlug,
   projectSlug,
   replayId,
-}: EventReplayProps) {
+}: MiniReplayViewProps) {
   const hasEventAttachmentsFeature = orgFeatures.includes('event-attachments');
   const hasSessionReplayFeature = orgFeatures.includes('session-replay');
 
   if (replayId && hasSessionReplayFeature) {
     return (
-      <LazyLoad
-        component={() => import('./eventReplay')}
-        replayId={replayId}
-        orgSlug={orgSlug}
-        projectSlug={projectSlug}
-      />
+      <EventReplay replayId={replayId} orgSlug={orgSlug} projectSlug={projectSlug} />
     );
   }
   if (hasEventAttachmentsFeature) {

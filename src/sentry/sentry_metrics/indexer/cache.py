@@ -11,9 +11,10 @@ logger = logging.getLogger(__name__)
 
 
 class StringIndexerCache:
-    def __init__(self, version: int, cache_name: str):
+    def __init__(self, version: int, cache_name: str, partition_key: str):
         self.version = version
         self.cache = caches[cache_name]
+        self.partition_key = partition_key
 
     @property
     def randomized_ttl(self) -> int:
@@ -25,7 +26,7 @@ class StringIndexerCache:
 
     def make_cache_key(self, key: str, cache_namespace: str) -> str:
         hashed = md5_text(key).hexdigest()
-        return f"indexer:org:str:{cache_namespace}:{hashed}"
+        return f"indexer:{self.partition_key}:org:str:{cache_namespace}:{hashed}"
 
     def _format_results(
         self, keys: Sequence[str], results: Mapping[str, Optional[int]], cache_namespace: str
@@ -81,7 +82,3 @@ class StringIndexerCache:
     def delete_many(self, keys: Sequence[str], cache_namespace: str) -> None:
         cache_keys = [self.make_cache_key(key, cache_namespace) for key in keys]
         self.cache.delete_many(cache_keys, version=self.version)
-
-
-# todo: dont hard code 1 as the version
-indexer_cache = StringIndexerCache(**settings.SENTRY_STRING_INDEXER_CACHE_OPTIONS)
