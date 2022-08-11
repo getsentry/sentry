@@ -11,7 +11,7 @@ assert _TOTAL_BITS == 64
 _VERSION = 1
 
 # 1st January 2022
-_EPOCH_START = 1641024000
+_INDEXER_EPOCH_START = 1641024000
 
 
 def reverse_bits(number: int, bit_size: int) -> int:
@@ -41,7 +41,7 @@ def get_id() -> int:
     """
 
     now = int(time.time())
-    time_since_epoch = now - _EPOCH_START
+    time_since_epoch = now - _INDEXER_EPOCH_START
     rand = random.getrandbits(_RANDOM_BITS)
 
     id = _VERSION_PREFIX << (_TOTAL_BITS - _ZERO_BIT - _VERSION_BITS)
