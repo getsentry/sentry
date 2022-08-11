@@ -282,6 +282,7 @@ from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoi
 from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from .endpoints.organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
+from .endpoints.organization_integration_issues import OrganizationIntegrationIssuesEndpoint
 from .endpoints.organization_integration_repos import OrganizationIntegrationReposEndpoint
 from .endpoints.organization_integration_serverless_functions import (
     OrganizationIntegrationServerlessFunctionsEndpoint,
@@ -313,6 +314,10 @@ from .endpoints.organization_metrics import (
     OrganizationMetricsEndpoint,
     OrganizationMetricsTagDetailsEndpoint,
     OrganizationMetricsTagsEndpoint,
+)
+from .endpoints.organization_metrics_meta import (
+    OrganizationMetricsCompatibility,
+    OrganizationMetricsCompatibilitySums,
 )
 from .endpoints.organization_monitors import OrganizationMonitorsEndpoint
 from .endpoints.organization_onboarding_continuation_email import (
@@ -1179,6 +1184,16 @@ urlpatterns = [
                     name="sentry-api-0-organization-events-metrics-compatibility",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/metrics-compatibility/$",
+                    OrganizationMetricsCompatibility.as_view(),
+                    name="sentry-api-0-organization-metrics-compatibility",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/metrics-compatibility-sums/$",
+                    OrganizationMetricsCompatibilitySums.as_view(),
+                    name="sentry-api-0-organization-metrics-compatibility-sums",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/events-histogram/$",
                     OrganizationEventsHistogramEndpoint.as_view(),
                     name="sentry-api-0-organization-events-histogram",
@@ -1267,6 +1282,10 @@ urlpatterns = [
                 url(
                     r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/repos/$",
                     OrganizationIntegrationReposEndpoint.as_view(),
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/issues/$",
+                    OrganizationIntegrationIssuesEndpoint.as_view(),
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/serverless-functions/$",

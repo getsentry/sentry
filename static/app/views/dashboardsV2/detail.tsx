@@ -406,7 +406,7 @@ class DashboardDetail extends Component<Props, State> {
 
     if (
       Object.keys(activeFilters).every(
-        key => !!!newModifiedDashboard.filters[key] && activeFilters[key].length === 0
+        key => !!!newModifiedDashboard.filters?.[key] && activeFilters[key].length === 0
       )
     ) {
       return;
