@@ -32,6 +32,7 @@ import {
 } from 'sentry/utils/discover/charts';
 import {getFieldFormatter} from 'sentry/utils/discover/fieldRenderers';
 import {
+  aggregateOutputType,
   getAggregateArg,
   getEquation,
   getMeasurementSlug,
@@ -411,7 +412,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
         valueFormatter: (value: number, seriesName: string) =>
           timeseriesResultsType
             ? tooltipFormatterUsingAggregateOutputType(value, timeseriesResultsType)
-            : tooltipFormatter(value, seriesName),
+            : tooltipFormatter(value, aggregateOutputType(seriesName)),
       },
       yAxis: {
         axisLabel: {

@@ -972,7 +972,10 @@ export function getColumnsAndAggregatesAsStrings(fields: QueryFieldValue[]): {
  * This is useful when you need to format values in tooltips,
  * or in series markers.
  */
-export function aggregateOutputType(field: string): AggregationOutputType {
+export function aggregateOutputType(field: string | undefined): AggregationOutputType {
+  if (!field) {
+    return 'number';
+  }
   const result = parseFunction(field);
   if (!result) {
     return 'number';
