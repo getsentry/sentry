@@ -34,7 +34,6 @@ def test_spanner_indexer_write_dml():
 
     def insert_perfstringindexer(transaction):
         full_statememt = "INSERT INTO perfstringindexer %s VALUES %s" % (SpannerIndexerModel.to_columns_format_dml(), model.to_values_format_dml())
-        print(full_statememt)
         transaction.execute_update(full_statememt)
 
     spanner_indexer.database.run_in_transaction(insert_perfstringindexer)
