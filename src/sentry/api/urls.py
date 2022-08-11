@@ -315,6 +315,10 @@ from .endpoints.organization_metrics import (
     OrganizationMetricsTagDetailsEndpoint,
     OrganizationMetricsTagsEndpoint,
 )
+from .endpoints.organization_metrics_meta import (
+    OrganizationMetricsCompatibility,
+    OrganizationMetricsCompatibilitySums,
+)
 from .endpoints.organization_monitors import OrganizationMonitorsEndpoint
 from .endpoints.organization_onboarding_continuation_email import (
     OrganizationOnboardingContinuationEmail,
@@ -1178,6 +1182,16 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-metrics-compatibility/$",
                     OrganizationEventsMetricsCompatiblity.as_view(),
                     name="sentry-api-0-organization-events-metrics-compatibility",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/metrics-compatibility/$",
+                    OrganizationMetricsCompatibility.as_view(),
+                    name="sentry-api-0-organization-metrics-compatibility",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/metrics-compatibility-sums/$",
+                    OrganizationMetricsCompatibilitySums.as_view(),
+                    name="sentry-api-0-organization-metrics-compatibility-sums",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-histogram/$",
