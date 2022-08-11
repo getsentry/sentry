@@ -167,7 +167,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
     const {integration, plugins} = this.state;
     const shouldMigrateJiraPlugin =
       provider &&
-      provider.key === 'jira' &&
+      ['jira', 'jira_server'].includes(provider.key) &&
       (plugins || []).find(({id}) => id === 'jira');
 
     const action =
