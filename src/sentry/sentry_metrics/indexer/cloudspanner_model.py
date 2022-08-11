@@ -33,8 +33,7 @@ class SpannerIndexerModel:
         INSERT statement.
         Only useful when you want to insert all columns of the model.
         """
-        return "(id, string, organization_id, date_added, " \
-               "last_seen, retention_days)"
+        return "(id, string, organization_id, date_added, " "last_seen, retention_days)"
 
     @staticmethod
     def to_columns_format_batch() -> Sequence[str]:
@@ -43,5 +42,4 @@ class SpannerIndexerModel:
         batch inserts/updates.
         Only useful when you want to insert all columns of the model.
         """
-        return ["id", "string", "organization_id", "date_added",
-                "last_seen", "retention_days"]
+        return ["id", "string", "organization_id", "date_added", "last_seen", "retention_days"]
