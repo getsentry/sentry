@@ -1,13 +1,17 @@
 import styled from '@emotion/styled';
 
+import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButton';
 import {t} from 'sentry/locale';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import {useParams} from 'sentry/utils/useParams';
 
 interface FlamegraphWarningProps {
   flamegraph: Flamegraph;
 }
 
 export function FlamegraphWarnings(props: FlamegraphWarningProps) {
+  const params = useParams();
+
   if (props.flamegraph.profile.samples.length === 0) {
     return (
       <Overlay>
@@ -16,6 +20,23 @@ export function FlamegraphWarnings(props: FlamegraphWarningProps) {
             'This profile either has no samples or the total duration of frames in the profile is 0.'
           )}
         </p>
+        <div>
+          <ExportProfileButton
+            variant="default"
+            eventId={params.eventId}
+            orgId={params.orgId}
+            size="sm"
+            projectId={params.projectId}
+            title={undefined}
+            disabled={
+              params.eventId === undefined ||
+              params.orgId === undefined ||
+              params.projectId === undefined
+            }
+          >
+            {t('Export Raw Profile')}
+          </ExportProfileButton>
+        </div>
       </Overlay>
     );
   }
@@ -33,6 +54,5 @@ const Overlay = styled('div')`
   grid: auto/50%;
   place-content: center;
   z-index: ${p => p.theme.zIndex.modal};
-  pointer-events: none;
   text-align: center;
 `;
