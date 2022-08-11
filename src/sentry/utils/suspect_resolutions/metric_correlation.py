@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from sentry import tsdb
 from sentry.models import Group
@@ -15,13 +15,13 @@ class MetricCorrelationResult:
 
 def is_issue_error_rate_correlated(
     resolved_issue: Group, candidate_suspect_resolutions: List[Group]
-) -> Tuple[List[MetricCorrelationResult], datetime, datetime, datetime]:
+) -> Optional[Tuple[List[MetricCorrelationResult], datetime, datetime, datetime]]:
     if (
-        resolved_issue is None
-        or resolved_issue.resolved_at is None
+        not resolved_issue
+        or not resolved_issue.resolved_at
         or len(candidate_suspect_resolutions) == 0
     ):
-        return []
+        return None
 
     resolution_time = resolved_issue.resolved_at
 
