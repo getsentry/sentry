@@ -1,12 +1,22 @@
 from typing import Mapping, Optional, Set
 
+from django.conf import settings
+
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.base import KeyResult, KeyResults, StringIndexer
+from sentry.sentry_metrics.indexer.cache import CachingIndexer, StringIndexerCache
 from sentry.sentry_metrics.indexer.id_generator import reverse_bits
+from sentry.sentry_metrics.indexer.static_strings import StaticStringIndexer
 from sentry.utils.codecs import Codec
 
 EncodedId = int
 DecodedId = int
+
+_PARTITION_KEY = "cs"
+
+indexer_cache = StringIndexerCache(
+    **settings.SENTRY_STRING_INDEXER_CACHE_OPTIONS, partition_key=_PARTITION_KEY
+)
 
 
 class IdCodec(Codec[DecodedId, EncodedId]):
@@ -23,7 +33,7 @@ class IdCodec(Codec[DecodedId, EncodedId]):
         return reverse_bits(value, 64)
 
 
-class CloudSpannerIndexer(StringIndexer):
+class RawCloudSpannerIndexer(StringIndexer):
     def bulk_record(
         self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
     ) -> KeyResults:
@@ -46,3 +56,8 @@ class CloudSpannerIndexer(StringIndexer):
 
     def reverse_resolve(self, use_case_id: UseCaseKey, id: int) -> Optional[str]:
         raise NotImplementedError
+
+
+class CloudSpannerIndexer(StaticStringIndexer):
+    def __init__(self) -> None:
+        super().__init__(CachingIndexer(indexer_cache, RawCloudSpannerIndexer()))
