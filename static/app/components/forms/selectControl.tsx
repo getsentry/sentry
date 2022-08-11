@@ -175,7 +175,6 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     () => ({
       control: (_, state: any) => ({
         display: 'flex',
-        ...theme.form[size ?? 'md'],
         // @ts-ignore Ignore merge errors as only defining the property once
         // makes code harder to understand.
         ...{
@@ -200,21 +199,23 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         ...(!state.isSearchable && {
           cursor: 'pointer',
         }),
-        ...(isCompact && {
-          padding: `${space(0.5)} ${space(0.5)}`,
-          borderRadius: 0,
-          border: 'none',
-          boxShadow: 'none',
-          cursor: 'initial',
-          minHeight: 'none',
-          ...(isSearchable
-            ? {marginTop: 1}
-            : {
-                height: 0,
-                padding: 0,
-                overflow: 'hidden',
-              }),
-        }),
+        ...(isCompact
+          ? {
+              padding: `${space(0.5)} ${space(0.5)}`,
+              borderRadius: 0,
+              border: 'none',
+              boxShadow: 'none',
+              cursor: 'initial',
+              minHeight: 'none',
+              ...(isSearchable
+                ? {marginTop: 1}
+                : {
+                    height: 0,
+                    padding: 0,
+                    overflow: 'hidden',
+                  }),
+            }
+          : theme.form[size ?? 'md']),
       }),
 
       menu: (provided: React.CSSProperties) => ({
@@ -278,13 +279,15 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       valueContainer: (provided: React.CSSProperties) => ({
         ...provided,
         alignItems: 'center',
-        ...(isCompact && {
-          padding: `${space(0.5)} ${space(1)}`,
-          border: `1px solid ${theme.innerBorder}`,
-          borderRadius: theme.borderRadius,
-          cursor: 'text',
-          background: theme.backgroundSecondary,
-        }),
+        ...(isCompact
+          ? {
+              padding: `${space(0.5)} ${space(1)}`,
+              border: `1px solid ${theme.innerBorder}`,
+              borderRadius: theme.borderRadius,
+              cursor: 'text',
+              background: theme.backgroundSecondary,
+            }
+          : {paddingLeft: theme.formPadding[size ?? 'md'].paddingLeft}),
       }),
       input: (provided: React.CSSProperties) => ({
         ...provided,
