@@ -977,6 +977,7 @@ def histogram_query(
     if extra_conditions is not None:
         builder.add_conditions(extra_conditions)
     results = builder.run_query(referrer)
+    results["meta"] = transform_meta(results, builder.function_alias_map)
 
     if not normalize_results:
         return results
