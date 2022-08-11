@@ -96,31 +96,24 @@ class OrganizationEventsMetricsCompatiblity(OrganizationEventsEndpointBase):
             )
 
             sum_metrics = metrics_performance.query(
-                selected_columns=["count()"],
+                selected_columns=[count_unparam, count_null, "count()"],
                 params=params,
-                referrer="api.organization-events-metrics-compatibility.sum_metrics",
                 query="",
+                referrer="api.organization-events-metrics-compatibility.sum_metrics",
+                functions_acl=["count_unparameterized_transactions", "count_null_transactions"],
+                use_aggregate_conditions=True,
             )
             data["sum"]["metrics"] = (
                 sum_metrics["data"][0].get("count") if len(sum_metrics["data"]) > 0 else 0
             )
-
-            sum_unparameterized = metrics_performance.query(
-                selected_columns=[count_unparam, count_null],
-                params=params,
-                referrer="api.organization-events-metrics-compatibility.sum_unparameterized",
-                query='transaction:"<< unparameterized >>" OR !has:transaction',
-                functions_acl=["count_unparameterized_transactions", "count_null_transactions"],
-                use_aggregate_conditions=True,
-            )
             data["sum"]["metrics_null"] = (
-                sum_unparameterized["data"][0].get(get_function_alias(count_null))
-                if len(sum_unparameterized["data"]) > 0
+                sum_metrics["data"][0].get(get_function_alias(count_null))
+                if len(sum_metrics["data"]) > 0
                 else 0
             )
             data["sum"]["metrics_unparam"] = (
-                sum_unparameterized["data"][0].get(get_function_alias(count_unparam))
-                if len(sum_unparameterized["data"]) > 0
+                sum_metrics["data"][0].get(get_function_alias(count_unparam))
+                if len(sum_metrics["data"]) > 0
                 else 0
             )
 

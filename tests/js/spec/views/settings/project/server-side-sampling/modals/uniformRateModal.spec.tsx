@@ -20,7 +20,7 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
   beforeAll(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/stats_v2/',
-      body: TestStubs.Outcomes(),
+      body: TestStubs.OutcomesWithReason(),
     });
   });
 
@@ -92,6 +92,15 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     userEvent.clear(screen.getAllByRole('spinbutton')[1]);
     userEvent.hover(screen.getByTestId('invalid-server-rate')); // Server input warning is visible
     expect(await screen.findByText('Set a value between 0 and 100')).toBeInTheDocument();
+
+    // Enter a server-side sample rate higher than the client-side rate
+    userEvent.type(screen.getAllByRole('spinbutton')[1], '30{enter}');
+    userEvent.hover(screen.getByTestId('invalid-server-rate')); // Server input warning is visible
+    expect(
+      await screen.findByText(
+        'Server sample rate shall not be higher than client sample rate'
+      )
+    ).toBeInTheDocument();
 
     // Reset sample rates to suggested values
     userEvent.click(screen.getByLabelText('Reset to suggested values'));

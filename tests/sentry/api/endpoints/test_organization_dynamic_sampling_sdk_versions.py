@@ -176,6 +176,17 @@ def mocked_discover_query():
                 'count_if(transaction.source, notEquals, "")': 0,
                 "count()": 1,
             },
+            # project: dummy
+            {
+                "sdk.version": "7.1.4",
+                "sdk.name": "sentry.unknown",
+                "project": "dummy",
+                'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 0.0,
+                'count_if(trace.client_sample_rate, notEquals, "")': 0,
+                'equation|count_if(transaction.source, notEquals, "") / count()': 0.0,
+                'count_if(transaction.source, notEquals, "")': 0,
+                "count()": 2,
+            },
         ],
     }
 
@@ -230,6 +241,7 @@ class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
                     "latestSDKVersion": "7.1.4",
                     "isSendingSampleRate": False,
                     "isSendingSource": False,
+                    "isSupportedPlatform": True,
                 },
                 {
                     "project": "earth",
@@ -237,6 +249,7 @@ class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
                     "latestSDKVersion": "7.1.5",
                     "isSendingSampleRate": True,
                     "isSendingSource": True,
+                    "isSupportedPlatform": True,
                 },
                 {
                     "project": "heart",
@@ -244,6 +257,7 @@ class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
                     "latestSDKVersion": "7.1.5",
                     "isSendingSampleRate": True,
                     "isSendingSource": False,
+                    "isSupportedPlatform": True,
                 },
                 {
                     "project": "fire",
@@ -251,6 +265,7 @@ class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
                     "latestSDKVersion": "7.1.6",
                     "isSendingSampleRate": True,
                     "isSendingSource": False,
+                    "isSupportedPlatform": True,
                 },
                 {
                     "project": "water",
@@ -258,6 +273,15 @@ class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
                     "latestSDKVersion": "7.1.4",
                     "isSendingSampleRate": False,
                     "isSendingSource": False,
+                    "isSupportedPlatform": True,
+                },
+                {
+                    "project": "dummy",
+                    "latestSDKName": "sentry.unknown",
+                    "latestSDKVersion": "7.1.4",
+                    "isSendingSampleRate": False,
+                    "isSendingSource": False,
+                    "isSupportedPlatform": False,
                 },
             ]
 

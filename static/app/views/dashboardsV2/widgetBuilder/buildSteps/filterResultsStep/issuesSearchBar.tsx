@@ -16,8 +16,7 @@ import {
 import IssueListSearchBar from 'sentry/views/issueList/searchBar';
 
 interface Props {
-  onBlur: SearchBarProps['onBlur'];
-  onSearch: SearchBarProps['onSearch'];
+  onClose: SearchBarProps['onClose'];
   organization: Organization;
   pageFilters: PageFilters;
   tags: TagCollection;
@@ -26,8 +25,7 @@ interface Props {
 
 function IssuesSearchBarContainer({
   tags,
-  onSearch,
-  onBlur,
+  onClose,
   widgetQuery,
   organization,
   pageFilters,
@@ -52,8 +50,7 @@ function IssuesSearchBarContainer({
           searchSource="widget_builder"
           query={widgetQuery.conditions || ''}
           sort=""
-          onSearch={onSearch}
-          onBlur={onBlur}
+          onClose={onClose}
           excludeEnvironment
           supportedTags={tags}
           placeholder={t('Search for issues, status, assigned, and more')}

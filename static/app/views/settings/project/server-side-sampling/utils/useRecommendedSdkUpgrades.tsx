@@ -1,24 +1,29 @@
 import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {Organization} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import useProjects from 'sentry/utils/useProjects';
 
 type Props = {
   orgSlug: Organization['slug'];
+  projectId: Project['id'];
 };
 
-export function useRecommendedSdkUpgrades({orgSlug}: Props) {
+export function useRecommendedSdkUpgrades({orgSlug, projectId}: Props) {
   const {samplingSdkVersions, fetching} = useLegacyStore(ServerSideSamplingStore);
 
   const sdksToUpdate = samplingSdkVersions.filter(
-    ({isSendingSource, isSendingSampleRate}) => {
-      return !isSendingSource || !isSendingSampleRate;
+    ({isSendingSource, isSendingSampleRate, isSupportedPlatform}) => {
+      return (!isSendingSource || !isSendingSampleRate) && isSupportedPlatform;
     }
   );
 
+  const incompatibleSDKs = samplingSdkVersions.filter(
+    ({isSupportedPlatform}) => !isSupportedPlatform
+  );
+
   const {projects} = useProjects({
-    slugs: sdksToUpdate.map(({project}) => project),
+    slugs: [...sdksToUpdate, ...incompatibleSDKs].map(({project}) => project),
     orgId: orgSlug,
   });
 
@@ -40,5 +45,24 @@ export function useRecommendedSdkUpgrades({orgSlug}: Props) {
     })
     .filter(defined);
 
-  return {recommendedSdkUpgrades, fetching};
+  const incompatibleProjects = projects.filter(project =>
+    incompatibleSDKs.find(incompatibleSDK => incompatibleSDK.project === project.slug)
+  );
+
+  const isProjectIncompatible = incompatibleProjects.some(
+    incompatibleProject => incompatibleProject.id === projectId
+  );
+
+  const affectedProjects = [
+    ...recommendedSdkUpgrades.map(({project}) => project),
+    ...incompatibleProjects,
+  ];
+
+  return {
+    recommendedSdkUpgrades,
+    incompatibleProjects,
+    affectedProjects,
+    fetching,
+    isProjectIncompatible,
+  };
 }

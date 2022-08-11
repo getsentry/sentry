@@ -120,7 +120,7 @@ function FunctionsTable(props: FunctionsTableProps) {
   );
 }
 
-const RIGHT_ALIGNED_COLUMNS = new Set<TableColumnKey>(['p75', 'p95', 'p99', 'count']);
+const RIGHT_ALIGNED_COLUMNS = new Set<TableColumnKey>(['p75', 'p99', 'count']);
 const SORTABLE_COLUMNS = RIGHT_ALIGNED_COLUMNS;
 
 function renderFunctionsTableCell(
@@ -164,7 +164,6 @@ function ProfilingFunctionsTableCell({
         </NumberContainer>
       );
     case 'p75':
-    case 'p95':
     case 'p99':
       return (
         <NumberContainer>
@@ -216,11 +215,6 @@ const COLUMNS: Record<TableColumnKey, TableColumn> = {
   p75: {
     key: 'p75',
     name: t('P75 Duration'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  p95: {
-    key: 'p95',
-    name: t('P95 Duration'),
     width: COL_WIDTH_UNDEFINED,
   },
   p99: {

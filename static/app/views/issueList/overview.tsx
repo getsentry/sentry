@@ -709,6 +709,10 @@ class IssueListOverview extends Component<Props, State> {
   onRealtimeChange = (realtime: boolean) => {
     Cookies.set('realtimeActive', realtime.toString());
     this.setState({realtimeActive: realtime});
+    trackAdvancedAnalyticsEvent('issues_stream.realtime_clicked', {
+      organization: this.props.organization,
+      enabled: realtime,
+    });
   };
 
   onSelectStatsPeriod = (period: string) => {
@@ -814,6 +818,11 @@ class IssueListOverview extends Component<Props, State> {
   };
 
   onSortChange = (sort: string) => {
+    trackAdvancedAnalyticsEvent('issues_stream.sort_changed', {
+      organization: this.props.organization,
+      sort,
+    });
+
     this.transitionTo({sort});
   };
 

@@ -95,18 +95,18 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
         # generate a hash per letter
         manager = EventManager(make_event(event_id="a", message="foo bar"))
         manager.normalize()
-        event1 = manager.save(1)
+        event1 = manager.save(self.project.id)
 
         manager = EventManager(make_event(event_id="b", message="foo baz"))
         manager.normalize()
-        event2 = manager.save(1)
+        event2 = manager.save(self.project.id)
 
         assert event1.group_id != event2.group_id
 
     def test_ephemeral_interfaces_removed_on_save(self):
         manager = EventManager(make_event(platform="python"))
         manager.normalize()
-        event = manager.save(1)
+        event = manager.save(self.project.id)
 
         group = event.group
         assert group.platform == "python"
@@ -137,7 +137,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
             make_event(message="foo", event_id="a" * 32, checksum="a" * 32, timestamp=timestamp)
         )
         manager.normalize()
-        event = manager.save(1)
+        event = manager.save(self.project.id)
 
         manager = EventManager(
             make_event(
@@ -147,7 +147,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
         manager.normalize()
 
         with self.tasks():
-            event2 = manager.save(1)
+            event2 = manager.save(self.project.id)
 
         group = Group.objects.get(id=event.group_id)
 
@@ -316,13 +316,13 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
             make_event(message="foo", event_id="a" * 32, fingerprint=["a" * 32], timestamp=ts)
         )
         with self.tasks():
-            event = manager.save(1)
+            event = manager.save(self.project.id)
 
         manager = EventManager(
             make_event(message="foo bar", event_id="b" * 32, fingerprint=["a" * 32], timestamp=ts)
         )
         with self.tasks():
-            event2 = manager.save(1)
+            event2 = manager.save(self.project.id)
 
         group = Group.objects.get(id=event.group_id)
 
@@ -336,14 +336,14 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
         )
         with self.tasks():
             manager.normalize()
-            event = manager.save(1)
+            event = manager.save(self.project.id)
 
         manager = EventManager(
             make_event(message="foo bar", event_id="b" * 32, fingerprint=["a" * 32])
         )
         with self.tasks():
             manager.normalize()
-            event2 = manager.save(1)
+            event2 = manager.save(self.project.id)
 
         assert event.group_id != event2.group_id
 
@@ -355,7 +355,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
         # later timestamp than event1.
         manager = EventManager(make_event(event_id="a" * 32, checksum="a" * 32, timestamp=ts))
         with self.tasks():
-            event = manager.save(1)
+            event = manager.save(self.project.id)
 
         group = Group.objects.get(id=event.group_id)
         group.status = GroupStatus.RESOLVED
@@ -363,7 +363,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
         assert group.is_resolved()
 
         manager = EventManager(make_event(event_id="b" * 32, checksum="a" * 32, timestamp=ts + 50))
-        event2 = manager.save(1)
+        event2 = manager.save(self.project.id)
         assert event.group_id == event2.group_id
 
         group = Group.objects.get(id=group.id)
@@ -381,7 +381,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
         )
         with self.tasks():
             manager.normalize()
-            event = manager.save(1)
+            event = manager.save(self.project.id)
 
         group = Group.objects.get(id=event.group_id)
         group.status = GroupStatus.RESOLVED
@@ -392,7 +392,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
             make_event(event_id="b" * 32, checksum="a" * 32, timestamp=1403007315)
         )
         manager.normalize()
-        event2 = manager.save(1)
+        event2 = manager.save(self.project.id)
         assert event.group_id == event2.group_id
 
         group = Group.objects.get(id=group.id)
@@ -420,7 +420,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
                 release=old_release.version,
             )
         )
-        event = manager.save(1)
+        event = manager.save(self.project.id)
 
         group = event.group
 
@@ -440,7 +440,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
                 event_id="b" * 32, checksum="a" * 32, timestamp=time(), release=old_release.version
             )
         )
-        event = manager.save(1)
+        event = manager.save(self.project.id)
         assert event.group_id == group.id
 
         group = Group.objects.get(id=group.id)
@@ -454,7 +454,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
         manager = EventManager(
             make_event(event_id="c" * 32, checksum="a" * 32, timestamp=time(), release="b")
         )
-        event = manager.save(1)
+        event = manager.save(self.project.id)
         assert event.group_id == group.id
 
         group = Group.objects.get(id=group.id)
@@ -493,7 +493,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
                 release=old_release.version,
             )
         )
-        event = manager.save(1)
+        event = manager.save(self.project.id)
         group = event.group
         group.update(status=GroupStatus.RESOLVED)
 
@@ -511,7 +511,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
         manager = EventManager(
             make_event(event_id="c" * 32, checksum="a" * 32, timestamp=time(), release="b")
         )
-        event = manager.save(1)
+        event = manager.save(self.project.id)
         assert event.group_id == group.id
 
         group = Group.objects.get(id=group.id)
@@ -551,7 +551,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
                 release=old_release.version,
             )
         )
-        event = manager.save(1)
+        event = manager.save(self.project.id)
         group = event.group
         group.update(status=GroupStatus.RESOLVED)
 
@@ -569,7 +569,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
         manager = EventManager(
             make_event(event_id="c" * 32, checksum="a" * 32, timestamp=time(), release="b")
         )
-        event = manager.save(1)
+        event = manager.save(self.project.id)
         assert event.group_id == group.id
 
         group = Group.objects.get(id=group.id)
@@ -792,7 +792,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
                 release=old_release.version,
             )
         )
-        event = manager.save(1)
+        event = manager.save(self.project.id)
 
         group = event.group
 
@@ -843,7 +843,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
 
         with self.tasks():
             with self.feature({"organizations:integrations-issue-sync": True}):
-                event = manager.save(1)
+                event = manager.save(self.project.id)
                 assert event.group_id == group.id
 
                 group = Group.objects.get(id=group.id)
@@ -857,7 +857,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
                 manager = EventManager(
                     make_event(event_id="c" * 32, checksum="a" * 32, timestamp=time(), release="b")
                 )
-                event = manager.save(1)
+                event = manager.save(self.project.id)
                 mock_sync_status_outbound.assert_called_once_with(
                     external_issue, False, event.group.project_id
                 )
@@ -958,12 +958,12 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
         mock_is_resolved.return_value = False
         manager = EventManager(make_event(event_id="a" * 32, checksum="a" * 32, timestamp=ts))
         with self.tasks():
-            event = manager.save(1)
+            event = manager.save(self.project.id)
 
         mock_is_resolved.return_value = True
         manager = EventManager(make_event(event_id="b" * 32, checksum="a" * 32, timestamp=ts + 100))
         with self.tasks():
-            event2 = manager.save(1)
+            event2 = manager.save(self.project.id)
         assert event.group_id == event2.group_id
 
         group = Group.objects.get(id=event.group.id)
@@ -974,20 +974,20 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
         dict_input = {"messages": "foo"}
         manager = EventManager(make_event(transaction=dict_input))
         manager.normalize()
-        event = manager.save(1)
+        event = manager.save(self.project.id)
         assert event.transaction is None
 
     def test_transaction_as_culprit(self):
         manager = EventManager(make_event(transaction="foobar"))
         manager.normalize()
-        event = manager.save(1)
+        event = manager.save(self.project.id)
         assert event.transaction == "foobar"
         assert event.culprit == "foobar"
 
     def test_culprit_is_not_transaction(self):
         manager = EventManager(make_event(culprit="foobar"))
         manager.normalize()
-        event1 = manager.save(1)
+        event1 = manager.save(self.project.id)
         assert event1.transaction is None
         assert event1.culprit == "foobar"
 
@@ -1028,20 +1028,20 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
             "enhancements": enhancement.dumps(),
             "id": "legacy:2019-03-12",
         }
-        event1 = manager.save(1)
+        event1 = manager.save(self.project.id)
         assert event1.transaction is None
         assert event1.culprit == "in_app_function"
 
     def test_inferred_culprit_from_empty_stacktrace(self):
         manager = EventManager(make_event(stacktrace={"frames": []}))
         manager.normalize()
-        event = manager.save(1)
+        event = manager.save(self.project.id)
         assert event.culprit == ""
 
     def test_transaction_and_culprit(self):
         manager = EventManager(make_event(transaction="foobar", culprit="baz"))
         manager.normalize()
-        event1 = manager.save(1)
+        event1 = manager.save(self.project.id)
         assert event1.transaction == "foobar"
         assert event1.culprit == "baz"
 
@@ -1113,7 +1113,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
     def test_group_release_with_env(self):
         manager = EventManager(make_event(release="1.0", environment="prod", event_id="a" * 32))
         manager.normalize()
-        event = manager.save(1)
+        event = manager.save(self.project.id)
 
         release = Release.objects.get(version="1.0", projects=event.project_id)
 
@@ -1122,7 +1122,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
         ).exists()
 
         manager = EventManager(make_event(release="1.0", environment="staging", event_id="b" * 32))
-        event = manager.save(1)
+        event = manager.save(self.project.id)
 
         release = Release.objects.get(version="1.0", projects=event.project_id)
 
@@ -1602,7 +1602,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
     def test_throws_when_matches_discarded_hash(self):
         manager = EventManager(make_event(message="foo", event_id="a" * 32, fingerprint=["a" * 32]))
         with self.tasks():
-            event = manager.save(1)
+            event = manager.save(self.project.id)
 
         group = Group.objects.get(id=event.group_id)
         tombstone = GroupTombstone.objects.create(
@@ -1634,7 +1634,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
             with self.feature("organizations:event-attachments"):
                 with self.tasks():
                     with pytest.raises(HashDiscarded):
-                        event = manager.save(1, cache_key=cache_key)
+                        event = manager.save(self.project.id, cache_key=cache_key)
 
         assert mock_track_outcome.call_count == 3
 
@@ -1711,7 +1711,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
 
         mock_track_outcome = mock.Mock()
         with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
-            manager.save(1)
+            manager.save(self.project.id)
 
         assert_mock_called_once_with_partial(
             mock_track_outcome, outcome=Outcome.ACCEPTED, category=DataCategory.ERROR
@@ -1731,7 +1731,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
         mock_track_outcome = mock.Mock()
         with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
             with self.feature("organizations:event-attachments"):
-                manager.save(1, cache_key=cache_key)
+                manager.save(self.project.id, cache_key=cache_key)
 
         assert mock_track_outcome.call_count == 3
 
@@ -1760,7 +1760,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
         mock_track_outcome = mock.Mock()
         with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
             with self.feature("organizations:event-attachments"):
-                manager.save(1, cache_key=cache_key)
+                manager.save(self.project.id, cache_key=cache_key)
 
         assert mock_track_outcome.call_count == 3
 
@@ -1799,7 +1799,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
             event_id=uuid.uuid1().hex,
         )
         manager = EventManager(event)
-        event = manager.save(1)
+        event = manager.save(self.project.id)
 
         # release and environment stay toplevel
         assert event.data["release"] == "my-release"
@@ -1926,7 +1926,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
             "enhancements": enhancement.dumps(),
             "id": "mobile:2021-02-12",
         }
-        event1 = manager.save(1)
+        event1 = manager.save(self.project.id)
         assert event1.data["exception"]["values"][0]["stacktrace"]["frames"][0]["in_app"] is False
 
         event = make_event(
@@ -1955,7 +1955,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
             "enhancements": enhancement.dumps(),
             "id": "mobile:2021-02-12",
         }
-        event2 = manager.save(1)
+        event2 = manager.save(self.project.id)
         assert event2.data["exception"]["values"][0]["stacktrace"]["frames"][0]["in_app"] is False
         assert event1.group_id == event2.group_id
 
@@ -2003,7 +2003,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
         }
 
         manager.get_data()["grouping_config"] = grouping_config
-        event1 = manager.save(1)
+        event1 = manager.save(self.project.id)
 
         event2 = Event(event1.project_id, event1.event_id, data=event1.data)
 
@@ -2039,7 +2039,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
         manager.get_data()["grouping_config"] = {
             "id": "mobile:2021-02-12",
         }
-        event = manager.save(1)
+        event = manager.save(self.project.id)
 
         assert event.data["hierarchical_tree_labels"] == [None]
 
@@ -2065,7 +2065,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
         manager.get_data()["grouping_config"] = {
             "id": "mobile:2021-02-12",
         }
-        event = manager.save(1)
+        event = manager.save(self.project.id)
 
         mechanism = event.interfaces["exception"].values[0].mechanism
         assert mechanism is not None

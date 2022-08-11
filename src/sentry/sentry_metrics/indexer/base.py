@@ -213,11 +213,7 @@ class StringIndexer(Service):
         """
         raise NotImplementedError()
 
-    # TODO: @andriisoldatenko
-    # move use_case_id to 1st parameter and remove default value
-    def resolve(
-        self, org_id: int, string: str, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
-    ) -> Optional[int]:
+    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
         """Lookup the integer ID for a string.
 
         Does not affect the lifetime of the entry.
@@ -229,11 +225,7 @@ class StringIndexer(Service):
         """
         raise NotImplementedError()
 
-    # TODO: @andriisoldatenko
-    # move use_case_id to 1st parameter and remove default value
-    def reverse_resolve(
-        self, id: int, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
-    ) -> Optional[str]:
+    def reverse_resolve(self, use_case_id: UseCaseKey, id: int) -> Optional[str]:
         """Lookup the stored string for a given integer ID.
 
         Callers should not rely on the default use_case_id -- it exists only

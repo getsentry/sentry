@@ -7,7 +7,7 @@ from sentry.models import ProjectOption
 from sentry.testutils import AcceptanceTestCase
 from sentry.testutils.servermode import customer_silo_test
 
-FEATURE_NAME = "organizations:server-side-sampling"
+FEATURE_NAME = ["organizations:server-side-sampling", "organizations:server-side-sampling-ui"]
 
 uniform_rule_with_recommended_sampling_values = {
     "id": 1,

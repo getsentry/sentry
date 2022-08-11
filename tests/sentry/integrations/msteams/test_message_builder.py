@@ -101,7 +101,7 @@ class MSTeamsMessageBuilderTest(TestCase):
             text="in __init__.py ... return 1 < 2",
         )
 
-        assert "in &#95;&#95;init&#95;&#95;.py ... return 1 &lt; 2" == card["body"][0]["text"]
+        assert "in \\_\\_init\\_\\_.py ... return 1 &lt; 2" == card["body"][0]["text"]
 
     def test_missing_action_params(self):
         with pytest.raises(KeyError):
@@ -416,7 +416,7 @@ class MSTeamsNotificationMessageBuilderTest(TestCase):
         assert 4 == len(body)
 
         title = body[0]
-        assert "Notification Title with some&#95;value" == title["text"]
+        assert "Notification Title with some\\_value" == title["text"]
 
         group_title = body[1]
         assert "[My Title]" in group_title["text"]
@@ -448,4 +448,4 @@ class MSTeamsNotificationMessageBuilderTest(TestCase):
             self.recipient,
         ).build_notification_card()
 
-        assert 3 == len(notification_card["body"])
+        assert 2 == len(notification_card["body"])

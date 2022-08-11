@@ -136,6 +136,7 @@ class Project(Model, PendingDeletionMixin):
             ("has_transactions", "This Project has sent transactions"),
             ("has_alert_filters", "This Project has filters"),
             ("has_sessions", "This Project has sessions"),
+            ("has_profiles", "This Project has sent profiles"),
         ),
         default=10,
         null=True,
