@@ -110,7 +110,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                     .with_op("db")
                     .with_description("SELECT count() FROM table WHERE id = %s")
                     .build(),
-                    499.0,
+                    999.0,
                 )
             ]
             * 1,
@@ -123,7 +123,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                     .with_op("db")
                     .with_description("SELECT count() FROM table WHERE id = %s")
                     .build(),
-                    501.0,
+                    1001.0,
                 )
             ]
             * 1,
@@ -133,7 +133,7 @@ class PerformanceDetectionTest(unittest.TestCase):
             "spans": [
                 modify_span_duration(
                     SpanBuilder().with_op("random").with_description("example").build(),
-                    501.0,
+                    1001.0,
                 )
             ]
             * 1,
@@ -166,6 +166,42 @@ class PerformanceDetectionTest(unittest.TestCase):
             ]
         )
 
+    def test_calls_partial_span_op_allowed(self):
+        span_event = {
+            "event_id": "a" * 16,
+            "spans": [
+                modify_span_duration(
+                    SpanBuilder()
+                    .with_op("http.client")
+                    .with_description("http://example.com")
+                    .build(),
+                    1001.0,
+                )
+            ]
+            * 1,
+        }
+
+        sdk_span_mock = Mock()
+
+        _detect_performance_issue(span_event, sdk_span_mock)
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 3
+        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
+            [
+                call(
+                    "_pi_all_issue_count",
+                    1,
+                ),
+                call(
+                    "_pi_transaction",
+                    "aaaaaaaaaaaaaaaa",
+                ),
+                call(
+                    "_pi_slow_span",
+                    "bbbbbbbbbbbbbbbb",
+                ),
+            ]
+        )
+
     def test_calls_detect_sequential(self):
         no_sequential_event = {
             "event_id": "a" * 16,
@@ -175,7 +211,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                     .with_op("db")
                     .with_description("SELECT count() FROM table WHERE id = %s")
                     .build(),
-                    499.0,
+                    999.0,
                 )
             ]
             * 4,
@@ -188,7 +224,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                     .with_op("db")
                     .with_description("SELECT count() FROM table WHERE id = %s")
                     .build(),
-                    499.0,
+                    999.0,
                 ),
             ]
             * 2
@@ -199,7 +235,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                         .with_op("db")
                         .with_description("SELECT count() FROM table WHERE id = %s")
                         .build(),
-                        499.0,
+                        999.0,
                     ),
                     1000.0,
                 ),
@@ -209,7 +245,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                         .with_op("db")
                         .with_description("SELECT count() FROM table WHERE id = %s")
                         .build(),
-                        499.0,
+                        999.0,
                     ),
                     2000.0,
                 ),
@@ -219,7 +255,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                         .with_op("db")
                         .with_description("SELECT count() FROM table WHERE id = %s")
                         .build(),
-                        499.0,
+                        999.0,
                     ),
                     3000.0,
                 ),
@@ -305,7 +341,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                     "aaaaaaaaaaaaaaaa",
                 ),
                 call(
-                    "_pi_long_task_span",
+                    "_pi_long_task",
                     "bbbbbbbbbbbbbbbb",
                 ),
             ]
@@ -326,7 +362,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                     "cccccccccccccccc",
                 ),
                 call(
-                    "_pi_long_task_span",
+                    "_pi_long_task",
                     "bbbbbbbbbbbbbbbb",
                 ),
             ]
