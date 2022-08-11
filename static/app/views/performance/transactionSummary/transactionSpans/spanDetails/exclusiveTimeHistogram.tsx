@@ -17,7 +17,6 @@ import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
-import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import SpanHistogramQuery from 'sentry/utils/performance/histogram/spanHistogramQuery';
 import {HistogramData} from 'sentry/utils/performance/histogram/types';
@@ -146,8 +145,7 @@ export function Chart(props: ChartProps) {
       type: 'value' as const,
       axisLabel: {
         color: theme.chartLabel,
-        formatter: (value: number) =>
-          axisLabelFormatter(value, aggregateOutputType('number')),
+        formatter: (value: number) => axisLabelFormatter(value, 'number'),
       },
     },
     xAxis: {
