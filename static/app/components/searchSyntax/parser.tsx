@@ -108,7 +108,7 @@ type AggregateFilter =
   | FilterType.AggregatePercentage
   | FilterType.AggregateRelativeDate;
 
-const allOperators = [
+export const allOperators = [
   TermOperator.Default,
   TermOperator.GreaterThanEqual,
   TermOperator.LessThanEqual,

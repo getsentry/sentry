@@ -6,6 +6,7 @@ import {IssueAlertRule} from 'sentry/types/alerts';
 import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {
   Dataset,
   Datasource,
@@ -134,7 +135,7 @@ export function alertAxisFormatter(value: number, seriesName: string, aggregate:
     return defined(value) ? `${round(value, 2)}%` : '\u2015';
   }
 
-  return axisLabelFormatter(value, seriesName);
+  return axisLabelFormatter(value, aggregateOutputType(seriesName));
 }
 
 export function alertTooltipValueFormatter(

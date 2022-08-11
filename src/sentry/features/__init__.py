@@ -58,6 +58,7 @@ default_manager.add("organizations:create")
 
 # Organization scoped features that are in development or in customer trials.
 default_manager.add("organizations:active-release-monitor-alpha", OrganizationFeature, True)
+default_manager.add("organizations:active-release-notification-opt-in", OrganizationFeature, True)
 default_manager.add("organizations:alert-filters", OrganizationFeature)
 default_manager.add("organizations:alert-crash-free-metrics", OrganizationFeature, True)
 default_manager.add("organizations:api-keys", OrganizationFeature)
@@ -138,6 +139,7 @@ default_manager.add("organizations:required-email-verification", OrganizationFea
 default_manager.add("organizations:rule-page", OrganizationFeature)
 default_manager.add("organizations:sentry-functions", OrganizationFeature, True)
 default_manager.add("organizations:session-replay", OrganizationFeature, True)
+default_manager.add("organizations:session-replay-sdk", OrganizationFeature, True)
 default_manager.add("organizations:set-grouping-config", OrganizationFeature)
 default_manager.add("organizations:slack-overage-notifications", OrganizationFeature, True)
 default_manager.add("organizations:symbol-sources", OrganizationFeature)
