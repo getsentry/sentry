@@ -2,10 +2,10 @@ from django.test.client import RequestFactory
 from django.utils import timezone
 
 from fixtures.apidocs_test_case import APIDocsTestCase
-from sentry.testutils.servermode import control_silo_test
+from sentry.testutils.servermode import customer_silo_test
 
 
-@control_silo_test
+@customer_silo_test
 class ProjectUserFeedbackDocs(APIDocsTestCase):
     def setUp(self):
         event = self.create_event("a", message="oh no")

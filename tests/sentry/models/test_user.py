@@ -1,6 +1,6 @@
 from sentry.models import Authenticator, OrganizationMember, OrganizationMemberTeam, User, UserEmail
 from sentry.testutils import TestCase
-from sentry.testutils.servermode import control_silo_test
+from sentry.testutils.servermode import control_silo_test, customer_silo_test
 
 
 @control_silo_test
@@ -90,7 +90,7 @@ class UserMergeToTest(TestCase):
         assert list(member.teams.all().order_by("pk")) == [team_1, team_2, team_3]
 
 
-@control_silo_test
+@customer_silo_test
 class GetUsersFromTeamsTest(TestCase):
     def test(self):
         user = self.create_user()
@@ -111,7 +111,7 @@ class GetUsersFromTeamsTest(TestCase):
         assert list(User.objects.get_from_teams(org2, [team2])) == [user]
 
 
-@control_silo_test
+@customer_silo_test
 class GetUsersFromProjectsTest(TestCase):
     def test(self):
         user = self.create_user()

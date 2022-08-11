@@ -1,10 +1,10 @@
 from django.urls import reverse
 
 from sentry.testutils import APITestCase, PermissionTestCase
-from sentry.testutils.servermode import control_silo_test
+from sentry.testutils.servermode import customer_silo_test
 
 
-@control_silo_test
+@customer_silo_test
 class OrganizationAuthProvidersPermissionTest(PermissionTestCase):
     def setUp(self):
         super().setUp()
@@ -21,7 +21,7 @@ class OrganizationAuthProvidersPermissionTest(PermissionTestCase):
             self.assert_member_can_access(self.path)
 
 
-@control_silo_test
+@customer_silo_test
 class OrganizationAuthProviders(APITestCase):
     endpoint = "sentry-api-0-organization-auth-providers"
 

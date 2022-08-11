@@ -32,7 +32,7 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature, faux
-from sentry.testutils.servermode import control_silo_test, customer_silo_test
+from sentry.testutils.servermode import customer_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
@@ -226,7 +226,7 @@ class ProjectDetailsTest(APITestCase):
         self.get_error_response(other_org.slug, "old_slug", status_code=403)
 
 
-@control_silo_test
+@customer_silo_test
 class ProjectUpdateTestTokenAuthenticated(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"

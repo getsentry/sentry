@@ -16,10 +16,10 @@ from sentry.models import (
     SentryAppInstallationForProvider,
 )
 from sentry.testutils import AuthProviderTestCase, PermissionTestCase
-from sentry.testutils.servermode import control_silo_test
+from sentry.testutils.servermode import customer_silo_test
 
 
-@control_silo_test
+@customer_silo_test
 class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
     def setUp(self):
         super().setUp()
@@ -92,7 +92,7 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
             assert resp.status_code == 200
 
 
-@control_silo_test
+@customer_silo_test
 class OrganizationAuthSettingsTest(AuthProviderTestCase):
     def enroll_user_and_require_2fa(self, user, organization):
         TotpInterface().enroll(user)

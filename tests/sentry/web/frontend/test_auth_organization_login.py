@@ -16,13 +16,13 @@ from sentry.models import (
 )
 from sentry.testutils import AuthProviderTestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.servermode import control_silo_test
+from sentry.testutils.servermode import customer_silo_test
 from sentry.utils import json
 
 
 # TODO(dcramer): this is an integration test and repeats tests from
 # core auth_login
-@control_silo_test
+@customer_silo_test
 class OrganizationAuthLoginTest(AuthProviderTestCase):
     @fixture
     def organization(self):
@@ -1038,7 +1038,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.status_code == 200
 
 
-@control_silo_test
+@customer_silo_test
 class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
     def setUp(self):
         self.owner = self.create_user()

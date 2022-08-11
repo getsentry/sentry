@@ -2,10 +2,10 @@ from hashlib import md5
 
 from sentry.models import EventUser
 from sentry.testutils import TestCase
-from sentry.testutils.servermode import control_silo_test
+from sentry.testutils.servermode import customer_silo_test
 
 
-@control_silo_test
+@customer_silo_test
 class EventUserTestCase(TestCase):
     def test_build_hash(self):
         cases = [

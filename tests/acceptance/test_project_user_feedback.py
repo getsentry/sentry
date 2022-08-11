@@ -1,10 +1,10 @@
 from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase
-from sentry.testutils.servermode import control_silo_test
+from sentry.testutils.servermode import customer_silo_test
 
 
-@control_silo_test
+@customer_silo_test
 class ProjectUserFeedbackTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()

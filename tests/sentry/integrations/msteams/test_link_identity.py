@@ -12,11 +12,11 @@ from sentry.models import (
     OrganizationIntegration,
 )
 from sentry.testutils import TestCase
-from sentry.testutils.servermode import control_silo_test
+from sentry.testutils.servermode import customer_silo_test
 from sentry.utils import json
 
 
-@control_silo_test
+@customer_silo_test
 class MsTeamsIntegrationLinkIdentityTest(TestCase):
     def setUp(self):
         super(TestCase, self).setUp()

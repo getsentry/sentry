@@ -15,7 +15,7 @@ from sentry.rules.conditions.event_frequency import (
 )
 from sentry.testutils.cases import RuleTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.servermode import control_silo_test, customer_silo_test
+from sentry.testutils.servermode import customer_silo_test
 
 
 class FrequencyConditionMixin:
@@ -191,7 +191,7 @@ class EventFrequencyConditionTestCase(
 
 
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
-@control_silo_test
+@customer_silo_test
 class EventUniqueUserFrequencyConditionTestCase(
     FrequencyConditionMixin,
     StandardIntervalMixin,
