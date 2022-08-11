@@ -14,6 +14,7 @@ import Button from '../button';
 import HotkeysLabel from '../hotkeysLabel';
 import Tag from '../tag';
 
+import SearchBarFlyout from './searchBarFlyout';
 import {ItemType, SearchGroup, SearchItem, Shortcut} from './types';
 
 const getDropdownItemKey = (item: SearchItem) =>
@@ -51,8 +52,9 @@ class SearchDropdown extends PureComponent<Props> {
       onClick,
       onIconClick,
     } = this.props;
+
     return (
-      <StyledSearchDropdown className={className}>
+      <SearchBarFlyout className={className} fullWidth>
         {loading ? (
           <LoadingWrapper key="loading" data-test-id="search-autocomplete-loading">
             <LoadingIndicator mini />
@@ -82,6 +84,7 @@ class SearchDropdown extends PureComponent<Props> {
             })}
           </SearchItemsList>
         )}
+
         <DropdownFooter>
           <ShortcutsRow>
             {runShortcut &&
@@ -108,7 +111,7 @@ class SearchDropdown extends PureComponent<Props> {
             Read the docs
           </Button>
         </DropdownFooter>
-      </StyledSearchDropdown>
+      </SearchBarFlyout>
     );
   }
 }
@@ -416,21 +419,6 @@ const QueryItem = ({item}: QueryItemProps) => {
     </QueryItemWrapper>
   );
 };
-
-const StyledSearchDropdown = styled('div')`
-  /* Container has a border that we need to account for */
-  position: absolute;
-  top: 100%;
-  left: -1px;
-  right: -1px;
-  z-index: ${p => p.theme.zIndex.dropdown};
-  overflow: hidden;
-  margin-top: ${space(1)};
-  background: ${p => p.theme.background};
-  box-shadow: ${p => p.theme.dropShadowHeavy};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-`;
 
 const LoadingWrapper = styled('div')`
   display: flex;

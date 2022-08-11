@@ -97,7 +97,7 @@ export enum FilterType {
   Is = 'is',
 }
 
-const allOperators = [
+export const allOperators = [
   TermOperator.Default,
   TermOperator.GreaterThanEqual,
   TermOperator.LessThanEqual,
