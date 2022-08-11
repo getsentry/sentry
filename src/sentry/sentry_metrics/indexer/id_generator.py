@@ -1,14 +1,17 @@
 import random
 import time
 
-_ZERO_BIT = 1
-_VERSION_BITS = 3
+_VERSION_BITS = 4
 _TS_BITS = 32
 _RANDOM_BITS = 28
-_TOTAL_BITS = _ZERO_BIT + _VERSION_BITS + _TS_BITS + _RANDOM_BITS
+_TOTAL_BITS = _VERSION_BITS + _TS_BITS + _RANDOM_BITS
 assert _TOTAL_BITS == 64
 
-_VERSION = 1
+_VERSION = 2
+
+# Warning! The version must be an even number as this is already
+# written to a BigInt field in Postgres
+assert _VERSION % 2 == 0
 
 # 1st January 2022
 _INDEXER_EPOCH_START = 1641024000
@@ -44,8 +47,8 @@ def get_id() -> int:
     time_since_epoch = now - _INDEXER_EPOCH_START
     rand = random.getrandbits(_RANDOM_BITS)
 
-    id = _VERSION_PREFIX << (_TOTAL_BITS - _ZERO_BIT - _VERSION_BITS)
-    id |= time_since_epoch << (_TOTAL_BITS - _ZERO_BIT - _VERSION_BITS - _TS_BITS)
+    id = _VERSION_PREFIX << (_TOTAL_BITS - _VERSION_BITS)
+    id |= time_since_epoch << (_TOTAL_BITS - _VERSION_BITS - _TS_BITS)
     id |= rand
 
     return id
