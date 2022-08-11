@@ -204,7 +204,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
                   </p>
                   <p>
                     {t(
-                      'If the Jira Plugins had the option checked to automatically create a Jira ticket for every new Sentry issue checked, you will need to create alert rules to recreate this behavior.'
+                      'If the Jira Plugins had the option checked to automatically create a Jira ticket for every new Sentry issue checked, you will need to create alert rules to recreate this behavior. Jira Server does not have this feature.'
                     )}
                   </p>
                   <p>
