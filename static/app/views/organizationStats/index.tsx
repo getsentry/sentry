@@ -6,6 +6,9 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
+import {navigateTo} from 'sentry/actionCreators/navigation';
+import Feature from 'sentry/components/acl/feature';
+import Alert from 'sentry/components/alert';
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import CompactSelect from 'sentry/components/forms/compactSelect';
@@ -21,10 +24,11 @@ import {
   DEFAULT_RELATIVE_PERIODS,
   DEFAULT_STATS_PERIOD,
 } from 'sentry/constants';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {DataCategory, DateString, Organization, Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import withOrganization from 'sentry/utils/withOrganization';
 import HeaderTabs from 'sentry/views/organizationStats/header';
 
@@ -182,6 +186,21 @@ export class OrganizationStats extends Component<Props> {
     });
   };
 
+  navigateToSamplingSettings = (e: React.MouseEvent) => {
+    e.preventDefault?.();
+
+    const {organization, router} = this.props;
+
+    trackAdvancedAnalyticsEvent('sampling.stats.alert.click', {
+      organization,
+    });
+
+    navigateTo(
+      `/settings/${organization.slug}/projects/:projectId/server-side-sampling/`,
+      router
+    );
+  };
+
   /**
    * TODO: Enable user to set dateStart/dateEnd
    *
@@ -290,6 +309,23 @@ export class OrganizationStats extends Component<Props> {
                   />
                 </ErrorBoundary>
               </PageGrid>
+
+              <Feature
+                features={['server-side-sampling', 'server-side-sampling-ui']}
+                organization={organization}
+              >
+                {this.dataCategory === DataCategory.TRANSACTIONS && (
+                  <Alert type="info" showIcon>
+                    {tct(
+                      'Manage your transaction usage in Server-Side Sampling. Go to [link: Server-Side Sampling Settings].',
+                      {
+                        link: <a href="#" onClick={this.navigateToSamplingSettings} />,
+                      }
+                    )}
+                  </Alert>
+                )}
+              </Feature>
+
               <ErrorBoundary mini>
                 <UsageStatsProjects
                   organization={organization}
