@@ -2,22 +2,37 @@ from functools import reduce
 from operator import or_
 from typing import Any, Mapping, Optional, Set
 
+from django.conf import settings
 from django.db.models import Q
 
 from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.indexer.base import KeyCollection, KeyResult, KeyResults, StringIndexer
-from sentry.sentry_metrics.indexer.cache import indexer_cache
+from sentry.sentry_metrics.indexer.cache import StringIndexerCache
 from sentry.sentry_metrics.indexer.db import TABLE_MAPPING, IndexerTable
 from sentry.sentry_metrics.indexer.ratelimiters import writes_limiter
-from sentry.sentry_metrics.indexer.strings import REVERSE_SHARED_STRINGS, SHARED_STRINGS
+from sentry.sentry_metrics.indexer.static_strings import StaticStringIndexer
 from sentry.utils import metrics
 
 from .base import FetchType
+
+__all__ = "PostgresIndexer"
+
 
 _INDEXER_CACHE_METRIC = "sentry_metrics.indexer.memcache"
 _INDEXER_DB_METRIC = "sentry_metrics.indexer.postgres"
 # only used to compare to the older version of the PGIndexer
 _INDEXER_CACHE_FETCH_METRIC = "sentry_metrics.indexer.memcache.fetch"
+
+_PARTITION_KEY = "pg"
+
+indexer_cache = StringIndexerCache(
+    **settings.SENTRY_STRING_INDEXER_CACHE_OPTIONS, partition_key=_PARTITION_KEY
+)
+
+
+class PostgresIndexer(StaticStringIndexer):
+    def __init__(self) -> None:
+        super().__init__(PGStringIndexerV2())
 
 
 class PGStringIndexerV2(StringIndexer):
@@ -222,50 +237,3 @@ class PGStringIndexerV2(StringIndexer):
 
     def _table(self, use_case_id: UseCaseKey) -> IndexerTable:
         return TABLE_MAPPING[get_ingest_config(use_case_id).db_model]
-
-
-class StaticStringsIndexerDecorator(StringIndexer):
-    """
-    Wrapper for static strings
-    """
-
-    def __init__(self) -> None:
-        self.indexer = PGStringIndexerV2()
-
-    def bulk_record(
-        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
-    ) -> KeyResults:
-        static_keys = KeyCollection(org_strings)
-        static_key_results = KeyResults()
-        for org_id, string in static_keys.as_tuples():
-            if string in SHARED_STRINGS:
-                id = SHARED_STRINGS[string]
-                static_key_results.add_key_result(
-                    KeyResult(org_id, string, id), FetchType.HARDCODED
-                )
-
-        org_strings_left = static_key_results.get_unmapped_keys(static_keys)
-
-        if org_strings_left.size == 0:
-            return static_key_results
-
-        indexer_results = self.indexer.bulk_record(
-            use_case_id=use_case_id, org_strings=org_strings_left.mapping
-        )
-
-        return static_key_results.merge(indexer_results)
-
-    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
-        if string in SHARED_STRINGS:
-            return SHARED_STRINGS[string]
-        return self.indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)
-
-    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
-        if string in SHARED_STRINGS:
-            return SHARED_STRINGS[string]
-        return self.indexer.resolve(use_case_id=use_case_id, org_id=org_id, string=string)
-
-    def reverse_resolve(self, use_case_id: UseCaseKey, id: int) -> Optional[str]:
-        if id in REVERSE_SHARED_STRINGS:
-            return REVERSE_SHARED_STRINGS[id]
-        return self.indexer.reverse_resolve(use_case_id=use_case_id, id=id)

@@ -504,6 +504,59 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         # Request for single project gives a counter of one:
         assert count_sessions(project_id=self.project2.id) == 1
 
+    def test_max_and_min_on_distributions(self):
+        # Record some strings
+        org_id = self.organization.id
+        k_transaction = perf_indexer_record(org_id, "transaction")
+        v_foo = perf_indexer_record(org_id, "/foo")
+        v_bar = perf_indexer_record(org_id, "/bar")
+        v_baz = perf_indexer_record(org_id, "/baz")
+
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.transaction_lcp_metric,
+                    "timestamp": int(time.time()),
+                    "tags": {
+                        k_transaction: v_transaction,
+                    },
+                    "type": "d",
+                    "value": [123.4 * count],
+                    "retention_days": 90,
+                }
+                for v_transaction, count in ((v_foo, 1), (v_bar, 3), (v_baz, 2))
+            ],
+            entity="metrics_distributions",
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=[
+                f"max({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+                f"min({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+            ],
+            query="",
+            statsPeriod="1h",
+            interval="1h",
+            per_page=3,
+            useCase="performance",
+            includeSeries="0",
+        )
+        groups = response.data["groups"]
+
+        assert len(groups) == 1
+        assert groups == [
+            {
+                "by": {},
+                "totals": {
+                    "max(transaction.measurements.lcp)": 3 * 123.4,
+                    "min(transaction.measurements.lcp)": 1 * 123.4,
+                },
+            }
+        ]
+
     def test_orderby(self):
         # Record some strings
         org_id = self.organization.id
