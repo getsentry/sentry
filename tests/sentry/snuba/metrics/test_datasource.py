@@ -70,7 +70,7 @@ class DataSourceTestCase(TestCase, BaseMetricsTestCase):
             [self.project],
             query.to_metrics_query(),
             include_meta=True,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseKey.PERFORMANCE,
         )
         assert data["meta"] == sorted(
             [
