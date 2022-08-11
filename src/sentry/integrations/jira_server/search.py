@@ -1,4 +1,5 @@
 from bs4 import BeautifulSoup
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -21,7 +22,7 @@ class JiraServerSearchEndpoint(IntegrationEndpoint):
         try:
             integration = self._get_integration(organization, integration_id)
         except Integration.DoesNotExist:
-            return Response(status=404)
+            raise NotFound
         installation = integration.get_installation(organization.id)
         jira_client = installation.get_client()
 
@@ -29,9 +30,9 @@ class JiraServerSearchEndpoint(IntegrationEndpoint):
         query = request.GET.get("query")
 
         if field is None:
-            return Response({"detail": "field is a required parameter"}, status=400)
+            raise ValidationError("field is a required parameter")
         if not query:
-            return Response({"detail": "query is a required parameter"}, status=400)
+            raise ValidationError("query is a required parameter")
 
         if field in ("externalIssue", "parent"):
             if not query:
@@ -39,7 +40,7 @@ class JiraServerSearchEndpoint(IntegrationEndpoint):
             try:
                 resp = installation.search_issues(query)
             except IntegrationError as e:
-                return Response({"detail": str(e)}, status=400)
+                raise ValidationError(str(e))
             return Response(
                 [
                     {"label": "({}) {}".format(i["key"], i["fields"]["summary"]), "value": i["key"]}
@@ -53,7 +54,7 @@ class JiraServerSearchEndpoint(IntegrationEndpoint):
                     request.GET.get("project", ""), query
                 )
             except (ApiUnauthorized, ApiError):
-                return Response({"detail": "Unable to fetch users from Jira"}, status=400)
+                raise ValidationError("Unable to fetch users from Jira")
 
             user_tuples = filter(
                 None, [build_user_choice(user, jira_client.user_id_field()) for user in response]
