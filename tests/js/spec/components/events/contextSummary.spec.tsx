@@ -247,6 +247,29 @@ describe('OsSummary', function () {
         await screen.findByText('Replaced because of PII rule "project:0"')
       ).toBeInTheDocument(); // tooltip description
     });
+
+    it('handles invalid data', async function () {
+      render(
+        <ContextSummaryOS
+          data={{
+            name: false,
+            version: false,
+          }}
+          meta={{
+            name: {
+              '': {
+                rem: [['project:0', 's', 0, 0]],
+                len: 19,
+              },
+            },
+          }}
+        />
+      );
+      userEvent.hover(screen.getByText(/redacted/));
+      expect(
+        await screen.findByText('Replaced because of PII rule "project:0"')
+      ).toBeInTheDocument(); // tooltip description
+    });
   });
 });
 
