@@ -83,7 +83,7 @@ const ExternalIssueActions = ({configurations, group, onChange, api}: Props) => 
             externalIssueDisplayName={issue.displayName}
             onClose={() => deleteIssue(config)}
             integrationType={provider.key}
-            hoverCardHeader={t('Linked %s Integration', provider.name)}
+            hoverCardHeader={t('%s Integration', provider.name)}
             hoverCardBody={
               <div>
                 <IssueTitle>{issue.title}</IssueTitle>
@@ -99,7 +99,7 @@ const ExternalIssueActions = ({configurations, group, onChange, api}: Props) => 
       {unlinked.length > 0 && (
         <IssueSyncListElement
           integrationType={unlinked[0].provider.key}
-          hoverCardHeader={t('Linked %s Integration', unlinked[0].provider.name)}
+          hoverCardHeader={t('%s Integration', unlinked[0].provider.name)}
           hoverCardBody={
             <Container>
               {unlinked.map(config => (
