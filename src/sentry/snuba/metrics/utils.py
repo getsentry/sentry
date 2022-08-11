@@ -194,6 +194,7 @@ OPERATIONS = (
     "count_unique",
     "count",
     "max",
+    "min",
     "sum",
     "histogram",
 ) + OPERATIONS_PERCENTILES
@@ -202,6 +203,7 @@ DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[flo
     "avg": None,
     "count_unique": 0,
     "count": 0,
+    "min": None,
     "max": None,
     "p50": None,
     "p75": None,
