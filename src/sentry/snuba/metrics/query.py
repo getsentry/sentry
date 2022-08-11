@@ -90,12 +90,13 @@ class MetricsQuery(MetricsQueryValidationRunner):
 
     @staticmethod
     def _use_case_id(metric_mri: str) -> UseCaseKey:
+        """Find correct use_case_id based on metric_name"""
         parsed_mri = parse_mri(metric_mri)
-        # Find correct use_case_id based on metric_name
-        if parsed_mri is not None and parsed_mri.namespace == "transactions":
-            return UseCaseKey.PERFORMANCE
-        elif parsed_mri is not None and parsed_mri.namespace == "sessions":
-            return UseCaseKey.RELEASE_HEALTH
+        if parsed_mri is not None:
+            if parsed_mri.namespace == "transactions":
+                return UseCaseKey.PERFORMANCE
+            elif parsed_mri.namespace == "sessions":
+                return UseCaseKey.RELEASE_HEALTH
         raise ValueError("Can't find correct use_case_id based on metric MRI")
 
     @staticmethod
