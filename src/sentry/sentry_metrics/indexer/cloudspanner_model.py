@@ -2,6 +2,7 @@ import datetime
 from dataclasses import dataclass
 from typing import Sequence
 
+_TIMESTAMP_TZ_FORMAT = "%Y-%m-%d %H:%M:%S %Z"
 
 @dataclass
 class SpannerIndexerModel:
@@ -18,11 +19,11 @@ class SpannerIndexerModel:
         date_added, last_seen, retention_days) which can be used in the
         VALUES section of INSERT statement.
         """
-        datetime_format = "%Y-%m-%d %H:%M:%S %Z"
+
         return (
             f'({self.id}, "{self.string}", {self.organization_id},'
-            f" '{self.date_added.strftime(datetime_format)}', "
-            f"'{self.last_seen.strftime(datetime_format)}',"
+            f" '{self.date_added.strftime(_TIMESTAMP_TZ_FORMAT)}', "
+            f"'{self.last_seen.strftime(_TIMESTAMP_TZ_FORMAT)}',"
             f" {self.retention_days})"
         )
 
