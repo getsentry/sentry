@@ -12,7 +12,7 @@ describe('IssueSyncListElement', function () {
     const onOpen = jest.fn();
     render(<IssueSyncListElement integrationType="github" onOpen={onOpen} />);
     expect(onOpen).not.toHaveBeenCalled();
-    userEvent.click(screen.getByText('Link GitHub Issue'));
+    userEvent.click(screen.getByText('GitHub Issue'));
     expect(onOpen).toHaveBeenCalled();
   });
 
