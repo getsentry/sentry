@@ -190,7 +190,7 @@ function AddToDashboardModal({
                 ...dashboards.map(({title, id, widgetDisplay}) => ({
                   label: title,
                   value: id,
-                  isDisabled: widgetDisplay.length >= MAX_WIDGETS,
+                  disabled: widgetDisplay.length >= MAX_WIDGETS,
                   tooltip:
                     widgetDisplay.length >= MAX_WIDGETS &&
                     tct('Max widgets ([maxWidgets]) per dashboard reached.', {
