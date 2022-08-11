@@ -12,11 +12,11 @@ import {relativeTimeInMs, showPlayerTime} from 'sentry/components/replays/utils'
 import Tooltip from 'sentry/components/tooltip';
 import {IconClose, IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
-import {BreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
+import {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
 import {objectIsEmpty} from 'sentry/utils';
 
 interface MessageFormatterProps {
-  breadcrumb: BreadcrumbTypeDefault;
+  breadcrumb: Extract<Crumb, BreadcrumbTypeDefault>;
 }
 
 /**
@@ -143,10 +143,18 @@ function ConsoleMessage({
         level={breadcrumb.level}
         isActive={isActive}
         hasOccurred={hasOccurred}
+        onMouseOver={handleOnMouseOver}
+        onMouseOut={handleOnMouseOut}
       >
         {ICONS[breadcrumb.level]}
       </Icon>
-      <Message isLast={isLast} level={breadcrumb.level} hasOccurred={hasOccurred}>
+      <Message
+        isLast={isLast}
+        level={breadcrumb.level}
+        hasOccurred={hasOccurred}
+        onMouseOver={handleOnMouseOver}
+        onMouseOut={handleOnMouseOut}
+      >
         <ErrorBoundary mini>
           <MessageFormatter breadcrumb={breadcrumb} />
         </ErrorBoundary>
@@ -157,13 +165,13 @@ function ConsoleMessage({
         hasOccurred={hasOccurred}
       >
         <Tooltip title={<DateTime date={breadcrumb.timestamp} seconds />}>
-          <div
+          <ConsoleTimestampButton
             onClick={handleOnClick}
             onMouseOver={handleOnMouseOver}
             onMouseOut={handleOnMouseOut}
           >
             {showPlayerTime(breadcrumb.timestamp || '', startTimestampMs)}
-          </div>
+          </ConsoleTimestampButton>
         </Tooltip>
       </ConsoleTimestamp>
     </Fragment>
@@ -212,9 +220,13 @@ const Common = styled('div')<{
   }
 `;
 
-const ConsoleTimestamp = styled(Common)<{isLast: boolean; level: string}>`
+const ConsoleTimestamp = styled(Common)`
   padding: ${space(0.25)} ${space(1)};
-  cursor: pointer;
+`;
+
+const ConsoleTimestampButton = styled('button')`
+  background: none;
+  border: none;
 `;
 
 const Icon = styled(Common)<{isActive: boolean}>`

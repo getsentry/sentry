@@ -47,10 +47,6 @@ export function SamplingBreakdown({orgSlug}: Props) {
     }))
     .sort((a, z) => z.percentage - a.percentage);
 
-  if (projectsWithPercentages.length === 0 && !fetching) {
-    return null;
-  }
-
   function projectWithPercentage(project: Project, percentage: number) {
     return (
       <ProjectWithPercentage key={project.slug}>
@@ -106,11 +102,15 @@ export function SamplingBreakdown({orgSlug}: Props) {
                 ),
               }))}
             />
-            <Projects>
-              {projectsWithPercentages.map(({project, percentage}) =>
-                projectWithPercentage(project, percentage)
-              )}
-            </Projects>
+            {projectsWithPercentages.length ? (
+              <Projects>
+                {projectsWithPercentages.map(({project, percentage}) =>
+                  projectWithPercentage(project, percentage)
+                )}
+              </Projects>
+            ) : (
+              <EmptyMessage>{t('No transactions in the last 24 hours')}</EmptyMessage>
+            )}
           </Fragment>
         )}
       </PanelBody>
@@ -138,5 +138,12 @@ const ProjectWithPercentage = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
+  color: ${p => p.theme.subText};
+`;
+
+const EmptyMessage = styled('div')`
+  display: flex;
+  align-items: center;
+  min-height: 25px;
   color: ${p => p.theme.subText};
 `;

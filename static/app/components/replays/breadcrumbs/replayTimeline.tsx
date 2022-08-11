@@ -37,7 +37,7 @@ function ReplayTimeline({}: Props) {
   const spans = replay.getRawSpans() || [];
   const userCrumbs = crumbs.filter(crumb => USER_ACTIONS.includes(crumb.type));
 
-  const networkSpans = spans.filter(replay.isNotMemorySpan);
+  const networkSpans = spans.filter(replay.isNetworkSpan);
 
   return (
     <Panel>

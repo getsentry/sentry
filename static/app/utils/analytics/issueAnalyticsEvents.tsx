@@ -41,6 +41,9 @@ export type IssueEventParameters = {
   'issues_stream.realtime_clicked': {
     enabled: boolean;
   };
+  'issues_stream.sort_changed': {
+    sort: string;
+  };
   'issues_tab.viewed': {
     num_issues: number;
     tab: string;
@@ -66,6 +69,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issues_stream.realtime_clicked': 'Issues Stream: Realtime Clicked',
   'issues_stream.issue_clicked': 'Clicked Issue from Issues Stream',
   'issues_stream.issue_assigned': 'Assigned Issue from Issues Stream',
+  'issues_stream.sort_changed': 'Changed Sort on Issues Stream',
   'issue.shared_publicly': 'Issue Shared Publicly',
   resolve_issue: 'Resolve Issue',
   'tag.clicked': 'Tag: Clicked',

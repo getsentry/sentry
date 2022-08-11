@@ -9,6 +9,7 @@ from django.utils import timezone
 
 from sentry.lang.native import appconnect
 from sentry.utils import json
+from sentry.utils.appleconnect import appstore_connect
 
 if TYPE_CHECKING:
     from sentry.models import Project
@@ -167,7 +168,7 @@ class TestDownloadDsyms:
     def client(self) -> appconnect.AppConnectClient:
         return appconnect.AppConnectClient(
             app_id="honk",
-            api_credentials=appconnect.appstore_connect.AppConnectCredentials(
+            api_credentials=appstore_connect.AppConnectCredentials(
                 key_id="beep",
                 key="honkbeep",
                 issuer_id="beeper",

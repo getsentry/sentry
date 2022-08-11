@@ -98,7 +98,7 @@ function Content({
         color: theme.chartLabel,
         // p75(measurements.fcp) coerces the axis to be time based
         formatter: (value: number) =>
-          axisLabelFormatter(value, 'p75(measurements.fcp)', undefined, durationUnit),
+          axisLabelFormatter(value, 'duration', undefined, durationUnit),
       },
     },
   };
