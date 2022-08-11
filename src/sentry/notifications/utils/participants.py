@@ -215,6 +215,7 @@ def determine_eligible_recipients(
     target_type: ActionTargetType,
     target_identifier: int | None = None,
     event: Event | None = None,
+    release_dry_run=False,
 ) -> Iterable[Team | User]:
     """
     Either get the individual recipient from the target type/id or the
@@ -234,7 +235,7 @@ def determine_eligible_recipients(
             return {team}
 
     elif target_type == ActionTargetType.RELEASE_MEMBERS:
-        return get_release_committers(project, event)
+        return get_release_committers(project, event, release_dry_run)
 
     else:
         return get_owners(project, event)
@@ -242,7 +243,7 @@ def determine_eligible_recipients(
     return set()
 
 
-def get_release_committers(project: Project, event: Event) -> Sequence[User]:
+def get_release_committers(project: Project, event: Event, release_dry_run: bool) -> Sequence[User]:
     # get_participants_for_release seems to be the method called when deployments happen
     # supposedly, this logic should be fairly, close ...
     # why is get_participants_for_release so much more complex???
@@ -260,10 +261,10 @@ def get_release_committers(project: Project, event: Event) -> Sequence[User]:
     if not last_release:
         return []
 
-    return _get_release_committers(last_release)
+    return _get_release_committers(last_release, release_dry_run)
 
 
-def _get_release_committers(release: Release) -> Sequence[User]:
+def _get_release_committers(release: Release, release_dry_run: bool) -> Sequence[User]:
     from sentry.api.serializers import Author, get_users_for_commits
     from sentry.utils.committers import _get_commits
 
@@ -273,6 +274,12 @@ def _get_release_committers(release: Release) -> Sequence[User]:
 
     # commit_author_id : Author
     author_users: Mapping[str, Author] = get_users_for_commits(commits)
+
+    # TODO(scttcper): Remove this after the experiment
+    if release_dry_run:
+        return list(
+            User.objects.filter(id__in={au["id"] for au in author_users.values() if au.get("id")})
+        )
 
     # XXX(gilbert): this is inefficient since this evaluates flagr once per user
     # it should be ok since this method should only be called for projects within sentry
