@@ -197,9 +197,7 @@ function SplitPanel(props: Props) {
     onPositionChange: handlePositionChange,
   });
 
-  const activeTrackingProps = mousedown
-    ? mouseTrackingProps
-    : {ref: mouseTrackingProps.ref};
+  const activeTrackingProps = mousedown ? mouseTrackingProps : {};
 
   if ('left' in props) {
     const {left: a, right: b} = props;
