@@ -1262,7 +1262,13 @@ class SmartSearchBar extends Component<Props, State> {
     tagName: string,
     query: string
   ): Promise<AutocompleteGroup | null> => {
-    const {prepareQuery, excludeEnvironment} = this.props;
+    const {
+      prepareQuery,
+      excludeEnvironment,
+      organization,
+      savedSearchType,
+      searchSource,
+    } = this.props;
     const supportedTags = this.props.supportedTags ?? {};
 
     const preparedQuery =
@@ -1284,6 +1290,13 @@ class SmartSearchBar extends Component<Props, State> {
     const tag = supportedTags[tagName];
 
     if (!tag) {
+      trackAdvancedAnalyticsEvent('search.invalid_field', {
+        organization,
+        search_type: savedSearchType === 0 ? 'issues' : 'events',
+        search_source: searchSource,
+        query,
+      });
+
       return {
         searchItems: [
           {
