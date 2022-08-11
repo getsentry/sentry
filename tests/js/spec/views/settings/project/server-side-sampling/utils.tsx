@@ -165,6 +165,7 @@ useProjectStats.mockImplementation(() => ({
   loading: false,
   error: undefined,
   projectStatsSeries: [],
+  onRefetch: jest.fn(),
 }));
 
 jest.mock(
