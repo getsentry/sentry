@@ -31,6 +31,9 @@ export type SearchEventParameters = {
     count: number;
     multi: boolean;
   };
+  'search.empty_key_result': SearchEventBase & {
+    search_term: string;
+  };
   'search.invalid_field': SearchEventBase;
   'search.operator_autocompleted': SearchEventBase & {search_operator: string};
   'search.search_with_invalid': SearchEventBase;
@@ -56,6 +59,7 @@ export const searchEventMap: Record<SearchEventKey, string | null> = {
   'search.shortcut_used': 'Search: Shortcut Used',
   'search.search_with_invalid': 'Search: Attempted Invalid Search',
   'search.invalid_field': 'Search: Unsupported Field Warning Shown',
+  'search.empty_key_result': 'Search: No Keys Found',
   'organization_saved_search.selected':
     'Organization Saved Search: Selected saved search',
   'settings_search.open': 'settings_search Open',

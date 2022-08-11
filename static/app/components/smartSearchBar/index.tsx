@@ -1449,6 +1449,18 @@ class SmartSearchBar extends Component<Props, State> {
         await this.generateTagAutocompleteGroup(cursorSearchTerm.searchTerm),
       ];
 
+      if (autocompleteGroups[0]?.searchItems?.length === 0) {
+        const {organization, savedSearchType, searchSource} = this.props;
+        const {query} = this.state;
+        trackAdvancedAnalyticsEvent('search.empty_key_result', {
+          organization,
+          query,
+          search_source: searchSource,
+          search_term: cursorSearchTerm.searchTerm,
+          search_type: savedSearchType === 0 ? 'issues' : 'events',
+        });
+      }
+
       if (cursor === this.cursorPosition) {
         this.setState({
           searchTerm: cursorSearchTerm.searchTerm,
