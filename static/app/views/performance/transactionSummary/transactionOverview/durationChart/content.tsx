@@ -104,7 +104,6 @@ function Content({
       minInterval: durationUnit,
       axisLabel: {
         color: theme.chartLabel,
-        // p50() coerces the axis to be time based
         formatter: (value: number) => {
           return axisLabelFormatter(value, 'duration', undefined, durationUnit);
         },
