@@ -212,8 +212,11 @@ def get_client_config(request=None):
         "enableAnalytics": settings.ENABLE_ANALYTICS,
         "validateSUForm": getattr(settings, "VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON", False),
         "sentryUrl": options.get("system.url-prefix"),
-        "organizationUrl": generate_organization_url(last_org_slug) if last_org_slug else None,
-        "regionUrl": generate_region_url() if last_org_slug else None,
+        "links": {
+            "organizationUrl": generate_organization_url(last_org_slug) if last_org_slug else None,
+            "regionUrl": generate_region_url() if last_org_slug else None,
+            "sentryUrl": options.get("system.url-prefix"),
+        },
     }
     if user and user.is_authenticated:
         context.update(

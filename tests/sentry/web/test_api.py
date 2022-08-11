@@ -143,8 +143,11 @@ class ClientConfigViewTest(TestCase):
         assert data["user"] is None
         assert data["lastOrganization"] is None
         assert data["sentryUrl"] == "http://testserver"
-        assert data["organizationUrl"] is None
-        assert data["regionUrl"] is None
+        assert data["links"] == {
+            "organizationUrl": None,
+            "regionUrl": None,
+            "sentryUrl": "http://testserver",
+        }
 
     def test_links_authenticated(self):
         self.login_as(self.user)
@@ -165,8 +168,11 @@ class ClientConfigViewTest(TestCase):
         assert data["isAuthenticated"] is True
         assert data["lastOrganization"] == self.organization.slug
         assert data["sentryUrl"] == "http://testserver"
-        assert data["organizationUrl"] == f"http://{self.organization.slug}.us.testserver"
-        assert data["regionUrl"] == "http://us.testserver"
+        assert data["links"] == {
+            "organizationUrl": f"http://{self.organization.slug}.us.testserver",
+            "regionUrl": "http://us.testserver",
+            "sentryUrl": "http://testserver",
+        }
 
     def test_organization_url_region(self):
         self.login_as(self.user)
@@ -188,8 +194,11 @@ class ClientConfigViewTest(TestCase):
             assert data["isAuthenticated"] is True
             assert data["lastOrganization"] == self.organization.slug
             assert data["sentryUrl"] == "http://testserver"
-            assert data["organizationUrl"] == f"http://{self.organization.slug}.eu.testserver"
-            assert data["regionUrl"] == "http://eu.testserver"
+            assert data["links"] == {
+                "organizationUrl": f"http://{self.organization.slug}.eu.testserver",
+                "regionUrl": "http://eu.testserver",
+                "sentryUrl": "http://testserver",
+            }
 
     def test_organization_url_organization_base_hostname(self):
         self.login_as(self.user)
@@ -211,7 +220,11 @@ class ClientConfigViewTest(TestCase):
             assert data["isAuthenticated"] is True
             assert data["lastOrganization"] == self.organization.slug
             assert data["sentryUrl"] == "http://testserver"
-            assert data["organizationUrl"] == "http://testserver"
+            assert data["links"] == {
+                "organizationUrl": "http://testserver",
+                "regionUrl": "http://us.testserver",
+                "sentryUrl": "http://testserver",
+            }
 
         with self.options({"system.organization-base-hostname": "{region}.{slug}.testserver"}):
             resp = self.client.get(self.path)
@@ -223,8 +236,11 @@ class ClientConfigViewTest(TestCase):
             assert data["isAuthenticated"] is True
             assert data["lastOrganization"] == self.organization.slug
             assert data["sentryUrl"] == "http://testserver"
-            assert data["organizationUrl"] == f"http://us.{self.organization.slug}.testserver"
-            assert data["regionUrl"] == "http://us.testserver"
+            assert data["links"] == {
+                "organizationUrl": f"http://us.{self.organization.slug}.testserver",
+                "regionUrl": "http://us.testserver",
+                "sentryUrl": "http://testserver",
+            }
 
     def test_organization_url_organization_url_template(self):
         self.login_as(self.user)
@@ -246,7 +262,11 @@ class ClientConfigViewTest(TestCase):
             assert data["isAuthenticated"] is True
             assert data["lastOrganization"] == self.organization.slug
             assert data["sentryUrl"] == "http://testserver"
-            assert data["organizationUrl"] == "invalid"
+            assert data["links"] == {
+                "organizationUrl": "invalid",
+                "regionUrl": "http://us.testserver",
+                "sentryUrl": "http://testserver",
+            }
 
         with self.options({"system.organization-url-template": None}):
             resp = self.client.get(self.path)
@@ -258,7 +278,11 @@ class ClientConfigViewTest(TestCase):
             assert data["isAuthenticated"] is True
             assert data["lastOrganization"] == self.organization.slug
             assert data["sentryUrl"] == "http://testserver"
-            assert data["organizationUrl"] == "http://testserver"
+            assert data["links"] == {
+                "organizationUrl": "http://testserver",
+                "regionUrl": "http://us.testserver",
+                "sentryUrl": "http://testserver",
+            }
 
         with self.options({"system.organization-url-template": "ftp://{hostname}"}):
             resp = self.client.get(self.path)
@@ -270,7 +294,11 @@ class ClientConfigViewTest(TestCase):
             assert data["isAuthenticated"] is True
             assert data["lastOrganization"] == self.organization.slug
             assert data["sentryUrl"] == "http://testserver"
-            assert data["organizationUrl"] == f"ftp://{self.organization.slug}.us.testserver"
+            assert data["links"] == {
+                "organizationUrl": f"ftp://{self.organization.slug}.us.testserver",
+                "regionUrl": "http://us.testserver",
+                "sentryUrl": "http://testserver",
+            }
 
     def test_deleted_last_organization(self):
         self.login_as(self.user)
@@ -404,7 +432,11 @@ class ClientConfigViewTest(TestCase):
         assert data["isAuthenticated"] is True
         assert data["lastOrganization"] is None
         assert data["sentryUrl"] == "http://testserver"
-        assert data["organizationUrl"] is None
+        assert data["links"] == {
+            "organizationUrl": None,
+            "regionUrl": None,
+            "sentryUrl": "http://testserver",
+        }
 
     def test_region_api_url_template(self):
         self.login_as(self.user)
@@ -426,5 +458,8 @@ class ClientConfigViewTest(TestCase):
             assert data["isAuthenticated"] is True
             assert data["lastOrganization"] == self.organization.slug
             assert data["sentryUrl"] == "http://testserver"
-            assert data["organizationUrl"] == f"http://{self.organization.slug}.us.testserver"
-            assert data["regionUrl"] == "http://foobar.us.testserver"
+            assert data["links"] == {
+                "organizationUrl": f"http://{self.organization.slug}.us.testserver",
+                "regionUrl": "http://foobar.us.testserver",
+                "sentryUrl": "http://testserver",
+            }
