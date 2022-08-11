@@ -4,6 +4,7 @@ from typing import Sequence
 
 _TIMESTAMP_TZ_FORMAT = "%Y-%m-%d %H:%M:%S %Z"
 
+
 @dataclass
 class SpannerIndexerModel:
     id: int
