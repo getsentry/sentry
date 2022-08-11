@@ -234,9 +234,6 @@ function useApiRequests<T extends Record<string, any>>({
     [triggerMeasurement, onRequestError]
   );
 
-  // setUseWhatChange();
-
-  // useWhatChanged([endpoints]);
   const fetchData = useCallback(
     async (extraState: Partial<State<T>> = {}) => {
       // Nothing to fetch if enpoints are empty
