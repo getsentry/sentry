@@ -97,7 +97,8 @@ class MetricsQuery(MetricsQueryValidationRunner):
                 return UseCaseKey.PERFORMANCE
             elif parsed_mri.namespace == "sessions":
                 return UseCaseKey.RELEASE_HEALTH
-        raise ValueError("Can't find correct use_case_id based on metric MRI")
+            raise ValueError("Can't find correct use_case_id based on metric MRI")
+        raise ValueError("Can't parse metric MRI")
 
     @staticmethod
     def _validate_field(field: MetricField) -> None:

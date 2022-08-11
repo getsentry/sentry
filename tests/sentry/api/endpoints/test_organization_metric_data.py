@@ -48,6 +48,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         )
         org_id = self.organization.id
         self.session_metric = rh_indexer_record(org_id, SessionMRI.SESSION.value)
+        self.session_duration = rh_indexer_record(org_id, SessionMRI.DURATION.value)
         self.session_error_metric = rh_indexer_record(org_id, SessionMRI.ERROR.value)
 
     def test_missing_field(self):
@@ -1453,7 +1454,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         returned_values = {group["by"]["tag3"] for group in groups}
         assert "value1" not in returned_values, returned_values
 
-    def test_limit_without_orderby_excess_groups_pruned_sessions(self):
+    def test_limit_without_orderby_excess_groups_pruned(self):
         """
         Test that ensures that when requesting series data that is not ordered, if the limit of
         each query is not met, thereby a limit is not applied to the aueries and we end up with
@@ -1466,6 +1467,8 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         group1 = rh_indexer_record(org_id, "group1")
         group2 = rh_indexer_record(org_id, "group2")
         group3 = rh_indexer_record(org_id, "group3")
+        group4 = rh_indexer_record(org_id, "group4")
+        group5 = rh_indexer_record(org_id, "group5")
 
         self._send_buckets(
             [
@@ -1502,39 +1505,13 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             ],
             entity="metrics_sets",
         )
-        response = self.get_success_response(
-            self.organization.slug,
-            field=[
-                SessionMetricKey.ERRORED.value,
-                "sum(sentry.sessions.session)",
-            ],
-            statsPeriod="1h",
-            interval="1h",
-            groupBy="tag1",
-            per_page=3,
-        )
-
-        groups = response.data["groups"]
-        assert len(groups) == 3
-
-    def test_limit_without_orderby_excess_groups_pruned_perfromance(self):
-        """
-        Test that ensures that when requesting series data that is not ordered, if the limit of
-        each query is not met, thereby a limit is not applied to the aueries and we end up with
-        more groups than the limit then the excess number of groups should be pruned
-        """
-        org_id = self.organization.id
-
-        tag1 = perf_indexer_record(org_id, "tag1")
-        group4 = perf_indexer_record(org_id, "group4")
-        group5 = perf_indexer_record(org_id, "group5")
 
         self._send_buckets(
             [
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": self.transaction_lcp_metric,
+                    "metric_id": self.session_duration,
                     "timestamp": int(time.time()),
                     "type": "d",
                     "value": numbers,
@@ -1551,8 +1528,9 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         response = self.get_success_response(
             self.organization.slug,
             field=[
-                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
-                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})",
+                f"p50({SessionMetricKey.DURATION.value})",
+                SessionMetricKey.ERRORED.value,
+                "sum(sentry.sessions.session)",
             ],
             statsPeriod="1h",
             interval="1h",
@@ -1561,9 +1539,9 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         )
 
         groups = response.data["groups"]
-        assert len(groups) == 2
+        assert len(groups) == 3
 
-    def test_limit_without_orderby_partial_groups_pruned_sessions(self):
+    def test_limit_without_orderby_partial_groups_pruned(self):
         """
         Test that ensures that when requesting series data that is not ordered, if the limit of
         each query is met, thereby a limit is applied to the queries and we end up with
@@ -1623,6 +1601,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         response = self.get_success_response(
             self.organization.slug,
             field=[
+                f"p50({SessionMetricKey.DURATION.value})",
                 SessionMetricKey.ERRORED.value,
                 "sum(sentry.sessions.session)",
             ],
