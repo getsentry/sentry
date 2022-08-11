@@ -6,7 +6,6 @@ import sentry_sdk
 from django.utils.functional import cached_property
 from snuba_sdk import AliasedExpression, Column, Function
 
-from sentry import options
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models.transaction_threshold import (
@@ -66,9 +65,7 @@ class MetricsDatasetConfig(DatasetConfig):
         return metric_id
 
     def resolve_tag_value(self, value: str) -> Union[str, int]:
-        if self.builder.is_performance and options.get(
-            "sentry-metrics.performance.tags-values-are-strings"
-        ):
+        if self.builder.is_performance and self.builder.tag_values_are_strings:
             return value
         return self.resolve_value(value)
 
