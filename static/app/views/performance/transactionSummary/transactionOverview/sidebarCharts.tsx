@@ -32,12 +32,10 @@ import {
 } from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import AnomaliesQuery from 'sentry/utils/performance/anomalies/anomaliesQuery';
-import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 
-import {getMEPQueryParams} from '../../landing/widgets/utils';
 import {
   anomaliesRouteWithQuery,
   ANOMALY_FLAG,
@@ -251,7 +249,6 @@ function SidebarChartsContainer({
 }: ContainerProps) {
   const api = useApi();
   const theme = useTheme();
-  const mepSetting = useMEPSettingContext();
 
   const colors = theme.charts.getColorPalette(3);
   const statsPeriod = eventView.statsPeriod;
@@ -392,7 +389,6 @@ function SidebarChartsContainer({
       yAxis={['apdex()', 'failure_rate()', 'epm()']}
       partial
       referrer="api.performance.transaction-summary.sidebar-chart"
-      queryExtras={getMEPQueryParams(mepSetting)}
     >
       {({results, errored, loading, reloading}) => {
         const series = results

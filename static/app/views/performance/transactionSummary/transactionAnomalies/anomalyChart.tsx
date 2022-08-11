@@ -56,7 +56,7 @@ const _AnomalyChart = (props: Props) => {
     yAxis: {
       axisLabel: {
         // Coerces the axis to be count based
-        formatter: (value: number) => axisLabelFormatter(value, 'tpm()'),
+        formatter: (value: number) => axisLabelFormatter(value, 'number'),
       },
     },
   };

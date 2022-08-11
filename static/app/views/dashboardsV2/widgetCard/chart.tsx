@@ -420,7 +420,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
           formatter: (value: number) =>
             timeseriesResultsType
               ? axisLabelFormatterUsingAggregateOutputType(value, timeseriesResultsType)
-              : axisLabelFormatter(value, axisLabel),
+              : axisLabelFormatter(value, aggregateOutputType(axisLabel)),
         },
       },
     };

@@ -255,7 +255,8 @@ export function _VitalChart(props: _VitalChartProps) {
       axisLabel: {
         color: theme.chartLabel,
         showMaxLabel: false,
-        formatter: (value: number) => axisLabelFormatter(value, yAxis),
+        formatter: (value: number) =>
+          axisLabelFormatter(value, aggregateOutputType(yAxis)),
       },
     },
     utc,

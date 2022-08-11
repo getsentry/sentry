@@ -60,13 +60,13 @@ export function tooltipFormatterUsingAggregateOutputType(
  */
 export function axisLabelFormatter(
   value: number,
-  seriesName: string,
+  outputType: AggregationOutputType,
   abbreviation: boolean = false,
   durationUnit?: number
 ): string {
   return axisLabelFormatterUsingAggregateOutputType(
     value,
-    aggregateOutputType(seriesName),
+    outputType,
     abbreviation,
     durationUnit
   );

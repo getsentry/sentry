@@ -235,7 +235,8 @@ export function getVitalChartDefinitions({
         color: theme.chartLabel,
         showMaxLabel: false,
         // coerces the axis to be time based
-        formatter: (value: number) => axisLabelFormatter(value, yAxis),
+        formatter: (value: number) =>
+          axisLabelFormatter(value, aggregateOutputType(yAxis)),
       },
     },
   };
