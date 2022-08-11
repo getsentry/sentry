@@ -10,18 +10,13 @@ import {
 } from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 
 interface Props {
-  onClose: SearchBarProps['onClose'];
+  onBlur: SearchBarProps['onBlur'];
   organization: Organization;
   pageFilters: PageFilters;
   widgetQuery: WidgetQuery;
 }
 
-export function EventsSearchBar({
-  organization,
-  pageFilters,
-  onClose,
-  widgetQuery,
-}: Props) {
+export function EventsSearchBar({organization, pageFilters, onBlur, widgetQuery}: Props) {
   const projectIds = pageFilters.projects;
 
   return (
@@ -31,7 +26,7 @@ export function EventsSearchBar({
       projectIds={projectIds}
       query={widgetQuery.conditions}
       fields={[]}
-      onClose={onClose}
+      onBlur={onBlur}
       useFormWrapper={false}
       maxQueryLength={MAX_QUERY_LENGTH}
       maxSearchItems={MAX_SEARCH_ITEMS}

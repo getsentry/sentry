@@ -63,7 +63,7 @@ export function FilterResultsStep({
     [onQueryChange, queries]
   );
 
-  const handleClose = useCallback(
+  const handleBlur = useCallback(
     (queryIndex: number) => {
       return (field: string) => {
         const newQuery: WidgetQuery = {
@@ -119,7 +119,7 @@ export function FilterResultsStep({
                 <datasetConfig.SearchBar
                   organization={organization}
                   pageFilters={selection}
-                  onClose={handleClose(queryIndex)}
+                  onBlur={handleBlur(queryIndex)}
                   onSearch={handleSearch(queryIndex)}
                   widgetQuery={query}
                 />
