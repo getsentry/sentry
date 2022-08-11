@@ -110,7 +110,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                     .with_op("db")
                     .with_description("SELECT count() FROM table WHERE id = %s")
                     .build(),
-                    499.0,
+                    999.0,
                 )
             ]
             * 1,
@@ -123,7 +123,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                     .with_op("db")
                     .with_description("SELECT count() FROM table WHERE id = %s")
                     .build(),
-                    501.0,
+                    1001.0,
                 )
             ]
             * 1,
@@ -133,7 +133,7 @@ class PerformanceDetectionTest(unittest.TestCase):
             "spans": [
                 modify_span_duration(
                     SpanBuilder().with_op("random").with_description("example").build(),
-                    501.0,
+                    1001.0,
                 )
             ]
             * 1,
@@ -175,7 +175,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                     .with_op("http.client")
                     .with_description("http://example.com")
                     .build(),
-                    501.0,
+                    1001.0,
                 )
             ]
             * 1,
@@ -211,7 +211,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                     .with_op("db")
                     .with_description("SELECT count() FROM table WHERE id = %s")
                     .build(),
-                    499.0,
+                    999.0,
                 )
             ]
             * 4,
@@ -224,7 +224,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                     .with_op("db")
                     .with_description("SELECT count() FROM table WHERE id = %s")
                     .build(),
-                    499.0,
+                    999.0,
                 ),
             ]
             * 2
@@ -235,7 +235,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                         .with_op("db")
                         .with_description("SELECT count() FROM table WHERE id = %s")
                         .build(),
-                        499.0,
+                        999.0,
                     ),
                     1000.0,
                 ),
@@ -245,7 +245,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                         .with_op("db")
                         .with_description("SELECT count() FROM table WHERE id = %s")
                         .build(),
-                        499.0,
+                        999.0,
                     ),
                     2000.0,
                 ),
@@ -255,7 +255,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                         .with_op("db")
                         .with_description("SELECT count() FROM table WHERE id = %s")
                         .build(),
-                        499.0,
+                        999.0,
                     ),
                     3000.0,
                 ),

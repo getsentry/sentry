@@ -39,7 +39,7 @@ def detect_performance_issue(data: Event):
 
 # Gets some of the thresholds to perform performance detection. Can be made configurable later.
 # Thresholds are in milliseconds.
-def get_detection_settings():
+def get_default_detection_settings():
     return {
         DetectorType.DUPLICATE_SPANS: {
             "count": 5,
@@ -48,11 +48,11 @@ def get_detection_settings():
         },
         DetectorType.SEQUENTIAL_SLOW_SPANS: {
             "count": 3,
-            "cumulative_duration": 600.0,  # ms
+            "cumulative_duration": 1200.0,  # ms
             "allowed_span_ops": ["db", "http", "ui"],
         },
         DetectorType.SLOW_SPAN: {
-            "duration_threshold": 500.0,  # ms
+            "duration_threshold": 1000.0,  # ms
             "allowed_span_ops": ["db", "http"],
         },
     }
@@ -62,7 +62,7 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
     event_id = data.get("event_id", None)
     spans: TransactionSpans = data.get("spans", [])
 
-    detection_settings = get_detection_settings()
+    detection_settings = get_default_detection_settings()
     detectors = {
         DetectorType.DUPLICATE_SPANS: DuplicateSpanDetector(detection_settings),
         DetectorType.SLOW_SPAN: SlowSpanDetector(detection_settings),
