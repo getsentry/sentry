@@ -110,7 +110,9 @@ export type Environment = {
   // urlRoutingName: string;
 };
 
-export type TeamWithProjects = Team & {projects: Project[]};
+export interface TeamWithProjects extends Team {
+  projects: Project[];
+}
 
 export type PlatformIntegration = {
   id: PlatformKey;

@@ -26,10 +26,8 @@ type Props = {
 type View = 'formatted' | 'curl';
 
 export function Request({data, event}: Props) {
-  const requestEntryIndex = event.entries.findIndex(
-    entry => entry.type === EntryType.REQUEST
-  );
-  const meta = event._meta?.entries?.[requestEntryIndex]?.data;
+  const entryIndex = event.entries.findIndex(entry => entry.type === EntryType.REQUEST);
+  const meta = event._meta?.entries?.[entryIndex]?.data;
 
   const [view, setView] = useState<View>('formatted');
 

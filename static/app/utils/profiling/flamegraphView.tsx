@@ -3,7 +3,11 @@ import {mat3, vec2} from 'gl-matrix';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {computeClampedConfigView, Rect, Transform} from 'sentry/utils/profiling/gl/utils';
+import {
+  computeClampedConfigView,
+  Rect,
+  transformMatrixBetweenRect,
+} from 'sentry/utils/profiling/gl/utils';
 
 export class FlamegraphView {
   flamegraph: Flamegraph;
@@ -80,7 +84,7 @@ export class FlamegraphView {
   }
 
   toConfigSpace(space: Rect): mat3 {
-    const toConfigSpace = Transform.transformMatrixBetweenRect(space, this.configSpace);
+    const toConfigSpace = transformMatrixBetweenRect(space, this.configSpace);
 
     if (this.flamegraph.inverted) {
       mat3.multiply(toConfigSpace, this.configSpace.invertYTransform(), toConfigSpace);
@@ -90,7 +94,7 @@ export class FlamegraphView {
   }
 
   toConfigView(space: Rect): mat3 {
-    const toConfigView = Transform.transformMatrixBetweenRect(space, this.configView);
+    const toConfigView = transformMatrixBetweenRect(space, this.configView);
 
     if (this.flamegraph.inverted) {
       mat3.multiply(toConfigView, this.configView.invertYTransform(), toConfigView);
@@ -100,7 +104,7 @@ export class FlamegraphView {
   }
 
   fromConfigSpace(space: Rect): mat3 {
-    const fromConfigSpace = Transform.transformMatrixBetweenRect(this.configSpace, space);
+    const fromConfigSpace = transformMatrixBetweenRect(this.configSpace, space);
 
     if (this.flamegraph.inverted) {
       mat3.multiply(fromConfigSpace, space.invertYTransform(), fromConfigSpace);
@@ -110,7 +114,7 @@ export class FlamegraphView {
   }
 
   fromConfigView(space: Rect): mat3 {
-    const fromConfigView = Transform.transformMatrixBetweenRect(this.configView, space);
+    const fromConfigView = transformMatrixBetweenRect(this.configView, space);
 
     if (this.flamegraph.inverted) {
       mat3.multiply(fromConfigView, space.invertYTransform(), fromConfigView);

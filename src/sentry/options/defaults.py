@@ -443,6 +443,12 @@ register("store.save-transactions-ingest-consumer-rate", default=0.0)
 # Drop delete_old_primary_hash messages for a particular project.
 register("reprocessing2.drop-delete-old-primary-hash", default=[])
 
+
+# Send transaction events to random Kafka partitions. Currently
+# this defaults to false as transaction events are partitioned the same
+# as errors (by project ID). Eventually we will flip the default.
+register("kafka.partition-transactions-randomly", default=False)
+
 # Send event messages for specific project IDs to random partitions in Kafka
 # contents are a list of project IDs to message types to be randomly assigned
 # e.g. [{"project_id": 2, "message_type": "error"}, {"project_id": 3, "message_type": "transaction"}]
@@ -458,10 +464,6 @@ register("relay.project-config-cache-compress", default=[])  # unused
 # [Unused] Use zstandard compression in redis project config cache
 # Set this value of the fraction of config writes you want to compress.
 register("relay.project-config-cache-compress-sample-rate", default=0.0)  # unused
-
-# Mechanism for dialing up the last-seen-updater, which isn't needed outside
-# of SaaS (last_seen is a marker for deleting stale customer data)
-register("sentry-metrics.last-seen-updater.accept-rate", default=0.0)
 
 # default brownout crontab for api deprecations
 register("api.deprecation.brownout-cron", default="0 12 * * *", type=String)

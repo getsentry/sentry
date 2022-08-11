@@ -19,7 +19,7 @@ type Props = {
 export function EventTags({event, organization, projectId, location}: Props) {
   const meta = event._meta?.tags;
 
-  if (!!meta && !event.tags) {
+  if (!!meta?.[''] && !event.tags) {
     return <AnnotatedText value={event.tags} meta={meta?.['']} />;
   }
 

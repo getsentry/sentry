@@ -9,21 +9,21 @@ import {
 } from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
 import AsyncComponent from 'sentry/components/asyncComponent';
-import Button from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
 import {Field} from 'sentry/components/forms/type';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {SentryFunction} from 'sentry/types';
-import useApi from 'sentry/utils/useApi';
 
+import SentryFunctionEnvironmentVariables from './sentryFunctionsEnvironmentVariables';
 import SentryFunctionSubscriptions from './sentryFunctionSubscriptions';
 
 class SentryFunctionFormModel extends FormModel {
   getTransformedData() {
     const data = super.getTransformedData() as Record<string, any>;
+
     const events: string[] = [];
     if (data.onIssue) {
       events.push('issue');
@@ -34,7 +34,26 @@ class SentryFunctionFormModel extends FormModel {
     if (data.onComment) {
       events.push('comment');
     }
+    delete data.onIssue;
+    delete data.onError;
+    delete data.onComment;
     data.events = events;
+
+    const envVariables: EnvVariable[] = [];
+    let i = 0;
+    while (data[`env-variable-name-${i}`]) {
+      if (data[`env-variable-value-${i}`]) {
+        envVariables.push({
+          name: data[`env-variable-name-${i}`],
+          value: data[`env-variable-value-${i}`],
+        });
+      }
+      delete data[`env-variable-name-${i}`];
+      delete data[`env-variable-value-${i}`];
+      i++;
+    }
+    data.envVariables = envVariables;
+
     const {...output} = data;
     return output;
   }
@@ -44,6 +63,10 @@ type Props = {
   sentryFunction?: SentryFunction;
 } & WrapperProps;
 
+type EnvVariable = {
+  name: string;
+  value: string;
+};
 const formFields: Field[] = [
   {
     name: 'name',
@@ -70,7 +93,6 @@ const formFields: Field[] = [
 ];
 
 function SentryFunctionDetails(props: Props) {
-  const api = useApi();
   const form = useRef(new SentryFunctionFormModel());
   const {orgId, functionSlug} = props.params;
   const {sentryFunction} = props;
@@ -96,6 +118,10 @@ function SentryFunctionDetails(props: Props) {
     form.current.setValue('onComment', events.includes('comment'));
   }, [events]);
 
+  const [envVariables, setEnvVariables] = useState(
+    sentryFunction?.env_variables || [{name: '', value: ''}]
+  );
+
   const handleSubmitError = err => {
     let errorMessage = t('Unknown Error');
     if (err.status >= 400 && err.status < 500) {
@@ -107,7 +133,6 @@ function SentryFunctionDetails(props: Props) {
   const handleSubmitSuccess = data => {
     addSuccessMessage(t('Sentry Function successfully saved.', data.name));
     const baseUrl = `/settings/${orgId}/developer-settings/sentry-functions/`;
-    // TODO: should figure out where to redirect this
     const url = `${baseUrl}${data.slug}/`;
     if (sentryFunction) {
       addSuccessMessage(t('%s successfully saved.', data.name));
@@ -121,27 +146,11 @@ function SentryFunctionDetails(props: Props) {
     form.current.setValue('code', value);
   }
 
-  async function handleDelete() {
-    try {
-      await api.requestPromise(endpoint, {
-        method: 'DELETE',
-      });
-      addSuccessMessage(t('Sentry Function successfully deleted.'));
-      // TODO: Not sure where to redirect to, so just redirect to the unbuilt Sentry Functions page
-      browserHistory.push(`/settings/${orgId}/developer-settings/sentry-functions/`);
-    } catch (err) {
-      addErrorMessage(err?.responseJSON?.detail || t('Unknown Error'));
-    }
-  }
-
   return (
     <div>
       <Feature features={['organizations:sentry-functions']}>
-        <h1>{t('Sentry Function Details')}</h1>
         <h2>
-          {sentryFunction
-            ? tct('Editing [name]', {name: sentryFunction.name})
-            : t('New Function')}
+          {sentryFunction ? t('Editing Sentry Function') : t('Create Sentry Function')}
         </h2>
         <Form
           apiMethod={method}
@@ -153,15 +162,27 @@ function SentryFunctionDetails(props: Props) {
           initialData={{
             code: defaultCode,
             events,
+            envVariables,
             ...props.sentryFunction,
           }}
           onSubmitError={handleSubmitError}
           onSubmitSuccess={handleSubmitSuccess}
         >
           <JsonForm forms={[{title: t('Sentry Function Details'), fields: formFields}]} />
-          <SentryFunctionSubscriptions events={events} setEvents={setEvents} />
           <Panel>
-            <PanelHeader>Write your Code Below</PanelHeader>
+            <PanelHeader>{t('Webhooks')}</PanelHeader>
+            <PanelBody>
+              <SentryFunctionSubscriptions events={events} setEvents={setEvents} />
+            </PanelBody>
+          </Panel>
+          <Panel>
+            <SentryFunctionEnvironmentVariables
+              envVariables={envVariables}
+              setEnvVariables={setEnvVariables}
+            />
+          </Panel>
+          <Panel>
+            <PanelHeader>{t('Write your Code Below')}</PanelHeader>
             <PanelBody>
               <Editor
                 height="40vh"
@@ -179,17 +200,6 @@ function SentryFunctionDetails(props: Props) {
             </PanelBody>
           </Panel>
         </Form>
-        {sentryFunction && (
-          <Button
-            onClick={handleDelete}
-            title={t('Delete Sentry Function')}
-            aria-label={t('Delete Sentry Function')}
-            type="button"
-            priority="danger"
-          >
-            {t('Delete Sentry Function')}
-          </Button>
-        )}
       </Feature>
     </div>
   );

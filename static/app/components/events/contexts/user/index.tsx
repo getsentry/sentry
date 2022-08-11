@@ -7,9 +7,9 @@ import {AvatarUser} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
-import {getUnknownData} from '../getUnknownData';
+import {geKnownData, getUnknownData} from '../utils';
 
-import {getUserKnownData} from './getUserKnownData';
+import {getUserKnownDataDetails} from './getUserKnownDataDetails';
 
 export type UserEventContextData = {
   data: Record<string, string>;
@@ -43,14 +43,24 @@ export const userKnownDataValues = [
 const userIgnoredDataValues = [UserIgnoredDataType.DATA];
 
 export function UserEventContext({data, event}: Props) {
-  const meta = event._meta?.contexts?.user ?? {};
+  const meta = event._meta?.user ?? event._meta?.contexts?.user ?? {};
 
   return (
     <div className="user-widget">
       <div className="pull-left">
         <UserAvatar user={removeFilterMaskedEntries(data)} size={48} gravatar={false} />
       </div>
-      <ContextBlock data={getUserKnownData({data, meta})} />
+      <ContextBlock
+        data={geKnownData<UserEventContextData, UserKnownDataType>({
+          data,
+          meta,
+          knownDataTypes: userKnownDataValues,
+          onGetKnownDataDetails: v => getUserKnownDataDetails(v),
+        }).map(v => ({
+          ...v,
+          subjectDataTestId: `user-context-${v.key.toLowerCase()}-value`,
+        }))}
+      />
       <ContextBlock
         data={getUnknownData({
           allData: data,

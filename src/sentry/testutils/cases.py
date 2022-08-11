@@ -26,6 +26,7 @@ __all__ = (
     "MetricsEnhancedPerformanceTestCase",
     "MetricsAPIBaseTestCase",
     "OrganizationMetricMetaIntegrationTestCase",
+    "ReplaysSnubaTestCase",
 )
 
 import hashlib
@@ -1342,6 +1343,18 @@ class OutcomesSnubaTest(TestCase):
         )
 
 
+@pytest.mark.snuba
+@requires_snuba
+class ReplaysSnubaTestCase(TestCase):
+    def setUp(self):
+        super().setUp()
+        assert requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop").status_code == 200
+
+    def store_replays(self, replay):
+        response = requests.post(settings.SENTRY_SNUBA + "/tests/replays/insert", json=[replay])
+        assert response.status_code == 200
+
+
 class IntegrationRepositoryTestCase(APITestCase):
     def setUp(self):
         super().setUp()
@@ -1752,6 +1765,12 @@ class MSTeamsActivityNotificationTest(ActivityTestCase):
         NotificationSetting.objects.update_settings(
             ExternalProviders.MSTEAMS,
             NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.ALWAYS,
+            user=self.user,
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.MSTEAMS,
+            NotificationSettingTypes.DEPLOY,
             NotificationSettingOptionValues.ALWAYS,
             user=self.user,
         )
