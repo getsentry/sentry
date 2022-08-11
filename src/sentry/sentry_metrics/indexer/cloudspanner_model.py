@@ -17,10 +17,12 @@ class SpannerIndexerModel:
         which can be used in the VALUES section of INSERT statement.
         """
         datetime_format = "%Y-%m-%d %H:%M:%S %Z"
-        return f"({self.id}, \"{self.string}\", {self.organization_id}," \
-               f" '{self.date_added.strftime(datetime_format)}', " \
-               f"'{self.last_seen.strftime(datetime_format)}'," \
-               f" {self.retention_days})"
+        return (
+            f'({self.id}, "{self.string}", {self.organization_id},'
+            f" '{self.date_added.strftime(datetime_format)}', "
+            f"'{self.last_seen.strftime(datetime_format)}',"
+            f" {self.retention_days})"
+        )
 
     @staticmethod
     def to_columns_format_dml() -> str:
@@ -28,7 +30,7 @@ class SpannerIndexerModel:
         Returns a string which can be used in the COLUMNS section of INSERT statement.
         Only useful when you want to insert all columns of the model.
         """
-        return '(id, string, organization_id, date_added, last_seen, retention_days)'
+        return "(id, string, organization_id, date_added, last_seen, retention_days)"
 
     @staticmethod
     def to_columns_format_batch() -> str:
@@ -37,5 +39,4 @@ class SpannerIndexerModel:
         batch inserts/updates.
         Only useful when you want to insert all columns of the model.
         """
-        return ["id", "string", "organization_id", "date_added", "last_seen",
-                "retention_days"]
+        return ["id", "string", "organization_id", "date_added", "last_seen", "retention_days"]
