@@ -17,6 +17,7 @@ import {
   sortNetwork,
 } from 'sentry/views/replays/detail/network/utils';
 import type {ReplayRecord} from 'sentry/views/replays/types';
+import {defined} from 'sentry/utils';
 
 type Props = {
   networkSpans: NetworkSpan[];
@@ -159,7 +160,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
           <Text>{network.op.replace('resource.', '')}</Text>
         </Item>
         <Item {...columnHandlers} numeric>
-          {network.data.size ? (
+          {defined(network.data.size) ? (
             <FileSize bytes={network.data.size} />
           ) : (
             <EmptyText>({t('Missing size')})</EmptyText>
