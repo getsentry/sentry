@@ -22,7 +22,7 @@ from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
 from sentry.utils.dates import to_datetime
-from sentry.utils.performance_issues import detect_performance_issue
+from sentry.utils.performance_issues.performance_detection import detect_performance_issue
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_event_project
 
