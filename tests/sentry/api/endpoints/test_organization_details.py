@@ -59,7 +59,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
 
         assert response.data["slug"] == self.organization.slug
         assert response.data["links"] == {
-            "organizationUrl": f"http://{self.organization.slug}.us.testserver",
+            "organizationUrl": f"http://{self.organization.slug}.testserver",
             "regionUrl": "http://us.testserver",
         }
         assert response.data["onboardingTasks"] == []
@@ -77,7 +77,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
 
         assert response.data["slug"] == self.organization.slug
         assert response.data["links"] == {
-            "organizationUrl": f"http://{self.organization.slug}.us.testserver",
+            "organizationUrl": f"http://{self.organization.slug}.testserver",
             "regionUrl": "http://us.testserver",
         }
         assert response.data["onboardingTasks"] == []
