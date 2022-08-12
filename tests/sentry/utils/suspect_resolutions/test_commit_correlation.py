@@ -42,9 +42,9 @@ class CommitCorrelationTest(TestCase):
         Activity.objects.create(
             project=project, group=issue, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
         )
-        release_ids, files_changed = get_files_changed(issue, project)
+        release_ids, files_changed = get_files_changed(issue.id, project.id)
 
-        assert len(get_files_changed(issue, project)) == 2
+        assert len(get_files_changed(issue.id, project.id)) == 2
         assert files_changed == {".random", ".random2"}
         assert release_ids == [release.id]
 
@@ -53,7 +53,7 @@ class CommitCorrelationTest(TestCase):
         Activity.objects.create(
             project=project, group=issue, type=ActivityType.SET_RESOLVED_IN_COMMIT.value
         )
-        release_ids, files_changed = get_files_changed(issue, project)
+        release_ids, files_changed = get_files_changed(issue.id, project.id)
 
         assert files_changed == {".random", ".random2"}
         assert release_ids == [release.id]
@@ -63,23 +63,23 @@ class CommitCorrelationTest(TestCase):
         Activity.objects.create(
             project=project, group=issue, type=ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value
         )
-        release_ids, files_changed = get_files_changed(issue, project)
+        release_ids, files_changed = get_files_changed(issue.id, project.id)
 
-        assert len(get_files_changed(issue, project)) == 2
+        assert len(get_files_changed(issue.id, project.id)) == 2
         assert files_changed == {".random", ".random2"}
         assert release_ids == [release.id]
 
     def test_get_files_changed_unresolved_issue(self):
         (project, issue, release, repo) = setup(self, status=GroupStatus.UNRESOLVED)
-        release_ids, files_changed = get_files_changed(issue, project)
+        release_ids, files_changed = get_files_changed(issue.id, project.id)
 
-        assert len(get_files_changed(issue, project)) == 2
+        assert len(get_files_changed(issue.id, project.id)) == 2
         assert files_changed == {".random", ".random2"}
         assert release_ids == [release.id]
 
     def test_get_files_changed_manually_resolved(self):
         (project, issue, release, repo) = setup(self, status=GroupStatus.RESOLVED)
-        release_ids, files_changed = get_files_changed(issue, project)
+        release_ids, files_changed = get_files_changed(issue.id, project.id)
 
         assert files_changed == {".random", ".random2"}
         assert release_ids == [release.id]
@@ -106,14 +106,14 @@ class CommitCorrelationTest(TestCase):
         GroupRelease.objects.create(
             project_id=project.id, group_id=group2.id, release_id=release2.id
         )
-        group1_release_ids, group1_files_changed = get_files_changed(group1, project)
-        group2_release_ids, group2_files_changed = get_files_changed(group2, project)
+        group1_release_ids, group1_files_changed = get_files_changed(group1.id, project.id)
+        group2_release_ids, group2_files_changed = get_files_changed(group2.id, project.id)
 
         assert group1_files_changed == set()
         assert group2_files_changed == set()
         assert group1_release_ids == [release.id]
         assert group2_release_ids == [release2.id]
-        assert not is_issue_commit_correlated(group1, group2, project)
+        assert not is_issue_commit_correlated(group1.id, group2.id, project.id)
 
     def test_files_changed_unreleased_commits(self):
         project = self.create_project()
@@ -131,7 +131,7 @@ class CommitCorrelationTest(TestCase):
         )
         GroupRelease.objects.create(project_id=project.id, group_id=group.id, release_id=release.id)
 
-        release_ids, files_changed = get_files_changed(group, project)
+        release_ids, files_changed = get_files_changed(group.id, project.id)
 
         assert files_changed == set()
         assert release_ids == [release.id]
@@ -156,11 +156,11 @@ class CommitCorrelationTest(TestCase):
             project_id=project.id, group_id=issue2.id, release_id=release2.id
         )
 
-        assert get_files_changed(issue, project) == {".random", ".random2"}
-        assert get_files_changed(issue2, project) == {".random"}
-        assert len(get_files_changed(issue, project)) == 2
-        assert len(get_files_changed(issue2, project)) == 1
-        assert is_issue_commit_correlated(issue, issue2, project)
+        assert get_files_changed(issue.id, project.id) == {".random", ".random2"}
+        assert get_files_changed(issue2.id, project.id) == {".random"}
+        assert len(get_files_changed(issue.id, project.id)) == 2
+        assert len(get_files_changed(issue2.id, project.id)) == 1
+        assert is_issue_commit_correlated(issue.id, issue2.id, project.id)
 
     def get_files_changed_no_shared_files(self):
         (project, issue, release, repo) = setup(self, status=GroupStatus.RESOLVED)
@@ -182,11 +182,11 @@ class CommitCorrelationTest(TestCase):
             project_id=project.id, group_id=issue2.id, release_id=release2.id
         )
 
-        group1_release_ids, group1_files_changed = get_files_changed(issue, project)
-        group2_release_ids, group2_files_changed = get_files_changed(issue2, project)
+        group1_release_ids, group1_files_changed = get_files_changed(issue.id, project.id)
+        group2_release_ids, group2_files_changed = get_files_changed(issue2.id, project.id)
 
         assert group1_files_changed == set()
         assert group2_files_changed == set()
         assert group1_release_ids == [release.id]
         assert group2_release_ids == [release2.id]
-        assert not is_issue_commit_correlated(issue, issue2, project)
+        assert not is_issue_commit_correlated(issue.id, issue2.id, project.id)
