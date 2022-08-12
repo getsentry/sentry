@@ -1,4 +1,3 @@
-import pytest
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 
@@ -72,7 +71,6 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
-    @pytest.mark.flaky(reruns=5)
     def test_add_uniform_rule_with_recommended_sampling_values(self):
         with self.feature(FEATURE_NAME):
             self.wait_until_page_loaded()
@@ -105,13 +103,12 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                 == serializer.validated_data["rules"][0]
             )
 
-    @pytest.mark.flaky(reruns=5)
     def test_add_uniform_rule_with_custom_sampling_values(self):
         with self.feature(FEATURE_NAME):
             self.wait_until_page_loaded()
 
             # Open uniform rate modal
-            self.browser.element('[aria-label="Start Setup"]').click()
+            self.browser.click_when_visible('[aria-label="Start Setup"]')
 
             self.browser.wait_until('[id="recommended-client-sampling"]')
 
@@ -126,10 +123,10 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             )
 
             # Click on next button
-            self.browser.element('[aria-label="Next"]').click()
+            self.browser.click_when_visible('[aria-label="Next"]')
 
             # Click on done button
-            self.browser.element('[aria-label="Done"]').click()
+            self.browser.click_when_visible('[aria-label="Done"]')
 
             # Wait the success message to show up
             self.browser.wait_until('[data-test-id="toast-success"]')
