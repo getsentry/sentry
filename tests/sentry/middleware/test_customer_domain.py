@@ -288,6 +288,17 @@ class End2EndTest(APITestCase):
             assert response.status_code == 302
             assert response["Location"] == "http://testserver/api/0/albertos-apples/"
 
+            response = self.client.get(
+                reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"}),
+            )
+            assert response.status_code == 200
+            assert response.data == {
+                "organization_slug": "albertos-apples",
+                "subdomain": None,
+                "activeorg": None,
+            }
+            assert "activeorg" not in self.client.session
+
     def test_with_middleware_and_is_staff(self):
         self.create_organization(name="albertos-apples")
         is_staff_user = self.create_user(is_staff=True)
