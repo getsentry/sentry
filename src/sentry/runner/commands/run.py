@@ -629,60 +629,6 @@ def metrics_parallel_consumer(**options):
         streamer.run()
 
 
-@run.command("ingest-metrics-consumer-3")
-@log_options()
-@click.option("--topic", default="ingest-metrics", help="Topic to get metrics data from.")
-@batching_kafka_options("ingest-metrics-consumer")
-@configuration
-@click.option(
-    "--processes",
-    default=1,
-    type=int,
-)
-@click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
-@click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
-@click.option("--factory-name", default="default")
-@click.option("commit_max_batch_size", "--commit-max-batch-size", type=int, default=25000)
-@click.option("commit_max_batch_time", "--commit-max-batch-time-ms", type=int, default=10000)
-@click.option("parallel_max_batch_size", "--parallel-max-batch-size", type=int, default=5)
-@click.option("parallel_max_batch_time_ms", "--parallel-max-batch-time-ms", type=int, default=1000)
-@click.option(
-    "--queued-max-messages-kbytes",
-    default=65536,
-    type=int,
-    help="Maximum number of kilobytes per topic+partition in the local consumer queue.",
-)
-@click.option(
-    "--queued-min-messages",
-    default=100000,
-    type=int,
-    help="Minimum number of messages per topic+partition librdkafka tries to maintain in the local consumer queue.",
-)
-def metrics_streaming_consumer_2(**options):
-    import sentry_sdk
-
-    from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
-    from sentry.sentry_metrics.consumers.indexer.test import get_streaming_metrics_consumer
-    from sentry.sentry_metrics.metrics_wrapper import MetricsWrapper
-    from sentry.utils.metrics import backend
-
-    use_case = UseCaseKey(UseCaseKey.PERFORMANCE)
-    sentry_sdk.set_tag("sentry_metrics.use_case_key", use_case.value)
-    ingest_config = get_ingest_config(use_case)
-    metrics_wrapper = MetricsWrapper(backend, "sentry_metrics.indexer")
-    configure_metrics(metrics_wrapper)
-
-    streamer = get_streaming_metrics_consumer(indexer_profile=ingest_config, **options)
-
-    def handler(signum, frame):
-        streamer.signal_shutdown()
-
-    signal.signal(signal.SIGINT, handler)
-    signal.signal(signal.SIGTERM, handler)
-
-    streamer.run()
-
-
 @run.command("ingest-profiles")
 @log_options()
 @click.option("--topic", default="profiles", help="Topic to get profiles data from.")
