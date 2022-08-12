@@ -7,7 +7,7 @@ from sentry.db.models.fields.array import ArrayField
 class SentryFunctionManager(BaseManager):
     def get_sentry_functions(self, organization_id, event_type):
         functions = self.filter(organization_id=organization_id, events__contains=event_type)
-        return list(functions)
+        return functions
 
 
 class SentryFunction(DefaultFieldsModel):
