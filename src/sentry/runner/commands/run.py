@@ -560,6 +560,7 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
 @click.option("--ingest-profile", required=True)
 @click.option("commit_max_batch_size", "--commit-max-batch-size", type=int, default=25000)
 @click.option("commit_max_batch_time", "--commit-max-batch-time-ms", type=int, default=10000)
+@click.option("--indexer-db", default="postgres")
 def metrics_streaming_consumer(**options):
     import sentry_sdk
 
@@ -569,7 +570,7 @@ def metrics_streaming_consumer(**options):
 
     use_case = UseCaseKey(options["ingest_profile"])
     sentry_sdk.set_tag("sentry_metrics.use_case_key", use_case.value)
-    ingest_config = get_ingest_config(use_case)
+    ingest_config = get_ingest_config(use_case, options["indexer_db"])
 
     streamer = get_streaming_metrics_consumer(indexer_profile=ingest_config, **options)
 
@@ -654,12 +655,13 @@ def replays_recordings_consumer(**options):
 @click.option("commit_max_batch_time", "--commit-max-batch-time-ms", type=int, default=10000)
 @click.option("--topic", default="snuba-metrics", help="Topic to read indexer output from.")
 @click.option("--ingest-profile", required=True)
+@click.option("--indexer-db", default="postgres")
 def last_seen_updater(**options):
     from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
     from sentry.sentry_metrics.consumers.last_seen_updater import get_last_seen_updater
     from sentry.utils.metrics import global_tags
 
-    ingest_config = get_ingest_config(UseCaseKey(options["ingest_profile"]))
+    ingest_config = get_ingest_config(UseCaseKey(options["ingest_profile"]), options["indexer_db"])
 
     consumer = get_last_seen_updater(ingest_config=ingest_config, **options)
 
