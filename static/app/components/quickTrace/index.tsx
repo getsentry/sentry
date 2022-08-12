@@ -336,7 +336,6 @@ function EventNodeSelector({
         to={target}
         onClick={() => handleNode(nodeKey, organization)}
         type={type}
-        shouldOffset={hasErrors}
       />
     );
   }
@@ -357,14 +356,7 @@ function EventNodeSelector({
     <DropdownContainer>
       <DropdownLink
         caret={false}
-        title={
-          <StyledEventNode
-            text={text}
-            hoverText={hoverText}
-            type={type}
-            shouldOffset={hasErrors}
-          />
-        }
+        title={<StyledEventNode text={text} hoverText={hoverText} type={type} />}
         anchorRight={anchor === 'right'}
       >
         {errors.length > 0 && (
@@ -496,28 +488,14 @@ type EventNodeProps = {
   hoverText: React.ReactNode;
   text: React.ReactNode;
   onClick?: (eventKey: any) => void;
-  shouldOffset?: boolean;
   to?: LocationDescriptor;
   type?: keyof Theme['tag'];
 };
 
-function StyledEventNode({
-  text,
-  hoverText,
-  to,
-  onClick,
-  type = 'white',
-  shouldOffset = false,
-}: EventNodeProps) {
+function StyledEventNode({text, hoverText, to, onClick, type = 'white'}: EventNodeProps) {
   return (
     <Tooltip position="top" containerDisplayMode="inline-flex" title={hoverText}>
-      <EventNode
-        type={type}
-        icon={null}
-        to={to}
-        onClick={onClick}
-        shouldOffset={shouldOffset}
-      >
+      <EventNode type={type} icon={null} to={to} onClick={onClick}>
         {text}
       </EventNode>
     </Tooltip>
