@@ -553,7 +553,6 @@ CELERY_IMPORTS = (
     "sentry.data_export.tasks",
     "sentry.discover.tasks",
     "sentry.incidents.tasks",
-    "sentry.sentry_metrics.indexer.tasks",
     "sentry.snuba.tasks",
     "sentry.tasks.app_store_connect",
     "sentry.tasks.assemble",
