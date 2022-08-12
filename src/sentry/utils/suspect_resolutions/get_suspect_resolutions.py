@@ -5,7 +5,7 @@ from sentry import features
 from sentry.models import Activity, Group, GroupStatus
 from sentry.signals import issue_resolved
 from sentry.tasks.base import instrumented_task
-from sentry.utils.suspect_resolutions import analytics
+from sentry.utils.suspect_resolutions import ALGO_VERSION, analytics
 from sentry.utils.suspect_resolutions.commit_correlation import is_issue_commit_correlated
 from sentry.utils.suspect_resolutions.metric_correlation import is_issue_error_rate_correlated
 
@@ -56,6 +56,7 @@ def get_suspect_resolutions(resolved_issue_id: int) -> Sequence[int]:
             correlated_issue_ids.append(metric_correlation_result.candidate_suspect_resolution_id)
         analytics.record(
             "suspect_resolution.evaluation",
+            algo_version=ALGO_VERSION,
             resolved_group_id=resolved_issue.id,
             candidate_group_id=metric_correlation_result.candidate_suspect_resolution_id,
             resolved_group_resolution_type=resolution_type,
