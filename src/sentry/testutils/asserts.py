@@ -1,6 +1,6 @@
 from typing import Optional
 
-from sentry.models import CommitFileChange
+from sentry.models import AuditLogEntry, CommitFileChange
 
 
 def assert_mock_called_once_with_partial(mock, *args, **kwargs):
@@ -37,3 +37,20 @@ def assert_status_code(response, minimum: int, maximum: Optional[int] = None):
     # Omit max to assert status_code == minimum.
     maximum = maximum or minimum + 1
     assert minimum <= response.status_code < maximum, (response.status_code, response.content)
+
+
+def org_audit_log_exists(**kwargs):
+    assert kwargs
+    return AuditLogEntry.objects.filter(**kwargs).exists()
+
+
+def assert_org_audit_log_exists(**kwargs):
+    assert org_audit_log_exists(**kwargs)
+
+
+def assert_org_audit_log_does_not_exist(**kwargs):
+    assert not org_audit_log_exists(**kwargs)
+
+
+def delete_all_org_audit_logs():
+    return AuditLogEntry.objects.all().delete()
