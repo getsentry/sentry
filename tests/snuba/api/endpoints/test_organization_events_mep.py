@@ -1389,12 +1389,14 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         response = self.do_request(query)
         assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
+        assert len(response.data["data"]) == 2
         data = response.data["data"]
         meta = response.data["meta"]
 
-        assert data[0]["transaction"] == "foo_transaction"
-        assert data[0]["p50(transaction.duration)"] == 100
+        assert data[0]["transaction"] == "<< unparameterized >>"
+        assert data[0]["p50(transaction.duration)"] == 1
+        assert data[1]["transaction"] == "foo_transaction"
+        assert data[1]["p50(transaction.duration)"] == 100
         assert meta["isMetricsData"]
 
         query = {
@@ -1411,14 +1413,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         }
 
         response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        data = response.data["data"]
-        meta = response.data["meta"]
-
-        assert data[0]["transaction"] is None
-        assert data[0]["p50(transaction.duration)"] == 1
-        assert meta["isMetricsData"]
+        assert response.status_code == 400, response.content
 
     def test_apdex_transaction_threshold(self):
         ProjectTransactionThresholdOverride.objects.create(
@@ -1593,3 +1588,36 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["p50(measurements.frames_frozen_rate)"] == 0.4
+
+    def test_merge_null_unparam(self):
+        self.store_transaction_metric(
+            1,
+            # Transaction: unparam
+            tags={
+                "transaction": "<< unparameterized >>",
+            },
+            timestamp=self.min_ago,
+        )
+
+        self.store_transaction_metric(
+            2,
+            # Transaction:null
+            tags={},
+            timestamp=self.min_ago,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "field": [
+                "transaction",
+                "p50(transaction.duration)",
+            ],
+            "statsPeriod": "24h",
+            "dataset": "metrics",
+            "per_page": 50,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["p50(transaction.duration)"] == 1.5

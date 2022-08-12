@@ -30,6 +30,9 @@ def resolve_tags(results: Any, query_definition: MetricsQueryBuilder) -> Any:
                 and column.alias
             ):
                 tags.append(column.alias)
+            # transaction is a special case since we use a transform null & unparam
+            if column.alias in ["transaction", "title"]:
+                tags.append(column.alias)
 
         for tag in tags:
             for row in results["data"]:
