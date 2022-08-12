@@ -106,8 +106,7 @@ const Wrapper = styled('span')<{hasGroupingTreeUI: boolean}>`
     css`
       display: inline-grid;
       grid-template-columns: auto max-content 1fr max-content;
-      align-items: flex-end;
-      line-height: 100%;
+      align-items: baseline;
 
       ${Subtitle} {
         ${p.theme.overflowEllipsis};
