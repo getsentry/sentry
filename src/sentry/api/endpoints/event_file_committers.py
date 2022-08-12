@@ -37,18 +37,8 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
         except Commit.DoesNotExist:
             return Response({"detail": "No Commits found for Release"}, status=404)
 
-        # XXX(dcramer): this data is unused, so lets not bother returning it for now
-        # serialize the commit objects
-        # serialized_annotated_frames = [
-        #     {
-        #         'frame': frame['frame'],
-        #         'commits': serialize(frame['commits'])
-        #     } for frame in annotated_frames
-        # ]
-
         data = {
             "committers": committers,
-            # 'annotatedFrames': serialized_annotated_frames
         }
 
         if features.has("organizations:release-committer-assignees", project.organization):
