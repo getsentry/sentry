@@ -1,13 +1,13 @@
 [
   {
-    "query": "stack.lineno:[500,501,502]",
+    "query": "project_id:[500,501,502]",
     "result": [
       {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numericIn",
         "negated": false,
-        "key": {"type": "keySimple", "value": "stack.lineno", "quoted": false},
+        "key": {"type": "keySimple", "value": "project_id", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueNumberList",
@@ -46,14 +46,14 @@
     ]
   },
   {
-    "query": "stack.lineno:[500, 501,     502]",
+    "query": "project_id:[500, 501,     502]",
     "result": [
       {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numericIn",
         "negated": false,
-        "key": {"type": "keySimple", "value": "stack.lineno", "quoted": false},
+        "key": {"type": "keySimple", "value": "project_id", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueNumberList",
@@ -92,14 +92,14 @@
     ]
   },
   {
-    "query": "stack.lineno:[500, 501 ,502]",
+    "query": "project_id:[500, 501 ,502]",
     "result": [
       {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numericIn",
         "negated": false,
-        "key": {"type": "keySimple", "value": "stack.lineno", "quoted": false},
+        "key": {"type": "keySimple", "value": "project_id", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueNumberList",
@@ -138,14 +138,14 @@
     ]
   },
   {
-    "query": "stack.lineno:[500,501,502] stack.colno:[100]",
+    "query": "project_id:[500,501,502] issue.id:[100]",
     "result": [
       {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numericIn",
         "negated": false,
-        "key": {"type": "keySimple", "value": "stack.lineno", "quoted": false},
+        "key": {"type": "keySimple", "value": "project_id", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueNumberList",
@@ -185,7 +185,7 @@
         "type": "filter",
         "filter": "numericIn",
         "negated": false,
-        "key": {"type": "keySimple", "value": "stack.colno", "quoted": false},
+        "key": {"type": "keySimple", "value": "issue.id", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueNumberList",
@@ -207,14 +207,14 @@
   },
   {
     "desc": "Numeric format should still return a string if field isn't allowed",
-    "query": "stack.lineno:[500,501,502] random_field:[500,501,502]",
+    "query": "project_id:[500,501,502] random_field:[500,501,502]",
     "result": [
       {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numericIn",
         "negated": false,
-        "key": {"type": "keySimple", "value": "stack.lineno", "quoted": false},
+        "key": {"type": "keySimple", "value": "project_id", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueNumberList",
@@ -278,7 +278,7 @@
     ]
   },
   {
-    "query": "stack.lineno:[500,501,]",
+    "query": "project_id:[500,501,]",
     "result": [
       {"type": "spaces", "value": ""},
       {
@@ -286,7 +286,7 @@
         "filter": "numericIn",
         "invalid": {"reason": "Lists should not have empty values"},
         "negated": false,
-        "key": {"type": "keySimple", "value": "stack.lineno", "quoted": false},
+        "key": {"type": "keySimple", "value": "project_id", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueNumberList",
@@ -320,14 +320,14 @@
     ]
   },
   {
-    "query": "!stack.lineno:[500,501]",
+    "query": "!project_id:[500,501]",
     "result": [
       {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numericIn",
         "negated": true,
-        "key": {"type": "keySimple", "value": "stack.lineno", "quoted": false},
+        "key": {"type": "keySimple", "value": "project_id", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueNumberList",

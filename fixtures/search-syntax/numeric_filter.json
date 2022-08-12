@@ -47,14 +47,14 @@
     ]
   },
   {
-    "query": "stack.lineno:-500",
+    "query": "project_id:-500",
     "result": [
       {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numeric",
         "negated": false,
-        "key": {"type": "keySimple", "value": "stack.lineno", "quoted": false},
+        "key": {"type": "keySimple", "value": "project_id", "quoted": false},
         "operator": "",
         "value": {"type": "valueNumber", "value": "-500", "rawValue": -500, "unit": null}
       },
@@ -62,14 +62,14 @@
     ]
   },
   {
-    "query": "!stack.colno:500",
+    "query": "!issue.id:500",
     "result": [
       {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numeric",
         "negated": true,
-        "key": {"type": "keySimple", "value": "stack.colno", "quoted": false},
+        "key": {"type": "keySimple", "value": "issue.id", "quoted": false},
         "operator": "",
         "value": {"type": "valueNumber", "value": "500", "rawValue": 500, "unit": null}
       },
@@ -77,14 +77,14 @@
     ]
   },
   {
-    "query": "measurements.stall_count:<500",
+    "query": "issue.id:<500",
     "result": [
       {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numeric",
         "negated": false,
-        "key": {"type": "keySimple", "value": "measurements.stall_count", "quoted": false},
+        "key": {"type": "keySimple", "value": "issue.id", "quoted": false},
         "operator": "<",
         "value": {"type": "valueNumber", "value": "500", "rawValue": 500, "unit": null}
       },
