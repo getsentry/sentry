@@ -339,7 +339,7 @@ INSTALLED_APPS = (
     "sentry.replays",
     "sentry.release_health",
     "sentry.search",
-    "sentry.sentry_metrics.indexer.postgres",
+    "sentry.sentry_metrics.indexer.postgres.apps.Config",
     "sentry.snuba",
     "sentry.lang.java.apps.Config",
     "sentry.lang.javascript.apps.Config",
