@@ -5,13 +5,9 @@ from sentry import features
 from sentry.models import Activity, Group, GroupStatus
 from sentry.signals import issue_resolved
 from sentry.tasks.base import instrumented_task
-from sentry.utils.suspect_resolutions import analytics
+from sentry.utils.suspect_resolutions import ALGO_VERSION, analytics
 from sentry.utils.suspect_resolutions.commit_correlation import is_issue_commit_correlated
 from sentry.utils.suspect_resolutions.metric_correlation import is_issue_error_rate_correlated
-
-# make sure to increment this when making changes to anything within the 'suspect_resolutions' directory
-# keeps track of changes to how we process suspect commits, so we can filter out analytics events by the algo version
-ALGO_VERSION = "0.0.2"
 
 
 @issue_resolved.connect(weak=False)
