@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from django.utils import timezone
 from dataclasses import dataclass
 from typing import Sequence, Set
+
+from django.utils import timezone
 
 from sentry.models import CommitFileChange, GroupRelease, ReleaseCommit
 
