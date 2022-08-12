@@ -93,25 +93,37 @@ function NetworkList({replayRecord, networkSpans}: Props) {
   };
 
   const columns = [
-    t('Status'),
-    <SortItem key="path" onClick={() => handleSort('description')}>
-      {t('Path')} {sortArrow('description')}
+    <SortItem key="status">{t('Status')}</SortItem>,
+    <SortItem key="path">
+      <UnstyledButton onClick={() => handleSort('description')}>
+        {t('Path')} {sortArrow('description')}
+      </UnstyledButton>
     </SortItem>,
-    <SortItem key="type" onClick={() => handleSort('op')}>
-      {t('Type')} {sortArrow('op')}
+    <SortItem key="type">
+      <UnstyledButton onClick={() => handleSort('op')}>
+        {t('Type')} {sortArrow('op')}
+      </UnstyledButton>
     </SortItem>,
-    <SortItem
-      key="duration"
-      onClick={() =>
-        handleSort('duration', row => {
-          return row.endTimestamp - row.startTimestamp;
-        })
-      }
-    >
-      {t('Duration')} {sortArrow('duration')}
+    <SortItem key="size">
+      <UnstyledButton onClick={() => handleSort('size', row => row.data.size)}>
+        {t('Size')} {sortArrow('size')}
+      </UnstyledButton>
     </SortItem>,
-    <SortItem key="timestamp" onClick={() => handleSort('startTimestamp')}>
-      {t('Timestamp')} {sortArrow('startTimestamp')}
+    <SortItem key="duration">
+      <UnstyledButton
+        onClick={() =>
+          handleSort('duration', row => {
+            return row.endTimestamp - row.startTimestamp;
+          })
+        }
+      >
+        {t('Duration')} {sortArrow('duration')}
+      </UnstyledButton>
+    </SortItem>,
+    <SortItem key="timestamp">
+      <UnstyledButton onClick={() => handleSort('startTimestamp')}>
+        {t('Timestamp')} {sortArrow('startTimestamp')}
+      </UnstyledButton>
     </SortItem>,
   ];
 
@@ -134,6 +146,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
               overlayStyle={{
                 maxWidth: '500px !important',
               }}
+              showOnlyOnOverflow
             >
               <Text>{network.description}</Text>
             </Tooltip>
@@ -144,6 +157,14 @@ function NetworkList({replayRecord, networkSpans}: Props) {
         <Item {...columnHandlers}>
           <Text>{network.op.replace('resource.', '')}</Text>
         </Item>
+        <Item {...columnHandlers} numeric>
+          {network.data.size ? (
+            `${network.data.size} B`
+          ) : (
+            <EmptyText>({t('Missing size')})</EmptyText>
+          )}
+        </Item>
+
         <Item {...columnHandlers} numeric>
           {`${(networkEndTimestamp - networkStartTimestamp).toFixed(2)}ms`}
         </Item>
@@ -183,7 +204,7 @@ const Item = styled('div')<{center?: boolean; color?: ColorOrAlias; numeric?: bo
 `;
 
 const StyledPanelTable = styled(PanelTable)<{columns: number}>`
-  grid-template-columns: max-content minmax(200px, 1fr) repeat(3, max-content);
+  grid-template-columns: max-content minmax(200px, 1fr) repeat(4, max-content);
   grid-template-rows: 24px repeat(auto-fit, 28px);
   font-size: ${p => p.theme.fontSizeSmall};
   margin-bottom: 0;
@@ -201,8 +222,9 @@ const StyledPanelTable = styled(PanelTable)<{columns: number}>`
       justify-content: end;
     }
 
-    /* 2nd last column */
-    &:nth-child(${p => p.columns}n - 1) {
+    /* 3rd and 2nd last column */
+    &:nth-child(${p => p.columns}n - 1),
+    &:nth-child(${p => p.columns}n - 2) {
       text-align: right;
       justify-content: end;
     }
@@ -210,14 +232,14 @@ const StyledPanelTable = styled(PanelTable)<{columns: number}>`
 
   ${/* sc-selector */ PanelTableHeader} {
     min-height: 24px;
-    padding: ${space(0.5)} ${space(1.5)};
     border-radius: 0;
     color: ${p => p.theme.subText};
     line-height: 16px;
 
-    /* Last and 2nd last header columns. As these are flex direction columns we have to treat them separately */
+    /* Last, 2nd and 3rd last header columns. As these are flex direction columns we have to treat them separately */
     &:nth-child(${p => p.columns}n),
-    &:nth-child(${p => p.columns}n - 1) {
+    &:nth-child(${p => p.columns}n - 1),
+    &:nth-child(${p => p.columns}n - 2) {
       justify-content: center;
       align-items: end;
     }
@@ -244,7 +266,8 @@ const EmptyText = styled(Text)`
 `;
 
 const SortItem = styled('span')`
-  cursor: pointer;
+  padding: ${space(0.5)} ${space(1.5)};
+  width: 100%;
 
   svg {
     vertical-align: text-top;
@@ -254,6 +277,10 @@ const SortItem = styled('span')`
 const UnstyledButton = styled('button')`
   border: 0;
   background: none;
+  padding: 0;
+  text-transform: inherit;
+  width: 100%;
+  text-align: unset;
 `;
 
 export default NetworkList;
