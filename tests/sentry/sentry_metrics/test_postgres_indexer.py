@@ -3,7 +3,7 @@ from typing import Mapping, Set
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.base import FetchType, KeyCollection, Metadata
 from sentry.sentry_metrics.indexer.cache import CachingIndexer
-from sentry.sentry_metrics.indexer.postgres import StringIndexer
+from sentry.sentry_metrics.indexer.postgres.models import StringIndexer
 from sentry.sentry_metrics.indexer.postgres.postgres_v2 import PGStringIndexerV2, indexer_cache
 from sentry.testutils.cases import TestCase
 from sentry.utils.cache import cache
