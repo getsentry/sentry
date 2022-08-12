@@ -42,7 +42,7 @@ def _register_ingest_config(config: MetricsIngestConfiguration) -> None:
 
 
 def get_ingest_config(use_case_key: UseCaseKey) -> MetricsIngestConfiguration:
-    if not len(_METRICS_INGEST_CONFIG_BY_USE_CASE):
+    if len(_METRICS_INGEST_CONFIG_BY_USE_CASE) == 0:
         _register_ingest_config(
             MetricsIngestConfiguration(
                 db_model=DbKey.STRING_INDEXER,
@@ -63,4 +63,5 @@ def get_ingest_config(use_case_key: UseCaseKey) -> MetricsIngestConfiguration:
                 writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS_PERFORMANCE,
             )
         )
+
     return _METRICS_INGEST_CONFIG_BY_USE_CASE[use_case_key]

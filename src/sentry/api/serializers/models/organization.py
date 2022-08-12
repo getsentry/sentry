@@ -19,7 +19,7 @@ from sentry.api.serializers.models.role import (
     TeamRoleSerializer,
 )
 from sentry.api.serializers.models.team import TeamSerializerResponse
-from sentry.api.utils import generate_organization_url
+from sentry.api.utils import generate_organization_url, generate_region_url
 from sentry.app import quotas
 from sentry.auth.access import Access
 from sentry.constants import (
@@ -143,6 +143,11 @@ class _Status(TypedDict):
     name: str
 
 
+class _Links(TypedDict):
+    organizationUrl: str
+    regionUrl: str
+
+
 class OrganizationSerializerResponse(TypedDict):
     id: str
     slug: str
@@ -150,11 +155,11 @@ class OrganizationSerializerResponse(TypedDict):
     name: str
     dateCreated: datetime
     isEarlyAdopter: bool
-    organizationUrl: str
     require2FA: bool
     requireEmailVerification: bool
     avatar: Any  # TODO replace with Avatar
     features: Any  # TODO
+    links: _Links
 
 
 @register(Organization)
@@ -235,6 +240,9 @@ class OrganizationSerializer(Serializer):  # type: ignore
         if not getattr(obj.flags, "disable_shared_issues"):
             feature_list.add("shared-issues")
 
+        if "server-side-sampling" not in feature_list and "mep-rollout-flag" in feature_list:
+            feature_list.remove("mep-rollout-flag")
+
         return {
             "id": str(obj.id),
             "slug": obj.slug,
@@ -242,7 +250,6 @@ class OrganizationSerializer(Serializer):  # type: ignore
             "name": obj.name or obj.slug,
             "dateCreated": obj.date_added,
             "isEarlyAdopter": bool(obj.flags.early_adopter),
-            "organizationUrl": generate_organization_url(obj.slug),
             "require2FA": bool(obj.flags.require_2fa),
             "requireEmailVerification": bool(
                 features.has("organizations:required-email-verification", obj)
@@ -250,6 +257,10 @@ class OrganizationSerializer(Serializer):  # type: ignore
             ),
             "avatar": avatar,
             "features": feature_list,
+            "links": {
+                "organizationUrl": generate_organization_url(obj.slug),
+                "regionUrl": generate_region_url(),
+            },
         }
 
 

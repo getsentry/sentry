@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -6,13 +6,16 @@ import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {NumberField} from 'sentry/components/forms';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Radio from 'sentry/components/radio';
-import {IconRefresh} from 'sentry/icons';
+import Tooltip from 'sentry/components/tooltip';
+import {IconRefresh, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ModalStore from 'sentry/stores/modalStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -25,8 +28,9 @@ import {formatPercentage} from 'sentry/utils/formatters';
 import {Outcome} from 'sentry/views/organizationStats/types';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import {SamplingSDKAlert} from '../samplingSDKAlert';
+import {SamplingProjectIncompatibleAlert} from '../samplingProjectIncompatibleAlert';
 import {
+  getClientSampleRates,
   isValidSampleRate,
   percentageToRate,
   rateToPercentage,
@@ -34,7 +38,6 @@ import {
 } from '../utils';
 import {hasFirstBucketsEmpty} from '../utils/hasFirstBucketsEmpty';
 import {projectStatsToPredictedSeries} from '../utils/projectStatsToPredictedSeries';
-import {projectStatsToSampleRates} from '../utils/projectStatsToSampleRates';
 import {projectStatsToSeries} from '../utils/projectStatsToSeries';
 import useProjectStats from '../utils/useProjectStats';
 import {useRecommendedSdkUpgrades} from '../utils/useRecommendedSdkUpgrades';
@@ -66,7 +69,7 @@ type Props = Omit<
   projectStats?: SeriesApi;
 };
 
-function UniformRateModal({
+export function UniformRateModal({
   Header,
   Body,
   Footer,
@@ -88,34 +91,47 @@ function UniformRateModal({
 
   const modalStore = useLegacyStore(ModalStore);
 
-  const {projectStats: projectStats30d, loading: loading30d} = useProjectStats({
+  const {
+    onRefetch: onRefetch30d,
+    projectStats: projectStats30d,
+    error: error30d,
+    loading: loading30d,
+  } = useProjectStats({
     orgSlug: organization.slug,
     projectId: project.id,
     interval: '1d',
     statsPeriod: '30d',
+    groupBy: useMemo(() => ['outcome', 'reason'], []),
   });
 
-  const {recommendedSdkUpgrades} = useRecommendedSdkUpgrades({
-    orgSlug: organization.slug,
-  });
+  const {recommendedSdkUpgrades, affectedProjects, isProjectIncompatible} =
+    useRecommendedSdkUpgrades({
+      orgSlug: organization.slug,
+      projectId: project.id,
+    });
 
   const loading = loading30d || !projectStats;
 
   useEffect(() => {
-    if (loading) {
+    if (loading || !projectStats30d) {
       return;
     }
-    const clientDiscard = projectStats30d?.groups.some(
+
+    if (!projectStats30d.groups.length) {
+      setActiveStep(Step.SET_UNIFORM_SAMPLE_RATE);
+      return;
+    }
+
+    const clientDiscard = projectStats30d.groups.some(
       g => g.by.outcome === Outcome.CLIENT_DISCARD
     );
 
     setActiveStep(
       clientDiscard ? Step.SET_UNIFORM_SAMPLE_RATE : Step.SET_CURRENT_CLIENT_SAMPLE_RATE
     );
-  }, [loading, projectStats30d?.groups]);
+  }, [loading, projectStats30d]);
 
   const shouldUseConservativeSampleRate =
-    recommendedSdkUpgrades.length === 0 &&
     hasFirstBucketsEmpty(projectStats30d, 27) &&
     hasFirstBucketsEmpty(projectStats, 3) &&
     !defined(specifiedClientRate);
@@ -152,21 +168,12 @@ function UniformRateModal({
 
   const uniformSampleRate = uniformRule?.sampleRate;
 
-  const {trueSampleRate, maxSafeSampleRate} = projectStatsToSampleRates(projectStats);
+  const {recommended: recommendedClientSampling, current: currentClientSampling} =
+    getClientSampleRates(projectStats, specifiedClientRate);
 
-  const currentClientSampling =
-    defined(specifiedClientRate) && !isNaN(specifiedClientRate)
-      ? specifiedClientRate
-      : defined(trueSampleRate) && !isNaN(trueSampleRate)
-      ? trueSampleRate
-      : undefined;
   const currentServerSampling =
     defined(uniformSampleRate) && !isNaN(uniformSampleRate)
       ? uniformSampleRate
-      : undefined;
-  const recommendedClientSampling =
-    defined(maxSafeSampleRate) && !isNaN(maxSafeSampleRate)
-      ? maxSafeSampleRate
       : undefined;
   const recommendedServerSampling = shouldUseConservativeSampleRate
     ? CONSERVATIVE_SAMPLE_RATE
@@ -196,7 +203,13 @@ function UniformRateModal({
   const isEdited =
     client !== recommendedClientSampling || server !== recommendedServerSampling;
 
-  const isValid = isValidSampleRate(client) && isValidSampleRate(server);
+  const isServerRateHigherThanClientRate =
+    defined(client) && defined(server) ? client < server : false;
+
+  const isValid =
+    isValidSampleRate(client) &&
+    isValidSampleRate(server) &&
+    !isServerRateHigherThanClientRate;
 
   function handlePrimaryButtonClick() {
     // this can either be "Next" or "Done"
@@ -246,14 +259,18 @@ function UniformRateModal({
     });
   }
 
-  if (activeStep === undefined || loading) {
+  if (activeStep === undefined || loading || error30d) {
     return (
       <Fragment>
         <Header closeButton>
-          <Placeholder height="22px" />
+          {error30d ? (
+            <h4>{t('Set a global sample rate')}</h4>
+          ) : (
+            <Placeholder height="22px" />
+          )}
         </Header>
         <Body>
-          <LoadingIndicator />
+          {error30d ? <LoadingError onRetry={onRefetch30d} /> : <LoadingIndicator />}
         </Body>
         <Footer>
           <FooterActions>
@@ -266,7 +283,17 @@ function UniformRateModal({
             </Button>
             <ButtonBar gap={1}>
               <Button onClick={closeModal}>{t('Cancel')}</Button>
-              <Placeholder height="40px" width="80px" />
+              {error30d ? (
+                <Button
+                  priority="primary"
+                  title={t('There was an error loading data')}
+                  disabled
+                >
+                  {t('Done')}
+                </Button>
+              ) : (
+                <Placeholder height="40px" width="80px" />
+              )}
             </ButtonBar>
           </FooterActions>
         </Footer>
@@ -322,15 +349,17 @@ function UniformRateModal({
       </Header>
       <Body>
         <TextBlock>
-          {/* TODO(sampling): replace docs link */}
           {tct(
             'Set a server-side sample rate for all transactions using our suggestion as a starting point. To accurately monitor overall performance, we also suggest changing your client(SDK) sample rate to allow more metrics to be processed. [learnMoreLink: Learn more about quota management].',
             {
-              learnMoreLink: <ExternalLink href={SERVER_SIDE_SAMPLING_DOC_LINK} />,
+              learnMoreLink: (
+                <ExternalLink
+                  href={`${SERVER_SIDE_SAMPLING_DOC_LINK}getting-started/#2-set-a-uniform-sampling-rate`}
+                />
+              ),
             }
           )}
         </TextBlock>
-
         <Fragment>
           <UniformRateChart
             series={
@@ -343,60 +372,69 @@ function UniformRateModal({
                     specifiedClientRate
                   )
             }
-            isLoading={loading30d}
           />
 
           <StyledPanelTable
             headers={[
-              t('Sampling Values'),
-              <RightAligned key="client">{t('Client')}</RightAligned>,
-              <RightAligned key="server">{t('Server')}</RightAligned>,
-              '',
+              <SamplingValuesColumn key="sampling-values">
+                {t('Sampling Values')}
+              </SamplingValuesColumn>,
+              <ClientColumn key="client">{t('Client')}</ClientColumn>,
+              <ClientHelpOrWarningColumn key="client-rate-help" />,
+              <ServerColumn key="server">{t('Server')}</ServerColumn>,
+              <ServerWarningColumn key="server-warning" />,
+              <RefreshRatesColumn key="refresh-rates" />,
             ]}
           >
             <Fragment>
-              <Label htmlFor="sampling-current">
-                <Radio
-                  id="sampling-current"
-                  checked={selectedStrategy === Strategy.CURRENT}
-                  onChange={() => {
-                    setSelectedStrategy(Strategy.CURRENT);
-                  }}
-                />
-                {t('Current')}
-              </Label>
-              <RightAligned>
+              <SamplingValuesColumn>
+                <Label htmlFor="sampling-current">
+                  <Radio
+                    id="sampling-current"
+                    checked={selectedStrategy === Strategy.CURRENT}
+                    onChange={() => {
+                      setSelectedStrategy(Strategy.CURRENT);
+                    }}
+                  />
+                  {t('Current')}
+                </Label>
+              </SamplingValuesColumn>
+              <ClientColumn>
                 {defined(currentClientSampling)
                   ? formatPercentage(currentClientSampling)
                   : 'N/A'}
-              </RightAligned>
-              <RightAligned>
+              </ClientColumn>
+              <ClientHelpOrWarningColumn />
+              <ServerColumn>
                 {defined(currentServerSampling)
                   ? formatPercentage(currentServerSampling)
                   : 'N/A'}
-              </RightAligned>
-              <div />
+              </ServerColumn>
+              <ServerWarningColumn />
+              <RefreshRatesColumn />
             </Fragment>
             <Fragment>
-              <Label htmlFor="sampling-recommended">
-                <Radio
-                  id="sampling-recommended"
-                  checked={selectedStrategy === Strategy.RECOMMENDED}
-                  onChange={() => {
-                    setSelectedStrategy(Strategy.RECOMMENDED);
-                  }}
-                />
-                {isEdited ? t('New') : t('Suggested')}
-                {!isEdited && (
-                  <QuestionTooltip
-                    title={t(
-                      'Optimal sample rates based on your organization’s usage and quota.'
-                    )}
-                    size="sm"
+              <SamplingValuesColumn>
+                <Label htmlFor="sampling-recommended">
+                  <Radio
+                    id="sampling-recommended"
+                    checked={selectedStrategy === Strategy.RECOMMENDED}
+                    onChange={() => {
+                      setSelectedStrategy(Strategy.RECOMMENDED);
+                    }}
                   />
-                )}
-              </Label>
-              <RightAligned>
+                  {isEdited ? t('New') : t('Suggested')}
+                  {!isEdited && (
+                    <QuestionTooltip
+                      title={t(
+                        'Optimal sample rates based on your organization’s usage and quota.'
+                      )}
+                      size="sm"
+                    />
+                  )}
+                </Label>
+              </SamplingValuesColumn>
+              <ClientColumn>
                 <StyledNumberField
                   name="recommended-client-sampling"
                   placeholder="%"
@@ -410,8 +448,29 @@ function UniformRateModal({
                   flexibleControlStateSize
                   inline={false}
                 />
-              </RightAligned>
-              <RightAligned>
+              </ClientColumn>
+              <ClientHelpOrWarningColumn>
+                {isEdited && !isValidSampleRate(client) ? (
+                  <Tooltip
+                    title={t('Set a value between 0 and 100')}
+                    containerDisplayMode="inline-flex"
+                  >
+                    <IconWarning
+                      color="red300"
+                      size="sm"
+                      data-test-id="invalid-client-rate"
+                    />
+                  </Tooltip>
+                ) : (
+                  <QuestionTooltip
+                    title={t(
+                      'Changing the client(SDK) sample rate will require re-deployment.'
+                    )}
+                    size="sm"
+                  />
+                )}
+              </ClientHelpOrWarningColumn>
+              <ServerColumn>
                 <StyledNumberField
                   name="recommended-server-sampling"
                   placeholder="%"
@@ -425,10 +484,40 @@ function UniformRateModal({
                   flexibleControlStateSize
                   inline={false}
                 />
-              </RightAligned>
-              <ResetButton>
+              </ServerColumn>
+              <ServerWarningColumn>
+                {isEdited && !isValidSampleRate(server) ? (
+                  <Tooltip
+                    title={t('Set a value between 0 and 100')}
+                    containerDisplayMode="inline-flex"
+                  >
+                    <IconWarning
+                      color="red300"
+                      size="sm"
+                      data-test-id="invalid-server-rate"
+                    />
+                  </Tooltip>
+                ) : (
+                  isServerRateHigherThanClientRate && (
+                    <Tooltip
+                      title={t(
+                        'Server sample rate shall not be higher than client sample rate'
+                      )}
+                      containerDisplayMode="inline-flex"
+                    >
+                      <IconWarning
+                        color="red300"
+                        size="sm"
+                        data-test-id="invalid-server-rate"
+                      />
+                    </Tooltip>
+                  )
+                )}
+              </ServerWarningColumn>
+              <RefreshRatesColumn>
                 {isEdited && (
                   <Button
+                    title={t('Reset to suggested values')}
                     icon={<IconRefresh size="sm" />}
                     aria-label={t('Reset to suggested values')}
                     onClick={() => {
@@ -439,17 +528,14 @@ function UniformRateModal({
                     size="zero"
                   />
                 )}
-              </ResetButton>
+              </RefreshRatesColumn>
             </Fragment>
           </StyledPanelTable>
 
-          <SamplingSDKAlert
+          <SamplingProjectIncompatibleAlert
             organization={organization}
             projectId={project.id}
-            rules={rules}
-            recommendedSdkUpgrades={recommendedSdkUpgrades}
-            showLinkToTheModal={false}
-            onReadDocs={onReadDocs}
+            isProjectIncompatible={isProjectIncompatible}
           />
 
           {shouldUseConservativeSampleRate && (
@@ -457,6 +543,35 @@ function UniformRateModal({
               {t(
                 "For accurate suggestions, we need at least 48hrs to ingest transactions. Meanwhile, here's a conservative server-side sampling rate which can be changed later on."
               )}
+            </Alert>
+          )}
+
+          {affectedProjects.length > 0 && (
+            <Alert
+              data-test-id="affected-sdk-alert"
+              type="info"
+              showIcon
+              trailingItems={
+                <Button
+                  href={`${SERVER_SIDE_SAMPLING_DOC_LINK}#traces--propagation-of-sampling-decisions`}
+                  priority="link"
+                  borderless
+                  external
+                >
+                  {t('Learn More')}
+                </Button>
+              }
+            >
+              {t('This rate will affect the transactions for the following projects:')}
+              <Projects>
+                {affectedProjects.map(affectedProject => (
+                  <ProjectBadge
+                    key={affectedProject.id}
+                    project={affectedProject}
+                    avatarSize={16}
+                  />
+                ))}
+              </Projects>
             </Alert>
           )}
         </Fragment>
@@ -483,7 +598,12 @@ function UniformRateModal({
             <Button
               priority="primary"
               onClick={handlePrimaryButtonClick}
-              disabled={saving || !isValid || selectedStrategy === Strategy.CURRENT}
+              disabled={
+                saving ||
+                !isValid ||
+                selectedStrategy === Strategy.CURRENT ||
+                isProjectIncompatible
+              }
               title={
                 selectedStrategy === Strategy.CURRENT
                   ? t('Current sampling values selected')
@@ -502,18 +622,12 @@ function UniformRateModal({
 }
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: 1fr 115px 115px 35px;
+  grid-template-columns: 1fr 115px 24px 115px 16px 46px;
   border-top-left-radius: 0;
   border-top-right-radius: 0;
-`;
-
-const RightAligned = styled('div')`
-  text-align: right;
-`;
-
-const ResetButton = styled('div')`
-  padding-left: 0;
-  display: inline-flex;
+  > * {
+    padding: 0;
+  }
 `;
 
 const Label = styled('label')`
@@ -541,4 +655,46 @@ export const Stepper = styled('span')`
   color: ${p => p.theme.subText};
 `;
 
-export {UniformRateModal};
+const SamplingValuesColumn = styled('div')`
+  padding: ${space(2)};
+  display: flex;
+`;
+
+const ClientColumn = styled('div')`
+  padding: ${space(2)} ${space(1)} ${space(2)} ${space(2)};
+  text-align: right;
+  display: flex;
+  justify-content: flex-end;
+`;
+
+const ClientHelpOrWarningColumn = styled('div')`
+  padding: ${space(2)} ${space(1)} ${space(2)} 0;
+  display: flex;
+  align-items: center;
+`;
+
+const ServerColumn = styled('div')`
+  padding: ${space(2)} ${space(1)} ${space(2)} ${space(2)};
+  text-align: right;
+  display: flex;
+  justify-content: flex-end;
+`;
+
+const ServerWarningColumn = styled('div')`
+  padding: ${space(2)} 0;
+  display: flex;
+  align-items: center;
+`;
+
+const RefreshRatesColumn = styled('div')`
+  padding: ${space(2)} ${space(2)} ${space(2)} ${space(1)};
+  display: inline-flex;
+`;
+
+const Projects = styled('div')`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${space(1.5)};
+  justify-content: flex-start;
+  margin-top: ${space(1)};
+`;

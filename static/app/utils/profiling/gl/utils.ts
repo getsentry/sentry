@@ -161,26 +161,23 @@ export function resizeCanvasToDisplaySize(canvas: HTMLCanvasElement): boolean {
   return needResize;
 }
 
-export const Transform = {
-  betweenRect(from: Rect, to: Rect): Rect {
-    return new Rect(to.x, to.y, to.width / from.width, to.height / from.height);
-  },
+export function transformMatrixBetweenRect(from: Rect, to: Rect): mat3 {
+  return mat3.fromValues(
+    to.width / from.width,
+    0,
+    0,
+    0,
+    to.height / from.height,
+    0,
+    to.x - from.x * (to.width / from.width),
+    to.y - from.y * (to.height / from.height),
+    1
+  );
+}
 
-  transformMatrixBetweenRect(from: Rect, to: Rect): mat3 {
-    return mat3.fromValues(
-      to.width / from.width,
-      0,
-      0,
-      0,
-      to.height / from.height,
-      0,
-      to.x - from.x * (to.width / from.width),
-      to.y - from.y * (to.height / from.height),
-      1
-    );
-  },
-};
-
+// Utility class to manipulate a virtual rect element. Some of the implementations are based off
+// speedscope, however they are not 100% accurate and we've made some changes. It is important to
+// note that contructing a lot of these objects at draw time is expensive and should be avoided.
 export class Rect {
   origin: vec2;
   size: vec2;
@@ -457,8 +454,8 @@ function getContext(canvas: HTMLCanvasElement, context: string): RenderingContex
   return ctx;
 }
 
-// Exporting this like this instead of writing export function for each overload as
-// it breaks the lines and makes it harder to read.
+// Exported separately as writing export function for each overload as
+// breaks the line width rules and makes it harder to read.
 export {getContext};
 
 export function measureText(string: string, ctx?: CanvasRenderingContext2D): Rect {
@@ -478,7 +475,8 @@ export function measureText(string: string, ctx?: CanvasRenderingContext2D): Rec
   );
 }
 
-/** Find closest min and max value to target */
+// Taken from speedscope, computes min/max by halving the high/low end
+// of the range on each iteration as long as range precision is greater than the given precision.
 export function findRangeBinarySearch(
   {low, high}: {high: number; low: number},
   fn: (val: number) => number,
@@ -522,6 +520,8 @@ type TrimTextCenter = {
   start: number;
   text: string;
 };
+
+// Similar to speedscope's implementation, utility fn to trim text in the center with a small bias towards prefixes.
 export function trimTextCenter(text: string, low: number): TrimTextCenter {
   if (low >= text.length) {
     return {
@@ -531,13 +531,13 @@ export function trimTextCenter(text: string, low: number): TrimTextCenter {
       length: 0,
     };
   }
+
   const prefixLength = Math.floor(low / 2);
   // Use 1 character less than the low value to account for ellipsis and favor displaying the prefix
   const postfixLength = low - prefixLength - 1;
 
   const start = prefixLength;
   const end = Math.floor(text.length - postfixLength + ELLIPSIS.length);
-
   const trimText = `${text.substring(0, start)}${ELLIPSIS}${text.substring(end)}`;
 
   return {
@@ -548,6 +548,8 @@ export function trimTextCenter(text: string, low: number): TrimTextCenter {
   };
 }
 
+// Utility function to compute a clamped view. This is essentially a bounds check
+// to ensure that zoomed viewports stays in the bounds and does not escape the view.
 export function computeClampedConfigView(
   newConfigView: Rect,
   {width, height}: {height: {max: number; min: number}; width: {max: number; min: number}}
@@ -627,6 +629,13 @@ export function computeHighlightedBounds(
   throw new Error(`Unhandled case: ${JSON.stringify(bounds)} ${trim}`);
 }
 
+// Utility function to allow zooming into frames using a specific strategy. Supports
+// min zooming and exact strategy. Min zooming means we will zoom into a frame by doing
+// the minimal number of moves to get a frame into view - for example, if the view is large
+// enough and the frame we are zooming to is just outside of the viewport to the right,
+// we will only move the viewport to the right until the frame is in view. Exact strategy
+// means we will zoom into the frame by moving the viewport to the exact location of the frame
+// and setting the width of the view to that of the frame.
 export function computeConfigViewWithStategy(
   strategy: 'min' | 'exact',
   view: Rect,

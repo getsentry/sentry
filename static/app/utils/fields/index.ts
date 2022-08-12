@@ -133,6 +133,14 @@ export enum MobileVital {
   StallPercentage = 'measurements.stall_percentage',
 }
 
+export enum SpanOpBreakdown {
+  SpansBrowser = 'spans.browser',
+  SpansDb = 'spans.db',
+  SpansHttp = 'spans.http',
+  SpansResource = 'spans.resource',
+  SpansUi = 'spans.ui',
+}
+
 export enum AggregationKey {
   Count = 'count',
   CountUnique = 'count_unique',
@@ -162,6 +170,10 @@ export enum AggregationKey {
 export interface FieldDefinition {
   kind: FieldKind;
   valueType: FieldValueType | null;
+  /**
+   * Allow operators (<, <=, >, >=, etc.) in the query with text value.
+   */
+  allowTextOperators?: boolean;
   deprecated?: boolean;
   desc?: string;
   keywords?: string[];
@@ -380,9 +392,38 @@ export const MEASUREMENT_FIELDS: Record<string, FieldDefinition> = {
   },
 };
 
+export const SPAN_OP_FIELDS = {
+  [SpanOpBreakdown.SpansBrowser]: {
+    desc: t('Cumulative time based on the browser operation'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [SpanOpBreakdown.SpansDb]: {
+    desc: t('Cumulative time based on the database operation'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [SpanOpBreakdown.SpansHttp]: {
+    desc: t('Cumulative time based on the http operation'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [SpanOpBreakdown.SpansResource]: {
+    desc: t('Cumulative time based on the resource operation'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [SpanOpBreakdown.SpansUi]: {
+    desc: t('Cumulative time based on the ui operation'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+};
+
 export const FIELDS: Record<FieldKey & AggregationKey & MobileVital, FieldDefinition> = {
   ...AGGREGATION_FIELDS,
   ...MEASUREMENT_FIELDS,
+  ...SPAN_OP_FIELDS,
   [FieldKey.AGE]: {
     desc: t('The age of the issue in relative time'),
     kind: FieldKind.FIELD,
@@ -633,21 +674,25 @@ export const FIELDS: Record<FieldKey & AggregationKey & MobileVital, FieldDefini
     desc: t('The full version number that identifies the iteration'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowTextOperators: true,
   },
   [FieldKey.RELEASE_PACKAGE]: {
     desc: t('The identifier unique to the project or application'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowTextOperators: true,
   },
   [FieldKey.RELEASE_STAGE]: {
     desc: t('Stage of usage (i.e., adopted, replaced, low)'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowTextOperators: true,
   },
   [FieldKey.RELEASE_VERSION]: {
     desc: t('An abbreviated version number of the build'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowTextOperators: true,
   },
   [FieldKey.SDK_NAME]: {
     desc: t('Name of the platform that sent the event'),
@@ -946,6 +991,13 @@ export const DISCOVER_FIELDS = [
   FieldKey.PROJECT,
   FieldKey.ISSUE,
   FieldKey.USER_DISPLAY,
+
+  // Span Op fields
+  SpanOpBreakdown.SpansBrowser,
+  SpanOpBreakdown.SpansDb,
+  SpanOpBreakdown.SpansHttp,
+  SpanOpBreakdown.SpansResource,
+  SpanOpBreakdown.SpansUi,
 ];
 
 export const getFieldDefinition = (key: string): FieldDefinition | null => {

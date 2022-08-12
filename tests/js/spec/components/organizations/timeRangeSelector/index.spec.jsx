@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import TimeRangeSelector from 'sentry/components/organizations/timeRangeSelector';
 import ConfigStore from 'sentry/stores/configStore';
@@ -88,7 +88,7 @@ describe('TimeRangeSelector', function () {
     expect(screen.queryByText(/last hour/i)).not.toBeInTheDocument();
   });
 
-  it('selects absolute item', async function () {
+  it('can select an absolute date range', async function () {
     renderComponent();
 
     userEvent.click(screen.getByRole('button'));
@@ -103,9 +103,30 @@ describe('TimeRangeSelector', function () {
     expect(onChange).toHaveBeenLastCalledWith(newProps);
 
     expect(await screen.findByTestId('date-range')).toBeInTheDocument();
+
+    const fromDateInput = screen.getByTestId('date-range-primary-from');
+    const toDateInput = screen.getByTestId('date-range-primary-to');
+
+    expect(fromDateInput).toHaveValue('2017-10-02');
+    expect(toDateInput).toHaveValue('2017-10-16');
+
+    expect(screen.getByTestId('startTime')).toHaveValue('22:41');
+    expect(screen.getByTestId('endTime')).toHaveValue('22:41');
+
+    fireEvent.change(fromDateInput, {target: {value: '2017-10-03'}});
+    fireEvent.change(toDateInput, {target: {value: '2017-10-04'}});
+
+    // Selecting new date range resets time inputs to start/end of day
+    expect(onChange).toHaveBeenLastCalledWith({
+      relative: null,
+      start: new Date('2017-10-03T00:00:00'), // local time
+      end: new Date('2017-10-04T23:59:59'), // local time
+    });
+    expect(screen.getByTestId('startTime')).toHaveValue('00:00');
+    expect(screen.getByTestId('endTime')).toHaveValue('23:59');
   });
 
-  it('selects absolute item with utc enabled', async function () {
+  it('can select an absolute range with utc enabled', async function () {
     renderComponent({utc: true});
 
     userEvent.click(screen.getByRole('button'));
@@ -121,6 +142,46 @@ describe('TimeRangeSelector', function () {
     expect(onChange).toHaveBeenLastCalledWith(newProps);
 
     expect(await screen.findByTestId('date-range')).toBeInTheDocument();
+
+    const fromDateInput = screen.getByTestId('date-range-primary-from');
+    const toDateInput = screen.getByTestId('date-range-primary-to');
+
+    expect(fromDateInput).toHaveValue('2017-10-02');
+    expect(toDateInput).toHaveValue('2017-10-16');
+
+    expect(screen.getByTestId('startTime')).toHaveValue('22:41');
+    expect(screen.getByTestId('endTime')).toHaveValue('22:41');
+
+    fireEvent.change(fromDateInput, {target: {value: '2017-10-03'}});
+    fireEvent.change(toDateInput, {target: {value: '2017-10-04'}});
+
+    // Selecting new date range resets time inputs to start/end of day
+    expect(onChange).toHaveBeenLastCalledWith({
+      relative: null,
+      start: new Date('2017-10-03T00:00:00Z'), // utc time
+      end: new Date('2017-10-04T23:59:59Z'), // utc time
+      utc: true,
+    });
+    expect(screen.getByTestId('startTime')).toHaveValue('00:00');
+    expect(screen.getByTestId('endTime')).toHaveValue('23:59');
+  });
+
+  it('keeps time inputs focused while interacting with them', async function () {
+    renderComponent();
+
+    userEvent.click(screen.getByRole('button'));
+    userEvent.click(await screen.findByTestId('absolute'));
+    await screen.findByTestId('date-range');
+
+    userEvent.click(screen.getByTestId('startTime'));
+    fireEvent.change(screen.getByTestId('startTime'), {target: {value: '05:00'}});
+
+    expect(screen.getByTestId('startTime')).toHaveFocus();
+
+    userEvent.click(screen.getByTestId('endTime'));
+    fireEvent.change(screen.getByTestId('endTime'), {target: {value: '05:00'}});
+
+    expect(screen.getByTestId('endTime')).toHaveFocus();
   });
 
   it('switches from relative to absolute while maintaining equivalent date range', async function () {

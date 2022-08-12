@@ -46,7 +46,8 @@ export enum MEPState {
   transactionsOnly = 'transactionsOnly',
 }
 
-const METRIC_SETTING_PARAM = 'metricSetting';
+export const METRIC_SETTING_PARAM = 'metricSetting';
+export const METRIC_SEARCH_SETTING_PARAM = 'metricSearchSetting'; // TODO: Clean this up since we don't need multiple params in practice.
 
 const storageKey = 'performance.metrics-enhanced-setting';
 export class MEPSetting {
@@ -67,11 +68,21 @@ export class MEPSetting {
   }
 }
 
+export function canUseMetricsDevUI(organization: Organization) {
+  return organization.features.includes('performance-use-metrics');
+}
+
 export function canUseMetricsData(organization: Organization) {
-  return (
-    organization.features.includes('performance-use-metrics') ||
-    organization.features.includes('performance-transaction-name-only-search')
-  );
+  const isDevFlagOn = canUseMetricsDevUI(organization); // Forces metrics data on as well.
+  const isInternalViewOn = organization.features.includes(
+    'performance-transaction-name-only-search'
+  ); // TODO: Swap this flag out.
+
+  const samplingRolloutFlag = organization.features.includes('server-side-sampling');
+  const isRollingOut =
+    samplingRolloutFlag && organization.features.includes('mep-rollout-flag');
+
+  return isDevFlagOn || isInternalViewOn || isRollingOut;
 }
 
 export const MEPSettingProvider = ({
@@ -89,10 +100,10 @@ export const MEPSettingProvider = ({
 
   const canUseMEP = canUseMetricsData(organization);
 
-  const allowedStates = [MEPState.auto, MEPState.metricsOnly, MEPState.transactionsOnly];
+  const allowedStates = [MEPState.metricsOnly, MEPState.transactionsOnly];
   const _metricSettingFromParam = location
     ? decodeScalar(location.query[METRIC_SETTING_PARAM])
-    : MEPState.auto;
+    : MEPState.metricsOnly;
   let defaultMetricsState = MEPState.metricsOnly;
 
   if (forceTransactions) {
