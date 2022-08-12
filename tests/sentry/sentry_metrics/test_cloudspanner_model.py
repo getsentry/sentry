@@ -20,7 +20,7 @@ def test_cloudspanner_model_column_names() -> None:
         "retention_days",
     ]
 
-#@pytest.mark.skip(reason="TODO: Implement it correctly")
+@pytest.mark.skip(reason="TODO: Implement it correctly")
 @pytest.mark.parametrize(
     "mode,models",
     [
@@ -125,7 +125,7 @@ def test_cloudspanner_model_column_names() -> None:
 def test_spanner_indexer_write(mode: CloudSpannerInsertMode, models: Sequence[SpannerIndexerModel]):
     # TODO: Provide instance_id and database_id when running the test
     spanner_indexer = CloudSpannerIndexer(
-        instance_id="markus-test-spanner-pg", database_id="nikhar-test")
+        instance_id="", database_id="")
     spanner_indexer.validate()
 
     writer = CloudSpannerDBAccessor(spanner_indexer.database,
