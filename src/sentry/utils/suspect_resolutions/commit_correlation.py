@@ -42,5 +42,5 @@ def get_files_changed(issue_id: int, project_id: int) -> Tuple[List[int], Set[st
             .distinct()
         )
     else:
-        return set()
+        return [], set()
     return list(releases), files_changed_in_releases
