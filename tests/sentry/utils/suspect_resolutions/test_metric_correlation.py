@@ -7,7 +7,7 @@ from django.utils import timezone
 from sentry.models import GroupStatus
 from sentry.testutils import TestCase
 from sentry.utils.suspect_resolutions.metric_correlation import (
-    MetricCorrelationResult,
+    CandidateMetricCorrResult,
     calculate_pearson_correlation_coefficient,
     is_issue_error_rate_correlated,
 )
@@ -65,7 +65,7 @@ class MetricCorrelationTest(TestCase):
         )
 
         assert results == [
-            MetricCorrelationResult(
+            CandidateMetricCorrResult(
                 candidate_suspect_resolution_id=group2.id,
                 is_correlated=True,
                 coefficient=coefficient,
@@ -96,7 +96,7 @@ class MetricCorrelationTest(TestCase):
         )
 
         assert results == [
-            MetricCorrelationResult(
+            CandidateMetricCorrResult(
                 candidate_suspect_resolution_id=group2.id,
                 is_correlated=False,
                 coefficient=coefficient,
@@ -126,7 +126,7 @@ class MetricCorrelationTest(TestCase):
         )
 
         assert results == [
-            MetricCorrelationResult(
+            CandidateMetricCorrResult(
                 candidate_suspect_resolution_id=group2.id,
                 is_correlated=True,
                 coefficient=coefficient,
@@ -179,17 +179,17 @@ class MetricCorrelationTest(TestCase):
         )
 
         assert results == [
-            MetricCorrelationResult(
+            CandidateMetricCorrResult(
                 candidate_suspect_resolution_id=group2.id,
                 is_correlated=True,
                 coefficient=coefficient_group2,
             ),
-            MetricCorrelationResult(
+            CandidateMetricCorrResult(
                 candidate_suspect_resolution_id=group3.id,
                 is_correlated=True,
                 coefficient=coefficient_group3,
             ),
-            MetricCorrelationResult(
+            CandidateMetricCorrResult(
                 candidate_suspect_resolution_id=group4.id,
                 is_correlated=True,
                 coefficient=coefficient_group4,
