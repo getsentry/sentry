@@ -379,7 +379,9 @@ class OrganizationEndpoint(Endpoint):
 class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationReleasePermission,)
 
-    def get_projects(self, request: Request, organization, project_ids=None):
+    def get_projects(
+        self, request: Request, organization, project_ids=None, include_all_accessible=True
+    ):
         """
         Get all projects the current user or API token has access to. More
         detail in the parent class's method of the same name.
@@ -401,7 +403,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             request,
             organization,
             force_global_perms=has_valid_api_key,
-            include_all_accessible=True,
+            include_all_accessible=include_all_accessible,
             project_ids=project_ids,
         )
 
