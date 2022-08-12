@@ -10,6 +10,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {ColorOrAlias} from 'sentry/utils/theme';
 import {
   ISortConfig,
@@ -17,7 +18,6 @@ import {
   sortNetwork,
 } from 'sentry/views/replays/detail/network/utils';
 import type {ReplayRecord} from 'sentry/views/replays/types';
-import {defined} from 'sentry/utils';
 
 type Props = {
   networkSpans: NetworkSpan[];
