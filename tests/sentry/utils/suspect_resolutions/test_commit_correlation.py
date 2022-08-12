@@ -1,3 +1,7 @@
+from datetime import timedelta
+
+from django.utils import timezone
+
 from sentry.models import (
     Activity,
     Commit,
@@ -31,7 +35,12 @@ def setup(self, status):
     CommitFileChange.objects.create(
         organization_id=project.organization_id, commit=commit, filename=".random2"
     )
-    GroupRelease.objects.create(project_id=project.id, group_id=issue.id, release_id=release.id)
+    GroupRelease.objects.create(
+        project_id=project.id,
+        group_id=issue.id,
+        release_id=release.id,
+        last_seen=(timezone.now() - timedelta(hours=3)),
+    )
 
     return project, issue, release, repo
 
@@ -101,10 +110,16 @@ class CommitCorrelationTest(TestCase):
             organization_id=project.organization_id, release=release2, commit=commit, order=1
         )
         GroupRelease.objects.create(
-            project_id=project.id, group_id=group1.id, release_id=release.id
+            project_id=project.id,
+            group_id=group1.id,
+            release_id=release.id,
+            last_seen=(timezone.now() - timedelta(hours=2)),
         )
         GroupRelease.objects.create(
-            project_id=project.id, group_id=group2.id, release_id=release2.id
+            project_id=project.id,
+            group_id=group2.id,
+            release_id=release2.id,
+            last_seen=(timezone.now() - timedelta(hours=2)),
         )
         group1_release_ids, group1_files_changed = get_files_changed(group1.id, project.id)
         group2_release_ids, group2_files_changed = get_files_changed(group2.id, project.id)
@@ -113,7 +128,7 @@ class CommitCorrelationTest(TestCase):
         assert group2_files_changed == set()
         assert group1_release_ids == [release.id]
         assert group2_release_ids == [release2.id]
-        assert not is_issue_commit_correlated(group1.id, group2.id, project.id)
+        assert not is_issue_commit_correlated(group1.id, group2.id, project.id)[0]
 
     def test_files_changed_unreleased_commits(self):
         project = self.create_project()
@@ -129,7 +144,12 @@ class CommitCorrelationTest(TestCase):
         CommitFileChange.objects.create(
             organization_id=project.organization_id, commit=commit, filename=".random2"
         )
-        GroupRelease.objects.create(project_id=project.id, group_id=group.id, release_id=release.id)
+        GroupRelease.objects.create(
+            project_id=project.id,
+            group_id=group.id,
+            release_id=release.id,
+            last_seen=(timezone.now() - timedelta(hours=2)),
+        )
 
         release_ids, files_changed = get_files_changed(group.id, project.id)
 
@@ -153,14 +173,17 @@ class CommitCorrelationTest(TestCase):
             organization_id=project.organization_id, commit=commit2, filename=".random"
         )
         GroupRelease.objects.create(
-            project_id=project.id, group_id=issue2.id, release_id=release2.id
+            project_id=project.id,
+            group_id=issue2.id,
+            release_id=release2.id,
+            last_seen=(timezone.now() - timedelta(hours=2)),
         )
 
         assert get_files_changed(issue.id, project.id) == {".random", ".random2"}
         assert get_files_changed(issue2.id, project.id) == {".random"}
         assert len(get_files_changed(issue.id, project.id)) == 2
         assert len(get_files_changed(issue2.id, project.id)) == 1
-        assert is_issue_commit_correlated(issue.id, issue2.id, project.id)
+        assert is_issue_commit_correlated(issue.id, issue2.id, project.id)[0]
 
     def get_files_changed_no_shared_files(self):
         (project, issue, release, repo) = setup(self, status=GroupStatus.RESOLVED)
@@ -179,7 +202,10 @@ class CommitCorrelationTest(TestCase):
             organization_id=project.organization_id, commit=commit2, filename=".gitignore"
         )
         GroupRelease.objects.create(
-            project_id=project.id, group_id=issue2.id, release_id=release2.id
+            project_id=project.id,
+            group_id=issue2.id,
+            release_id=release2.id,
+            last_seen=(timezone.now() - timedelta(hours=2)),
         )
 
         group1_release_ids, group1_files_changed = get_files_changed(issue.id, project.id)
@@ -189,4 +215,36 @@ class CommitCorrelationTest(TestCase):
         assert group2_files_changed == set()
         assert group1_release_ids == [release.id]
         assert group2_release_ids == [release2.id]
-        assert not is_issue_commit_correlated(issue.id, issue2.id, project.id)
+        assert not is_issue_commit_correlated(issue.id, issue2.id, project.id)[0]
+
+    def get_files_changed_outside_of_time_window(self):
+        (project, issue, release, repo) = setup(self, status=GroupStatus.RESOLVED)
+        Activity.objects.create(
+            project=project, group=issue, type=ActivityType.SET_RESOLVED_IN_COMMIT.value
+        )
+        release2 = self.create_release()
+        issue2 = self.create_group()
+        commit2 = Commit.objects.create(
+            organization_id=project.organization_id, repository_id=repo.id, key="2"
+        )
+        ReleaseCommit.objects.create(
+            organization_id=project.organization_id, release=release2, commit=commit2, order=1
+        )
+        CommitFileChange.objects.create(
+            organization_id=project.organization_id, commit=commit2, filename=".gitignore"
+        )
+        GroupRelease.objects.create(
+            project_id=project.id,
+            group_id=issue2.id,
+            release_id=release2.id,
+            last_seen=(timezone.now() - timedelta(hours=8)),
+        )
+
+        group1_release_ids, group1_files_changed = get_files_changed(issue.id, project.id)
+        group2_release_ids, group2_files_changed = get_files_changed(issue2.id, project.id)
+
+        assert group1_files_changed == set()
+        assert group2_files_changed == set()
+        assert group1_release_ids == [release.id]
+        assert group2_release_ids == [release2.id]
+        assert not is_issue_commit_correlated(issue.id, issue2.id, project.id)[0]

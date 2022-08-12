@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import List, Set, Tuple
+
+from django.utils import timezone
 
 from sentry.models import CommitFileChange, GroupRelease, ReleaseCommit
 
@@ -22,9 +25,11 @@ def is_issue_commit_correlated(
 
 
 def get_files_changed(issue_id: int, project_id: int) -> Tuple[List[int], Set[str]]:
-    releases = GroupRelease.objects.filter(group_id=issue_id, project_id=project_id).values_list(
-        "release_id", flat=True
-    )
+    releases = GroupRelease.objects.filter(
+        group_id=issue_id,
+        project_id=project_id,
+        last_seen__gte=(timezone.now() - timedelta(hours=5)),
+    ).values_list("release_id", flat=True)
 
     if releases:
         files_changed_in_releases = set(
