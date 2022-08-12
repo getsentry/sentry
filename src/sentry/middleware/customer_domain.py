@@ -68,6 +68,10 @@ class CustomerDomainMiddleware:
     def __call__(self, request: Request) -> Response:
         if not hasattr(request, "subdomain"):
             return self.get_response(request)
+        subdomain = request.subdomain
+        if subdomain is None or resolve_region(request) is not None:
+            return self.get_response(request)
+
         user = getattr(request, "user", None)
         if user and user.is_authenticated and not user.is_staff:
             # Kick user to sentry.io if they are not a Sentry staff
@@ -78,9 +82,6 @@ class CustomerDomainMiddleware:
             redirect_url = f"{url_prefix}{request.path}{qs}"
             return HttpResponseRedirect(redirect_url)
 
-        subdomain = request.subdomain
-        if subdomain is None or resolve_region(request) is not None:
-            return self.get_response(request)
         activeorg = _resolve_activeorg(request)
         if not activeorg:
             session = getattr(request, "session", None)
