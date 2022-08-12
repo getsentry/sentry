@@ -388,6 +388,9 @@ class SnubaQueryBuilder:
         "metrics_counters",
         "metrics_distributions",
         "metrics_sets",
+        "generic_metrics_counters",
+        "generic_metrics_distributions",
+        "generic_metrics_sets",
     }
 
     def __init__(
@@ -528,6 +531,9 @@ class SnubaQueryBuilder:
                 # metric will be made, and the field value will be set to the default value in
                 # the response
                 continue
+
+            prefix = "generic_" if self._use_case_id is UseCaseKey.PERFORMANCE else ""
+            entity = f"{prefix}{entity}"
 
             if entity not in self._implemented_datasets:
                 raise NotImplementedError(f"Dataset not yet implemented: {entity}")
