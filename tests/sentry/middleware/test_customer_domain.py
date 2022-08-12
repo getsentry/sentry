@@ -149,6 +149,14 @@ urlpatterns = [
 ]
 
 
+def provision_middleware():
+    middleware = list(settings.MIDDLEWARE)
+    if "sentry.middleware.customer_domain.CustomerDomainMiddleware" not in middleware:
+        index = middleware.index("sentry.middleware.auth.AuthenticationMiddleware")
+        middleware.insert(index + 1, "sentry.middleware.customer_domain.CustomerDomainMiddleware")
+    return middleware
+
+
 @override_settings(
     ROOT_URLCONF=__name__,
     SENTRY_SELF_HOSTED=False,
@@ -157,12 +165,7 @@ class End2EndTest(APITestCase):
     def test_with_middleware_no_customer_domain(self):
         self.create_organization(name="albertos-apples")
 
-        middleware = list(settings.MIDDLEWARE)
-        if "sentry.middleware.customer_domain.CustomerDomainMiddleware" not in middleware:
-            index = middleware.index("sentry.middleware.auth.AuthenticationMiddleware")
-            middleware.insert(
-                index + 1, "sentry.middleware.customer_domain.CustomerDomainMiddleware"
-            )
+        middleware = provision_middleware()
         with override_settings(MIDDLEWARE=tuple(middleware)):
             # Induce activeorg session value of a non-existent org
             assert "activeorg" not in self.client.session
@@ -207,12 +210,7 @@ class End2EndTest(APITestCase):
     def test_with_middleware_and_customer_domain(self):
         self.create_organization(name="albertos-apples")
 
-        middleware = list(settings.MIDDLEWARE)
-        if "sentry.middleware.customer_domain.CustomerDomainMiddleware" not in middleware:
-            index = middleware.index("sentry.middleware.auth.AuthenticationMiddleware")
-            middleware.insert(
-                index + 1, "sentry.middleware.customer_domain.CustomerDomainMiddleware"
-            )
+        middleware = provision_middleware()
         with override_settings(MIDDLEWARE=tuple(middleware)):
             # Induce activeorg session value of a non-existent org
             assert "activeorg" not in self.client.session
@@ -268,6 +266,40 @@ class End2EndTest(APITestCase):
             assert response.redirect_chain == [
                 ("http://albertos-apples.testserver/api/0/albertos-apples/", 302)
             ]
+            assert response.data == {
+                "organization_slug": "albertos-apples",
+                "subdomain": "albertos-apples",
+                "activeorg": "albertos-apples",
+            }
+            assert "activeorg" in self.client.session
+            assert self.client.session["activeorg"] == "albertos-apples"
+
+    def test_with_middleware_and_non_staff(self):
+        self.create_organization(name="albertos-apples")
+        non_staff_user = self.create_user(is_staff=False)
+        self.login_as(user=non_staff_user)
+
+        middleware = provision_middleware()
+        with override_settings(MIDDLEWARE=tuple(middleware)):
+            response = self.client.get(
+                reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"}),
+                HTTP_HOST="albertos-apples.testserver",
+            )
+            assert response.status_code == 302
+            assert response["Location"] == "http://testserver/api/0/albertos-apples/"
+
+    def test_with_middleware_and_is_staff(self):
+        self.create_organization(name="albertos-apples")
+        is_staff_user = self.create_user(is_staff=True)
+        self.login_as(user=is_staff_user)
+
+        middleware = provision_middleware()
+        with override_settings(MIDDLEWARE=tuple(middleware)):
+            response = self.client.get(
+                reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"}),
+                HTTP_HOST="albertos-apples.testserver",
+            )
+            assert response.status_code == 200
             assert response.data == {
                 "organization_slug": "albertos-apples",
                 "subdomain": "albertos-apples",
