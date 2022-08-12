@@ -141,13 +141,10 @@ function Controls({
             </Button>
             {hasFeature ? (
               <Tooltip
-                title={
-                  (hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE) ||
-                  tct('Max widgets ([maxWidgets]) per dashboard reached.', {
-                    maxWidgets: MAX_WIDGETS,
-                  })
-                }
-                disabled={!!!widgetLimitReached && !!!hasUnsavedFilters}
+                title={tct('Max widgets ([maxWidgets]) per dashboard reached.', {
+                  maxWidgets: MAX_WIDGETS,
+                })}
+                disabled={!!!widgetLimitReached}
               >
                 <GuideAnchor
                   disabled={!!!organization.features.includes('dashboards-releases')}
@@ -156,7 +153,7 @@ function Controls({
                   <Button
                     data-test-id="add-widget-library"
                     priority="primary"
-                    disabled={widgetLimitReached || hasUnsavedFilters}
+                    disabled={widgetLimitReached}
                     icon={<IconAdd isCircled />}
                     onClick={() => {
                       trackAdvancedAnalyticsEvent(

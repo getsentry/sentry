@@ -60,7 +60,6 @@ class OrganizationEventsMetricsCompatiblity(OrganizationEventsEndpointBase):
             params = self.get_snuba_params(request, organization, check_global_views=False)
         except NoProjects:
             return Response(data)
-        data["compatible_projects"] = params["project_id"]
         for project in params["project_objects"]:
             dynamic_sampling = project.get_option("sentry:dynamic_sampling")
             if dynamic_sampling is not None:
@@ -74,6 +73,7 @@ class OrganizationEventsMetricsCompatiblity(OrganizationEventsEndpointBase):
         data["dynamic_sampling_projects"].sort()
 
         # Save ourselves some work, only query the projects that have DS rules
+        data["compatible_projects"] = params["project_id"]
         params["project_id"] = data["dynamic_sampling_projects"]
 
         with self.handle_query_errors():
