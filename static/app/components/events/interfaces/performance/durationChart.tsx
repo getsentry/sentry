@@ -11,6 +11,7 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DateString, EventError, Group, Organization} from 'sentry/types';
 import {getDurationUnit, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import useApi from 'sentry/utils/useApi';
 import {ErrorPanel} from 'sentry/views/performance/styles';
 
@@ -141,9 +142,11 @@ function Content({allEvents, affectedEvents, loading, errored}) {
         valueFormatter: (value, seriesName) => {
           return tooltipFormatter(
             value,
-            affectedEvents && affectedEvents.length
-              ? affectedEvents[0].seriesName
-              : seriesName
+            aggregateOutputType(
+              affectedEvents && affectedEvents.length
+                ? affectedEvents[0].seriesName
+                : seriesName
+            )
           );
         },
       }}

@@ -26,7 +26,9 @@ describe('tooltipFormatter()', () => {
       ['p50()', 86400000, '1.00d'],
     ];
     for (const scenario of cases) {
-      expect(tooltipFormatter(scenario[1], scenario[0])).toEqual(scenario[2]);
+      expect(tooltipFormatter(scenario[1], aggregateOutputType(scenario[0]))).toEqual(
+        scenario[2]
+      );
     }
   });
 });

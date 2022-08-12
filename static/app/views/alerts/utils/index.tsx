@@ -147,7 +147,7 @@ export function alertTooltipValueFormatter(
     return defined(value) ? `${value}%` : '\u2015';
   }
 
-  return tooltipFormatter(value, seriesName);
+  return tooltipFormatter(value, aggregateOutputType(seriesName));
 }
 
 export const ALERT_CHART_MIN_MAX_BUFFER = 1.03;

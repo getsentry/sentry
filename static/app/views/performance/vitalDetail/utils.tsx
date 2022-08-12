@@ -223,7 +223,10 @@ export function getVitalChartDefinitions({
     tooltip: {
       trigger: 'axis',
       valueFormatter: (value: number, seriesName?: string) =>
-        tooltipFormatter(value, vital === WebVital.CLS ? seriesName : yAxis),
+        tooltipFormatter(
+          value,
+          aggregateOutputType(vital === WebVital.CLS ? seriesName : yAxis)
+        ),
     },
     yAxis: {
       min: 0,

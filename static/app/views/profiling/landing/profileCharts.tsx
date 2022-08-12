@@ -12,6 +12,7 @@ import space from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {useProfileStats} from 'sentry/utils/profiling/hooks/useProfileStats';
 
 interface ProfileChartsProps {
@@ -148,7 +149,8 @@ export function ProfileCharts({query, router, selection}: ProfileChartsProps) {
               },
             ]}
             tooltip={{
-              valueFormatter: tooltipFormatter,
+              valueFormatter: (value, label) =>
+                tooltipFormatter(value, aggregateOutputType(label)),
             }}
             isGroupedByDate
             showTimeInTooltip
