@@ -31,7 +31,6 @@ class OrganizationMetricsCompatibility(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response(data)
         original_project_ids = params["project_id"].copy()
-        data["compatible_projects"] = params["project_id"]
         for project in params["project_objects"]:
             dynamic_sampling = project.get_option("sentry:dynamic_sampling")
             if dynamic_sampling is not None:
@@ -45,6 +44,7 @@ class OrganizationMetricsCompatibility(OrganizationEventsEndpointBase):
         data["dynamic_sampling_projects"].sort()
 
         # Save ourselves some work, only query the projects that have DS rules
+        data["compatible_projects"] = params["project_id"]
         params["project_id"] = data["dynamic_sampling_projects"]
 
         with self.handle_query_errors():

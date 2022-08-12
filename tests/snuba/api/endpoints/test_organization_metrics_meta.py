@@ -124,6 +124,18 @@ class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
             project3.id,
         ]
 
+    def test_no_ds(self):
+        url = reverse(
+            "sentry-api-0-organization-metrics-compatibility",
+            kwargs={"organization_slug": self.project.organization.slug},
+        )
+        response = self.client.get(url, data={"project": [self.bad_project.id]}, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["dynamic_sampling_projects"] == []
+        assert response.data["incompatible_projects"] == []
+        assert response.data["compatible_projects"] == []
+
 
 class OrganizationEventsMetricsSums(MetricsEnhancedPerformanceTestCase):
     def setUp(self):
