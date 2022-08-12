@@ -170,10 +170,6 @@ export enum AggregationKey {
 export interface FieldDefinition {
   kind: FieldKind;
   valueType: FieldValueType | null;
-  /**
-   * Allow operators (<, <=, >, >=, etc.) in the query with text value.
-   */
-  allowTextOperators?: boolean;
   deprecated?: boolean;
   desc?: string;
   keywords?: string[];
@@ -674,25 +670,21 @@ export const FIELDS: Record<FieldKey & AggregationKey & MobileVital, FieldDefini
     desc: t('The full version number that identifies the iteration'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
-    allowTextOperators: true,
   },
   [FieldKey.RELEASE_PACKAGE]: {
     desc: t('The identifier unique to the project or application'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
-    allowTextOperators: true,
   },
   [FieldKey.RELEASE_STAGE]: {
     desc: t('Stage of usage (i.e., adopted, replaced, low)'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
-    allowTextOperators: true,
   },
   [FieldKey.RELEASE_VERSION]: {
     desc: t('An abbreviated version number of the build'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
-    allowTextOperators: true,
   },
   [FieldKey.SDK_NAME]: {
     desc: t('Name of the platform that sent the event'),
