@@ -9,6 +9,7 @@ import CssMinimizerPlugin from 'css-minimizer-webpack-plugin';
 import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import webpack from 'webpack';
+import ModuleFederationPlugin from 'webpack/lib/container/ModuleFederationPlugin';
 import {Configuration as DevServerConfig} from 'webpack-dev-server';
 import FixStyleOnlyEntriesPlugin from 'webpack-remove-empty-scripts';
 
@@ -17,6 +18,7 @@ import LastBuiltPlugin from './build-utils/last-built-plugin';
 import SentryInstrumentation from './build-utils/sentry-instrumentation';
 import {extractIOSDeviceNames} from './scripts/extract-ios-device-names';
 import babelConfig from './babel.config';
+import {dependencies as deps} from './package.json';
 
 // Runs as part of prebuild step to generate a list of identifier -> name mappings for  iOS
 (async () => {
@@ -383,6 +385,25 @@ const appConfig: Configuration = {
       /moment\/locale/,
       new RegExp(`(${supportedLanguages.join('|')})\\.js$`)
     ),
+
+    new ModuleFederationPlugin({
+      name: 'host',
+      filename: 'remoteEntry.js',
+      remotes: {
+        remote: 'remote@http://localhost:3000/remoteEntry.js',
+      },
+      exposes: {},
+      shared: {
+        react: {
+          singleton: true,
+          requiredVersion: deps.react,
+        },
+        'react-dom': {
+          singleton: true,
+          requiredVersion: deps['react-dom'],
+        },
+      },
+    }),
   ],
 
   resolve: {

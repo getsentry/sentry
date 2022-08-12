@@ -1115,6 +1115,10 @@ function buildRoutes() {
           )}
         />
       </Route>
+      <Route
+        path="foobar/"
+        component={make(() => import('sentry/views/organizationStats/foobar'))}
+      />
 
       <Redirect from="team/" to="/organizations/:orgId/stats/issues/" />
     </Route>

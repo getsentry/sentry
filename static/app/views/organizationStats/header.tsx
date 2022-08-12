@@ -8,7 +8,7 @@ import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 
 type Props = {
-  activeTab: 'stats' | 'issues' | 'health';
+  activeTab: 'stats' | 'issues' | 'health' | 'foobar';
   organization: Organization;
 };
 
@@ -33,6 +33,11 @@ function StatsHeader({organization, activeTab}: Props) {
         <li className={`${activeTab === 'health' ? 'active' : ''}`}>
           <Link to={`/organizations/${organization.slug}/stats/health/`}>
             {t('Health')}
+          </Link>
+        </li>
+        <li className={`${activeTab === 'foobar' ? 'active' : ''}`}>
+          <Link to={`/organizations/${organization.slug}/stats/foobar/`}>
+            {t('Foobar')}
           </Link>
         </li>
       </Layout.HeaderNavTabs>
