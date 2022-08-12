@@ -134,7 +134,7 @@ export default function ExclusiveTimeTimeSeries(props: Props) {
                   trigger: 'axis' as const,
                   // p50() coerces the axis to be time based
                   valueFormatter: (value, _seriesName) =>
-                    tooltipFormatter(value, 'p50()'),
+                    tooltipFormatter(value, 'duration'),
                 },
                 xAxis: timeframe
                   ? {
