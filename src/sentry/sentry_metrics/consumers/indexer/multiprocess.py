@@ -253,11 +253,9 @@ def get_streaming_metrics_consumer(
     output_block_size: int,
     group_id: str,
     auto_offset_reset: str,
-    factory_name: str,
     indexer_profile: MetricsIngestConfiguration,
     **options: Mapping[str, Union[str, int]],
 ) -> StreamProcessor:
-    assert factory_name == "default"
     processing_factory = BatchConsumerStrategyFactory(
         max_batch_size=max_batch_size,
         max_batch_time=max_batch_time,
