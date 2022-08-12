@@ -43,18 +43,18 @@ jobs:
           curl -o /tmp/docker.rb https://raw.githubusercontent.com/Homebrew/homebrew-cask/fe866ec0765de141599745f03e215452db7f511b/Casks/docker.rb
           HOMEBREW_NO_AUTO_UPDATE=1 brew install -v --HEAD -s /tmp/docker.rb
           sudo /Applications/Docker.app/Contents/MacOS/Docker --unattended --install-privileged-components
-          open -a /Applications/Docker.app --args --unattended --accept-license --user "$USER"
+          open -a /Applications/Docker.app --args --unattended --accept-license
 
       - name: is docker up
-        timeout-minutes: 20
+        timeout-minutes: 50
         run: |
-          for i in $(seq 24); do
+          for i in $(seq 60); do
             if docker ps -a; then
               exit 0
             fi
             sleep 5
           done
-          sudo /Applications/Docker.app/Contents/MacOS/com.docker.diagnose check
+          sudo /Applications/Docker.app/Contents/MacOS/com.docker.diagnose
 
       - name: Install missing brew packages
         run: |
