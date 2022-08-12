@@ -91,7 +91,7 @@ function Content({
     },
     tooltip: {
       trigger: 'axis',
-      valueFormatter: (value: number | null) => tooltipFormatter(value, 'p50()'),
+      valueFormatter: (value: number | null) => tooltipFormatter(value, 'duration'),
     },
     xAxis: timeFrame
       ? {
