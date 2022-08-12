@@ -87,6 +87,14 @@ register("mail.reply-hostname", default="", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORI
 register("mail.mailgun-api-key", default="", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register("mail.timeout", default=10, type=Int, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 
+# Hybrid Cloud
+register(
+    "hybrid-cloud.enable-customer-domains",
+    default=False,
+    type=Bool,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+)
+
 # TOTP (Auth app)
 register(
     "totp.disallow-new-enrollment",
