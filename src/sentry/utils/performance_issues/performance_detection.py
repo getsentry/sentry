@@ -20,6 +20,7 @@ PerformanceIssues = Dict[str, Any]
 
 class DetectorType(Enum):
     SLOW_SPAN = "slow_span"
+    DUPLICATE_SPANS_HASH = "dupes_hash"  # Have to stay within tag key length limits
     DUPLICATE_SPANS = "duplicates"
     SEQUENTIAL_SLOW_SPANS = "sequential"
     LONG_TASK_SPANS = "long_task"
@@ -54,6 +55,13 @@ def get_default_detection_settings():
                 "allowed_span_ops": ["db", "http"],
             }
         ],
+        DetectorType.DUPLICATE_SPANS_HASH: [
+            {
+                "count": 5,
+                "cumulative_duration": 500.0,  # ms
+                "allowed_span_ops": ["http"],
+            },
+        ],
         DetectorType.SEQUENTIAL_SLOW_SPANS: [
             {
                 "count": 3,
@@ -87,6 +95,7 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
     detection_settings = get_default_detection_settings()
     detectors = {
         DetectorType.DUPLICATE_SPANS: DuplicateSpanDetector(detection_settings),
+        DetectorType.DUPLICATE_SPANS_HASH: DuplicateSpanHashDetector(detection_settings),
         DetectorType.SLOW_SPAN: SlowSpanDetector(detection_settings),
         DetectorType.SEQUENTIAL_SLOW_SPANS: SequentialSlowSpanDetector(detection_settings),
         DetectorType.LONG_TASK_SPANS: LongTaskSpanDetector(detection_settings),
@@ -219,6 +228,53 @@ class DuplicateSpanDetector(PerformanceDetector):
                 spans_involved = self.duplicate_spans_involved[fingerprint]
                 self.stored_issues[fingerprint] = PerformanceSpanIssue(
                     span_id, op_prefix, spans_involved
+                )
+
+
+class DuplicateSpanHashDetector(PerformanceDetector):
+    """
+    Broadly check for duplicate spans.
+    Uses the span grouping strategy hash to potentially detect duplicate spans more accurately.
+    """
+
+    __slots__ = ("cumulative_durations", "duplicate_spans_involved", "stored_issues")
+
+    settings_key = DetectorType.DUPLICATE_SPANS_HASH
+
+    def init(self):
+        self.cumulative_durations = {}
+        self.duplicate_spans_involved = {}
+        self.stored_issues = {}
+
+    def visit_span(self, span: Span):
+        settings_for_span = self.settings_for_span(span)
+        if not settings_for_span:
+            return
+        op, span_id, op_prefix, span_duration, settings = settings_for_span
+        duplicate_count_threshold = settings.get("count")
+        duplicate_duration_threshold = settings.get("cumulative_duration")
+
+        hash = span.get("hash", None)
+        if not hash:
+            return
+
+        self.cumulative_durations[hash] = (
+            self.cumulative_durations.get(hash, timedelta(0)) + span_duration
+        )
+
+        if hash not in self.duplicate_spans_involved:
+            self.duplicate_spans_involved[hash] = []
+
+        self.duplicate_spans_involved[hash] += [span_id]
+        duplicate_spans_counts = len(self.duplicate_spans_involved[hash])
+
+        if not self.stored_issues.get(hash, False):
+            if duplicate_spans_counts >= duplicate_count_threshold and self.cumulative_durations[
+                hash
+            ] >= timedelta(milliseconds=duplicate_duration_threshold):
+                spans_involved = self.duplicate_spans_involved[hash]
+                self.stored_issues[hash] = PerformanceSpanIssue(
+                    span_id, op_prefix, spans_involved, hash
                 )
 
 
@@ -382,6 +438,10 @@ def report_metrics_for_detectors(
             continue
 
         first_issue = detected_issues[detected_issue_keys[0]]
+        if first_issue.fingerprint:
+            sdk_span.containing_transaction.set_tag(
+                f"_pi_{detector_key}_fp", first_issue.fingerprint
+            )
         sdk_span.containing_transaction.set_tag(f"_pi_{detector_key}", first_issue.span_id)
         metrics.incr(
             f"performance.performance_issue.{detector_key}",
