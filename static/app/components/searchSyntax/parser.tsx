@@ -3,14 +3,21 @@ import {LocationRange} from 'pegjs';
 
 import {t} from 'sentry/locale';
 import {
+  AggregateParameter,
+  AggregateParameterColumn,
   AGGREGATIONS,
   ColumnType,
   isMeasurement,
   isSpanOperationBreakdownField,
   measurementType,
-  ValidateColumnTypes,
 } from 'sentry/utils/discover/fields';
-import {FieldKind, FIELDS, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {
+  AggregationKey,
+  FieldKind,
+  FIELDS,
+  FieldValueType,
+  getFieldDefinition,
+} from 'sentry/utils/fields';
 
 import grammar from './grammar.pegjs';
 import {getKeyName} from './utils';
@@ -648,81 +655,108 @@ export class TokenConverter {
     return null;
   };
 
-  checkInvalidAggregateFilter = (
+  /**
+   * Validates the value provided to the aggregation filter.
+   * If valid, returns null - otherwise, returns a reason it is invalid.
+   */
+  checkInvalidAggregateFilterValue = (
     filterType: AggregateFilter,
     key: FilterMap[AggregateFilter]['key'],
     value: FilterMap[AggregateFilter]['value']
   ) => {
-    const {isNumeric, isDuration, isDate, isPercentage} = this.keyValidation;
-
     const keyName = key.name.text;
 
-    const checkAggregateKey = (check: (s: string) => boolean) => {
-      const definition = getFieldDefinition(keyName);
+    const {isNumeric, isDuration, isDate, isPercentage} = this.keyValidation;
+    const definition = getFieldDefinition(keyName);
 
-      if (check(keyName)) {
-        if (key.args === null) {
-          // Aggregate keys without args will rely on default values
-          return null;
-        }
-
-        // Get valid column types from the aggregate key
-        const aggregation = AGGREGATIONS[keyName];
-        const validColumnTypes = (aggregation?.parameters?.find(p => p.kind === 'column')
-          ?.columnTypes ?? null) as ValidateColumnTypes | null;
-        const dataType =
-          aggregation.parameters.find(p => p.kind === 'value')?.dataType ?? null;
-
-        // Check each argument whether it is a valid parameter to this aggregation
-        const invalidArgs = key.args.args.filter(arg => {
-          const argValue = arg?.value?.value;
-
-          if (!argValue) {
-            return true;
-          }
-
-          // argValue can either be the key of a field/tag or a raw value (string/number)
-          const fieldDef = getFieldDefinition(argValue);
-          const valueType = (fieldDef?.valueType ?? getValueType(argValue)) as ColumnType;
-
-          return !validateAggregateType(validColumnTypes, dataType, argValue, valueType);
-        });
-
-        if (invalidArgs.length > 0) {
-          return {
-            reason: getAggregateInvalidArgumentMessage(
-              keyName,
-              validColumnTypes ?? dataType,
-              invalidArgs.map(arg => arg.value?.value ?? '')
-            ),
-          };
-        }
-
-        return null;
-      }
-
-      return {
-        reason: `'${keyName}' returns a ${
-          `${definition?.valueType}` ?? 'different value type.'
-        }; '${value.text}' is not valid here.`,
-      };
+    const wrongValueTypeReason = {
+      reason: `'${keyName}' returns a ${
+        `${definition?.valueType}` ?? 'different value type.'
+      }; '${value.text}' is not valid here.`,
     };
 
     switch (filterType) {
       case FilterType.AggregateRelativeDate:
       case FilterType.AggregateDate:
-        return checkAggregateKey(isDate);
-
+        if (!isDate(keyName)) {
+          return wrongValueTypeReason;
+        }
+        break;
       case FilterType.AggregateDuration:
-        return checkAggregateKey(isDuration);
+        if (!isDuration(keyName)) {
+          return wrongValueTypeReason;
+        }
+        break;
       case FilterType.AggregatePercentage:
-        return checkAggregateKey(isPercentage);
+        if (!isPercentage(keyName)) {
+          return wrongValueTypeReason;
+        }
+        break;
       case FilterType.AggregateNumeric:
-        return checkAggregateKey(isNumeric);
-
+        if (!isNumeric(keyName)) {
+          return wrongValueTypeReason;
+        }
+        break;
       default:
         return null;
     }
+
+    return null;
+  };
+
+  /**
+   * Validates the aggregate filter value and arguments against their known types.
+   * If valid, returns null - otherwise, returns a reason it is invalid.
+   */
+  checkInvalidAggregateFilter = (
+    filterType: AggregateFilter,
+    key: FilterMap[AggregateFilter]['key'],
+    value: FilterMap[AggregateFilter]['value']
+  ) => {
+    const keyName = key.name.text;
+
+    const invalidValueReason = this.checkInvalidAggregateFilterValue(
+      filterType,
+      key,
+      value
+    );
+
+    if (invalidValueReason) {
+      return invalidValueReason;
+    }
+
+    const aggregation = AGGREGATIONS[keyName as AggregationKey];
+
+    if (!aggregation) {
+      return null;
+    }
+
+    const numExpectedArguments = aggregation.parameters.length;
+    const numProvidedArguments = key.args?.args?.length ?? 0;
+
+    // Loop through each
+    for (
+      let argIndex = 0;
+      argIndex < Math.max(numExpectedArguments, numProvidedArguments);
+      argIndex++
+    ) {
+      const parameterDefinition = aggregation.parameters[argIndex];
+      const parameterValue = key.args?.args[argIndex]?.value?.value;
+
+      const reason = validateAggregateParameter({
+        keyName,
+        parameterDefinition,
+        parameterValue,
+        position: argIndex + 1,
+        numExpectedArguments,
+      });
+
+      if (reason) {
+        return reason;
+      }
+    }
+
+    return null;
   };
 
   /**
@@ -1008,37 +1042,111 @@ export function joinQuery(
   );
 }
 
-const validateAggregateType = (
-  columnTypes: ValidateColumnTypes | null,
-  dataType: ColumnType,
-  argKey: string,
-  argType: ColumnType
-): boolean => {
-  if (!columnTypes && !dataType) {
-    return false;
+const validateAggregateParameterColumn = ({
+  keyName,
+  parameterDefinition,
+  position,
+  parameterValue,
+}: {
+  keyName: string;
+  parameterDefinition: AggregateParameterColumn;
+  parameterValue: string;
+  position: number;
+}) => {
+  const definition = getFieldDefinition(keyName);
+
+  if (typeof parameterDefinition.columnTypes === 'function') {
+    if (
+      !parameterDefinition.columnTypes({
+        name: parameterValue,
+        dataType: definition?.valueType,
+      })
+    ) {
+      return {
+        reason: `Argument ${position} is an invalid column type.`,
+      };
+    }
+  } else if (Array.isArray(parameterDefinition.columnTypes)) {
+    const columnParameterFieldDefinition = getFieldDefinition(parameterValue);
+
+    if (!columnParameterFieldDefinition) {
+      return {
+        reason: `${keyName} expects argument ${position} to be a column.`,
+      };
+    }
+
+    if (
+      !parameterDefinition.columnTypes.some(
+        columnOrMetricType =>
+          columnOrMetricType === columnParameterFieldDefinition?.valueType
+      )
+    ) {
+      return {
+        reason: `${keyName} expects argument ${position} to be a column of type: ${parameterDefinition.columnTypes.join(
+          ', '
+        )}.`,
+      };
+    }
   }
 
-  if (typeof columnTypes === 'function') {
-    return columnTypes({name: argKey, dataType: argType});
-  }
-
-  return (columnTypes as string[] | null)?.includes(argType) || dataType === argType;
+  return null;
 };
 
-const getAggregateInvalidArgumentMessage = (
-  keyName: string,
-  validColumnTypes: ValidateColumnTypes | null,
-  invalidArgs: string[]
-) => {
-  if (validColumnTypes === null) {
-    return `'${keyName}' does not take any arguments.`;
+/**
+ * Validates a value against the provided aggregate parameter definition.
+ * Returns null if valid - otherwise, returns a reason.
+ */
+const validateAggregateParameter = ({
+  keyName,
+  parameterDefinition,
+  parameterValue,
+  position,
+  numExpectedArguments,
+}: {
+  keyName: string;
+  numExpectedArguments: number;
+  position: number;
+  parameterDefinition?: AggregateParameter;
+  parameterValue?: string;
+}) => {
+  if ((parameterDefinition?.required && !parameterValue) || !parameterDefinition) {
+    return {
+      reason: `${keyName} is expecting ${numExpectedArguments} arguments.`,
+    };
   }
 
-  if (invalidArgs.length === 1) {
-    return `'${keyName}' is not expecting '${invalidArgs[0]}' as an argument.`;
+  if (!parameterValue) {
+    return null;
   }
 
-  const quotedArgs = invalidArgs.map(arg => `'${arg}'`);
+  switch (parameterDefinition.kind) {
+    case 'column':
+      return validateAggregateParameterColumn({
+        keyName,
+        parameterDefinition,
+        position,
+        parameterValue,
+      });
+    case 'dropdown': {
+      if (!parameterDefinition.options.find(option => option.value === parameterValue)) {
+        return {
+          reason: `${keyName} expects argument ${position} to be one of: ${parameterDefinition.options
+            .map(option => `'${option.value}'`)
+            .join(', ')}`,
+        };
+      }
+      return null;
+    }
+    case 'value': {
+      if (getValueType(parameterValue) !== parameterDefinition.dataType) {
+        return {
+          reason: `${keyName} expects arument ${position} to be of type ${parameterDefinition.dataType}`,
+        };
+      }
+      return null;
+    }
 
-  return `${keyName}' is not expecting ${quotedArgs.join(', ')} as arguments.`;
+    default:
+      return null;
+  }
 };

@@ -51,28 +51,34 @@ export type ValidateColumnTypes =
   | MetricsType[]
   | ValidateColumnValueFunction;
 
+export type AggregateParameterColumn = {
+  columnTypes: Readonly<ValidateColumnTypes>;
+  kind: 'column';
+  required: boolean;
+  defaultValue?: string;
+};
+
+export type AggregateParameterValue = {
+  dataType: ColumnType;
+  kind: 'value';
+  required: boolean;
+  defaultValue?: string;
+  placeholder?: string;
+};
+
+export type AggregateParameterDropdown = {
+  dataType: string;
+  kind: 'dropdown';
+  options: SelectValue<string>[];
+  required: boolean;
+  defaultValue?: string;
+  placeholder?: string;
+};
+
 export type AggregateParameter =
-  | {
-      columnTypes: Readonly<ValidateColumnTypes>;
-      kind: 'column';
-      required: boolean;
-      defaultValue?: string;
-    }
-  | {
-      dataType: ColumnType;
-      kind: 'value';
-      required: boolean;
-      defaultValue?: string;
-      placeholder?: string;
-    }
-  | {
-      dataType: string;
-      kind: 'dropdown';
-      options: SelectValue<string>[];
-      required: boolean;
-      defaultValue?: string;
-      placeholder?: string;
-    };
+  | AggregateParameterColumn
+  | AggregateParameterDropdown
+  | AggregateParameterValue;
 
 export type AggregationRefinement = string | undefined;
 
@@ -168,7 +174,7 @@ const getDocsAndOutputType = (key: AggregationKey) => {
 
 // Refer to src/sentry/search/events/fields.py
 // Try to keep functions logically sorted, ie. all the count functions are grouped together
-export const AGGREGATIONS = {
+export const AGGREGATIONS: Readonly<{[key in AggregationKey]: Aggregation}> = {
   [AggregationKey.Count]: {
     ...getDocsAndOutputType(AggregationKey.Count),
     parameters: [],
@@ -387,7 +393,7 @@ export const AGGREGATIONS = {
         required: false,
       },
     ],
-    type: [],
+    // type: [],
     isSortable: true,
     multiPlotType: 'line',
   },
