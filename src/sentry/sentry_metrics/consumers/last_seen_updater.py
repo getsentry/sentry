@@ -125,7 +125,7 @@ def _last_seen_updater_processing_factory(
         process_message=retrieve_db_read_keys,
         prefilter=LastSeenUpdaterMessageFilter(metrics=get_metrics()),
         collector=lambda: LastSeenUpdaterCollector(
-            metrics=get_metrics(), table=TABLE_MAPPING[ingest_config.db_model]
+            metrics=get_metrics(), table=TABLE_MAPPING[ingest_config.use_case_id]
         ),
     )
 

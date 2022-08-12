@@ -5,7 +5,7 @@ from typing import Any, Mapping, Optional, Set
 from django.conf import settings
 from django.db.models import Q
 
-from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.base import KeyCollection, KeyResult, KeyResults, StringIndexer
 from sentry.sentry_metrics.indexer.cache import CachingIndexer, StringIndexerCache
 from sentry.sentry_metrics.indexer.db import TABLE_MAPPING, IndexerTable
@@ -148,7 +148,7 @@ class PGStringIndexerV2(StringIndexer):
         return string
 
     def _table(self, use_case_id: UseCaseKey) -> IndexerTable:
-        return TABLE_MAPPING[get_ingest_config(use_case_id).db_model]
+        return TABLE_MAPPING[use_case_id]
 
 
 class PostgresIndexer(StaticStringIndexer):
