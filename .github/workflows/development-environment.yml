@@ -44,6 +44,14 @@ jobs:
           sudo /Applications/Docker.app/Contents/MacOS/Docker --unattended --install-privileged-components
           open -a /Applications/Docker.app --args --unattended --accept-license
 
+      - name: is docker up
+        timeout-minutes: 10
+        run: |
+          while ! docker ps -a; do
+            echo waiting...
+            sleep 5
+          done
+
       - name: Install missing brew packages
         run: |
           HOMEBREW_NO_AUTO_UPDATE=1 brew install -v libxmlsec1
