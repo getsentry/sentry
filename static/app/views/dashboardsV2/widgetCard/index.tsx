@@ -52,7 +52,6 @@ type Props = WithRouterProps & {
   widgetLimitReached: boolean;
   dashboardFilters?: DashboardFilters;
   draggableProps?: DraggableProps;
-  hasUnsavedFilters?: boolean;
   hideToolbar?: boolean;
   index?: string;
   isMobile?: boolean;
@@ -162,7 +161,6 @@ class WidgetCard extends Component<Props, State> {
       router,
       location,
       index,
-      hasUnsavedFilters,
     } = this.props;
 
     const {seriesData, tableData, pageLinks, totalIssuesCount} = this.state;
@@ -190,7 +188,6 @@ class WidgetCard extends Component<Props, State> {
         tableData={tableData}
         pageLinks={pageLinks}
         totalIssuesCount={totalIssuesCount}
-        hasUnsavedFilters={hasUnsavedFilters}
       />
     );
   }

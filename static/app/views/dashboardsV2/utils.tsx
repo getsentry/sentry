@@ -37,8 +37,11 @@ import {
 } from 'sentry/utils/discover/fields';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
+import {decodeList} from 'sentry/utils/queryString';
 import {
   DashboardDetails,
+  DashboardFilterKeys,
+  DashboardFilters,
   DisplayType,
   Widget,
   WidgetQuery,
@@ -516,4 +519,15 @@ export function getCurrentPageFilters(
     end: defined(end) ? normalizeDateTimeString(end as string) : undefined,
     utc: defined(utc) ? utc === 'true' : undefined,
   };
+}
+
+export function getDashboardFiltersFromURL(location: Location): DashboardFilters | null {
+  const filterKeys = new Set([DashboardFilterKeys.RELEASE]);
+  const dashboardFilters: DashboardFilters = {};
+  filterKeys.forEach(key => {
+    if (location.query?.[key]) {
+      dashboardFilters[key] = decodeList(location.query?.[key]);
+    }
+  });
+  return !isEmpty(dashboardFilters) ? dashboardFilters : null;
 }

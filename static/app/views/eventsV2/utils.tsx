@@ -711,6 +711,7 @@ export function handleAddQueryToDashboard({
       },
       router,
       widgetAsQueryParams,
+      location,
     });
     return;
   }

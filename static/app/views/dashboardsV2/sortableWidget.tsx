@@ -24,7 +24,6 @@ type Props = {
   widget: Widget;
   widgetLimitReached: boolean;
   dashboardFilters?: DashboardFilters;
-  hasUnsavedFilters?: boolean;
   isMobile?: boolean;
   isPreview?: boolean;
   windowWidth?: number;
@@ -35,7 +34,6 @@ function SortableWidget(props: Props) {
     organization,
     widget,
     dragId,
-    hasUnsavedFilters,
     isEditing,
     widgetLimitReached,
     onDelete,
@@ -87,7 +85,6 @@ function SortableWidget(props: Props) {
     showWidgetViewerButton: organization.features.includes('widget-viewer-modal'),
     index,
     dashboardFilters,
-    hasUnsavedFilters,
     renderErrorMessage: errorMessage => {
       return (
         typeof errorMessage === 'string' && (

@@ -1,5 +1,6 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
@@ -14,16 +15,23 @@ import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
+import {decodeList} from 'sentry/utils/queryString';
 import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
 import {getDatasetConfig} from 'sentry/views/dashboardsV2/datasetConfig/base';
 import ReleasesSelectControl from 'sentry/views/dashboardsV2/releasesSelectControl';
-import {DashboardFilters, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {
+  DashboardFilterKeys,
+  DashboardFilters,
+  WidgetQuery,
+  WidgetType,
+} from 'sentry/views/dashboardsV2/types';
 
 import {BuildStep} from '../buildStep';
 
 interface Props {
   canAddSearchConditions: boolean;
   hideLegendAlias: boolean;
+  location: Location;
   onAddSearchConditions: () => void;
   onQueryChange: (queryIndex: number, newQuery: WidgetQuery) => void;
   onQueryRemove: (queryIndex: number) => void;
@@ -39,6 +47,7 @@ interface Props {
 export function FilterResultsStep({
   canAddSearchConditions,
   dashboardFilters,
+  location,
   queries,
   onQueryRemove,
   onAddSearchConditions,
@@ -98,7 +107,11 @@ export function FilterResultsStep({
         <FilterButtons>
           <ReleasesProvider organization={organization} selection={selection}>
             <StyledReleasesSelectControl
-              selectedReleases={dashboardFilters?.release ?? []}
+              selectedReleases={
+                (DashboardFilterKeys.RELEASE in location.query
+                  ? decodeList(location.query[DashboardFilterKeys.RELEASE])
+                  : dashboardFilters?.[DashboardFilterKeys.RELEASE]) ?? []
+              }
               isDisabled
               className="widget-release-select"
             />
