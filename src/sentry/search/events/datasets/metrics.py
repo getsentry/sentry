@@ -1184,7 +1184,11 @@ class MetricsDatasetConfig(DatasetConfig):
                 alias,
             )
 
-        quality_id = self.builder.resolve_tag_value(quality)
+        try:
+            quality_id = self.builder.resolve_tag_value(quality)
+        except IncompatibleMetricsQuery:
+            quality_id = None
+
         if quality_id is None:
             return Function(
                 # This matches the type from doing `select toTypeName(count()) ...` from clickhouse

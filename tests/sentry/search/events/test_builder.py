@@ -2220,8 +2220,6 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         if not options.get("sentry-metrics.performance.tags-values-are-strings"):
             expected.append(mock.call(UseCaseKey.PERFORMANCE, self.organization.id, "good"))
 
-        print(mock_indexer.mock_calls)
-        print(expected)
         self.assertCountEqual(mock_indexer.mock_calls, expected)
 
     def test_custom_measurement_allowed(self):
