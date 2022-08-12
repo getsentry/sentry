@@ -193,10 +193,11 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
             {"name": request.data["displayName"], "slug": slugify(request.data["displayName"])}
         ),
 
-        request.user.username = (
-            "SCIM Okta Integration (" + request.user.username.split("-")[3] + ")"
-        )
-        request.user.save()
+        if "scim" in request.user.username:
+            request.user.username = (
+                "SCIM Okta Integration (" + request.user.username.split("-")[3] + ")"
+            )
+            request.user.save()
 
         return super().post(request, organization)
 
