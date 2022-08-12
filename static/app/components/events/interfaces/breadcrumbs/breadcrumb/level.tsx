@@ -49,10 +49,10 @@ const Level = memo(function Level({level, searchTerm = ''}: Props) {
 export default Level;
 
 const LevelTag = styled(Tag)`
-  height: 24px;
   display: flex;
   align-items: center;
   ${Background} {
+    height: calc(${p => p.theme.fontSizeMedium} * 1.4);
     overflow: hidden;
   }
 `;
