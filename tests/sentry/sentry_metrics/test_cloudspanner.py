@@ -1,13 +1,15 @@
-from datetime import datetime
 import uuid
+from datetime import datetime
 from typing import Sequence
 
 import pytest
 
 from sentry.sentry_metrics.indexer.cloudspanner import (
     CloudSpannerIndexer,
+    CloudSpannerInsertMode,
+    CloudSpannerWriter,
     IdCodec,
-    SpannerIndexerModel, CloudSpannerWriter, CloudSpannerInsertMode,
+    SpannerIndexerModel,
 )
 from sentry.sentry_metrics.indexer.id_generator import get_id
 
@@ -36,5 +38,3 @@ def test_spanner_indexer_service():
     # TODO: Provide instance_id and database_id when running the test
     span_indexer = CloudSpannerIndexer(instance_id="", database_id="")
     span_indexer.validate()
-
-
