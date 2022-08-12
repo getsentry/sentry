@@ -5,8 +5,12 @@ from typing import Sequence
 import pytest
 
 from sentry.sentry_metrics.indexer.cloudspanner import CloudSpannerIndexer
-from sentry.sentry_metrics.indexer.cloudspanner_model import get_column_names, \
-    CloudSpannerInsertMode, SpannerIndexerModel, CloudSpannerDBAccessor
+from sentry.sentry_metrics.indexer.cloudspanner_model import (
+    CloudSpannerDBAccessor,
+    CloudSpannerInsertMode,
+    SpannerIndexerModel,
+    get_column_names,
+)
 
 
 def test_cloudspanner_model_column_names() -> None:
@@ -19,6 +23,7 @@ def test_cloudspanner_model_column_names() -> None:
         "last_seen",
         "retention_days",
     ]
+
 
 @pytest.mark.skip(reason="TODO: Implement it correctly")
 @pytest.mark.parametrize(
@@ -124,12 +129,10 @@ def test_cloudspanner_model_column_names() -> None:
 )
 def test_spanner_indexer_write(mode: CloudSpannerInsertMode, models: Sequence[SpannerIndexerModel]):
     # TODO: Provide instance_id and database_id when running the test
-    spanner_indexer = CloudSpannerIndexer(
-        instance_id="", database_id="")
+    spanner_indexer = CloudSpannerIndexer(instance_id="", database_id="")
     spanner_indexer.validate()
 
-    writer = CloudSpannerDBAccessor(spanner_indexer.database,
-                                "perfstringindexer", mode)
+    writer = CloudSpannerDBAccessor(spanner_indexer.database, "perfstringindexer", mode)
     try:
         writer.insert(models)
     except Exception as exc:
