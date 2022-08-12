@@ -7,7 +7,7 @@ import sortBy from 'lodash/sortBy';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
-import {MenuActions} from 'sentry/components/dropdownMenuDeprecated';
+import {MenuActions} from 'sentry/components/deprecatedDropdownMenu';
 import Link from 'sentry/components/links/link';
 import HeaderItem from 'sentry/components/organizations/headerItem';
 import PageFilterPinButton from 'sentry/components/organizations/pageFilters/pageFilterPinButton';

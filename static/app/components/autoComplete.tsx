@@ -10,10 +10,10 @@
  */
 import {Component} from 'react';
 
-import DropdownMenu, {
+import DeprecatedDropdownMenu, {
   GetActorArgs,
   GetMenuArgs,
-} from 'sentry/components/dropdownMenuDeprecated';
+} from 'sentry/components/deprecatedDropdownMenu';
 
 const defaultProps = {
   itemToString: () => '',
@@ -60,7 +60,7 @@ type GetItemArgs<T> = {
   onClick?: (item: T) => (e: React.MouseEvent) => void;
 };
 
-type ChildrenProps<T> = Parameters<DropdownMenu['props']['children']>[0] & {
+type ChildrenProps<T> = Parameters<DeprecatedDropdownMenu['props']['children']>[0] & {
   /**
    * Returns props for the input element that handles searching the items
    */
@@ -255,7 +255,7 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
    * is blurred (i.e. clicking or via keyboard). However we have to handle the
    * case when we want to click on the dropdown and causes focus.
    *
-   * Clicks outside should close the dropdown immediately via <DropdownMenu />,
+   * Clicks outside should close the dropdown immediately via <DeprecatedDropdownMenu />,
    * however blur via keyboard will have a 200ms delay
    */
   makehandleInputBlur<E extends HTMLInputElement>(onBlur: GetInputArgs<E>['onBlur']) {
@@ -465,7 +465,7 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
     const isOpen = this.isOpen;
 
     return (
-      <DropdownMenu
+      <DeprecatedDropdownMenu
         isOpen={isOpen}
         onClickOutside={this.handleClickOutside}
         onOpen={onMenuOpen}
@@ -500,7 +500,7 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
             },
           })
         }
-      </DropdownMenu>
+      </DeprecatedDropdownMenu>
     );
   }
 }
