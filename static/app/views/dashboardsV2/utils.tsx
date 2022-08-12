@@ -452,7 +452,7 @@ export function hasUnsavedFilterChanges(
     environment: new Set(currentFilters.environment),
   };
 
-  if (location.query?.release) {
+  if (defined(location.query?.release)) {
     // Release is only included in the comparison if it exists in the query
     // params, otherwise the dashboard should be using its saved state
     savedFilters.release = new Set(initialDashboard.filters?.release);
