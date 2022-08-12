@@ -15,8 +15,7 @@ from sentry.sentry_metrics.indexer.base import FetchType, FetchTypeExt, Metadata
 from sentry.sentry_metrics.indexer.cache import CachingIndexer, StringIndexerCache
 from sentry.sentry_metrics.indexer.mock import RawSimpleIndexer
 from sentry.sentry_metrics.indexer.postgres_v2 import PGStringIndexerV2
-from sentry.sentry_metrics.indexer.static_strings import StaticStringIndexer
-from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS
+from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS, StaticStringIndexer
 from sentry.testutils.helpers.options import override_options
 
 BACKENDS = [
