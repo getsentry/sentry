@@ -7,6 +7,7 @@ from django.urls import resolve, reverse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.api.base import resolve_region
 from sentry.api.utils import generate_organization_url
 from sentry.models import Organization
@@ -67,6 +68,16 @@ class CustomerDomainMiddleware:
     def __call__(self, request: Request) -> Response:
         if not hasattr(request, "subdomain"):
             return self.get_response(request)
+        user = getattr(request, "user", None)
+        if user and user.is_authenticated and not user.is_staff:
+            # Kick user to sentry.io if they are not a Sentry staff
+            qs = request.META.get("QUERY_STRING") or ""
+            if qs:
+                qs = f"?{qs}"
+            url_prefix = options.get("system.url-prefix")
+            redirect_url = f"{url_prefix}{request.path}{qs}"
+            return HttpResponseRedirect(redirect_url)
+
         subdomain = request.subdomain
         if subdomain is None or resolve_region(request) is not None:
             return self.get_response(request)
