@@ -47,10 +47,13 @@ jobs:
       - name: is docker up
         timeout-minutes: 10
         run: |
-          while ! docker ps -a; do
-            echo waiting...
+          for i in $(seq 24); do
+            if docker ps -a; then
+              exit 0
+            fi
             sleep 5
           done
+          sudo /Applications/Docker.app/Contents/MacOS/com.docker.diagnose check
 
       - name: Install missing brew packages
         run: |
