@@ -1099,6 +1099,7 @@ describe('Dashboards > Detail', function () {
             ...TestStubs.location(),
             query: {
               statsPeriod: '7d',
+              release: ['sentry-android-shop@1.2.0'],
             },
           },
         },
@@ -1113,11 +1114,7 @@ describe('Dashboards > Detail', function () {
         {context: testData.routerContext, organization: testData.organization}
       );
 
-      await screen.findByText('7D');
-      userEvent.click(await screen.findByText('All Releases'));
-      userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
-
-      userEvent.click(screen.getByText('Save'));
+      userEvent.click(await screen.findByText('Save'));
 
       expect(mockPut).toHaveBeenCalledWith(
         '/organizations/org-slug/dashboards/1/',
@@ -1238,7 +1235,7 @@ describe('Dashboards > Detail', function () {
       );
     });
 
-    it('disables dashboard actions when there are unsaved filters', async () => {
+    it('disables the Edit Dashboard button when there are unsaved filters', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
         body: [
@@ -1283,26 +1280,7 @@ describe('Dashboards > Detail', function () {
 
       expect(await screen.findByText('Save')).toBeInTheDocument();
       expect(screen.getByText('Cancel')).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Add Widget'})).toBeDisabled();
       expect(screen.getByRole('button', {name: 'Edit Dashboard'})).toBeDisabled();
-
-      userEvent.click(screen.getAllByLabelText('Widget actions')[0]);
-
-      expect(screen.getByTestId('edit-widget')).toHaveAttribute('aria-disabled', 'true');
-      expect(screen.getByTestId('duplicate-widget')).toHaveAttribute(
-        'aria-disabled',
-        'true'
-      );
-      expect(screen.getByTestId('delete-widget')).toHaveAttribute(
-        'aria-disabled',
-        'true'
-      );
-
-      // Open in discover shouldn't be disabled
-      expect(screen.getByTestId('open-in-discover')).toHaveAttribute(
-        'aria-disabled',
-        'false'
-      );
     });
 
     it('ignores the order of selection of page filters to render unsaved filters', async () => {
