@@ -358,7 +358,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
   }
 
   renderButtonAddToDashboard() {
-    const {organization, eventView, savedQuery, yAxis, router} = this.props;
+    const {organization, eventView, savedQuery, yAxis, router, location} = this.props;
     return (
       <Button
         key="add-dashboard-widget-from-discover"
