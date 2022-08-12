@@ -78,15 +78,31 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             self.wait_until_page_loaded()
 
             # Open uniform rate modal
-            self.browser.element('[aria-label="Start Setup"]').click()
+            start_button = self.browser.element('[aria-label="Start Setup"]')
+            # TODO: remove it
+            if start_button:
+                start_button.click()
+            else:
+                print(self.browser.page_source)
+                raise ValueError('can\'t find [aria-label="Start Setup"]')
 
             self.browser.wait_until('[id="recommended-client-sampling"]')
 
             # Click on the recommended sampling values option
-            self.browser.element('[id="sampling-recommended"]').click()
+            button1 = self.browser.element('[id="sampling-recommended"]')
+            if button1:
+                button1.click()
+            else:
+                print(self.browser.page_source)
+                raise ValueError('[id="sampling-recommended"]')
 
             # Click on done button
-            self.browser.element('[aria-label="Done"]').click()
+            btt2 = self.browser.element('[aria-label="Done"]')
+            if btt2:
+                btt2.click()
+            else:
+                print(self.browser.page_source)
+                raise ValueError('[aria-label="Done"]')
 
             # Wait the success message to show up
             self.browser.wait_until('[data-test-id="toast-success"]')
