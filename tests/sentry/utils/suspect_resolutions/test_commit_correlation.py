@@ -17,6 +17,7 @@ from sentry.utils.suspect_resolutions.commit_correlation import (
     is_issue_commit_correlated,
 )
 
+
 class CommitCorrelationTest(TestCase):
     def setup(self, status=GroupStatus.RESOLVED):
         project = self.create_project()
@@ -35,7 +36,12 @@ class CommitCorrelationTest(TestCase):
         CommitFileChange.objects.create(
             organization_id=project.organization_id, commit=commit, filename=".random2"
         )
-        GroupRelease.objects.create(project_id=project.id, group_id=issue.id, release_id=release.id, last_seen=(timezone.now() - timedelta(hours=3)))
+        GroupRelease.objects.create(
+            project_id=project.id,
+            group_id=issue.id,
+            release_id=release.id,
+            last_seen=(timezone.now() - timedelta(hours=3)),
+        )
 
         return project, issue, release, repo
 
