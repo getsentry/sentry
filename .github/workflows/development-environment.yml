@@ -53,7 +53,7 @@ jobs:
             fi
             sleep 5
           done
-          sudo /Applications/Docker.app/Contents/MacOS/com.docker.diagnose
+          sudo /Applications/Docker.app/Contents/MacOS/com.docker.diagnose gather -upload
 
       - name: Install missing brew packages
         run: |
