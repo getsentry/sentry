@@ -18,7 +18,8 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
-import {generateProfileFlamegraphRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {renderTableHead} from 'sentry/utils/profiling/tableRenderer';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
@@ -171,7 +172,12 @@ function ProfileDetails() {
               data={slowestFunctions.slice(cursor, cursor + RESULTS_PER_PAGE)}
               columnOrder={COLUMN_ORDER.map(key => COLUMNS[key])}
               columnSortBy={[]}
-              grid={{renderBodyCell: renderFunctionCell}}
+              grid={{
+                renderHeadCell: renderTableHead({
+                  rightAlignedColumns: RIGHT_ALIGNED_COLUMNS,
+                }),
+                renderBodyCell: renderFunctionCell,
+              }}
               location={location}
             />
             <Pagination pageLinks={pageLinks} />
@@ -181,6 +187,8 @@ function ProfileDetails() {
     </Fragment>
   );
 }
+
+const RIGHT_ALIGNED_COLUMNS = new Set<TableColumnKey>(['self weight', 'total weight']);
 
 const ActionBar = styled('div')`
   display: grid;
@@ -231,7 +239,7 @@ function ProfilingFunctionsTableCell({
       return (
         <Container>
           <Link
-            to={generateProfileFlamegraphRouteWithQuery({
+            to={generateProfileFlamechartRouteWithQuery({
               orgSlug: orgId,
               projectSlug: projectId,
               profileId: eventId,

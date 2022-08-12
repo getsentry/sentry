@@ -1,13 +1,12 @@
-import {lazy, Suspense} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
-import DropdownMenu from 'sentry/components/dropdownMenuDeprecated';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Placeholder from 'sentry/components/placeholder';
+import DropdownMenu from 'sentry/components/dropdownMenu';
 import {IconCalendar} from 'sentry/icons';
 import {inputStyles} from 'sentry/styles/input';
 import space from 'sentry/styles/space';
+
+import {DatePicker} from '../calendar';
 
 import InputField, {InputFieldProps, onEvent} from './inputField';
 
@@ -25,8 +24,6 @@ function handleChangeDate(
   // close dropdown menu
   close();
 }
-
-const Calendar = lazy(() => import('./calendarField'));
 
 export default function DatePickerField(props: DatePickerFieldProps) {
   return (
@@ -50,20 +47,12 @@ export default function DatePickerField(props: DatePickerFieldProps) {
 
                 {isOpen && (
                   <CalendarMenu {...getMenuProps()}>
-                    <Suspense
-                      fallback={
-                        <Placeholder width="332px" height="282px">
-                          <LoadingIndicator />
-                        </Placeholder>
+                    <DatePicker
+                      date={inputValue}
+                      onChange={date =>
+                        handleChangeDate(onChange, onBlur, date, actions.close)
                       }
-                    >
-                      <Calendar
-                        date={inputValue}
-                        onChange={date =>
-                          handleChangeDate(onChange, onBlur, date, actions.close)
-                        }
-                      />
-                    </Suspense>
+                    />
                   </CalendarMenu>
                 )}
               </div>

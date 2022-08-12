@@ -26,6 +26,7 @@ __all__ = (
     "MetricsEnhancedPerformanceTestCase",
     "MetricsAPIBaseTestCase",
     "OrganizationMetricMetaIntegrationTestCase",
+    "ReplaysSnubaTestCase",
 )
 
 import hashlib
@@ -1227,6 +1228,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsTestCase, TestCase):
         "measurements.fcp": "metrics_distributions",
         "measurements.fid": "metrics_distributions",
         "measurements.cls": "metrics_distributions",
+        "measurements.frames_frozen_rate": "metrics_distributions",
         "spans.http": "metrics_distributions",
         "user": "metrics_sets",
     }
@@ -1339,6 +1341,18 @@ class OutcomesSnubaTest(TestCase):
             ).status_code
             == 200
         )
+
+
+@pytest.mark.snuba
+@requires_snuba
+class ReplaysSnubaTestCase(TestCase):
+    def setUp(self):
+        super().setUp()
+        assert requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop").status_code == 200
+
+    def store_replays(self, replay):
+        response = requests.post(settings.SENTRY_SNUBA + "/tests/replays/insert", json=[replay])
+        assert response.status_code == 200
 
 
 class IntegrationRepositoryTestCase(APITestCase):
@@ -1738,6 +1752,52 @@ class SlackActivityNotificationTest(ActivityTestCase):
         )
         self.name = self.user.get_display_name()
         self.short_id = self.group.qualified_short_id
+
+
+class MSTeamsActivityNotificationTest(ActivityTestCase):
+    def setUp(self):
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.MSTEAMS,
+            NotificationSettingTypes.WORKFLOW,
+            NotificationSettingOptionValues.ALWAYS,
+            user=self.user,
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.MSTEAMS,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.ALWAYS,
+            user=self.user,
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.MSTEAMS,
+            NotificationSettingTypes.DEPLOY,
+            NotificationSettingOptionValues.ALWAYS,
+            user=self.user,
+        )
+        UserOption.objects.create(user=self.user, key="self_notifications", value="1")
+
+        self.tenant_id = "50cccd00-7c9c-4b32-8cda-58a084f9334a"
+        self.integration = self.create_integration(
+            self.organization,
+            self.tenant_id,
+            metadata={
+                "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "service_url": "https://testserviceurl.com/testendpoint/",
+                "installation_type": "tenant",
+                "expires_at": 1234567890,
+                "tenant_id": self.tenant_id,
+            },
+            name="Personal Installation",
+            provider="msteams",
+        )
+        self.idp = self.create_identity_provider(
+            integration=self.integration, type="msteams", external_id=self.tenant_id, config={}
+        )
+        self.user_id_1 = "29:1XJKJMvc5GBtc2JwZq0oj8tHZmzrQgFmB39ATiQWA85gQtHieVkKilBZ9XHoq9j7Zaqt7CZ-NJWi7me2kHTL3Bw"
+        self.user_1 = self.user
+        self.identity_1 = self.create_identity(
+            user=self.user_1, identity_provider=self.idp, external_id=self.user_id_1
+        )
 
 
 @apply_feature_flag_on_cls("organizations:metrics")

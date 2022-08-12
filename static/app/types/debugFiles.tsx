@@ -50,9 +50,17 @@ export type AppStoreConnectValidationError = {
     | 'app-connect-multiple-sources-error';
 };
 
+interface ValidAppStoreConnectCredentialsStatus {
+  status: 'valid';
+}
+
+interface InvalidAppStoreConnectCredentialsStatus extends AppStoreConnectValidationError {
+  status: 'invalid';
+}
+
 export type AppStoreConnectCredentialsStatus =
-  | {status: 'valid'}
-  | ({status: 'invalid'} & AppStoreConnectValidationError);
+  | ValidAppStoreConnectCredentialsStatus
+  | InvalidAppStoreConnectCredentialsStatus;
 
 export type AppStoreConnectStatusData = {
   credentials: AppStoreConnectCredentialsStatus;

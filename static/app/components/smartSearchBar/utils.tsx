@@ -18,9 +18,16 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-import {ItemType, SearchGroup, SearchItem, Shortcut, ShortcutType} from './types';
+import {
+  AutocompleteGroup,
+  ItemType,
+  SearchGroup,
+  SearchItem,
+  Shortcut,
+  ShortcutType,
+} from './types';
 import {Tag} from 'sentry/types';
-import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
+import {FieldKind, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 
 export function addSpace(query = '') {
   if (query.length !== 0 && query[query.length - 1] !== ' ') {
@@ -164,6 +171,8 @@ export function createSearchGroups(
   queryCharsLeft?: number,
   isDefaultState?: boolean
 ) {
+  const fieldDefinition = getFieldDefinition(tagName);
+
   const activeSearchItem = 0;
   const {searchItems: filteredSearchItems, recentSearchItems: filteredRecentSearchItems} =
     filterSearchItems(searchItems, recentSearchItems, maxSearchItems, queryCharsLeft);
@@ -200,6 +209,16 @@ export function createSearchGroups(
     }
     return [item];
   });
+
+  if (fieldDefinition?.valueType === FieldValueType.DATE) {
+    if (type === ItemType.TAG_OPERATOR) {
+      return {
+        searchGroups: [],
+        flatSearchItems: [],
+        activeSearchItem: -1,
+      };
+    }
+  }
 
   if (isDefaultState) {
     // Recent searches first in default state.
@@ -371,66 +390,64 @@ export const getTagItemsFromKeys = (
     [key: string]: Tag;
   }
 ) => {
-  return [...tagKeys]
-    .sort((a, b) => a.localeCompare(b))
-    .reduce((groups, key) => {
-      const keyWithColon = `${key}:`;
-      const sections = key.split('.');
+  return [...tagKeys].reduce((groups, key) => {
+    const keyWithColon = `${key}:`;
+    const sections = key.split('.');
 
-      const definition =
-        supportedTags[key]?.kind === FieldKind.FUNCTION
-          ? getFieldDefinition(key.split('(')[0])
-          : getFieldDefinition(key);
-      const kind = supportedTags[key]?.kind ?? definition?.kind ?? FieldKind.FIELD;
+    const definition =
+      supportedTags[key]?.kind === FieldKind.FUNCTION
+        ? getFieldDefinition(key.split('(')[0])
+        : getFieldDefinition(key);
+    const kind = supportedTags[key]?.kind ?? definition?.kind ?? FieldKind.FIELD;
 
-      const item: SearchItem = {
-        value: keyWithColon,
-        title: getItemTitle(key, kind),
-        documentation: definition?.desc ?? '-',
-        kind,
-        deprecated: definition?.deprecated,
-      };
+    const item: SearchItem = {
+      value: keyWithColon,
+      title: getItemTitle(key, kind),
+      documentation: definition?.desc ?? '-',
+      kind,
+      deprecated: definition?.deprecated,
+    };
 
-      const lastGroup = groups.at(-1);
+    const lastGroup = groups.at(-1);
 
-      const [title] = sections;
+    const [title] = sections;
 
-      if (kind !== FieldKind.FUNCTION && lastGroup) {
-        if (lastGroup.children && lastGroup.title === title) {
-          lastGroup.children.push(item);
-          return groups;
-        }
+    if (kind !== FieldKind.FUNCTION && lastGroup) {
+      if (lastGroup.children && lastGroup.title === title) {
+        lastGroup.children.push(item);
+        return groups;
+      }
 
-        if (lastGroup.title && lastGroup.title.split('.')[0] === title) {
-          if (lastGroup.title === title) {
-            return [
-              ...groups.slice(0, -1),
-              {
-                title,
-                value: lastGroup.value,
-                documentation: lastGroup.documentation,
-                kind: lastGroup.kind,
-                children: [item],
-              },
-            ];
-          }
-
-          // Add a blank parent if the last group's full key is not the same as the title
+      if (lastGroup.title && lastGroup.title.split('.')[0] === title) {
+        if (lastGroup.title === title) {
           return [
             ...groups.slice(0, -1),
             {
               title,
-              value: null,
-              documentation: '-',
+              value: lastGroup.value,
+              documentation: lastGroup.documentation,
               kind: lastGroup.kind,
-              children: [lastGroup, item],
+              children: [item],
             },
           ];
         }
-      }
 
-      return [...groups, item];
-    }, [] as SearchItem[]);
+        // Add a blank parent if the last group's full key is not the same as the title
+        return [
+          ...groups.slice(0, -1),
+          {
+            title,
+            value: null,
+            documentation: '-',
+            kind: lastGroup.kind,
+            children: [lastGroup, item],
+          },
+        ];
+      }
+    }
+
+    return [...groups, item];
+  }, [] as SearchItem[]);
 };
 
 /**
@@ -471,4 +488,106 @@ export const getSearchGroupWithItemMarkedActive = (
       return item;
     }),
   }));
+};
+
+/**
+ * Filter tag keys based on the query and the key, description, and associated keywords of each tag.
+ */
+export const filterKeysFromQuery = (tagKeys: string[], searchTerm: string): string[] =>
+  tagKeys
+    .flatMap(key => {
+      const keyWithoutFunctionPart = key.replaceAll(/\(.*\)/g, '');
+      const definition = getFieldDefinition(keyWithoutFunctionPart);
+      const lowerCasedSearchTerm = searchTerm.toLocaleLowerCase();
+
+      const combinedKeywords = [
+        ...(definition?.desc ? [definition.desc] : []),
+        ...(definition?.keywords ?? []),
+      ]
+        .join(' ')
+        .toLocaleLowerCase();
+
+      const matchedInKey = keyWithoutFunctionPart.includes(lowerCasedSearchTerm);
+      const matchedInKeywords = combinedKeywords.includes(lowerCasedSearchTerm);
+
+      if (!matchedInKey && !matchedInKeywords) {
+        return [];
+      }
+
+      return [{matchedInKey, matchedInKeywords, key}];
+    })
+    .sort((a, b) => {
+      // Sort by matched in key first, then by matched in keywords
+      if (a.matchedInKey && !b.matchedInKey) {
+        return -1;
+      }
+
+      if (b.matchedInKey && !a.matchedInKey) {
+        return 1;
+      }
+
+      return a.key < b.key ? -1 : 1;
+    })
+    .map(({key}) => key);
+
+const DATE_SUGGESTED_VALUES = [
+  {
+    title: t('Last hour'),
+    value: '-1h',
+    desc: '-1h',
+    type: ItemType.TAG_VALUE,
+  },
+  {
+    title: t('Last 24 hours'),
+    value: '-24h',
+    desc: '-24h',
+    type: ItemType.TAG_VALUE,
+  },
+  {
+    title: t('Last 7 days'),
+    value: '-7d',
+    desc: '-7d',
+    type: ItemType.TAG_VALUE,
+  },
+  {
+    title: t('Last 14 days'),
+    value: '-14d',
+    desc: '-14d',
+    type: ItemType.TAG_VALUE,
+  },
+  {
+    title: t('Last 30 days'),
+    value: '-30d',
+    desc: '-30d',
+    type: ItemType.TAG_VALUE,
+  },
+  {
+    title: t('After a custom datetime'),
+    value: '>',
+    desc: '>YYYY-MM-DDThh:mm:ss',
+    type: ItemType.TAG_VALUE_ISO_DATE,
+  },
+  {
+    title: t('Before a custom datetime'),
+    value: '<',
+    desc: '<YYYY-MM-DDThh:mm:ss',
+    type: ItemType.TAG_VALUE_ISO_DATE,
+  },
+  {
+    title: t('At a custom datetime'),
+    value: '=',
+    desc: '=YYYY-MM-DDThh:mm:ss',
+    type: ItemType.TAG_VALUE_ISO_DATE,
+  },
+];
+
+export const getDateTagAutocompleteGroups = (tagName: string): AutocompleteGroup[] => {
+  return [
+    {
+      searchItems: DATE_SUGGESTED_VALUES,
+      recentSearchItems: [],
+      tagName,
+      type: ItemType.TAG_VALUE,
+    },
+  ];
 };

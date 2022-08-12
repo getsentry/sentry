@@ -9,7 +9,7 @@ import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownBubble from 'sentry/components/dropdownBubble';
-import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControl';
+import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Highlight from 'sentry/components/highlight';
@@ -35,7 +35,6 @@ import {CombinedAlertType, CombinedMetricIssueAlerts, IncidentStatus} from '../.
 import {isIssueAlert} from '../../utils';
 
 type Props = {
-  hasDuplicateAlertRules: boolean;
   hasEditAccess: boolean;
   onDelete: (projectId: string, rule: CombinedMetricIssueAlerts) => void;
   onOwnerChange: (
@@ -66,7 +65,6 @@ function RuleListRow({
   onDelete,
   onOwnerChange,
   userTeams,
-  hasDuplicateAlertRules,
   hasEditAccess,
 }: Props) {
   const [assignee, setAssignee] = useState<string>('');
@@ -221,7 +219,6 @@ function RuleListRow({
       key: 'duplicate',
       label: t('Duplicate'),
       to: duplicateLink,
-      hidden: !hasDuplicateAlertRules,
     },
     {
       key: 'delete',
@@ -392,7 +389,7 @@ function RuleListRow({
       <ActionsRow>
         <Access access={['alerts:write']}>
           {({hasAccess}) => (
-            <DropdownMenuControlV2
+            <DropdownMenuControl
               items={actions}
               placement="bottom right"
               triggerProps={{

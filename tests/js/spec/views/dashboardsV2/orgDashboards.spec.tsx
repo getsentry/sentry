@@ -108,6 +108,136 @@ describe('OrgDashboards', () => {
     );
   });
 
+  it('ignores query params that are not page filters for redirection', async () => {
+    const mockDashboardWithFilters = {
+      dateCreated: '2021-08-10T21:20:46.798237Z',
+      id: '1',
+      title: 'Test Dashboard',
+      widgets: [],
+      projects: [1, 2],
+      environment: ['alpha'],
+      period: '7d',
+      filters: {},
+    };
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/dashboards/1/`,
+      method: 'GET',
+      body: mockDashboardWithFilters,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [mockDashboardWithFilters],
+    });
+    render(
+      <OrgDashboards
+        api={api}
+        location={{
+          ...TestStubs.location(),
+          query: {
+            // This query param is not a page filter, so it should not interfere
+            // with the redirect logic
+            sort: 'recentlyViewed',
+          },
+        }}
+        organization={initialData.organization}
+        params={{orgId: 'org-slug', dashboardId: '1'}}
+      >
+        {({dashboard, dashboards}) => {
+          return dashboard ? (
+            <DashboardDetail
+              api={api}
+              initialState={DashboardState.VIEW}
+              location={initialData.router.location}
+              router={initialData.router}
+              dashboard={dashboard}
+              dashboards={dashboards}
+              {...initialData.router}
+            />
+          ) : (
+            <div>loading</div>
+          );
+        }}
+      </OrgDashboards>,
+      {context: initialData.routerContext}
+    );
+
+    await waitFor(() =>
+      expect(browserHistory.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            project: [1, 2],
+            environment: ['alpha'],
+            statsPeriod: '7d',
+          }),
+        })
+      )
+    );
+  });
+
+  it('does not add query params for page filters if one of the filters is defined', () => {
+    initialData = initializeOrg({
+      organization,
+      project: 1,
+      projects: [],
+      router: {
+        location: {
+          ...TestStubs.location(),
+          query: {
+            // project is supplied in the URL, so we should avoid redirecting
+            project: ['1'],
+          },
+        },
+        params: {orgId: 'org-slug'},
+      },
+    });
+    const mockDashboardWithFilters = {
+      dateCreated: '2021-08-10T21:20:46.798237Z',
+      id: '1',
+      title: 'Test Dashboard',
+      widgets: [],
+      projects: [1, 2],
+      environment: ['alpha'],
+      period: '7d',
+      filters: {},
+    };
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/dashboards/1/`,
+      method: 'GET',
+      body: mockDashboardWithFilters,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [mockDashboardWithFilters],
+    });
+    render(
+      <OrgDashboards
+        api={api}
+        location={initialData.router.location}
+        organization={initialData.organization}
+        params={{orgId: 'org-slug', dashboardId: '1'}}
+      >
+        {({dashboard, dashboards}) => {
+          return dashboard ? (
+            <DashboardDetail
+              api={api}
+              initialState={DashboardState.VIEW}
+              location={initialData.router.location}
+              router={initialData.router}
+              dashboard={dashboard}
+              dashboards={dashboards}
+              {...initialData.router}
+            />
+          ) : (
+            <div>loading</div>
+          );
+        }}
+      </OrgDashboards>,
+      {context: initialData.routerContext}
+    );
+
+    expect(browserHistory.replace).not.toHaveBeenCalled();
+  });
+
   it('does not add query params for page filters if none are saved', () => {
     render(
       <OrgDashboards

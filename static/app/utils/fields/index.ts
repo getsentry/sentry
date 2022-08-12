@@ -133,6 +133,14 @@ export enum MobileVital {
   StallPercentage = 'measurements.stall_percentage',
 }
 
+export enum SpanOpBreakdown {
+  SpansBrowser = 'spans.browser',
+  SpansDb = 'spans.db',
+  SpansHttp = 'spans.http',
+  SpansResource = 'spans.resource',
+  SpansUi = 'spans.ui',
+}
+
 export enum AggregationKey {
   Count = 'count',
   CountUnique = 'count_unique',
@@ -164,6 +172,7 @@ export interface FieldDefinition {
   valueType: FieldValueType | null;
   deprecated?: boolean;
   desc?: string;
+  keywords?: string[];
 }
 
 export const AGGREGATION_FIELDS: Record<string, FieldDefinition> = {
@@ -379,9 +388,38 @@ export const MEASUREMENT_FIELDS: Record<string, FieldDefinition> = {
   },
 };
 
+export const SPAN_OP_FIELDS = {
+  [SpanOpBreakdown.SpansBrowser]: {
+    desc: t('Cumulative time based on the browser operation'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [SpanOpBreakdown.SpansDb]: {
+    desc: t('Cumulative time based on the database operation'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [SpanOpBreakdown.SpansHttp]: {
+    desc: t('Cumulative time based on the http operation'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [SpanOpBreakdown.SpansResource]: {
+    desc: t('Cumulative time based on the resource operation'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [SpanOpBreakdown.SpansUi]: {
+    desc: t('Cumulative time based on the ui operation'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+};
+
 export const FIELDS: Record<FieldKey & AggregationKey & MobileVital, FieldDefinition> = {
   ...AGGREGATION_FIELDS,
   ...MEASUREMENT_FIELDS,
+  ...SPAN_OP_FIELDS,
   [FieldKey.AGE]: {
     desc: t('The age of the issue in relative time'),
     kind: FieldKind.FIELD,
@@ -553,6 +591,7 @@ export const FIELDS: Record<FieldKey & AggregationKey & MobileVital, FieldDefini
     desc: t('The properties of an issue (i.e. Resolved, unresolved)'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    keywords: ['ignored', 'assigned', 'for_review', 'unassigned', 'linked', 'unlinked'],
   },
   [FieldKey.ISSUE]: {
     desc: t('The issue identification code'),
@@ -711,6 +750,7 @@ export const FIELDS: Record<FieldKey & AggregationKey & MobileVital, FieldDefini
     desc: t('Total number of events'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.NUMBER,
+    keywords: ['count'],
   },
   [FieldKey.TIMESTAMP]: {
     desc: t('The time an event finishes'),
@@ -943,6 +983,13 @@ export const DISCOVER_FIELDS = [
   FieldKey.PROJECT,
   FieldKey.ISSUE,
   FieldKey.USER_DISPLAY,
+
+  // Span Op fields
+  SpanOpBreakdown.SpansBrowser,
+  SpanOpBreakdown.SpansDb,
+  SpanOpBreakdown.SpansHttp,
+  SpanOpBreakdown.SpansResource,
+  SpanOpBreakdown.SpansUi,
 ];
 
 export const getFieldDefinition = (key: string): FieldDefinition | null => {

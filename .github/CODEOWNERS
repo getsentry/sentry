@@ -28,6 +28,7 @@
 /src/sentry/quotas/                @getsentry/owners-ingest
 /src/sentry/relay/                 @getsentry/owners-ingest
 /src/sentry/utils/data_filters.py  @getsentry/owners-ingest
+/src/sentry/utils/performance_issues/   @getsentry/performance
 /src/sentry/web/api.py             @getsentry/owners-ingest
 /src/sentry/scripts/quotas/        @getsentry/owners-ingest
 /src/sentry/scripts/tsdb/          @getsentry/owners-ingest
@@ -158,6 +159,9 @@ yarn.lock           @getsentry/owners-js-deps
 /src/sentry/api/endpoints/organization_events_meta.py           @getsentry/discover-n-dashboards
 /src/sentry/api/endpoints/organization_events_stats.py          @getsentry/discover-n-dashboards
 /src/sentry/api/endpoints/organization_measurements_meta.py     @getsentry/discover-n-dashboards
+/src/sentry/api/serializers/models/dashboard.py                 @getsentry/discover-n-dashboards
+/src/sentry/api/serializers/models/discoversavedquery.py        @getsentry/discover-n-dashboards
+/src/sentry/api/serializers/rest_framework/dashboard.py         @getsentry/discover-n-dashboards
 
 /src/sentry/discover/                                           @getsentry/discover-n-dashboards
 /tests/sentry/snuba/test_discover.py                            @getsentry/discover-n-dashboards

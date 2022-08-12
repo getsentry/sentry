@@ -57,7 +57,10 @@ export function CustomMeasurementsProvider({
   useEffect(() => {
     let shouldCancelRequest = false;
 
-    if (organization.features.includes('dashboard-custom-measurement-widgets')) {
+    if (
+      organization.features.includes('dashboards-mep') ||
+      organization.features.includes('mep-rollout-flag')
+    ) {
       fetchCustomMeasurements(api, organization, selection)
         .then(response => {
           if (shouldCancelRequest) {
@@ -83,7 +86,7 @@ export function CustomMeasurementsProvider({
           }
 
           const errorResponse =
-            e?.responseJSON ?? t('Unable to fetch custom measurements');
+            e?.responseJSON ?? t('Unable to fetch custom performance metrics');
           addErrorMessage(errorResponse);
           handleXhrErrorResponse(errorResponse)(e);
         });

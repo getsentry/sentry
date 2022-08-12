@@ -185,12 +185,13 @@ function disableMacros(value: string | null | boolean | number) {
 export function downloadAsCsv(tableData, columnOrder, filename) {
   const {data} = tableData;
   const headings = columnOrder.map(column => column.name);
+  const keys = columnOrder.map(column => column.key);
 
   const csvContent = Papa.unparse({
     fields: headings,
     data: data.map(row =>
-      headings.map(col => {
-        return disableMacros(row[col]);
+      keys.map(key => {
+        return disableMacros(row[key]);
       })
     ),
   });
@@ -710,6 +711,7 @@ export function handleAddQueryToDashboard({
       },
       router,
       widgetAsQueryParams,
+      location,
     });
     return;
   }

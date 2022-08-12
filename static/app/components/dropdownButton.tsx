@@ -36,15 +36,15 @@ function DropdownButton({
 }: DropdownButtonProps) {
   return (
     <StyledButton
-      {...props}
       type="button"
-      aria-haspopup="listbox"
+      aria-haspopup="true"
       aria-expanded={isOpen}
       hasPrefix={!!prefix}
       disabled={disabled}
       priority={priority}
       isOpen={isOpen}
       ref={forwardedRef}
+      {...props}
     >
       {prefix && <LabelText>{prefix}</LabelText>}
       {children}

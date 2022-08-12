@@ -24,6 +24,7 @@ import {Series} from 'sentry/types/echarts';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {
   formatAbbreviatedNumber,
@@ -142,7 +143,7 @@ function ChartLabels({
             <QuestionTooltip
               position="top"
               title={t(
-                'Shows the count of events for the selected time period, showing the ingested events for this page compared to total processed events.'
+                'The count of events for the selected time period, showing the indexed events powering this page with filters compared to total processed events.'
               )}
               size="sm"
             />
@@ -287,7 +288,8 @@ function getSideChartsOptions({
       tooltip: {
         trigger: 'axis',
         truncate: 80,
-        valueFormatter: tooltipFormatter,
+        valueFormatter: (value, label) =>
+          tooltipFormatter(value, aggregateOutputType(label)),
         nameFormatter(value: string) {
           return value === 'epm()' ? 'tpm()' : value;
         },
@@ -352,7 +354,8 @@ function getSideChartsOptions({
     tooltip: {
       trigger: 'axis',
       truncate: 80,
-      valueFormatter: tooltipFormatter,
+      valueFormatter: (value, label) =>
+        tooltipFormatter(value, aggregateOutputType(label)),
       nameFormatter(value: string) {
         return value === 'epm()' ? 'tpm()' : value;
       },

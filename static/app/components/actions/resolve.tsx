@@ -7,7 +7,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import CustomCommitsResolutionModal from 'sentry/components/customCommitsResolutionModal';
 import CustomResolutionModal from 'sentry/components/customResolutionModal';
-import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControl';
+import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
 import Tooltip from 'sentry/components/tooltip';
 import {IconCheckmark, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -156,7 +156,7 @@ class ResolveActions extends Component<Props> {
         label: t('The next release'),
         details: actionTitle,
         onAction: () => onActionOrConfirm(this.handleNextReleaseResolution),
-        showDividers: !hasRelease,
+        showDividers: !actionTitle,
       },
       {
         key: 'current-release',
@@ -165,24 +165,27 @@ class ResolveActions extends Component<Props> {
           : t('The current release'),
         details: actionTitle,
         onAction: () => onActionOrConfirm(this.handleCurrentReleaseResolution),
-        showDividers: !hasRelease,
+        showDividers: !actionTitle,
       },
       {
         key: 'another-release',
         label: t('Another existing release\u2026'),
         onAction: () => this.openCustomReleaseModal(),
+        showDividers: !actionTitle,
       },
       {
         key: 'a-commit',
         label: t('A commit\u2026'),
         onAction: () => this.openCustomCommitModal(),
+        showDividers: !actionTitle,
       },
     ];
 
     const isDisabled = !projectSlug ? disabled : disableDropdown;
 
     return (
-      <DropdownMenuControlV2
+      <DropdownMenuControl
+        size="sm"
         items={items}
         trigger={({props: triggerProps, ref: triggerRef}) => (
           <DropdownTrigger

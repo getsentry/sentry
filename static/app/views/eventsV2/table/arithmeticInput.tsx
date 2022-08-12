@@ -2,7 +2,7 @@ import {createRef, Fragment, HTMLProps, PureComponent} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import Input from 'sentry/components/forms/controls/input';
+import Input from 'sentry/components/input';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {

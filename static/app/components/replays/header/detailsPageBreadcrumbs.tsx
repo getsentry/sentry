@@ -2,8 +2,8 @@ import {ComponentProps, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import FeatureBadge from 'sentry/components/featureBadge';
 import Placeholder from 'sentry/components/placeholder';
+import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import {t} from 'sentry/locale';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -16,7 +16,7 @@ function DetailsPageBreadcrumbs({orgId, replayRecord}: Props) {
   const labelTitle =
     replayRecord?.user.name ||
     replayRecord?.user.email ||
-    replayRecord?.user.ip ||
+    replayRecord?.user.ipAddress ||
     replayRecord?.user.id;
 
   return (
@@ -29,7 +29,7 @@ function DetailsPageBreadcrumbs({orgId, replayRecord}: Props) {
         {
           label: labelTitle ? (
             <Fragment>
-              {labelTitle} <FeatureBadge type="alpha" />
+              {labelTitle} <ReplaysFeatureBadge />
             </Fragment>
           ) : (
             <HeaderPlaceholder width="500px" height="24px" />

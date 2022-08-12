@@ -28,7 +28,7 @@ const PageFilterBar = styled('div')<{condensed?: boolean}>`
     z-index: 0;
   }
 
-  & button[aria-haspopup='listbox'] {
+  & button[aria-haspopup] {
     height: 100%;
     min-height: auto;
     border-color: transparent !important;

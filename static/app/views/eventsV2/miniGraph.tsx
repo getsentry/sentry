@@ -20,7 +20,7 @@ import {Series} from 'sentry/types/echarts';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
-import {PlotType} from 'sentry/utils/discover/fields';
+import {aggregateOutputType, PlotType} from 'sentry/utils/discover/fields';
 import {DisplayModes, TOP_N} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {Theme} from 'sentry/utils/theme';
@@ -270,7 +270,7 @@ class MiniGraph extends Component<Props> {
                 formatter: (value: number) =>
                   axisLabelFormatter(
                     value,
-                    Array.isArray(yAxis) ? yAxis[0] : yAxis,
+                    aggregateOutputType(Array.isArray(yAxis) ? yAxis[0] : yAxis),
                     true
                   ),
                 inside: true,

@@ -144,19 +144,32 @@ export function makeSaveSearchAction({sort}: SaveSearchActionOpts) {
 
     return (
       <Access organization={organization} access={['org:write']}>
-        {menuItemVariant ? (
-          <MenuItem withBorder icon={<IconAdd size="xs" />} onClick={onClick}>
-            {t('Create Saved Search')}
-          </MenuItem>
-        ) : (
-          <ActionButton
-            onClick={onClick}
-            data-test-id="save-current-search"
-            icon={<IconAdd size="xs" />}
-            title={t('Add to organization saved searches')}
-            aria-label={t('Add to organization saved searches')}
-          />
-        )}
+        {({hasAccess}) => {
+          const title = hasAccess
+            ? t('Add to organization saved searches')
+            : t('You do not have permission to create a saved search');
+
+          return menuItemVariant ? (
+            <MenuItem
+              onClick={onClick}
+              disabled={!hasAccess}
+              icon={<IconAdd size="xs" />}
+              title={!hasAccess ? title : undefined}
+              withBorder
+            >
+              {t('Create Saved Search')}
+            </MenuItem>
+          ) : (
+            <ActionButton
+              onClick={onClick}
+              disabled={!hasAccess}
+              icon={<IconAdd size="xs" />}
+              title={title}
+              aria-label={title}
+              data-test-id="save-current-search"
+            />
+          );
+        }}
       </Access>
     );
   };

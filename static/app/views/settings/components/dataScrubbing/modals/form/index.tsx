@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
 import Button from 'sentry/components/button';
-import Input from 'sentry/components/forms/controls/input';
 import Field from 'sentry/components/forms/field';
+import Input from 'sentry/components/input';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';

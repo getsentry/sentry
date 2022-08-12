@@ -165,7 +165,7 @@ def _get_entity_of_metric_mri(
 
     assert projects
     org_id = org_id_from_projects(projects)
-    metric_id = indexer.resolve(org_id, metric_mri, use_case_id)
+    metric_id = indexer.resolve(use_case_id, org_id, metric_mri)
 
     if metric_id is None:
         raise InvalidParams

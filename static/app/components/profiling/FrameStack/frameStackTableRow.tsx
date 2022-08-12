@@ -187,6 +187,8 @@ const FrameCallersRow = styled('div')<{isSelected: boolean}>`
   width: 100%;
   color: ${p => (p.isSelected ? p.theme.white : 'inherit')};
   scroll-margin-top: 24px;
+  font-size: ${p => p.theme.fontSizeSmall};
+  line-height: 24px;
 
   &:focus {
     outline: none;
@@ -195,7 +197,7 @@ const FrameCallersRow = styled('div')<{isSelected: boolean}>`
   &[data-hovered='true']:not([tabindex='0']) {
     > div:first-child,
     > div:nth-child(2) {
-      background-color: #edf2fc !important;
+      background-color: ${p => p.theme.surface100} !important;
     }
   }
 `;

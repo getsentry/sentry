@@ -1,4 +1,5 @@
 import logging
+import random
 from collections import defaultdict
 from typing import List, Mapping, MutableMapping, NamedTuple, Optional, Sequence, Set
 
@@ -6,6 +7,7 @@ import rapidjson
 import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import Message
+from django.conf import settings
 
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.consumers.indexer.common import MessageBatch
@@ -33,6 +35,11 @@ def valid_metric_name(name: Optional[str]) -> bool:
         return False
 
     return True
+
+
+def _should_sample_debug_log() -> bool:
+    rate: float = settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE
+    return (rate > 0) and random.random() <= rate
 
 
 def invalid_metric_tags(tags: Mapping[str, str]) -> Sequence[str]:
@@ -135,7 +142,7 @@ class IndexerBatch:
     @metrics.wraps("process_messages.reconstruct_messages")
     def reconstruct_messages(
         self,
-        mapping: Mapping[int, Mapping[str, int]],
+        mapping: Mapping[int, Mapping[str, Optional[int]]],
         bulk_record_meta: Mapping[int, Mapping[str, Metadata]],
     ) -> List[Message[KafkaPayload]]:
         new_messages: List[Message[KafkaPayload]] = []
@@ -154,6 +161,7 @@ class IndexerBatch:
 
             metric_name = new_payload_value["name"]
             org_id = new_payload_value["org_id"]
+            sentry_sdk.set_tag("sentry_metrics.organization_id", org_id)
             tags = new_payload_value.get("tags", {})
             used_tags.add(metric_name)
 
@@ -166,6 +174,30 @@ class IndexerBatch:
                     used_tags.update({k, v})
                     new_k = mapping[org_id][k]
                     new_v = mapping[org_id][v]
+                    if new_k is None:
+                        metadata = bulk_record_meta[org_id].get(k)
+                        if (
+                            metadata
+                            and metadata.fetch_type_ext
+                            and metadata.fetch_type_ext.is_global
+                        ):
+                            exceeded_global_quotas += 1
+                        else:
+                            exceeded_org_quotas += 1
+                        continue
+
+                    if new_v is None:
+                        metadata = bulk_record_meta[org_id].get(v)
+                        if (
+                            metadata
+                            and metadata.fetch_type_ext
+                            and metadata.fetch_type_ext.is_global
+                        ):
+                            exceeded_global_quotas += 1
+                        else:
+                            exceeded_org_quotas += 1
+                        continue
+
                     new_tags[str(new_k)] = new_v
             except KeyError:
                 logger.error("process_messages.key_error", extra={"tags": tags}, exc_info=True)
@@ -178,15 +210,16 @@ class IndexerBatch:
                         "string_type": "tags",
                     },
                 )
-                logger.error(
-                    "process_messages.dropped_message",
-                    extra={
-                        "string_type": "tags",
-                        "num_global_quotas": exceeded_global_quotas,
-                        "num_org_quotas": exceeded_org_quotas,
-                        "org_batch_size": len(mapping[org_id]),
-                    },
-                )
+                if _should_sample_debug_log():
+                    logger.error(
+                        "process_messages.dropped_message",
+                        extra={
+                            "string_type": "tags",
+                            "num_global_quotas": exceeded_global_quotas,
+                            "num_org_quotas": exceeded_org_quotas,
+                            "org_batch_size": len(mapping[org_id]),
+                        },
+                    )
                 continue
 
             fetch_types_encountered = set()
@@ -200,7 +233,31 @@ class IndexerBatch:
                 "".join(sorted(t.value for t in fetch_types_encountered)), "utf-8"
             )
             new_payload_value["tags"] = new_tags
-            new_payload_value["metric_id"] = mapping[org_id][metric_name]
+            new_payload_value["metric_id"] = numeric_metric_id = mapping[org_id][metric_name]
+            if numeric_metric_id is None:
+                metadata = bulk_record_meta[org_id].get(metric_name)
+                metrics.incr(
+                    "sentry_metrics.indexer.process_messages.dropped_message",
+                    tags={
+                        "string_type": "metric_id",
+                    },
+                )
+
+                if _should_sample_debug_log():
+                    logger.error(
+                        "process_messages.dropped_message",
+                        extra={
+                            "string_type": "metric_id",
+                            "is_global_quota": bool(
+                                metadata
+                                and metadata.fetch_type_ext
+                                and metadata.fetch_type_ext.is_global
+                            ),
+                            "org_batch_size": len(mapping[org_id]),
+                        },
+                    )
+                continue
+
             new_payload_value["retention_days"] = 90
             new_payload_value["mapping_meta"] = output_message_meta
             new_payload_value["use_case_id"] = self.use_case_id.value

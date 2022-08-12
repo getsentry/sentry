@@ -44,7 +44,11 @@ import {
   transactionSummaryRouteWithQuery,
 } from './transactionSummary/utils';
 import {COLUMN_TITLES} from './data';
-import {getSelectedProjectPlatforms} from './utils';
+import {
+  createUnnamedTransactionsDiscoverTarget,
+  getSelectedProjectPlatforms,
+  UNPARAMETERIZED_TRANSACTION,
+} from './utils';
 
 export function getProjectID(
   eventData: EventData,
@@ -193,12 +197,18 @@ class _Table extends Component<Props, State> {
         ]);
       }
       summaryView.query = summaryView.getQueryWithAdditionalConditions();
-      const target = transactionSummaryRouteWithQuery({
-        orgSlug: organization.slug,
-        transaction: String(dataRow.transaction) || '',
-        query: summaryView.generateQueryStringObject(),
-        projectID,
-      });
+      const isUnparameterizedRow = dataRow.transaction === UNPARAMETERIZED_TRANSACTION;
+      const target = isUnparameterizedRow
+        ? createUnnamedTransactionsDiscoverTarget({
+            organization,
+            location,
+          })
+        : transactionSummaryRouteWithQuery({
+            orgSlug: organization.slug,
+            transaction: String(dataRow.transaction) || '',
+            query: summaryView.generateQueryStringObject(),
+            projectID,
+          });
 
       return (
         <CellAction
@@ -427,44 +437,48 @@ class _Table extends Component<Props, State> {
     return (
       <div>
         <MEPConsumer>
-          {value => (
-            <DiscoverQuery
-              eventView={sortedEventView}
-              orgSlug={organization.slug}
-              location={location}
-              setError={error => setError(error?.message)}
-              referrer="api.performance.landing-table"
-              transactionName={transaction}
-              transactionThreshold={transactionThreshold}
-              queryExtras={getMEPQueryParams(value)}
-              useEvents={useEvents}
-            >
-              {({pageLinks, isLoading, tableData}) => (
-                <Fragment>
-                  <GridEditable
-                    isLoading={isLoading}
-                    data={tableData ? tableData.data : []}
-                    columnOrder={columnOrder}
-                    columnSortBy={columnSortBy}
-                    grid={{
-                      onResizeColumn: this.handleResizeColumn,
-                      renderHeadCell: this.renderHeadCellWithMeta(tableData?.meta) as any,
-                      renderBodyCell: this.renderBodyCellWithData(tableData) as any,
-                      renderPrependColumns: this.renderPrependCellWithData(
-                        tableData
-                      ) as any,
-                      prependColumnWidths,
-                    }}
-                    location={location}
-                  />
-                  <Pagination
-                    pageLinks={pageLinks}
-                    paginationAnalyticsEvent={this.paginationAnalyticsEvent}
-                  />
-                </Fragment>
-              )}
-            </DiscoverQuery>
-          )}
+          {value => {
+            return (
+              <DiscoverQuery
+                eventView={sortedEventView}
+                orgSlug={organization.slug}
+                location={location}
+                setError={error => setError(error?.message)}
+                referrer="api.performance.landing-table"
+                transactionName={transaction}
+                transactionThreshold={transactionThreshold}
+                queryExtras={getMEPQueryParams(value)}
+                useEvents={useEvents}
+              >
+                {({pageLinks, isLoading, tableData}) => (
+                  <Fragment>
+                    <GridEditable
+                      isLoading={isLoading}
+                      data={tableData ? tableData.data : []}
+                      columnOrder={columnOrder}
+                      columnSortBy={columnSortBy}
+                      grid={{
+                        onResizeColumn: this.handleResizeColumn,
+                        renderHeadCell: this.renderHeadCellWithMeta(
+                          tableData?.meta
+                        ) as any,
+                        renderBodyCell: this.renderBodyCellWithData(tableData) as any,
+                        renderPrependColumns: this.renderPrependCellWithData(
+                          tableData
+                        ) as any,
+                        prependColumnWidths,
+                      }}
+                      location={location}
+                    />
+                    <Pagination
+                      pageLinks={pageLinks}
+                      paginationAnalyticsEvent={this.paginationAnalyticsEvent}
+                    />
+                  </Fragment>
+                )}
+              </DiscoverQuery>
+            );
+          }}
         </MEPConsumer>
       </div>
     );
