@@ -58,7 +58,10 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         response = self.get_success_response(self.organization.slug)
 
         assert response.data["slug"] == self.organization.slug
-        assert response.data["organizationUrl"] == f"http://{self.organization.slug}.us.testserver"
+        assert response.data["links"] == {
+            "organizationUrl": f"http://{self.organization.slug}.testserver",
+            "regionUrl": "http://us.testserver",
+        }
         assert response.data["onboardingTasks"] == []
         assert response.data["id"] == str(self.organization.id)
         assert response.data["role"] == "owner"
@@ -73,7 +76,10 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         )
 
         assert response.data["slug"] == self.organization.slug
-        assert response.data["organizationUrl"] == f"http://{self.organization.slug}.us.testserver"
+        assert response.data["links"] == {
+            "organizationUrl": f"http://{self.organization.slug}.testserver",
+            "regionUrl": "http://us.testserver",
+        }
         assert response.data["onboardingTasks"] == []
         assert response.data["id"] == str(self.organization.id)
         assert response.data["role"] == "owner"

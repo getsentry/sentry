@@ -22,8 +22,8 @@ describe('ExternalIssueActions', function () {
       expect(wrapper).toSnapshot();
     });
 
-    it('renders Link GitHub Issue when no issues currently linked', function () {
-      expect(wrapper.find('IntegrationLink a').text()).toEqual('Link GitHub Issue');
+    it('renders GitHub Issue when no issues currently linked', function () {
+      expect(wrapper.find('IntegrationLink a').text()).toEqual('GitHub Issue');
     });
 
     it('should not have `+` icon', function () {
@@ -40,7 +40,7 @@ describe('ExternalIssueActions', function () {
       it('opens when clicking text', function () {
         wrapper.find('IntegrationLink a').simulate('click');
         expect(wrapper.find('Hovercard').first().prop('header')).toEqual(
-          'Linked GitHub Integration'
+          'GitHub Integration'
         );
       });
     });
@@ -68,7 +68,7 @@ describe('ExternalIssueActions', function () {
       expect(wrapper.find('IssueSyncElement')).toHaveLength(0);
     });
 
-    it('renders Link GitHub Issue when no issues currently linked', function () {
+    it('renders GitHub Issue when no issues currently linked', function () {
       expect(wrapper.find('IntegrationLink a').text()).toEqual('getsentry/sentry#2');
     });
 

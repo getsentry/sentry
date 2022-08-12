@@ -36,14 +36,13 @@ def get_suspect_resolutions(resolved_issue_id: int) -> Sequence[int]:
     )
 
     correlated_issue_ids = []
-    (
-        metric_correlation_results,
-        resolution_time,
-        start_time,
-        end_time,
-    ) = is_issue_error_rate_correlated(resolved_issue, all_project_issues)
 
-    for metric_correlation_result in metric_correlation_results:
+    result = is_issue_error_rate_correlated(resolved_issue, all_project_issues)
+
+    if result is None:
+        return correlated_issue_ids
+
+    for metric_correlation_result in result[0]:
         (
             is_commit_correlated,
             resolved_issue_release_ids,
@@ -61,9 +60,9 @@ def get_suspect_resolutions(resolved_issue_id: int) -> Sequence[int]:
             candidate_group_id=metric_correlation_result.candidate_suspect_resolution_id,
             resolved_group_resolution_type=resolution_type,
             pearson_r_coefficient=metric_correlation_result.coefficient,
-            pearson_r_start_time=start_time,
-            pearson_r_end_time=end_time,
-            pearson_r_resolution_time=resolution_time,
+            pearson_r_start_time=result[2],
+            pearson_r_end_time=result[3],
+            pearson_r_resolution_time=result[1],
             is_commit_correlated=is_commit_correlated,
             resolved_issue_release_ids=resolved_issue_release_ids,
             candidate_issue_release_ids=candidate_issue_release_ids,
