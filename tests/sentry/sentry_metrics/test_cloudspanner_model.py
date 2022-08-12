@@ -1,3 +1,5 @@
+import random
+import string
 import uuid
 from datetime import datetime
 from typing import Sequence
@@ -5,7 +7,7 @@ from typing import Sequence
 import pytest
 
 from sentry.sentry_metrics.indexer.cloudspanner import CloudSpannerIndexer
-from sentry.sentry_metrics.indexer.cloudspanner_model import (
+from sentry.sentry_metrics.indexer.cloudspanner.cloudspanner_model import (
     CloudSpannerDBAccessor,
     CloudSpannerInsertMode,
     SpannerIndexerModel,
@@ -24,6 +26,8 @@ def test_cloudspanner_model_column_names() -> None:
         "retention_days",
     ]
 
+def get_random_string(length: int) -> str:
+    return "".join(random.choice(string.ascii_letters) for _ in range(length))
 
 @pytest.mark.skip(reason="TODO: Implement it correctly")
 @pytest.mark.parametrize(
@@ -35,7 +39,7 @@ def test_cloudspanner_model_column_names() -> None:
                 SpannerIndexerModel(
                     id=(uuid.uuid4().int & (1 << 64) - 1) >> 1,
                     decoded_id=12345,
-                    string="string",
+                    string=get_random_string(100),
                     organization_id=1,
                     retention_days=90,
                     date_added=datetime.now(),
@@ -50,7 +54,7 @@ def test_cloudspanner_model_column_names() -> None:
                 SpannerIndexerModel(
                     id=(uuid.uuid4().int & (1 << 64) - 1) >> 1,
                     decoded_id=12345,
-                    string="string 1",
+                    string=get_random_string(100),
                     organization_id=1,
                     retention_days=90,
                     date_added=datetime.now(),
@@ -59,7 +63,7 @@ def test_cloudspanner_model_column_names() -> None:
                 SpannerIndexerModel(
                     id=(uuid.uuid4().int & (1 << 64) - 1) >> 1,
                     decoded_id=12345,
-                    string="string 2",
+                    string=get_random_string(100),
                     organization_id=1,
                     retention_days=90,
                     date_added=datetime.now(),
@@ -68,7 +72,7 @@ def test_cloudspanner_model_column_names() -> None:
                 SpannerIndexerModel(
                     id=(uuid.uuid4().int & (1 << 64) - 1) >> 1,
                     decoded_id=12345,
-                    string="string 3",
+                    string=get_random_string(100),
                     organization_id=1,
                     retention_days=90,
                     date_added=datetime.now(),
@@ -83,7 +87,7 @@ def test_cloudspanner_model_column_names() -> None:
                 SpannerIndexerModel(
                     id=(uuid.uuid4().int & (1 << 64) - 1) >> 1,
                     decoded_id=12345,
-                    string="string 11",
+                    string=get_random_string(100),
                     organization_id=1,
                     retention_days=90,
                     date_added=datetime.now(),
@@ -98,7 +102,7 @@ def test_cloudspanner_model_column_names() -> None:
                 SpannerIndexerModel(
                     id=(uuid.uuid4().int & (1 << 64) - 1) >> 1,
                     decoded_id=12345,
-                    string="string 12",
+                    string=get_random_string(100),
                     organization_id=1,
                     retention_days=90,
                     date_added=datetime.now(),
@@ -107,7 +111,7 @@ def test_cloudspanner_model_column_names() -> None:
                 SpannerIndexerModel(
                     id=(uuid.uuid4().int & (1 << 64) - 1) >> 1,
                     decoded_id=12345,
-                    string="string 13",
+                    string=get_random_string(100),
                     organization_id=1,
                     retention_days=90,
                     date_added=datetime.now(),
@@ -116,7 +120,7 @@ def test_cloudspanner_model_column_names() -> None:
                 SpannerIndexerModel(
                     id=(uuid.uuid4().int & (1 << 64) - 1) >> 1,
                     decoded_id=12345,
-                    string="string 14",
+                    string=get_random_string(100),
                     organization_id=1,
                     retention_days=90,
                     date_added=datetime.now(),
