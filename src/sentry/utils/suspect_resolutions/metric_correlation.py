@@ -1,21 +1,29 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import List, Optional, Tuple
+from typing import List, Optional, Sequence
 
 from sentry import tsdb
 from sentry.models import Group
 
 
 @dataclass
-class MetricCorrelationResult:
+class CandidateMetricCorrResult:
     candidate_suspect_resolution_id: int
     is_correlated: bool
     coefficient: float
 
 
+@dataclass
+class IssueReleaseMetricCorrResult:
+    candidate_metric_correlations: Sequence[CandidateMetricCorrResult]
+    issue_resolved_time: datetime
+    correlation_start_time: datetime
+    correlation_end_time: datetime
+
+
 def is_issue_error_rate_correlated(
     resolved_issue: Group, candidate_suspect_resolutions: List[Group]
-) -> Optional[Tuple[List[MetricCorrelationResult], datetime, datetime, datetime]]:
+) -> Optional[IssueReleaseMetricCorrResult]:
     if (
         not resolved_issue
         or not resolved_issue.resolved_at
@@ -42,7 +50,7 @@ def is_issue_error_rate_correlated(
     coefficients = {csr_id: calculate_pearson_correlation_coefficient(x, y[csr_id]) for csr_id in y}
 
     results = [
-        MetricCorrelationResult(
+        CandidateMetricCorrResult(
             candidate_suspect_resolution_id=csr_id,
             is_correlated=coefficient > 0.4,
             coefficient=coefficient,
@@ -50,10 +58,10 @@ def is_issue_error_rate_correlated(
         for (csr_id, coefficient) in coefficients.items()
     ]
 
-    return results, resolution_time, start_time, end_time
+    return IssueReleaseMetricCorrResult(results, resolution_time, start_time, end_time)
 
 
-def calculate_pearson_correlation_coefficient(x: List[int], y: List[int]) -> float:
+def calculate_pearson_correlation_coefficient(x: Sequence[int], y: Sequence[int]) -> float:
     # source: https://inside-machinelearning.com/en/pearson-formula-in-python-linear-correlation-coefficient/
     if len(x) == 0 or len(y) == 0:
         return 0.0
@@ -71,4 +79,4 @@ def calculate_pearson_correlation_coefficient(x: List[int], y: List[int]) -> flo
     if st_dev_x_y == 0 or st_dev_x_y == 0.0:
         return 0.0
 
-    return cov / st_dev_x_y
+    return float(cov / st_dev_x_y)
