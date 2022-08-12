@@ -126,7 +126,11 @@ def make_select_statement() -> List[Union[Column, Function]]:
         Column("replay_id"),
         # First, non-null value of a collected array.
         _grouped_unique_scalar_value(column_name="title"),
-        _grouped_unique_scalar_value(column_name="project_id", alias="projectId"),
+        Function(
+            "toString",
+            parameters=[_grouped_unique_scalar_value(column_name="project_id", alias="agg_pid")],
+            alias="projectId",
+        ),
         _grouped_unique_scalar_value(column_name="platform"),
         _grouped_unique_scalar_value(column_name="environment", alias="agg_environment"),
         _grouped_unique_scalar_value(column_name="release"),

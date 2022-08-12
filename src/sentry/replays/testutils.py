@@ -36,7 +36,7 @@ def mock_expected_response(
     return {
         "id": replay_id,
         "title": kwargs.pop("title", "Title"),
-        "projectId": project_id,
+        "projectId": str(project_id),
         "urls": urls,
         "errorIds": kwargs.pop("error_ids", []),
         "traceIds": kwargs.pop("trace_ids", []),
