@@ -1,60 +1,61 @@
-import datetime
-from dataclasses import dataclass, field
+from collections import namedtuple
+from enum import Enum
 from typing import Sequence
 
-_TIMESTAMP_TZ_FORMAT = "%Y-%m-%d %H:%M:%S %Z"
+_COLUMNS = ["id", "decoded_id", "string", "organization_id", "date_added",
+            "last_seen", "retention_days"]
+
+SpannerIndexerModel = namedtuple("SpannerIndexerModel", _COLUMNS)
+
+def get_column_names() -> Sequence[str]:
+    return _COLUMNS
 
 
-@dataclass
-class SpannerIndexerModel:
-    id: int
-    decoded_id: int
-    string: str
-    organization_id: int
-    retention_days: int
-    date_added: datetime.datetime = field(default_factory=datetime.datetime.now)
-    last_seen: datetime.datetime = field(default_factory=datetime.datetime.now)
+class CloudSpannerInsertMode(Enum):
+    """
+    The method to use when inserting data into CloudSpanner.
+    """
+    DML = 1
+    MUTATION = 2
 
-    def to_values_format_dml(self) -> str:
-        """
-        Returns a string in the format of (id, decoded_id, string,
-        organization_id, date_added, last_seen, retention_days) which can be
-        used in the VALUES section of INSERT statement.
-        # TODO: Revisit this later for SQL injection.
-        """
-        parametrized_format = "(%d, %d, '%s', %d, '%s', '%s', %d)"
-        return parametrized_format % (
-            self.id,
-            self.decoded_id,
-            self.string,
-            self.organization_id,
-            self.date_added.strftime(_TIMESTAMP_TZ_FORMAT),
-            self.last_seen.strftime(_TIMESTAMP_TZ_FORMAT),
-            self.retention_days,
-        )
 
-    @classmethod
-    def to_columns_format_dml(cls) -> str:
-        """
-        Returns a string which can be used in the COLUMNS section of
-        INSERT statement.
-        Only useful when you want to insert all columns of the model.
-        """
-        return "(id, decoded_id, string, organization_id, date_added, " "last_seen, retention_days)"
+class CloudSpannerDBAccessor:
+    """
+    Provides methods to perform INSERT's and READ's on CloudSpanner.
+    """
+    def __init__(self, database, table_name: str,
+                 insert_mode: CloudSpannerInsertMode) -> None:
+        self.__database = database
+        self.__table_name = table_name
+        self.__insert = self.__insert_using_mutation if insert_mode == CloudSpannerInsertMode.MUTATION else self.__insert_using_dml
 
-    @classmethod
-    def to_columns_format_batch(cls) -> Sequence[str]:
+    def __insert_using_dml(self, models: Sequence[SpannerIndexerModel]) -> None:
         """
-        Returns the set of columns which can be used in the columns parameter of
-        batch inserts/updates.
-        Only useful when you want to insert all columns of the model.
+        Insert data using DML. Raise any errors that occur so that the
+        application can handle them.
         """
-        return [
-            "id",
-            "decoded_id",
-            "string",
-            "organization_id",
-            "date_added",
-            "last_seen",
-            "retention_days",
-        ]
+        def insert_dml(transaction):
+            """
+            Inserts data on a database table in a transaction context.
+            """
+            transaction.insert(
+                self.__table_name,
+                columns=get_column_names(),
+                values=models)
+
+        self.__database.run_in_transaction(insert_dml)
+
+    def __insert_using_mutation(self, models: Sequence[SpannerIndexerModel]) -> None:
+        """
+        Insert data using Mutation. Raise any errors that occur so that the
+        application can handle them.
+        """
+        with self.__database.batch() as batch:
+            batch.insert(
+                table=self.__table_name,
+                columns=get_column_names(),
+                values=models,
+            )
+
+    def insert(self, models: Sequence[SpannerIndexerModel]) -> None:
+        return self.__insert(models)

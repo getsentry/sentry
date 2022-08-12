@@ -1,4 +1,4 @@
-from typing import Mapping, Optional, Set
+from typing import Mapping, Optional, Set, Sequence
 
 from google.cloud import spanner
 
