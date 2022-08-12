@@ -112,13 +112,17 @@ type State = {
 };
 
 /**
- *
  * Deprecated dropdown menu. Use these alternatives instead:
- * - For a select menu: `CompactSelect`.
- * - For an action menu: `DropdownMenuControl`.
- * - For for other menus/overlays: a combination of `Overlay` and the
- *   `useOverlay` hook. Storybook example:
- *   https://storybook.sentry.dev/?path=/story/components-buttons-dropdowns-overlay--overlay
+ *
+ * - For a select menu: use `CompactSelect`
+ * https://storybook.sentry.dev/?path=/story/components-forms-fields--compact-select-field
+ *
+ * - For an action menu (where there's no selection state, clicking on a menu
+ * item will trigger an action): use `DropdownMenuControl`.
+ *
+ * - For for other menus/overlays: use a combination of `Overlay` and the
+ * `useOverlay` hook.
+ * https://storybook.sentry.dev/?path=/story/components-buttons-dropdowns-overlay--overlay
  *
  * @deprecated
  */
