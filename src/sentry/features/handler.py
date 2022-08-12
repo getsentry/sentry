@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__all__ = ["FeatureHandler", "BatchFeatureHandler"]
+__all__ = ["FeatureHandler", "BatchFeatureHandler", "ActiveReleaseDefaultOnHardcodeFeatureHandler"]
 
 import abc
 from typing import TYPE_CHECKING, Mapping, MutableSet, Optional, Sequence
@@ -60,3 +60,29 @@ class BatchFeatureHandler(FeatureHandler):
     def has_for_batch(self, batch: FeatureCheckBatch) -> Mapping[Project, bool]:
         flag = self._check_for_batch(batch.feature_name, batch.subject, batch.actor)
         return {obj: flag for obj in batch.objects}
+
+
+# this project feature flag is on a hot path, but we still want to feature test it to certain projects
+# before release
+# instead of defining this as a flagr flag, we register this hard-coded FeatureHandler for performance
+class ActiveReleaseDefaultOnHardcodeFeatureHandler(FeatureHandler):
+    features = {"projects:active-release-monitor-default-on"}
+
+    def has(self, feature: Feature, actor: User, skip_entity: Optional[bool] = False) -> bool:
+        from sentry.features import ProjectFeature
+
+        return (
+            isinstance(feature, ProjectFeature)
+            and feature.name in self.features
+            and feature.project.id in [1, 11276, 5995946]
+        )
+
+    def batch_has(
+        self,
+        feature_names: Sequence[str],
+        actor: User,
+        projects: Optional[Sequence[Project]] = None,
+        organization: Optional[Organization] = None,
+        batch: bool = True,
+    ) -> Optional[Mapping[str, Mapping[str, bool]]]:
+        return None

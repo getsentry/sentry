@@ -4,8 +4,8 @@ from unittest import mock
 from django.conf import settings
 
 from sentry import features
-from sentry.features import Feature
-from sentry.models import User
+from sentry.features import ActiveReleaseDefaultOnHardcodeFeatureHandler, Feature, default_manager
+from sentry.models import Project, User
 from sentry.testutils import TestCase
 
 
@@ -108,6 +108,22 @@ class FeatureManagerTest(TestCase):
         assert manager.has_for_batch(
             project_flag, organization, [p1, p2, p3, p4], actor=test_user
         ) == {p1: True, p2: False, p3: True, p4: False}
+
+    def test_hard_code_handler(self):
+        project_flag = "projects:active-release-monitor-default-on"
+        manager = features.FeatureManager()
+        manager.add(project_flag, features.ProjectFeature)
+        manager.add_handler(ActiveReleaseDefaultOnHardcodeFeatureHandler())
+
+        project_on = Project.objects.get(id=1)
+        project_off = self.create_project(id=987654)
+
+        manager.has(project_flag, project_on)
+        assert manager.has(project_flag, project_on)
+        assert not manager.has(project_flag, project_off)
+
+        assert default_manager.has(project_flag, project_on)
+        assert not default_manager.has(project_flag, project_off)
 
     def test_entity_handler(self):
         test_org = self.create_organization()

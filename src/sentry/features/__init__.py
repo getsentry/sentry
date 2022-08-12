@@ -192,7 +192,7 @@ default_manager.add("organizations:sso-saml2", OrganizationFeature)
 default_manager.add("organizations:team-insights", OrganizationFeature)
 
 # Project scoped features
-default_manager.add("projects:active-release-monitor-default-on", ProjectFeature, True)
+default_manager.add("projects:active-release-monitor-default-on", ProjectFeature)
 default_manager.add("projects:alert-filters", ProjectFeature)
 default_manager.add("projects:custom-inbound-filters", ProjectFeature)
 default_manager.add("projects:data-forwarding", ProjectFeature)
@@ -214,6 +214,9 @@ default_manager.add("users:notification-slack-automatic", UserFeature)
 
 # Workflow 2.0 Project features
 default_manager.add("projects:auto-associate-commits-to-release", ProjectFeature)
+
+# register the hard-coded handler
+default_manager.add_handler(ActiveReleaseDefaultOnHardcodeFeatureHandler())  # NOQA
 
 
 # This is a gross hardcoded list, but there's no
