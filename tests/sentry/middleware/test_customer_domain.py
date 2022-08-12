@@ -241,11 +241,12 @@ class End2EndTest(APITestCase):
             # Redirect response for org slug path mismatch
             response = self.client.get(
                 reverse("org-events-endpoint", kwargs={"organization_slug": "some-org"}),
+                data={"querystring": "value"},
                 HTTP_HOST="albertos-apples.testserver",
                 follow=True,
             )
             assert response.status_code == 200
-            assert response.redirect_chain == [("/api/0/albertos-apples/", 302)]
+            assert response.redirect_chain == [("/api/0/albertos-apples/?querystring=value", 302)]
             assert response.data == {
                 "organization_slug": "albertos-apples",
                 "subdomain": "albertos-apples",
@@ -257,6 +258,7 @@ class End2EndTest(APITestCase):
             # Redirect response for subdomain and path mismatch
             response = self.client.get(
                 reverse("org-events-endpoint", kwargs={"organization_slug": "some-org"}),
+                data={"querystring": "value"},
                 # This should preferably be HTTP_HOST.
                 # Using SERVER_NAME until https://code.djangoproject.com/ticket/32106 is fixed.
                 SERVER_NAME="does-not-exist.testserver",
@@ -264,7 +266,7 @@ class End2EndTest(APITestCase):
             )
             assert response.status_code == 200
             assert response.redirect_chain == [
-                ("http://albertos-apples.testserver/api/0/albertos-apples/", 302)
+                ("http://albertos-apples.testserver/api/0/albertos-apples/?querystring=value", 302)
             ]
             assert response.data == {
                 "organization_slug": "albertos-apples",
@@ -283,10 +285,13 @@ class End2EndTest(APITestCase):
         with override_settings(MIDDLEWARE=tuple(middleware)):
             response = self.client.get(
                 reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"}),
+                data={"querystring": "value"},
                 HTTP_HOST="albertos-apples.testserver",
             )
             assert response.status_code == 302
-            assert response["Location"] == "http://testserver/api/0/albertos-apples/"
+            assert (
+                response["Location"] == "http://testserver/api/0/albertos-apples/?querystring=value"
+            )
 
             response = self.client.get(
                 reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"}),

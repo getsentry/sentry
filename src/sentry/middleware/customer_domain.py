@@ -24,6 +24,13 @@ def _org_exists(slug):
         return False
 
 
+def _query_string(request):
+    qs = request.META.get("QUERY_STRING") or ""
+    if qs:
+        qs = f"?{qs}"
+    return qs
+
+
 def _resolve_activeorg(request):
     subdomain = request.subdomain
     session = getattr(request, "session", None)
@@ -53,7 +60,8 @@ def _resolve_redirect_url(request, activeorg):
     if org_slug_path_mismatch:
         kwargs["organization_slug"] = activeorg
     path = reverse(result.url_name, kwargs=kwargs)
-    redirect_url = f"{redirect_url}{path}"
+    qs = _query_string(request)
+    redirect_url = f"{redirect_url}{path}{qs}"
     return redirect_url
 
 
@@ -75,10 +83,8 @@ class CustomerDomainMiddleware:
         user = getattr(request, "user", None)
         if user and user.is_authenticated and not user.is_staff:
             # Kick user to sentry.io if they are not a Sentry staff
-            qs = request.META.get("QUERY_STRING") or ""
-            if qs:
-                qs = f"?{qs}"
             url_prefix = options.get("system.url-prefix")
+            qs = _query_string(request)
             redirect_url = f"{url_prefix}{request.path}{qs}"
             return HttpResponseRedirect(redirect_url)
 
