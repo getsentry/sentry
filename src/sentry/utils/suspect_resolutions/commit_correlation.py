@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Sequence, Set
 
 from django.utils import timezone
@@ -40,7 +41,7 @@ def is_issue_commit_correlated(
     )
 
 
-def get_files_changed(issue_id: int, project_id: int) -> Tuple[List[int], Set[str]]:
+def get_files_changed_in_releases(issue_id: int, project_id: int) -> ReleaseCommitFileChanges:
     releases = GroupRelease.objects.filter(
         group_id=issue_id,
         project_id=project_id,
