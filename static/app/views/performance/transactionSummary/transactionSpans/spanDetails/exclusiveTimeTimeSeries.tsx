@@ -18,10 +18,7 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
-import {
-  axisLabelFormatter,
-  tooltipFormatterUsingAggregateOutputType,
-} from 'sentry/utils/discover/charts';
+import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
@@ -137,7 +134,7 @@ export default function ExclusiveTimeTimeSeries(props: Props) {
                   trigger: 'axis' as const,
                   // p50() coerces the axis to be time based
                   valueFormatter: (value, _seriesName) =>
-                    tooltipFormatterUsingAggregateOutputType(value, 'duration'),
+                    tooltipFormatter(value, 'duration'),
                 },
                 xAxis: timeframe
                   ? {

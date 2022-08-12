@@ -14,7 +14,7 @@ import {Series} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
   getDurationUnit,
-  tooltipFormatterUsingAggregateOutputType,
+  tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';
@@ -91,8 +91,7 @@ function Content({
     },
     tooltip: {
       trigger: 'axis',
-      valueFormatter: (value: number | null) =>
-        tooltipFormatterUsingAggregateOutputType(value, 'duration'),
+      valueFormatter: (value: number | null) => tooltipFormatter(value, 'duration'),
     },
     xAxis: timeFrame
       ? {
