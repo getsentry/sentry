@@ -60,18 +60,16 @@ class MetricCorrelationTest(TestCase):
             group1_pearson_values, group2_pearson_values
         )
 
-        results, resolution_time, start_time, end_time = is_issue_error_rate_correlated(
-            group1, [group2]
-        )
+        result = is_issue_error_rate_correlated(group1, [group2])
 
-        assert results == [
+        assert result.candidate_metric_correlations == [
             CandidateMetricCorrResult(
                 candidate_suspect_resolution_id=group2.id,
                 is_correlated=True,
                 coefficient=coefficient,
             )
         ]
-        assert resolution_time == group1.resolved_at
+        assert result.issue_resolved_time == group1.resolved_at
 
     @mock.patch("sentry.tsdb.get_range")
     def test_uncorrelated_issues(self, mock_get_range):
@@ -91,18 +89,16 @@ class MetricCorrelationTest(TestCase):
             group1_pearson_values, group2_pearson_values
         )
 
-        results, resolution_time, start_time, end_time = is_issue_error_rate_correlated(
-            group1, [group2]
-        )
+        result = is_issue_error_rate_correlated(group1, [group2])
 
-        assert results == [
+        assert result.candidate_metric_correlations == [
             CandidateMetricCorrResult(
                 candidate_suspect_resolution_id=group2.id,
                 is_correlated=False,
                 coefficient=coefficient,
             )
         ]
-        assert resolution_time == group1.resolved_at
+        assert result.issue_resolved_time == group1.resolved_at
 
     @mock.patch("sentry.tsdb.get_range")
     def test_perfect_correlation(self, mock_get_range):
@@ -121,18 +117,16 @@ class MetricCorrelationTest(TestCase):
             group1_pearson_values, group2_pearson_values
         )
 
-        results, resolution_time, start_time, end_time = is_issue_error_rate_correlated(
-            group1, [group2]
-        )
+        result = is_issue_error_rate_correlated(group1, [group2])
 
-        assert results == [
+        assert result.candidate_metric_correlations == [
             CandidateMetricCorrResult(
                 candidate_suspect_resolution_id=group2.id,
                 is_correlated=True,
                 coefficient=coefficient,
             )
         ]
-        assert resolution_time == group1.resolved_at
+        assert result.issue_resolved_time == group1.resolved_at
 
     @mock.patch("sentry.tsdb.get_range")
     def test_multiple_groups(self, mock_get_range):
@@ -174,11 +168,9 @@ class MetricCorrelationTest(TestCase):
             group1_pearson_values, group4_pearson_values
         )
 
-        results, resolution_time, start_time, end_time = is_issue_error_rate_correlated(
-            group1, [group2, group3, group4]
-        )
+        result = is_issue_error_rate_correlated(group1, [group2, group3, group4])
 
-        assert results == [
+        assert result.candidate_metric_correlations == [
             CandidateMetricCorrResult(
                 candidate_suspect_resolution_id=group2.id,
                 is_correlated=True,
@@ -195,7 +187,7 @@ class MetricCorrelationTest(TestCase):
                 coefficient=coefficient_group4,
             ),
         ]
-        assert resolution_time == group1.resolved_at
+        assert result.issue_resolved_time == group1.resolved_at
 
     def test_custom_calculation_against_pearsonr(self):
         group1_events = [
