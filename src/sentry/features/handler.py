@@ -6,7 +6,7 @@ import abc
 from typing import TYPE_CHECKING, Mapping, MutableSet, Optional, Sequence
 
 if TYPE_CHECKING:
-    from sentry.features.base import Feature, ProjectFeature
+    from sentry.features.base import Feature
     from sentry.features.manager import FeatureCheckBatch
     from sentry.models import Organization, Project, User
 
@@ -69,6 +69,8 @@ class ActiveReleaseDefaultOnHardcodeFeatureHandler(FeatureHandler):
     features = {"projects:active-release-monitor-default-on"}
 
     def has(self, feature: Feature, actor: User, skip_entity: Optional[bool] = False) -> bool:
+        from sentry.features.base import ProjectFeature
+
         return (
             isinstance(feature, ProjectFeature)
             and feature.name in self.features
@@ -83,4 +85,4 @@ class ActiveReleaseDefaultOnHardcodeFeatureHandler(FeatureHandler):
         organization: Optional[Organization] = None,
         batch: bool = True,
     ) -> Optional[Mapping[str, Mapping[str, bool]]]:
-        return None
+        raise NotImplementedError
