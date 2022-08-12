@@ -28,7 +28,6 @@ import {t, tct} from 'sentry/locale';
 import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {DataCategory, DateString, Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import withOrganization from 'sentry/utils/withOrganization';
 import HeaderTabs from 'sentry/views/organizationStats/header';
 
@@ -191,12 +190,8 @@ export class OrganizationStats extends Component<Props> {
 
     const {organization, router} = this.props;
 
-    trackAdvancedAnalyticsEvent('sampling.stats.alert.click', {
-      organization,
-    });
-
     navigateTo(
-      `/settings/${organization.slug}/projects/:projectId/server-side-sampling/`,
+      `/settings/${organization.slug}/projects/:projectId/server-side-sampling/?referrer=org-stats.alert`,
       router
     );
   };

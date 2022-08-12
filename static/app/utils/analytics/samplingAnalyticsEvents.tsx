@@ -100,7 +100,6 @@ export type SamplingEventParameters = {
   'sampling.settings.view_read_docs': {
     project_id: string;
   };
-  'sampling.stats.alert.click': {};
 };
 
 type SamplingAnalyticsKey = keyof SamplingEventParameters;
@@ -144,5 +143,4 @@ export const samplingEventMap: Record<SamplingAnalyticsKey, string> = {
   'sampling.settings.view': 'View sampling settings',
   'sampling.settings.view_get_started': 'Get started with sampling',
   'sampling.settings.view_read_docs': 'Read sampling docs', // fired for all read docs buttons
-  'sampling.stats.alert.click': 'Go to server-side sampling settings from stats',
 };
