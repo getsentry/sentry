@@ -9,6 +9,10 @@ from sentry.utils.suspect_resolutions import analytics
 from sentry.utils.suspect_resolutions.commit_correlation import is_issue_commit_correlated
 from sentry.utils.suspect_resolutions.metric_correlation import is_issue_error_rate_correlated
 
+# make sure to increment this when making changes to anything within the 'suspect_resolutions' directory
+# keeps track of changes to how we process suspect commits, so we can filter out analytics events by the algo version
+ALGO_VERSION = "0.0.2"
+
 
 @issue_resolved.connect(weak=False)
 def record_suspect_resolutions(organization_id, project, group, user, resolution_type, **kwargs):
@@ -56,6 +60,7 @@ def get_suspect_resolutions(resolved_issue_id: int) -> Sequence[int]:
             correlated_issue_ids.append(metric_correlation_result.candidate_suspect_resolution_id)
         analytics.record(
             "suspect_resolution.evaluation",
+            algo_version=ALGO_VERSION,
             resolved_group_id=resolved_issue.id,
             candidate_group_id=metric_correlation_result.candidate_suspect_resolution_id,
             resolved_group_resolution_type=resolution_type,
