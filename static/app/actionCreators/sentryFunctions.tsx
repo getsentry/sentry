@@ -23,8 +23,10 @@ export async function removeSentryFunction(
       }
     );
     addSuccessMessage(tct('[name] successfully deleted.', {name: sentryFn.name}));
+    return true;
   } catch (err) {
     clearIndicators();
     addErrorMessage(err?.responseJSON?.detail || t('Unknown Error'));
+    return false;
   }
 }
