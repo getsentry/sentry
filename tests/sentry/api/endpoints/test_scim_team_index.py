@@ -1,6 +1,7 @@
 from django.urls import reverse
 
-from sentry.models import Team
+from sentry.models import AuditLogEntry, Team
+from sentry.scim.endpoints.teams import OrganizationSCIMTeamIndex
 from sentry.testutils import SCIMTestCase
 
 CREATE_TEAM_POST_DATA = {
@@ -10,7 +11,7 @@ CREATE_TEAM_POST_DATA = {
 }
 
 
-class SCIMGroupIndexTests(SCIMTestCase):
+class SCIMGroupIndexTests(SCIMTestCase, OrganizationSCIMTeamIndex):
     def test_group_index_empty(self):
         url = reverse("sentry-api-0-organization-scim-team-index", args=[self.organization.slug])
         response = self.client.get(f"{url}?startIndex=1&count=100")
@@ -44,6 +45,19 @@ class SCIMGroupIndexTests(SCIMTestCase):
         assert Team.objects.get(id=team_id).slug == "test-scimv2"
         assert Team.objects.get(id=team_id).name == "Test SCIMv2"
         assert len(Team.objects.get(id=team_id).member_set) == 0
+
+        # test audit log
+        response.user = self.create_user(
+            username="scim-internal-integration-681d6e-ad37e179-501c-4639-bc83-9780ca1"
+        )
+        response.data["id"] = str(int(team_id) + 1)
+        response.data["displayName"] = "Test SCIMv3"
+        response.META = {"REMOTE_ADDR": "128.218.229.26"}
+        self.post(request=response, organization=self.organization)
+
+        audit_logs = AuditLogEntry.objects.filter(organization=self.organization)
+        assert audit_logs[1].actor_label == "SCIM Internal Integration (681d6e)"
+        assert audit_logs[1].event == 20  # TEAM_ADD
 
     def test_scim_team_index_populated(self):
         team = self.create_team(organization=self.organization)

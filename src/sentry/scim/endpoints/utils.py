@@ -1,3 +1,4 @@
+import re
 from typing import Dict, List
 
 from drf_spectacular.utils import extend_schema
@@ -159,6 +160,23 @@ class SCIMEndpoint(OrganizationEndpoint):
             raise ParseError(serializer.errors)
 
         return serializer.validated_data
+
+    def fix_log_name(self, request: Request):
+        # fix username if needed
+        scim_prefix = "scim-internal-integration-"
+        scim_regex = re.compile(
+            scim_prefix
+            + r"[0-9a-fA-F]{6}\-[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{7}"
+        )
+        scim_match = re.match(scim_regex, request.user.username)
+
+        if scim_match:
+            uuid = request.user.username.split(scim_prefix)[1]
+            uuid_prefix = uuid.split("-")[0]
+            request.user.username = "SCIM Internal Integration (" + uuid_prefix + ")"
+            request.user.save()
+
+        return request
 
 
 def parse_filter_conditions(raw_filters):
