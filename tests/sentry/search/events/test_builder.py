@@ -836,6 +836,28 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
             timestamp=self.start + datetime.timedelta(minutes=5),
         )
 
+    def build_transaction_transform(self, alias):
+        if not options.get("sentry-metrics.performance.tags-values-are-strings"):
+            unparam = indexer.resolve(
+                UseCaseKey.PERFORMANCE, self.organization.id, "<< unparameterized >>"
+            )
+            null = 0
+        else:
+            unparam = "<< unparameterized >>"
+            null = ""
+
+        return Function(
+            "transform",
+            [
+                Column(
+                    f"tags[{indexer.resolve(UseCaseKey.PERFORMANCE, self.organization.id, 'transaction')}]"
+                ),
+                [null],
+                [unparam],
+            ],
+            alias,
+        )
+
 
 class MetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_default_conditions(self):
@@ -854,18 +876,8 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         self.assertCountEqual(
             query.columns,
             [
-                AliasedExpression(
-                    Column(
-                        f"tags[{indexer.resolve(UseCaseKey.PERFORMANCE, self.organization.id, 'transaction')}]"
-                    ),
-                    "tags[transaction]",
-                ),
-                AliasedExpression(
-                    Column(
-                        f"tags[{indexer.resolve(UseCaseKey.PERFORMANCE, self.organization.id, 'transaction')}]"
-                    ),
-                    "transaction",
-                ),
+                self.build_transaction_transform("tags[transaction]"),
+                self.build_transaction_transform("transaction"),
             ],
         )
 
@@ -1054,10 +1066,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 *_metric_conditions(self.organization.id, ["transaction.duration"]),
             ],
         )
-        transaction = AliasedExpression(
-            Column(resolve_tag_key(UseCaseKey.PERFORMANCE, self.organization.id, "transaction")),
-            "transaction",
-        )
+        transaction = self.build_transaction_transform("transaction")
         project = Function(
             "transform",
             [
@@ -2193,6 +2202,9 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             expected.append(
                 mock.call(UseCaseKey.PERFORMANCE, self.organization.id, "foo_transaction")
             )
+            expected.append(
+                mock.call(UseCaseKey.PERFORMANCE, self.organization.id, "<< unparameterized >>")
+            )
 
         expected.extend(
             [
@@ -2269,12 +2281,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         )
         self.assertCountEqual(
             snql_query.groupby,
-            [
-                project,
-                Column(
-                    resolve_tag_key(UseCaseKey.PERFORMANCE, self.organization.id, "transaction")
-                ),
-            ],
+            [project, self.build_transaction_transform("transaction")],
         )
 
     def test_missing_function(self):
