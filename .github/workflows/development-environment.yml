@@ -42,10 +42,10 @@ jobs:
         run: |
           HOMEBREW_NO_AUTO_UPDATE=1 brew install -v --cask docker
           sudo /Applications/Docker.app/Contents/MacOS/Docker --unattended --install-privileged-components
-          open -a /Applications/Docker.app --args --unattended --accept-license
+          open -a /Applications/Docker.app --args --unattended --accept-license --user "$USER"
 
       - name: is docker up
-        timeout-minutes: 10
+        timeout-minutes: 20
         run: |
           for i in $(seq 24); do
             if docker ps -a; then
