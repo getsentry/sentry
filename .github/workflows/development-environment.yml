@@ -64,7 +64,7 @@ jobs:
         run: |
           python -m venv .venv
           source .venv/bin/activate
-          make bootstrap
+          make bootstrap || docker ps -a
 
   # The pyenv set up takes long, thus, separating it into its own
   pyenv-setup:
