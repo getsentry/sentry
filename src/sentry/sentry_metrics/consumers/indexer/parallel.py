@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import functools
 import logging
 from functools import partial
 from typing import Callable, Mapping, Optional, Union
@@ -14,6 +13,7 @@ from arroyo.processing.strategies.streaming.transform import ParallelTransformSt
 from arroyo.types import Message, Partition, Position, Topic
 from django.conf import settings
 
+from sentry.runner import configure
 from sentry.sentry_metrics.configuration import MetricsIngestConfiguration
 from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, MessageBatch, get_config
 from sentry.sentry_metrics.consumers.indexer.multiprocess import SimpleProduceStep
@@ -21,19 +21,6 @@ from sentry.sentry_metrics.consumers.indexer.processing import process_messages
 from sentry.utils.batching_kafka_consumer import create_topics
 
 logger = logging.getLogger(__name__)
-
-
-@functools.lru_cache(maxsize=10)
-def get_metrics():  # type: ignore
-    from sentry.utils import metrics
-
-    return metrics
-
-
-def initializer() -> None:
-    from sentry.runner import configure
-
-    configure()
 
 
 class Unbatcher(ProcessingStep[MessageBatch]):  # type: ignore
@@ -47,7 +34,6 @@ class Unbatcher(ProcessingStep[MessageBatch]):  # type: ignore
     ) -> None:
         self.__next_step = next_step
         self.__closed = False
-        self.__metrics = get_metrics()
 
     def poll(self) -> None:
         self.__next_step.poll()
@@ -147,7 +133,14 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
             max_batch_time=self.__max_parallel_batch_time / 1000,
             input_block_size=self.__input_block_size,
             output_block_size=self.__output_block_size,
-            initializer=initializer,
+            # It is absolutely crucial that we pass a function reference here
+            # where the function lives in a module that does not depend on
+            # Django settings. `sentry.runner` fulfills that requirement, but
+            # if you were to create a wrapper function in this module that
+            # calls configure(), and pass that function here, it would attempt
+            # to pull in a bunch of modules that try to read django settings at
+            # import time
+            initializer=configure,
         )
 
         strategy = BatchMessages(
