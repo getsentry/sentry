@@ -18,7 +18,6 @@ from sentry.utils import json
 WRAPPER_JS = """
 const userFunc = require('./user.js');
 Object.assign(process.env, require('./env.json'));
-};
 """
 
 

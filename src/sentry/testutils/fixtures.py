@@ -410,6 +410,9 @@ class Fixtures:
     def create_comment(self, *args, **kwargs):
         return Factories.create_comment(*args, **kwargs)
 
+    def create_sentry_function(self, *args, **kwargs):
+        return Factories.create_sentry_function(*args, **kwargs)
+
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):
         self.insta_snapshot = insta_snapshot
