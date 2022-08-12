@@ -28,6 +28,7 @@ type Extraction = {
 type HookOpts = {
   replay: ReplayReader;
 };
+
 function useExtractedCrumbHtml({replay}: HookOpts) {
   const [breadcrumbRefs, setBreadcrumbReferences] = useState<Extraction[]>([]);
 
@@ -110,34 +111,6 @@ type PluginOpts = {
   onFinish: (mutations: Extraction[]) => void;
 };
 
-function removeNodesAtLevel(html: string, level: number) {
-  const parser = new DOMParser();
-  try {
-    const doc = parser.parseFromString(html, 'text/html');
-
-    const removeChildLevel = (
-      max: number,
-      collection: HTMLCollection,
-      current: number = 0
-    ) => {
-      for (let i = 0; i < collection.length; i++) {
-        const child = collection[i];
-        if (max <= current) {
-          child.innerHTML = `<!-- ${child.childElementCount} descendents -->`;
-        } else {
-          removeChildLevel(max, child.children, current + 1);
-        }
-      }
-    };
-
-    removeChildLevel(level, doc.body.children);
-    return doc.body.innerHTML;
-  } catch (err) {
-    // If we can't parse the HTML, just return the original HTML
-    return html;
-  }
-}
-
 class BreadcrumbReferencesPlugin {
   crumbs: Crumb[];
   isFinished: (event: eventWithTime) => boolean;
@@ -163,7 +136,13 @@ class BreadcrumbReferencesPlugin {
         const node = mirror.getNode(crumb.data?.nodeId || '');
         // @ts-expect-error
         const html = node?.outerHTML || node?.textContent || '';
-        const truncated = removeNodesAtLevel(html, 2);
+
+        // Limit document node depth to 2
+        let truncated = removeNodesAtLevel(html, 2);
+        // If still very long and/or removeNodesAtLevel failed, truncate
+        if (truncated.length > 2000) {
+          truncated = truncated.substring(0, 2000);
+        }
 
         if (truncated) {
           this.activities.push({
@@ -180,6 +159,34 @@ class BreadcrumbReferencesPlugin {
     if (this.isFinished(event)) {
       this.onFinish(this.activities);
     }
+  }
+}
+
+function removeNodesAtLevel(html: string, level: number) {
+  const parser = new DOMParser();
+  try {
+    const doc = parser.parseFromString(html, 'text/html');
+
+    const removeChildLevel = (
+      max: number,
+      collection: HTMLCollection,
+      current: number = 0
+    ) => {
+      for (let i = 0; i < collection.length; i++) {
+        const child = collection[i];
+        if (max <= current) {
+          child.innerHTML = `<!-- ${child.childElementCount} descendents -->`;
+        } else {
+          removeChildLevel(max, child.children, current + 1);
+        }
+      }
+    };
+
+    removeChildLevel(level, doc.body.children);
+    return doc.body.innerHTML;
+  } catch (err) {
+    // If we can't parse the HTML, just return the original
+    return html;
   }
 }
 
