@@ -14,6 +14,7 @@ from sentry.models import (
     GROUP_OWNER_TYPE,
     Activity,
     ApiToken,
+    Commit,
     ExternalIssue,
     Group,
     GroupAssignee,
@@ -25,6 +26,7 @@ from sentry.models import (
     GroupLink,
     GroupOwner,
     GroupOwnerType,
+    GroupRelease,
     GroupResolution,
     GroupSeen,
     GroupShare,
@@ -35,7 +37,9 @@ from sentry.models import (
     Integration,
     OrganizationIntegration,
     Release,
+    ReleaseCommit,
     ReleaseStages,
+    Repository,
     UserOption,
     add_group_to_inbox,
     remove_group_from_inbox,
@@ -48,12 +52,13 @@ from sentry.search.events.constants import (
     SEMVER_PACKAGE_ALIAS,
 )
 from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers import parse_link_header
+from sentry.testutils.helpers import apply_feature_flag_on_cls, parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 
 
+@apply_feature_flag_on_cls("organizations:release-committer-assignees")
 class GroupListTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
 
@@ -1782,6 +1787,93 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == event.group.id
+
+    def test_include_release_committers_owners(self):
+        release = self.create_release(project=self.project, version="1.0.0")
+        event = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=500)),
+                "fingerprint": ["group-1"],
+                "release": release.version,
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
+        assert Group.objects.get(id=group.id)
+        assert GroupRelease.objects.filter(group_id=group.id, project_id=self.project.id).exists()
+
+        repo = Repository.objects.create(
+            organization_id=self.project.organization_id, name=self.project.name
+        )
+        user2 = self.create_user()
+        self.create_member(organization=self.organization, user=user2)
+        author = self.create_commit_author(project=self.project, user=user2)
+        commit = Commit.objects.create(
+            organization_id=self.project.organization_id,
+            repository_id=repo.id,
+            key="a" * 40,
+            author=author,
+        )
+        commit2 = Commit.objects.create(
+            organization_id=self.project.organization_id,
+            repository_id=repo.id,
+            key="b" * 40,
+            author=author,
+        )
+        ReleaseCommit.objects.create(
+            organization_id=self.project.organization_id,
+            release=release,
+            commit=commit,
+            order=1,
+        )
+        ReleaseCommit.objects.create(
+            organization_id=self.project.organization_id,
+            release=release,
+            commit=commit2,
+            order=0,
+        )
+
+        query = "status:unresolved"
+        self.login_as(user=self.user)
+        # Test with no owner
+        response = self.get_response(sort_by="date", limit=10, query=query, expand="owners")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert response.data[0]["owners"] is None
+
+        # Test with owners
+        GroupOwner.objects.create(
+            group=event.group,
+            project=event.project,
+            organization=event.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user=self.user,
+        )
+        GroupOwner.objects.create(
+            group=event.group,
+            project=event.project,
+            organization=event.project.organization,
+            type=GroupOwnerType.OWNERSHIP_RULE.value,
+            team=self.team,
+        )
+
+        response = self.get_response(sort_by="date", limit=10, query=query, expand="owners")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert response.data[0]["owners"] is not None
+        assert len(response.data[0]["owners"]) == 3
+        assert response.data[0]["owners"][0]["owner"] == f"user:{self.user.id}"
+        assert (
+            response.data[0]["owners"][0]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.SUSPECT_COMMIT]
+        )
+        assert response.data[0]["owners"][1]["owner"] == f"team:{self.team.id}"
+        assert (
+            response.data[0]["owners"][1]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.OWNERSHIP_RULE]
+        )
+        assert response.data[0]["owners"][2]["owner"] == f"user:{user2.id}"
+        assert response.data[0]["owners"][2]["type"] == "releaseCommits"
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):

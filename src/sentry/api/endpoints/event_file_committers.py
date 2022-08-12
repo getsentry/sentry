@@ -1,9 +1,10 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import eventstore
+from sentry import eventstore, features
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models import Commit, Group, Release
+from sentry.models.groupowner import get_release_committers_for_group
 from sentry.utils.committers import get_serialized_event_file_committers
 
 
@@ -49,4 +50,8 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
             "committers": committers,
             # 'annotatedFrames': serialized_annotated_frames
         }
+
+        if features.has("organizations:release-committer-assignees", project.organization):
+            data["releaseCommitters"] = get_release_committers_for_group(event.group_id)
+
         return Response(data)
