@@ -9,77 +9,77 @@ from sentry.models import (
 from sentry.testutils import TestCase
 from sentry.types.activity import ActivityType
 from sentry.utils.suspect_resolutions.commit_correlation import (
-    get_files_changed,
+    get_files_changed_in_releases,
     is_issue_commit_correlated,
 )
 
 
-def setup(self, status):
-    project = self.create_project()
-    issue = self.create_group(project=project, status=status)
-    release = self.create_release(project=project, version="1")
-    repo = self.create_repo(project=project, name=project.name)
-    commit = Commit.objects.create(
-        organization_id=project.organization_id, repository_id=repo.id, key="1"
-    )
-    ReleaseCommit.objects.create(
-        organization_id=project.organization_id, release=release, commit=commit, order=1
-    )
-    CommitFileChange.objects.create(
-        organization_id=project.organization_id, commit=commit, filename=".random"
-    )
-    CommitFileChange.objects.create(
-        organization_id=project.organization_id, commit=commit, filename=".random2"
-    )
-    GroupRelease.objects.create(project_id=project.id, group_id=issue.id, release_id=release.id)
-
-    return project, issue, release, repo
-
-
 class CommitCorrelationTest(TestCase):
+    def setup(self, status=GroupStatus.RESOLVED):
+        project = self.create_project()
+        issue = self.create_group(project=project, status=status)
+        release = self.create_release(project=project, version="1")
+        repo = self.create_repo(project=project, name=project.name)
+        commit = Commit.objects.create(
+            organization_id=project.organization_id, repository_id=repo.id, key="1"
+        )
+        ReleaseCommit.objects.create(
+            organization_id=project.organization_id, release=release, commit=commit, order=1
+        )
+        CommitFileChange.objects.create(
+            organization_id=project.organization_id, commit=commit, filename=".random"
+        )
+        CommitFileChange.objects.create(
+            organization_id=project.organization_id, commit=commit, filename=".random2"
+        )
+        GroupRelease.objects.create(project_id=project.id, group_id=issue.id, release_id=release.id)
+
+        return project, issue, release, repo
+
     def test_get_files_changed_resolved_in_release(self):
-        (project, issue, release, repo) = setup(self, status=GroupStatus.RESOLVED)
+        (project, issue, release, repo) = self.setup()
         Activity.objects.create(
             project=project, group=issue, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
         )
-        release_ids, files_changed = get_files_changed(issue.id, project.id)
+        files_changed = get_files_changed_in_releases(issue.id, project.id)
 
-        assert len(get_files_changed(issue.id, project.id)) == 2
-        assert files_changed == {".random", ".random2"}
-        assert release_ids == [release.id]
+        assert files_changed.files_changed == {".random", ".random2"}
+        assert files_changed.release_ids == [release.id]
 
     def test_get_files_changed_resolved_in_commit(self):
-        (project, issue, release, repo) = setup(self, status=GroupStatus.RESOLVED)
+        (project, issue, release, repo) = self.setup()
         Activity.objects.create(
             project=project, group=issue, type=ActivityType.SET_RESOLVED_IN_COMMIT.value
         )
-        release_ids, files_changed = get_files_changed(issue.id, project.id)
+        res = get_files_changed_in_releases(issue.id, project.id)
+        release_ids, files_changed = (res.release_ids, res.files_changed)
 
         assert files_changed == {".random", ".random2"}
         assert release_ids == [release.id]
 
     def test_get_files_changed_resolved_in_pull_request(self):
-        (project, issue, release, repo) = setup(self, status=GroupStatus.RESOLVED)
+        (project, issue, release, repo) = self.setup()
         Activity.objects.create(
             project=project, group=issue, type=ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value
         )
-        release_ids, files_changed = get_files_changed(issue.id, project.id)
+        res = get_files_changed_in_releases(issue.id, project.id)
+        release_ids, files_changed = (res.release_ids, res.files_changed)
 
-        assert len(get_files_changed(issue.id, project.id)) == 2
         assert files_changed == {".random", ".random2"}
         assert release_ids == [release.id]
 
     def test_get_files_changed_unresolved_issue(self):
-        (project, issue, release, repo) = setup(self, status=GroupStatus.UNRESOLVED)
-        release_ids, files_changed = get_files_changed(issue.id, project.id)
+        (project, issue, release, repo) = self.setup(status=GroupStatus.UNRESOLVED)
+        res = get_files_changed_in_releases(issue.id, project.id)
+        release_ids, files_changed = (res.release_ids, res.files_changed)
 
-        assert len(get_files_changed(issue.id, project.id)) == 2
         assert files_changed == {".random", ".random2"}
         assert release_ids == [release.id]
 
     def test_get_files_changed_manually_resolved(self):
-        (project, issue, release, repo) = setup(self, status=GroupStatus.RESOLVED)
-        release_ids, files_changed = get_files_changed(issue.id, project.id)
+        (project, issue, release, repo) = self.setup()
+        res = get_files_changed_in_releases(issue.id, project.id)
+        release_ids, files_changed = (res.release_ids, res.files_changed)
 
         assert files_changed == {".random", ".random2"}
         assert release_ids == [release.id]
@@ -106,14 +106,15 @@ class CommitCorrelationTest(TestCase):
         GroupRelease.objects.create(
             project_id=project.id, group_id=group2.id, release_id=release2.id
         )
-        group1_release_ids, group1_files_changed = get_files_changed(group1.id, project.id)
-        group2_release_ids, group2_files_changed = get_files_changed(group2.id, project.id)
 
-        assert group1_files_changed == set()
-        assert group2_files_changed == set()
-        assert group1_release_ids == [release.id]
-        assert group2_release_ids == [release2.id]
-        assert not is_issue_commit_correlated(group1.id, group2.id, project.id)
+        res1 = get_files_changed_in_releases(group1.id, project.id)
+        res2 = get_files_changed_in_releases(group2.id, project.id)
+
+        assert res1.files_changed == set()
+        assert res2.files_changed == set()
+        assert res1.release_ids == [release.id]
+        assert res2.release_ids == [release2.id]
+        assert not is_issue_commit_correlated(group1.id, group2.id, project.id).is_correlated
 
     def test_files_changed_unreleased_commits(self):
         project = self.create_project()
@@ -131,13 +132,14 @@ class CommitCorrelationTest(TestCase):
         )
         GroupRelease.objects.create(project_id=project.id, group_id=group.id, release_id=release.id)
 
-        release_ids, files_changed = get_files_changed(group.id, project.id)
+        res = get_files_changed_in_releases(group.id, project.id)
+        release_ids, files_changed = (res.release_ids, res.files_changed)
 
         assert files_changed == set()
         assert release_ids == [release.id]
 
-    def get_files_changed_shared_files(self):
-        (project, issue, release, repo) = setup(self, status=GroupStatus.RESOLVED)
+    def test_get_files_changed_shared_files(self):
+        (project, issue, release, repo) = self.setup()
         Activity.objects.create(
             project=project, group=issue, type=ActivityType.SET_RESOLVED_IN_COMMIT.value
         )
@@ -156,14 +158,15 @@ class CommitCorrelationTest(TestCase):
             project_id=project.id, group_id=issue2.id, release_id=release2.id
         )
 
-        assert get_files_changed(issue.id, project.id) == {".random", ".random2"}
-        assert get_files_changed(issue2.id, project.id) == {".random"}
-        assert len(get_files_changed(issue.id, project.id)) == 2
-        assert len(get_files_changed(issue2.id, project.id)) == 1
+        res1 = get_files_changed_in_releases(issue.id, project.id)
+        res2 = get_files_changed_in_releases(issue2.id, project.id)
+
+        assert res1.files_changed == {".random", ".random2"}
+        assert res2.files_changed == {".random"}
         assert is_issue_commit_correlated(issue.id, issue2.id, project.id)
 
-    def get_files_changed_no_shared_files(self):
-        (project, issue, release, repo) = setup(self, status=GroupStatus.RESOLVED)
+    def test_get_files_changed_no_shared_files(self):
+        (project, issue, release, repo) = self.setup()
         Activity.objects.create(
             project=project, group=issue, type=ActivityType.SET_RESOLVED_IN_COMMIT.value
         )
@@ -182,11 +185,11 @@ class CommitCorrelationTest(TestCase):
             project_id=project.id, group_id=issue2.id, release_id=release2.id
         )
 
-        group1_release_ids, group1_files_changed = get_files_changed(issue.id, project.id)
-        group2_release_ids, group2_files_changed = get_files_changed(issue2.id, project.id)
+        res1 = get_files_changed_in_releases(issue.id, project.id)
+        res2 = get_files_changed_in_releases(issue2.id, project.id)
 
-        assert group1_files_changed == set()
-        assert group2_files_changed == set()
-        assert group1_release_ids == [release.id]
-        assert group2_release_ids == [release2.id]
-        assert not is_issue_commit_correlated(issue.id, issue2.id, project.id)
+        assert res1.files_changed == {".random", ".random2"}
+        assert res2.files_changed == {".gitignore"}
+        assert res1.release_ids == [release.id]
+        assert res2.release_ids == [release2.id]
+        assert not is_issue_commit_correlated(issue.id, issue2.id, project.id).is_correlated

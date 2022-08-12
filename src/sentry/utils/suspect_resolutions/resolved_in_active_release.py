@@ -6,7 +6,6 @@ from sentry.models import Deploy, Group, GroupStatus, Release
 
 
 def is_resolved_issue_within_active_release(issue: Group) -> bool:
-
     if issue is None or issue.status != GroupStatus.RESOLVED or issue.get_last_release() is None:
         return False
 
@@ -31,4 +30,4 @@ def is_resolved_issue_within_active_release(issue: Group) -> bool:
 
     now_minus_1_hour = timezone.now() - timedelta(hours=1.0)
 
-    return now_minus_1_hour <= latest_deploy_release.date_finished <= timezone.now()
+    return bool(now_minus_1_hour <= latest_deploy_release.date_finished <= timezone.now())
