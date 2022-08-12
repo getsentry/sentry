@@ -94,6 +94,12 @@ class MetricsDatasetConfig(DatasetConfig):
         ) -> str:
             argument = function_arguments[index]
             value = parameter_values[argument.name]
+            if (
+                value == "transaction.duration"
+                or is_duration_measurement(value)
+                or is_span_op_breakdown(value)
+            ):
+                return "duration"
             for measurement in self.builder.custom_measurement_map:
                 if measurement["name"] == value and measurement["metric_id"] is not None:
                     unit = measurement["unit"]
@@ -105,12 +111,6 @@ class MetricsDatasetConfig(DatasetConfig):
                         return "percentage"
                     else:
                         return "number"
-            if (
-                value == "transaction.duration"
-                or is_duration_measurement(value)
-                or is_span_op_breakdown(value)
-            ):
-                return "duration"
             return "number"
 
         return result_type_fn
