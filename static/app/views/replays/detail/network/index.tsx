@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import FileSize from 'sentry/components/fileSize';
 import {PanelTable, PanelTableHeader} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -159,7 +160,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
         </Item>
         <Item {...columnHandlers} numeric>
           {network.data.size ? (
-            `${network.data.size} B`
+            <FileSize bytes={network.data.size} />
           ) : (
             <EmptyText>({t('Missing size')})</EmptyText>
           )}
