@@ -113,14 +113,12 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             self.browser.wait_until('[id="recommended-client-sampling"]')
 
             # Enter a custom value for client side sampling
-            self.browser.element('[id="recommended-client-sampling"]').send_keys(
-                Keys.BACK_SPACE, Keys.BACK_SPACE, Keys.BACK_SPACE, 80, Keys.ENTER
-            )
+            self.browser.element('[id="recommended-client-sampling"]').clear()
+            self.browser.element('[id="recommended-client-sampling"]').send_keys(80, Keys.ENTER)
 
             # Enter a custom value for server side sampling
-            self.browser.element('[id="recommended-server-sampling"]').send_keys(
-                Keys.BACK_SPACE, Keys.BACK_SPACE, 50, Keys.ENTER
-            )
+            self.browser.element('[id="recommended-server-sampling"]').clear()
+            self.browser.element('[id="recommended-server-sampling"]').send_keys(50, Keys.ENTER)
 
             # Click on next button
             self.browser.click_when_visible('[aria-label="Next"]')
