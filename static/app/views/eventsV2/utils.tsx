@@ -652,9 +652,9 @@ export function handleAddQueryToDashboard({
   yAxis,
 }: {
   eventView: EventView;
+  location: Location;
   organization: Organization;
   router: InjectedRouter;
-  location?: Location;
   query?: NewQuery;
   yAxis?: string | string[];
 }) {
