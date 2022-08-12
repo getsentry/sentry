@@ -28,6 +28,7 @@
 /src/sentry/quotas/                @getsentry/owners-ingest
 /src/sentry/relay/                 @getsentry/owners-ingest
 /src/sentry/utils/data_filters.py  @getsentry/owners-ingest
+/src/sentry/utils/performance_issues/   @getsentry/performance
 /src/sentry/web/api.py             @getsentry/owners-ingest
 /src/sentry/scripts/quotas/        @getsentry/owners-ingest
 /src/sentry/scripts/tsdb/          @getsentry/owners-ingest
