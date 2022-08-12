@@ -83,7 +83,7 @@ export enum DashboardFilterKeys {
 
 export type DashboardFilters = {
   [DashboardFilterKeys.RELEASE]?: string[];
-  [DashboardFilterKeys.RELEASE_ID]?: number[];
+  [DashboardFilterKeys.RELEASE_ID]?: string[];
 };
 
 /**

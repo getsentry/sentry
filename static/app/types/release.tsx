@@ -47,7 +47,7 @@ export type VersionInfo = {
 export interface BaseRelease {
   dateCreated: string;
   dateReleased: string;
-  id: number;
+  id: string;
   ref: string;
   shortVersion: string;
   status: ReleaseStatus;
