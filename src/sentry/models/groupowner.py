@@ -13,13 +13,13 @@ from sentry.db.models import FlexibleForeignKey, Model
 class GroupOwnerType(Enum):
     SUSPECT_COMMIT = 0
     OWNERSHIP_RULE = 1
-    RELEASE_COMMITS = 2
+    RELEASE_COMMIT = 2
 
 
 GROUP_OWNER_TYPE = {
     GroupOwnerType.SUSPECT_COMMIT: "suspectCommit",
     GroupOwnerType.OWNERSHIP_RULE: "ownershipRule",
-    GroupOwnerType.RELEASE_COMMITS: "releaseCommits",
+    GroupOwnerType.RELEASE_COMMIT: "releaseCommit",
 }
 
 
@@ -86,7 +86,7 @@ def get_owner_details(group_list: List[int]) -> List[OwnersSerialized]:
             }
         )
 
-    org = group_owners[0].organization if len(group_owners) > 0 else None
+    org = group_list[0].project.organization if len(group_list) > 0 else None
     if org and features.has("organizations:release-committer-assignees", org):
         for g in group_ids:
             # TODO(snigdha): optimize this to bulk grab committer data for all groups
@@ -147,7 +147,7 @@ def get_release_committers_for_group(group_id: List[int]) -> List[OwnersSerializ
 
     return [
         {
-            "type": GROUP_OWNER_TYPE[GroupOwnerType.RELEASE_COMMITS],
+            "type": GROUP_OWNER_TYPE[GroupOwnerType.RELEASE_COMMIT],
             "owner": f"user:{user_id}",
             "date_added": latest_rc.commit.date_added,
         }
