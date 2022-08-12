@@ -7,7 +7,10 @@ from sentry.models import Activity, Group, GroupStatus
 from sentry.signals import issue_resolved
 from sentry.testutils import TestCase
 from sentry.types.activity import ActivityType
-from sentry.utils.suspect_resolutions.get_suspect_resolutions import get_suspect_resolutions
+from sentry.utils.suspect_resolutions.get_suspect_resolutions import (
+    ALGO_VERSION,
+    get_suspect_resolutions,
+)
 from sentry.utils.suspect_resolutions.metric_correlation import MetricCorrelationResult
 
 
@@ -171,6 +174,7 @@ class GetSuspectResolutionsTest(TestCase):
         assert notification_record == [
             mock.call(
                 "suspect_resolution.evaluation",
+                algo_version=ALGO_VERSION,
                 resolved_group_id=resolved_issue.id,
                 candidate_group_id=0,
                 resolved_group_resolution_type=resolution_type.type,
