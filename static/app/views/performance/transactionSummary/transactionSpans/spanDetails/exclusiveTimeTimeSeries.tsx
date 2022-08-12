@@ -134,7 +134,7 @@ export default function ExclusiveTimeTimeSeries(props: Props) {
                   trigger: 'axis' as const,
                   // p50() coerces the axis to be time based
                   valueFormatter: (value, _seriesName) =>
-                    tooltipFormatter(value, 'p50()'),
+                    tooltipFormatter(value, 'duration'),
                 },
                 xAxis: timeframe
                   ? {
@@ -145,8 +145,7 @@ export default function ExclusiveTimeTimeSeries(props: Props) {
                 yAxis: {
                   axisLabel: {
                     color: theme.chartLabel,
-                    // p50() coerces the axis to be time based
-                    formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
+                    formatter: (value: number) => axisLabelFormatter(value, 'duration'),
                   },
                 },
               };

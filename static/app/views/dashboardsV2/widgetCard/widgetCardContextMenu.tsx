@@ -24,7 +24,6 @@ import {
   isCustomMeasurementWidget,
 } from 'sentry/views/dashboardsV2/utils';
 
-import {UNSAVED_FILTERS_MESSAGE} from '../detail';
 import {Widget, WidgetType} from '../types';
 import {WidgetViewerContext} from '../widgetViewer/widgetViewerContext';
 
@@ -37,7 +36,6 @@ type Props = {
   selection: PageFilters;
   widget: Widget;
   widgetLimitReached: boolean;
-  hasUnsavedFilters?: boolean;
   index?: string;
   isPreview?: boolean;
   onDelete?: () => void;
@@ -69,7 +67,6 @@ function WidgetCardContextMenu({
   tableData,
   pageLinks,
   totalIssuesCount,
-  hasUnsavedFilters,
 }: Props) {
   const {isMetricsData} = useDashboardsMEPContext();
   if (!showContextMenu) {
@@ -215,8 +212,6 @@ function WidgetCardContextMenu({
       key: 'duplicate-widget',
       label: t('Duplicate Widget'),
       onAction: () => onDuplicate?.(),
-      tooltip: hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE,
-      tooltipOptions: {position: 'left'},
     });
     widgetLimitReached && disabledKeys.push('duplicate-widget');
 
@@ -224,8 +219,6 @@ function WidgetCardContextMenu({
       key: 'edit-widget',
       label: t('Edit Widget'),
       onAction: () => onEdit?.(),
-      tooltip: hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE,
-      tooltipOptions: {position: 'left'},
     });
 
     menuOptions.push({
@@ -239,8 +232,6 @@ function WidgetCardContextMenu({
           onConfirm: () => onDelete?.(),
         });
       },
-      tooltip: hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE,
-      tooltipOptions: {position: 'left'},
     });
   }
 
@@ -271,12 +262,7 @@ function WidgetCardContextMenu({
               icon: <IconEllipsis direction="down" size="sm" />,
             }}
             placement="bottom right"
-            disabledKeys={[
-              ...disabledKeys,
-              ...(hasUnsavedFilters
-                ? ['duplicate-widget', 'edit-widget', 'delete-widget']
-                : []),
-            ]}
+            disabledKeys={[...disabledKeys]}
           />
           {showWidgetViewerButton && (
             <OpenWidgetViewerButton
