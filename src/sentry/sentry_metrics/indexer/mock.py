@@ -10,7 +10,7 @@ from sentry.sentry_metrics.indexer.base import (
     KeyResults,
     StringIndexer,
 )
-from sentry.sentry_metrics.indexer.strings import StaticStringsIndexer
+from sentry.sentry_metrics.indexer.strings import StaticStringIndexer
 
 
 class RawSimpleIndexer(StringIndexer):
@@ -68,7 +68,7 @@ class RawSimpleIndexer(StringIndexer):
         return index
 
 
-class SimpleIndexer(StaticStringsIndexer):
+class SimpleIndexer(StaticStringIndexer):
     def __init__(self) -> None:
         super().__init__(RawSimpleIndexer())
 
