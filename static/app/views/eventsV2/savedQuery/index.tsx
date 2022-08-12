@@ -366,6 +366,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
         onClick={() =>
           handleAddQueryToDashboard({
             organization,
+            location,
             eventView,
             query: savedQuery,
             yAxis,
