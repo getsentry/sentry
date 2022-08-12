@@ -73,16 +73,8 @@ type Props = Pick<ContainerProps, 'organization' | 'isLoading' | 'error' | 'tota
 };
 
 function SidebarCharts(props: Props) {
-  const {
-    isShowingMetricsEventCount,
-    start,
-    end,
-    utc,
-    router,
-    statsPeriod,
-    chartData,
-    metricsChartData,
-  } = props;
+  const {isShowingMetricsEventCount, start, end, utc, router, statsPeriod, chartData} =
+    props;
   const placeholderHeight = isShowingMetricsEventCount ? '200px' : '300px';
   const boxHeight = isShowingMetricsEventCount ? '300px' : '400px';
   return (
