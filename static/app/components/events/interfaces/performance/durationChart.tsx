@@ -1,16 +1,22 @@
 import {useRef} from 'react';
 import {useTheme} from '@emotion/react';
+import {YAXisComponentOption} from 'echarts';
 import {Location} from 'history';
 import moment from 'moment';
 
 import EventsRequest from 'sentry/components/charts/eventsRequest';
-import {LineChart} from 'sentry/components/charts/lineChart';
+import {LineChart, LineChartSeries} from 'sentry/components/charts/lineChart';
 import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import {getInterval} from 'sentry/components/charts/utils';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DateString, EventError, Group, Organization} from 'sentry/types';
-import {getDurationUnit, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {Series} from 'sentry/types/echarts';
+import {
+  findRangeOfMultiSeries,
+  getDurationUnit,
+  tooltipFormatter,
+} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import useApi from 'sentry/utils/useApi';
 import {ErrorPanel} from 'sentry/views/performance/styles';
@@ -87,7 +93,7 @@ export function DurationChart({issue, event, organization}: Props) {
             errored: affectedEventsErrored,
           }) => (
             <Content
-              allEvents={allEvents}
+              allEvents={allEvents ?? []}
               affectedEvents={data}
               loading={allEventsLoading || affectedEventsLoading}
               errored={allEventsErrored || affectedEventsErrored}
@@ -99,7 +105,14 @@ export function DurationChart({issue, event, organization}: Props) {
   );
 }
 
-function Content({allEvents, affectedEvents, loading, errored}) {
+interface ContentProps {
+  affectedEvents: LineChartSeries[] | undefined;
+  allEvents: Series[] | undefined;
+  errored: boolean;
+  loading: boolean;
+}
+
+function Content({affectedEvents, allEvents, errored, loading}: ContentProps) {
   const theme = useTheme();
 
   if (!affectedEvents || affectedEvents.length === 0) {
@@ -111,10 +124,16 @@ function Content({allEvents, affectedEvents, loading, errored}) {
   }
 
   const durationUnit = getDurationUnit(affectedEvents);
+  const range = findRangeOfMultiSeries([...affectedEvents, ...(allEvents || [])]);
+  let min = 0;
+  if (range) {
+    min = range.min - (range.max - range.min) * 0.2;
+  }
 
-  const yAxis = {
+  const yAxis: YAXisComponentOption = {
     show: false,
     minInterval: durationUnit,
+    min,
     axisLabel: {
       color: theme.chartLabel,
       formatter() {
@@ -132,8 +151,9 @@ function Content({allEvents, affectedEvents, loading, errored}) {
       grid={{left: '0', right: '0', top: '0', bottom: '0'}}
       height={200}
       series={affectedEvents}
+      seriesOptions={{smooth: true}}
       previousPeriod={allEvents}
-      xAxis={{type: 'time' as const}}
+      xAxis={{type: 'time' as const, axisLine: {onZero: false}}}
       yAxis={yAxis}
       isGroupedByDate
       showTimeInTooltip
