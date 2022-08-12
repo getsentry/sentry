@@ -8,8 +8,11 @@ from django.utils import timezone
 from sentry.db.models import Model
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.db.models.manager.base import BaseManager
+from sentry.sentry_metrics.configuration import UseCaseKey
 
 logger = logging.getLogger(__name__)
+
+from typing import Mapping, Type
 
 
 class MetricsKeyIndexer(Model):  # type: ignore
@@ -73,3 +76,11 @@ class PerfStringIndexer(BaseIndexer):
                 fields=["string", "organization_id"], name="perf_unique_org_string"
             ),
         ]
+
+
+IndexerTable = Type[BaseIndexer]
+
+TABLE_MAPPING: Mapping[UseCaseKey, IndexerTable] = {
+    UseCaseKey.RELEASE_HEALTH: StringIndexer,
+    UseCaseKey.PERFORMANCE: PerfStringIndexer,
+}

@@ -1,6 +1,6 @@
 import pytest
 
-from sentry.sentry_metrics.indexer.cloudspanner import CloudSpannerIndexer, IdCodec
+from sentry.sentry_metrics.indexer.cloudspanner.cloudspanner import CloudSpannerIndexer, IdCodec
 from sentry.sentry_metrics.indexer.id_generator import get_id
 
 
