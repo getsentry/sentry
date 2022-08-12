@@ -19,7 +19,6 @@ export const SectionSubtext = styled('div')`
 export const QuickTraceContainer = styled('div')`
   display: flex;
   align-items: center;
-  height: 24px;
 `;
 
 const nodeColors = (theme: Theme) => ({
@@ -45,7 +44,7 @@ const nodeColors = (theme: Theme) => ({
   },
 });
 
-export const EventNode = styled(Tag)<{shouldOffset?: boolean}>`
+export const EventNode = styled(Tag)`
   span {
     display: flex;
     color: ${p => nodeColors(p.theme)[p.type || 'white'].color};
@@ -54,12 +53,6 @@ export const EventNode = styled(Tag)<{shouldOffset?: boolean}>`
     background-color: ${p => nodeColors(p.theme)[p.type || 'white'].background};
     border: 1px solid ${p => nodeColors(p.theme)[p.type || 'white'].border};
   }
-
-  /*
-   * When the EventNode is contains an icon, we need to offset the
-   * component a little for all the EventNodes to be aligned.
-   */
-  ${p => p.shouldOffset && `margin-top: ${space(0.5)}`}
 `;
 
 export const TraceConnector = styled('div')`
