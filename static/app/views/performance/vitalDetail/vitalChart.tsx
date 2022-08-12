@@ -243,7 +243,7 @@ export function _VitalChart(props: _VitalChartProps) {
       valueFormatter: (value: number, seriesName?: string) => {
         return tooltipFormatter(
           value,
-          vitalFields[0] === WebVital.CLS ? seriesName : yAxis
+          aggregateOutputType(vitalFields[0] === WebVital.CLS ? seriesName : yAxis)
         );
       },
     },

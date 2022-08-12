@@ -9,7 +9,7 @@ import sentry
 from sentry import features, options
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.user import DetailedSelfUserSerializer
-from sentry.api.utils import generate_organization_url
+from sentry.api.utils import generate_organization_url, generate_region_url
 from sentry.auth.access import get_cached_organization_member
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import Organization, OrganizationMember, ProjectKey
@@ -211,8 +211,11 @@ def get_client_config(request=None):
         "demoMode": settings.DEMO_MODE,
         "enableAnalytics": settings.ENABLE_ANALYTICS,
         "validateSUForm": getattr(settings, "VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON", False),
-        "sentryUrl": options.get("system.url-prefix"),
-        "organizationUrl": generate_organization_url(last_org_slug) if last_org_slug else None,
+        "links": {
+            "organizationUrl": generate_organization_url(last_org_slug) if last_org_slug else None,
+            "regionUrl": generate_region_url() if last_org_slug else None,
+            "sentryUrl": options.get("system.url-prefix"),
+        },
     }
     if user and user.is_authenticated:
         context.update(
