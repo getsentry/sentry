@@ -139,6 +139,7 @@ default_manager.add("organizations:required-email-verification", OrganizationFea
 default_manager.add("organizations:rule-page", OrganizationFeature)
 default_manager.add("organizations:sentry-functions", OrganizationFeature, True)
 default_manager.add("organizations:session-replay", OrganizationFeature, True)
+default_manager.add("organizations:session-replay-sdk", OrganizationFeature, True)
 default_manager.add("organizations:set-grouping-config", OrganizationFeature)
 default_manager.add("organizations:slack-overage-notifications", OrganizationFeature, True)
 default_manager.add("organizations:symbol-sources", OrganizationFeature)

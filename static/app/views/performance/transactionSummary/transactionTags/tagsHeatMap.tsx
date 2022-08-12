@@ -185,7 +185,7 @@ const TagsHeatMap = (
         show: true,
         showMinLabel: true,
         showMaxLabel: true,
-        formatter: (value: number) => axisLabelFormatter(value, 'Count'),
+        formatter: (value: number) => axisLabelFormatter(value, 'number'),
       },
       axisLine: {},
       axisPointer: {

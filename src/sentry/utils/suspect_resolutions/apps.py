@@ -5,4 +5,4 @@ class Config(AppConfig):
     name = "sentry.utils.suspect_resolutions"
 
     def ready(self):
-        from . import get_suspect_resolutions  # NOQA
+        from .get_suspect_resolutions import get_suspect_resolutions  # NOQA
