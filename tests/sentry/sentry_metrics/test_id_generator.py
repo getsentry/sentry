@@ -1,7 +1,7 @@
 import time
 from unittest.mock import patch
 
-from sentry.sentry_metrics.indexer.id_generator import _INDEXER_EPOCH_START, get_id
+from sentry.sentry_metrics.indexer.cloudspanner.id_generator import _INDEXER_EPOCH_START, get_id
 
 
 def test_get_id() -> None:
