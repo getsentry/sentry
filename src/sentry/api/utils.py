@@ -162,15 +162,10 @@ def generate_organization_hostname(org_slug: str) -> str:
     org_base_hostname_template = options.get("system.organization-base-hostname")
     if not org_base_hostname_template:
         return url_prefix_hostname
-    has_region_placeholder = "{region}" in org_base_hostname_template
     has_org_slug_placeholder = "{slug}" in org_base_hostname_template
-    if not has_region_placeholder and not has_org_slug_placeholder:
+    if not has_org_slug_placeholder:
         return url_prefix_hostname
     org_hostname = org_base_hostname_template.replace("{slug}", org_slug)
-    region = options.get("system.region") or None
-    if region is None:
-        return url_prefix_hostname
-    org_hostname = org_hostname.replace("{region}", region)
     return org_hostname
 
 

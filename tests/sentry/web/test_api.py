@@ -222,21 +222,6 @@ class ClientConfigViewTest(TestCase):
                 "sentryUrl": "http://testserver",
             }
 
-        with self.options({"system.organization-base-hostname": "{region}.testserver"}):
-            resp = self.client.get(self.path)
-            assert resp.status_code == 200
-            assert resp["Content-Type"] == "application/json"
-
-            data = json.loads(resp.content)
-
-            assert data["isAuthenticated"] is True
-            assert data["lastOrganization"] == self.organization.slug
-            assert data["links"] == {
-                "organizationUrl": "http://us.testserver",
-                "regionUrl": "http://us.testserver",
-                "sentryUrl": "http://testserver",
-            }
-
         with self.options({"system.organization-base-hostname": "{slug}.testserver"}):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
