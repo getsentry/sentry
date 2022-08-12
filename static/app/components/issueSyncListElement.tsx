@@ -141,7 +141,6 @@ export const IssueSyncListElementContainer = styled('div')`
 
 export const IntegrationLink = styled('a')<{disabled?: boolean}>`
   text-decoration: none;
-  padding-bottom: ${space(0.25)};
   margin-left: ${space(1)};
   color: ${p => p.theme.textColor};
   cursor: pointer;
