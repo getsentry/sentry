@@ -117,6 +117,7 @@ install-py-dev() {
     # Webpacked assets are only necessary for devserver (which does it lazily anyways)
     # and acceptance tests, which webpack automatically if run.
     SENTRY_LIGHT_BUILD=1 pip install -e '.[dev]'
+    python3 -c 'contents = open(".venv/lib/python3.8/site-packages/sentry_sdk/integrations/redis.py").read().replace("import rediscluster", "import rediscluster;print(rediscluster)"); open(".venv/lib/python3.8/site-packages/sentry_sdk/integrations/redis.py", "w").write(contents)'
 }
 
 setup-git-config() {
