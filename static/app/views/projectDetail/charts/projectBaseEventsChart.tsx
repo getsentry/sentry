@@ -10,6 +10,7 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {PageFilters} from 'sentry/types';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
@@ -101,7 +102,8 @@ class ProjectBaseEventsChart extends Component<Props> {
             grid: {left: '10px', right: '10px', top: '40px', bottom: '0px'},
             yAxis: {
               axisLabel: {
-                formatter: (value: number) => axisLabelFormatter(value, yAxis),
+                formatter: (value: number) =>
+                  axisLabelFormatter(value, aggregateOutputType(yAxis)),
               },
               scale: true,
             },

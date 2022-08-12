@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from sentry import tsdb
 from sentry.models import Group
@@ -15,13 +15,13 @@ class MetricCorrelationResult:
 
 def is_issue_error_rate_correlated(
     resolved_issue: Group, candidate_suspect_resolutions: List[Group]
-) -> Tuple[List[MetricCorrelationResult], datetime, datetime, datetime]:
+) -> Optional[Tuple[List[MetricCorrelationResult], datetime, datetime, datetime]]:
     if (
-        resolved_issue is None
-        or resolved_issue.resolved_at is None
+        not resolved_issue
+        or not resolved_issue.resolved_at
         or len(candidate_suspect_resolutions) == 0
     ):
-        return []
+        return None
 
     resolution_time = resolved_issue.resolved_at
 
@@ -53,10 +53,10 @@ def is_issue_error_rate_correlated(
     return results, resolution_time, start_time, end_time
 
 
-def calculate_pearson_correlation_coefficient(x: List[int], y: List[int]) -> int:
+def calculate_pearson_correlation_coefficient(x: List[int], y: List[int]) -> float:
     # source: https://inside-machinelearning.com/en/pearson-formula-in-python-linear-correlation-coefficient/
-    if len(x) and len(y) == 0:
-        return 0
+    if len(x) == 0 or len(y) == 0:
+        return 0.0
 
     mean_x = sum(x) / len(x)
     mean_y = sum(y) / len(y)
@@ -66,6 +66,9 @@ def calculate_pearson_correlation_coefficient(x: List[int], y: List[int]) -> int
     st_dev_x = (sum((a - mean_x) ** 2 for a in x) / len(x)) ** 0.5
     st_dev_y = (sum((b - mean_y) ** 2 for b in y) / len(y)) ** 0.5
 
-    result = cov / (st_dev_x * st_dev_y)
+    st_dev_x_y = st_dev_x * st_dev_y
 
-    return result
+    if st_dev_x_y == 0 or st_dev_x_y == 0.0:
+        return 0.0
+
+    return cov / st_dev_x_y
