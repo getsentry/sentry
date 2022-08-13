@@ -1,6 +1,6 @@
 from collections import namedtuple
 from enum import Enum
-from typing import Sequence, Any
+from typing import Any, Sequence
 
 _COLUMNS = [
     "id",
@@ -33,8 +33,7 @@ class CloudSpannerDBAccessor:
     Provides methods to perform INSERT's and READ's on CloudSpanner.
     """
 
-    def __init__(self, database: Any, table_name: str, insert_mode:
-    CloudSpannerInsertMode) -> None:
+    def __init__(self, database: Any, table_name: str, insert_mode: CloudSpannerInsertMode) -> None:
         self.__database = database
         self.__table_name = table_name
         self.__insert = (
