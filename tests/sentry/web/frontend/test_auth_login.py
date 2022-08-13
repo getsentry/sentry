@@ -59,7 +59,9 @@ class AuthLoginTest(TestCase):
         self.client.get(self.path)
 
         resp = self.client.post(
-            self.path, {"username": self.user.username, "password": "admin", "op": "login"}, follow=True,
+            self.path,
+            {"username": self.user.username, "password": "admin", "op": "login"},
+            follow=True,
         )
         assert resp.status_code == 200
         assert resp.redirect_chain == [
@@ -73,7 +75,9 @@ class AuthLoginTest(TestCase):
         self.client.get(self.path)
 
         resp = self.client.post(
-            self.path, {"username": self.user.username, "password": "admin", "op": "login"}, follow=True,
+            self.path,
+            {"username": self.user.username, "password": "admin", "op": "login"},
+            follow=True,
         )
         assert resp.status_code == 200
         assert resp.redirect_chain == [
