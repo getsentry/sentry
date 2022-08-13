@@ -219,16 +219,16 @@ def main(test_root="."):
     def condition(match: TestCaseMatch) -> str | None:
         if not match.case.is_class:
             return None
-        if (
-            any((word in match.case.name) for word in ("User", "Auth", "Identity"))
-            and "customer_silo_test" not in match.decorators
+
+        def has_any_word(*words):
+            return any((word in match.case.name) for word in words)
+
+        if has_any_word("Organization", "Project", "Team", "Group", "Event", "Issue"):
+            return "customer_silo_test"
+        elif "customer_silo_test" not in match.decorators and has_any_word(
+            "User", "Auth", "Identity"
         ):
             return "control_silo_test"
-        if any(
-            (word in match.case.name)
-            for word in ("Organization", "Project", "Team", "Group", "Event", "Issue")
-        ):
-            return "customer_silo_test"
 
     count = case_map.add_decorators(condition)
     print(f"Decorated {count} case{'' if count == 1 else 's'}")  # noqa

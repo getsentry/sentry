@@ -5,6 +5,8 @@ from contextlib import contextmanager
 from typing import Any, Callable, Generator, Iterable, Tuple
 from unittest import TestCase
 
+import pytest
+from django.conf import settings
 from django.test import override_settings
 
 from sentry.servermode import ServerComponentMode
@@ -14,76 +16,22 @@ TestMethodPredicate = Callable[[TestMethod], bool]
 
 
 class ServerModeTest:
-    """Decorate a test class to run its test cases in server component modes.
+    """Decorate a test case that is expected to work in a given server mode.
 
-    The decorated class will run all its test methods in monolith mode, without
-    modification. It will also generate a new copy of each method for the given
-    server component mode (or one for each mode), which runs in that mode.
+    By default, the test is executed if the environment is in that server mode
+    or in monolith mode. The test is skipped in an incompatible mode.
 
-    By default, it creates a mode-specific of every test method. Use the init
-    params to apply it to only some test methods.
-
-    The generated test methods have new names, with a suffix separated by a
-    double underscore. For example,
-
-    ```
-    @ServerModeTest(ServerComponentMode.CUSTOMER)
-    class HotDogTest(TestCase):
-        def test_bun(self): pass
-        def test_sausage(self): pass
-    ```
-
-    would yield test methods named
-      - test_bun  (runs in monolith mode)
-      - test_bun__in_customer_silo
-      - test_sausage
-      - test_sausage__in_customer_silo
+    If the SERVER_COMPONENT_MODE_SPLICE_TESTS environment flag is set, any
+    decorated test class will be modified by having new test methods inserted.
+    These new methods run in the given modes and have generated names (such as
+    "test_response__in_customer_silo"). This can be used in a dev environment to
+    test in multiple modes conveniently during a single test run. Individually
+    decorated methods and stand-alone functions are treated as normal.
     """
 
-    def __init__(
-        self,
-        *modes: ServerComponentMode,
-        include_names: Iterable[str] | None = None,
-        exclude_names: Iterable[str] | None = None,
-        include_if: TestMethodPredicate | None = None,
-    ) -> None:
-        """
-        :param modes: the modes in which to run the test methods (in addition to
-            monolith)
-        :param include_names: if present, modify only the named test methods and
-            ignore the rest
-        :param exclude_names: if present, modify all test methods except the
-            named ones
-        :param include_if: if present, use this predicate to decide which test
-            methods to modify if they aren't named in include_names or
-            exclude_names
-        """
-
-        self.modes = tuple(modes)
-        self.inclusion_condition = self.InclusionCondition(include_names, exclude_names, include_if)
-
-    class InclusionCondition:
-        """Designate which methods on a test class to run in other modes."""
-
-        def __init__(
-            self,
-            include_names: Iterable[str] | None = None,
-            exclude_names: Iterable[str] | None = None,
-            include_if: TestMethodPredicate | None = None,
-        ) -> None:
-            self.include_by_default = include_names is None
-            self.include_names = frozenset(include_names or ())
-            self.exclude_names = frozenset(exclude_names or ())
-            self.include_if = include_if
-
-        def __call__(self, test_case_method: TestMethod) -> bool:
-            if test_case_method.__name__ in self.include_names:
-                return True
-            if test_case_method.__name__ in self.exclude_names:
-                return False
-            if self.include_if is not None:
-                return self.include_if(test_case_method)
-            return self.include_by_default
+    def __init__(self, *server_modes: ServerComponentMode) -> None:
+        self.server_modes = frozenset(server_modes)
+        self.splice = bool(settings.SERVER_COMPONENT_MODE_SPLICE_TESTS)
 
     @staticmethod
     def _find_all_test_methods(test_class: type) -> Iterable[Tuple[str, TestMethod]]:
@@ -93,10 +41,10 @@ class ServerModeTest:
                 if callable(attr):
                     yield attr_name, attr
 
-    def _create_mode_test_methods(
+    def _create_mode_methods_to_splice(
         self, test_method: TestMethod
     ) -> Iterable[Tuple[str, TestMethod]]:
-        for mode in self.modes:
+        for mode in self.server_modes:
 
             def replacement_test_method(*args: Any, **kwargs: Any) -> None:
                 with override_settings(SERVER_COMPONENT_MODE=mode):
@@ -107,14 +55,28 @@ class ServerModeTest:
             replacement_test_method.__name__ = modified_name
             yield modified_name, replacement_test_method
 
-    def __call__(self, test_class: type) -> type:
-        if not (isinstance(test_class, type) and issubclass(test_class, TestCase)):
-            raise ValueError("@ServerModeTest must decorate a TestCase class")
+    def _splice_mode_methods(self, test_class: type) -> type:
         for (method_name, test_method) in self._find_all_test_methods(test_class):
-            if self.inclusion_condition(test_method):
-                for (new_name, new_method) in self._create_mode_test_methods(test_method):
-                    setattr(test_class, new_name, new_method)
+            for (new_name, new_method) in self._create_mode_methods_to_splice(test_method):
+                setattr(test_class, new_name, new_method)
         return test_class
+
+    def __call__(self, decorated_obj: Any) -> Any:
+        is_test_case_class = isinstance(decorated_obj, type) and issubclass(decorated_obj, TestCase)
+        is_function = callable(decorated_obj)
+        if not (is_test_case_class or is_function):
+            raise ValueError("@ServerModeTest must decorate a function or TestCase class")
+
+        if self.splice and is_test_case_class:
+            return self._splice_mode_methods(decorated_obj)
+
+        current_server_mode = ServerComponentMode.get_current_mode()
+        is_skipped = (
+            current_server_mode != ServerComponentMode.MONOLITH
+            and current_server_mode not in self.server_modes
+        )
+        reason = f"Test case is not part of {current_server_mode} mode"
+        return pytest.mark.skipif(is_skipped, reason=reason)(decorated_obj)
 
 
 control_silo_test = ServerModeTest(ServerComponentMode.CONTROL)
