@@ -22,6 +22,10 @@ declare namespace Profiling {
     type: 'sampled';
   }
 
+  interface NodeProfile extends Profiling.SampledProfile {
+    frames: Profiling.FrameInfo[];
+  }
+
   type Event = {at: number; frame: number; type: 'O' | 'C'};
 
   type Span = {
@@ -43,9 +47,19 @@ declare namespace Profiling {
     image?: string;
     resource?: string;
     threadId?: number;
+
+    // nodejs only
+    columnNumber?: number;
+    lineNumber?: number;
+    scriptName?: string;
+    scriptId?: number;
   };
 
-  type ProfileTypes = EventedProfile | SampledProfile | JSSelfProfiling.Trace;
+  type ProfileTypes =
+    | EventedProfile
+    | SampledProfile
+    | JSSelfProfiling.Trace
+    | NodeProfile;
 
   type ImportedProfiles = {
     name: string;

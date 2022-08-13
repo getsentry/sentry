@@ -6,6 +6,7 @@ import {
   isChromeTraceObjectFormat,
   isEventedProfile,
   isJSProfile,
+  isNodeProfile,
   isSampledProfile,
   isSchema,
   isTypescriptChromeTraceArrayFormat,
@@ -40,6 +41,15 @@ export function importProfile(
   });
 
   try {
+    if (isNodeProfile(input)) {
+      // In some cases, the SDK may return transaction as undefined and we dont want to throw there.
+      if (transaction) {
+        transaction.setTag('profile.type', 'nodejs');
+      }
+
+      return importNodeProfile(input[0], traceID, {transaction});
+    }
+
     if (isJSProfile(input)) {
       // In some cases, the SDK may return transaction as undefined and we dont want to throw there.
       if (transaction) {
@@ -128,6 +138,21 @@ function importSchema(
     profiles: input.profiles.map(profile =>
       importSingleProfile(profile, frameIndex, options)
     ),
+  };
+}
+
+function importNodeProfile(
+  input: Profiling.NodeProfile,
+  traceID: string,
+  options: ImportOptions
+): ProfileGroup {
+  const frameIndex = createFrameIndex(input.frames);
+
+  return {
+    traceID,
+    name: input.name,
+    activeProfileIndex: 0,
+    profiles: [importSingleProfile(input, frameIndex, options)],
   };
 }
 
