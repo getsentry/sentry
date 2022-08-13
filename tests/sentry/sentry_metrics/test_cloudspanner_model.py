@@ -6,7 +6,8 @@ from typing import Sequence
 
 import pytest
 
-from sentry.sentry_metrics.indexer.cloudspanner import CloudSpannerIndexer
+from sentry.sentry_metrics.indexer.cloudspanner.cloudspanner import \
+    RawCloudSpannerIndexer
 from sentry.sentry_metrics.indexer.cloudspanner.cloudspanner_model import (
     CloudSpannerDBAccessor,
     CloudSpannerInsertMode,
@@ -135,7 +136,7 @@ def get_random_string(length: int) -> str:
 )
 def test_spanner_indexer_write(mode: CloudSpannerInsertMode, models: Sequence[SpannerIndexerModel]):
     # TODO: Provide instance_id and database_id when running the test
-    spanner_indexer = CloudSpannerIndexer(instance_id="", database_id="")
+    spanner_indexer = RawCloudSpannerIndexer(instance_id="", database_id="")
     spanner_indexer.validate()
 
     writer = CloudSpannerDBAccessor(spanner_indexer.database, "perfstringindexer", mode)
