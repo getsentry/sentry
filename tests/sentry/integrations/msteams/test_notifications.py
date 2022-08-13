@@ -1,12 +1,17 @@
 from unittest.mock import MagicMock, Mock, call, patch
 
+import responses
+
 from sentry.integrations.msteams.notifications import send_notification_as_msteams
-from sentry.testutils.cases import TestCase
+from sentry.models import Activity
+from sentry.notifications.notifications.activity import NoteActivityNotification
+from sentry.testutils.cases import MSTeamsActivityNotificationTest, TestCase
 from sentry.testutils.helpers.notifications import (
     DummyNotification,
     DummyNotificationWithMoreFields,
 )
-from sentry.testutils.servermode import customer_silo_test
+from sentry.types.activity import ActivityType
+from sentry.utils import json
 
 TEST_CARD = {"type": "test_card"}
 
@@ -28,7 +33,6 @@ TEST_CARD = {"type": "test_card"}
     Mock(return_value={"members": [{"user": "some_user", "tenantId": "some_tenant_id"}]}),
 )
 @patch("sentry.integrations.msteams.MsTeamsAbstractClient.send_card")
-@customer_silo_test
 class MSTeamsNotificationTest(TestCase):
     def _install_msteams_personal(self):
         self.tenant_id = "50cccd00-7c9c-4b32-8cda-58a084f9334a"
@@ -151,4 +155,65 @@ class MSTeamsNotificationTest(TestCase):
 
         mock_send_card.assert_has_calls(
             [call("some_conversation_id", TEST_CARD), call("some_conversation_id", TEST_CARD)]
+        )
+
+
+class MSTeamsNotificationIntegrationTest(MSTeamsActivityNotificationTest):
+    """
+    Test the MS Teams notification flow end to end without mocking out functions.
+    """
+
+    def _setup_msteams_api(self):
+        responses.add(
+            method=responses.POST,
+            url="https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
+            body='{"access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx", "expires_in": "1234567890"}',
+            status=200,
+            content_type="application/json",
+        )
+
+        responses.add(
+            method=responses.POST,
+            url="https://testserviceurl.com/testendpoint/v3/conversations",
+            body='{"id": "some_conversation_id"}',
+            status=200,
+            content_type="application/json",
+        )
+
+        responses.add(
+            method=responses.POST,
+            url="https://testserviceurl.com/testendpoint/v3/conversations/some_conversation_id/activities",
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+
+    def setUp(self):
+        super().setUp()
+        self._setup_msteams_api()
+
+    @responses.activate
+    def test_send_note_activity_notification(self):
+        notification = NoteActivityNotification(
+            Activity(
+                project=self.project,
+                group=self.group,
+                user=self.user,
+                type=ActivityType.NOTE,
+                data={"text": "text", "mentions": []},
+            )
+        )
+
+        with self.tasks():
+            notification.send()
+
+        data = json.loads(responses.calls[2].request.body)
+
+        attachment = data["attachments"][0]
+        assert "AdaptiveCard" == attachment["content"]["type"]
+        assert 4 == len(attachment["content"]["body"])
+
+        assert (
+            f"New comment by {self.user.get_display_name()}"
+            == attachment["content"]["body"][0]["text"]
         )

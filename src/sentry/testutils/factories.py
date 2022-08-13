@@ -81,6 +81,7 @@ from sentry.models import (
     RepositoryProjectPathConfig,
     Rule,
     SentryAppInstallation,
+    SentryFunction,
     Team,
     User,
     UserEmail,
@@ -1282,4 +1283,14 @@ class Factories:
             type=ActivityType.NOTE.value,
             user=user,
             data=data,
+        )
+
+    @staticmethod
+    def create_sentry_function(name, code, **kwargs):
+        return SentryFunction.objects.create(
+            name=name,
+            code=code,
+            slug=slugify(name),
+            external_id=slugify(name) + "-" + uuid4().hex,
+            **kwargs,
         )

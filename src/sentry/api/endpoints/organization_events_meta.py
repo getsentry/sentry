@@ -40,6 +40,8 @@ class OrganizationEventsMetricsCompatiblity(OrganizationEventsEndpointBase):
 
     This endpoint will return projects that have perfect data along with the overall counts of projects so the
     frontend can make decisions about which projects to show and related info
+
+    DEPRECATED, replaced by 2 endpoints in organization_metrics_meta
     """
 
     private = True
@@ -59,7 +61,6 @@ class OrganizationEventsMetricsCompatiblity(OrganizationEventsEndpointBase):
             params = self.get_snuba_params(request, organization, check_global_views=False)
         except NoProjects:
             return Response(data)
-        data["compatible_projects"] = params["project_id"]
         for project in params["project_objects"]:
             dynamic_sampling = project.get_option("sentry:dynamic_sampling")
             if dynamic_sampling is not None:
@@ -73,6 +74,7 @@ class OrganizationEventsMetricsCompatiblity(OrganizationEventsEndpointBase):
         data["dynamic_sampling_projects"].sort()
 
         # Save ourselves some work, only query the projects that have DS rules
+        data["compatible_projects"] = params["project_id"]
         params["project_id"] = data["dynamic_sampling_projects"]
 
         with self.handle_query_errors():
@@ -103,19 +105,16 @@ class OrganizationEventsMetricsCompatiblity(OrganizationEventsEndpointBase):
                 functions_acl=["count_unparameterized_transactions", "count_null_transactions"],
                 use_aggregate_conditions=True,
             )
-            data["sum"]["metrics"] = (
-                sum_metrics["data"][0].get("count") if len(sum_metrics["data"]) > 0 else 0
-            )
-            data["sum"]["metrics_null"] = (
-                sum_metrics["data"][0].get(get_function_alias(count_null))
-                if len(sum_metrics["data"]) > 0
-                else 0
-            )
-            data["sum"]["metrics_unparam"] = (
-                sum_metrics["data"][0].get(get_function_alias(count_unparam))
-                if len(sum_metrics["data"]) > 0
-                else 0
-            )
+            if len(sum_metrics["data"]) > 0:
+                data["sum"].update(
+                    {
+                        "metrics": sum_metrics["data"][0].get("count"),
+                        "metrics_null": sum_metrics["data"][0].get(get_function_alias(count_null)),
+                        "metrics_unparam": sum_metrics["data"][0].get(
+                            get_function_alias(count_unparam)
+                        ),
+                    }
+                )
 
         return Response(data)
 

@@ -339,7 +339,7 @@ INSTALLED_APPS = (
     "sentry.replays",
     "sentry.release_health",
     "sentry.search",
-    "sentry.sentry_metrics.indexer",
+    "sentry.sentry_metrics.indexer.postgres.apps.Config",
     "sentry.snuba",
     "sentry.lang.java.apps.Config",
     "sentry.lang.javascript.apps.Config",
@@ -553,7 +553,6 @@ CELERY_IMPORTS = (
     "sentry.data_export.tasks",
     "sentry.discover.tasks",
     "sentry.incidents.tasks",
-    "sentry.sentry_metrics.indexer.tasks",
     "sentry.snuba.tasks",
     "sentry.tasks.app_store_connect",
     "sentry.tasks.assemble",
@@ -1128,8 +1127,10 @@ SENTRY_FEATURES = {
     "organizations:relay": True,
     # Enable Sentry Functions
     "organizations:sentry-functions": False,
-    # Enable experimental session replay features
+    # Enable experimental session replay UI
     "organizations:session-replay": False,
+    # Enable experimental session replay SDK for recording on Sentry
+    "organizations:session-replay-sdk": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
@@ -1467,7 +1468,7 @@ SENTRY_METRICS_PREFIX = "sentry."
 SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
 
 # Metrics product
-SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres_v2.PostgresIndexer"
+SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres.postgres_v2.PostgresIndexer"
 SENTRY_METRICS_INDEXER_OPTIONS = {}
 SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
 
@@ -2741,5 +2742,9 @@ SENTRY_STRING_INDEXER_CACHE_OPTIONS = {
     "cache_name": "default",
 }
 
+# Settings related to ServerComponentMode
 SERVER_COMPONENT_MODE = os.environ.get("SENTRY_SERVER_COMPONENT_MODE", None)
 FAIL_ON_UNAVAILABLE_API_CALL = False
+SERVER_COMPONENT_MODE_SPLICE_TESTS = bool(
+    os.environ.get("SENTRY_SERVER_COMPONENT_MODE_SPLICE_TESTS", False)
+)

@@ -4,9 +4,8 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Union
 
 import sentry_sdk
 from django.utils.functional import cached_property
-from snuba_sdk import AliasedExpression, Column, Function
+from snuba_sdk import Column, Condition, Function, Op
 
-from sentry import options
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models.transaction_threshold import (
@@ -40,6 +39,9 @@ class MetricsDatasetConfig(DatasetConfig):
             constants.TEAM_KEY_TRANSACTION_ALIAS: self._key_transaction_filter_converter,
             "transaction.duration": self._duration_filter_converter,  # Only for dry_run
             "environment": self.builder._environment_filter_converter,
+            "transaction": self._transaction_filter_converter,
+            "tags[transaction]": self._transaction_filter_converter,
+            constants.TITLE_ALIAS: self._transaction_filter_converter,
         }
 
     @property
@@ -50,6 +52,8 @@ class MetricsDatasetConfig(DatasetConfig):
             constants.TEAM_KEY_TRANSACTION_ALIAS: self._resolve_team_key_transaction_alias,
             constants.TITLE_ALIAS: self._resolve_title_alias,
             constants.PROJECT_THRESHOLD_CONFIG_ALIAS: lambda _: self._resolve_project_threshold_config,
+            "transaction": self._resolve_transaction_alias,
+            "tags[transaction]": self._resolve_transaction_alias,
         }
 
     def resolve_metric(self, value: str) -> int:
@@ -66,9 +70,7 @@ class MetricsDatasetConfig(DatasetConfig):
         return metric_id
 
     def resolve_tag_value(self, value: str) -> Union[str, int]:
-        if self.builder.is_performance and options.get(
-            "sentry-metrics.performance.tags-values-are-strings"
-        ):
+        if self.builder.is_performance and self.builder.tag_values_are_strings:
             return value
         return self.resolve_value(value)
 
@@ -92,6 +94,12 @@ class MetricsDatasetConfig(DatasetConfig):
         ) -> str:
             argument = function_arguments[index]
             value = parameter_values[argument.name]
+            if (
+                value == "transaction.duration"
+                or is_duration_measurement(value)
+                or is_span_op_breakdown(value)
+            ):
+                return "duration"
             for measurement in self.builder.custom_measurement_map:
                 if measurement["name"] == value and measurement["metric_id"] is not None:
                     unit = measurement["unit"]
@@ -103,12 +111,6 @@ class MetricsDatasetConfig(DatasetConfig):
                         return "percentage"
                     else:
                         return "number"
-            if (
-                value == "transaction.duration"
-                or is_duration_measurement(value)
-                or is_span_op_breakdown(value)
-            ):
-                return "duration"
             return "number"
 
         return result_type_fn
@@ -195,7 +197,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                         "equals",
                                         [
                                             self.builder.column("transaction"),
-                                            self.resolve_tag_value("<< unparameterized >>"),
+                                            self.builder.resolve_tag_value("<< unparameterized >>"),
                                         ],
                                     ),
                                 ],
@@ -261,7 +263,9 @@ class MetricsDatasetConfig(DatasetConfig):
                                                 "notEquals",
                                                 [
                                                     self.builder.column("transaction"),
-                                                    self.resolve_tag_value("<< unparameterized >>"),
+                                                    self.builder.resolve_tag_value(
+                                                        "<< unparameterized >>"
+                                                    ),
                                                 ],
                                             ),
                                         ],
@@ -446,7 +450,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     calculated_args=[
                         {
                             "name": "resolved_val",
-                            "fn": lambda args: self.resolve_tag_value(args["if_val"]),
+                            "fn": lambda args: self.builder.resolve_tag_value(args["if_val"]),
                         }
                     ],
                     snql_counter=lambda args, alias: Function(
@@ -510,7 +514,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     calculated_args=[
                         {
                             "name": "resolved_val",
-                            "fn": lambda args: self.resolve_tag_value(args["if_val"]),
+                            "fn": lambda args: self.builder.resolve_tag_value(args["if_val"]),
                         }
                     ],
                     snql_set=lambda args, alias: Function(
@@ -662,7 +666,7 @@ class MetricsDatasetConfig(DatasetConfig):
     # Field Aliases
     def _resolve_title_alias(self, alias: str) -> SelectType:
         """title == transaction in discover"""
-        return AliasedExpression(self.builder.resolve_column("transaction"), alias)
+        return self._resolve_transaction_alias(alias)
 
     def _resolve_team_key_transaction_alias(self, _: str) -> SelectType:
         if self.builder.dry_run:
@@ -675,6 +679,17 @@ class MetricsDatasetConfig(DatasetConfig):
         if self.builder.dry_run:
             return field_aliases.dry_run_default(self.builder, alias)
         return field_aliases.resolve_project_slug_alias(self.builder, alias)
+
+    def _resolve_transaction_alias(self, alias: str) -> SelectType:
+        return Function(
+            "transform",
+            [
+                Column(f"tags[{self.resolve_value('transaction')}]"),
+                [0 if not self.builder.tag_values_are_strings else ""],
+                [self.builder.resolve_tag_value("<< unparameterized >>")],
+            ],
+            alias,
+        )
 
     @cached_property
     def _resolve_project_threshold_config(self) -> SelectType:
@@ -754,7 +769,7 @@ class MetricsDatasetConfig(DatasetConfig):
                 # and no project configs were set, we can skip it in the final query
                 continue
 
-            transaction_id = self.resolve_tag_value(transaction)
+            transaction_id = self.builder.resolve_tag_value(transaction)
             # Don't add to the config if we can't resolve it
             if transaction_id is None:
                 continue
@@ -881,6 +896,27 @@ class MetricsDatasetConfig(DatasetConfig):
 
         return self.builder._default_filter_converter(search_filter)
 
+    def _transaction_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        operator = search_filter.operator
+        value = search_filter.value.value
+
+        if operator in ("=", "!=") and value == "":
+            # !has:transaction
+            if operator == "=":
+                raise InvalidSearchQuery(
+                    "All events have a transaction so this query wouldn't return anything"
+                )
+            else:
+                # All events have a "transaction" since we map null -> unparam so no need to filter
+                return None
+
+        if isinstance(value, list):
+            value = [self.builder.resolve_tag_value(v) for v in value]
+        else:
+            value = self.builder.resolve_tag_value(value)
+
+        return Condition(Column(f"tags[{self.resolve_value('transaction')}]"), Op(operator), value)
+
     # Query Functions
     def _resolve_count_if(
         self,
@@ -914,8 +950,8 @@ class MetricsDatasetConfig(DatasetConfig):
                 "Cannot query apdex with a threshold parameter on the metrics dataset"
             )
 
-        metric_satisfied = self.resolve_tag_value(constants.METRIC_SATISFIED_TAG_VALUE)
-        metric_tolerated = self.resolve_tag_value(constants.METRIC_TOLERATED_TAG_VALUE)
+        metric_satisfied = self.builder.resolve_tag_value(constants.METRIC_SATISFIED_TAG_VALUE)
+        metric_tolerated = self.builder.resolve_tag_value(constants.METRIC_TOLERATED_TAG_VALUE)
 
         # Nothing is satisfied or tolerated, the score must be 0
         if metric_satisfied is None and metric_tolerated is None:
@@ -984,7 +1020,7 @@ class MetricsDatasetConfig(DatasetConfig):
             raise IncompatibleMetricsQuery(
                 "Cannot query misery with a threshold parameter on the metrics dataset"
             )
-        metric_frustrated = self.resolve_tag_value(constants.METRIC_FRUSTRATED_TAG_VALUE)
+        metric_frustrated = self.builder.resolve_tag_value(constants.METRIC_FRUSTRATED_TAG_VALUE)
 
         # Nobody is miserable, we can return 0
         if metric_frustrated is None:
@@ -1058,7 +1094,9 @@ class MetricsDatasetConfig(DatasetConfig):
         _: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
-        statuses = [self.resolve_tag_value(status) for status in constants.NON_FAILURE_STATUS]
+        statuses = [
+            self.builder.resolve_tag_value(status) for status in constants.NON_FAILURE_STATUS
+        ]
         return self._resolve_count_if(
             Function(
                 "equals",
@@ -1146,7 +1184,11 @@ class MetricsDatasetConfig(DatasetConfig):
                 alias,
             )
 
-        quality_id = self.resolve_tag_value(quality)
+        try:
+            quality_id = self.builder.resolve_tag_value(quality)
+        except IncompatibleMetricsQuery:
+            quality_id = None
+
         if quality_id is None:
             return Function(
                 # This matches the type from doing `select toTypeName(count()) ...` from clickhouse
