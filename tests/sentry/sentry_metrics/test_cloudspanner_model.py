@@ -6,8 +6,7 @@ from typing import Sequence
 
 import pytest
 
-from sentry.sentry_metrics.indexer.cloudspanner.cloudspanner import \
-    RawCloudSpannerIndexer
+from sentry.sentry_metrics.indexer.cloudspanner.cloudspanner import RawCloudSpannerIndexer
 from sentry.sentry_metrics.indexer.cloudspanner.cloudspanner_model import (
     CloudSpannerDBAccessor,
     CloudSpannerInsertMode,
