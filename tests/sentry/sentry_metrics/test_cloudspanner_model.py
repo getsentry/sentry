@@ -26,8 +26,10 @@ def test_cloudspanner_model_column_names() -> None:
         "retention_days",
     ]
 
+
 def get_random_string(length: int) -> str:
     return "".join(random.choice(string.ascii_letters) for _ in range(length))
+
 
 @pytest.mark.skip(reason="TODO: Implement it correctly")
 @pytest.mark.parametrize(
