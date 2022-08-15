@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, RefObject, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -16,22 +16,26 @@ import type {
   Crumb,
 } from 'sentry/types/breadcrumbs';
 import {getPrevBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
+import {useCurrentItemScroller} from 'sentry/utils/replays/hooks/useCurrentItemScroller';
 import ConsoleMessage from 'sentry/views/replays/detail/console/consoleMessage';
 import {filterBreadcrumbs} from 'sentry/views/replays/detail/console/utils';
 
 interface Props {
   breadcrumbs: Extract<Crumb, BreadcrumbTypeDefault>[];
+  parentRef: RefObject<HTMLElement>;
   startTimestampMs: number;
 }
 
 const getDistinctLogLevels = (breadcrumbs: Crumb[]) =>
   Array.from(new Set<string>(breadcrumbs.map(breadcrumb => breadcrumb.level)));
 
-function Console({breadcrumbs, startTimestampMs = 0}: Props) {
+function Console({breadcrumbs, parentRef, startTimestampMs = 0}: Props) {
   const {currentHoverTime, currentTime} = useReplayContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [logLevel, setLogLevel] = useState<BreadcrumbLevelType[]>([]);
   const handleSearch = debounce(query => setSearchTerm(query), 150);
+
+  useCurrentItemScroller(parentRef);
 
   const filteredBreadcrumbs = useMemo(
     () => filterBreadcrumbs(breadcrumbs, searchTerm, logLevel),

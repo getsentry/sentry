@@ -154,6 +154,7 @@ function ConsoleMessage({
         hasOccurred={hasOccurred}
         onMouseOver={handleOnMouseOver}
         onMouseOut={handleOnMouseOut}
+        aria-current={hasOccurred}
       >
         <ErrorBoundary mini>
           <MessageFormatter breadcrumb={breadcrumb} />
