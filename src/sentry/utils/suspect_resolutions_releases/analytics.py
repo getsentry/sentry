@@ -6,7 +6,8 @@ class SuspectResolutionReleasesEvaluation(analytics.Event):
 
     attributes = (
         analytics.Attribute("algo_version"),
-        analytics.Attribute("release_id"),
+        analytics.Attribute("latest_release_id"),
+        analytics.Attribute("current_release_id"),
         analytics.Attribute("issue_id"),
         analytics.Attribute("project_id"),
     )
