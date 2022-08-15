@@ -160,7 +160,7 @@ def test_spanner_indexer_insert_batch_no_conflict_does_not_trigger_individual_in
         retention_days=55,
     )
     testing_indexer._insert_db_records([model2], key_results2)
-    assert not mock.called, "Individual insert should not be called"
+    assert mock.call_count == 0, "Individual insert should not be called"
 
 
 @patch(
@@ -204,7 +204,7 @@ def test_spanner_indexer_insert_batch_conflict_triggers_individual_transactions(
         retention_days=55,
     )
     testing_indexer._insert_db_records([model2], key_results2)
-    assert mock.called_once_with([model2], key_results2)
+    assert mock.call_count == 1, "Individual insert should be called"
 
 
 @pytest.mark.django_db
