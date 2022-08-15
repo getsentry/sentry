@@ -1,13 +1,13 @@
 [
   {
-    "query": "measurements.stall_count:3.1415",
+    "query": "measurements.size:3.1415",
     "result": [
       {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numeric",
         "negated": false,
-        "key": {"type": "keySimple", "value": "measurements.stall_count", "quoted": false},
+        "key": {"type": "keySimple", "value": "measurements.size", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueNumber",
@@ -20,14 +20,14 @@
     ]
   },
   {
-    "query": "measurements.stall_count:>3.1415",
+    "query": "measurements.size:>3.1415",
     "result": [
       {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numeric",
         "negated": false,
-        "key": {"type": "keySimple", "value": "measurements.stall_count", "quoted": false},
+        "key": {"type": "keySimple", "value": "measurements.size", "quoted": false},
         "operator": ">",
         "value": {
           "type": "valueNumber",
@@ -40,14 +40,14 @@
     ]
   },
   {
-    "query": "measurements.stall_count:<3.1415",
+    "query": "measurements.size:<3.1415",
     "result": [
       {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "numeric",
         "negated": false,
-        "key": {"type": "keySimple", "value": "measurements.stall_count", "quoted": false},
+        "key": {"type": "keySimple", "value": "measurements.size", "quoted": false},
         "operator": "<",
         "value": {
           "type": "valueNumber",

@@ -1,6 +1,6 @@
 [
   {
-    "query": "min(transaction.duration):3.1415",
+    "query": "min(spans.browser):3.1415",
     "result": [
       {
         "type": "spaces",
@@ -24,7 +24,7 @@
                 "separator": "",
                 "value": {
                   "type": "keyAggregateParam",
-                  "value": "transaction.duration",
+                  "value": "spans.browser",
                   "quoted": false
                 }
               }
@@ -54,7 +54,7 @@
     ]
   },
   {
-    "query": "min(transaction.duration):>3.1415",
+    "query": "min(spans.browser):>3.1415",
     "result": [
       {
         "type": "spaces",
@@ -78,7 +78,7 @@
                 "separator": "",
                 "value": {
                   "type": "keyAggregateParam",
-                  "value": "transaction.duration",
+                  "value": "spans.browser",
                   "quoted": false
                 }
               }
@@ -108,7 +108,7 @@
     ]
   },
   {
-    "query": "min(transaction.duration):<3.1415",
+    "query": "min(spans.browser):<3.1415",
     "result": [
       {
         "type": "spaces",
@@ -132,7 +132,7 @@
                 "separator": "",
                 "value": {
                   "type": "keyAggregateParam",
-                  "value": "transaction.duration",
+                  "value": "spans.browser",
                   "quoted": false
                 }
               }
@@ -162,7 +162,7 @@
     ]
   },
   {
-    "query": "min(measurements.stall_count):<3k",
+    "query": "min(spans.browser):<3k",
     "result": [
       {
         "type": "spaces",
@@ -186,7 +186,7 @@
                 "separator": "",
                 "value": {
                   "type": "keyAggregateParam",
-                  "value": "measurements.stall_count",
+                  "value": "spans.browser",
                   "quoted": false
                 }
               }
@@ -216,7 +216,8 @@
     ]
   },
   {
-    "query": "min(measurements.stall_count):2m",
+    "query": "min(spans.browser):2m",
+    "desc": "XXX: Questionable if this should actually be parsed as a duration? This is how it was written when moved from the original python test",
     "result": [
       {
         "type": "spaces",
@@ -224,7 +225,7 @@
       },
       {
         "type": "filter",
-        "filter": "aggregateNumeric",
+        "filter": "aggregateDuration",
         "negated": false,
         "key": {
           "type": "keyAggregate",
@@ -240,7 +241,7 @@
                 "separator": "",
                 "value": {
                   "type": "keyAggregateParam",
-                  "value": "measurements.stall_count",
+                  "value": "spans.browser",
                   "quoted": false
                 }
               }
@@ -257,9 +258,8 @@
         },
         "operator": "",
         "value": {
-          "type": "valueNumber",
-          "value": "2",
-          "rawValue": 2000000,
+          "type": "valueDuration",
+          "value": 2,
           "unit": "m"
         }
       },
