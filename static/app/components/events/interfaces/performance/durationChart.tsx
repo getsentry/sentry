@@ -51,7 +51,7 @@ export function DurationChart({issue, event, organization}: Props) {
   const issueStart = issue.firstSeen;
   const timeFromFirstSeen = moment(nowRef.current).diff(issueStart);
   const start = moment(issueStart).subtract(timeFromFirstSeen).format();
-  const interval = getInterval({start, end: nowRef.current, utc: true});
+  const interval = getInterval({start, end: nowRef.current, utc: true}, 'low');
 
   return (
     <EventsRequest
