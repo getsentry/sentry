@@ -1,4 +1,5 @@
 import re
+import logging
 from collections import namedtuple
 from datetime import datetime
 from http import HTTPStatus
@@ -19,6 +20,8 @@ from sentry.utils import metrics
 from sentry.utils.codecs import Codec
 
 import google.api_core.exceptions
+
+logger = logging.getLogger(__name__)
 
 EncodedId = int
 DecodedId = int
@@ -41,6 +44,12 @@ _UNIQUE_VIOLATION_EXISITING_RE = re.compile(r'\[([^]]+)]')
 indexer_cache = StringIndexerCache(
     **settings.SENTRY_STRING_INDEXER_CACHE_OPTIONS, partition_key=_PARTITION_KEY
 )
+
+class CloudSpannerRowAlreadyExists(Exception):
+    """
+    Exception raised when we insert a row that already exists.
+    """
+    pass
 
 
 class IdCodec(Codec[DecodedId, EncodedId]):
@@ -122,7 +131,8 @@ class RawCloudSpannerIndexer(StringIndexer):
             )
 
         results_list = list(results)
-        return [KeyResult(org_id=row[0], string=row[1], id=row[2])
+        return [KeyResult(org_id=row[0], string=row[1],
+                          id=self.__codec.decode(row[2]))
                 for row in results_list]
 
     def _create_db_records(self, db_keys: KeyCollection) -> Sequence[
@@ -148,8 +158,7 @@ class RawCloudSpannerIndexer(StringIndexer):
         return rows_to_insert
 
     def _insert_db_records(self, rows_to_insert: Sequence[SpannerIndexerModel],
-                           key_results: KeyResults) -> \
-            None:
+                           key_results: KeyResults) -> None:
         """
         Insert a bunch of db_keys records into the database. When there is a
         success of the insert, we update the key_results with the records
@@ -159,121 +168,148 @@ class RawCloudSpannerIndexer(StringIndexer):
         there were no conflicts and can avoid performing the additional lookup
         to check whether DB records match with what we tried to insert.
         """
+        try:
+            self._insert_batched_records(rows_to_insert, key_results)
+        except CloudSpannerRowAlreadyExists:
+            self._insert_individual_records(rows_to_insert, key_results)
+        except Exception as e:
+            logger.exception(e)
+            raise e
 
-        def insert_individual_records(transaction) -> None:
-            """
-            Insert the individual records in a transaction. We would need
-            to do this in scenarios where batch insert of the transaction
-            failed. Which can happen during collisions when multiple consumers
-            try to write records with same organization_id and string.
+    def _insert_batched_records(self, rows_to_insert: Sequence[SpannerIndexerModel],
+                           key_results: KeyResults) -> None:
+        """
+        Insert a batch of records in a transaction. This is the preferred
+        way of inserting records as it will reduce the number of operations
+        which need to be performed in a transaction.
 
-            During an individual insert, we would get a unique constraint violation
-            exception for the existing record. The exception provides the
-            existing record id on which the record conflicts. We use this id
-            and decode it to populate the key_results.
+        The transaction could fail if there are collisions with existing
+        records. In such a case, none of the records which we are trying to
+        batch insert will be inserted. We would need to do individual insert
+        using insert_individual_records.
+        """
+        def insert_batch_transaction_uow(transaction) -> None:
+            transaction.insert(
+                table=self._table_name,
+                columns=_COLUMNS,
+                values=rows_to_insert
+            )
 
-            decoded_id would be one of the following:
-            1. The id we generated for the record.
-            2. The id of the existing record on which the record conflicts
-            based on
-              a. The id received from the exception message when record was
-              being inserted.
-              b. The id of the existing record by performing a transaction read
-              for matching organization_id and string.
-
-            # TODO: Validate whether we should perform transaction read when
-            there is a conflict or we using the decoded it from the exception
-            is enough.
-            """
+        try:
+            self.database.run_in_transaction(insert_batch_transaction_uow)
+        except google.api_core.exceptions.AlreadyExists as exc:
+            if exc.code == HTTPStatus.CONFLICT:
+                raise CloudSpannerRowAlreadyExists
+        else:
             metrics.incr(
                 _INDEXER_DB_INSERT_METRIC,
-                tags={"batch": "false"},
+                tags={"batch": "true"},
             )
             metrics.incr(
                 _INDEXER_DB_INSERT_ROWS_METRIC,
                 amount=len(rows_to_insert),
-                tags={"batch": "false"},
+                tags={"batch": "true"},
             )
-            for row in rows_to_insert:
-                decoded_id = row.decoded_id
-                try:
-                    transaction.insert(
-                        self._table_name,
-                        columns=_COLUMNS,
-                        values=row
-                    )
-                except google.api_core.exceptions.AlreadyExists as exc:
-                    if exc.code == HTTPStatus.CONFLICT:
-                        regex_match = re.search(_UNIQUE_VIOLATION_EXISITING_RE,
-                                                str(exc.message))
-                        if regex_match:
-                            group = regex_match.group(1)
-                            _, _, existing_encoded_id = group.split(",")
-                            decoded_id = self.__codec.decode(int(
-                                existing_encoded_id))
-                        else:
-                            result = transaction.read(
-                                self._table_name,
-                                columns="id",
-                                keyset=spanner.KeySet(
-                                    keys=[row.organization_id, row.string]),
-                                index=self._unique_organization_string_index
-                            )
-                            existing_encoded_id = result[0][0]
-                            decoded_id = self.__codec.decode(int(
-                                existing_encoded_id))
-                finally:
-                    key_results.add_key_result(
-                        KeyResult(
-                            org_id=row.organization_id,
-                            string=row.string,
-                            id=decoded_id,
-                        ),
-                        fetch_type=FetchType.FIRST_SEEN,
-                    )
+            key_results.add_key_results(
+                [
+                    KeyResult(
+                        org_id=row.organization_id,
+                        string=row.string,
+                        id=row.decoded_id,
+                    ) for row in rows_to_insert
+                ],
+                fetch_type=FetchType.FIRST_SEEN,
+            )
 
-        def insert_batch_transaction(transaction) -> None:
-            """
-            Insert a batch of records in a transaction. This is the preferred
-            way of inserting records as it will reduce the number of operations
-            which need to be performed in a transaction.
+    def _insert_individual_records(self, rows_to_insert: Sequence[SpannerIndexerModel],
+                                   key_results: KeyResults) -> None:
+        """
+        Insert the individual records in a transaction. We would need
+        to do this in scenarios where batch insert of the transaction
+        failed. Which can happen during collisions when multiple consumers
+        try to write records with same organization_id and string.
 
-            The transaction could fail if there are collisions with existing
-            records. In such a case, none of the records which we are trying to
-            batch insert will be inserted. We would need to do individual insert
-            using insert_individual_records.
-            """
+        During an individual insert, we would get a unique constraint violation
+        exception for the existing record. The exception provides the
+        existing record id on which the record conflicts. We use this id
+        and decode it to populate the key_results.
+
+        decoded_id would be one of the following:
+        1. The id we generated for the record.
+        2. The id of the existing record on which the record conflicts
+        based on
+          a. The id received from the exception message when record was
+          being inserted.
+          b. The id of the existing record by performing a transaction read
+          for matching organization_id and string.
+
+        # TODO: Validate whether we should perform transaction read when
+        there is a conflict or we using the decoded it from the exception
+        is enough.
+        """
+        def insert_individual_record_uow(transaction) -> None:
+            transaction.insert(
+                self._table_name,
+                columns=_COLUMNS,
+                values=[row]
+            )
+
+        metrics.incr(
+            _INDEXER_DB_INSERT_METRIC,
+            tags={"batch": "false"},
+        )
+        for row in rows_to_insert:
             try:
-                transaction.insert(
-                    table=self._table_name,
-                    columns=_COLUMNS,
-                    values=rows_to_insert
+                self.database.run_in_transaction(
+                    insert_individual_record_uow)
+                metrics.incr(
+                    _INDEXER_DB_INSERT_ROWS_METRIC,
+                    tags={"batch": "false"},
+                )
+                key_results.add_key_result(
+                    KeyResult(
+                        org_id=row.organization_id,
+                        string=row.string,
+                        id=row.decoded_id,
+                    ),
+                    fetch_type=FetchType.FIRST_SEEN,
                 )
             except google.api_core.exceptions.AlreadyExists as exc:
                 if exc.code == HTTPStatus.CONFLICT:
-                    insert_individual_records(transaction)
-            else:
-                metrics.incr(
-                    _INDEXER_DB_INSERT_METRIC,
-                    tags={"batch": "true"},
-                )
-                metrics.incr(
-                    _INDEXER_DB_INSERT_ROWS_METRIC,
-                    amount=len(rows_to_insert),
-                    tags={"batch": "true"},
-                )
-                key_results.add_key_results(
-                    [
-                        KeyResult(
-                            org_id=row.organization_id,
-                            string=row.string,
-                            id=row.decoded_id,
-                        ) for row in rows_to_insert
-                    ],
-                    fetch_type=FetchType.FIRST_SEEN,
-                )
-
-        self.database.run_in_transaction(insert_batch_transaction)
+                    regex_match = re.search(_UNIQUE_VIOLATION_EXISITING_RE,
+                                            str(exc.message))
+                    if regex_match:
+                        group = regex_match.group(1)
+                        _, _, existing_encoded_id = group.split(",")
+                        key_results.add_key_result(
+                            KeyResult(
+                                org_id=row.organization_id,
+                                string=row.string,
+                                id=self.__codec.decode(
+                                    int(existing_encoded_id)),
+                            ),
+                            fetch_type=FetchType.FIRST_SEEN,
+                        )
+                    else:
+                        with self.database.snapshot() as snapshot:
+                            result = snapshot.read(
+                                table=self._table_name,
+                                columns=["id"],
+                                keyset=spanner.KeySet(
+                                    keys=[[row.organization_id, row.string]]),
+                                index=self._unique_organization_string_index
+                            )
+                        result_list = list(result)
+                        existing_encoded_id = result_list[0][0]
+                        key_results.add_key_result(
+                            KeyResult(
+                                org_id=row.organization_id,
+                                string=row.string,
+                                id=self.__codec.decode(
+                                    int(existing_encoded_id)),
+                            ),
+                            fetch_type=FetchType.FIRST_SEEN,
+                        )
 
     def bulk_record(
             self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
