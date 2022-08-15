@@ -17,8 +17,10 @@ from sentry.sentry_metrics.indexer.base import (
     StringIndexer,
 )
 from sentry.sentry_metrics.indexer.cache import CachingIndexer, StringIndexerCache
-from sentry.sentry_metrics.indexer.cloudspanner.cloudspanner_model import \
-    SpannerIndexerModel, get_column_names
+from sentry.sentry_metrics.indexer.cloudspanner.cloudspanner_model import (
+    SpannerIndexerModel,
+    get_column_names,
+)
 from sentry.sentry_metrics.indexer.id_generator import get_id, reverse_bits
 from sentry.sentry_metrics.indexer.ratelimiters import writes_limiter
 from sentry.sentry_metrics.indexer.strings import StaticStringIndexer
@@ -48,6 +50,7 @@ _UNIQUE_VIOLATION_EXISITING_RE = re.compile(r"\[([^]]+)]")
 indexer_cache = StringIndexerCache(
     **settings.SENTRY_STRING_INDEXER_CACHE_OPTIONS, partition_key=_PARTITION_KEY
 )
+
 
 class CloudSpannerRowAlreadyExists(Exception):
     """
@@ -181,9 +184,9 @@ class RawCloudSpannerIndexer(StringIndexer):
         """
 
         def insert_batch_transaction_uow(transaction) -> None:
-            transaction.insert(table=self._table_name,
-                               columns=get_column_names(),
-                               values=rows_to_insert)
+            transaction.insert(
+                table=self._table_name, columns=get_column_names(), values=rows_to_insert
+            )
 
         try:
             self.database.run_in_transaction(insert_batch_transaction_uow)
@@ -263,8 +266,9 @@ class RawCloudSpannerIndexer(StringIndexer):
                     fetch_type=FetchType.FIRST_SEEN,
                 )
             except google.api_core.exceptions.AlreadyExists as exc:
-                if exc.code == HTTPStatus.CONFLICT\
-                        and exc.message.startswith(_UNIQUE_INDEX_VIOLATION_STRING):
+                if exc.code == HTTPStatus.CONFLICT and exc.message.startswith(
+                    _UNIQUE_INDEX_VIOLATION_STRING
+                ):
                     regex_match = re.search(_UNIQUE_VIOLATION_EXISITING_RE, str(exc.message))
                     if regex_match:
                         group = regex_match.group(1)
