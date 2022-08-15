@@ -1,7 +1,7 @@
 import moment from 'moment';
 import {LocationRange} from 'pegjs';
 
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {
   AggregateParameter,
   AggregateParameterColumn,
@@ -734,7 +734,6 @@ export class TokenConverter {
     const numExpectedArguments = aggregation.parameters.length;
     const numProvidedArguments = key.args?.args?.length ?? 0;
 
-    // Loop through each
     for (
       let argIndex = 0;
       argIndex < Math.max(numExpectedArguments, numProvidedArguments);
@@ -1053,25 +1052,23 @@ const validateAggregateParameterColumn = ({
   parameterValue: string;
   position: number;
 }) => {
-  const definition = getFieldDefinition(keyName);
+  const columnParameterFieldDefinition = getFieldDefinition(parameterValue);
 
   if (typeof parameterDefinition.columnTypes === 'function') {
     if (
       !parameterDefinition.columnTypes({
         name: parameterValue,
-        dataType: definition?.valueType,
+        dataType: columnParameterFieldDefinition?.valueType,
       })
     ) {
       return {
-        reason: `Argument ${position} is an invalid column type.`,
+        reason: t('Argument %s is an invalid column type.', position),
       };
     }
   } else if (Array.isArray(parameterDefinition.columnTypes)) {
-    const columnParameterFieldDefinition = getFieldDefinition(parameterValue);
-
     if (!columnParameterFieldDefinition) {
       return {
-        reason: `${keyName} expects argument ${position} to be a column.`,
+        reason: t('%s expects argument %s to be a column.', keyName, position),
       };
     }
 
@@ -1082,9 +1079,12 @@ const validateAggregateParameterColumn = ({
       )
     ) {
       return {
-        reason: `${keyName} expects argument ${position} to be a column of type: ${parameterDefinition.columnTypes.join(
-          ', '
-        )}.`,
+        reason: t(
+          '%s expects argument %s to be a column of type: %s.',
+          keyName,
+          position,
+          parameterDefinition.columnTypes.join(', ')
+        ),
       };
     }
   }
@@ -1111,7 +1111,12 @@ const validateAggregateParameter = ({
 }) => {
   if ((parameterDefinition?.required && !parameterValue) || !parameterDefinition) {
     return {
-      reason: `${keyName} is expecting ${numExpectedArguments} arguments.`,
+      reason: tn(
+        '%s is expecting %s argument.',
+        '%s is expecting %s arguments',
+        keyName,
+        numExpectedArguments
+      ),
     };
   }
 
@@ -1130,9 +1135,12 @@ const validateAggregateParameter = ({
     case 'dropdown': {
       if (!parameterDefinition.options.find(option => option.value === parameterValue)) {
         return {
-          reason: `${keyName} expects argument ${position} to be one of: ${parameterDefinition.options
-            .map(option => `'${option.value}'`)
-            .join(', ')}`,
+          reason: t(
+            '%s expects argument %s to be one of: %s',
+            keyName,
+            position,
+            parameterDefinition.options.map(option => `'${option.value}'`).join(', ')
+          ),
         };
       }
       return null;
@@ -1140,7 +1148,11 @@ const validateAggregateParameter = ({
     case 'value': {
       if (getValueType(parameterValue) !== parameterDefinition.dataType) {
         return {
-          reason: `${keyName} expects arument ${position} to be of type ${parameterDefinition.dataType}`,
+          reason: t(
+            '%s expects arument %s to be of type %s',
+            keyName,
+            parameterDefinition.dataType
+          ),
         };
       }
       return null;
