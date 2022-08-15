@@ -329,7 +329,7 @@ class OrganizationContextContainer extends Component<Props, State> {
       <SentryDocumentTitle noSuffix title={this.getTitle()}>
         <OrganizationContext.Provider value={this.state.organization}>
           <div className="app">
-            <SentryReplayInit />
+            <SentryReplayInit organization={this.state.organization} />
             {this.state.hooks}
             {this.renderSidebar()}
             {this.props.children}
