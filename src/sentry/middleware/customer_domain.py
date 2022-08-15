@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from typing import Callable
 
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import resolve, reverse
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -86,7 +87,10 @@ class CustomerDomainMiddleware:
             url_prefix = options.get("system.url-prefix")
             qs = _query_string(request)
             redirect_url = f"{url_prefix}{request.path}{qs}"
-            return HttpResponseRedirect(redirect_url)
+            if request.method == "GET":
+                return HttpResponseRedirect(redirect_url)
+            else:
+                return HttpResponse(status=status.HTTP_400_BAD_REQUEST)
 
         activeorg = _resolve_activeorg(request)
         if not activeorg:

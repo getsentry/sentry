@@ -283,6 +283,7 @@ class End2EndTest(APITestCase):
 
         middleware = provision_middleware()
         with override_settings(MIDDLEWARE=tuple(middleware)):
+            # GET request
             response = self.client.get(
                 reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"}),
                 data={"querystring": "value"},
@@ -301,6 +302,22 @@ class End2EndTest(APITestCase):
                 "activeorg": None,
             }
             assert "activeorg" not in self.client.session
+
+            # POST request
+            response = self.client.post(
+                reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"}),
+                data={"querystring": "value"},
+                HTTP_HOST="albertos-apples.testserver",
+            )
+            assert response.status_code == 400
+
+            # PUT request (not-supported)
+            response = self.client.put(
+                reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"}),
+                data={"querystring": "value"},
+                HTTP_HOST="albertos-apples.testserver",
+            )
+            assert response.status_code == 400
 
     def test_with_middleware_and_is_staff(self):
         self.create_organization(name="albertos-apples")
