@@ -27,5 +27,4 @@ def test_id_codec(value) -> None:
 def test_spanner_indexer_service():
     # TODO: Provide instance_id and database_id when running the test
     span_indexer = CloudSpannerIndexer(instance_id="", database_id="")
-    span_indexer.setup()
     span_indexer.validate()
