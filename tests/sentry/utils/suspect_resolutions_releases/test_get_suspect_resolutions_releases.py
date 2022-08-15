@@ -23,7 +23,7 @@ class GetSuspectResolutionsReleasesTest(TestCase):
         assert get_suspect_resolutions_releases(release, project) == [issue.id]
 
     @mock.patch("sentry.analytics.record")
-    def test_suspect_resolutions_evaluation_analytics_event(self, record):
+    def test_suspect_resolutions_releases_evaluation_analytics_event(self, record):
         organization = self.create_organization()
         project = self.create_project(organization=organization)
         group1 = self.create_group(project=project, last_seen=timezone.now() - timedelta(days=2))
