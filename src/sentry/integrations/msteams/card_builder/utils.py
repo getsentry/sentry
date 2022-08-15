@@ -117,7 +117,7 @@ class IssueConstants:
     UNASSIGN = "Unassign"
 
 
-translator = str.maketrans({"&": "&amp;", "<": "&lt;", ">": "&gt;", "_": "&#95;"})
+translator = str.maketrans({"&": "&amp;", "<": "&lt;", ">": "&gt;", "_": "\\_"})
 
 
 def escape_markdown_special_chars(text: str) -> str:

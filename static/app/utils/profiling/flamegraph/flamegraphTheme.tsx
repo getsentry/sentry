@@ -1,8 +1,11 @@
-import {darkTheme, lightTheme} from '../../theme';
-import {FlamegraphFrame} from '../flamegraphFrame';
-
-import {makeColorBucketTheme, makeColorMap, makeStackToColor} from './../colors/utils';
-import {Frame} from './../frame';
+import {
+  makeColorBucketTheme,
+  makeColorMap,
+  makeStackToColor,
+} from 'sentry/utils/profiling/colors/utils';
+import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import {Frame} from 'sentry/utils/profiling/frame';
+import {darkTheme, lightTheme} from 'sentry/utils/theme';
 
 const MONOSPACE_FONT = `ui-monospace, Menlo, Monaco, 'Cascadia Mono', 'Segoe UI Mono', 'Roboto Mono',
 'Oxygen Mono', 'Ubuntu Monospace', 'Source Code Pro', 'Fira Mono', 'Droid Sans Mono',
@@ -170,7 +173,7 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
     REQUEST_WAIT_TIME: `rgba(253,252,224, 1)`,
     SAMPLE_TICK_COLOR: [255, 0, 0, 0.5],
     SEARCH_RESULT_FRAME_COLOR: 'vec4(0.99, 0.70, 0.35, 1.0)',
-    SELECTED_FRAME_BORDER_COLOR: '#005aff',
+    SELECTED_FRAME_BORDER_COLOR: lightTheme.blue400,
     SPAN_FRAME_BACKGROUND: 'rgba(231, 231, 231, 0.5)',
     SPAN_FRAME_BORDER: 'rgba(200, 200, 200, 1)',
     STACK_TO_COLOR: makeStackToColor([0, 0, 0, 0.035]),
@@ -233,7 +236,7 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
     REQUEST_WAIT_TIME: `rgba(253,252,224, 1)`,
     SAMPLE_TICK_COLOR: [255, 0, 0, 0.5],
     SEARCH_RESULT_FRAME_COLOR: 'vec4(0.99, 0.70, 0.35, 0.7)',
-    SELECTED_FRAME_BORDER_COLOR: '#3482ea',
+    SELECTED_FRAME_BORDER_COLOR: lightTheme.blue400,
     SPAN_FRAME_BACKGROUND: 'rgba(232, 232, 232, 0.2)',
     SPAN_FRAME_BORDER: '#57575b',
     STACK_TO_COLOR: makeStackToColor([1, 1, 1, 0.1]),

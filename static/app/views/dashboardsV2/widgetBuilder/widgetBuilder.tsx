@@ -1034,7 +1034,7 @@ function WidgetBuilder({
     <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
       <PageFiltersContainer
         defaultSelection={{
-          datetime: {start: null, end: null, utc: false, period: DEFAULT_STATS_PERIOD},
+          datetime: {start: null, end: null, utc: null, period: DEFAULT_STATS_PERIOD},
         }}
       >
         <CustomMeasurementsProvider organization={organization} selection={selection}>
@@ -1118,6 +1118,7 @@ function WidgetBuilder({
                         selection={pageFilters}
                         widgetType={widgetType}
                         dashboardFilters={dashboard.filters}
+                        location={location}
                       />
                       {widgetBuilderNewDesign && isTimeseriesChart && (
                         <GroupByStep

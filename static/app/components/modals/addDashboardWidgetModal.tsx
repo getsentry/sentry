@@ -33,9 +33,11 @@ import {
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {getColumnsAndAggregates} from 'sentry/utils/discover/fields';
+import {
+  getColumnsAndAggregates,
+  SPAN_OP_BREAKDOWN_FIELDS,
+} from 'sentry/utils/discover/fields';
 import Measurements from 'sentry/utils/measurements/measurements';
-import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withTags from 'sentry/utils/withTags';
@@ -563,7 +565,7 @@ class AddDashboardWidgetModal extends Component<Props, State> {
       return {
         label: d.title,
         value: d.id,
-        isDisabled: d.widgetDisplay.length >= MAX_WIDGETS,
+        disabled: d.widgetDisplay.length >= MAX_WIDGETS,
         tooltip:
           d.widgetDisplay.length >= MAX_WIDGETS &&
           tct('Max widgets ([maxWidgets]) per dashboard reached.', {

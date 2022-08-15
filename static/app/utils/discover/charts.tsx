@@ -3,7 +3,7 @@ import {LegendComponentOption} from 'echarts';
 import {t} from 'sentry/locale';
 import {Series} from 'sentry/types/echarts';
 import {defined, formatBytesBase2} from 'sentry/utils';
-import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
   DAY,
   formatAbbreviatedNumber,
@@ -19,11 +19,14 @@ import {
  * Formatter for chart tooltips that handle a variety of discover and metrics result values.
  * If the result is metric values, the value can be of type number or null
  */
-export function tooltipFormatter(value: number | null, seriesName: string = ''): string {
+export function tooltipFormatter(
+  value: number | null,
+  outputType: AggregationOutputType = 'number'
+): string {
   if (!defined(value)) {
     return '\u2014';
   }
-  return tooltipFormatterUsingAggregateOutputType(value, aggregateOutputType(seriesName));
+  return tooltipFormatterUsingAggregateOutputType(value, outputType);
 }
 
 /**
@@ -57,13 +60,13 @@ export function tooltipFormatterUsingAggregateOutputType(
  */
 export function axisLabelFormatter(
   value: number,
-  seriesName: string,
+  outputType: AggregationOutputType,
   abbreviation: boolean = false,
   durationUnit?: number
 ): string {
   return axisLabelFormatterUsingAggregateOutputType(
     value,
-    aggregateOutputType(seriesName),
+    outputType,
     abbreviation,
     durationUnit
   );

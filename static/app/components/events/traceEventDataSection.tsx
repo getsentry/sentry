@@ -8,10 +8,11 @@ import {
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
-import BooleanField from 'sentry/components/forms/booleanField';
+import ButtonBar from 'sentry/components/buttonBar';
+import CompactSelect from 'sentry/components/forms/compactSelect';
 import CompositeSelect from 'sentry/components/forms/compositeSelect';
 import Tooltip from 'sentry/components/tooltip';
-import {IconSliders} from 'sentry/icons';
+import {IconEllipsis, IconSort} from 'sentry/icons';
 import {IconAnchor} from 'sentry/icons/iconAnchor';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -25,8 +26,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import EventDataSection from './eventDataSection';
 
 const sortByOptions = {
-  'recent-first': t('Recent first'),
-  'recent-last': t('Recent last'),
+  'recent-first': t('Newest'),
+  'recent-last': t('Oldest'),
 };
 
 export const displayOptions = {
@@ -100,7 +101,7 @@ export function TraceEventDataSection({
   function getDisplayOptions(): {
     label: string;
     value: keyof typeof displayOptions;
-    isDisabled?: boolean;
+    disabled?: boolean;
     tooltip?: string;
   }[] {
     if (platform === 'objc' || platform === 'native' || platform === 'cocoa') {
@@ -108,7 +109,7 @@ export function TraceEventDataSection({
         {
           label: displayOptions['absolute-addresses'],
           value: 'absolute-addresses',
-          isDisabled: state.display.includes('raw-stack-trace') || !hasAbsoluteAddresses,
+          disabled: state.display.includes('raw-stack-trace') || !hasAbsoluteAddresses,
           tooltip: state.display.includes('raw-stack-trace')
             ? t('Not available on raw stack trace')
             : !hasAbsoluteAddresses
@@ -118,7 +119,7 @@ export function TraceEventDataSection({
         {
           label: displayOptions['absolute-file-paths'],
           value: 'absolute-file-paths',
-          isDisabled: state.display.includes('raw-stack-trace') || !hasAbsoluteFilePaths,
+          disabled: state.display.includes('raw-stack-trace') || !hasAbsoluteFilePaths,
           tooltip: state.display.includes('raw-stack-trace')
             ? t('Not available on raw stack trace')
             : !hasAbsoluteFilePaths
@@ -128,7 +129,7 @@ export function TraceEventDataSection({
         {
           label: displayOptions.minified,
           value: 'minified',
-          isDisabled: !hasMinified,
+          disabled: !hasMinified,
           tooltip: !hasMinified ? t('Unsymbolicated version not available') : undefined,
         },
         {
@@ -138,8 +139,7 @@ export function TraceEventDataSection({
         {
           label: displayOptions['verbose-function-names'],
           value: 'verbose-function-names',
-          isDisabled:
-            state.display.includes('raw-stack-trace') || !hasVerboseFunctionNames,
+          disabled: state.display.includes('raw-stack-trace') || !hasVerboseFunctionNames,
           tooltip: state.display.includes('raw-stack-trace')
             ? t('Not available on raw stack trace')
             : !hasVerboseFunctionNames
@@ -162,7 +162,7 @@ export function TraceEventDataSection({
       {
         label: displayOptions.minified,
         value: 'minified',
-        isDisabled: !hasMinified,
+        disabled: !hasMinified,
         tooltip: !hasMinified ? t('Minified version not available') : undefined,
       },
       {
@@ -197,72 +197,98 @@ export function TraceEventDataSection({
       title={
         <Header>
           <Title>{cloneElement(title, {type})}</Title>
-          {!stackTraceNotFound && (
-            <Fragment>
-              {!state.display.includes('raw-stack-trace') && (
-                <Tooltip
-                  title={!hasAppOnlyFrames ? t('Only full version available') : undefined}
-                  disabled={hasAppOnlyFrames}
-                >
-                  <FullStackTraceToggler
-                    name="full-stack-trace-toggler"
-                    label={t('Full stack trace')}
-                    hideControlState
-                    disabled={!hasAppOnlyFrames}
-                    value={state.fullStackTrace}
-                    onChange={() =>
-                      setState({
-                        ...state,
-                        fullStackTrace: !state.fullStackTrace,
-                      })
-                    }
-                  />
-                </Tooltip>
-              )}
-              {state.display.includes('raw-stack-trace') && nativePlatform && (
-                <Button
-                  size="sm"
-                  href={rawStackTraceDownloadLink}
-                  title={t('Download raw stack trace file')}
-                >
-                  {t('Download')}
-                </Button>
-              )}
-              <CompositeSelect
-                triggerLabel={t('Options')}
-                triggerProps={{
-                  icon: <IconSliders />,
-                  size: 'sm',
-                }}
-                placement="bottom right"
-                sections={[
-                  {
-                    label: t('Sort By'),
-                    value: 'sort-by',
-                    defaultValue: state.sortBy,
-                    options: Object.entries(sortByOptions).map(([value, label]) => ({
-                      label,
-                      value,
-                      isDisabled: !!sortByTooltip,
-                      tooltip: sortByTooltip,
-                    })),
-                    onChange: sortBy => setState({...state, sortBy}),
-                  },
-                  {
-                    label: t('Display'),
-                    value: 'display',
-                    defaultValue: state.display,
-                    multiple: true,
-                    options: getDisplayOptions().map(option => ({
-                      ...option,
-                      value: String(option.value),
-                    })),
-                    onChange: display => setState({...state, display}),
-                  },
-                ]}
-              />
-            </Fragment>
-          )}
+          <ActionWrapper>
+            {!stackTraceNotFound && (
+              <Fragment>
+                {!state.display.includes('raw-stack-trace') && (
+                  <Tooltip
+                    title={t('Only full version available')}
+                    disabled={hasAppOnlyFrames}
+                  >
+                    <ButtonBar active={state.fullStackTrace ? 'full' : 'relevant'} merged>
+                      <Button
+                        type="button"
+                        size="xs"
+                        barId="relevant"
+                        onClick={() =>
+                          setState({
+                            ...state,
+                            fullStackTrace: false,
+                          })
+                        }
+                        disabled={!hasAppOnlyFrames}
+                      >
+                        {t('Most Relevant')}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="xs"
+                        barId="full"
+                        priority={!hasAppOnlyFrames ? 'primary' : undefined}
+                        onClick={() =>
+                          setState({
+                            ...state,
+                            fullStackTrace: true,
+                          })
+                        }
+                      >
+                        {t('Full Stack Trace')}
+                      </Button>
+                    </ButtonBar>
+                  </Tooltip>
+                )}
+                {state.display.includes('raw-stack-trace') && nativePlatform && (
+                  <Button
+                    size="xs"
+                    href={rawStackTraceDownloadLink}
+                    title={t('Download raw stack trace file')}
+                  >
+                    {t('Download')}
+                  </Button>
+                )}
+                <CompactSelect
+                  triggerProps={{
+                    icon: <IconSort />,
+                    size: 'xs',
+                    title: sortByTooltip,
+                  }}
+                  isDisabled={!!sortByTooltip}
+                  placement="bottom right"
+                  onChange={selectedOption => {
+                    setState({...state, sortBy: selectedOption.value});
+                  }}
+                  value={state.sortBy}
+                  options={Object.entries(sortByOptions).map(([value, label]) => ({
+                    label,
+                    value,
+                  }))}
+                />
+                <CompositeSelect
+                  triggerProps={{
+                    icon: <IconEllipsis />,
+                    size: 'xs',
+                    showChevron: false,
+                    'aria-label': t('Options'),
+                  }}
+                  triggerLabel=""
+                  placement="bottom right"
+                  sections={[
+                    {
+                      label: t('Display'),
+                      value: 'display',
+                      defaultValue: state.display,
+                      multiple: true,
+                      options: getDisplayOptions().map(option => ({
+                        ...option,
+                        value: String(option.value),
+                      })),
+                      onChange: display => setState({...state, display}),
+                    },
+                  ]}
+                />
+              </Fragment>
+            )}
+          </ActionWrapper>
         </Header>
       }
       showPermalink={false}
@@ -307,22 +333,6 @@ const Permalink = styled('a')`
   }
 `;
 
-const FullStackTraceToggler = styled(BooleanField)`
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(2, max-content);
-  gap: ${space(1)};
-  border-bottom: none;
-  justify-content: flex-end;
-
-  && {
-    > * {
-      padding: 0;
-      width: auto;
-    }
-  }
-`;
-
 const Header = styled('div')`
   width: 100%;
   display: flex;
@@ -334,7 +344,12 @@ const Header = styled('div')`
 
 const Title = styled('div')`
   flex: 1;
-  & > *:first-child {
-    width: auto;
+  @media (min-width: ${props => props.theme.breakpoints.small}) {
+    flex: unset;
   }
+`;
+
+const ActionWrapper = styled('div')`
+  display: flex;
+  gap: ${space(1)};
 `;

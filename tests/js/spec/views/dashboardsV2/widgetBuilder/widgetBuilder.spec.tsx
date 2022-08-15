@@ -239,6 +239,13 @@ describe('WidgetBuilder', function () {
       method: 'GET',
       body: {},
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/is/values/',
+      method: 'GET',
+      body: [],
+    });
+
     TagStore.reset();
   });
 
@@ -499,7 +506,7 @@ describe('WidgetBuilder', function () {
               start: null,
               end: null,
               statsPeriod: '24h',
-              utc: false,
+              utc: null,
               project: [],
               environment: [],
             },
@@ -542,7 +549,7 @@ describe('WidgetBuilder', function () {
               start: null,
               end: null,
               statsPeriod: '24h',
-              utc: false,
+              utc: null,
               project: [],
               environment: [],
             },
@@ -2072,7 +2079,7 @@ describe('WidgetBuilder', function () {
                 start: null,
                 end: null,
                 statsPeriod: '24h',
-                utc: false,
+                utc: null,
                 project: [],
                 environment: [],
               },
@@ -2104,7 +2111,7 @@ describe('WidgetBuilder', function () {
                 start: null,
                 end: null,
                 statsPeriod: '24h',
-                utc: false,
+                utc: null,
                 project: [],
                 environment: [],
               },
@@ -3437,7 +3444,7 @@ describe('WidgetBuilder', function () {
                 start: null,
                 end: null,
                 statsPeriod: '24h',
-                utc: false,
+                utc: null,
                 project: [],
                 environment: [],
               },

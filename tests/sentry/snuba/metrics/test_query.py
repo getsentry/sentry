@@ -110,7 +110,7 @@ def test_validate_select():
     with pytest.raises(
         InvalidParams,
         match=(
-            "Invalid operation 'foo'. Must be one of avg, count_unique, count, max, sum, "
+            "Invalid operation 'foo'. Must be one of avg, count_unique, count, max, min, sum, "
             "histogram, p50, p75, p90, p95, p99"
         ),
     ):
@@ -138,11 +138,22 @@ def test_validate_select():
         )
 
 
+def test_validate_select_invalid_use_case_ids():
+    with pytest.raises(InvalidParams, match="All select fields should have the same use_case_id"):
+        metric_field_1 = MetricField(op=None, metric_name=SessionMetricKey.CRASH_FREE_RATE.value)
+        metric_field_2 = MetricField(op="p50", metric_name=TransactionMetricKey.DURATION.value)
+        MetricsQuery(
+            **MetricsQueryBuilder()
+            .with_select([metric_field_1, metric_field_2])
+            .to_metrics_query_dict()
+        )
+
+
 def test_validate_order_by():
     with pytest.raises(
         InvalidParams,
         match=(
-            "Invalid operation 'foo'. Must be one of avg, count_unique, count, max, sum, "
+            "Invalid operation 'foo'. Must be one of avg, count_unique, count, max, min, sum, "
             "histogram, p50, p75, p90, p95, p99"
         ),
     ):
@@ -233,14 +244,15 @@ def test_validate_multiple_order_by_fields_from_multiple_entities():
     counters entity while p50 of duration will go to distribution
     """
     metric_field_1 = MetricField(op=None, metric_name=SessionMetricKey.CRASH_FREE_RATE.value)
-    metric_field_2 = MetricField(op="p50", metric_name=TransactionMetricKey.DURATION.value)
+    metric_field_2 = MetricField(op=None, metric_name=SessionMetricKey.CRASH_FREE_USER_RATE.value)
+    metric_field_3 = MetricField(op="p50", metric_name=TransactionMetricKey.DURATION.value)
     metrics_query_dict = (
         MetricsQueryBuilder()
         .with_select([metric_field_1, metric_field_2])
         .with_orderby(
             [
                 OrderBy(field=metric_field_1, direction=Direction.ASC),
-                OrderBy(field=metric_field_2, direction=Direction.ASC),
+                OrderBy(field=metric_field_3, direction=Direction.ASC),
             ]
         )
         .to_metrics_query_dict()

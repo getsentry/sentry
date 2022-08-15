@@ -35,7 +35,7 @@ class BaseApiResponse:
     @cached_property  # type: ignore
     def rel(self) -> Mapping[str, str]:
         link_header = (self.headers or {}).get("Link", "")
-        parsed_links = requests.utils.parse_header_links(link_header)  # type: ignore
+        parsed_links = requests.utils.parse_header_links(link_header)
         return {item["rel"]: item["url"] for item in parsed_links}
 
     @classmethod

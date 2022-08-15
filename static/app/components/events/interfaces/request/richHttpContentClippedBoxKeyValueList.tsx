@@ -3,6 +3,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {Meta} from 'sentry/types';
 import {EntryRequest} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
 
 import getTransformedData from './getTransformedData';
 
@@ -31,15 +32,22 @@ export function RichHttpContentClippedBoxKeyValueList({
     try {
       return (
         <KeyValueList
-          data={transformedData.map(d => {
-            const [key, value] = d.data;
-            return {
-              key,
-              subject: key,
-              value,
-              meta: d.meta,
-            };
-          })}
+          data={transformedData
+            .map(d => {
+              const [key, value] = d.data;
+
+              if (!value && !d.meta) {
+                return null;
+              }
+
+              return {
+                key,
+                subject: key,
+                value,
+                meta: d.meta,
+              };
+            })
+            .filter(defined)}
           isContextData={isContextData}
         />
       );

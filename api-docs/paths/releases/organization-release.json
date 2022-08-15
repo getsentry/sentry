@@ -32,6 +32,7 @@
               "$ref": "../../components/schemas/releases/organization-release.json#/OrganizationRelease"
             },
             "example": {
+              "id": 2,
               "authors": [],
               "commitCount": 0,
               "data": {},
@@ -146,6 +147,7 @@
               "$ref": "../../components/schemas/releases/organization-release.json#/OrganizationRelease"
             },
             "example": {
+              "id": 2,
               "authors": [],
               "commitCount": 0,
               "data": {},
