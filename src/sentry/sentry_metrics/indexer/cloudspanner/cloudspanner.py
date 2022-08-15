@@ -183,10 +183,10 @@ class RawCloudSpannerIndexer(StringIndexer):
         using insert_individual_records.
         """
 
-        def insert_batch_transaction_uow(transaction) -> None:
-            transaction.insert(
-                table=self._table_name, columns=get_column_names(), values=rows_to_insert
-            )
+        def insert_batch_transaction_uow(transaction: Any) -> None:
+            transaction.insert(table=self._table_name,
+                               columns=get_column_names(),
+                               values=rows_to_insert)
 
         try:
             self.database.run_in_transaction(insert_batch_transaction_uow)
@@ -243,7 +243,7 @@ class RawCloudSpannerIndexer(StringIndexer):
         is enough.
         """
 
-        def insert_individual_record_uow(transaction) -> None:
+        def insert_individual_record_uow(transaction: Any) -> None:
             transaction.insert(self._table_name, columns=get_column_names(), values=[row])
 
         metrics.incr(
