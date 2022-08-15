@@ -386,6 +386,9 @@ const appConfig: Configuration = {
       new RegExp(`(${supportedLanguages.join('|')})\\.js$`)
     ),
 
+    /**
+     * Federated Modules
+     */
     new ModuleFederationPlugin({
       name: 'host',
       filename: 'remoteEntry.js',

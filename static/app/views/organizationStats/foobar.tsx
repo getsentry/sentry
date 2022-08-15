@@ -1,24 +1,39 @@
+/* eslint-disable import/no-unresolved */
+
+import {Fragment} from 'react';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import Counter from 'remote/counter';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import space from 'sentry/styles/space';
-// import Counter from 'remote/counter';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t} from 'sentry/locale';
+import useOrganization from 'sentry/utils/useOrganization';
 
-type Props = {};
+import Header from './header';
+
+type Props = RouteComponentProps<{orgId: string}, {}>;
 
 function FooBar({}: Props) {
+  const organization = useOrganization();
   return (
-    <Layout.Header>
-      <Layout.HeaderContent>
-        <StyledLayoutTitle>Testing Webpack Federated Modules</StyledLayoutTitle>
-      </Layout.HeaderContent>
-      {/* <Counter /> */}
-    </Layout.Header>
+    <Fragment>
+      <SentryDocumentTitle title={t('FOO BAR')} />
+      <Header organization={organization} activeTab="foobar" />
+
+      <Body>
+        <Layout.Main fullWidth>
+          <Counter />
+        </Layout.Main>
+      </Body>
+    </Fragment>
   );
 }
 
 export default FooBar;
 
-const StyledLayoutTitle = styled(Layout.Title)`
-  margin-top: ${space(0.5)};
+const Body = styled(Layout.Body)`
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    display: block;
+  }
 `;
