@@ -283,3 +283,71 @@ class PerformanceDetectionTest(unittest.TestCase):
                 ),
             ]
         )
+
+    def test_calls_detect_render_blocking_asset(self):
+        render_blocking_asset_event = {
+            "event_id": "a" * 16,
+            "measurements": {
+                "fcp": {
+                    "value": 2500.0,
+                    "unit": "millisecond",
+                }
+            },
+            "spans": [
+                create_span("resource.script", duration=1000.0),
+            ],
+        }
+        non_render_blocking_asset_event = {
+            "event_id": "a" * 16,
+            "measurements": {
+                "fcp": {
+                    "value": 2500.0,
+                    "unit": "millisecond",
+                }
+            },
+            "spans": [
+                modify_span_start(
+                    create_span("resource.script", duration=1000.0),
+                    2000.0,
+                ),
+            ],
+        }
+        short_render_blocking_asset_event = {
+            "event_id": "a" * 16,
+            "measurements": {
+                "fcp": {
+                    "value": 2500.0,
+                    "unit": "millisecond",
+                }
+            },
+            "spans": [
+                create_span("resource.script", duration=200.0),
+            ],
+        }
+
+        sdk_span_mock = Mock()
+
+        _detect_performance_issue(non_render_blocking_asset_event, sdk_span_mock)
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
+
+        _detect_performance_issue(short_render_blocking_asset_event, sdk_span_mock)
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
+
+        _detect_performance_issue(render_blocking_asset_event, sdk_span_mock)
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 3
+        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
+            [
+                call(
+                    "_pi_all_issue_count",
+                    1,
+                ),
+                call(
+                    "_pi_transaction",
+                    "aaaaaaaaaaaaaaaa",
+                ),
+                call(
+                    "_pi_render_blocking_assets",
+                    "bbbbbbbbbbbbbbbb",
+                ),
+            ]
+        )
