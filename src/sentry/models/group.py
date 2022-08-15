@@ -353,6 +353,12 @@ class GroupManager(BaseManager):
         }
 
 
+class GroupType(Enum):
+    ERROR = 1
+    PERFORMANCE_N_PLUS_ONE = 1000
+    PERFORMANCE_SLOW_SPAN = 1001
+
+
 class Group(Model):
     """
     Aggregated message which summarizes a set of Events.
@@ -401,6 +407,15 @@ class Group(Model):
     short_id = BoundedBigIntegerField(null=True)
 
     objects = GroupManager(cache_fields=("id",))
+    type = BoundedPositiveIntegerField(
+        default=GroupType.ERROR.value,
+        choices=(
+            (GroupType.ERROR, _("Error")),
+            (GroupType.PERFORMANCE_N_PLUS_ONE, _("N Plus One")),
+            (GroupType.PERFORMANCE_SLOW_SPAN, _("Slow Span")),
+        ),
+        null=False,
+    )
 
     class Meta:
         app_label = "sentry"
