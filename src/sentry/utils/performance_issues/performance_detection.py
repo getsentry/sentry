@@ -101,11 +101,11 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
 
     detection_settings = get_default_detection_settings()
     detectors = {
-        DetectorType.DUPLICATE_SPANS: DuplicateSpanDetector(detection_settings),
-        DetectorType.DUPLICATE_SPANS_HASH: DuplicateSpanHashDetector(detection_settings),
-        DetectorType.SLOW_SPAN: SlowSpanDetector(detection_settings),
-        DetectorType.SEQUENTIAL_SLOW_SPANS: SequentialSlowSpanDetector(detection_settings),
-        DetectorType.LONG_TASK_SPANS: LongTaskSpanDetector(detection_settings),
+        DetectorType.DUPLICATE_SPANS: DuplicateSpanDetector(detection_settings, data),
+        DetectorType.DUPLICATE_SPANS_HASH: DuplicateSpanHashDetector(detection_settings, data),
+        DetectorType.SLOW_SPAN: SlowSpanDetector(detection_settings, data),
+        DetectorType.SEQUENTIAL_SLOW_SPANS: SequentialSlowSpanDetector(detection_settings, data),
+        DetectorType.LONG_TASK_SPANS: LongTaskSpanDetector(detection_settings, data),
         DetectorType.RENDER_BLOCKING_ASSET_SPAN: RenderBlockingAssetSpanDetector(
             detection_settings, data
         ),
@@ -153,9 +153,10 @@ class PerformanceDetector(ABC):
     Classes of this type have their visit functions called as the event is walked once and will store a performance issue if one is detected.
     """
 
-    def __init__(self, settings: Dict[str, Any], event: Event = None):
+    def __init__(self, settings: Dict[str, Any], event: Event):
         self.settings = settings[self.settings_key]
-        self.init(event)
+        self._event = event
+        self.init()
 
     @abstractmethod
     def init(self):
@@ -179,6 +180,9 @@ class PerformanceDetector(ABC):
             if op_prefix:
                 return op, span_id, op_prefix, span_duration, setting
         return None
+
+    def event(self) -> Event:
+        return self._event
 
     @property
     @abstractmethod
@@ -204,7 +208,7 @@ class DuplicateSpanDetector(PerformanceDetector):
 
     settings_key = DetectorType.DUPLICATE_SPANS
 
-    def init(self, _event: Event):
+    def init(self):
         self.cumulative_durations = {}
         self.duplicate_spans_involved = {}
         self.stored_issues = {}
@@ -251,7 +255,7 @@ class DuplicateSpanHashDetector(PerformanceDetector):
 
     settings_key = DetectorType.DUPLICATE_SPANS_HASH
 
-    def init(self, _event: Event):
+    def init(self):
         self.cumulative_durations = {}
         self.duplicate_spans_involved = {}
         self.stored_issues = {}
@@ -297,7 +301,7 @@ class SlowSpanDetector(PerformanceDetector):
 
     settings_key = DetectorType.SLOW_SPAN
 
-    def init(self, _event: Event):
+    def init(self):
         self.stored_issues = {}
 
     def visit_span(self, span: Span):
@@ -331,7 +335,7 @@ class SequentialSlowSpanDetector(PerformanceDetector):
 
     settings_key = DetectorType.SEQUENTIAL_SLOW_SPANS
 
-    def init(self, _event: Event):
+    def init(self):
         self.cumulative_durations = {}
         self.stored_issues = {}
         self.spans_involved = {}
@@ -395,7 +399,7 @@ class LongTaskSpanDetector(PerformanceDetector):
 
     settings_key = DetectorType.LONG_TASK_SPANS
 
-    def init(self, _event: Event):
+    def init(self):
         self.cumulative_duration = timedelta(0)
         self.spans_involved = []
         self.stored_issues = {}
@@ -426,14 +430,14 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
 
     settings_key = DetectorType.RENDER_BLOCKING_ASSET_SPAN
 
-    def init(self, event: Event):
+    def init(self):
         self.stored_issues = {}
-        self.transaction_start = timedelta(seconds=event.get("transaction_start", 0))
+        self.transaction_start = timedelta(seconds=self.event().get("transaction_start", 0))
         self.fcp = None
 
         # Only concern ourselves with transactions where the FCP is within the
         # range we care about.
-        fcp_hash = event.get("measurements", {}).get("fcp", {})
+        fcp_hash = self.event().get("measurements", {}).get("fcp", {})
         if "value" in fcp_hash and ("unit" not in fcp_hash or fcp_hash["unit"] == "millisecond"):
             fcp = timedelta(milliseconds=fcp_hash.get("value"))
             fcp_minimum_threshold = timedelta(
