@@ -31,6 +31,8 @@ from sentry.utils.snowflake import SnowflakeIdMixin
 if TYPE_CHECKING:
     from sentry.models import User
 
+SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
+
 
 class OrganizationStatus(IntEnum):
     ACTIVE = 0
@@ -199,9 +201,10 @@ class Organization(Model, SnowflakeIdMixin):
                 slugify_instance(self, slugify_target, reserved=RESERVED_ORGANIZATION_SLUGS)
 
         snowflake_redis_key = "organization_snowflake_key"
-        self.save_with_snowflake_id(
-            snowflake_redis_key, lambda: super(Organization, self).save(*args, **kwargs)
-        )
+        if SENTRY_USE_SNOWFLAKE:
+            self.save_with_snowflake_id(
+                snowflake_redis_key, lambda: super(Organization, self).save(*args, **kwargs)
+            )
 
     def delete(self, **kwargs):
         from sentry.models import NotificationSetting
