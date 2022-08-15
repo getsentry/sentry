@@ -1,35 +1,41 @@
-from datetime import datetime
 import random
 import string
+from datetime import datetime
+from unittest.mock import patch
 
 import pytest
 from google.cloud import spanner
 
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.indexer.base import KeyResults, KeyResult
-from sentry.sentry_metrics.indexer.cloudspanner.cloudspanner import \
-    CloudSpannerIndexer, IdCodec, RawCloudSpannerIndexer, SpannerIndexerModel
+from sentry.sentry_metrics.indexer.base import KeyResult, KeyResults
+from sentry.sentry_metrics.indexer.cloudspanner.cloudspanner import (
+    CloudSpannerIndexer,
+    IdCodec,
+    RawCloudSpannerIndexer,
+    SpannerIndexerModel,
+)
 from sentry.sentry_metrics.indexer.id_generator import get_id
-
-from unittest.mock import patch
 
 
 @pytest.fixture(scope="module")
 def testing_indexer():
-    indexer = RawCloudSpannerIndexer(instance_id="markus-test-spanner-pg",
-                                     database_id="nikhar-test",
-                                     table_name="perfstringindexer_v2",
-                                     unique_organization_string_index="unique_organization_string_index")
+    indexer = RawCloudSpannerIndexer(
+        instance_id="markus-test-spanner-pg",
+        database_id="nikhar-test",
+        table_name="perfstringindexer_v2",
+        unique_organization_string_index="unique_organization_string_index",
+    )
     indexer.validate()
     return indexer
+
 
 @pytest.mark.parametrize(
     "value",
     (
-            12345,
-            0,  # smallest supported id
-            2 ** 63 - 1,  # largest supported id
-            get_id(),  # randomly generated id
+        12345,
+        0,  # smallest supported id
+        2**63 - 1,  # largest supported id
+        get_id(),  # randomly generated id
     ),
 )
 def test_id_codec(value) -> None:
@@ -64,30 +70,32 @@ def test_spanner_indexer_implementation_basic(testing_indexer):
     codec = IdCodec()
 
     record = {"org_id": 55555, "string": get_random_string(10)}
-    testing_indexer.record(use_case_id=UseCaseKey.PERFORMANCE, org_id=record["org_id"],
-                   string=record["string"])
+    testing_indexer.record(
+        use_case_id=UseCaseKey.PERFORMANCE, org_id=record["org_id"], string=record["string"]
+    )
 
     with testing_indexer.database.snapshot() as snapshot:
-        result = snapshot.read(testing_indexer._table_name,
-                               columns=["id"],
-                               keyset=spanner.KeySet(keys=[[record["org_id"],
-                                                            record["string"]]]),
-                               index=testing_indexer._unique_organization_string_index)
+        result = snapshot.read(
+            testing_indexer._table_name,
+            columns=["id"],
+            keyset=spanner.KeySet(keys=[[record["org_id"], record["string"]]]),
+            index=testing_indexer._unique_organization_string_index,
+        )
 
     all_results = list(result)
     encoded_id = all_results[0][0]
     decoded_id = codec.decode(all_results[0][0])
     assert len(all_results) == 1
 
-    indexer_resolved_id = testing_indexer.resolve(use_case_id=UseCaseKey.PERFORMANCE,
-                                          org_id=record["org_id"],
-                                          string=record["string"])
+    indexer_resolved_id = testing_indexer.resolve(
+        use_case_id=UseCaseKey.PERFORMANCE, org_id=record["org_id"], string=record["string"]
+    )
     assert indexer_resolved_id is not None
     assert indexer_resolved_id == decoded_id
 
     indexer_reverse_resolved_string = testing_indexer.reverse_resolve(
-        use_case_id=UseCaseKey.PERFORMANCE,
-        id=encoded_id)
+        use_case_id=UseCaseKey.PERFORMANCE, id=encoded_id
+    )
     assert indexer_reverse_resolved_string is not None
     assert indexer_reverse_resolved_string == record["string"]
 
@@ -101,21 +109,25 @@ def test_spanner_indexer_implementation_bulk_insert_twice_gives_same_result(test
     the database.
     """
     record = {"org_id": 55555, "string": get_random_string(10)}
-    record1_int = testing_indexer.record(use_case_id=UseCaseKey.PERFORMANCE,
-                                 org_id=record["org_id"],
-                                 string=record["string"])
+    record1_int = testing_indexer.record(
+        use_case_id=UseCaseKey.PERFORMANCE, org_id=record["org_id"], string=record["string"]
+    )
 
     # Insert the record again to validate that the returned id is the one we
     # got from the first insert.
-    record2_int = testing_indexer.record(use_case_id=UseCaseKey.PERFORMANCE,
-                                 org_id=record["org_id"],
-                                 string=record["string"])
+    record2_int = testing_indexer.record(
+        use_case_id=UseCaseKey.PERFORMANCE, org_id=record["org_id"], string=record["string"]
+    )
 
     assert record1_int == record2_int
 
 
-@patch("sentry.sentry_metrics.indexer.cloudspanner.cloudspanner.RawCloudSpannerIndexer._insert_individual_records")
-def test_spanner_indexer_insert_batch_no_conflict_does_not_trigger_individual_inserts(mock, testing_indexer):
+@patch(
+    "sentry.sentry_metrics.indexer.cloudspanner.cloudspanner.RawCloudSpannerIndexer._insert_individual_records"
+)
+def test_spanner_indexer_insert_batch_no_conflict_does_not_trigger_individual_inserts(
+    mock, testing_indexer
+):
     """
     Test that when a record already exists in the database, the individual insert
     api is called.
@@ -152,8 +164,13 @@ def test_spanner_indexer_insert_batch_no_conflict_does_not_trigger_individual_in
     testing_indexer._insert_db_records([model2], key_results2)
     assert not mock.called, "Individual insert should not be called"
 
-@patch("sentry.sentry_metrics.indexer.cloudspanner.cloudspanner.RawCloudSpannerIndexer._insert_individual_records")
-def test_spanner_indexer_insert_batch_conflict_triggers_individual_transactions(mock, testing_indexer):
+
+@patch(
+    "sentry.sentry_metrics.indexer.cloudspanner.cloudspanner.RawCloudSpannerIndexer._insert_individual_records"
+)
+def test_spanner_indexer_insert_batch_conflict_triggers_individual_transactions(
+    mock, testing_indexer
+):
     """
     Test that when a record already exists in the database, the individual insert
     api is called.
@@ -205,9 +222,7 @@ def test_spanner_indexer_individual_insert(testing_indexer):
 
     model1_id = get_id()
     expected_key_result = KeyResults()
-    expected_key_result.add_key_result(KeyResult(org_id=55555,
-                                                 string=indexed_string,
-                                                 id=model1_id))
+    expected_key_result.add_key_result(KeyResult(org_id=55555, string=indexed_string, id=model1_id))
     key_results1 = KeyResults()
     model1 = SpannerIndexerModel(
         id=codec.encode(model1_id),
@@ -219,8 +234,10 @@ def test_spanner_indexer_individual_insert(testing_indexer):
         retention_days=55,
     )
     testing_indexer._insert_individual_records([model1], key_results1)
-    assert key_results1.get_mapped_key_strings_to_ints() == \
-           expected_key_result.get_mapped_key_strings_to_ints()
+    assert (
+        key_results1.get_mapped_key_strings_to_ints()
+        == expected_key_result.get_mapped_key_strings_to_ints()
+    )
 
     # Insert the same record with a different id but the key result would
     # have the id of model1.
@@ -236,5 +253,7 @@ def test_spanner_indexer_individual_insert(testing_indexer):
         retention_days=55,
     )
     testing_indexer._insert_individual_records([model2], key_results2)
-    assert key_results2.get_mapped_key_strings_to_ints() == \
-           expected_key_result.get_mapped_key_strings_to_ints()
+    assert (
+        key_results2.get_mapped_key_strings_to_ints()
+        == expected_key_result.get_mapped_key_strings_to_ints()
+    )
