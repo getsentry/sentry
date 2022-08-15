@@ -412,12 +412,17 @@ class DashboardDetail extends Component<Props, State> {
       return;
     }
 
+    const filterParams: DashboardFilters = {};
+    Object.keys(activeFilters).forEach(key => {
+      filterParams[key] = activeFilters[key].length ? activeFilters[key] : '';
+    });
+
     if (!isEqual(activeFilters, dashboard.filters?.release)) {
       browserHistory.push({
         ...location,
         query: {
           ...location.query,
-          ...activeFilters,
+          ...filterParams,
         },
       });
     }
