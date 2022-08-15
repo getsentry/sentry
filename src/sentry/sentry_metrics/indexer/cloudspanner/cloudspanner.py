@@ -1,25 +1,28 @@
-import re
 import logging
+import re
 from collections import namedtuple
 from datetime import datetime
 from http import HTTPStatus
-from typing import Any, Mapping, Optional, Set, Sequence
+from typing import Any, Mapping, Optional, Sequence, Set
 
+import google.api_core.exceptions
 from django.conf import settings
 from google.cloud import spanner
 
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.indexer.base import KeyResult, KeyResults, \
-    StringIndexer, KeyCollection, FetchType
-from sentry.sentry_metrics.indexer.cache import CachingIndexer, \
-    StringIndexerCache
-from sentry.sentry_metrics.indexer.id_generator import reverse_bits, get_id
+from sentry.sentry_metrics.indexer.base import (
+    FetchType,
+    KeyCollection,
+    KeyResult,
+    KeyResults,
+    StringIndexer,
+)
+from sentry.sentry_metrics.indexer.cache import CachingIndexer, StringIndexerCache
+from sentry.sentry_metrics.indexer.id_generator import get_id, reverse_bits
 from sentry.sentry_metrics.indexer.ratelimiters import writes_limiter
 from sentry.sentry_metrics.indexer.strings import StaticStringIndexer
 from sentry.utils import metrics
 from sentry.utils.codecs import Codec
-
-import google.api_core.exceptions
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +31,7 @@ DecodedId = int
 
 _INDEXER_DB_METRIC = "sentry_metrics.indexer.cloudspanner"
 _INDEXER_DB_INSERT_METRIC = "sentry_metrics.indexer.cloudspanner.insert"
-_INDEXER_DB_INSERT_ROWS_METRIC = \
-    "sentry_metrics.indexer.cloudspanner.insert_rows"
+_INDEXER_DB_INSERT_ROWS_METRIC = "sentry_metrics.indexer.cloudspanner.insert_rows"
 _DEFAULT_RETENTION_DAYS = 90
 _PARTITION_KEY = "cs"
 
@@ -39,16 +41,18 @@ _PARTITION_KEY = "cs"
 # Unique index violation on index unique_organization_string_index at index key
 # [100000,dBdOCvybLK,6866628476861885949]. It conflicts with row
 # [6866628476861885949] in table perfstringindexer_v2.
-_UNIQUE_VIOLATION_EXISITING_RE = re.compile(r'\[([^]]+)]')
+_UNIQUE_VIOLATION_EXISITING_RE = re.compile(r"\[([^]]+)]")
 
 indexer_cache = StringIndexerCache(
     **settings.SENTRY_STRING_INDEXER_CACHE_OPTIONS, partition_key=_PARTITION_KEY
 )
 
+
 class CloudSpannerRowAlreadyExists(Exception):
     """
     Exception raised when we insert a row that already exists.
     """
+
     pass
 
 
@@ -62,10 +66,10 @@ class IdCodec(Codec[DecodedId, EncodedId]):
     """
 
     def encode(self, value: DecodedId) -> EncodedId:
-        return reverse_bits(value, 64) - 2 ** 63
+        return reverse_bits(value, 64) - 2**63
 
     def decode(self, value: EncodedId) -> DecodedId:
-        return reverse_bits(value + 2 ** 63, 64)
+        return reverse_bits(value + 2**63, 64)
 
 
 _COLUMNS = [
@@ -77,15 +81,18 @@ _COLUMNS = [
     "last_seen",
     "retention_days",
 ]
-SpannerIndexerModel = namedtuple("SpannerIndexerModel", [
-    "id",
-    "decoded_id",
-    "string",
-    "organization_id",
-    "date_added",
-    "last_seen",
-    "retention_days",
-])
+SpannerIndexerModel = namedtuple(
+    "SpannerIndexerModel",
+    [
+        "id",
+        "decoded_id",
+        "string",
+        "organization_id",
+        "date_added",
+        "last_seen",
+        "retention_days",
+    ],
+)
 
 
 class RawCloudSpannerIndexer(StringIndexer):
@@ -94,8 +101,13 @@ class RawCloudSpannerIndexer(StringIndexer):
     and the corresponding reverse lookup.
     """
 
-    def __init__(self, instance_id: str, database_id: str, table_name: str,
-                 unique_organization_string_index: str) -> None:
+    def __init__(
+        self,
+        instance_id: str,
+        database_id: str,
+        table_name: str,
+        unique_organization_string_index: str,
+    ) -> None:
         self.instance_id = instance_id
         self.database_id = database_id
         spanner_client = spanner.Client()
@@ -116,8 +128,7 @@ class RawCloudSpannerIndexer(StringIndexer):
                 # TODO: What is the correct way to handle connection errors?
                 pass
 
-    def _get_db_records(self, db_keys:
-    KeyCollection) -> Sequence[KeyResult]:
+    def _get_db_records(self, db_keys: KeyCollection) -> Sequence[KeyResult]:
         spanner_keyset = []
         for organization_id, string in db_keys.as_tuples():
             spanner_keyset.append([organization_id, string])
@@ -127,16 +138,16 @@ class RawCloudSpannerIndexer(StringIndexer):
                 table=self._table_name,
                 columns=["organization_id", "string", "id"],
                 keyset=spanner.KeySet(keys=spanner_keyset),
-                index=self._unique_organization_string_index
+                index=self._unique_organization_string_index,
             )
 
         results_list = list(results)
-        return [KeyResult(org_id=row[0], string=row[1],
-                          id=self.__codec.decode(row[2]))
-                for row in results_list]
+        return [
+            KeyResult(org_id=row[0], string=row[1], id=self.__codec.decode(row[2]))
+            for row in results_list
+        ]
 
-    def _create_db_records(self, db_keys: KeyCollection) -> Sequence[
-        SpannerIndexerModel]:
+    def _create_db_records(self, db_keys: KeyCollection) -> Sequence[SpannerIndexerModel]:
         """
         Create the set of database records from the provided dk_keys collection.
         """
@@ -157,8 +168,9 @@ class RawCloudSpannerIndexer(StringIndexer):
 
         return rows_to_insert
 
-    def _insert_db_records(self, rows_to_insert: Sequence[SpannerIndexerModel],
-                           key_results: KeyResults) -> None:
+    def _insert_db_records(
+        self, rows_to_insert: Sequence[SpannerIndexerModel], key_results: KeyResults
+    ) -> None:
         """
         Insert a bunch of db_keys records into the database. When there is a
         success of the insert, we update the key_results with the records
@@ -176,8 +188,9 @@ class RawCloudSpannerIndexer(StringIndexer):
             logger.exception(e)
             raise e
 
-    def _insert_batched_records(self, rows_to_insert: Sequence[SpannerIndexerModel],
-                           key_results: KeyResults) -> None:
+    def _insert_batched_records(
+        self, rows_to_insert: Sequence[SpannerIndexerModel], key_results: KeyResults
+    ) -> None:
         """
         Insert a batch of records in a transaction. This is the preferred
         way of inserting records as it will reduce the number of operations
@@ -188,12 +201,9 @@ class RawCloudSpannerIndexer(StringIndexer):
         batch insert will be inserted. We would need to do individual insert
         using insert_individual_records.
         """
+
         def insert_batch_transaction_uow(transaction) -> None:
-            transaction.insert(
-                table=self._table_name,
-                columns=_COLUMNS,
-                values=rows_to_insert
-            )
+            transaction.insert(table=self._table_name, columns=_COLUMNS, values=rows_to_insert)
 
         try:
             self.database.run_in_transaction(insert_batch_transaction_uow)
@@ -216,13 +226,15 @@ class RawCloudSpannerIndexer(StringIndexer):
                         org_id=row.organization_id,
                         string=row.string,
                         id=row.decoded_id,
-                    ) for row in rows_to_insert
+                    )
+                    for row in rows_to_insert
                 ],
                 fetch_type=FetchType.FIRST_SEEN,
             )
 
-    def _insert_individual_records(self, rows_to_insert: Sequence[SpannerIndexerModel],
-                                   key_results: KeyResults) -> None:
+    def _insert_individual_records(
+        self, rows_to_insert: Sequence[SpannerIndexerModel], key_results: KeyResults
+    ) -> None:
         """
         Insert the individual records in a transaction. We would need
         to do this in scenarios where batch insert of the transaction
@@ -247,12 +259,9 @@ class RawCloudSpannerIndexer(StringIndexer):
         there is a conflict or we using the decoded it from the exception
         is enough.
         """
+
         def insert_individual_record_uow(transaction) -> None:
-            transaction.insert(
-                self._table_name,
-                columns=_COLUMNS,
-                values=[row]
-            )
+            transaction.insert(self._table_name, columns=_COLUMNS, values=[row])
 
         metrics.incr(
             _INDEXER_DB_INSERT_METRIC,
@@ -260,8 +269,7 @@ class RawCloudSpannerIndexer(StringIndexer):
         )
         for row in rows_to_insert:
             try:
-                self.database.run_in_transaction(
-                    insert_individual_record_uow)
+                self.database.run_in_transaction(insert_individual_record_uow)
                 metrics.incr(
                     _INDEXER_DB_INSERT_ROWS_METRIC,
                     tags={"batch": "false"},
@@ -276,8 +284,7 @@ class RawCloudSpannerIndexer(StringIndexer):
                 )
             except google.api_core.exceptions.AlreadyExists as exc:
                 if exc.code == HTTPStatus.CONFLICT:
-                    regex_match = re.search(_UNIQUE_VIOLATION_EXISITING_RE,
-                                            str(exc.message))
+                    regex_match = re.search(_UNIQUE_VIOLATION_EXISITING_RE, str(exc.message))
                     if regex_match:
                         group = regex_match.group(1)
                         _, _, existing_encoded_id = group.split(",")
@@ -285,8 +292,7 @@ class RawCloudSpannerIndexer(StringIndexer):
                             KeyResult(
                                 org_id=row.organization_id,
                                 string=row.string,
-                                id=self.__codec.decode(
-                                    int(existing_encoded_id)),
+                                id=self.__codec.decode(int(existing_encoded_id)),
                             ),
                             fetch_type=FetchType.FIRST_SEEN,
                         )
@@ -295,9 +301,8 @@ class RawCloudSpannerIndexer(StringIndexer):
                             result = snapshot.read(
                                 table=self._table_name,
                                 columns=["id"],
-                                keyset=spanner.KeySet(
-                                    keys=[[row.organization_id, row.string]]),
-                                index=self._unique_organization_string_index
+                                keyset=spanner.KeySet(keys=[[row.organization_id, row.string]]),
+                                index=self._unique_organization_string_index,
                             )
                         result_list = list(result)
                         existing_encoded_id = result_list[0][0]
@@ -305,14 +310,13 @@ class RawCloudSpannerIndexer(StringIndexer):
                             KeyResult(
                                 org_id=row.organization_id,
                                 string=row.string,
-                                id=self.__codec.decode(
-                                    int(existing_encoded_id)),
+                                id=self.__codec.decode(int(existing_encoded_id)),
                             ),
                             fetch_type=FetchType.FIRST_SEEN,
                         )
 
     def bulk_record(
-            self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
+        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
     ) -> KeyResults:
         db_read_keys = KeyCollection(org_strings)
 
@@ -337,8 +341,7 @@ class RawCloudSpannerIndexer(StringIndexer):
         if db_write_keys.size == 0:
             return db_read_key_results
 
-        with writes_limiter.check_write_limits(use_case_id,
-                                               db_write_keys) as writes_limiter_state:
+        with writes_limiter.check_write_limits(use_case_id, db_write_keys) as writes_limiter_state:
             # After the DB has successfully committed writes, we exit this
             # context manager and consume quotas. If the DB crashes we
             # shouldn't consume quota.
@@ -359,28 +362,23 @@ class RawCloudSpannerIndexer(StringIndexer):
             new_records = self._create_db_records(filtered_db_write_keys)
             db_write_key_results = KeyResults()
             with metrics.timer("sentry_metrics.indexer.pg_bulk_create"):
-                self._insert_db_records(new_records,
-                                        db_write_key_results)
+                self._insert_db_records(new_records, db_write_key_results)
 
-        return db_read_key_results.merge(db_write_key_results).merge(
-            rate_limited_key_results)
+        return db_read_key_results.merge(db_write_key_results).merge(rate_limited_key_results)
 
-    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> \
-            Optional[int]:
+    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
         """Store a string and return the integer ID generated for it"""
-        result = self.bulk_record(use_case_id=use_case_id,
-                                  org_strings={org_id: {string}})
+        result = self.bulk_record(use_case_id=use_case_id, org_strings={org_id: {string}})
         return result[org_id][string]
 
-    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> \
-            Optional[int]:
+    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
         """Resolve a string to an integer ID"""
         with self.database.snapshot() as snapshot:
             results = snapshot.read(
                 table=self._table_name,
                 columns=["id"],
                 keyset=spanner.KeySet(keys=[[org_id, string]]),
-                index=self._unique_organization_string_index
+                index=self._unique_organization_string_index,
             )
 
         results_list = list(results)
@@ -389,8 +387,7 @@ class RawCloudSpannerIndexer(StringIndexer):
         else:
             return int(self.__codec.decode(results_list[0][0]))
 
-    def reverse_resolve(self, use_case_id: UseCaseKey, id: int) -> Optional[
-        str]:
+    def reverse_resolve(self, use_case_id: UseCaseKey, id: int) -> Optional[str]:
         """Resolve an integer ID to a string"""
         with self.database.snapshot() as snapshot:
             results = snapshot.read(
@@ -408,5 +405,4 @@ class RawCloudSpannerIndexer(StringIndexer):
 
 class CloudSpannerIndexer(StaticStringIndexer):
     def __init__(self, **kwargs: Any) -> None:
-        super().__init__(
-            CachingIndexer(indexer_cache, RawCloudSpannerIndexer(**kwargs)))
+        super().__init__(CachingIndexer(indexer_cache, RawCloudSpannerIndexer(**kwargs)))
