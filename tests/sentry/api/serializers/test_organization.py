@@ -36,7 +36,6 @@ class OrganizationSerializerTest(TestCase):
             "dashboards-edit",
             "discover-basic",
             "discover-query",
-            "duplicate-alert-rule",
             "event-attachments",
             "integrations-alert-rule",
             "integrations-chat-unfurl",
