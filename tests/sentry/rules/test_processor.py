@@ -620,6 +620,6 @@ class RuleProcessorActiveReleaseTest(TestCase):
                 organization_id=self.event.group.organization.id,
                 project_id=self.event.group.project_id,
                 group_id=self.event.group_id,
-                release_id=self.event.group.get_last_release(),
-                recipients=1,
+                release_version=self.event.group.get_last_release(),
+                recipient_id=self.user.id,
             )

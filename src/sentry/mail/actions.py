@@ -75,15 +75,16 @@ class NotifyActiveReleaseEmailAction(NotifyEmailAction):
         # TODO(scttcper): Remove after active release dry run experiment has ended
         if release_dry_run:
             # Record who would've received a notification, do not actually send one
-            analytics.record(
-                "active_release_notification.dry_run",
-                organization_id=event.group.organization.id,
-                project_id=event.group.project_id,
-                group_id=event.group_id,
-                release_id=event.group.get_last_release(),
-                recipients=len(recipients),
-            )
-            return
+            for recipient in recipients:
+                analytics.record(
+                    "active_release_notification.dry_run",
+                    organization_id=event.group.organization.id,
+                    project_id=event.group.project_id,
+                    group_id=event.group_id,
+                    release_version=event.group.get_last_release(),
+                    recipient_id=recipient.id,
+                )
+                return
 
         metrics.incr("notifications.sent", instance=self.metrics_slug, skip_internal=False)
         yield self.future(lambda evt, futures: mail_adapter.active_release_notify(evt, state))
