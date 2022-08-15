@@ -116,6 +116,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
                 user=member.user, auth_provider__organization=organization
             ).delete()
             member.delete()
+            request = self.fix_log_name(request)
             self.create_audit_entry(
                 request=request,
                 organization=organization,
@@ -401,6 +402,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                 member.token = member.generate_token()
             member.save()
 
+        request = self.fix_log_name(request)
         self.create_audit_entry(
             request=request,
             organization_id=organization.id,

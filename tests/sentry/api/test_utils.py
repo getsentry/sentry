@@ -2,10 +2,13 @@ import datetime
 import unittest
 
 import pytest
+from django.http import HttpRequest
 from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.api.utils import MAX_STATS_PERIOD, InvalidParams, get_date_range_from_params
+from sentry.scim.endpoints.utils import SCIMEndpoint
+from sentry.testutils import SCIMTestCase
 
 
 class GetDateRangeFromParamsTest(unittest.TestCase):
@@ -75,3 +78,15 @@ class GetDateRangeFromParamsTest(unittest.TestCase):
 
         with pytest.raises(InvalidParams):
             start, end = get_date_range_from_params({"timeframeStart": "14d"})
+
+
+class SCIMUtilsTest(SCIMTestCase, SCIMEndpoint):
+    def test_fix_log_name(self):
+        request = HttpRequest()
+        request.user = self.create_user(
+            username="scim-internal-integration-681d6e-ad37e179-501c-4639-bc83-9780ca1"
+        )
+
+        request = self.fix_log_name(request)
+
+        assert request.user.username == "SCIM Internal Integration (681d6e)"
