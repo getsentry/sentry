@@ -461,6 +461,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       value={mappedValue}
       isMulti={props.multiple || props.multi}
       isDisabled={props.isDisabled || props.disabled}
+      isOptionDisabled={opt => !!opt.disabled}
       showDividers={props.showDividers}
       options={options || (choicesOrOptions as OptionsType<OptionType>)}
       openMenuOnFocus={props.openMenuOnFocus}
