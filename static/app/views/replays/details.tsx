@@ -17,7 +17,7 @@ import Page from 'sentry/views/replays/detail/page';
 function ReplayDetails() {
   const {
     location,
-    params: {replaySlug, orgId},
+    params: {replaySlug, orgSlug},
   } = useRouteContext();
 
   const {
@@ -26,12 +26,12 @@ function ReplayDetails() {
 
   const {fetching, onRetry, replay} = useReplayData({
     replaySlug,
-    orgId,
+    orgSlug,
   });
 
   if (!fetching && !replay) {
     return (
-      <Page orgId={orgId}>
+      <Page orgSlug={orgSlug}>
         <PageContent>
           <NotFound />
         </PageContent>
@@ -41,7 +41,7 @@ function ReplayDetails() {
 
   if (!fetching && replay && replay.getRRWebEvents().length < 2) {
     return (
-      <Page orgId={orgId} replayRecord={replay.getReplay()}>
+      <Page orgSlug={orgSlug} replayRecord={replay.getReplay()}>
         <DetailedError
           onRetry={onRetry}
           hideSupportLinks
@@ -63,19 +63,19 @@ function ReplayDetails() {
 
   return (
     <ReplayContextProvider replay={replay} initialTimeOffset={initialTimeOffset}>
-      <LoadedDetails orgId={orgId} />
+      <LoadedDetails orgSlug={orgSlug} />
     </ReplayContextProvider>
   );
 }
 
-function LoadedDetails({orgId}: {orgId: string}) {
+function LoadedDetails({orgSlug}: {orgSlug: string}) {
   const {getLayout} = useReplayLayout();
   const {replay} = useReplayContext();
   const durationMs = replay?.getDurationMs();
 
   return (
     <Page
-      orgId={orgId}
+      orgSlug={orgSlug}
       crumbs={replay?.getRawCrumbs()}
       durationMs={durationMs}
       replayRecord={replay?.getReplay()}

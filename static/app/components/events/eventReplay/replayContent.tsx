@@ -12,13 +12,13 @@ import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 type Props = {
-  orgId: string;
+  orgSlug: string;
   replaySlug: string;
 };
 
-function ReplayContent({orgId, replaySlug}: Props) {
+function ReplayContent({orgSlug, replaySlug}: Props) {
   const {fetching, replay, fetchError} = useReplayData({
-    orgId,
+    orgSlug,
     replaySlug,
   });
   const {ref: fullscreenRef, toggle: toggleFullscreen} = useFullscreen();
