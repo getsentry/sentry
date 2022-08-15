@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 
 import MenuHeader from 'sentry/components/actions/menuHeader';
 import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
-import {GetActorPropsFn} from 'sentry/components/dropdownMenu';
+import {GetActorPropsFn} from 'sentry/components/deprecatedDropdownMenu';
 import MenuItem from 'sentry/components/menuItem';
 import {TeamSelection} from 'sentry/components/performance/teamKeyTransactionsManager';
 import {t} from 'sentry/locale';

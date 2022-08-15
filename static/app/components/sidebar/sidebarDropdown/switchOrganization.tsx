@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
-import DropdownMenu from 'sentry/components/dropdownMenu';
+import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import SidebarDropdownMenu from 'sentry/components/sidebar/sidebarDropdownMenu.styled';
 import SidebarMenuItem from 'sentry/components/sidebar/sidebarMenuItem';
 import SidebarOrgSummary from 'sentry/components/sidebar/sidebarOrgSummary';
@@ -22,7 +22,7 @@ type Props = {
  * Switch Organization Menu Label + Sub Menu
  */
 const SwitchOrganization = ({organizations, canCreateOrganization}: Props) => (
-  <DropdownMenu isNestedDropdown>
+  <DeprecatedDropdownMenu isNestedDropdown>
     {({isOpen, getMenuProps, getActorProps}) => (
       <Fragment>
         <SwitchOrganizationMenuActor
@@ -80,7 +80,7 @@ const SwitchOrganization = ({organizations, canCreateOrganization}: Props) => (
         )}
       </Fragment>
     )}
-  </DropdownMenu>
+  </DeprecatedDropdownMenu>
 );
 
 const SwitchOrganizationContainer = withOrganizations(SwitchOrganization);

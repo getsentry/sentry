@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import moment from 'moment';
 
-import DropdownMenu from 'sentry/components/dropdownMenu';
+import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import {IconCalendar} from 'sentry/icons';
 import {inputStyles} from 'sentry/styles/input';
 import space from 'sentry/styles/space';
@@ -35,7 +35,7 @@ export default function DatePickerField(props: DatePickerFieldProps) {
         const dateString = moment(inputValue).format('LL');
 
         return (
-          <DropdownMenu keepMenuOpen>
+          <DeprecatedDropdownMenu keepMenuOpen>
             {({isOpen, getRootProps, getActorProps, getMenuProps, actions}) => (
               <div {...getRootProps()}>
                 <InputWrapper id={id} {...getActorProps()} isOpen={isOpen}>
@@ -57,7 +57,7 @@ export default function DatePickerField(props: DatePickerFieldProps) {
                 )}
               </div>
             )}
-          </DropdownMenu>
+          </DeprecatedDropdownMenu>
         );
       }}
     />
