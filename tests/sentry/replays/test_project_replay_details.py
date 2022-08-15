@@ -48,7 +48,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
 
             response_data = response.json()
             assert "data" in response_data
-            assert response_data["data"]["replayId"] == replay1_id
+            assert response_data["data"]["id"] == replay1_id
 
             # Replay 2.
             response = self.client.get(
@@ -58,7 +58,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
 
             response_data = response.json()
             assert "data" in response_data
-            assert response_data["data"]["replayId"] == replay2_id
+            assert response_data["data"]["id"] == replay2_id
 
     def test_get_replay_schema(self):
         """Test replay schema is well-formed."""

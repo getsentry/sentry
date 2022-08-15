@@ -46,11 +46,11 @@ class ProjectReplayRecordingSegmentTestCase(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 3
-        assert response.data["data"][0]["replay_id"] == recording_segment.replay_id
-        assert response.data["data"][0]["segment_id"] == recording_segment.segment_id
-        assert response.data["data"][0]["project_id"] == recording_segment.project_id
-        assert response.data["data"][0]["date_added"] == recording_segment.date_added
+        assert response.data["data"][0]["replayId"] == recording_segment.replay_id
+        assert response.data["data"][0]["segmentId"] == recording_segment.segment_id
+        assert response.data["data"][0]["projectId"] == str(recording_segment.project_id)
+        assert response.data["data"][0]["dateAdded"] == recording_segment.date_added
 
-        assert response.data["data"][0]["segment_id"] == 0
-        assert response.data["data"][1]["segment_id"] == 1
-        assert response.data["data"][2]["segment_id"] == 2
+        assert response.data["data"][0]["segmentId"] == 0
+        assert response.data["data"][1]["segmentId"] == 1
+        assert response.data["data"][2]["segmentId"] == 2

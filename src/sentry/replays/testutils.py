@@ -34,9 +34,9 @@ def mock_expected_response(
 ) -> typing.Dict[str, typing.Any]:
     urls = kwargs.pop("urls", [])
     return {
-        "replayId": replay_id,
+        "id": replay_id,
         "title": kwargs.pop("title", "Title"),
-        "projectId": project_id,
+        "projectId": str(project_id),
         "urls": urls,
         "errorIds": kwargs.pop("error_ids", []),
         "traceIds": kwargs.pop("trace_ids", []),
@@ -51,22 +51,30 @@ def mock_expected_response(
         "environment": kwargs.pop("environment", "production"),
         "release": kwargs.pop("release", "version@1.3"),
         "dist": kwargs.pop("dist", "abc123"),
-        "osName": kwargs.pop("os_name", "iOS"),
-        "osVersion": kwargs.pop("os_version", "16.2"),
-        "browserName": kwargs.pop("browser_name", "Chrome"),
-        "browserVersion": kwargs.pop("browser_version", "103.0.38"),
-        "deviceName": kwargs.pop("device_name", "iPhone 13 Pro"),
-        "deviceBrand": kwargs.pop("device_brand", "Apple"),
-        "deviceFamily": kwargs.pop("device_family", "iPhone"),
-        "deviceModel": kwargs.pop("device_model", "13 Pro"),
+        "os": {
+            "name": kwargs.pop("os_name", "iOS"),
+            "version": kwargs.pop("os_version", "16.2"),
+        },
+        "browser": {
+            "name": kwargs.pop("browser_name", "Chrome"),
+            "version": kwargs.pop("browser_version", "103.0.38"),
+        },
+        "device": {
+            "name": kwargs.pop("device_name", "iPhone 13 Pro"),
+            "brand": kwargs.pop("device_brand", "Apple"),
+            "family": kwargs.pop("device_family", "iPhone"),
+            "model": kwargs.pop("device_model", "13 Pro"),
+        },
+        "sdk": {
+            "name": kwargs.pop("sdk_name", "sentry.javascript.react"),
+            "version": kwargs.pop("sdk_version", "6.18.1"),
+        },
         "user": {
             "id": kwargs.pop("user_id", "123"),
             "email": kwargs.pop("user_email", "username@example.com"),
             "name": kwargs.pop("user_name", "username"),
-            "ipAddress": kwargs.pop("user_ip_address", "127.0.0.1"),
+            "ip_address": kwargs.pop("user_ip_address", "127.0.0.1"),
         },
-        "sdkName": kwargs.pop("sdk_name", "sentry.javascript.react"),
-        "sdkVersion": kwargs.pop("sdk_version", "6.18.1"),
         "tags": {"customtag": "is_set"},
     }
 
