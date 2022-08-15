@@ -271,7 +271,7 @@ class RuleProcessor:
         actions: Sequence[EventAction],
         action_frequency_minutes: int,
         predicate_eval_frequency_minutes: int,
-        dry_run: bool,
+        release_dry_run: bool,
     ) -> None:
         now = timezone.now()
         freq_offset = now - timedelta(minutes=action_frequency_minutes)
@@ -316,7 +316,7 @@ class RuleProcessor:
                 event=self.event,
                 state=state,
                 _with_transaction=False,
-                dry_run=dry_run,
+                release_dry_run=release_dry_run,
             )
             for future in results or ():
                 safe_execute(future.callback, self.event, None, _with_transaction=False)
@@ -340,7 +340,7 @@ class RuleProcessor:
             self._get_active_release_rule_actions(),
             1,
             1,
-            features.has("projects:active-release-monitor-default-on", self.project),
+            not features.has("projects:active-release-monitor-default-on", self.project),
         )
 
         return self.grouped_futures.values()

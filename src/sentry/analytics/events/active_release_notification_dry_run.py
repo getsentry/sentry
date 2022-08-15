@@ -8,7 +8,8 @@ class ActiveReleaseNotificationSent(analytics.Event):
         analytics.Attribute("organization_id"),
         analytics.Attribute("project_id"),
         analytics.Attribute("group_id"),
-        analytics.Attribute("participant_id"),
+        analytics.Attribute("release_id"),
+        analytics.Attribute("recipients"),
     )
 
 
