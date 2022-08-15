@@ -286,17 +286,15 @@ class End2EndTest(APITestCase):
             response = self.client.get(
                 reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"}),
                 data={"querystring": "value"},
-                HTTP_HOST="albertos-apples.testserver",
-            )
-            assert response.status_code == 302
-            assert (
-                response["Location"] == "http://testserver/api/0/albertos-apples/?querystring=value"
-            )
-
-            response = self.client.get(
-                reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"}),
+                # This should preferably be HTTP_HOST.
+                # Using SERVER_NAME until https://code.djangoproject.com/ticket/32106 is fixed.
+                SERVER_NAME="albertos-apples.testserver",
+                follow=True,
             )
             assert response.status_code == 200
+            assert response.redirect_chain == [
+                ("http://testserver/api/0/albertos-apples/?querystring=value", 302)
+            ]
             assert response.data == {
                 "organization_slug": "albertos-apples",
                 "subdomain": None,
