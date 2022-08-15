@@ -4,7 +4,6 @@ from rest_framework.response import Response
 
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import OrganizationMemberWithProjectsSerializer
 from sentry.models import OrganizationMember, OrganizationMemberTeam, ProjectTeam
@@ -26,7 +25,7 @@ class OrganizationUsersEndpoint(OrganizationEndpoint, EnvironmentMixin):
         projects = self.get_projects(request, organization)
 
         with sentry_sdk.start_span(op="OrganizationUsersEndpoint.get_members") as span:
-            queryset = (
+            qs = (
                 OrganizationMember.objects.filter(
                     user__is_active=True,
                     organization=organization,
@@ -42,20 +41,17 @@ class OrganizationUsersEndpoint(OrganizationEndpoint, EnvironmentMixin):
                 )
                 .order_by("user__email")
             )
-            organization_members = list(queryset)
+            organization_members = list(qs)
 
             span.set_data("Project Count", len(projects))
             span.set_data("Member Count", len(organization_members))
 
-        return self.paginate(
-            request=request,
-            queryset=queryset,
-            paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(
-                x,
+        return Response(
+            serialize(
+                organization_members,
                 request.user,
                 serializer=OrganizationMemberWithProjectsSerializer(
                     project_ids=[p.id for p in projects]
                 ),
-            ),
+            )
         )
