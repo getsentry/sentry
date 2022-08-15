@@ -83,11 +83,10 @@ import {
 export interface WidgetViewerModalOptions {
   organization: Organization;
   widget: Widget;
-  disableEditWidget?: boolean;
-  disabledEditMessage?: string;
   onEdit?: () => void;
   pageLinks?: string;
   seriesData?: Series[];
+  seriesResultsType?: string;
   tableData?: TableDataWithTitle[];
   totalIssuesCount?: string;
 }
@@ -167,8 +166,7 @@ function WidgetViewerModal(props: Props) {
     tableData,
     totalIssuesCount,
     pageLinks: defaultPageLinks,
-    disableEditWidget,
-    disabledEditMessage,
+    seriesResultsType,
   } = props;
   const shouldShowSlider = organization.features.includes('widget-viewer-modal-minimap');
   // Get widget zoom from location
@@ -798,6 +796,7 @@ function WidgetViewerModal(props: Props) {
             {(!!seriesData || !!tableData) && chartUnmodified ? (
               <MemoizedWidgetCardChart
                 timeseriesResults={seriesData}
+                timeseriesResultsType={seriesResultsType}
                 tableResults={tableData}
                 errorMessage={undefined}
                 loading={false}
@@ -958,8 +957,6 @@ function WidgetViewerModal(props: Props) {
                       display_type: widget.displayType,
                     });
                   }}
-                  disabled={disableEditWidget}
-                  title={disableEditWidget && disabledEditMessage}
                 >
                   {t('Edit Widget')}
                 </Button>

@@ -1,6 +1,6 @@
 [
   {
-    "query": "min(measurements.stall_count):3.1415",
+    "query": "min(measurements.size):3.1415",
     "result": [
       {"type": "spaces", "value": ""},
       {
@@ -17,7 +17,7 @@
                 "separator": "",
                 "value": {
                   "type": "keyAggregateParam",
-                  "value": "measurements.stall_count",
+                  "value": "measurements.size",
                   "quoted": false
                 }
               }
@@ -38,7 +38,7 @@
     ]
   },
   {
-    "query": "min(measurements.stall_count):>3.1415",
+    "query": "min(measurements.size):>3.1415",
     "result": [
       {"type": "spaces", "value": ""},
       {
@@ -55,7 +55,7 @@
                 "separator": "",
                 "value": {
                   "type": "keyAggregateParam",
-                  "value": "measurements.stall_count",
+                  "value": "measurements.size",
                   "quoted": false
                 }
               }
@@ -76,7 +76,7 @@
     ]
   },
   {
-    "query": "min(measurements.stall_count):<3.1415",
+    "query": "min(measurements.size):<3.1415",
     "result": [
       {"type": "spaces", "value": ""},
       {
@@ -93,7 +93,7 @@
                 "separator": "",
                 "value": {
                   "type": "keyAggregateParam",
-                  "value": "measurements.stall_count",
+                  "value": "measurements.size",
                   "quoted": false
                 }
               }
@@ -114,7 +114,7 @@
     ]
   },
   {
-    "query": "min(measurements.stall_count):<3k",
+    "query": "min(measurements.size):<3k",
     "result": [
       {"type": "spaces", "value": ""},
       {
@@ -131,7 +131,7 @@
                 "separator": "",
                 "value": {
                   "type": "keyAggregateParam",
-                  "value": "measurements.stall_count",
+                  "value": "measurements.size",
                   "quoted": false
                 }
               }
@@ -147,7 +147,7 @@
     ]
   },
   {
-    "query": "min(measurements.stall_count):2m",
+    "query": "min(measurements.size):2m",
     "result": [
       {"type": "spaces", "value": ""},
       {
@@ -164,7 +164,7 @@
                 "separator": "",
                 "value": {
                   "type": "keyAggregateParam",
-                  "value": "measurements.stall_count",
+                  "value": "measurements.size",
                   "quoted": false
                 }
               }
