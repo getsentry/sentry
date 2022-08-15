@@ -482,13 +482,13 @@ export class TokenConverter {
 
   tokenValueDuration = (
     value: string,
-    unit: 'ms' | 's' | 'min' | 'm' | 'hr' | 'h' | 'day' | 'd' | 'wk' | 'w'
+    unit?: 'ms' | 's' | 'min' | 'm' | 'hr' | 'h' | 'day' | 'd' | 'wk' | 'w'
   ) => ({
     ...this.defaultTokenFields,
 
     type: Token.ValueDuration as const,
     value: Number(value),
-    unit,
+    unit: unit ?? 'ms',
   });
 
   tokenValuePercentage = (value: string) => ({

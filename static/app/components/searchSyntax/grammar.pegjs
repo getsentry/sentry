@@ -327,7 +327,7 @@ rel_date_format
 
 duration_format
   = value:numeric
-    unit:("ms"/"s"/"min"/"m"/"hr"/"h"/"day"/"d"/"wk"/"w")
+    unit:("ms"/"s"/"min"/"m"/"hr"/"h"/"day"/"d"/"wk"/"w")?
     &end_value {
       return tc.tokenValueDuration(value, unit);
     }
