@@ -22,7 +22,6 @@ class Migration(CheckedMigration):
     # we don't want to run in a transaction here, since for long running operations like data
     # back-fills this results in us locking an increasing number of rows until we finally commit.
     atomic = False
-    checked = False
 
     dependencies = [
         ("sentry", "0313_sentry_functions_env_variables"),
