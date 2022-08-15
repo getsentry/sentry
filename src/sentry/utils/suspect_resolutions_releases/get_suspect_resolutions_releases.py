@@ -1,4 +1,7 @@
+from datetime import timedelta
 from typing import Sequence
+
+from django.utils import timezone
 
 from sentry import features
 from sentry.models import Group, GroupStatus, Project, Release
@@ -27,7 +30,7 @@ def get_suspect_resolutions_releases(release: Release, project: Project) -> Sequ
     )
 
     for issue in suspect_issue_candidates:
-        if issue.last_seen < release.date_released:
+        if (timezone.now() - timedelta(days=7)) < issue.last_seen < release.date_released:
             suspect_resolution_issue_ids.append(issue.id)
 
         analytics.record(

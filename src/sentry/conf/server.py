@@ -349,6 +349,7 @@ INSTALLED_APPS = (
     "sentry.plugins.sentry_useragents.apps.Config",
     "sentry.plugins.sentry_webhooks.apps.Config",
     "sentry.utils.suspect_resolutions.apps.Config",
+    "sentry.utils.suspect_resolutions_releases.apps.Config",
     "social_auth",
     "sudo",
     "sentry.eventstream",
@@ -597,6 +598,7 @@ CELERY_IMPORTS = (
     "sentry.release_health.duplex",
     "sentry.release_health.tasks",
     "sentry.utils.suspect_resolutions.get_suspect_resolutions",
+    "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -1187,6 +1189,8 @@ SENTRY_FEATURES = {
     "projects:servicehooks": False,
     # Enable suspect resolutions feature
     "projects:suspect-resolutions": False,
+    # Enable suspect resolutions releases feature
+    "projects:suspect-resolutions-releases": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
     "projects:kafka-ingest": False,
     # Workflow 2.0 Auto associate commits to commit sha release
