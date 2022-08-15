@@ -11,67 +11,65 @@ from sentry.ratelimits.sliding_windows import (
     RequestedQuota,
     Timestamp,
 )
-from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
+from sentry.sentry_metrics.configuration import RateLimiterNamespace, get_writes_ratelimiter_config
 from sentry.sentry_metrics.indexer.base import FetchType, FetchTypeExt, KeyCollection, KeyResult
 from sentry.utils import metrics
 
 OrgId = int
 
 
-def _build_quota_key(use_case_id: UseCaseKey, org_id: Optional[OrgId] = None) -> str:
-    use_case_str = {
-        UseCaseKey.PERFORMANCE: "performance",
-        UseCaseKey.RELEASE_HEALTH: "releasehealth",
-    }[use_case_id]
+def _build_quota_key(namespace: RateLimiterNamespace, org_id: Optional[OrgId] = None) -> str:
 
     if org_id is not None:
-        return f"metrics-indexer-{use_case_str}-org-{org_id}"
+        return f"metrics-indexer-{namespace.value}-org-{org_id}"
     else:
-        return f"metrics-indexer-{use_case_str}-global"
+        return f"metrics-indexer-{namespace.value}-global"
 
 
 @metrics.wraps("sentry_metrics.indexer.construct_quotas")
-def _construct_quotas(use_case_id: UseCaseKey) -> Sequence[Quota]:
+def _construct_quotas(namespace: RateLimiterNamespace) -> Sequence[Quota]:
     """
     Construct write limit's quotas based on current sentry options.
 
     This value can potentially cached globally as long as it is invalidated
     when sentry.options are.
     """
-    if use_case_id == UseCaseKey.PERFORMANCE:
+    if namespace == RateLimiterNamespace.PERFORMANCE:
         return [
-            Quota(prefix_override=_build_quota_key(UseCaseKey.PERFORMANCE, None), **args)
+            Quota(prefix_override=_build_quota_key(RateLimiterNamespace.PERFORMANCE, None), **args)
             for args in options.get("sentry-metrics.writes-limiter.limits.performance.global")
         ] + [
             Quota(prefix_override=None, **args)
             for args in options.get("sentry-metrics.writes-limiter.limits.performance.per-org")
         ]
-    elif use_case_id == UseCaseKey.RELEASE_HEALTH:
+    elif namespace == RateLimiterNamespace.RELEASE_HEALTH:
         return [
-            Quota(prefix_override=_build_quota_key(UseCaseKey.RELEASE_HEALTH, None), **args)
+            Quota(
+                prefix_override=_build_quota_key(RateLimiterNamespace.RELEASE_HEALTH, None), **args
+            )
             for args in options.get("sentry-metrics.writes-limiter.limits.releasehealth.global")
         ] + [
             Quota(prefix_override=None, **args)
             for args in options.get("sentry-metrics.writes-limiter.limits.releasehealth.per-org")
         ]
     else:
-        raise ValueError(use_case_id)
+        raise ValueError(namespace)
 
 
 @metrics.wraps("sentry_metrics.indexer.construct_quota_requests")
 def _construct_quota_requests(
-    use_case_id: UseCaseKey, keys: KeyCollection
+    namespace: RateLimiterNamespace, keys: KeyCollection
 ) -> Tuple[Sequence[OrgId], Sequence[RequestedQuota]]:
     org_ids = []
     requests = []
-    quotas = _construct_quotas(use_case_id)
+    quotas = _construct_quotas(namespace)
 
     if quotas:
         for org_id, strings in keys.mapping.items():
             org_ids.append(org_id)
             requests.append(
                 RequestedQuota(
-                    prefix=_build_quota_key(use_case_id, org_id),
+                    prefix=_build_quota_key(namespace, org_id),
                     requested=len(strings),
                     quotas=quotas,
                 )
@@ -90,7 +88,7 @@ class DroppedString:
 @dataclasses.dataclass(frozen=True)
 class RateLimitState:
     _writes_limiter: WritesLimiter
-    _use_case_id: UseCaseKey
+    _namespace: RateLimiterNamespace
     _requests: Sequence[RequestedQuota]
     _grants: Sequence[GrantedQuota]
     _timestamp: Timestamp
@@ -107,24 +105,26 @@ class RateLimitState:
         Consumes the rate limits returned by `check_write_limits`.
         """
         if exc_type is None:
-            self._writes_limiter._get_rate_limiter(self._use_case_id).use_quotas(
+            self._writes_limiter._get_rate_limiter(self._namespace).use_quotas(
                 self._requests, self._grants, self._timestamp
             )
 
 
 class WritesLimiter:
     def __init__(self) -> None:
-        self.rate_limiters: MutableMapping[UseCaseKey, RedisSlidingWindowRateLimiter] = {}
+        self.rate_limiters: MutableMapping[RateLimiterNamespace, RedisSlidingWindowRateLimiter] = {}
 
-    def _get_rate_limiter(self, use_case_id: UseCaseKey) -> RedisSlidingWindowRateLimiter:
-        if use_case_id not in self.rate_limiters:
-            options = get_ingest_config(use_case_id).writes_limiter_cluster_options
-            self.rate_limiters[use_case_id] = RedisSlidingWindowRateLimiter(**options)
+    def _get_rate_limiter(self, namespace: RateLimiterNamespace) -> RedisSlidingWindowRateLimiter:
+        if namespace not in self.rate_limiters:
+            options = get_writes_ratelimiter_config(namespace).writes_limiter_cluster_options
+            self.rate_limiters[namespace] = RedisSlidingWindowRateLimiter(**options)
 
-        return self.rate_limiters[use_case_id]
+        return self.rate_limiters[namespace]
 
     @metrics.wraps("sentry_metrics.indexer.check_write_limits")
-    def check_write_limits(self, use_case_id: UseCaseKey, keys: KeyCollection) -> RateLimitState:
+    def check_write_limits(
+        self, namespace: RateLimiterNamespace, keys: KeyCollection
+    ) -> RateLimitState:
         """
         Takes a KeyCollection and applies DB write limits as configured via sentry.options.
 
@@ -138,8 +138,8 @@ class WritesLimiter:
         Upon (successful) exit, rate limits are consumed.
         """
 
-        org_ids, requests = _construct_quota_requests(use_case_id, keys)
-        timestamp, grants = self._get_rate_limiter(use_case_id).check_within_quotas(requests)
+        org_ids, requests = _construct_quota_requests(namespace, keys)
+        timestamp, grants = self._get_rate_limiter(namespace).check_within_quotas(requests)
 
         granted_key_collection = dict(keys.mapping)
         dropped_strings = []
@@ -169,7 +169,7 @@ class WritesLimiter:
 
         state = RateLimitState(
             _writes_limiter=self,
-            _use_case_id=use_case_id,
+            _namespace=namespace,
             _requests=requests,
             _grants=grants,
             _timestamp=timestamp,

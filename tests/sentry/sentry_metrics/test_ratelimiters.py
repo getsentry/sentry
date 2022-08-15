@@ -1,5 +1,5 @@
 from sentry.ratelimits.sliding_windows import RedisSlidingWindowRateLimiter
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.configuration import RateLimiterNamespace
 from sentry.sentry_metrics.indexer.base import KeyCollection
 from sentry.sentry_metrics.indexer.ratelimiters import WritesLimiter
 
@@ -8,8 +8,8 @@ def get_writes_limiter():
     writes_limiter = WritesLimiter()
     redis_limiter = RedisSlidingWindowRateLimiter()
     writes_limiter.rate_limiters = {
-        UseCaseKey.RELEASE_HEALTH: redis_limiter,
-        UseCaseKey.PERFORMANCE: redis_limiter,
+        RateLimiterNamespace.RELEASE_HEALTH: redis_limiter,
+        RateLimiterNamespace.PERFORMANCE: redis_limiter,
     }
     return writes_limiter
 
@@ -26,7 +26,9 @@ def test_writes_limiter_no_limits(set_sentry_option):
         }
     )
 
-    with writes_limiter.check_write_limits(UseCaseKey.PERFORMANCE, key_collection) as state:
+    with writes_limiter.check_write_limits(
+        RateLimiterNamespace.PERFORMANCE, key_collection
+    ) as state:
         assert not state.dropped_strings
         assert state.accepted_keys.as_tuples() == key_collection.as_tuples()
 
@@ -46,7 +48,9 @@ def test_writes_limiter_doesnt_limit(set_sentry_option):
         }
     )
 
-    with writes_limiter.check_write_limits(UseCaseKey.PERFORMANCE, key_collection) as state:
+    with writes_limiter.check_write_limits(
+        RateLimiterNamespace.PERFORMANCE, key_collection
+    ) as state:
         assert not state.dropped_strings
         assert state.accepted_keys.as_tuples() == key_collection.as_tuples()
 
@@ -66,7 +70,9 @@ def test_writes_limiter_org_limit(set_sentry_option):
         }
     )
 
-    with writes_limiter.check_write_limits(UseCaseKey.PERFORMANCE, key_collection) as state:
+    with writes_limiter.check_write_limits(
+        RateLimiterNamespace.PERFORMANCE, key_collection
+    ) as state:
         assert len(state.dropped_strings) == 2
         assert sorted(ds.key_result.org_id for ds in state.dropped_strings) == [1, 2]
         assert sorted(org_id for org_id, string in state.accepted_keys.as_tuples()) == [1, 1, 2, 2]
@@ -89,5 +95,7 @@ def test_writes_limiter_global_limit(set_sentry_option):
         }
     )
 
-    with writes_limiter.check_write_limits(UseCaseKey.PERFORMANCE, key_collection) as state:
+    with writes_limiter.check_write_limits(
+        RateLimiterNamespace.PERFORMANCE, key_collection
+    ) as state:
         assert len(state.dropped_strings) == 2
