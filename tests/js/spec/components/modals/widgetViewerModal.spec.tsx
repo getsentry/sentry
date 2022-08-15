@@ -514,6 +514,7 @@ describe('Modals -> WidgetViewerModal', function () {
         });
 
         it('renders widget chart with y axis formatter using provided seriesResultType', async function () {
+          mockEvents();
           await renderModal({
             initialData: initialDataWithFlag,
             widget: mockWidget,
