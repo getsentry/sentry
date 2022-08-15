@@ -72,12 +72,12 @@ export function EmbeddedSpanTree(props: Props) {
         api={api}
         location={location}
       >
-        {_results => {
-          if (_results.isLoading) {
+        {results => {
+          if (results.isLoading) {
             return <LoadingIndicator />;
           }
 
-          if (!_results.tableData) {
+          if (!results.tableData) {
             return (
               <LoadingError
                 message={t(
@@ -105,11 +105,9 @@ export function EmbeddedSpanTree(props: Props) {
               <Section>
                 <TraceView
                   organization={organization}
+                  focusedSpanIds={focusedSpanIds}
                   waterfallModel={
-                    new WaterfallModel(
-                      _results.tableData as EventTransaction,
-                      focusedSpanIds
-                    )
+                    new WaterfallModel(results.tableData as EventTransaction)
                   }
                 />
               </Section>
