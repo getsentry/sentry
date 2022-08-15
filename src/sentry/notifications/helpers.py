@@ -3,7 +3,11 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
 
-from sentry.notifications.defaults import NOTIFICATION_SETTING_DEFAULTS
+from sentry import features
+from sentry.notifications.defaults import (
+    NOTIFICATION_SETTING_DEFAULTS,
+    NOTIFICATION_SETTINGS_ALL_SOMETIMES,
+)
 from sentry.notifications.types import (
     NOTIFICATION_SCOPE_TYPE,
     NOTIFICATION_SETTING_OPTION_VALUES,
@@ -32,18 +36,21 @@ if TYPE_CHECKING:
 def _get_notification_setting_default(
     provider: ExternalProviders,
     type: NotificationSettingTypes,
-    recipient: Team | User | None = None,  # not needed right now
+    recipient: Team | User | None = None,
 ) -> NotificationSettingOptionValues:
     """
     In order to increase engagement, we automatically opt users into receiving
     Slack notifications if they install Slack and link their identity.
     Approval notifications always default to Slack being on.
     """
-    from sentry.models import Team
+    from sentry.models import User
 
-    # every team default is off
-    if isinstance(recipient, Team):
-        return NotificationSettingOptionValues.NEVER
+    if (
+        isinstance(recipient, User)
+        and features.has("users:notification-slack-automatic", recipient, actor=recipient)
+        and provider == ExternalProviders.SLACK
+    ):
+        return NOTIFICATION_SETTINGS_ALL_SOMETIMES[type]
     return NOTIFICATION_SETTING_DEFAULTS[provider][type]
 
 

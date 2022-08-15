@@ -186,10 +186,7 @@ class GetParticipantsTest(TestCase):
 
         users = GroupSubscription.objects.get_participants(group=group)
 
-        assert users == {
-            ExternalProviders.EMAIL: {self.user: GroupSubscriptionReason.comment},
-            ExternalProviders.SLACK: {self.user: GroupSubscriptionReason.comment},
-        }
+        assert users == {ExternalProviders.EMAIL: {self.user: GroupSubscriptionReason.comment}}
 
     def test_no_conversations(self):
         get_participants = functools.partial(GroupSubscription.objects.get_participants, self.group)
@@ -231,11 +228,8 @@ class GetParticipantsTest(TestCase):
 
         with self.assertChanges(
             get_participants,
-            before={
-                ExternalProviders.EMAIL: {self.user: GroupSubscriptionReason.comment},
-                ExternalProviders.SLACK: {self.user: GroupSubscriptionReason.comment},
-            },
-            after={ExternalProviders.SLACK: {self.user: GroupSubscriptionReason.comment}},
+            before={ExternalProviders.EMAIL: {self.user: GroupSubscriptionReason.comment}},
+            after={},
         ):
             self.update_user_setting_never()
 
@@ -247,11 +241,8 @@ class GetParticipantsTest(TestCase):
 
         with self.assertChanges(
             get_participants,
-            before={
-                ExternalProviders.EMAIL: {self.user: GroupSubscriptionReason.comment},
-                ExternalProviders.SLACK: {self.user: GroupSubscriptionReason.comment},
-            },
-            after={ExternalProviders.SLACK: {self.user: GroupSubscriptionReason.comment}},
+            before={ExternalProviders.EMAIL: {self.user: GroupSubscriptionReason.comment}},
+            after={},
         ):
             self.update_project_setting_never()
 
@@ -262,11 +253,8 @@ class GetParticipantsTest(TestCase):
 
         with self.assertChanges(
             get_participants,
-            before={
-                ExternalProviders.EMAIL: {self.user: GroupSubscriptionReason.comment},
-                ExternalProviders.SLACK: {self.user: GroupSubscriptionReason.comment},
-            },
-            after={ExternalProviders.SLACK: {self.user: GroupSubscriptionReason.comment}},
+            before={ExternalProviders.EMAIL: {self.user: GroupSubscriptionReason.comment}},
+            after={},
         ):
             self.update_project_setting_never()
 
@@ -277,9 +265,7 @@ class GetParticipantsTest(TestCase):
 
         with self.assertChanges(
             get_participants,
-            before={
-                ExternalProviders.EMAIL: {self.user: GroupSubscriptionReason.implicit},
-            },
+            before={ExternalProviders.EMAIL: {self.user: GroupSubscriptionReason.implicit}},
             after={},
         ):
             NotificationSetting.objects.update_settings(
@@ -311,10 +297,7 @@ class GetParticipantsTest(TestCase):
         with self.assertChanges(
             get_participants,
             before={},
-            after={
-                ExternalProviders.EMAIL: {self.user: GroupSubscriptionReason.comment},
-                ExternalProviders.SLACK: {self.user: GroupSubscriptionReason.comment},
-            },
+            after={ExternalProviders.EMAIL: {self.user: GroupSubscriptionReason.comment}},
         ):
             subscription = GroupSubscription.objects.create(
                 user=self.user,
@@ -333,10 +316,7 @@ class GetParticipantsTest(TestCase):
         with self.assertChanges(
             get_participants,
             before={},
-            after={
-                ExternalProviders.EMAIL: {self.user: GroupSubscriptionReason.comment},
-                ExternalProviders.SLACK: {self.user: GroupSubscriptionReason.comment},
-            },
+            after={ExternalProviders.EMAIL: {self.user: GroupSubscriptionReason.comment}},
         ):
             subscription = GroupSubscription.objects.create(
                 user=self.user,
@@ -357,10 +337,7 @@ class GetParticipantsTest(TestCase):
         with self.assertChanges(
             get_participants,
             before={},
-            after={
-                ExternalProviders.EMAIL: {self.user: GroupSubscriptionReason.comment},
-                ExternalProviders.SLACK: {self.user: GroupSubscriptionReason.comment},
-            },
+            after={ExternalProviders.EMAIL: {self.user: GroupSubscriptionReason.comment}},
         ):
             subscription = GroupSubscription.objects.create(
                 user=self.user,
@@ -379,10 +356,7 @@ class GetParticipantsTest(TestCase):
         with self.assertChanges(
             get_participants,
             before={ExternalProviders.EMAIL: {self.user: GroupSubscriptionReason.implicit}},
-            after={
-                ExternalProviders.EMAIL: {self.user: GroupSubscriptionReason.comment},
-                ExternalProviders.SLACK: {self.user: GroupSubscriptionReason.comment},
-            },
+            after={ExternalProviders.EMAIL: {self.user: GroupSubscriptionReason.comment}},
         ):
             subscription = GroupSubscription.objects.create(
                 user=self.user,

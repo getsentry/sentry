@@ -280,20 +280,6 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
                 project=group.project,
             )
 
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.SLACK,
-                NotificationSettingTypes.WORKFLOW,
-                default_value,
-                user=user,
-            )
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.SLACK,
-                NotificationSettingTypes.WORKFLOW,
-                project_value,
-                user=user,
-                project=group.project,
-            )
-
             result = serialize(group, user, serializer=GroupSerializerSnuba())
             subscription_details = result.get("subscriptionDetails")
 
@@ -312,13 +298,12 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
             user=user, group=group, project=group.project, is_active=True
         )
 
-        for provider in [ExternalProviders.EMAIL, ExternalProviders.SLACK]:
-            NotificationSetting.objects.update_settings(
-                provider,
-                NotificationSettingTypes.WORKFLOW,
-                NotificationSettingOptionValues.NEVER,
-                user=user,
-            )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.WORKFLOW,
+            NotificationSettingOptionValues.NEVER,
+            user=user,
+        )
 
         result = serialize(group, user, serializer=GroupSerializerSnuba())
         assert not result["isSubscribed"]
@@ -332,14 +317,13 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
             user=user, group=group, project=group.project, is_active=True
         )
 
-        for provider in [ExternalProviders.EMAIL, ExternalProviders.SLACK]:
-            NotificationSetting.objects.update_settings(
-                provider,
-                NotificationSettingTypes.WORKFLOW,
-                NotificationSettingOptionValues.NEVER,
-                user=user,
-                project=group.project,
-            )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.WORKFLOW,
+            NotificationSettingOptionValues.NEVER,
+            user=user,
+            project=group.project,
+        )
 
         result = serialize(group, user, serializer=GroupSerializerSnuba())
         assert not result["isSubscribed"]

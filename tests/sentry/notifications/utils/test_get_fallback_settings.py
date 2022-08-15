@@ -20,7 +20,7 @@ class GetFallbackSettingsTest(TestCase):
                 "user": {
                     self.user.id: {
                         "email": "always",
-                        "slack": "always",
+                        "slack": "never",
                         "msteams": "never",
                     }
                 }
