@@ -11,6 +11,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {decodeList} from 'sentry/utils/queryString';
 import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -44,7 +45,7 @@ export default function FiltersBar({
   const organization = useOrganization();
 
   const selectedReleases =
-    (location.query?.[DashboardFilterKeys.RELEASE]
+    (defined(location.query?.[DashboardFilterKeys.RELEASE])
       ? decodeList(location.query[DashboardFilterKeys.RELEASE])
       : filters?.[DashboardFilterKeys.RELEASE]) ?? [];
 
