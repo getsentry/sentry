@@ -49,6 +49,8 @@ export type IssueEventParameters = {
     tab: string;
   };
   resolve_issue: {release: string};
+  'span_view.embedded_child.hide': {};
+  'span_view.embedded_child.show': {};
   'tag.clicked': {
     is_clickable: boolean;
   };
@@ -74,4 +76,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   resolve_issue: 'Resolve Issue',
   'tag.clicked': 'Tag: Clicked',
   'issue.quick_trace_status': 'Issue Quick Trace Status',
+  'span_view.embedded_child.hide': 'Span View: Hide Embedded Transaction',
+  'span_view.embedded_child.show': 'Span View: Show Embedded Transaction',
 };
