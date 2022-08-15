@@ -863,9 +863,8 @@ class IssueListOverview extends Component<Props, State> {
   };
 
   paginationAnalyticsEvent = (direction: string) => {
-    const {organization} = this.props;
     trackAdvancedAnalyticsEvent('issues_stream.paginate', {
-      organization,
+      organization: this.props.organization,
       direction,
     });
   };
