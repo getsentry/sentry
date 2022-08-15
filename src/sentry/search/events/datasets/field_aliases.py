@@ -44,9 +44,8 @@ def resolve_team_key_transaction_alias(
         ]
     )
 
-    count = len(team_key_transactions)
     if resolve_metric_index:
-        team_key_transactions = []
+        team_key_transactions_list = []
         # Its completely possible that a team_key_transaction never existed in the metrics dataset
         for project, transaction in team_key_transactions:
             try:
@@ -54,7 +53,10 @@ def resolve_team_key_transaction_alias(
             except IncompatibleMetricsQuery:
                 continue
             if resolved_transaction:
-                team_key_transactions.append(project, resolved_transaction)
+                team_key_transactions_list.append((project, resolved_transaction))
+        team_key_transactions = team_key_transactions_list
+
+    count = len(team_key_transactions)
 
     # NOTE: this raw count is not 100% accurate because if it exceeds
     # `MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS`, it will not be reflected
