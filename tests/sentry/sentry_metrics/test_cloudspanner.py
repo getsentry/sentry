@@ -19,12 +19,11 @@ from sentry.sentry_metrics.indexer.id_generator import get_id
 
 @pytest.fixture(scope="module")
 def testing_indexer():
-    indexer = RawCloudSpannerIndexer(
-        instance_id="markus-test-spanner-pg",
-        database_id="nikhar-test",
-        table_name="perfstringindexer_v2",
-        unique_organization_string_index="unique_organization_string_index",
-    )
+    indexer = RawCloudSpannerIndexer(instance_id="",
+                                     database_id="",
+                                     table_name="",
+                                     unique_organization_string_index="")
+
     indexer.validate()
     return indexer
 
@@ -58,9 +57,8 @@ def test_spanner_indexer_service():
 def get_random_string(length: int) -> str:
     return "".join(random.choice(string.ascii_letters) for _ in range(length))
 
-
 @pytest.mark.django_db
-# @pytest.mark.skip(reason="TODO: Implement it correctly")
+@pytest.mark.skip(reason="TODO: Implement it correctly")
 def test_spanner_indexer_implementation_basic(testing_indexer):
     """
     Test the basic implementation of the CloudSpannerIndexer by performing a
@@ -101,7 +99,7 @@ def test_spanner_indexer_implementation_basic(testing_indexer):
 
 
 @pytest.mark.django_db
-# @pytest.mark.skip(reason="TODO: Implement it correctly")
+@pytest.mark.skip(reason="TODO: Implement it correctly")
 def test_spanner_indexer_implementation_bulk_insert_twice_gives_same_result(testing_indexer):
     """
     When performing a record operation twice (in separate transactions),
@@ -122,18 +120,14 @@ def test_spanner_indexer_implementation_bulk_insert_twice_gives_same_result(test
     assert record1_int == record2_int
 
 
-@patch(
-    "sentry.sentry_metrics.indexer.cloudspanner.cloudspanner.RawCloudSpannerIndexer._insert_individual_records"
-)
-def test_spanner_indexer_insert_batch_no_conflict_does_not_trigger_individual_inserts(
-    mock, testing_indexer
-):
+@patch("sentry.sentry_metrics.indexer.cloudspanner.cloudspanner.RawCloudSpannerIndexer._insert_individual_records")
+@pytest.mark.skip(reason="TODO: Implement it correctly")
+def test_spanner_indexer_insert_batch_no_conflict_does_not_trigger_individual_inserts(mock, testing_indexer):
     """
     Test that when a record already exists in the database, the individual insert
     api is called.
     """
     codec = IdCodec()
-    indexed_string = get_random_string(10)
 
     model1_id = get_id()
     key_results1 = KeyResults()
@@ -164,13 +158,9 @@ def test_spanner_indexer_insert_batch_no_conflict_does_not_trigger_individual_in
     testing_indexer._insert_db_records([model2], key_results2)
     assert not mock.called, "Individual insert should not be called"
 
-
-@patch(
-    "sentry.sentry_metrics.indexer.cloudspanner.cloudspanner.RawCloudSpannerIndexer._insert_individual_records"
-)
-def test_spanner_indexer_insert_batch_conflict_triggers_individual_transactions(
-    mock, testing_indexer
-):
+@patch("sentry.sentry_metrics.indexer.cloudspanner.cloudspanner.RawCloudSpannerIndexer._insert_individual_records")
+@pytest.mark.skip(reason="TODO: Implement it correctly")
+def test_spanner_indexer_insert_batch_conflict_triggers_individual_transactions(mock, testing_indexer):
     """
     Test that when a record already exists in the database, the individual insert
     api is called.
@@ -209,7 +199,7 @@ def test_spanner_indexer_insert_batch_conflict_triggers_individual_transactions(
 
 
 @pytest.mark.django_db
-# @pytest.mark.skip(reason="TODO: Implement it correctly")
+@pytest.mark.skip(reason="TODO: Implement it correctly")
 def test_spanner_indexer_individual_insert(testing_indexer):
     """
     Test that when a record already exists in the database, trying to insert
