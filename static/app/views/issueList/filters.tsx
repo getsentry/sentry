@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
@@ -37,27 +36,25 @@ function IssueListFilters({
   tags,
 }: Props) {
   return (
-    <Fragment>
-      <SearchContainer>
-        <PageFilterBar>
-          <ProjectPageFilter />
-          <EnvironmentPageFilter />
-          <DatePageFilter alignDropdown="left" />
-        </PageFilterBar>
-        <IssueListSearchBar
-          organization={organization}
-          query={query || ''}
-          sort={sort}
-          onSearch={onSearch}
-          disabled={isSearchDisabled}
-          excludeEnvironment
-          supportedTags={tags}
-          tagValueLoader={tagValueLoader}
-          savedSearch={savedSearch}
-          onSidebarToggle={onSidebarToggle}
-        />
-      </SearchContainer>
-    </Fragment>
+    <SearchContainer>
+      <PageFilterBar>
+        <ProjectPageFilter />
+        <EnvironmentPageFilter />
+        <DatePageFilter alignDropdown="left" />
+      </PageFilterBar>
+      <IssueListSearchBar
+        organization={organization}
+        query={query || ''}
+        sort={sort}
+        onSearch={onSearch}
+        disabled={isSearchDisabled}
+        excludeEnvironment
+        supportedTags={tags}
+        tagValueLoader={tagValueLoader}
+        savedSearch={savedSearch}
+        onSidebarToggle={onSidebarToggle}
+      />
+    </SearchContainer>
   );
 }
 
