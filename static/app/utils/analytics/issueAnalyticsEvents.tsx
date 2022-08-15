@@ -44,7 +44,7 @@ export type IssueEventParameters = {
   };
   'issues_stream.issue_clicked': IssueStream;
   'issues_stream.paginate': {
-    next_page: number;
+    direction: string;
   };
   'issues_stream.realtime_clicked': {
     enabled: boolean;

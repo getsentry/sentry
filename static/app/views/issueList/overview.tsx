@@ -849,11 +849,6 @@ class IssueListOverview extends Component<Props, State> {
       nextPage = undefined;
     }
 
-    trackAdvancedAnalyticsEvent('issues_stream.paginate', {
-      organization: this.props.organization,
-      next_page: nextPage ?? 0,
-    });
-
     this.transitionTo({cursor, page: nextPage});
   };
 
@@ -864,6 +859,14 @@ class IssueListOverview extends Component<Props, State> {
     });
     trackAdvancedAnalyticsEvent('issue.search_sidebar_clicked', {
       organization,
+    });
+  };
+
+  paginationAnalyticsEvent = (direction: string) => {
+    const {organization} = this.props;
+    trackAdvancedAnalyticsEvent('issues_stream.paginate', {
+      organization,
+      direction,
     });
   };
 
@@ -1314,6 +1317,7 @@ class IssueListOverview extends Component<Props, State> {
                 })}
                 pageLinks={pageLinks}
                 onCursor={this.onCursorChange}
+                paginationAnalyticsEvent={this.paginationAnalyticsEvent}
               />
             </Layout.Main>
 
