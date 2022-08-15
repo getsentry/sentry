@@ -1,6 +1,5 @@
 import logging
 import re
-from collections import namedtuple
 from datetime import datetime
 from http import HTTPStatus
 from typing import Any, Mapping, Optional, Sequence, Set
@@ -18,6 +17,8 @@ from sentry.sentry_metrics.indexer.base import (
     StringIndexer,
 )
 from sentry.sentry_metrics.indexer.cache import CachingIndexer, StringIndexerCache
+from sentry.sentry_metrics.indexer.cloudspanner.cloudspanner_model import \
+    SpannerIndexerModel, get_column_names
 from sentry.sentry_metrics.indexer.id_generator import get_id, reverse_bits
 from sentry.sentry_metrics.indexer.ratelimiters import writes_limiter
 from sentry.sentry_metrics.indexer.strings import StaticStringIndexer
@@ -41,12 +42,12 @@ _PARTITION_KEY = "cs"
 # Unique index violation on index unique_organization_string_index at index key
 # [100000,dBdOCvybLK,6866628476861885949]. It conflicts with row
 # [6866628476861885949] in table perfstringindexer_v2.
+_UNIQUE_INDEX_VIOLATION_STRING = "Unique index violation"
 _UNIQUE_VIOLATION_EXISITING_RE = re.compile(r"\[([^]]+)]")
 
 indexer_cache = StringIndexerCache(
     **settings.SENTRY_STRING_INDEXER_CACHE_OPTIONS, partition_key=_PARTITION_KEY
 )
-
 
 class CloudSpannerRowAlreadyExists(Exception):
     """
@@ -70,29 +71,6 @@ class IdCodec(Codec[DecodedId, EncodedId]):
 
     def decode(self, value: EncodedId) -> DecodedId:
         return reverse_bits(value + 2**63, 64)
-
-
-_COLUMNS = [
-    "id",
-    "decoded_id",
-    "string",
-    "organization_id",
-    "date_added",
-    "last_seen",
-    "retention_days",
-]
-SpannerIndexerModel = namedtuple(
-    "SpannerIndexerModel",
-    [
-        "id",
-        "decoded_id",
-        "string",
-        "organization_id",
-        "date_added",
-        "last_seen",
-        "retention_days",
-    ],
-)
 
 
 class RawCloudSpannerIndexer(StringIndexer):
@@ -203,7 +181,9 @@ class RawCloudSpannerIndexer(StringIndexer):
         """
 
         def insert_batch_transaction_uow(transaction) -> None:
-            transaction.insert(table=self._table_name, columns=_COLUMNS, values=rows_to_insert)
+            transaction.insert(table=self._table_name,
+                               columns=get_column_names(),
+                               values=rows_to_insert)
 
         try:
             self.database.run_in_transaction(insert_batch_transaction_uow)
@@ -261,7 +241,7 @@ class RawCloudSpannerIndexer(StringIndexer):
         """
 
         def insert_individual_record_uow(transaction) -> None:
-            transaction.insert(self._table_name, columns=_COLUMNS, values=[row])
+            transaction.insert(self._table_name, columns=get_column_names(), values=[row])
 
         metrics.incr(
             _INDEXER_DB_INSERT_METRIC,
@@ -283,7 +263,8 @@ class RawCloudSpannerIndexer(StringIndexer):
                     fetch_type=FetchType.FIRST_SEEN,
                 )
             except google.api_core.exceptions.AlreadyExists as exc:
-                if exc.code == HTTPStatus.CONFLICT:
+                if exc.code == HTTPStatus.CONFLICT\
+                        and exc.message.startswith(_UNIQUE_INDEX_VIOLATION_STRING):
                     regex_match = re.search(_UNIQUE_VIOLATION_EXISITING_RE, str(exc.message))
                     if regex_match:
                         group = regex_match.group(1)
