@@ -27,6 +27,15 @@ SpannerIndexerModel = namedtuple(
     ],
 )
 
+DATABASE_PARAMETERS: Mapping[UseCaseKey, Mapping[str, str]] = {
+    UseCaseKey.PERFORMANCE: {
+        "table_name": "perfstringindexer",
+        "unique_organization_string_index_name":
+            "unique_organization_string_index",
+    },
+    UseCaseKey.RELEASE_HEALTH: {
+    }
+}
 
 def get_column_names() -> Sequence[str]:
     return _COLUMNS
@@ -83,13 +92,3 @@ class CloudSpannerDBAccessor:
 
     def insert(self, models: Sequence[SpannerIndexerModel]) -> None:
         return self.__insert(models)
-
-DATABASE_PARAMETERS: Mapping[UseCaseKey, Mapping[str, str]] = {
-    UseCaseKey.PERFORMANCE: {
-        "table_name": "perfstringindexer",
-        "unique_organization_string_index_name":
-            "unique_organization_string_index",
-    },
-    UseCaseKey.RELEASE_HEALTH: {
-    }
-}
