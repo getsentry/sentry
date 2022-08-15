@@ -1189,8 +1189,6 @@ SENTRY_FEATURES = {
     "projects:kafka-ingest": False,
     # Workflow 2.0 Auto associate commits to commit sha release
     "projects:auto-associate-commits-to-release": False,
-    # Automatically opt IN users to receiving Slack notifications.
-    "users:notification-slack-automatic": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }
