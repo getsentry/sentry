@@ -48,6 +48,21 @@ export type IssueEventParameters = {
     num_issues: number;
     tab: string;
   };
+  'quick_trace.dropdown.clicked': {
+    node_key: string;
+  };
+  'quick_trace.dropdown.clicked_extra': {
+    node_key: string;
+  };
+  'quick_trace.missing_service.dismiss': {
+    platform: string;
+  };
+  'quick_trace.missing_service.docs': {
+    platform: string;
+  };
+  'quick_trace.node.clicked': {
+    node_key: string;
+  };
   resolve_issue: {release: string};
   'tag.clicked': {
     is_clickable: boolean;
@@ -74,4 +89,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   resolve_issue: 'Resolve Issue',
   'tag.clicked': 'Tag: Clicked',
   'issue.quick_trace_status': 'Issue Quick Trace Status',
+  'quick_trace.missing_service.dismiss': 'Quick Trace: Missing Service Dismissed',
+  'quick_trace.missing_service.docs': 'Quick Trace: Missing Service Clicked',
+  'quick_trace.dropdown.clicked': 'Quick Trace: Dropdown clicked',
+  'quick_trace.dropdown.clicked_extra': 'Quick Trace: Dropdown clicked',
 };
