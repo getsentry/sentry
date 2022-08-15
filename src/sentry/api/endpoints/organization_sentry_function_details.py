@@ -1,5 +1,6 @@
 from django.http import Http404
 from google.api_core.exceptions import FailedPrecondition, InvalidArgument, NotFound
+from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
 from sentry import features
@@ -39,13 +40,18 @@ class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=400)
 
         data = serializer.validated_data
-        function.update(**data)
 
-        update_function(
-            function.code, function.external_id, data.get("overview", None), data["env_variables"]
-        )
-
-        return Response(serialize(function), status=201)
+        try:
+            update_function(
+                data.get("code"),
+                function.external_id,
+                data.get("overview", None),
+                data["env_variables"],
+            )
+            function.update(**data)
+            return Response(serialize(function), status=201)
+        except FailedPrecondition:
+            raise ParseError(detail="Function is currently busy, try again later.")
 
     def delete(self, request, organization, function):
         # If the function is being executed, the delete request will stop the function
@@ -54,13 +60,13 @@ class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
         # not go through
         try:
             delete_function(function.external_id)
-            SentryFunction.objects.filter(
-                organization=organization, name=function.name, external_id=function.external_id
-            ).delete()
-            return Response(status=204)
         except FailedPrecondition:
-            return Response({"detail": "Function is currently busy, try again later."}, status=400)
+            raise ParseError(detail="Function is currently busy, try again later.")
         except InvalidArgument:
             return Response(status=400)
         except NotFound:
             return Response(status=404)
+        SentryFunction.objects.filter(
+            organization=organization, name=function.name, external_id=function.external_id
+        ).delete()
+        return Response(status=204)
