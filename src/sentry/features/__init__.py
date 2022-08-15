@@ -80,7 +80,6 @@ default_manager.add(
     "organizations:performance-frontend-use-events-endpoint", OrganizationFeature, True
 )
 default_manager.add("organizations:discover-events-rate-limit", OrganizationFeature, True)
-default_manager.add("organizations:duplicate-alert-rule", OrganizationFeature, True)
 default_manager.add("organizations:enterprise-perf", OrganizationFeature)
 default_manager.add("organizations:grouping-stacktrace-ui", OrganizationFeature, True)
 default_manager.add("organizations:grouping-title-ui", OrganizationFeature, True)

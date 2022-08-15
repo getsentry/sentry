@@ -973,8 +973,6 @@ SENTRY_FEATURES = {
     "organizations:performance-frontend-use-events-endpoint": True,
     # Enables events endpoint rate limit
     "organizations:discover-events-rate-limit": False,
-    # Enable duplicating alert rules.
-    "organizations:duplicate-alert-rule": True,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
     # Allow organizations to configure all symbol sources.
