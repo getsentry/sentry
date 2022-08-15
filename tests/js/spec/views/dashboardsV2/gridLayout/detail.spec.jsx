@@ -1128,9 +1128,13 @@ describe('Dashboards > Detail', function () {
     });
 
     it('can clear dashboard filters in compact select', async () => {
-      const mock = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events-stats/',
-        body: [],
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: TestStubs.Dashboard(widgets, {
+          id: '1',
+          title: 'Custom Errors',
+          filters: {release: ['sentry-android-shop@1.2.0']},
+        }),
       });
 
       MockApiClient.addMockResponse({
@@ -1158,7 +1162,6 @@ describe('Dashboards > Detail', function () {
             ...TestStubs.location(),
             query: {
               statsPeriod: '7d',
-              release: ['sentry-android-shop@1.2.0'],
             },
           },
         },
@@ -1176,28 +1179,13 @@ describe('Dashboards > Detail', function () {
       await screen.findByText('7D');
       userEvent.click(await screen.findByText('sentry-android-shop@1.2.0'));
       userEvent.click(screen.getByText('Clear'));
-
       screen.getByText('All Releases');
+      userEvent.click(document.body);
+
       expect(browserHistory.push).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             release: '',
-          }),
-        })
-      );
-
-      expect(mock).toHaveBeenLastCalledWith(
-        '/organizations/org-slug/events-stats/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            environment: [],
-            interval: '30m',
-            partial: '1',
-            project: [],
-            query: 'event.type:error',
-            referrer: 'api.dashboards.widget.undefined-chart',
-            statsPeriod: '7d',
-            yAxis: ['count()'],
           }),
         })
       );
