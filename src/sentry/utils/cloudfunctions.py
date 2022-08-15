@@ -13,6 +13,7 @@ from google.cloud.functions_v1.types.functions import DeleteFunctionRequest
 from google.cloud.pubsub_v1 import PublisherClient
 from google.protobuf.field_mask_pb2 import FieldMask
 
+from sentry.conf.server import SENTRY_FUNCTIONS_PROJECT_NAME
 from sentry.utils import json
 
 WRAPPER_JS = """
@@ -31,7 +32,7 @@ PACKAGE_JSON = {
 
 
 def function_pubsub_name(funcId):
-    return "projects/hackweek-sentry-functions/topics/fn-" + funcId
+    return "projects/" + SENTRY_FUNCTIONS_PROJECT_NAME + "/topics/fn-" + funcId
 
 
 def create_function_pubsub_topic(funcId):
@@ -50,7 +51,7 @@ def upload_function_files(client, code, env_variables):
 
     upload_url = client.generate_upload_url(
         request=GenerateUploadUrlRequest(
-            parent="projects/hackweek-sentry-functions/locations/us-central1"
+            parent="projects/" + SENTRY_FUNCTIONS_PROJECT_NAME + "/locations/us-central1"
         )
     ).upload_url
     requests.put(
@@ -67,7 +68,10 @@ def create_function(code, funcId, description, env_variables):
     upload_url = upload_function_files(client, code, env_variables)
     client.create_function(
         function=CloudFunction(
-            name="projects/hackweek-sentry-functions/locations/us-central1/functions/fn-" + funcId,
+            name="projects/"
+            + SENTRY_FUNCTIONS_PROJECT_NAME
+            + "/locations/us-central1/functions/fn-"
+            + funcId,
             description=description,
             source_upload_url=upload_url,
             runtime="nodejs16",
@@ -78,7 +82,7 @@ def create_function(code, funcId, description, env_variables):
             ),
             environment_variables=env_variables,
         ),
-        location="projects/hackweek-sentry-functions/locations/us-central1",
+        location="projects/" + SENTRY_FUNCTIONS_PROJECT_NAME + "/locations/us-central1",
     )
 
 
@@ -88,7 +92,9 @@ def update_function(code, funcId, description, env_variables):
     client.update_function(
         request=UpdateFunctionRequest(
             function=CloudFunction(
-                name="projects/hackweek-sentry-functions/locations/us-central1/functions/fn-"
+                name="projects/"
+                + SENTRY_FUNCTIONS_PROJECT_NAME
+                + "/locations/us-central1/functions/fn-"
                 + funcId,
                 description=description,
                 source_upload_url=upload_url,
@@ -109,7 +115,10 @@ def delete_function(funcId):
     client = CloudFunctionsServiceClient()
     client.delete_function(
         request=DeleteFunctionRequest(
-            name="projects/hackweek-sentry-functions/locations/us-central1/functions/fn-" + funcId,
+            name="projects/"
+            + SENTRY_FUNCTIONS_PROJECT_NAME
+            + "/locations/us-central1/functions/fn-"
+            + funcId,
         ),
     )
 

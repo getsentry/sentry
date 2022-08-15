@@ -2746,5 +2746,7 @@ SENTRY_STRING_INDEXER_CACHE_OPTIONS = {
     "cache_name": "default",
 }
 
+SENTRY_FUNCTIONS_PROJECT_NAME = "hackweek-sentry-functions"
+
 SERVER_COMPONENT_MODE = os.environ.get("SENTRY_SERVER_COMPONENT_MODE", None)
 FAIL_ON_UNAVAILABLE_API_CALL = False
