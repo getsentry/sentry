@@ -215,7 +215,7 @@ def determine_eligible_recipients(
     target_type: ActionTargetType,
     target_identifier: int | None = None,
     event: Event | None = None,
-    release_dry_run=False,
+    release_dry_run: bool | None = False,
 ) -> Iterable[Team | User]:
     """
     Either get the individual recipient from the target type/id or the
@@ -243,7 +243,9 @@ def determine_eligible_recipients(
     return set()
 
 
-def get_release_committers(project: Project, event: Event, release_dry_run: bool) -> Sequence[User]:
+def get_release_committers(
+    project: Project, event: Event, release_dry_run: bool | None = False
+) -> Sequence[User]:
     # get_participants_for_release seems to be the method called when deployments happen
     # supposedly, this logic should be fairly, close ...
     # why is get_participants_for_release so much more complex???
@@ -264,7 +266,9 @@ def get_release_committers(project: Project, event: Event, release_dry_run: bool
     return _get_release_committers(last_release, release_dry_run)
 
 
-def _get_release_committers(release: Release, release_dry_run: bool) -> Sequence[User]:
+def _get_release_committers(
+    release: Release, release_dry_run: bool | None = False
+) -> Sequence[User]:
     from sentry.api.serializers import Author, get_users_for_commits
     from sentry.utils.committers import _get_commits
 
