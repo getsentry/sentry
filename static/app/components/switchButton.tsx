@@ -34,6 +34,7 @@ const Switch = ({
     ref={forwardedRef}
     id={id}
     name={name}
+    type="button"
     className={className}
     onClick={isDisabled ? undefined : toggle}
     role="checkbox"
@@ -44,7 +45,6 @@ const Switch = ({
     size={size}
     data-test-id="switch"
     {...props}
-    type="button"
   >
     <Toggle
       isDisabled={isDisabled}
