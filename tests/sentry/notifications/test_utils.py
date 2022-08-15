@@ -58,7 +58,7 @@ class NotificationHelpersTest(TestCase):
         )
         assert values_by_provider == {
             ExternalProviders.EMAIL: NotificationSettingOptionValues.COMMITTED_ONLY,
-            ExternalProviders.SLACK: NotificationSettingOptionValues.NEVER,
+            ExternalProviders.SLACK: NotificationSettingOptionValues.COMMITTED_ONLY,
             ExternalProviders.MSTEAMS: NotificationSettingOptionValues.NEVER,
         }
 

@@ -141,7 +141,7 @@ const Chart = ({firstEvent, stats, transactionStats}: Props) => {
         fontFamily: theme.text.family,
         inside: true,
         lineHeight: 12,
-        formatter: (value: number) => axisLabelFormatter(value, 'count()', true),
+        formatter: (value: number) => axisLabelFormatter(value, 'number', true),
         textBorderColor: theme.backgroundSecondary,
         textBorderWidth: 1,
       },

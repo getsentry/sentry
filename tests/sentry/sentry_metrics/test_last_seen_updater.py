@@ -14,7 +14,7 @@ from sentry.sentry_metrics.consumers.last_seen_updater import (
     _update_stale_last_seen,
     retrieve_db_read_keys,
 )
-from sentry.sentry_metrics.indexer.models import StringIndexer
+from sentry.sentry_metrics.indexer.postgres.models import StringIndexer
 from sentry.testutils.cases import TestCase
 
 

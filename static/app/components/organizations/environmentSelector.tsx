@@ -6,10 +6,10 @@ import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 
+import {MenuActions} from 'sentry/components/deprecatedDropdownMenu';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import {MenuFooterChildProps} from 'sentry/components/dropdownAutoComplete/menu';
 import {Item} from 'sentry/components/dropdownAutoComplete/types';
-import {MenuActions} from 'sentry/components/dropdownMenu';
 import Highlight from 'sentry/components/highlight';
 import HeaderItem from 'sentry/components/organizations/headerItem';
 import MultipleSelectorSubmitRow from 'sentry/components/organizations/multipleSelectorSubmitRow';

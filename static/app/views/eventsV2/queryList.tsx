@@ -165,6 +165,7 @@ class QueryList extends Component<Props> {
           onAction: () =>
             handleAddQueryToDashboard({
               eventView,
+              location,
               query: view,
               organization,
               yAxis: view?.yAxis,
@@ -239,6 +240,7 @@ class QueryList extends Component<Props> {
                 onAction: () =>
                   handleAddQueryToDashboard({
                     eventView,
+                    location,
                     query: savedQuery,
                     organization,
                     yAxis: savedQuery?.yAxis ?? eventView.yAxis,

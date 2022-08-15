@@ -19,6 +19,11 @@ export type MenuListItemProps = {
    */
   details?: React.ReactNode;
   /**
+   * Whether the item is disabled (if true, the item will be grayed out and
+   * non-interactive).
+   */
+  disabled?: boolean;
+  /**
    * Item label. Should preferably be a string. If not, make sure that
    * there are appropriate aria-labels.
    */
@@ -71,7 +76,6 @@ type OtherProps = {
   as?: React.ElementType;
   detailsProps?: object;
   innerWrapProps?: object;
-  isDisabled?: boolean;
   isFocused?: boolean;
   labelProps?: object;
 };
@@ -87,13 +91,13 @@ function BaseMenuListItem({
   as = 'li',
   priority = 'default',
   size,
+  disabled = false,
   showDivider = false,
   leadingItems = false,
   leadingItemsSpanFullHeight = false,
   trailingItems = false,
   trailingItemsSpanFullHeight = false,
   isFocused = false,
-  isDisabled = false,
   innerWrapProps = {},
   labelProps = {},
   detailsProps = {},
@@ -106,15 +110,15 @@ function BaseMenuListItem({
     <MenuItemWrap as={as} ref={forwardRef} {...props}>
       <Tooltip skipWrapper title={tooltip} {...tooltipOptions}>
         <InnerWrap
-          isDisabled={isDisabled}
           isFocused={isFocused}
+          disabled={disabled}
           priority={priority}
           size={size}
           {...innerWrapProps}
         >
           {leadingItems && (
             <LeadingItems
-              isDisabled={isDisabled}
+              disabled={disabled}
               spanFullHeight={leadingItemsSpanFullHeight}
               size={size}
             >
@@ -131,14 +135,14 @@ function BaseMenuListItem({
                 {label}
               </Label>
               {details && (
-                <Details isDisabled={isDisabled} priority={priority} {...detailsProps}>
+                <Details disabled={disabled} priority={priority} {...detailsProps}>
                   {details}
                 </Details>
               )}
             </LabelWrap>
             {trailingItems && (
               <TrailingItems
-                isDisabled={isDisabled}
+                disabled={disabled}
                 spanFullHeight={trailingItemsSpanFullHeight}
               >
                 {trailingItems}
@@ -175,13 +179,13 @@ const MenuItemWrap = styled('li')`
 function getTextColor({
   theme,
   priority,
-  isDisabled,
+  disabled,
 }: {
-  isDisabled: boolean;
+  disabled: boolean;
   priority: Priority;
   theme: Theme;
 }) {
-  if (isDisabled) {
+  if (disabled) {
     return theme.subText;
   }
   switch (priority) {
@@ -211,9 +215,9 @@ export const InnerWrap = styled('div', {
   shouldForwardProp: prop =>
     typeof prop === 'string' &&
     isPropValid(prop) &&
-    !['isDisabled', 'isFocused', 'priority'].includes(prop),
+    !['disabled', 'isFocused', 'priority'].includes(prop),
 })<{
-  isDisabled: boolean;
+  disabled: boolean;
   isFocused: boolean;
   priority: Priority;
   size: Props['size'];
@@ -230,7 +234,7 @@ export const InnerWrap = styled('div', {
   &:hover {
     color: ${getTextColor};
   }
-  ${p => p.isDisabled && `cursor: initial;`}
+  ${p => p.disabled && `cursor: initial;`}
 
   ${p =>
     p.isFocused &&
@@ -307,7 +311,7 @@ const ContentWrap = styled('div')<{
 `;
 
 const LeadingItems = styled('div')<{
-  isDisabled: boolean;
+  disabled: boolean;
   size: Props['size'];
   spanFullHeight: boolean;
 }>`
@@ -318,7 +322,7 @@ const LeadingItems = styled('div')<{
   margin-top: ${p => getVerticalPadding(p.size)};
   margin-right: ${space(1)};
 
-  ${p => p.isDisabled && `opacity: 0.5;`}
+  ${p => p.disabled && `opacity: 0.5;`}
   ${p => p.spanFullHeight && `height: 100%;`}
 `;
 
@@ -336,7 +340,7 @@ const Label = styled('p')`
   ${p => p.theme.overflowEllipsis}
 `;
 
-const Details = styled('p')<{isDisabled: boolean; priority: Priority}>`
+const Details = styled('p')<{disabled: boolean; priority: Priority}>`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
   line-height: 1.2;
@@ -346,13 +350,13 @@ const Details = styled('p')<{isDisabled: boolean; priority: Priority}>`
   ${p => p.priority !== 'default' && `color: ${getTextColor(p)};`}
 `;
 
-const TrailingItems = styled('div')<{isDisabled: boolean; spanFullHeight: boolean}>`
+const TrailingItems = styled('div')<{disabled: boolean; spanFullHeight: boolean}>`
   display: flex;
   align-items: center;
   height: 1.4em;
   gap: ${space(1)};
   margin-right: ${space(0.5)};
 
-  ${p => p.isDisabled && `opacity: 0.5;`}
+  ${p => p.disabled && `opacity: 0.5;`}
   ${p => p.spanFullHeight && `height: 100%;`}
 `;

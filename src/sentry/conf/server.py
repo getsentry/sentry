@@ -339,7 +339,7 @@ INSTALLED_APPS = (
     "sentry.replays",
     "sentry.release_health",
     "sentry.search",
-    "sentry.sentry_metrics.indexer",
+    "sentry.sentry_metrics.indexer.postgres.apps.Config",
     "sentry.snuba",
     "sentry.lang.java.apps.Config",
     "sentry.lang.javascript.apps.Config",
@@ -348,6 +348,7 @@ INSTALLED_APPS = (
     "sentry.plugins.sentry_urls.apps.Config",
     "sentry.plugins.sentry_useragents.apps.Config",
     "sentry.plugins.sentry_webhooks.apps.Config",
+    "sentry.utils.suspect_resolutions.apps.Config",
     "social_auth",
     "sudo",
     "sentry.eventstream",
@@ -552,7 +553,6 @@ CELERY_IMPORTS = (
     "sentry.data_export.tasks",
     "sentry.discover.tasks",
     "sentry.incidents.tasks",
-    "sentry.sentry_metrics.indexer.tasks",
     "sentry.snuba.tasks",
     "sentry.tasks.app_store_connect",
     "sentry.tasks.assemble",
@@ -596,6 +596,7 @@ CELERY_IMPORTS = (
     "sentry.profiles.task",
     "sentry.release_health.duplex",
     "sentry.release_health.tasks",
+    "sentry.utils.suspect_resolutions.get_suspect_resolutions",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -667,6 +668,7 @@ CELERY_QUEUES = [
     Queue("update", routing_key="update"),
     Queue("profiles.process", routing_key="profiles.process"),
     Queue("release_health.duplex", routing_key="release_health.duplex"),
+    Queue("get_suspect_resolutions", routing_key="get_suspect_resolutions"),
 ]
 
 for queue in CELERY_QUEUES:
@@ -971,8 +973,6 @@ SENTRY_FEATURES = {
     "organizations:performance-frontend-use-events-endpoint": True,
     # Enables events endpoint rate limit
     "organizations:discover-events-rate-limit": False,
-    # Enable duplicating alert rules.
-    "organizations:duplicate-alert-rule": True,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
     # Allow organizations to configure all symbol sources.
@@ -1125,8 +1125,10 @@ SENTRY_FEATURES = {
     "organizations:relay": True,
     # Enable Sentry Functions
     "organizations:sentry-functions": False,
-    # Enable experimental session replay features
+    # Enable experimental session replay UI
     "organizations:session-replay": False,
+    # Enable experimental session replay SDK for recording on Sentry
+    "organizations:session-replay-sdk": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
@@ -1181,12 +1183,12 @@ SENTRY_FEATURES = {
     "projects:rate-limits": True,
     # Enable functionality to trigger service hooks upon event ingestion.
     "projects:servicehooks": False,
+    # Enable suspect resolutions feature
+    "projects:suspect-resolutions": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
     "projects:kafka-ingest": False,
     # Workflow 2.0 Auto associate commits to commit sha release
     "projects:auto-associate-commits-to-release": False,
-    # Automatically opt IN users to receiving Slack notifications.
-    "users:notification-slack-automatic": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }
@@ -1462,7 +1464,7 @@ SENTRY_METRICS_PREFIX = "sentry."
 SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
 
 # Metrics product
-SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres_v2.StaticStringsIndexerDecorator"
+SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres.postgres_v2.PostgresIndexer"
 SENTRY_METRICS_INDEXER_OPTIONS = {}
 SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
 

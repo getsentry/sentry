@@ -99,6 +99,15 @@ describe('Performance > Widgets > WidgetContainer', function () {
       url: '/organizations/org-slug/events-trends-stats/',
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events/`,
+      body: {
+        data: [{}],
+        meta: {},
+      },
+    });
   });
 
   afterEach(function () {
@@ -346,7 +355,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       1,
       expect.anything(),
       expect.objectContaining({
-        query: expect.objectContaining({dataset: 'metricsEnhanced'}),
+        query: expect.objectContaining({dataset: 'metrics'}),
       })
     );
     expect(await screen.findByTestId('has-metrics-data-tag')).toHaveTextContent(
@@ -384,7 +393,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       1,
       expect.anything(),
       expect.objectContaining({
-        query: expect.objectContaining({dataset: 'metricsEnhanced'}),
+        query: expect.objectContaining({dataset: 'metrics'}),
       })
     );
   });
@@ -418,7 +427,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       1,
       expect.anything(),
       expect.objectContaining({
-        query: expect.objectContaining({dataset: 'metricsEnhanced'}),
+        query: expect.objectContaining({dataset: 'metrics'}),
       })
     );
     expect(await screen.findByTestId('has-metrics-data-tag')).toHaveTextContent(
