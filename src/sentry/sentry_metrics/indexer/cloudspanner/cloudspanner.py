@@ -19,7 +19,7 @@ from sentry.sentry_metrics.indexer.base import (
 from sentry.sentry_metrics.indexer.cache import CachingIndexer, StringIndexerCache
 from sentry.sentry_metrics.indexer.cloudspanner.cloudspanner_model import (
     SpannerIndexerModel,
-    get_column_names,
+    get_column_names, DATABASE_PARAMETERS,
 )
 from sentry.sentry_metrics.indexer.id_generator import get_id, reverse_bits
 from sentry.sentry_metrics.indexer.ratelimiters import writes_limiter
@@ -86,17 +86,21 @@ class RawCloudSpannerIndexer(StringIndexer):
         self,
         instance_id: str,
         database_id: str,
-        table_name: str,
-        unique_organization_string_index: str,
     ) -> None:
         self.instance_id = instance_id
         self.database_id = database_id
         spanner_client = spanner.Client()
         self.instance = spanner_client.instance(self.instance_id)
         self.database = self.instance.database(self.database_id)
-        self._table_name = table_name
-        self._unique_organization_string_index = unique_organization_string_index
         self.__codec = IdCodec()
+
+    @staticmethod
+    def _get_table_name(use_case_id: UseCaseKey) -> str:
+        return DATABASE_PARAMETERS[use_case_id].get("table_name", "")
+
+    @staticmethod
+    def _get_unique_org_string_index_name(use_case_id: UseCaseKey) -> str:
+        return DATABASE_PARAMETERS[use_case_id].get("unique_organization_string_index_name", "")
 
     def validate(self) -> None:
         """
@@ -109,17 +113,17 @@ class RawCloudSpannerIndexer(StringIndexer):
                 # TODO: What is the correct way to handle connection errors?
                 pass
 
-    def _get_db_records(self, db_keys: KeyCollection) -> Sequence[KeyResult]:
+    def _get_db_records(self, use_case_id: UseCaseKey, db_keys: KeyCollection) -> Sequence[KeyResult]:
         spanner_keyset = []
         for organization_id, string in db_keys.as_tuples():
             spanner_keyset.append([organization_id, string])
 
         with self.database.snapshot() as snapshot:
             results = snapshot.read(
-                table=self._table_name,
+                table=self._get_table_name(use_case_id),
                 columns=["organization_id", "string", "id"],
                 keyset=spanner.KeySet(keys=spanner_keyset),
-                index=self._unique_organization_string_index,
+                index=self._get_unique_org_string_index_name(use_case_id),
             )
 
         results_list = list(results)
@@ -150,7 +154,8 @@ class RawCloudSpannerIndexer(StringIndexer):
         return rows_to_insert
 
     def _insert_db_records(
-        self, rows_to_insert: Sequence[SpannerIndexerModel], key_results: KeyResults
+        self, use_case_id: UseCaseKey, rows_to_insert: Sequence[
+                SpannerIndexerModel], key_results: KeyResults
     ) -> None:
         """
         Insert a bunch of db_keys records into the database. When there is a
@@ -162,15 +167,15 @@ class RawCloudSpannerIndexer(StringIndexer):
         to check whether DB records match with what we tried to insert.
         """
         try:
-            self._insert_batched_records(rows_to_insert, key_results)
+            self._insert_batched_records(use_case_id, rows_to_insert,
+                                         key_results)
         except CloudSpannerRowAlreadyExists:
-            self._insert_individual_records(rows_to_insert, key_results)
-        except Exception as e:
-            logger.exception(e)
-            raise e
+            self._insert_individual_records(use_case_id, rows_to_insert,
+                                            key_results)
 
     def _insert_batched_records(
-        self, rows_to_insert: Sequence[SpannerIndexerModel], key_results: KeyResults
+        self, use_case_id: UseCaseKey, rows_to_insert: Sequence[
+                SpannerIndexerModel], key_results: KeyResults
     ) -> None:
         """
         Insert a batch of records in a transaction. This is the preferred
@@ -184,9 +189,10 @@ class RawCloudSpannerIndexer(StringIndexer):
         """
 
         def insert_batch_transaction_uow(transaction: Any) -> None:
-            transaction.insert(
-                table=self._table_name, columns=get_column_names(), values=rows_to_insert
-            )
+            transaction.insert(table=self._get_table_name(use_case_id),
+                               columns=get_column_names(),
+                               values=rows_to_insert)
+
 
         try:
             self.database.run_in_transaction(insert_batch_transaction_uow)
@@ -216,7 +222,8 @@ class RawCloudSpannerIndexer(StringIndexer):
             )
 
     def _insert_individual_records(
-        self, rows_to_insert: Sequence[SpannerIndexerModel], key_results: KeyResults
+        self, use_case_id: UseCaseKey, rows_to_insert: Sequence[SpannerIndexerModel], key_results:
+            KeyResults
     ) -> None:
         """
         Insert the individual records in a transaction. We would need
@@ -244,7 +251,9 @@ class RawCloudSpannerIndexer(StringIndexer):
         """
 
         def insert_individual_record_uow(transaction: Any) -> None:
-            transaction.insert(self._table_name, columns=get_column_names(), values=[row])
+            transaction.insert(self._get_table_name(use_case_id),
+                               columns=get_column_names(), values=[
+                row])
 
         metrics.incr(
             _INDEXER_DB_INSERT_METRIC,
@@ -284,10 +293,10 @@ class RawCloudSpannerIndexer(StringIndexer):
                     else:
                         with self.database.snapshot() as snapshot:
                             result = snapshot.read(
-                                table=self._table_name,
+                                table=self._get_table_name(use_case_id),
                                 columns=["id"],
                                 keyset=spanner.KeySet(keys=[[row.organization_id, row.string]]),
-                                index=self._unique_organization_string_index,
+                                index=self._get_unique_org_string_index_name(use_case_id),
                             )
                         result_list = list(result)
                         existing_encoded_id = result_list[0][0]
@@ -354,16 +363,16 @@ class RawCloudSpannerIndexer(StringIndexer):
     def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
         """Store a string and return the integer ID generated for it"""
         result = self.bulk_record(use_case_id=use_case_id, org_strings={org_id: {string}})
-        return result[org_id][string]
+        return int(result[org_id][string]) if result else None
 
     def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
         """Resolve a string to an integer ID"""
         with self.database.snapshot() as snapshot:
             results = snapshot.read(
-                table=self._table_name,
+                table=self._get_table_name(use_case_id),
                 columns=["id"],
                 keyset=spanner.KeySet(keys=[[org_id, string]]),
-                index=self._unique_organization_string_index,
+                index=self._get_unique_org_string_index_name(use_case_id),
             )
 
         results_list = list(results)
@@ -376,7 +385,7 @@ class RawCloudSpannerIndexer(StringIndexer):
         """Resolve an integer ID to a string"""
         with self.database.snapshot() as snapshot:
             results = snapshot.read(
-                table=self._table_name,
+                table=self._get_table_name(use_case_id),
                 columns=["string"],
                 keyset=spanner.KeySet(keys=[[id]]),
             )
