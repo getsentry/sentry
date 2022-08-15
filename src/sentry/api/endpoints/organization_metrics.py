@@ -27,7 +27,10 @@ def get_use_case_id(use_case: str) -> UseCaseKey:
     if use_case parameter has wrong value just raise an ParseError.
     """
     try:
-        return UseCaseKey.from_str(use_case)
+        if use_case == "releaseHealth":
+            use_case = "release-health"
+
+        return UseCaseKey(use_case)
     except ValueError:
         raise ParseError(
             detail=f"Invalid useCase parameter. Please use one of: {', '.join(use_case.value for use_case in UseCaseKey)}"

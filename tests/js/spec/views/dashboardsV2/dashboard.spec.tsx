@@ -143,7 +143,7 @@ describe('Dashboards > Dashboard', () => {
         handleUpdateWidgetList={() => undefined}
         handleAddCustomWidget={() => undefined}
         router={initialData.router}
-        location={initialData.location}
+        location={initialData.router.location}
         widgetLimitReached={false}
         isEditing
       />,
