@@ -9,7 +9,12 @@ from django.utils import timezone
 
 from sentry import features
 from sentry.app import locks
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model
+from sentry.db.models import (
+    BoundedBigIntegerField,
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    Model,
+)
 from sentry.types.activity import ActivityType
 from sentry.types.releaseactivity import ReleaseActivityType
 from sentry.utils.retries import TimedRetryPolicy
@@ -18,7 +23,7 @@ from sentry.utils.retries import TimedRetryPolicy
 class Deploy(Model):
     __include_in_export__ = False
 
-    organization_id = BoundedPositiveIntegerField(db_index=True)
+    organization_id = BoundedBigIntegerField(db_index=True)
     release = FlexibleForeignKey("sentry.Release")
     environment_id = BoundedPositiveIntegerField(db_index=True)
     date_finished = models.DateTimeField(default=timezone.now, db_index=True)
