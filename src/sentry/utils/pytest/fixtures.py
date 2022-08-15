@@ -27,6 +27,7 @@ UNSAFE_PATH_CHARS = ("<", ">", ":", '"', " | ", "?", "*")
 
 DIRECTORY_GROUPING_CHARS = ("::", "-", "[", "]", "\\")
 
+
 DEFAULT_EVENT_DATA = {
     "extra": {
         "loadavg": [0.97607421875, 0.88330078125, 0.833984375],
