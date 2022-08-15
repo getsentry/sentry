@@ -17,7 +17,7 @@ import Page from 'sentry/views/replays/detail/page';
 function ReplayDetails() {
   const {
     location,
-    params: {eventSlug, orgId},
+    params: {replaySlug, orgId},
   } = useRouteContext();
 
   const {
@@ -25,7 +25,7 @@ function ReplayDetails() {
   } = location.query;
 
   const {fetching, onRetry, replay} = useReplayData({
-    eventSlug,
+    replaySlug,
     orgId,
   });
 

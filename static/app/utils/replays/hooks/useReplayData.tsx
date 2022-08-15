@@ -55,14 +55,14 @@ type State = {
 
 type Options = {
   /**
-   * The projectSlug and eventId concatenated together
-   */
-  eventSlug: string;
-
-  /**
    * The organization slug
    */
   orgId: string;
+
+  /**
+   * The projectSlug and eventId concatenated together
+   */
+  replaySlug: string;
 };
 
 // Errors if it is an interface
@@ -129,20 +129,20 @@ const INITIAL_STATE: State = Object.freeze({
  * Front-end processing, filtering and re-mixing of the different data streams
  * must be delegated to the `ReplayReader` class.
  *
- * @param {orgId, eventSlug} Where to find the root replay event
+ * @param {orgId, replaySlug} Where to find the root replay event
  * @returns An object representing a unified result of the network requests. Either a single `ReplayReader` data object or fetch errors.
  */
-function useReplayData({eventSlug, orgId}: Options): Result {
-  const [projectId, eventId] = eventSlug.split(':');
+function useReplayData({orgId, replaySlug}: Options): Result {
+  const [projectId, eventId] = replaySlug.split(':');
 
   const api = useApi();
   const [state, setState] = useState<State>(INITIAL_STATE);
 
   const fetchEvent = useCallback(() => {
     return api.requestPromise(
-      `/organizations/${orgId}/events/${eventSlug}/`
+      `/organizations/${orgId}/events/${replaySlug}/`
     ) as Promise<EventTransaction>;
-  }, [api, orgId, eventSlug]);
+  }, [api, orgId, replaySlug]);
 
   const fetchRRWebEvents = useCallback(async () => {
     const attachmentIds = (await api.requestPromise(
