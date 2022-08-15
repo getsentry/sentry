@@ -12,7 +12,17 @@ _COLUMNS = [
     "retention_days",
 ]
 
-SpannerIndexerModel = namedtuple("SpannerIndexerModel", _COLUMNS)
+SpannerIndexerModel = namedtuple("SpannerIndexerModel",
+                                 [
+                                     "id",
+                                     "decoded_id",
+                                     "string",
+                                     "organization_id",
+                                     "date_added",
+                                     "last_seen",
+                                     "retention_days",
+                                 ],
+                                 )
 
 
 def get_column_names() -> Sequence[str]:
@@ -48,7 +58,7 @@ class CloudSpannerDBAccessor:
         application can handle them.
         """
 
-        def insert_dml(transaction: Any):
+        def insert_dml(transaction: Any) -> None:
             """
             Inserts data on a database table in a transaction context.
             """
