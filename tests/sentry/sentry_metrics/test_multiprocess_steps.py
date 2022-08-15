@@ -19,6 +19,7 @@ from sentry.sentry_metrics.consumers.indexer.common import (
 )
 from sentry.sentry_metrics.consumers.indexer.multiprocess import TransformStep
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
+from sentry.sentry_metrics.db import POSTGRES_DB
 from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.utils import json
@@ -295,7 +296,7 @@ def test_process_messages() -> None:
 
 
 def test_transform_step() -> None:
-    config = get_ingest_config(UseCaseKey.RELEASE_HEALTH, INDEXER_DB)
+    config = get_ingest_config(UseCaseKey.RELEASE_HEALTH, POSTGRES_DB)
 
     message_payloads = [counter_payload, distribution_payload, set_payload]
 

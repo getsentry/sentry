@@ -1,8 +1,10 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Mapping, MutableMapping, Optional
+from typing import Any, Mapping, MutableMapping, Optional, Tuple
 
 from django.conf import settings
+
+from .db import CLOUDSPANNER_DB, POSTGRES_DB
 
 
 class UseCaseKey(Enum):
@@ -28,18 +30,20 @@ class MetricsIngestConfiguration:
     writes_limiter_namespace: str
 
 
-_METRICS_INGEST_CONFIG_BY_USE_CASE: MutableMapping[UseCaseKey, MetricsIngestConfiguration] = dict()
+_METRICS_INGEST_CONFIG_BY_USE_CASE: MutableMapping[
+    Tuple[UseCaseKey, str], MetricsIngestConfiguration
+] = dict()
 
 
 def _register_ingest_config(config: MetricsIngestConfiguration) -> None:
-    _METRICS_INGEST_CONFIG_BY_USE_CASE[config.use_case_id] = config
+    _METRICS_INGEST_CONFIG_BY_USE_CASE[(config.use_case_id, config.db_backend)] = config
 
 
 def get_ingest_config(use_case_key: UseCaseKey, db_backend: str) -> MetricsIngestConfiguration:
     if len(_METRICS_INGEST_CONFIG_BY_USE_CASE) == 0:
         _register_ingest_config(
             MetricsIngestConfiguration(
-                db_backend=db_backend,
+                db_backend=POSTGRES_DB,
                 input_topic=settings.KAFKA_INGEST_METRICS,
                 output_topic=settings.KAFKA_SNUBA_METRICS,
                 use_case_id=UseCaseKey.RELEASE_HEALTH,
@@ -49,24 +53,42 @@ def get_ingest_config(use_case_key: UseCaseKey, db_backend: str) -> MetricsInges
             )
         )
 
-        # Hack to make sure that if we run backends in parallel we aren't
+        _register_ingest_config(
+            MetricsIngestConfiguration(
+                db_backend=POSTGRES_DB,
+                input_topic=settings.KAFKA_INGEST_PERFORMANCE_METRICS,
+                output_topic=settings.KAFKA_SNUBA_GENERIC_METRICS,
+                use_case_id=UseCaseKey.PERFORMANCE,
+                internal_metrics_tag="perf",
+                writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS_PERFORMANCE,
+            )
+        )
+
+        # Make sure that if we run backends in parallel we aren't
         # double producing to the snuba-metrics-generics topic
-        output_topic = (
-            settings.KAFKA_SNUBA_GENERICS_METRICS_DUMMY
-            if db_backend == "cloudspanner"
-            else settings.KAFKA_SNUBA_GENERIC_METRICS
+        dummy_output_topic = settings.KAFKA_SNUBA_GENERICS_METRICS_DUMMY
+
+        _register_ingest_config(
+            MetricsIngestConfiguration(
+                db_backend=CLOUDSPANNER_DB,
+                input_topic=settings.KAFKA_INGEST_METRICS,
+                output_topic=dummy_output_topic,
+                use_case_id=UseCaseKey.RELEASE_HEALTH,
+                internal_metrics_tag="release-health-spanner",
+                writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS,
+            )
         )
 
         _register_ingest_config(
             MetricsIngestConfiguration(
-                db_backend=db_backend,
+                db_backend=CLOUDSPANNER_DB,
                 input_topic=settings.KAFKA_INGEST_PERFORMANCE_METRICS,
-                output_topic=output_topic,
+                output_topic=dummy_output_topic,
                 use_case_id=UseCaseKey.PERFORMANCE,
-                internal_metrics_tag="perf",
+                internal_metrics_tag="perf-spanner",
                 writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS_PERFORMANCE,
                 writes_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
             )
         )
 
-    return _METRICS_INGEST_CONFIG_BY_USE_CASE[use_case_key]
+    return _METRICS_INGEST_CONFIG_BY_USE_CASE[(use_case_key, db_backend)]
