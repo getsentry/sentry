@@ -2,6 +2,7 @@
 
 from django.db import migrations
 
+import sentry.db.models.fields.bounded
 from sentry.new_migrations.migrations import CheckedMigration
 
 
@@ -41,14 +42,12 @@ class Migration(CheckedMigration):
                 ),
             ],
             state_operations=[
-                migrations.RunSQL(
-                    """
-                    ALTER TABLE "sentry_groupedmessage" ADD COLUMN "type" integer NOT NULL DEFAULT 1;
-                    """,
-                    reverse_sql="""
-                    ALTER TABLE "sentry_groupedmessage" DROP COLUMN "type";
-                    """,
-                    hints={"tables": ["sentry_groupedmessage"]},
+                migrations.AddField(
+                    model_name="group",
+                    name="type",
+                    field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(
+                        default=sentry.models.group.GroupType(1)
+                    ),
                 ),
             ],
         )

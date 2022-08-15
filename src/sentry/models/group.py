@@ -414,7 +414,6 @@ class Group(Model):
             (GroupType.PERFORMANCE_N_PLUS_ONE, _("N Plus One")),
             (GroupType.PERFORMANCE_SLOW_SPAN, _("Slow Span")),
         ),
-        null=False,
     )
 
     class Meta:
