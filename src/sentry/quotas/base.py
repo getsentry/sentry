@@ -377,7 +377,7 @@ class Quota(Service):
                 if not limit:
                     limit = options.get(option)
 
-            if limit == 0:
+            if not limit:
                 # Unlimited.
                 continue
 
