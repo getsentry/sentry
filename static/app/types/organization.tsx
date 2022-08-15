@@ -14,8 +14,11 @@ export interface OrganizationSummary {
   features: string[];
   id: string;
   isEarlyAdopter: boolean;
+  links: {
+    organizationUrl: string;
+    regionUrl: string;
+  };
   name: string;
-  organizationUrl: string;
   require2FA: boolean;
   slug: string;
   status: {
