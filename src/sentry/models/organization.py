@@ -42,7 +42,7 @@ class OrganizationStatus(IntEnum):
     PENDING_DELETION = 1
     DELETION_IN_PROGRESS = 2
 
-    # alias
+    # alias for OrganizationStatus.ACTIVE
     VISIBLE = 0
 
     def __str__(self):

@@ -60,7 +60,7 @@ class UserNotificationSettingsGetTest(UserNotificationSettingsTestBase):
         assert response.data["alerts"]["user"][self.user.id]["email"] == "always"
         assert response.data["deploy"]["organization"][self.organization.id]["email"] == "default"
         assert response.data["deploy"]["organization"][self.organization.id]["slack"] == "default"
-        assert response.data["workflow"]["user"][self.user.id]["slack"] == "never"
+        assert response.data["workflow"]["user"][self.user.id]["slack"] == "subscribe_only"
 
     def test_type_querystring(self):
         response = self.get_success_response("me", qs_params={"type": "workflow"})

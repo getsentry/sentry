@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from sentry.constants import ENVIRONMENT_NAME_MAX_LENGTH, ENVIRONMENT_NAME_PATTERN
 from sentry.db.models import (
-    BoundedPositiveIntegerField,
+    BoundedBigIntegerField,
     FlexibleForeignKey,
     Model,
     customer_silo_model,
@@ -36,10 +36,10 @@ class EnvironmentProject(Model):
 class Environment(Model):
     __include_in_export__ = False
 
-    organization_id = BoundedPositiveIntegerField()
+    organization_id = BoundedBigIntegerField()
     projects = models.ManyToManyField("sentry.Project", through=EnvironmentProject)
     # DEPRECATED, use projects
-    project_id = BoundedPositiveIntegerField(null=True)
+    project_id = BoundedBigIntegerField(null=True)
     name = models.CharField(max_length=64)
     date_added = models.DateTimeField(default=timezone.now)
 

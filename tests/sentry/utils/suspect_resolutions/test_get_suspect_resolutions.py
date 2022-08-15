@@ -7,20 +7,27 @@ from sentry.models import Activity, Group, GroupStatus
 from sentry.signals import issue_resolved
 from sentry.testutils import TestCase
 from sentry.types.activity import ActivityType
-from sentry.utils.suspect_resolutions.get_suspect_resolutions import get_suspect_resolutions
-from sentry.utils.suspect_resolutions.metric_correlation import MetricCorrelationResult
+from sentry.utils.suspect_resolutions.commit_correlation import CommitCorrelatedResult
+from sentry.utils.suspect_resolutions.get_suspect_resolutions import (
+    ALGO_VERSION,
+    get_suspect_resolutions,
+)
+from sentry.utils.suspect_resolutions.metric_correlation import (
+    CandidateMetricCorrResult,
+    IssueReleaseMetricCorrResult,
+)
 
 
 class GetSuspectResolutionsTest(TestCase):
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_commit_correlated",
-        mock.Mock(return_value=(True, [], [])),
+        mock.Mock(return_value=CommitCorrelatedResult(True, [], [])),
     )
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_error_rate_correlated",
         mock.Mock(
-            return_value=(
-                [(MetricCorrelationResult(0, True, 0.5))],
+            return_value=IssueReleaseMetricCorrResult(
+                [(CandidateMetricCorrResult(0, True, 0.5))],
                 timezone.now(),
                 timezone.now() - timedelta(days=1),
                 timezone.now() - timedelta(hours=2),
@@ -43,13 +50,13 @@ class GetSuspectResolutionsTest(TestCase):
 
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_commit_correlated",
-        mock.Mock(return_value=(False, [], [])),
+        mock.Mock(return_value=CommitCorrelatedResult(False, [], [])),
     )
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_error_rate_correlated",
         mock.Mock(
-            return_value=(
-                [(MetricCorrelationResult(0, True, 0.5))],
+            return_value=IssueReleaseMetricCorrResult(
+                [(CandidateMetricCorrResult(0, True, 0.5))],
                 timezone.now(),
                 timezone.now() - timedelta(days=1),
                 timezone.now() - timedelta(hours=2),
@@ -67,13 +74,13 @@ class GetSuspectResolutionsTest(TestCase):
 
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_commit_correlated",
-        mock.Mock(return_value=(True, [], [])),
+        mock.Mock(return_value=CommitCorrelatedResult(True, [], [])),
     )
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_error_rate_correlated",
         mock.Mock(
-            return_value=(
-                [(MetricCorrelationResult(0, False, 0.2))],
+            return_value=IssueReleaseMetricCorrResult(
+                [(CandidateMetricCorrResult(0, False, 0.2))],
                 timezone.now(),
                 timezone.now() - timedelta(days=1),
                 timezone.now() - timedelta(hours=2),
@@ -90,13 +97,13 @@ class GetSuspectResolutionsTest(TestCase):
 
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_commit_correlated",
-        mock.Mock(return_value=(False, [], [])),
+        mock.Mock(return_value=CommitCorrelatedResult(False, [], [])),
     )
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_error_rate_correlated",
         mock.Mock(
-            return_value=(
-                [(MetricCorrelationResult(0, False, 0.2))],
+            return_value=IssueReleaseMetricCorrResult(
+                [(CandidateMetricCorrResult(0, False, 0.2))],
                 timezone.now(),
                 timezone.now() - timedelta(days=1),
                 timezone.now() - timedelta(hours=2),
@@ -113,11 +120,11 @@ class GetSuspectResolutionsTest(TestCase):
 
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_commit_correlated",
-        mock.Mock(return_value=(False, [], [])),
+        mock.Mock(return_value=CommitCorrelatedResult(False, [], [])),
     )
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_error_rate_correlated",
-        mock.Mock(return_value=([])),
+        mock.Mock(return_value=None),
     )
     def test_get_suspect_resolutions_issue_unresolved(self):
         project = self.create_project()
@@ -127,11 +134,15 @@ class GetSuspectResolutionsTest(TestCase):
 
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_commit_correlated",
-        mock.Mock(return_value=(False, [], [])),
+        mock.Mock(return_value=CommitCorrelatedResult(False, [], [])),
     )
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_error_rate_correlated",
-        mock.Mock(return_value=([])),
+        mock.Mock(
+            return_value=IssueReleaseMetricCorrResult(
+                [], datetime.now(), datetime.now(), datetime.now()
+            )
+        ),
     )
     def test_get_suspect_resolutions_no_other_issues_in_project(self):
         project = self.create_project()
@@ -141,13 +152,13 @@ class GetSuspectResolutionsTest(TestCase):
 
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_commit_correlated",
-        mock.Mock(return_value=(True, [1, 2], [3, 4])),
+        mock.Mock(return_value=CommitCorrelatedResult(True, [1, 2], [3, 4])),
     )
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_error_rate_correlated",
         mock.Mock(
-            return_value=(
-                [(MetricCorrelationResult(0, True, 0.5))],
+            return_value=IssueReleaseMetricCorrResult(
+                [(CandidateMetricCorrResult(0, True, 0.5))],
                 datetime(2022, 1, 3),
                 datetime(2022, 1, 2),
                 datetime(2022, 1, 1),
@@ -171,6 +182,7 @@ class GetSuspectResolutionsTest(TestCase):
         assert notification_record == [
             mock.call(
                 "suspect_resolution.evaluation",
+                algo_version=ALGO_VERSION,
                 resolved_group_id=resolved_issue.id,
                 candidate_group_id=0,
                 resolved_group_resolution_type=resolution_type.type,
