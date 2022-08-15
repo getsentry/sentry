@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from sentry.db.models import (
     BaseManager,
+    BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
@@ -32,7 +33,7 @@ class CommitManager(BaseManager):
 class Commit(Model):
     __include_in_export__ = False
 
-    organization_id = BoundedPositiveIntegerField(db_index=True)
+    organization_id = BoundedBigIntegerField(db_index=True)
     repository_id = BoundedPositiveIntegerField()
     key = models.CharField(max_length=64)
     date_added = models.DateTimeField(default=timezone.now)

@@ -1,6 +1,6 @@
 from django.db import models
 
-from sentry.db.models import BoundedPositiveIntegerField, Model, sane_repr
+from sentry.db.models import BoundedBigIntegerField, Model, sane_repr
 from sentry.db.models.manager import BaseManager
 
 
@@ -17,7 +17,7 @@ class CommitAuthorManager(BaseManager):
 class CommitAuthor(Model):
     __include_in_export__ = False
 
-    organization_id = BoundedPositiveIntegerField(db_index=True)
+    organization_id = BoundedBigIntegerField(db_index=True)
     name = models.CharField(max_length=128, null=True)
     email = models.CharField(max_length=200)
     external_id = models.CharField(max_length=164, null=True)

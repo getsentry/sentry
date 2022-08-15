@@ -3,6 +3,7 @@ from django.utils import timezone
 
 from sentry.db.models import (
     BaseManager,
+    BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
@@ -34,7 +35,7 @@ class MonitorCheckIn(Model):
     __include_in_export__ = False
 
     guid = UUIDField(unique=True, auto_add=True)
-    project_id = BoundedPositiveIntegerField(db_index=True)
+    project_id = BoundedBigIntegerField(db_index=True)
     monitor = FlexibleForeignKey("sentry.Monitor")
     location = FlexibleForeignKey("sentry.MonitorLocation", null=True)
     status = BoundedPositiveIntegerField(

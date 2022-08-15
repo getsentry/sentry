@@ -6,14 +6,20 @@ from django.utils import timezone
 
 from sentry.constants import ObjectStatus
 from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
-from sentry.db.models import BoundedPositiveIntegerField, JSONField, Model, sane_repr
+from sentry.db.models import (
+    BoundedBigIntegerField,
+    BoundedPositiveIntegerField,
+    JSONField,
+    Model,
+    sane_repr,
+)
 from sentry.signals import pending_delete
 
 
 class Repository(Model, PendingDeletionMixin):
     __include_in_export__ = True
 
-    organization_id = BoundedPositiveIntegerField(db_index=True)
+    organization_id = BoundedBigIntegerField(db_index=True)
     name = models.CharField(max_length=200)
     url = models.URLField(null=True)
     provider = models.CharField(max_length=64, null=True)

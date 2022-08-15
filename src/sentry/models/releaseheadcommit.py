@@ -1,10 +1,16 @@
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import (
+    BoundedBigIntegerField,
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    Model,
+    sane_repr,
+)
 
 
 class ReleaseHeadCommit(Model):
     __include_in_export__ = False
 
-    organization_id = BoundedPositiveIntegerField(db_index=True)
+    organization_id = BoundedBigIntegerField(db_index=True)
     repository_id = BoundedPositiveIntegerField()
     release = FlexibleForeignKey("sentry.Release")
     commit = FlexibleForeignKey("sentry.Commit")
