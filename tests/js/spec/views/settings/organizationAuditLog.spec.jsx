@@ -50,18 +50,18 @@ describe('OrganizationAuditLog', () => {
       },
     });
 
-    const {router, routerContext, organization} = initializeOrg({
+    const {routerContext, organization} = initializeOrg({
       projects: [],
       router: {
-        location: {query: {version: '2'}},
         params: {orgId: 'org-slug'},
       },
     });
+    const mockLocation = {query: {}};
     render(
       <OrganizationAuditLog
         organization={organization}
         params={{orgId: organization.slug}}
-        location={router.location}
+        location={mockLocation}
       />,
       {
         context: routerContext,

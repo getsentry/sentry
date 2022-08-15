@@ -111,6 +111,7 @@ describe('add to dashboard modal', () => {
         selection={defaultSelection}
         router={initialData.router}
         widgetAsQueryParams={mockWidgetAsQueryParams}
+        location={TestStubs.location()}
       />
     );
 
@@ -142,6 +143,7 @@ describe('add to dashboard modal', () => {
         selection={defaultSelection}
         router={initialData.router}
         widgetAsQueryParams={mockWidgetAsQueryParams}
+        location={TestStubs.location()}
       />
     );
 
@@ -171,6 +173,7 @@ describe('add to dashboard modal', () => {
         selection={defaultSelection}
         router={initialData.router}
         widgetAsQueryParams={mockWidgetAsQueryParams}
+        location={TestStubs.location()}
       />
     );
 
@@ -200,6 +203,7 @@ describe('add to dashboard modal', () => {
         selection={defaultSelection}
         router={initialData.router}
         widgetAsQueryParams={mockWidgetAsQueryParams}
+        location={TestStubs.location()}
       />
     );
 
@@ -253,6 +257,7 @@ describe('add to dashboard modal', () => {
         selection={defaultSelection}
         router={initialData.router}
         widgetAsQueryParams={mockWidgetAsQueryParams}
+        location={TestStubs.location()}
       />
     );
 
@@ -288,6 +293,7 @@ describe('add to dashboard modal', () => {
         selection={defaultSelection}
         router={initialData.router}
         widgetAsQueryParams={mockWidgetAsQueryParams}
+        location={TestStubs.location()}
       />
     );
 
@@ -321,6 +327,7 @@ describe('add to dashboard modal', () => {
         selection={defaultSelection}
         router={initialData.router}
         widgetAsQueryParams={mockWidgetAsQueryParams}
+        location={TestStubs.location()}
       />
     );
 
@@ -366,6 +373,7 @@ describe('add to dashboard modal', () => {
         selection={defaultSelection}
         router={initialData.router}
         widgetAsQueryParams={mockWidgetAsQueryParams}
+        location={TestStubs.location()}
       />
     );
 
@@ -423,6 +431,7 @@ describe('add to dashboard modal', () => {
         selection={defaultSelection}
         router={initialData.router}
         widgetAsQueryParams={mockWidgetAsQueryParams}
+        location={TestStubs.location()}
       />
     );
 
@@ -503,6 +512,7 @@ describe('add to dashboard modal', () => {
         selection={defaultSelection}
         router={initialData.router}
         widgetAsQueryParams={mockWidgetAsQueryParams}
+        location={TestStubs.location()}
       />
     );
 
@@ -560,6 +570,7 @@ describe('add to dashboard modal', () => {
         selection={defaultSelection}
         router={initialData.router}
         widgetAsQueryParams={mockWidgetAsQueryParams}
+        location={TestStubs.location()}
       />
     );
 

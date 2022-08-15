@@ -41,6 +41,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationError,
     IntegrationFormError,
 )
+from sentry.tasks.integrations import migrate_issues
 from sentry.utils.decorators import classproperty
 from sentry.utils.hashlib import sha1_text
 from sentry.utils.http import absolute_uri
@@ -1079,6 +1080,14 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             comment = data.get("comment")
             if comment:
                 self.get_client().create_comment(external_issue.key, comment)
+
+    def migrate_issues(self):
+        migrate_issues.apply_async(
+            kwargs={
+                "integration_id": self.model.id,
+                "organization_id": self.organization_id,
+            }
+        )
 
 
 class JiraServerIntegrationProvider(IntegrationProvider):

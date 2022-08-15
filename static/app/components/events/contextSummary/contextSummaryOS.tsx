@@ -17,9 +17,9 @@ type Props = {
 };
 
 type Data = {
-  name: string;
+  name: string | boolean;
   kernel_version?: string;
-  version?: string;
+  version?: string | boolean;
 };
 
 type VersionElement = {
@@ -34,7 +34,7 @@ export function ContextSummaryOS({data, meta}: Props) {
   }
 
   const getVersionElement = (): VersionElement => {
-    if (defined(data.version)) {
+    if (defined(data.version) && typeof data.version === 'string') {
       return {
         subject: t('Version:'),
         value: data.version,
