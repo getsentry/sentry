@@ -30,6 +30,11 @@ export type SearchEventParameters = {
     multi: boolean;
   };
   'search.operator_autocompleted': SearchEventBase & {search_operator: string};
+  'search.pin': {
+    action: 'pin' | 'unpin';
+    search_type: string;
+    query?: string;
+  };
   'search.searched': SearchEventBase & {search_source?: string};
   'settings_search.open': OpenEvent;
   'settings_search.query': QueryEvent;
@@ -60,4 +65,5 @@ export const searchEventMap: Record<SearchEventKey, string | null> = {
   'projectselector.clear': 'Project Selector: Clear',
   'projectselector.toggle': 'Project Selector: Toggle',
   'projectselector.multi_button_clicked': 'Project Selector: Multi Button Clicked',
+  'search.pin': 'Search: Pin',
 };
