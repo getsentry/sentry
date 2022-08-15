@@ -525,7 +525,7 @@ export function getDashboardFiltersFromURL(location: Location): DashboardFilters
   const filterKeys = new Set([DashboardFilterKeys.RELEASE]);
   const dashboardFilters: DashboardFilters = {};
   filterKeys.forEach(key => {
-    if (location.query?.[key]) {
+    if (defined(location.query?.[key])) {
       dashboardFilters[key] = decodeList(location.query?.[key]);
     }
   });
