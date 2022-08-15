@@ -3,18 +3,14 @@ from datetime import datetime, timedelta
 from typing import Tuple
 
 from django.conf import settings
-from django.db import IntegrityError, transaction
-from rest_framework import status
-from rest_framework.exceptions import APIException
+from django.db import IntegrityError
 
 from sentry.utils import redis
 
 _TTL = timedelta(minutes=5)
-
-
-class MaxSnowflakeRetryError(APIException):
-    status_code = status.HTTP_409_CONFLICT
-    default_detail = "Max allowed ID retry reached. Please try again in a second"
+SENTRY_EPOCH_START = datetime(
+    2022, 6, 21, 0, 0
+).timestamp()  # need to change before snowflake id rollout
 
 
 class SnowflakeIdMixin:
@@ -23,12 +19,11 @@ class SnowflakeIdMixin:
             if not self.id:
                 self.id = generate_snowflake_id(snowflake_redis_key)
             try:
-                with transaction.atomic():
-                    save_callback()
+                save_callback()
                 return
             except IntegrityError:
                 self.id = None
-        raise MaxSnowflakeRetryError
+        raise Exception("Max allowed ID retry reached. Please try again in a second")
 
 
 @dataclass(frozen=True, eq=True)
@@ -79,7 +74,7 @@ def generate_snowflake_id(redis_key: str) -> int:
 
     current_time = datetime.now().timestamp()
     # supports up to 130 years
-    segment_values[TIME_DIFFERENCE] = int(current_time - settings.SENTRY_SNOWFLAKE_EPOCH_START)
+    segment_values[TIME_DIFFERENCE] = int(current_time - SENTRY_EPOCH_START)
 
     snowflake_id = 0
     (

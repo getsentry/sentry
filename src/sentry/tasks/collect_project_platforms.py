@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.db.models import Max
 from django.utils import timezone
 
 from sentry.constants import VALID_PLATFORMS
@@ -7,29 +8,20 @@ from sentry.models import Group, Project, ProjectPlatform
 from sentry.tasks.base import instrumented_task
 
 
-def paginate_project_ids(paginate):
-    id_cursor = -1
-    while True:
-        queryset = (
-            Project.objects.filter(id__gt=id_cursor).order_by("id").values_list("id", flat=True)
-        )
-        page = list(queryset[:paginate])
-        if not page:
-            return
-        yield page
-        id_cursor = page[-1]
-
-
 @instrumented_task(name="sentry.tasks.collect_project_platforms", queue="stats")
-def collect_project_platforms(paginate=1000, **kwargs):
+def collect_project_platforms(**kwargs):
     now = timezone.now()
 
-    for page_of_project_ids in paginate_project_ids(paginate):
+    min_project_id = 0
+    max_project_id = Project.objects.using_replica().aggregate(x=Max("id"))["x"] or 0
+    step = 1000
+    while min_project_id <= max_project_id:
         queryset = (
             Group.objects.using_replica()
             .filter(
                 last_seen__gte=now - timedelta(days=1),
-                project_id__in=page_of_project_ids,
+                project__gte=min_project_id,
+                project__lt=min_project_id + step,
                 platform__isnull=False,
             )
             .values_list("platform", "project_id")
@@ -43,6 +35,7 @@ def collect_project_platforms(paginate=1000, **kwargs):
             ProjectPlatform.objects.create_or_update(
                 project_id=project_id, platform=platform, values={"last_seen": now}
             )
+        min_project_id += step
 
     # remove (likely) unused platform associations
     ProjectPlatform.objects.filter(last_seen__lte=now - timedelta(days=90)).delete()
