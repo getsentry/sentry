@@ -35,6 +35,7 @@ type Props = WithRouterProps & {
     pageLinks?: string;
     tableResults?: TableDataWithTitle[];
     timeseriesResults?: Series[];
+    timeseriesResultsType?: string;
     totalIssuesCount?: string;
   }) => void;
   onLegendSelectChanged?: EChartEventHandler<{

@@ -45,11 +45,13 @@ async function renderModal({
   seriesData,
   tableData,
   pageLinks,
+  seriesResultsType,
 }: {
   initialData: any;
   widget: any;
   pageLinks?: string;
   seriesData?: Series[];
+  seriesResultsType?: string;
   tableData?: TableDataWithTitle[];
 }) {
   const rendered = render(
@@ -66,6 +68,7 @@ async function renderModal({
         seriesData={seriesData}
         tableData={tableData}
         pageLinks={pageLinks}
+        seriesResultsType={seriesResultsType}
       />
     </div>,
     {
@@ -508,6 +511,20 @@ describe('Modals -> WidgetViewerModal', function () {
               query: expect.objectContaining({sort: ['-count()']}),
             })
           );
+        });
+
+        it('renders widget chart with y axis formatter using provided seriesResultType', async function () {
+          mockEvents();
+          await renderModal({
+            initialData: initialDataWithFlag,
+            widget: mockWidget,
+            seriesData: [],
+            seriesResultsType: 'duration',
+          });
+          const calls = (ReactEchartsCore as jest.Mock).mock.calls;
+          const yAxisFormatter =
+            calls[calls.length - 1][0].option.yAxis.axisLabel.formatter;
+          expect(yAxisFormatter(123)).toEqual('123ms');
         });
       });
     });

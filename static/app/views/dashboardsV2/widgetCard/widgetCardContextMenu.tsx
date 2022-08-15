@@ -43,6 +43,7 @@ type Props = {
   onEdit?: () => void;
   pageLinks?: string;
   seriesData?: Series[];
+  seriesResultsType?: string;
   showContextMenu?: boolean;
   showWidgetViewerButton?: boolean;
   tableData?: TableDataWithTitle[];
@@ -67,6 +68,7 @@ function WidgetCardContextMenu({
   tableData,
   pageLinks,
   totalIssuesCount,
+  seriesResultsType,
 }: Props) {
   const {isMetricsData} = useDashboardsMEPContext();
   if (!showContextMenu) {
@@ -134,6 +136,7 @@ function WidgetCardContextMenu({
                       tableData,
                       pageLinks,
                       totalIssuesCount,
+                      seriesResultsType,
                     });
                   openWidgetViewerPath(index);
                 }}
@@ -276,6 +279,7 @@ function WidgetCardContextMenu({
                   tableData,
                   pageLinks,
                   totalIssuesCount,
+                  seriesResultsType,
                 });
                 openWidgetViewerPath(widget.id ?? index);
               }}

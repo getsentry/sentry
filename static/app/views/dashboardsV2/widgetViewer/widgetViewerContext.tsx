@@ -7,11 +7,13 @@ export type WidgetViewerContextProps = {
   setData: (data: {
     pageLinks?: string;
     seriesData?: Series[];
+    seriesResultsType?: string;
     tableData?: TableDataWithTitle[];
     totalIssuesCount?: string;
   }) => void;
   pageLinks?: string;
   seriesData?: Series[];
+  seriesResultsType?: string;
   tableData?: TableDataWithTitle[];
   totalIssuesCount?: string;
 };
