@@ -107,6 +107,7 @@ export enum FieldValueType {
   PERCENTAGE = 'percentage',
   STRING = 'string',
   NEVER = 'never',
+  SIZE = 'size',
 }
 
 export enum WebVital {

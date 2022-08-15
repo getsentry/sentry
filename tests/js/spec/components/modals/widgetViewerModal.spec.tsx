@@ -1130,6 +1130,71 @@ describe('Modals -> WidgetViewerModal', function () {
           userEvent.click(screen.getByText('Open in Discover'));
           expect(initialData.router.push).not.toHaveBeenCalled();
         });
+
+        it('displays table data with units correctly', async function () {
+          const eventsMock = MockApiClient.addMockResponse({
+            url: '/organizations/org-slug/events/',
+            match: [MockApiClient.matchQuery({cursor: undefined})],
+            headers: {
+              Link:
+                '<http://localhost/api/0/organizations/org-slug/events/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
+                '<http://localhost/api/0/organizations/org-slug/events/?cursor=0:10:0>; rel="next"; results="true"; cursor="0:10:0"',
+            },
+            body: {
+              data: [
+                {
+                  'p75(measurements.custom.minute)': 94.87035966318831,
+                  'p95(measurements.custom.ratio)': 0.9881980140455187,
+                  'p75(measurements.custom.kibibyte)': 217.87035966318834,
+                },
+              ],
+              meta: {
+                fields: {
+                  'p75(measurements.custom.minute)': 'duration',
+                  'p95(measurements.custom.ratio)': 'percentage',
+                  'p75(measurements.custom.kibibyte)': 'size',
+                },
+                units: {
+                  'p75(measurements.custom.minute)': 'minute',
+                  'p95(measurements.custom.ratio)': null,
+                  'p75(measurements.custom.kibibyte)': 'kibibyte',
+                },
+                isMetricsData: true,
+                tips: {},
+              },
+            },
+          });
+          await renderModal({
+            initialData: initialDataWithFlag,
+            widget: {
+              title: 'Custom Widget',
+              displayType: 'table',
+              queries: [
+                {
+                  fields: [
+                    'p75(measurements.custom.kibibyte)',
+                    'p75(measurements.custom.minute)',
+                    'p95(measurements.custom.ratio)',
+                  ],
+                  aggregates: [
+                    'p75(measurements.custom.kibibyte)',
+                    'p75(measurements.custom.minute)',
+                    'p95(measurements.custom.ratio)',
+                  ],
+                  columns: [],
+                  orderby: '-p75(measurements.custom.kibibyte)',
+                },
+              ],
+              widgetType: 'discover',
+            },
+          });
+          await waitFor(() => {
+            expect(eventsMock).toHaveBeenCalled();
+          });
+          expect(screen.getByText('217.9 KiB')).toBeInTheDocument();
+          expect(screen.getByText('1.58hr')).toBeInTheDocument();
+          expect(screen.getByText('98.82%')).toBeInTheDocument();
+        });
       });
     });
   });
