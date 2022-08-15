@@ -84,7 +84,7 @@ class NotifyActiveReleaseEmailAction(NotifyEmailAction):
                     release_version=event.group.get_last_release(),
                     recipient_id=recipient.id,
                 )
-                return
+            return
 
         metrics.incr("notifications.sent", instance=self.metrics_slug, skip_internal=False)
         yield self.future(lambda evt, futures: mail_adapter.active_release_notify(evt, state))
