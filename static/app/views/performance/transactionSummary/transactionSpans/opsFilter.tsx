@@ -22,14 +22,14 @@ type Props = {
 
 function getMenuOptions({spanOps, isLoading, error}) {
   if (isLoading) {
-    return [{key: 'isLoading', isDisabled: true, label: t('Loading…')}];
+    return [{key: 'isLoading', disabled: true, label: t('Loading…')}];
   }
 
   if (error) {
     return [
       {
         key: 'error',
-        isDisabled: true,
+        disabled: true,
         label: t('Error loading operations'),
         leadingItems: <IconWarning color="subText" />,
       },

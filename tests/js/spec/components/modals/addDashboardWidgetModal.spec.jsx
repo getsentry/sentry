@@ -233,8 +233,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     const input = wrapper.find('SelectControl[name="dashboard"]');
     expect(input.find('Option')).toHaveLength(2);
-    expect(input.find('Option').at(0).props().isDisabled).toBe(false);
-    expect(input.find('Option').at(1).props().isDisabled).toBe(true);
+    expect(input.find('Option').at(0).props().disabled).toBe(false);
+    expect(input.find('Option').at(1).props().disabled).toBe(true);
 
     wrapper.unmount();
   });

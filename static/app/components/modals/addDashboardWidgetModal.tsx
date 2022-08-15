@@ -565,7 +565,7 @@ class AddDashboardWidgetModal extends Component<Props, State> {
       return {
         label: d.title,
         value: d.id,
-        isDisabled: d.widgetDisplay.length >= MAX_WIDGETS,
+        disabled: d.widgetDisplay.length >= MAX_WIDGETS,
         tooltip:
           d.widgetDisplay.length >= MAX_WIDGETS &&
           tct('Max widgets ([maxWidgets]) per dashboard reached.', {

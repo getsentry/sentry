@@ -187,7 +187,6 @@ class SelectMembers extends Component<Props, State> {
           option?.data?.searchKey?.indexOf(filterText) > -1
         }
         loadOptions={this.handleLoadOptions}
-        isOptionDisabled={option => option.disabled}
         defaultOptions
         async
         isDisabled={this.props.disabled}

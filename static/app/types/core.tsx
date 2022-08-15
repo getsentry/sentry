@@ -48,7 +48,6 @@ export type Writable<T> = {-readonly [K in keyof T]: T[K]};
 export type SelectValue<T> = MenuListItemProps & {
   label: string | number | React.ReactElement;
   value: T;
-  disabled?: boolean;
 };
 
 /**

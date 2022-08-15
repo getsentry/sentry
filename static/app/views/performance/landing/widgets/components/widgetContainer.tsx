@@ -226,7 +226,6 @@ export const WidgetContainerActions = ({
             : null,
         ].filter(Boolean) as React.ComponentProps<typeof CompositeSelect>['sections']
       }
-      isOptionDisabled={opt => opt.disabled}
       trigger={trigger}
       placement="bottom right"
     />

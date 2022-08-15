@@ -101,7 +101,7 @@ export function TraceEventDataSection({
   function getDisplayOptions(): {
     label: string;
     value: keyof typeof displayOptions;
-    isDisabled?: boolean;
+    disabled?: boolean;
     tooltip?: string;
   }[] {
     if (platform === 'objc' || platform === 'native' || platform === 'cocoa') {
@@ -109,7 +109,7 @@ export function TraceEventDataSection({
         {
           label: displayOptions['absolute-addresses'],
           value: 'absolute-addresses',
-          isDisabled: state.display.includes('raw-stack-trace') || !hasAbsoluteAddresses,
+          disabled: state.display.includes('raw-stack-trace') || !hasAbsoluteAddresses,
           tooltip: state.display.includes('raw-stack-trace')
             ? t('Not available on raw stack trace')
             : !hasAbsoluteAddresses
@@ -119,7 +119,7 @@ export function TraceEventDataSection({
         {
           label: displayOptions['absolute-file-paths'],
           value: 'absolute-file-paths',
-          isDisabled: state.display.includes('raw-stack-trace') || !hasAbsoluteFilePaths,
+          disabled: state.display.includes('raw-stack-trace') || !hasAbsoluteFilePaths,
           tooltip: state.display.includes('raw-stack-trace')
             ? t('Not available on raw stack trace')
             : !hasAbsoluteFilePaths
@@ -129,7 +129,7 @@ export function TraceEventDataSection({
         {
           label: displayOptions.minified,
           value: 'minified',
-          isDisabled: !hasMinified,
+          disabled: !hasMinified,
           tooltip: !hasMinified ? t('Unsymbolicated version not available') : undefined,
         },
         {
@@ -139,8 +139,7 @@ export function TraceEventDataSection({
         {
           label: displayOptions['verbose-function-names'],
           value: 'verbose-function-names',
-          isDisabled:
-            state.display.includes('raw-stack-trace') || !hasVerboseFunctionNames,
+          disabled: state.display.includes('raw-stack-trace') || !hasVerboseFunctionNames,
           tooltip: state.display.includes('raw-stack-trace')
             ? t('Not available on raw stack trace')
             : !hasVerboseFunctionNames
@@ -163,7 +162,7 @@ export function TraceEventDataSection({
       {
         label: displayOptions.minified,
         value: 'minified',
-        isDisabled: !hasMinified,
+        disabled: !hasMinified,
         tooltip: !hasMinified ? t('Minified version not available') : undefined,
       },
       {
