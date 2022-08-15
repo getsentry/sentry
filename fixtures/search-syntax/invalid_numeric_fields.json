@@ -1,6 +1,6 @@
 [
   {
-    "query": "measurements.stall_count:one",
+    "query": "project.id:one",
     "result": [
       {"type": "spaces", "value": ""},
       {
@@ -11,7 +11,7 @@
           "reason": "Invalid number. Expected number then optional k, m, or b suffix (e.g. 500k)",
           "expectedType": ["numeric", "numericIn"]
         },
-        "key": {"type": "keySimple", "value": "measurements.stall_count", "quoted": false},
+        "key": {"type": "keySimple", "value": "project.id", "quoted": false},
         "operator": "",
         "value": {"type": "valueText", "value": "one", "quoted": false}
       },
@@ -19,7 +19,7 @@
     ]
   },
   {
-    "query": "stack.lineno:two",
+    "query": "issue.id:two",
     "result": [
       {"type": "spaces", "value": ""},
       {
@@ -30,7 +30,7 @@
           "reason": "Invalid number. Expected number then optional k, m, or b suffix (e.g. 500k)",
           "expectedType": ["numeric", "numericIn"]
         },
-        "key": {"type": "keySimple", "value": "stack.lineno", "quoted": false},
+        "key": {"type": "keySimple", "value": "issue.id", "quoted": false},
         "operator": "",
         "value": {"type": "valueText", "value": "two", "quoted": false}
       },

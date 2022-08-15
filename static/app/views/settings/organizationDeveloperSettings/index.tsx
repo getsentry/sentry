@@ -93,8 +93,10 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
       return;
     }
     removeSentryFunction(this.api, organization, sentryFunction).then(
-      () => {
-        this.setState({sentryFunctions: functionsToKeep});
+      isSuccess => {
+        if (isSuccess) {
+          this.setState({sentryFunctions: functionsToKeep});
+        }
       },
       () => {}
     );

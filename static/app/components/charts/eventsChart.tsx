@@ -292,7 +292,8 @@ class Chart extends React.Component<ChartProps, State> {
       tooltip: {
         trigger: 'axis' as const,
         truncate: 80,
-        valueFormatter: (value: number) => tooltipFormatter(value, yAxis),
+        valueFormatter: (value: number) =>
+          tooltipFormatter(value, aggregateOutputType(yAxis)),
       },
       xAxis: timeframe
         ? {

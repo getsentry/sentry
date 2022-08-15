@@ -137,7 +137,7 @@ default_manager.add("organizations:release-health-return-metrics", OrganizationF
 default_manager.add("organizations:reprocessing-v2", OrganizationFeature)
 default_manager.add("organizations:required-email-verification", OrganizationFeature, True)
 default_manager.add("organizations:rule-page", OrganizationFeature)
-default_manager.add("organizations:sentry-functions", OrganizationFeature, True)
+default_manager.add("organizations:sentry-functions", OrganizationFeature, False)
 default_manager.add("organizations:session-replay", OrganizationFeature, True)
 default_manager.add("organizations:session-replay-sdk", OrganizationFeature, True)
 default_manager.add("organizations:set-grouping-config", OrganizationFeature)
@@ -192,7 +192,7 @@ default_manager.add("organizations:sso-saml2", OrganizationFeature)
 default_manager.add("organizations:team-insights", OrganizationFeature)
 
 # Project scoped features
-default_manager.add("projects:active-release-monitor-default-on", ProjectFeature, True)
+default_manager.add("projects:active-release-monitor-default-on", ProjectFeature)
 default_manager.add("projects:alert-filters", ProjectFeature)
 default_manager.add("projects:custom-inbound-filters", ProjectFeature)
 default_manager.add("projects:data-forwarding", ProjectFeature)
