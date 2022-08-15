@@ -21,6 +21,7 @@ def record_suspect_resolutions_releases(release, project, **kwargs) -> None:
 )
 def get_suspect_resolutions_releases(release: Release, project: Project) -> Sequence[int]:
     suspect_resolution_issue_ids = []
+    is_suspect_resolution = False
 
     suspect_issue_candidates = list(
         Group.objects.filter(
@@ -32,6 +33,7 @@ def get_suspect_resolutions_releases(release: Release, project: Project) -> Sequ
     for issue in suspect_issue_candidates:
         if (timezone.now() - timedelta(days=7)) < issue.last_seen < release.date_released:
             suspect_resolution_issue_ids.append(issue.id)
+            is_suspect_resolution = True
 
         analytics.record(
             "suspect_resolution_releases.evaluation",
@@ -39,6 +41,7 @@ def get_suspect_resolutions_releases(release: Release, project: Project) -> Sequ
             release_id=release.id,
             issue_id=issue.id,
             project_id=project.id,
+            is_suspect_resolution=is_suspect_resolution,
         )
 
     return suspect_resolution_issue_ids
