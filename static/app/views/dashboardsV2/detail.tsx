@@ -152,7 +152,8 @@ class DashboardDetail extends Component<Props, State> {
       location,
       router,
     } = this.props;
-    const {seriesData, tableData, pageLinks, totalIssuesCount} = this.state;
+    const {seriesData, tableData, pageLinks, totalIssuesCount, seriesResultsType} =
+      this.state;
     if (isWidgetViewerPath(location.pathname)) {
       const widget =
         defined(widgetId) &&
@@ -163,6 +164,7 @@ class DashboardDetail extends Component<Props, State> {
           organization,
           widget,
           seriesData,
+          seriesResultsType,
           tableData,
           pageLinks,
           totalIssuesCount,

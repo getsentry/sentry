@@ -38,6 +38,7 @@ export type OnDataFetchedProps = {
   pageLinks?: string;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
+  timeseriesResultsType?: string;
   totalIssuesCount?: string;
 };
 
@@ -76,6 +77,7 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     timeseriesResults,
     totalIssuesCount,
     pageLinks,
+    timeseriesResultsType,
   }: OnDataFetchedProps) => void;
 };
 
@@ -345,7 +347,10 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     );
 
     if (this._isMounted && this.state.queryFetchID === queryFetchID) {
-      onDataFetched?.({timeseriesResults: transformedTimeseriesResults});
+      onDataFetched?.({
+        timeseriesResults: transformedTimeseriesResults,
+        timeseriesResultsType,
+      });
       this.setState({
         timeseriesResults: transformedTimeseriesResults,
         rawResults: rawResultsClone,
