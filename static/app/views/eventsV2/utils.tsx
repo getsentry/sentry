@@ -652,9 +652,9 @@ export function handleAddQueryToDashboard({
   yAxis,
 }: {
   eventView: EventView;
+  location: Location;
   organization: Organization;
   router: InjectedRouter;
-  location?: Location;
   query?: NewQuery;
   yAxis?: string | string[];
 }) {
@@ -711,6 +711,7 @@ export function handleAddQueryToDashboard({
       },
       router,
       widgetAsQueryParams,
+      location,
     });
     return;
   }

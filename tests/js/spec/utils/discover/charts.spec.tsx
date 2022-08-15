@@ -10,6 +10,7 @@ import {
   tooltipFormatter,
   tooltipFormatterUsingAggregateOutputType,
 } from 'sentry/utils/discover/charts';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {HOUR, MINUTE, SECOND} from 'sentry/utils/formatters';
 
 describe('tooltipFormatter()', () => {
@@ -25,7 +26,9 @@ describe('tooltipFormatter()', () => {
       ['p50()', 86400000, '1.00d'],
     ];
     for (const scenario of cases) {
-      expect(tooltipFormatter(scenario[1], scenario[0])).toEqual(scenario[2]);
+      expect(tooltipFormatter(scenario[1], aggregateOutputType(scenario[0]))).toEqual(
+        scenario[2]
+      );
     }
   });
 });
@@ -65,14 +68,16 @@ describe('axisLabelFormatter()', () => {
       ['p50()', 86400000, '1d'],
     ];
     for (const scenario of cases) {
-      expect(axisLabelFormatter(scenario[1], scenario[0])).toEqual(scenario[2]);
+      expect(axisLabelFormatter(scenario[1], aggregateOutputType(scenario[0]))).toEqual(
+        scenario[2]
+      );
     }
   });
 
   describe('When a duration unit is passed', () => {
     const getAxisLabels = (axisValues: number[], durationUnit: number) => {
       return axisValues.map(value =>
-        axisLabelFormatter(value, 'p50()', undefined, durationUnit)
+        axisLabelFormatter(value, 'duration', undefined, durationUnit)
       );
     };
 

@@ -1,28 +1,30 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
-import FeatureBadge from 'sentry/components/featureBadge';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {decodeList} from 'sentry/utils/queryString';
 import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 import ReleasesSelectControl from './releasesSelectControl';
-import {DashboardFilters} from './types';
+import {DashboardFilterKeys, DashboardFilters} from './types';
 
 type FiltersBarProps = {
   filters: DashboardFilters;
   hasUnsavedChanges: boolean;
   isEditingDashboard: boolean;
   isPreview: boolean;
+  location: Location;
   onCancel: () => void;
   onDashboardFilterChange: (activeFilters: DashboardFilters) => void;
   onSave: () => void;
@@ -33,12 +35,18 @@ export default function FiltersBar({
   hasUnsavedChanges,
   isEditingDashboard,
   isPreview,
+  location,
   onCancel,
   onDashboardFilterChange,
   onSave,
 }: FiltersBarProps) {
   const {selection} = usePageFilters();
   const organization = useOrganization();
+
+  const selectedReleases =
+    (location.query?.[DashboardFilterKeys.RELEASE]
+      ? decodeList(location.query[DashboardFilterKeys.RELEASE])
+      : filters?.[DashboardFilterKeys.RELEASE]) ?? [];
 
   return (
     <Wrapper>
@@ -54,7 +62,7 @@ export default function FiltersBar({
               <ReleasesProvider organization={organization} selection={selection}>
                 <ReleasesSelectControl
                   handleChangeFilter={onDashboardFilterChange}
-                  selectedReleases={filters?.release || []}
+                  selectedReleases={selectedReleases}
                   isDisabled={isEditingDashboard}
                 />
               </ReleasesProvider>
@@ -68,7 +76,6 @@ export default function FiltersBar({
               <Button onClick={onCancel}>{t('Cancel')}</Button>
             </FilterButtons>
           )}
-          <FeatureBadge type="beta" />
         </Fragment>
       </Feature>
     </Wrapper>

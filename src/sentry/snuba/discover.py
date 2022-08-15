@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional, Sequence
 
 import sentry_sdk
 from dateutil.parser import parse as parse_datetime
+from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function
 from typing_extensions import TypedDict
@@ -398,6 +399,8 @@ def create_result_key(result_row, fields, issues) -> str:
             if issue_id is None:
                 issue_id = "unknown"
             values.append(issue_id)
+        elif field == "transaction.status":
+            values.append(SPAN_STATUS_CODE_TO_NAME.get(result_row[field], "unknown"))
         else:
             value = result_row.get(field)
             if isinstance(value, list):
@@ -977,6 +980,7 @@ def histogram_query(
     if extra_conditions is not None:
         builder.add_conditions(extra_conditions)
     results = builder.run_query(referrer)
+    results["meta"] = transform_meta(results, builder.function_alias_map)
 
     if not normalize_results:
         return results
