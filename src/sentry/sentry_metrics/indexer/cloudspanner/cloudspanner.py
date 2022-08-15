@@ -184,9 +184,9 @@ class RawCloudSpannerIndexer(StringIndexer):
         """
 
         def insert_batch_transaction_uow(transaction: Any) -> None:
-            transaction.insert(table=self._table_name,
-                               columns=get_column_names(),
-                               values=rows_to_insert)
+            transaction.insert(
+                table=self._table_name, columns=get_column_names(), values=rows_to_insert
+            )
 
         try:
             self.database.run_in_transaction(insert_batch_transaction_uow)
