@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import MutableMapping, Optional
+from typing import Any, Mapping, MutableMapping, Optional
 
 from django.conf import settings
 
@@ -23,7 +23,7 @@ class MetricsIngestConfiguration:
     output_topic: str
     use_case_id: UseCaseKey
     internal_metrics_tag: Optional[str]
-    writes_limiter_cluster_options: str
+    writes_limiter_cluster_options: Mapping[str, Any]
     writes_limiter_namespace: str
 
 
