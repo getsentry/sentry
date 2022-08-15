@@ -1448,6 +1448,12 @@ SENTRY_NEWSLETTER_OPTIONS = {}
 SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
 SENTRY_EVENTSTREAM_OPTIONS = {}
 
+# Send transaction events to random Kafka partitions. Currently
+# this defaults to false as transaction events are partitioned the same
+# as errors (by project ID). Eventually we will flip the default and remove
+# this from settings entirely.
+SENTRY_EVENTSTREAM_PARTITION_TRANSACTIONS_RANDOMLY = False
+
 # rollups must be ordered from highest granularity to lowest
 SENTRY_TSDB_ROLLUPS = (
     # (time in seconds, samples to keep)
