@@ -10,7 +10,7 @@ runs:
 
     - name: cache volta+node+yarn
       id: cache
-      uses: actions/cache@0865c47f36e68161719c5b124609996bb5c40129  # v3
+      uses: actions/cache@9df7d7c016256c51d661e5d26a8632ccd0581680  # v3.0.7
       with:
         path: ${{ steps.vars.outputs.volta-dir }}
         key: ${{ steps.vars.outputs.cache-key }}
@@ -26,7 +26,7 @@ runs:
       run: python3 -uS ${{ github.action_path }}/bin/setup-volta yarn-cache-dir
 
     - name: cache yarn
-      uses: actions/cache@0865c47f36e68161719c5b124609996bb5c40129  # v3
+      uses: actions/cache@9df7d7c016256c51d661e5d26a8632ccd0581680  # v3.0.7
       with:
         path: ${{ steps.yarn.outputs.cache-dir }}
         key: ${{ steps.vars.outputs.cache-key }}-${{ hashFiles('**/yarn.lock') }}

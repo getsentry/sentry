@@ -243,7 +243,7 @@ jobs:
           cache: pip
           cache-dependency-path: requirements-dev-only-frozen.txt
 
-      - uses: actions/cache@0865c47f36e68161719c5b124609996bb5c40129  # v3
+      - uses: actions/cache@9df7d7c016256c51d661e5d26a8632ccd0581680  # v3.0.7
         with:
           path: ~/.cache/pre-commit
           key: cache-epoch-1|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
