@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {GenericQueryBatcher} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -53,9 +53,27 @@ const WrappedComponent = ({data, ...rest}) => {
 };
 
 describe('Performance > Widgets > Query Batching', function () {
+  let eventsMock;
   let eventStatsMock;
 
   beforeEach(function () {
+    eventsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [
+          {
+            'tpm()': 53.12,
+            'user_misery()': 0.023,
+            'failure_rate()': 0.012,
+          },
+        ],
+        meta: {
+          isMetricsData: false,
+        },
+      },
+    });
+
     eventStatsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/events-stats/`,
@@ -133,7 +151,7 @@ describe('Performance > Widgets > Query Batching', function () {
     });
   });
 
-  it('EventsRequest based component fires query without provider', async function () {
+  it('EventsRequest and DiscoverQuery based component fires queries without provider', async function () {
     const data = initializeData();
 
     render(
@@ -160,9 +178,21 @@ describe('Performance > Widgets > Query Batching', function () {
         }),
       })
     );
+    expect(eventsMock).toHaveBeenCalledTimes(1);
+    expect(eventsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['prod'],
+          statsPeriod: '7d',
+          field: ['tpm()'],
+        }),
+      })
+    );
   });
 
-  it('Multiple EventsRequest based components fire individual queries without provider', async function () {
+  it('Multiple EventsRequest and DiscoverQuery based components fire individual queries without provider', async function () {
     const data = initializeData();
 
     render(
@@ -190,8 +220,8 @@ describe('Performance > Widgets > Query Batching', function () {
 
     expect(await screen.findAllByTestId('performance-widget-title')).toHaveLength(3);
 
-    // Three requests are made
     expect(eventStatsMock).toHaveBeenCalledTimes(3);
+    expect(eventsMock).toHaveBeenCalledTimes(3);
     expect(eventStatsMock).toHaveBeenNthCalledWith(
       1,
       expect.anything(),
@@ -204,7 +234,7 @@ describe('Performance > Widgets > Query Batching', function () {
     );
   });
 
-  it('Multiple EventsRequest based component merge queries with provider', async function () {
+  it('Multiple EventsRequest and DiscoverQuery based components merge queries with provider', async function () {
     const data = initializeData();
 
     render(
@@ -230,7 +260,22 @@ describe('Performance > Widgets > Query Batching', function () {
       }
     );
 
-    expect(await screen.findAllByTestId('performance-widget-title')).toHaveLength(3);
+    await waitFor(() => expect(eventStatsMock).toHaveBeenCalled());
+    await waitFor(() => expect(eventsMock).toHaveBeenCalled());
+
+    expect(eventsMock).toHaveBeenNthCalledWith(
+      1,
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['prod'],
+          field: ['tpm()', 'failure_rate()', 'user_misery()'],
+          statsPeriod: '7d',
+        }),
+      })
+    );
+
+    expect(eventsMock).toHaveBeenCalledTimes(1);
 
     expect(eventStatsMock).toHaveBeenNthCalledWith(
       1,
@@ -247,7 +292,7 @@ describe('Performance > Widgets > Query Batching', function () {
     expect(await screen.findAllByTestId('widget-state-has-data')).toHaveLength(3);
   });
 
-  it('Multiple EventsRequest based component merge queries with provider and add MEP', async function () {
+  it('Multiple EventsRequest and DiscoverQuery based components merge queries with provider and add MEP', async function () {
     const data = initializeData();
 
     render(

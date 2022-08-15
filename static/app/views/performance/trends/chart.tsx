@@ -21,6 +21,7 @@ import {
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {decodeList} from 'sentry/utils/queryString';
 import {Theme} from 'sentry/utils/theme';
@@ -166,7 +167,7 @@ function getIntervalLine(
         '<div>',
         `<span class="tooltip-label"><strong>${t('Past Baseline')}</strong></span>`,
         // p50() coerces the axis to be time based
-        tooltipFormatter(transaction.aggregate_range_1, 'p50()'),
+        tooltipFormatter(transaction.aggregate_range_1, 'duration'),
         '</div>',
         '</div>',
         '<div class="tooltip-arrow"></div>',
@@ -186,7 +187,7 @@ function getIntervalLine(
         '<div>',
         `<span class="tooltip-label"><strong>${t('Present Baseline')}</strong></span>`,
         // p50() coerces the axis to be time based
-        tooltipFormatter(transaction.aggregate_range_2, 'p50()'),
+        tooltipFormatter(transaction.aggregate_range_2, 'duration'),
         '</div>',
         '</div>',
         '<div class="tooltip-arrow"></div>',
@@ -339,7 +340,7 @@ export function Chart({
   const chartOptions: Omit<LineChartProps, 'series'> = {
     tooltip: {
       valueFormatter: (value, seriesName) => {
-        return tooltipFormatter(value, seriesName);
+        return tooltipFormatter(value, aggregateOutputType(seriesName));
       },
     },
     yAxis: {
@@ -348,9 +349,8 @@ export function Chart({
       minInterval: durationUnit,
       axisLabel: {
         color: theme.chartLabel,
-        // p50() coerces the axis to be time based
         formatter: (value: number) =>
-          axisLabelFormatter(value, 'p50()', undefined, durationUnit),
+          axisLabelFormatter(value, 'duration', undefined, durationUnit),
       },
     },
   };

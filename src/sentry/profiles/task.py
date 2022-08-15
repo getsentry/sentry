@@ -15,6 +15,7 @@ from sentry.constants import DataCategory
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.models import Organization, Project, ProjectDebugFile
 from sentry.profiles.device import classify_device
+from sentry.signals import first_profile_received
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.symbolication import RetrySymbolication
 from sentry.utils import json, kafka_config, metrics
@@ -244,6 +245,9 @@ def _track_outcome(
     key_id: Optional[int],
     reason: Optional[str] = None,
 ) -> None:
+    if not project.flags.has_profiles:
+        first_profile_received.send_robust(project=project, sender=Project)
+
     track_outcome(
         org_id=project.organization_id,
         project_id=project.id,

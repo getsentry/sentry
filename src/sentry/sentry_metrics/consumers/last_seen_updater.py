@@ -1,6 +1,5 @@
 import datetime
 import functools
-import random
 from datetime import timedelta
 from typing import Any, Mapping, Optional, Set, Union
 
@@ -13,12 +12,11 @@ from arroyo.processing.strategies.streaming import KafkaConsumerStrategyFactory
 from arroyo.processing.strategies.streaming.factory import StreamMessageFilter
 from django.utils import timezone
 
-from sentry import options
 from sentry.sentry_metrics.configuration import MetricsIngestConfiguration
 from sentry.sentry_metrics.consumers.indexer.common import get_config
 from sentry.sentry_metrics.consumers.indexer.multiprocess import logger
 from sentry.sentry_metrics.indexer.base import FetchType
-from sentry.sentry_metrics.indexer.db import TABLE_MAPPING, IndexerTable
+from sentry.sentry_metrics.indexer.postgres.models import TABLE_MAPPING, IndexerTable
 from sentry.utils import json
 
 MAPPING_META = "mapping_meta"
@@ -39,19 +37,6 @@ class LastSeenUpdaterMessageFilter(StreamMessageFilter[Message[KafkaPayload]]): 
     # and does not contain the DB_READ ('d') character (this should be the vast
     # majority of messages).
     def should_drop(self, message: Message[KafkaPayload]) -> bool:
-        feature_enabled: float = options.get("sentry-metrics.last-seen-updater.accept-rate")
-        bypass_for_user = random.random() > feature_enabled
-        sample_rate = 0.001
-        if random.random() < sample_rate:
-            self.__metrics.incr(
-                "last_seen_updater.accept_rate",
-                tags={"bypass": bypass_for_user},
-                amount=1.0 / sample_rate,
-            )
-
-        if bypass_for_user:
-            return True
-
         header_value: Optional[str] = next(
             (
                 str(header[1])
@@ -140,7 +125,7 @@ def _last_seen_updater_processing_factory(
         process_message=retrieve_db_read_keys,
         prefilter=LastSeenUpdaterMessageFilter(metrics=get_metrics()),
         collector=lambda: LastSeenUpdaterCollector(
-            metrics=get_metrics(), table=TABLE_MAPPING[ingest_config.db_model]
+            metrics=get_metrics(), table=TABLE_MAPPING[ingest_config.use_case_id]
         ),
     )
 

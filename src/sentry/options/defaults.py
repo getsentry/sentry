@@ -33,6 +33,9 @@ register(
 register(
     "system.organization-url-template", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE
 )
+register(
+    "system.region-api-url-template", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE
+)
 register("system.region", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE)
 register("system.root-api-key", flags=FLAG_PRIORITIZE_DISK)
 register("system.logging-format", default=LoggingFormat.HUMAN, flags=FLAG_NOSTORE)
@@ -511,10 +514,6 @@ register("relay.project-config-cache-compress", default=[])  # unused
 # [Unused] Use zstandard compression in redis project config cache
 # Set this value of the fraction of config writes you want to compress.
 register("relay.project-config-cache-compress-sample-rate", default=0.0)  # unused
-
-# Mechanism for dialing up the last-seen-updater, which isn't needed outside
-# of SaaS (last_seen is a marker for deleting stale customer data)
-register("sentry-metrics.last-seen-updater.accept-rate", default=0.0)
 
 # default brownout crontab for api deprecations
 register("api.deprecation.brownout-cron", default="0 12 * * *", type=String)

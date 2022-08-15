@@ -72,6 +72,6 @@ class MSTeamsDeployNotificationTest(MSTeamsActivityNotificationTest):
             )
 
         assert (
-            f"{first_project.slug} | [Notification Settings](http://testserver/settings/account/notifications/deploy/?referrer=release&#95;activity-msteams-user)"
+            f"{first_project.slug} | [Notification Settings](http://testserver/settings/account/notifications/deploy/?referrer=release\\_activity-msteams-user)"
             == body[1]["columns"][1]["items"][0]["text"]
         )
