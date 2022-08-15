@@ -1,6 +1,7 @@
 import type {BreadcrumbTypeNavigation, Crumb} from 'sentry/types/breadcrumbs';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import type {Event, EventTransaction} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import {
   breadcrumbFactory,
   replayTimestamps,
@@ -25,6 +26,8 @@ interface ReplayReaderParams {
    */
   event: Event | undefined;
 
+  projects: Project[];
+
   /**
    * The captured data from rrweb.
    * Saved as N attachments that belong to the root Replay event.
@@ -39,12 +42,19 @@ type RequiredNotNull<T> = {
 };
 
 export default class ReplayReader {
-  static factory({breadcrumbs, event, errors, rrwebEvents, spans}: ReplayReaderParams) {
+  static factory({
+    breadcrumbs,
+    event,
+    errors,
+    rrwebEvents,
+    spans,
+    projects,
+  }: ReplayReaderParams) {
     if (!breadcrumbs || !event || !rrwebEvents || !spans || !errors) {
       return null;
     }
 
-    return new ReplayReader({breadcrumbs, event, errors, rrwebEvents, spans});
+    return new ReplayReader({breadcrumbs, event, errors, rrwebEvents, spans, projects});
   }
 
   private constructor({
@@ -53,6 +63,7 @@ export default class ReplayReader {
     errors,
     rrwebEvents,
     spans,
+    projects,
   }: RequiredNotNull<ReplayReaderParams>) {
     const {startTimestampMs, endTimestampMs} = replayTimestamps(
       rrwebEvents,
@@ -90,24 +101,40 @@ export default class ReplayReader {
       .filter(Boolean) as string[];
 
     this.replayRecord = {
+      browser: {
+        name: null,
+        version: null,
+      },
       countErrors: this.getRawCrumbs().filter(
         crumb => crumb.category === BreadcrumbType.ERROR
       ).length,
       countSegments: 0,
       countUrls: urls.length,
-      errorIds: [],
       dist: this.event.dist,
+      device: {
+        brand: null,
+        family: null,
+        model: null,
+        name: null,
+      },
       duration: endTimestampMs - startTimestampMs,
       environment: null,
+      errorIds: [],
       finishedAt: new Date(endTimestampMs), // TODO(replay): Convert from string to Date when reading API
+      id: this.event.id,
       longestTransaction: 0,
+      os: {
+        name: null,
+        version: null,
+      },
       platform: this.event.platform,
+      project: projects.find(project => project.id === String(this.event.projectID)),
       projectId: this.event.projectID,
-      projectSlug: '', // TODO(replay): Read from useProject to fill this in
       release: null, // event.release is not a string, expected to be `version@1.4`
-      replayId: this.event.id,
-      sdkName: this.event.sdk?.name,
-      sdkVersion: this.event.sdk?.version,
+      sdk: {
+        name: this.event.sdk?.name,
+        version: this.event.sdk?.version,
+      },
       startedAt: new Date(startTimestampMs), // TODO(replay): Convert from string to Date when reading API
       tags: this.event.tags.reduce((tags, {key, value}) => {
         tags[key] = value;
@@ -116,13 +143,13 @@ export default class ReplayReader {
       title: this.event.title,
       traceIds: [],
       urls,
-      userAgent: '',
       user: {
         email: this.event.user?.email,
         id: this.event.user?.id,
-        ipAddress: this.event.user?.ip_address,
+        ip_address: this.event.user?.ip_address,
         name: this.event.user?.name,
       },
+      userAgent: '',
     } as ReplayRecord;
   }
 
@@ -131,10 +158,6 @@ export default class ReplayReader {
   private rrwebEvents: RecordingEvent[];
   private breadcrumbs: Crumb[];
   private spans: ReplaySpan[];
-
-  getEvent = () => {
-    return this.event;
-  };
 
   /**
    * @returns Duration of Replay (milliseonds)
