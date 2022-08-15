@@ -12,11 +12,11 @@ import {relativeTimeInMs, showPlayerTime} from 'sentry/components/replays/utils'
 import Tooltip from 'sentry/components/tooltip';
 import {IconClose, IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
-import {BreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
+import {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
 import {objectIsEmpty} from 'sentry/utils';
 
 interface MessageFormatterProps {
-  breadcrumb: BreadcrumbTypeDefault;
+  breadcrumb: Extract<Crumb, BreadcrumbTypeDefault>;
 }
 
 /**
@@ -115,14 +115,14 @@ interface ConsoleMessageProps extends MessageFormatterProps {
   hasOccurred: boolean;
   isActive: boolean;
   isLast: boolean;
-  startTimestamp: number;
+  startTimestampMs: number;
 }
 function ConsoleMessage({
   breadcrumb,
   isActive = false,
   hasOccurred,
   isLast,
-  startTimestamp = 0,
+  startTimestampMs = 0,
 }: ConsoleMessageProps) {
   const ICONS = {
     error: <IconClose isCircled size="xs" />,
@@ -131,7 +131,7 @@ function ConsoleMessage({
 
   const {setCurrentTime, setCurrentHoverTime} = useReplayContext();
 
-  const diff = relativeTimeInMs(breadcrumb.timestamp || '', startTimestamp);
+  const diff = relativeTimeInMs(breadcrumb.timestamp || '', startTimestampMs);
   const handleOnClick = () => setCurrentTime(diff);
   const handleOnMouseOver = () => setCurrentHoverTime(diff);
   const handleOnMouseOut = () => setCurrentHoverTime(undefined);
@@ -143,10 +143,18 @@ function ConsoleMessage({
         level={breadcrumb.level}
         isActive={isActive}
         hasOccurred={hasOccurred}
+        onMouseOver={handleOnMouseOver}
+        onMouseOut={handleOnMouseOut}
       >
         {ICONS[breadcrumb.level]}
       </Icon>
-      <Message isLast={isLast} level={breadcrumb.level} hasOccurred={hasOccurred}>
+      <Message
+        isLast={isLast}
+        level={breadcrumb.level}
+        hasOccurred={hasOccurred}
+        onMouseOver={handleOnMouseOver}
+        onMouseOut={handleOnMouseOut}
+      >
         <ErrorBoundary mini>
           <MessageFormatter breadcrumb={breadcrumb} />
         </ErrorBoundary>
@@ -157,13 +165,13 @@ function ConsoleMessage({
         hasOccurred={hasOccurred}
       >
         <Tooltip title={<DateTime date={breadcrumb.timestamp} seconds />}>
-          <div
+          <ConsoleTimestampButton
             onClick={handleOnClick}
             onMouseOver={handleOnMouseOver}
             onMouseOut={handleOnMouseOut}
           >
-            {showPlayerTime(breadcrumb.timestamp || '', startTimestamp)}
-          </div>
+            {showPlayerTime(breadcrumb.timestamp || '', startTimestampMs)}
+          </ConsoleTimestampButton>
         </Tooltip>
       </ConsoleTimestamp>
     </Fragment>
@@ -212,9 +220,13 @@ const Common = styled('div')<{
   }
 `;
 
-const ConsoleTimestamp = styled(Common)<{isLast: boolean; level: string}>`
+const ConsoleTimestamp = styled(Common)`
   padding: ${space(0.25)} ${space(1)};
-  cursor: pointer;
+`;
+
+const ConsoleTimestampButton = styled('button')`
+  background: none;
+  border: none;
 `;
 
 const Icon = styled(Common)<{isActive: boolean}>`

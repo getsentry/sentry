@@ -1,45 +1,27 @@
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
-import capitalize from 'lodash/capitalize';
 
-import {getMeta} from 'sentry/components/events/meta/metaProxy';
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import Link from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
-import {MetaError} from 'sentry/types';
 import {EventTag} from 'sentry/types/event';
+
+import AnnotatedText from './events/meta/annotatedText';
 
 interface Props {
   generateUrl: (tag: EventTag) => LocationDescriptor;
   query: string;
   tag: EventTag;
+  meta?: Record<any, any>;
 }
 
-const formatErrorKind = (kind: string) => {
-  return capitalize(kind.replace(/_/g, ' '));
-};
-
-const getErrorMessage = (error: MetaError) => {
-  if (Array.isArray(error)) {
-    if (error[1]?.reason) {
-      return formatErrorKind(error[1].reason);
-    }
-    return formatErrorKind(error[0]);
-  }
-  return formatErrorKind(error);
-};
-
-const getTooltipTitle = (errors: Array<MetaError>) => {
-  return <TooltipTitle>{getErrorMessage(errors[0])}</TooltipTitle>;
-};
-
-function TagsTableRow({tag, query, generateUrl}: Props) {
+function TagsTableRow({tag, query, generateUrl, meta}: Props) {
   const tagInQuery = query.includes(`${tag.key}:`);
   const target = tagInQuery ? undefined : generateUrl(tag);
-  const keyMetaData = getMeta(tag, 'key');
-  const valueMetaData = getMeta(tag, 'value');
+  const keyMetaData = meta?.key?.[''];
+  const valueMetaData = meta?.value?.[''];
 
   const renderTagValue = () => {
     switch (tag.key) {
@@ -52,19 +34,15 @@ function TagsTableRow({tag, query, generateUrl}: Props) {
   return (
     <KeyValueTableRow
       keyName={
-        keyMetaData?.err?.length ? (
-          <Tooltip title={getTooltipTitle(keyMetaData.err)}>
-            <i>{`<${t('invalid')}>`}</i>
-          </Tooltip>
+        !!keyMetaData && !tag.key ? (
+          <AnnotatedText value={tag.key} meta={keyMetaData} />
         ) : (
           <StyledTooltip title={tag.key}>{tag.key}</StyledTooltip>
         )
       }
       value={
-        valueMetaData?.err?.length ? (
-          <Tooltip title={getTooltipTitle(valueMetaData.err)}>
-            <i>{`<${t('invalid')}>`}</i>
-          </Tooltip>
+        !!valueMetaData && !tag.value ? (
+          <AnnotatedText value={tag.value} meta={valueMetaData} />
         ) : keyMetaData?.err?.length ? (
           <span>{renderTagValue()}</span>
         ) : tagInQuery ? (
@@ -85,8 +63,4 @@ export default TagsTableRow;
 
 const StyledTooltip = styled(Tooltip)`
   ${p => p.theme.overflowEllipsis};
-`;
-
-const TooltipTitle = styled('div')`
-  text-align: left;
 `;

@@ -7,6 +7,11 @@ from snuba_sdk.conditions import InvalidConditionError
 from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models import ProjectTeam
+from sentry.models.transaction_threshold import (
+    ProjectTransactionThreshold,
+    ProjectTransactionThresholdOverride,
+    TransactionMetric,
+)
 from sentry.search.events import constants
 from sentry.testutils import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -1384,12 +1389,14 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         response = self.do_request(query)
         assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
+        assert len(response.data["data"]) == 2
         data = response.data["data"]
         meta = response.data["meta"]
 
-        assert data[0]["transaction"] == "foo_transaction"
-        assert data[0]["p50(transaction.duration)"] == 100
+        assert data[0]["transaction"] == "<< unparameterized >>"
+        assert data[0]["p50(transaction.duration)"] == 1
+        assert data[1]["transaction"] == "foo_transaction"
+        assert data[1]["p50(transaction.duration)"] == 100
         assert meta["isMetricsData"]
 
         query = {
@@ -1406,14 +1413,121 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         }
 
         response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
+        assert response.status_code == 400, response.content
+
+    def test_apdex_transaction_threshold(self):
+        ProjectTransactionThresholdOverride.objects.create(
+            transaction="foo_transaction",
+            project=self.project,
+            organization=self.project.organization,
+            threshold=600,
+            metric=TransactionMetric.LCP.value,
+        )
+        ProjectTransactionThresholdOverride.objects.create(
+            transaction="bar_transaction",
+            project=self.project,
+            organization=self.project.organization,
+            threshold=600,
+            metric=TransactionMetric.LCP.value,
+        )
+        self.store_transaction_metric(
+            1,
+            tags={
+                "transaction": "foo_transaction",
+                constants.METRIC_SATISFACTION_TAG_KEY: constants.METRIC_SATISFIED_TAG_VALUE,
+            },
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            1,
+            "measurements.lcp",
+            tags={
+                "transaction": "bar_transaction",
+                constants.METRIC_SATISFACTION_TAG_KEY: constants.METRIC_SATISFIED_TAG_VALUE,
+            },
+            timestamp=self.min_ago,
+        )
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "apdex()",
+                ],
+                "orderby": ["apdex()"],
+                "query": "event.type:transaction",
+                "dataset": "metrics",
+                "per_page": 50,
+            }
+        )
+
+        assert len(response.data["data"]) == 2
         data = response.data["data"]
         meta = response.data["meta"]
+        field_meta = meta["fields"]
 
-        assert data[0]["transaction"] is None
-        assert data[0]["p50(transaction.duration)"] == 1
+        assert data[0]["transaction"] == "bar_transaction"
+        # Threshold is lcp based
+        assert data[0]["apdex()"] == 1
+        assert data[1]["transaction"] == "foo_transaction"
+        # Threshold is lcp based
+        assert data[1]["apdex()"] == 0
+
         assert meta["isMetricsData"]
+        assert field_meta["transaction"] == "string"
+        assert field_meta["apdex()"] == "number"
+
+    def test_apdex_project_threshold(self):
+        ProjectTransactionThreshold.objects.create(
+            project=self.project,
+            organization=self.project.organization,
+            threshold=600,
+            metric=TransactionMetric.LCP.value,
+        )
+        self.store_transaction_metric(
+            1,
+            tags={
+                "transaction": "foo_transaction",
+                constants.METRIC_SATISFACTION_TAG_KEY: constants.METRIC_SATISFIED_TAG_VALUE,
+            },
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            1,
+            "measurements.lcp",
+            tags={
+                "transaction": "bar_transaction",
+                constants.METRIC_SATISFACTION_TAG_KEY: constants.METRIC_SATISFIED_TAG_VALUE,
+            },
+            timestamp=self.min_ago,
+        )
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "apdex()",
+                ],
+                "orderby": ["apdex()"],
+                "query": "event.type:transaction",
+                "dataset": "metrics",
+                "per_page": 50,
+            }
+        )
+
+        assert len(response.data["data"]) == 2
+        data = response.data["data"]
+        meta = response.data["meta"]
+        field_meta = meta["fields"]
+
+        assert data[0]["transaction"] == "bar_transaction"
+        # Threshold is lcp based
+        assert data[0]["apdex()"] == 1
+        assert data[1]["transaction"] == "foo_transaction"
+        # Threshold is lcp based
+        assert data[1]["apdex()"] == 0
+
+        assert meta["isMetricsData"]
+        assert field_meta["transaction"] == "string"
+        assert field_meta["apdex()"] == "number"
 
     def test_apdex_satisfaction_param(self):
         for function in ["apdex(300)", "user_misery(300)", "count_miserable(user, 300)"]:
@@ -1448,3 +1562,62 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             response = self.do_request(query)
             assert response.status_code == 400, function
             assert b"threshold parameter" in response.content, function
+
+    def test_mobile_metrics(self):
+        self.store_transaction_metric(
+            0.4,
+            "measurements.frames_frozen_rate",
+            tags={
+                "transaction": "bar_transaction",
+            },
+            timestamp=self.min_ago,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "field": [
+                "transaction",
+                "p50(measurements.frames_frozen_rate)",
+            ],
+            "statsPeriod": "24h",
+            "dataset": "metrics",
+            "per_page": 50,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["p50(measurements.frames_frozen_rate)"] == 0.4
+
+    def test_merge_null_unparam(self):
+        self.store_transaction_metric(
+            1,
+            # Transaction: unparam
+            tags={
+                "transaction": "<< unparameterized >>",
+            },
+            timestamp=self.min_ago,
+        )
+
+        self.store_transaction_metric(
+            2,
+            # Transaction:null
+            tags={},
+            timestamp=self.min_ago,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "field": [
+                "transaction",
+                "p50(transaction.duration)",
+            ],
+            "statsPeriod": "24h",
+            "dataset": "metrics",
+            "per_page": 50,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["p50(transaction.duration)"] == 1.5

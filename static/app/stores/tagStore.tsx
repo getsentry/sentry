@@ -2,6 +2,7 @@ import {createStore} from 'reflux';
 
 import {Tag, TagCollection} from 'sentry/types';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
+import {FieldKey, ISSUE_FIELDS} from 'sentry/utils/fields';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreDefinition} from './types';
@@ -9,53 +10,15 @@ import {CommonStoreDefinition} from './types';
 // This list is only used on issues. Events/discover
 // have their own field list that exists elsewhere.
 // contexts.key and contexts.value omitted on purpose.
-const BUILTIN_TAGS = [
-  'event.type',
-  'platform',
-  'message',
-  'title',
-  'location',
-  'timestamp',
-  'release',
-  'user.id',
-  'user.username',
-  'user.email',
-  'user.ip',
-  'sdk.name',
-  'sdk.version',
-  'http.method',
-  'http.url',
-  'os.build',
-  'os.kernel_version',
-  'device.brand',
-  'device.locale',
-  'device.uuid',
-  'device.model_id',
-  'device.arch',
-  'device.orientation',
-  'geo.country_code',
-  'geo.region',
-  'geo.city',
-  'error.type',
-  'error.handled',
-  'error.unhandled',
-  'error.value',
-  'error.mechanism',
-  'stack.abs_path',
-  'stack.filename',
-  'stack.package',
-  'stack.module',
-  'stack.function',
-  'stack.stack_level',
-].reduce<TagCollection>((acc, tag) => {
+const BUILTIN_TAGS = ISSUE_FIELDS.reduce<TagCollection>((acc, tag) => {
   acc[tag] = {key: tag, name: tag};
   return acc;
 }, {});
 
 interface TagStoreDefinition extends CommonStoreDefinition<TagCollection> {
-  getAllTags(): TagCollection;
-  getBuiltInTags(): TagCollection;
   getIssueAttributes(): TagCollection;
+  getIssueTags(): TagCollection;
+  getStateTags(): TagCollection;
   loadTagsSuccess(data: Tag[]): void;
   reset(): void;
   state: TagCollection;
@@ -69,10 +32,9 @@ const storeConfig: TagStoreDefinition = {
     this.state = {};
   },
 
-  getBuiltInTags() {
-    return {...BUILTIN_TAGS, ...SEMVER_TAGS};
-  },
-
+  /**
+   * Gets only predefined issue attributes
+   */
   getIssueAttributes() {
     // TODO(mitsuhiko): what do we do with translations here?
     const isSuggestions = [
@@ -91,65 +53,65 @@ const storeConfig: TagStoreDefinition = {
     });
 
     return {
-      is: {
-        key: 'is',
+      [FieldKey.IS]: {
+        key: FieldKey.IS,
         name: 'Status',
         values: isSuggestions,
         maxSuggestedValues: isSuggestions.length,
         predefined: true,
       },
-      has: {
-        key: 'has',
+      [FieldKey.HAS]: {
+        key: FieldKey.HAS,
         name: 'Has Tag',
         values: sortedTagKeys,
         predefined: true,
       },
-      assigned: {
-        key: 'assigned',
+      [FieldKey.ASSIGNED]: {
+        key: FieldKey.ASSIGNED,
         name: 'Assigned To',
         values: [],
         predefined: true,
       },
-      bookmarks: {
-        key: 'bookmarks',
+      [FieldKey.BOOKMARKS]: {
+        key: FieldKey.BOOKMARKS,
         name: 'Bookmarked By',
         values: [],
         predefined: true,
       },
-      lastSeen: {
-        key: 'lastSeen',
+      [FieldKey.LAST_SEEN]: {
+        key: FieldKey.LAST_SEEN,
         name: 'Last Seen',
-        values: ['-1h', '+1d', '-1w'],
-        predefined: true,
+        values: [],
+        predefined: false,
       },
-      firstSeen: {
-        key: 'firstSeen',
+      [FieldKey.FIRST_SEEN]: {
+        key: FieldKey.FIRST_SEEN,
         name: 'First Seen',
-        values: ['-1h', '+1d', '-1w'],
-        predefined: true,
+        values: [],
+        predefined: false,
       },
-      firstRelease: {
-        key: 'firstRelease',
+      [FieldKey.FIRST_RELEASE]: {
+        key: FieldKey.FIRST_RELEASE,
         name: 'First Release',
         values: ['latest'],
         predefined: true,
       },
-      'event.timestamp': {
-        key: 'event.timestamp',
+      [FieldKey.EVENT_TIMESTAMP]: {
+        key: FieldKey.EVENT_TIMESTAMP,
         name: 'Event Timestamp',
-        values: ['2017-01-02', '>=2017-01-02T01:00:00', '<2017-01-02T02:00:00'],
+        values: [],
         predefined: true,
       },
-      timesSeen: {
-        key: 'timesSeen',
+      [FieldKey.TIMES_SEEN]: {
+        key: FieldKey.TIMES_SEEN,
         name: 'Times Seen',
         isInput: true,
         // Below values are required or else SearchBar will attempt to get values // This is required or else SearchBar will attempt to get values
         values: [],
         predefined: true,
       },
-      assigned_or_suggested: {
-        key: 'assigned_or_suggested',
+      [FieldKey.ASSIGNED_OR_SUGGESTED]: {
+        key: FieldKey.ASSIGNED_OR_SUGGESTED,
         name: 'Assigned or Suggested',
         isInput: true,
         values: [],
@@ -158,17 +120,34 @@ const storeConfig: TagStoreDefinition = {
     };
   },
 
-  reset() {
-    this.state = {};
-    this.trigger(this.state);
+  /**
+   * Get all tags including builtin issue tags and issue attributes
+   */
+  getIssueTags() {
+    return {
+      ...BUILTIN_TAGS,
+      ...SEMVER_TAGS,
+      // State tags should overwrite built ins.
+      ...this.state,
+      // We want issue attributes to overwrite any built in and state tags
+      ...this.getIssueAttributes(),
+    };
   },
 
-  getAllTags() {
-    return this.state;
+  /**
+   * Get only tags loaded from the backend
+   */
+  getStateTags() {
+    return this.getState();
   },
 
   getState() {
-    return this.getAllTags();
+    return this.state;
+  },
+
+  reset() {
+    this.state = {};
+    this.trigger(this.state);
   },
 
   loadTagsSuccess(data) {

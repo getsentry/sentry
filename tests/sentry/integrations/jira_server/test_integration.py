@@ -5,11 +5,14 @@ from unittest.mock import patch
 import pytest
 import responses
 from django.urls import reverse
+from exam import fixture
 
 from fixtures.integrations import StubService
 from fixtures.integrations.jira import StubJiraApiClient
 from sentry.models import (
     ExternalIssue,
+    GroupLink,
+    GroupMeta,
     Integration,
     IntegrationExternalProject,
     OrganizationIntegration,
@@ -20,8 +23,12 @@ from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
+from sentry_plugins.jira.plugin import JiraPlugin
 
 from . import get_integration
+
+DFAULT_PROJECT_ID = 10000
+DEFAULT_ISSUE_TYPE_ID = 10000
 
 
 def get_client():
@@ -55,22 +62,22 @@ class JiraServerIntegrationTest(APITestCase):
             assert self.installation.get_create_issue_config(group, self.user) == [
                 {
                     "name": "project",
-                    "default": "10000",
-                    "updatesForm": True,
-                    "choices": [("10000", "EX"), ("10001", "ABC")],
                     "label": "Jira Project",
+                    "choices": [("10000", "EX"), ("10001", "ABC")],
+                    "default": "10000",
                     "type": "select",
+                    "updatesForm": True,
                 },
                 {
-                    "default": "message",
-                    "required": True,
-                    "type": "string",
                     "name": "title",
                     "label": "Title",
+                    "default": "message",
+                    "type": "string",
+                    "required": True,
                 },
                 {
-                    "autosize": True,
                     "name": "description",
+                    "label": "Description",
                     "default": (
                         "Sentry Issue: [%s|%s]\n\n{code}\n"
                         "Stacktrace (most recent call first):\n\n  "
@@ -83,74 +90,135 @@ class JiraServerIntegrationTest(APITestCase):
                             group.get_absolute_url(params={"referrer": "jira_integration"})
                         ),
                     ),
-                    "label": "Description",
-                    "maxRows": 10,
                     "type": "textarea",
+                    "autosize": True,
+                    "maxRows": 10,
                 },
                 {
-                    "required": True,
                     "name": "issuetype",
-                    "default": "1",
-                    "updatesForm": True,
-                    "choices": [("1", "Bug")],
                     "label": "Issue Type",
+                    "default": "10000",
                     "type": "select",
+                    "choices": [
+                        ("10000", "Epic"),
+                        ("10001", "Story"),
+                        ("10002", "Task"),
+                        ("10003", "Sub-task"),
+                        ("10004", "Bug"),
+                    ],
+                    "updatesForm": True,
+                    "required": True,
                 },
                 {
-                    "name": "customfield_10200",
-                    "default": "",
+                    "label": "Priority",
                     "required": False,
-                    "choices": [("sad", "sad"), ("happy", "happy")],
-                    "label": "Mood",
+                    "choices": [
+                        ("1", "Highest"),
+                        ("2", "High"),
+                        ("3", "Medium"),
+                        ("4", "Low"),
+                        ("5", "Lowest"),
+                    ],
                     "type": "select",
+                    "name": "priority",
+                    "default": "",
                 },
                 {
+                    "label": "Fix Version/s",
+                    "required": False,
                     "multiple": True,
-                    "name": "customfield_10300",
+                    "choices": [("10000", "v1"), ("10001", "v2"), ("10002", "v3")],
                     "default": "",
-                    "required": False,
-                    "choices": [("Feature 1", "Feature 1"), ("Feature 2", "Feature 2")],
-                    "label": "Feature",
                     "type": "select",
+                    "name": "fixVersions",
                 },
                 {
-                    "name": "customfield_10400",
-                    "url": search_url,
-                    "choices": [],
-                    "label": "Epic Link",
+                    "label": "Component/s",
                     "required": False,
+                    "multiple": True,
+                    "choices": [("10000", "computers"), ("10001", "software")],
+                    "default": "",
                     "type": "select",
+                    "name": "components",
                 },
                 {
-                    "name": "customfield_10500",
+                    "label": "Assignee",
+                    "required": False,
                     "url": search_url,
                     "choices": [],
+                    "type": "select",
+                    "name": "assignee",
+                },
+                {
                     "label": "Sprint",
                     "required": False,
+                    "url": search_url,
+                    "choices": [],
                     "type": "select",
+                    "name": "customfield_10100",
                 },
                 {
-                    "name": "labels",
+                    "label": "Epic Link",
+                    "required": False,
+                    "url": search_url,
+                    "choices": [],
+                    "type": "select",
+                    "name": "customfield_10101",
+                },
+                {
+                    "label": "Mood",
+                    "required": False,
+                    "choices": [("sad", "sad"), ("happy", "happy")],
                     "default": "",
+                    "type": "select",
+                    "name": "customfield_10200",
+                },
+                {
+                    "label": "reactions",
+                    "required": False,
+                    "multiple": True,
+                    "choices": [("wow", "wow"), ("devil", "devil"), ("metal", "metal")],
+                    "default": "",
+                    "type": "select",
+                    "name": "customfield_10201",
+                },
+                {
+                    "label": "Feature",
+                    "required": False,
+                    "multiple": True,
+                    "choices": [
+                        ("Feature 1", "Feature 1"),
+                        ("Feature 2", "Feature 2"),
+                        ("Feature 3", "Feature 3"),
+                    ],
+                    "default": "",
+                    "type": "select",
+                    "name": "customfield_10202",
+                },
+                {"label": "Environment", "required": False, "type": "text", "name": "environment"},
+                {
+                    "label": "Labels",
                     "required": False,
                     "type": "text",
-                    "label": "Labels",
+                    "name": "labels",
+                    "default": "",
                 },
                 {
-                    "name": "parent",
-                    "url": search_url,
-                    "choices": [],
-                    "label": "Parent",
-                    "required": False,
-                    "type": "select",
-                },
-                {
-                    "name": "reporter",
-                    "url": search_url,
-                    "required": True,
-                    "choices": [],
                     "label": "Reporter",
+                    "required": True,
+                    "url": search_url,
+                    "choices": [],
                     "type": "select",
+                    "name": "reporter",
+                },
+                {
+                    "label": "Affects Version/s",
+                    "required": False,
+                    "multiple": True,
+                    "choices": [("10000", "v1"), ("10001", "v2"), ("10002", "v3")],
+                    "default": "",
+                    "type": "select",
+                    "name": "versions",
                 },
             ]
 
@@ -228,13 +296,19 @@ class JiraServerIntegrationTest(APITestCase):
                 "title",
                 "description",
                 "issuetype",
+                "priority",
+                "fixVersions",
+                "components",
+                "assignee",
+                "customfield_10100",
+                "customfield_10101",
                 "customfield_10200",
-                "customfield_10300",
-                "customfield_10400",
-                "customfield_10500",
+                "customfield_10201",
+                "customfield_10202",
+                "environment",
                 "labels",
-                "parent",
                 "reporter",
+                "versions",
             ]
 
             self.installation.org_integration.config = {
@@ -249,12 +323,18 @@ class JiraServerIntegrationTest(APITestCase):
                 "title",
                 "description",
                 "issuetype",
-                "customfield_10300",
-                "customfield_10400",
-                "customfield_10500",
+                "priority",
+                "fixVersions",
+                "components",
+                "assignee",
+                "customfield_10100",
+                "customfield_10101",
+                "customfield_10201",
+                "customfield_10202",
+                "environment",
                 "labels",
-                "parent",
                 "reporter",
+                "versions",
             ]
 
     def test_get_create_issue_config_with_default_and_param(self):
@@ -317,12 +397,8 @@ class JiraServerIntegrationTest(APITestCase):
                 "updatesForm": True,
             }
 
-    @patch(
-        "sentry.integrations.jira_server.integration.JiraServerIntegration.fetch_issue_create_meta"
-    )
-    def test_get_create_issue_config_with_default_project_deleted(
-        self, mock_fetch_issue_create_meta
-    ):
+    @patch("sentry.integrations.jira_server.client.JiraServerClient.get_issue_fields")
+    def test_get_create_issue_config_with_default_project_deleted(self, mock_get_issue_fields):
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -339,24 +415,24 @@ class JiraServerIntegrationTest(APITestCase):
         self.installation.org_integration.save()
 
         with mock.patch.object(self.installation, "get_client", get_client):
-            mock_fetch_issue_create_meta_return_value = json.loads(
-                StubService.get_stub_json("jira", "fetch_issue_create_meta.json")
+            mock_get_issue_fields_return_value = json.loads(
+                StubService.get_stub_json("jira", "issue_fields_response.json")
             )
             project_list_response = json.loads(
                 StubService.get_stub_json("jira", "project_list_response.json")
             )
             side_effect_values = [
-                mock_fetch_issue_create_meta_return_value for project in project_list_response
+                mock_get_issue_fields_return_value for project in project_list_response
             ]
-            # return None the first time fetch_issue_create_meta is called to mimic a deleted default project id (10004)
+            # return None the first time issue_fields_response is called to mimic a deleted default project id (10004)
             # so that we drop into the code block where it iterates over available projects
-            mock_fetch_issue_create_meta.side_effect = [None, *side_effect_values]
+            mock_get_issue_fields.side_effect = [None, *side_effect_values]
 
             fields = self.installation.get_create_issue_config(group, self.user)
             project_field = [field for field in fields if field["name"] == "project"][0]
 
             assert project_field == {
-                "default": "10001",
+                "default": "10004",
                 "choices": [("10000", "EX"), ("10001", "ABC")],
                 "type": "select",
                 "name": "project",
@@ -424,14 +500,21 @@ class JiraServerIntegrationTest(APITestCase):
                 {"id": "10000", "key": "SAMP"}
             ]""",
         )
+        responses.add(
+            responses.GET,
+            f"https://jira.example.org/rest/api/2/issue/createmeta/{DFAULT_PROJECT_ID}/issuetypes",
+            body=StubService.get_stub_json("jira", "issue_types_response.json"),
+            content_type="json",
+        )
         # Fail to return metadata
         responses.add(
             responses.GET,
-            "https://jira.example.org/rest/api/2/issue/createmeta",
+            f"https://jira.example.org/rest/api/2/issue/createmeta/{DFAULT_PROJECT_ID}/issuetypes/{DEFAULT_ISSUE_TYPE_ID}",
             content_type="json",
             status=401,
             body="",
         )
+
         with pytest.raises(IntegrationError):
             self.installation.get_create_issue_config(event.group, self.user)
 
@@ -475,8 +558,8 @@ class JiraServerIntegrationTest(APITestCase):
     def test_create_issue_labels_and_option(self):
         responses.add(
             responses.GET,
-            "https://jira.example.org/rest/api/2/issue/createmeta",
-            body=StubService.get_stub_json("jira", "createmeta_response.json"),
+            f"https://jira.example.org/rest/api/2/issue/createmeta/{DFAULT_PROJECT_ID}/issuetypes/{DEFAULT_ISSUE_TYPE_ID}",
+            body=StubService.get_stub_json("jira", "issue_fields_response.json"),
             content_type="json",
         )
         responses.add(
@@ -490,9 +573,9 @@ class JiraServerIntegrationTest(APITestCase):
             body = json.loads(request.body)
             assert body["fields"]["labels"] == ["fuzzy", "bunnies"]
             assert body["fields"]["customfield_10200"] == {"value": "sad"}
-            assert body["fields"]["customfield_10300"] == [
-                {"value": "Feature 1"},
-                {"value": "Feature 2"},
+            assert body["fields"]["customfield_10201"] == [
+                {"value": "wow"},
+                {"value": "devil"},
             ]
             return (200, {"content-type": "application/json"}, '{"key":"APP-123"}')
 
@@ -506,10 +589,10 @@ class JiraServerIntegrationTest(APITestCase):
             {
                 "title": "example summary",
                 "description": "example bug report",
-                "issuetype": "1",
+                "issuetype": "10000",
                 "project": "10000",
                 "customfield_10200": "sad",
-                "customfield_10300": ["Feature 1", "Feature 2"],
+                "customfield_10201": ["wow", "devil"],
                 "labels": "fuzzy , ,  bunnies",
             }
         )
@@ -832,3 +915,122 @@ class JiraServerIntegrationTest(APITestCase):
                     "123",
                     "Sentry Admin wrote:\n\n{quote}%s{quote}" % comment,
                 )
+
+
+class JiraMigrationIntegrationTest(APITestCase):
+    @fixture
+    def integration(self):
+        integration = Integration.objects.create(
+            provider="jira_server",
+            name="Jira Server",
+            metadata={
+                "oauth_client_id": "oauth-client-id",
+                "shared_secret": "a-super-secret-key-from-atlassian",
+                "base_url": "https://example.atlassian.net",
+                "domain_name": "example.atlassian.net",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+        return integration
+
+    def setUp(self):
+        super().setUp()
+        self.plugin = JiraPlugin()
+        self.plugin.set_option("enabled", True, self.project)
+        self.plugin.set_option("default_project", "SEN", self.project)
+        self.plugin.set_option("instance_url", "https://example.atlassian.net", self.project)
+        self.plugin.set_option("ignored_fields", "hellboy, meow", self.project)
+        self.installation = self.integration.get_installation(self.organization.id)
+        self.login_as(self.user)
+
+    def test_migrate_plugin(self):
+        """Test that 2 projects with the Jira plugin enabled that each have an issue created
+        from the plugin are migrated along with the ignored fields
+        """
+        project2 = self.create_project(
+            name="hellbar", organization=self.organization, teams=[self.team]
+        )
+        plugin2 = JiraPlugin()
+        plugin2.set_option("enabled", True, project2)
+        plugin2.set_option("default_project", "BAR", project2)
+        plugin2.set_option("instance_url", "https://example.atlassian.net", project2)
+
+        group = self.create_group(message="Hello world", culprit="foo.bar")
+        plugin_issue = GroupMeta.objects.create(
+            key=f"{self.plugin.slug}:tid", group_id=group.id, value="SEN-1"
+        )
+        group2 = self.create_group(message="Hello world", culprit="foo.bar")
+        plugin2_issue = GroupMeta.objects.create(
+            key=f"{self.plugin.slug}:tid", group_id=group2.id, value="BAR-1"
+        )
+        org_integration = OrganizationIntegration.objects.get(integration_id=self.integration.id)
+        org_integration.config.update({"issues_ignored_fields": ["reporter", "test"]})
+        org_integration.save()
+
+        with self.tasks():
+            self.installation.migrate_issues()
+
+        assert ExternalIssue.objects.filter(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            key=plugin_issue.value,
+        ).exists()
+        assert ExternalIssue.objects.filter(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            key=plugin2_issue.value,
+        ).exists()
+        assert not GroupMeta.objects.filter(
+            key=f"{self.plugin.slug}:tid", group_id=group.id, value="SEN-1"
+        ).exists()
+        assert not GroupMeta.objects.filter(
+            key=f"{self.plugin.slug}:tid", group_id=group.id, value="BAR-1"
+        ).exists()
+
+        oi = OrganizationIntegration.objects.get(integration_id=self.integration.id)
+        assert len(oi.config["issues_ignored_fields"]) == 4
+
+        assert self.plugin.get_option("enabled", self.project) is False
+        assert plugin2.get_option("enabled", project2) is False
+
+    def test_instance_url_mismatch(self):
+        """Test that if the plugin's instance URL does not match the integration's base URL, we don't migrate the issues"""
+        self.plugin.set_option("instance_url", "https://hellboy.atlassian.net", self.project)
+        group = self.create_group(message="Hello world", culprit="foo.bar")
+        plugin_issue = GroupMeta.objects.create(
+            key=f"{self.plugin.slug}:tid", group_id=group.id, value="SEN-1"
+        )
+        with self.tasks():
+            self.installation.migrate_issues()
+
+        assert not ExternalIssue.objects.filter(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            key=plugin_issue.value,
+        ).exists()
+        assert GroupMeta.objects.filter(
+            key=f"{self.plugin.slug}:tid", group_id=group.id, value="SEN-1"
+        ).exists()
+
+    def test_external_issue_already_exists(self):
+        """Test that if an issue already exists during migration, we continue with no issue"""
+
+        group = self.create_group(message="Hello world", culprit="foo.bar")
+        GroupMeta.objects.create(key=f"{self.plugin.slug}:tid", group_id=group.id, value="SEN-1")
+        group2 = self.create_group(message="Hello world", culprit="foo.bar")
+        GroupMeta.objects.create(key=f"{self.plugin.slug}:tid", group_id=group2.id, value="BAR-1")
+        integration_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            key="BAR-1",
+        )
+        GroupLink.objects.create(
+            group_id=group2.id,
+            project_id=self.project.id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=integration_issue.id,
+            relationship=GroupLink.Relationship.references,
+        )
+
+        with self.tasks():
+            self.installation.migrate_issues()

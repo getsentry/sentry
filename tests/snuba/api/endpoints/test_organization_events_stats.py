@@ -195,6 +195,45 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         )
         assert response.status_code == 200, response.content
 
+    def test_apdex_divide_by_zero(self):
+        ProjectTransactionThreshold.objects.create(
+            project=self.project,
+            organization=self.project.organization,
+            threshold=600,
+            metric=TransactionMetric.LCP.value,
+        )
+
+        # Shouldn't count towards apdex
+        data = load_data(
+            "transaction",
+            start_timestamp=self.day_ago + timedelta(minutes=(1)),
+            timestamp=self.day_ago + timedelta(minutes=(3)),
+        )
+        data["transaction"] = "/apdex/new/"
+        data["user"] = {"email": "1@example.com"}
+        data["measurements"] = {}
+        self.store_event(data, project_id=self.project.id)
+
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "yAxis": "apdex()",
+                "project": [self.project.id],
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        data = response.data["data"]
+        print(data)
+        # 0 transactions with LCP 0/0
+        assert [attrs for time, attrs in response.data["data"]] == [
+            [{"count": 0}],
+            [{"count": 0}],
+        ]
+
     def test_aggregate_function_apdex(self):
         project1 = self.create_project()
         project2 = self.create_project()
@@ -1179,6 +1218,28 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         other = data["Other"]
         assert other["order"] == 5
         assert [{"count": 1}] in [attrs for _, attrs in other["data"]]
+
+    def test_top_events_with_transaction_status(self):
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "transaction.status"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+
+        assert response.status_code == 200, response.content
+        assert len(data) == 1
+        assert "ok" in data
 
     @mock.patch("sentry.models.GroupManager.get_issues_mapping")
     def test_top_events_with_unknown_issue(self, mock_issues_mapping):

@@ -31,13 +31,13 @@ function ReplayTimeline({}: Props) {
     return <Placeholder height="48px" bottomGutter={2} />;
   }
 
-  const durationMS = replay.getDurationMS();
-  const {startTimestamp} = replay.getEvent();
+  const durationMs = replay.getDurationMs();
+  const startTimestampMs = replay.getReplay().startedAt.getTime();
   const crumbs = replay.getRawCrumbs() || [];
   const spans = replay.getRawSpans() || [];
   const userCrumbs = crumbs.filter(crumb => USER_ACTIONS.includes(crumb.type));
 
-  const networkSpans = spans.filter(replay.isNotMemorySpan);
+  const networkSpans = spans.filter(replay.isNetworkSpan);
 
   return (
     <Panel>
@@ -45,21 +45,21 @@ function ReplayTimeline({}: Props) {
         <Resizeable>
           {({width}) => (
             <Stacked>
-              <MinorGridlines durationMS={durationMS} width={width} />
-              <MajorGridlines durationMS={durationMS} width={width} />
+              <MinorGridlines durationMs={durationMs} width={width} />
+              <MajorGridlines durationMs={durationMs} width={width} />
               <TimelineScrubber />
               <UnderTimestamp paddingTop="36px">
                 <ReplayTimelineSpans
-                  durationMS={durationMS}
+                  durationMs={durationMs}
                   spans={networkSpans}
-                  startTimestamp={startTimestamp}
+                  startTimestampMs={startTimestampMs}
                 />
               </UnderTimestamp>
               <UnderTimestamp paddingTop="0">
                 <ReplayTimelineEvents
                   crumbs={userCrumbs}
-                  durationMS={durationMS}
-                  startTimestamp={startTimestamp}
+                  durationMs={durationMs}
+                  startTimestampMs={startTimestampMs}
                   width={width}
                 />
               </UnderTimestamp>

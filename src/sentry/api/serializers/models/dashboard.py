@@ -4,6 +4,7 @@ from django.db.models.query import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.user import UserSerializer
+from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.models import (
     Dashboard,
     DashboardWidget,
@@ -144,8 +145,10 @@ class DashboardDetailsSerializer(Serializer):
         return result
 
     def serialize(self, obj, attrs, user, **kwargs):
+        from sentry.api.serializers.rest_framework.base import camel_to_snake_case
+
         page_filter_keys = ["environment", "period", "utc"]
-        dashboard_filter_keys = ["release"]
+        dashboard_filter_keys = ["release", "releaseId"]
         data = {
             "id": str(obj.id),
             "title": obj.title,
@@ -157,13 +160,16 @@ class DashboardDetailsSerializer(Serializer):
         }
 
         if obj.filters is not None:
+            if obj.filters.get("all_projects"):
+                data["projects"] = list(ALL_ACCESS_PROJECTS)
+
             for key in page_filter_keys:
                 if obj.filters.get(key) is not None:
                     data[key] = obj.filters[key]
 
             for key in dashboard_filter_keys:
-                if obj.filters.get(key) is not None:
-                    data["filters"][key] = obj.filters[key]
+                if obj.filters.get(camel_to_snake_case(key)) is not None:
+                    data["filters"][key] = obj.filters[camel_to_snake_case(key)]
 
             start, end = obj.filters.get("start"), obj.filters.get("end")
             if start and end:

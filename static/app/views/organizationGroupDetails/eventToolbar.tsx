@@ -115,6 +115,8 @@ class GroupEventToolbar extends Component<Props> {
       evt.dateReceived &&
       Math.abs(+moment(evt.dateReceived) - +moment(evt.dateCreated)) > latencyThreshold;
 
+    const isPerformanceIssue = !!evt.contexts?.performance_issue;
+
     return (
       <StyledDataSection>
         <StyledNavigationButtonGroup
@@ -163,12 +165,15 @@ class GroupEventToolbar extends Component<Props> {
           project={project}
           organization={organization}
         />
-        <QuickTrace
-          event={evt}
-          group={group}
-          organization={organization}
-          location={location}
-        />
+        {/* If this is a Performance issue, the QuickTrace will be rendered along with the embedded span tree instead */}
+        {!isPerformanceIssue && (
+          <QuickTrace
+            event={evt}
+            group={group}
+            organization={organization}
+            location={location}
+          />
+        )}
       </StyledDataSection>
     );
   }
@@ -182,16 +187,7 @@ const StyledDataSection = styled(DataSection)`
   /* Fixes tooltips in toolbar having lower z-index than .btn-group .btn.active */
   z-index: 3;
 
-  /* Padding aligns with Layout.Body */
-  padding-left: ${space(4)};
-  padding-right: ${space(4)};
-
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    padding-left: ${space(2)};
-    padding-right: ${space(2)};
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: 767px) {
     display: none;
   }
 `;

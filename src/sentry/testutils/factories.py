@@ -81,6 +81,7 @@ from sentry.models import (
     RepositoryProjectPathConfig,
     Rule,
     SentryAppInstallation,
+    SentryFunction,
     Team,
     User,
     UserEmail,
@@ -1158,6 +1159,15 @@ class Factories:
         return integration
 
     @staticmethod
+    def create_integration(
+        organization: Organization, external_id: str, **kwargs: Any
+    ) -> Integration:
+        integration = Integration.objects.create(external_id=external_id, **kwargs)
+        integration.add_organization(organization)
+
+        return integration
+
+    @staticmethod
     def create_identity_provider(integration: Integration, **kwargs: Any) -> IdentityProvider:
         return IdentityProvider.objects.create(
             type=integration.provider,
@@ -1214,4 +1224,14 @@ class Factories:
             type=ActivityType.NOTE.value,
             user=user,
             data=data,
+        )
+
+    @staticmethod
+    def create_sentry_function(name, code, **kwargs):
+        return SentryFunction.objects.create(
+            name=name,
+            code=code,
+            slug=slugify(name),
+            external_id=slugify(name) + "-" + uuid4().hex,
+            **kwargs,
         )

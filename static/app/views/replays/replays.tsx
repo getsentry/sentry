@@ -2,12 +2,12 @@ import {Fragment, useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'sentry/components/featureBadge';
 import Link from 'sentry/components/links/link';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
+import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent, PageHeader} from 'sentry/styles/organization';
@@ -100,7 +100,7 @@ function Replays() {
       <StyledPageHeader>
         <HeaderTitle>
           <div>
-            {t('Replays')} <FeatureBadge type="alpha" />
+            {t('Replays')} <ReplaysFeatureBadge />
           </div>
         </HeaderTitle>
       </StyledPageHeader>
@@ -151,6 +151,7 @@ function Replays() {
                       </SortLink>,
                       t('Duration'),
                       t('Errors'),
+                      t('Interest'),
                     ]}
                   >
                     {data.tableData ? (
@@ -184,10 +185,10 @@ const StyledPageContent = styled(PageContent)`
 `;
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: minmax(0, 1fr) max-content max-content max-content max-content;
+  grid-template-columns: minmax(0, 1fr) max-content max-content max-content max-content max-content;
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: minmax(0, 1fr) max-content max-content max-content;
+    grid-template-columns: minmax(0, 1fr) max-content max-content max-content max-content;
   }
 `;
 

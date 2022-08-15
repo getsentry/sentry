@@ -1,6 +1,5 @@
 import datetime
 import functools
-import random
 from datetime import timedelta
 from typing import Any, Mapping, Optional, Set, Union
 
@@ -13,11 +12,11 @@ from arroyo.processing.strategies.streaming import KafkaConsumerStrategyFactory
 from arroyo.processing.strategies.streaming.factory import StreamMessageFilter
 from django.utils import timezone
 
-from sentry import options
+from sentry.sentry_metrics.configuration import MetricsIngestConfiguration
 from sentry.sentry_metrics.consumers.indexer.common import get_config
 from sentry.sentry_metrics.consumers.indexer.multiprocess import logger
 from sentry.sentry_metrics.indexer.base import FetchType
-from sentry.sentry_metrics.indexer.models import StringIndexer
+from sentry.sentry_metrics.indexer.postgres.models import TABLE_MAPPING, IndexerTable
 from sentry.utils import json
 
 MAPPING_META = "mapping_meta"
@@ -38,19 +37,6 @@ class LastSeenUpdaterMessageFilter(StreamMessageFilter[Message[KafkaPayload]]): 
     # and does not contain the DB_READ ('d') character (this should be the vast
     # majority of messages).
     def should_drop(self, message: Message[KafkaPayload]) -> bool:
-        feature_enabled: float = options.get("sentry-metrics.last-seen-updater.accept-rate")
-        bypass_for_user = random.random() > feature_enabled
-        sample_rate = 0.001
-        if random.random() < sample_rate:
-            self.__metrics.incr(
-                "last_seen_updater.accept_rate",
-                tags={"bypass": bypass_for_user},
-                amount=1.0 / sample_rate,
-            )
-
-        if bypass_for_user:
-            return True
-
         header_value: Optional[str] = next(
             (
                 str(header[1])
@@ -68,7 +54,7 @@ class LastSeenUpdaterMessageFilter(StreamMessageFilter[Message[KafkaPayload]]): 
 
 
 def _update_stale_last_seen(
-    seen_ints: Set[int], new_last_seen_time: Optional[datetime.datetime] = None
+    table: IndexerTable, seen_ints: Set[int], new_last_seen_time: Optional[datetime.datetime] = None
 ) -> int:
     if new_last_seen_time is None:
         new_last_seen_time = timezone.now()
@@ -76,16 +62,17 @@ def _update_stale_last_seen(
     # TODO: filter out ints that we've handled recently in memcache to reduce DB load
     # we may not need a cache, we should see as we dial up the accept rate
     return int(
-        StringIndexer.objects.filter(
+        table.objects.filter(
             id__in=seen_ints, last_seen__lt=(timezone.now() - timedelta(hours=12))
         ).update(last_seen=new_last_seen_time)
     )
 
 
 class LastSeenUpdaterCollector(ProcessingStrategy[Set[int]]):  # type: ignore
-    def __init__(self, metrics: Any) -> None:
+    def __init__(self, metrics: Any, table: IndexerTable) -> None:
         self.__seen_ints: Set[int] = set()
         self.__metrics = metrics
+        self.__table = table
 
     def submit(self, message: Message[Set[int]]) -> None:
         self.__seen_ints.update(message.payload)
@@ -106,7 +93,7 @@ class LastSeenUpdaterCollector(ProcessingStrategy[Set[int]]):  # type: ignore
             "last_seen_updater.unique_update_candidate_keys", amount=keys_to_pass_to_update
         )
         with self.__metrics.timer("last_seen_updater.postgres_time"):
-            update_count = _update_stale_last_seen(self.__seen_ints)
+            update_count = _update_stale_last_seen(self.__table, self.__seen_ints)
         self.__metrics.incr("last_seen_updater.updated_rows_count", amount=update_count)
         logger.debug(f"{update_count} keys updated")
         self.__seen_ints = set()
@@ -127,7 +114,7 @@ def retrieve_db_read_keys(message: Message[KafkaPayload]) -> Set[int]:
 
 
 def _last_seen_updater_processing_factory(
-    max_batch_size: int, max_batch_time: float
+    max_batch_size: int, max_batch_time: float, ingest_config: MetricsIngestConfiguration
 ) -> KafkaConsumerStrategyFactory:
     return KafkaConsumerStrategyFactory(
         max_batch_time=max_batch_time,
@@ -137,21 +124,31 @@ def _last_seen_updater_processing_factory(
         output_block_size=None,
         process_message=retrieve_db_read_keys,
         prefilter=LastSeenUpdaterMessageFilter(metrics=get_metrics()),
-        collector=lambda: LastSeenUpdaterCollector(metrics=get_metrics()),
+        collector=lambda: LastSeenUpdaterCollector(
+            metrics=get_metrics(), table=TABLE_MAPPING[ingest_config.use_case_id]
+        ),
     )
 
 
 def get_last_seen_updater(
-    topic: str,
     group_id: str,
     max_batch_size: int,
     max_batch_time: float,
     auto_offset_reset: str,
+    ingest_config: MetricsIngestConfiguration,
     **options: Mapping[str, Union[str, int]],
 ) -> StreamProcessor:
-    processing_factory = _last_seen_updater_processing_factory(max_batch_size, max_batch_time)
+    """
+    The last_seen updater uses output from the metrics indexer to update the
+    last_seen field in the sentry_stringindexer and sentry_perfstringindexer database
+    tables. This enables us to do deletions of tag keys/values that haven't been
+    accessed over the past N days (generally, 90).
+    """
+    processing_factory = _last_seen_updater_processing_factory(
+        max_batch_size, max_batch_time, ingest_config
+    )
     return StreamProcessor(
-        KafkaConsumer(get_config(topic, group_id, auto_offset_reset)),
-        Topic(topic),
+        KafkaConsumer(get_config(ingest_config.output_topic, group_id, auto_offset_reset)),
+        Topic(ingest_config.output_topic),
         processing_factory,
     )

@@ -70,7 +70,7 @@ class DataSourceTestCase(TestCase, BaseMetricsTestCase):
             [self.project],
             query.to_metrics_query(),
             include_meta=True,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseKey.PERFORMANCE,
         )
         assert data["meta"] == sorted(
             [
@@ -149,7 +149,7 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
                 ],
                 "unit": "millisecond",
                 "metric_id": indexer.resolve(
-                    self.organization.id, something_custom_metric, UseCaseKey.PERFORMANCE
+                    UseCaseKey.PERFORMANCE, self.organization.id, something_custom_metric
                 ),
             }
         ]
@@ -197,7 +197,7 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
                 ],
                 "unit": "millisecond",
                 "metric_id": indexer.resolve(
-                    self.organization.id, something_custom_metric, UseCaseKey.PERFORMANCE
+                    UseCaseKey.PERFORMANCE, self.organization.id, something_custom_metric
                 ),
             }
         ]

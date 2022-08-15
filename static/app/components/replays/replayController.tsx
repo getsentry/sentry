@@ -4,7 +4,6 @@ import {useResizeObserver} from '@react-aria/utils';
 
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import CompositeSelect from 'sentry/components/forms/compositeSelect';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {formatTime, relativeTimeInMs} from 'sentry/components/replays/utils';
@@ -85,20 +84,20 @@ function ReplayPlayPauseBar({isCompact}: {isCompact: boolean}) {
           title={t('Next breadcrumb')}
           icon={<IconNext size="sm" />}
           onClick={() => {
-            const startTimestampSec = replay?.getEvent().startTimestamp;
-            if (!startTimestampSec) {
+            const startTimestampMs = replay?.getReplay().startedAt?.getTime();
+            if (!startTimestampMs) {
               return;
             }
-            const transformedCrumbs = transformCrumbs(replay?.getRawCrumbs() || []);
+            const transformedCrumbs = replay?.getRawCrumbs() || [];
             const next = getNextBreadcrumb({
               crumbs: transformedCrumbs.filter(crumb =>
                 USER_ACTIONS.includes(crumb.type)
               ),
-              targetTimestampMs: startTimestampSec * 1000 + currentTime,
+              targetTimestampMs: startTimestampMs + currentTime,
             });
 
-            if (startTimestampSec !== undefined && next?.timestamp) {
-              setCurrentTime(relativeTimeInMs(next.timestamp, startTimestampSec));
+            if (startTimestampMs !== undefined && next?.timestamp) {
+              setCurrentTime(relativeTimeInMs(next.timestamp, startTimestampMs));
             }
           }}
           aria-label={t('Fast-forward to next breadcrumb')}
@@ -110,11 +109,11 @@ function ReplayPlayPauseBar({isCompact}: {isCompact: boolean}) {
 
 function ReplayCurrentTime() {
   const {currentTime, replay} = useReplayContext();
-  const durationMS = replay?.getDurationMS();
+  const durationMs = replay?.getDurationMs();
 
   return (
     <span>
-      {formatTime(currentTime)} / {durationMS ? formatTime(durationMS) : '??:??'}
+      {formatTime(currentTime)} / {durationMs ? formatTime(durationMs) : '--:--'}
     </span>
   );
 }

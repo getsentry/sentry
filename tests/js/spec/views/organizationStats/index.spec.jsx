@@ -364,6 +364,29 @@ describe('OrganizationStats', function () {
       },
     });
   });
+
+  it('displays sampling alert', function () {
+    const {organization: orgWithSampling} = initializeOrg({
+      organization: {features: ['server-side-sampling', 'server-side-sampling-ui']},
+      router,
+    });
+    const wrapper = mountWithTheme(
+      <OrganizationStats
+        organization={orgWithSampling}
+        location={{
+          query: {
+            dataCategory: DataCategory.TRANSACTIONS,
+          },
+        }}
+        router={router}
+      />,
+      routerContext
+    );
+
+    expect(wrapper.text()).toContain(
+      'Manage your transaction usage in Server-Side Sampling'
+    );
+  });
 });
 
 function getMockResponse() {

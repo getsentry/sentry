@@ -14,8 +14,8 @@ import {parseAssembly} from '../utils';
 
 import {Assembly} from './assembly';
 import ContextLine from './contextLine';
-import FrameRegisters from './frameRegisters';
-import FrameVariables from './frameVariables';
+import {FrameRegisters} from './frameRegisters';
+import {FrameVariables} from './frameVariables';
 import {OpenInContextLine} from './openInContextLine';
 import StacktraceLink from './stacktraceLink';
 
@@ -27,12 +27,14 @@ type Props = {
   className?: string;
   emptySourceNotation?: boolean;
   expandable?: boolean;
+  frameMeta?: Record<any, any>;
   hasAssembly?: boolean;
   hasContextRegisters?: boolean;
   hasContextSource?: boolean;
   hasContextVars?: boolean;
   isExpanded?: boolean;
   organization?: Organization;
+  registersMeta?: Record<any, any>;
 };
 
 const Context = ({
@@ -49,6 +51,8 @@ const Context = ({
   event,
   organization,
   className,
+  frameMeta,
+  registersMeta,
 }: Props) => {
   if (!hasContextSource && !hasContextVars && !hasContextRegisters && !hasAssembly) {
     return emptySourceNotation ? (
@@ -59,19 +63,14 @@ const Context = ({
     ) : null;
   }
 
-  const getContextLines = () => {
-    if (isExpanded) {
-      return frame.context;
-    }
-    return frame.context.filter(l => l[0] === frame.lineNo);
-  };
-
-  const contextLines = getContextLines();
+  const contextLines = isExpanded
+    ? frame.context
+    : frame.context.filter(l => l[0] === frame.lineNo);
 
   const startLineNo = hasContextSource ? frame.context[0][0] : undefined;
 
   return (
-    <ol
+    <Wrapper
       start={startLineNo}
       className={`${className} context ${isExpanded ? 'expanded' : ''}`}
     >
@@ -117,18 +116,22 @@ const Context = ({
 
       {hasContextVars && (
         <StyledClippedBox clipHeight={100}>
-          <FrameVariables data={frame.vars || {}} />
+          <FrameVariables data={frame.vars ?? {}} meta={frameMeta?.vars} />
         </StyledClippedBox>
       )}
 
       {hasContextRegisters && (
-        <FrameRegisters registers={registers} deviceArch={event.contexts?.device?.arch} />
+        <FrameRegisters
+          registers={registers}
+          meta={registersMeta}
+          deviceArch={event.contexts?.device?.arch}
+        />
       )}
 
       {hasAssembly && (
         <Assembly {...parseAssembly(frame.package)} filePath={frame.absPath} />
       )}
-    </ol>
+    </Wrapper>
   );
 };
 
@@ -158,4 +161,10 @@ const StyledContextLine = styled(ContextLine)`
   padding: 0;
   text-indent: 20px;
   z-index: 1000;
+`;
+
+const Wrapper = styled('ol')`
+  && {
+    border-radius: 0;
+  }
 `;

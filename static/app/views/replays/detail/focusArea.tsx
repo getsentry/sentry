@@ -5,7 +5,7 @@ import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
-import type {RawCrumb} from 'sentry/types/breadcrumbs';
+import type {Crumb} from 'sentry/types/breadcrumbs';
 import {isBreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
 import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -18,7 +18,7 @@ import Trace from 'sentry/views/replays/detail/trace';
 
 type Props = {};
 
-function getBreadcrumbsByCategory(breadcrumbs: RawCrumb[], categories: string[]) {
+function getBreadcrumbsByCategory(breadcrumbs: Crumb[], categories: string[]) {
   return breadcrumbs
     .filter(isBreadcrumbTypeDefault)
     .filter(breadcrumb => categories.includes(breadcrumb.category || ''));
@@ -40,10 +40,11 @@ function FocusArea({}: Props) {
     return <Placeholder height="150px" />;
   }
 
-  const event = replay.getEvent();
+  const replayRecord = replay.getReplay();
+  const startTimestampMs = replayRecord.startedAt.getTime();
 
   const getNetworkSpans = () => {
-    return replay.getRawSpans().filter(replay.isNotMemorySpan);
+    return replay.getRawSpans().filter(replay.isNetworkSpan);
   };
 
   switch (getActiveTab()) {
@@ -55,11 +56,11 @@ function FocusArea({}: Props) {
       return (
         <Console
           breadcrumbs={consoleMessages ?? []}
-          startTimestamp={event?.startTimestamp}
+          startTimestampMs={replayRecord.startedAt.getTime()}
         />
       );
     case 'network':
-      return <NetworkList event={event} networkSpans={getNetworkSpans()} />;
+      return <NetworkList replayRecord={replayRecord} networkSpans={getNetworkSpans()} />;
     case 'trace':
       const features = ['organizations:performance-view'];
 
@@ -78,11 +79,13 @@ function FocusArea({}: Props) {
           features={features}
           renderDisabled={renderDisabled}
         >
-          <Trace organization={organization} event={event} />
+          <Trace organization={organization} replayRecord={replayRecord} />
         </Feature>
       );
     case 'issues':
-      return <IssueList replayId={event.id} projectId={event.projectID} />;
+      return (
+        <IssueList replayId={replayRecord.replayId} projectId={replayRecord.projectId} />
+      );
     case 'dom':
       return <DomMutations replay={replay} />;
     case 'memory':
@@ -93,7 +96,7 @@ function FocusArea({}: Props) {
           memorySpans={memorySpans}
           setCurrentTime={setCurrentTime}
           setCurrentHoverTime={setCurrentHoverTime}
-          startTimestamp={event?.startTimestamp}
+          startTimestampMs={startTimestampMs}
         />
       );
     default:

@@ -2,26 +2,21 @@ import last from 'lodash/last';
 
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import {BreadcrumbType, BreadcrumbTypeNavigation} from 'sentry/types/breadcrumbs';
-import type {EventTransaction} from 'sentry/types/event';
-import {EventTag} from 'sentry/types/event';
-
-function findUrlTag(tags: EventTag[]) {
-  return tags.find(tag => tag.key === 'url');
-}
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 function getCurrentUrl(
-  event: EventTransaction,
+  replayRecord: ReplayRecord,
   crumbs: Crumb[],
   currentOffsetMS: number
 ) {
-  const startTimestampMs = event.startTimestamp * 1000;
+  const startTimestampMs = replayRecord.startedAt.getTime();
   const currentTimeMs = startTimestampMs + Math.floor(currentOffsetMS);
 
   const navigationCrumbs = crumbs.filter(
     crumb => crumb.type === BreadcrumbType.NAVIGATION
   ) as BreadcrumbTypeNavigation[];
 
-  const initialUrl = findUrlTag(event.tags)?.value || '';
+  const initialUrl = replayRecord.tags.url;
   const origin = initialUrl ? new URL(initialUrl).origin : '';
 
   const mostRecentNavigation = last(

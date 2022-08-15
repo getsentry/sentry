@@ -391,6 +391,11 @@ class Fixtures:
 
         return integration
 
+    def create_integration(
+        self, organization: Organization, external_id: str, **kwargs: Any
+    ) -> Integration:
+        return Factories.create_integration(organization, external_id, **kwargs)
+
     def create_identity(self, *args, **kwargs):
         return Factories.create_identity(*args, **kwargs)
 
@@ -404,6 +409,9 @@ class Fixtures:
 
     def create_comment(self, *args, **kwargs):
         return Factories.create_comment(*args, **kwargs)
+
+    def create_sentry_function(self, *args, **kwargs):
+        return Factories.create_sentry_function(*args, **kwargs)
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):

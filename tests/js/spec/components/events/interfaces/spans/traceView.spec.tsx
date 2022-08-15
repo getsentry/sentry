@@ -14,7 +14,7 @@ import {spanTargetHash} from 'sentry/components/events/interfaces/spans/utils';
 import WaterfallModel from 'sentry/components/events/interfaces/spans/waterfallModel';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {EntryType, EventTransaction} from 'sentry/types';
-import * as QuickTraceContext from 'sentry/utils/performance/quickTrace/quickTraceContext';
+import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 
 function initializeData(settings) {
@@ -138,7 +138,7 @@ describe('TraceView', () => {
 
     it('should expand grouped siblings when clicked, and then regroup when clicked again', async () => {
       // eslint-disable-next-line no-console
-      console.error = jest.fn();
+      jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
       const data = initializeData({
         features: ['performance-autogroup-sibling-spans'],

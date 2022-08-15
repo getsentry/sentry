@@ -5,13 +5,14 @@ import {divide, flattenSpans} from 'sentry/components/replays/utils';
 import Tooltip from 'sentry/components/tooltip';
 import {tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type {ReplaySpan} from 'sentry/views/replays/types';
 
 type Props = {
   /**
    * Duration, in milliseconds, of the timeline
    */
-  durationMS: number;
+  durationMs: number;
 
   /**
    * The spans to render into the timeline
@@ -21,7 +22,7 @@ type Props = {
   /**
    * Timestamp when the timeline begins, in milliseconds
    */
-  startTimestamp: number;
+  startTimestampMs: number;
 
   /**
    * Extra classNames
@@ -29,16 +30,16 @@ type Props = {
   className?: string;
 };
 
-function ReplayTimelineEvents({className, durationMS, spans, startTimestamp}: Props) {
+function ReplayTimelineEvents({className, durationMs, spans, startTimestampMs}: Props) {
   const flattenedSpans = flattenSpans(spans);
+  const {setActiveTab} = useActiveReplayTab();
 
-  const startMs = startTimestamp * 1000;
   return (
     <Spans className={className}>
       {flattenedSpans.map((span, i) => {
-        const sinceStart = span.startTimestamp - startMs;
-        const startPct = divide(sinceStart, durationMS);
-        const widthPct = divide(span.duration, durationMS);
+        const sinceStart = span.startTimestamp - startTimestampMs;
+        const startPct = divide(sinceStart, durationMs);
+        const widthPct = divide(span.duration, durationMs);
 
         const requestsCount = tn(
           '%s network request',
@@ -59,7 +60,11 @@ function ReplayTimelineEvents({className, durationMS, spans, startTimestamp}: Pr
             disableForVisualTest
             position="bottom"
           >
-            <Span startPct={startPct} widthPct={widthPct} />
+            <Span
+              startPct={startPct}
+              widthPct={widthPct}
+              onClick={() => setActiveTab('network')}
+            />
           </Tooltip>
         );
       })}
@@ -80,6 +85,7 @@ const Spans = styled('ul')`
 `;
 
 const Span = styled('li')<{startPct: number; widthPct: number}>`
+  cursor: pointer;
   display: block;
   position: absolute;
   left: ${p => p.startPct * 100}%;

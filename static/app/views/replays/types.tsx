@@ -2,6 +2,39 @@ import type {eventWithTime} from 'rrweb/typings/types';
 
 import type {RawCrumb} from 'sentry/types/breadcrumbs';
 
+// Keep this in sync with the backend blueprint
+// "ReplayRecord" is distinct from the common: "replay = new ReplayReader()"
+export type ReplayRecord = {
+  countErrors: number;
+  countSegments: number;
+  countUrls: number;
+  dist: null | string;
+  duration: number;
+  environment: null | string;
+  errorIds: string[];
+  finishedAt: Date; // API will send a string, needs to be hydrated
+  longestTransaction: number;
+  platform: string;
+  projectId: string;
+  projectSlug: string;
+  release: null | string;
+  replayId: string;
+  sdkName: string;
+  sdkVersion: string;
+  startedAt: Date; // API will send a string, needs to be hydrated
+  tags: Record<string, string>;
+  title: string;
+  traceIds: string[];
+  urls: string[];
+  user: {
+    email: null | string;
+    id: null | string;
+    ipAddress: null | string;
+    name: null | string;
+  };
+  userAgent: string;
+};
+
 export type ReplayDiscoveryListItem = {
   eventID: string;
   id: string;
@@ -61,3 +94,15 @@ export interface ReplayError {
   ['project.name']: string;
   timestamp: string;
 }
+
+/**
+ * Replay custom discover query
+ */
+export type ReplayDurationAndErrors = {
+  count_if_event_type_equals_error: number;
+  'equation[0]': number;
+  id: string;
+  max_timestamp: string;
+  min_timestamp: string;
+  replayId: string;
+};

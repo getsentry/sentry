@@ -1,5 +1,5 @@
 import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {Rect, Transform} from 'sentry/utils/profiling/gl/utils';
+import {Rect, transformMatrixBetweenRect} from 'sentry/utils/profiling/gl/utils';
 import {
   computeInterval,
   getIntervalTimeAtX,
@@ -19,10 +19,7 @@ describe('getIntervalTimeAtX', () => {
       1 / window.devicePixelRatio
     );
 
-    const logicalToConfig = Transform.transformMatrixBetweenRect(
-      logicalSpace,
-      configView
-    );
+    const logicalToConfig = transformMatrixBetweenRect(logicalSpace, configView);
 
     expect(getIntervalTimeAtX(logicalToConfig, 500)).toBe(5);
   });
@@ -35,10 +32,7 @@ describe('getIntervalTimeAtX', () => {
       1 / window.devicePixelRatio
     );
 
-    const logicalToConfig = Transform.transformMatrixBetweenRect(
-      logicalSpace,
-      configView
-    );
+    const logicalToConfig = transformMatrixBetweenRect(logicalSpace, configView);
 
     expect(getIntervalTimeAtX(logicalToConfig, 500)).toBe(10);
   });
@@ -52,10 +46,7 @@ describe('getIntervalTimeAtX', () => {
       1 / window.devicePixelRatio
     );
 
-    const logicalToConfig = Transform.transformMatrixBetweenRect(
-      logicalSpace,
-      configView
-    );
+    const logicalToConfig = transformMatrixBetweenRect(logicalSpace, configView);
 
     expect(getIntervalTimeAtX(logicalToConfig, 500)).toBe(10);
   });
@@ -70,10 +61,7 @@ describe('getIntervalTimeAtX', () => {
       1 / window.devicePixelRatio
     );
 
-    const logicalToPhysical = Transform.transformMatrixBetweenRect(
-      logicalSpace,
-      configView
-    );
+    const logicalToPhysical = transformMatrixBetweenRect(logicalSpace, configView);
 
     expect(getIntervalTimeAtX(logicalToPhysical, 500)).toBe(15);
   });
@@ -91,10 +79,7 @@ describe('computeInterval', () => {
       1 / window.devicePixelRatio
     );
 
-    const logicalToConfig = Transform.transformMatrixBetweenRect(
-      logicalSpace,
-      configView
-    );
+    const logicalToConfig = transformMatrixBetweenRect(logicalSpace, configView);
 
     expect(computeInterval(configView, logicalToConfig)).toEqual([
       0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100,
@@ -109,10 +94,7 @@ describe('computeInterval', () => {
       1 / window.devicePixelRatio
     );
 
-    const logicalToConfig = Transform.transformMatrixBetweenRect(
-      logicalSpace,
-      configView
-    );
+    const logicalToConfig = transformMatrixBetweenRect(logicalSpace, configView);
 
     expect(computeInterval(configView, logicalToConfig)).toEqual([
       50, 60, 70, 80, 90, 100,
@@ -127,10 +109,7 @@ describe('computeInterval', () => {
       1 / window.devicePixelRatio
     );
 
-    const logicalToConfig = Transform.transformMatrixBetweenRect(
-      logicalSpace,
-      configView
-    );
+    const logicalToConfig = transformMatrixBetweenRect(logicalSpace, configView);
 
     expect(computeInterval(configView, logicalToConfig)).toEqual([
       60, 65, 70, 75, 80, 85, 90, 95, 100,
@@ -145,10 +124,7 @@ describe('computeInterval', () => {
       1 / window.devicePixelRatio
     );
 
-    const logicalToConfig = Transform.transformMatrixBetweenRect(
-      logicalSpace,
-      configView
-    );
+    const logicalToConfig = transformMatrixBetweenRect(logicalSpace, configView);
 
     expect(computeInterval(configView, logicalToConfig)).toEqual([
       80, 82, 84, 86, 88, 90, 92, 94, 96, 98, 100,
@@ -163,10 +139,7 @@ describe('computeInterval', () => {
       1 / window.devicePixelRatio
     );
 
-    const logicalToConfig = Transform.transformMatrixBetweenRect(
-      logicalSpace,
-      configView
-    );
+    const logicalToConfig = transformMatrixBetweenRect(logicalSpace, configView);
 
     expect(computeInterval(configView, logicalToConfig)).toEqual([
       0, 0.5, 1, 1.5, 2, 2.5, 3,
@@ -202,15 +175,12 @@ describe('gridRenderer', () => {
       1 / window.devicePixelRatio
     );
 
-    const configViewToPhysicalSpace = Transform.transformMatrixBetweenRect(
+    const configViewToPhysicalSpace = transformMatrixBetweenRect(
       configView,
       physicalSpace
     );
 
-    const logicalSpaceToConfigView = Transform.transformMatrixBetweenRect(
-      logicalSpace,
-      configView
-    );
+    const logicalSpaceToConfigView = transformMatrixBetweenRect(logicalSpace, configView);
 
     renderer.draw(
       configView,
@@ -232,7 +202,7 @@ describe('gridRenderer', () => {
       );
       // @ts-ignore this is a mock
       // First 3 draw calls are for the horizontal line, the rest are verticals
-      expect(context.strokeRect.mock.calls[i][0]).toEqual(i * 100 - 0.5);
+      expect(context.strokeRect.mock.calls[i][0]).toEqual(i * 100 - 1);
     }
   });
 });

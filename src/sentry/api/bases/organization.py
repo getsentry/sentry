@@ -5,7 +5,6 @@ from django.core.cache import cache
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.request import Request
 
-from sentry import options
 from sentry.api.base import Endpoint, resolve_region
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
@@ -156,29 +155,6 @@ class OrganizationAlertRulePermission(OrganizationPermission):
         "PUT": ["org:write", "org:admin", "alert_rule:write"],
         "DELETE": ["org:write", "org:admin", "alert_rule:write"],
     }
-
-
-def parse_subdomain(subdomain):
-    if subdomain is None:
-        return None, None
-    org_base_hostname = options.get("system.organization-base-hostname")
-    if not org_base_hostname or "{slug}" not in org_base_hostname:
-        return None, None
-    org_slug = subdomain
-    region = None
-    if "{region}" in org_base_hostname:
-        if "." in subdomain:
-            org_slug, _, region = subdomain.rpartition(".")
-        else:
-            return None, None
-    return org_slug, region
-
-
-def resolve_org_slug_region(request: Request, organization_slug: Optional[str] = None):
-    region = None
-    if organization_slug is None and request.subdomain is not None:
-        organization_slug, region = parse_subdomain(request.subdomain)
-    return organization_slug, region
 
 
 class OrganizationEndpoint(Endpoint):
@@ -355,6 +331,7 @@ class OrganizationEndpoint(Endpoint):
             "start": start,
             "end": end,
             "project_id": [p.id for p in projects],
+            "project_objects": projects,
             "organization_id": organization.id,
         }
 
@@ -402,7 +379,9 @@ class OrganizationEndpoint(Endpoint):
 class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationReleasePermission,)
 
-    def get_projects(self, request: Request, organization, project_ids=None):
+    def get_projects(
+        self, request: Request, organization, project_ids=None, include_all_accessible=True
+    ):
         """
         Get all projects the current user or API token has access to. More
         detail in the parent class's method of the same name.
@@ -424,7 +403,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             request,
             organization,
             force_global_perms=has_valid_api_key,
-            include_all_accessible=True,
+            include_all_accessible=include_all_accessible,
             project_ids=project_ids,
         )
 

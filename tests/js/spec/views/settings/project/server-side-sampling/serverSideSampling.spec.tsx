@@ -59,14 +59,10 @@ describe('Server-Side Sampling', function () {
     );
 
     expect(
-      screen.getByRole('heading', {name: 'Server-Side Sampling'})
+      screen.getByRole('heading', {name: /Server-Side Sampling/})
     ).toBeInTheDocument();
 
-    expect(
-      screen.getByText(
-        'Enhance the performance monitoring experience by targeting which transactions are most valuable to your organization without the need for re-deployment.'
-      )
-    ).toBeInTheDocument();
+    expect(screen.getByText(/enhance the performance monitoring/i)).toBeInTheDocument();
 
     // Assert that project breakdown is there
     expect(await screen.findByText(samplingBreakdownTitle)).toBeInTheDocument();
@@ -297,8 +293,7 @@ describe('Server-Side Sampling', function () {
     expect(sdkVersionsMock).not.toHaveBeenCalled();
   });
 
-  // eslint-disable-next-line jest/no-disabled-tests
-  it.skip('does not let the user activate a rule if sdk updates exists', async function () {
+  it('does not let the user activate a rule if sdk updates exists', async function () {
     const {organization, router, project} = getMockData({
       projects: [
         TestStubs.Project({

@@ -8,41 +8,47 @@ import {CrumbWalker} from 'sentry/components/replays/walker/urlWalker';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import space from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
-import type {EventTransaction} from 'sentry/types/event';
 import EventMetaData, {
   HeaderPlaceholder,
 } from 'sentry/views/replays/detail/eventMetaData';
 import ChooseLayout from 'sentry/views/replays/detail/layout/chooseLayout';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
   children: ReactNode;
   orgId: string;
   crumbs?: Crumb[];
-  durationMS?: number;
-  event?: EventTransaction;
+  durationMs?: number;
+  replayRecord?: ReplayRecord;
 };
 
-function Page({children, crumbs, durationMS, event, orgId}: Props) {
-  const title = event ? `${event.id} - Replays - ${orgId}` : `Replays - ${orgId}`;
+function Page({children, crumbs, durationMs, orgId, replayRecord}: Props) {
+  const title = replayRecord
+    ? `${replayRecord.replayId} - Replays - ${orgId}`
+    : `Replays - ${orgId}`;
 
   const header = (
     <Header>
       <HeaderContent>
-        <DetailsPageBreadcrumbs orgId={orgId} event={event} />
+        <DetailsPageBreadcrumbs orgId={orgId} replayRecord={replayRecord} />
       </HeaderContent>
       <ButtonActionsWrapper>
         <FeatureFeedback featureName="replay" buttonProps={{size: 'xs'}} />
         <ChooseLayout />
       </ButtonActionsWrapper>
 
-      {event && crumbs ? (
-        <CrumbWalker event={event} crumbs={crumbs} />
+      {replayRecord && crumbs ? (
+        <CrumbWalker replayRecord={replayRecord} crumbs={crumbs} />
       ) : (
         <HeaderPlaceholder />
       )}
 
       <MetaDataColumn>
-        <EventMetaData crumbs={crumbs} durationMS={durationMS} event={event} />
+        <EventMetaData
+          crumbs={crumbs}
+          durationMs={durationMs}
+          replayRecord={replayRecord}
+        />
       </MetaDataColumn>
     </Header>
   );

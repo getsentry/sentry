@@ -10,13 +10,18 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import DiscoverQuery, {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import {getAggregateAlias, WebVital} from 'sentry/utils/discover/fields';
-import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {getAggregateAlias} from 'sentry/utils/discover/fields';
+import {WebVital} from 'sentry/utils/fields';
+import {
+  canUseMetricsData,
+  useMEPSettingContext,
+} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
+import {UNPARAMETERIZED_TRANSACTION} from 'sentry/views/performance/utils';
 import {vitalDetailRouteWithQuery} from 'sentry/views/performance/vitalDetail/utils';
 import {_VitalChart} from 'sentry/views/performance/vitalDetail/vitalChart';
 
@@ -113,12 +118,10 @@ export function VitalWidget(props: PerformanceWidgetProps) {
           }));
 
           _eventView.sorts = [{kind: 'desc', field: sortField}];
-          if (
-            props.organization.features.includes(
-              'performance-transaction-name-only-search'
-            )
-          ) {
-            _eventView.additionalConditions.setFilterValues('!transaction', ['']);
+          if (canUseMetricsData(organization)) {
+            _eventView.additionalConditions.setFilterValues('!transaction', [
+              UNPARAMETERIZED_TRANSACTION,
+            ]);
           }
 
           _eventView.fields = [

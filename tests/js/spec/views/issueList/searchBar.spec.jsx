@@ -25,7 +25,7 @@ describe('IssueListSearchBar', function () {
   beforeEach(function () {
     TagStore.reset();
     TagStore.loadTagsSuccess(TestStubs.Tags());
-    supportedTags = TagStore.getAllTags();
+    supportedTags = TagStore.getStateTags();
     // Add a tag that is preseeded with values.
     supportedTags.is = {
       key: 'is',
@@ -216,7 +216,10 @@ describe('IssueListSearchBar', function () {
       jest.useRealTimers();
       const wrapper = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
 
-      wrapper.find('textarea').simulate('change', {target: {value: 'is:'}});
+      wrapper
+        .find('textarea')
+        .simulate('focus')
+        .simulate('change', {target: {value: 'is:'}});
       await tick();
 
       wrapper.update();

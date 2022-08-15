@@ -6,13 +6,12 @@ from sentry import digests
 from sentry.digests import Digest
 from sentry.digests import get_option_key as get_digest_option_key
 from sentry.digests.notifications import event_to_record, unsplit_key
+from sentry.eventstore.models import Event
 from sentry.models import NotificationSetting, Project, ProjectOption
+from sentry.notifications.notifications.active_release import ActiveReleaseIssueNotification
 from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.notifications.digest import DigestNotification
-from sentry.notifications.notifications.rules import (
-    ActiveReleaseAlertNotification,
-    AlertRuleNotification,
-)
+from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.notifications.user_report import UserReportNotification
 from sentry.notifications.types import ActionTargetType
 from sentry.plugins.base.structs import Notification
@@ -63,8 +62,7 @@ class MailAdapter:
         project = event.group.project
         extra["project_id"] = project.id
 
-        # XXX(workflow): remove the extra condition after digests.enabled(project) when wf2.0 experiment is over
-        if digests.enabled(project) and target_type != ActionTargetType.RELEASE_MEMBERS:
+        if digests.enabled(project):
 
             def get_digest_option(key):
                 return ProjectOption.objects.get_value(project, get_digest_option_key("mail", key))
@@ -88,6 +86,19 @@ class MailAdapter:
 
         logger.info("mail.adapter.notification.%s" % log_event, extra=extra)
 
+    def active_release_notify(self, event: Event, state) -> None:
+        metrics.incr("mail_adapter.active_release_notify")
+        self.notify_active_release(Notification(event=event, rules=None), state)
+        logger.info(
+            "mail.adapter.notification.active_release.dispatched",
+            extra={
+                "event_id": event.event_id,
+                "group_id": event.group_id,
+                "is_from_mail_action_adapter": True,
+                "project_id": event.group.project.id,
+            },
+        )
+
     @staticmethod
     def get_sendable_user_objects(project):
         """
@@ -108,10 +119,13 @@ class MailAdapter:
 
     @staticmethod
     def notify(notification, target_type, target_identifier=None, **kwargs):
-        if target_type == ActionTargetType.RELEASE_MEMBERS:
-            ActiveReleaseAlertNotification(notification, target_type, target_identifier).send()
-        else:
-            AlertRuleNotification(notification, target_type, target_identifier).send()
+        AlertRuleNotification(notification, target_type, target_identifier).send()
+
+    @staticmethod
+    def notify_active_release(notification, state):
+        ActiveReleaseIssueNotification(
+            notification, state, target_type=ActionTargetType.RELEASE_MEMBERS
+        ).send()
 
     @staticmethod
     def notify_digest(

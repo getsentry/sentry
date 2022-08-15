@@ -1,13 +1,12 @@
-import {lazy, Suspense} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
-import DropdownMenu from 'sentry/components/dropdownMenu';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Placeholder from 'sentry/components/placeholder';
+import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import {IconCalendar} from 'sentry/icons';
 import {inputStyles} from 'sentry/styles/input';
 import space from 'sentry/styles/space';
+
+import {DatePicker} from '../calendar';
 
 import InputField, {InputFieldProps, onEvent} from './inputField';
 
@@ -26,8 +25,6 @@ function handleChangeDate(
   close();
 }
 
-const Calendar = lazy(() => import('./calendarField'));
-
 export default function DatePickerField(props: DatePickerFieldProps) {
   return (
     <InputField
@@ -38,7 +35,7 @@ export default function DatePickerField(props: DatePickerFieldProps) {
         const dateString = moment(inputValue).format('LL');
 
         return (
-          <DropdownMenu keepMenuOpen>
+          <DeprecatedDropdownMenu keepMenuOpen>
             {({isOpen, getRootProps, getActorProps, getMenuProps, actions}) => (
               <div {...getRootProps()}>
                 <InputWrapper id={id} {...getActorProps()} isOpen={isOpen}>
@@ -50,25 +47,17 @@ export default function DatePickerField(props: DatePickerFieldProps) {
 
                 {isOpen && (
                   <CalendarMenu {...getMenuProps()}>
-                    <Suspense
-                      fallback={
-                        <Placeholder width="332px" height="282px">
-                          <LoadingIndicator />
-                        </Placeholder>
+                    <DatePicker
+                      date={inputValue}
+                      onChange={date =>
+                        handleChangeDate(onChange, onBlur, date, actions.close)
                       }
-                    >
-                      <Calendar
-                        date={inputValue}
-                        onChange={date =>
-                          handleChangeDate(onChange, onBlur, date, actions.close)
-                        }
-                      />
-                    </Suspense>
+                    />
                   </CalendarMenu>
                 )}
               </div>
             )}
-          </DropdownMenu>
+          </DeprecatedDropdownMenu>
         );
       }}
     />

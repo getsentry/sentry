@@ -3,6 +3,7 @@ from __future__ import annotations
 from html import escape
 from typing import Any, Mapping
 
+from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 
 from .base import GroupActivityNotification
@@ -31,7 +32,9 @@ class ResolvedInReleaseActivityNotification(GroupActivityNotification):
             )
         return "{author} marked {an issue} as resolved in an upcoming release", {}, {}
 
-    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
+    def get_notification_title(
+        self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
+    ) -> str:
         data = self.activity.data
         author = self.activity.user.get_display_name()
         release = data["version"] if data.get("version") else "an upcoming release"

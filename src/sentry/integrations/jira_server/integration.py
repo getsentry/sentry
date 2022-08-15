@@ -41,6 +41,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationError,
     IntegrationFormError,
 )
+from sentry.tasks.integrations import migrate_issues
 from sentry.utils.decorators import classproperty
 from sentry.utils.hashlib import sha1_text
 from sentry.utils.http import absolute_uri
@@ -659,86 +660,31 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
         fkwargs["type"] = fieldtype
         return fkwargs
 
-    def get_issue_type_meta(self, issue_type, meta):
-        issue_types = meta["issuetypes"]
-        issue_type_meta = None
-        if issue_type:
-            matching_type = [t for t in issue_types if t["id"] == issue_type]
-            issue_type_meta = matching_type[0] if len(matching_type) > 0 else None
-
-        # still no issue type? just use the first one.
-        if not issue_type_meta:
-            issue_type_meta = issue_types[0]
-
-        return issue_type_meta
-
-    def get_issue_create_meta(self, client, project_id, jira_projects):
-        meta = None
-        if project_id:
-            meta = self.fetch_issue_create_meta(client, project_id)
-        if meta is not None:
-            return meta
-
-        # If we don't have a jira projectid (or we couldn't fetch the metadata from the given project_id),
-        # iterate all projects and find the first project that has metadata.
-        # We only want one project as getting all project metadata is expensive and wasteful.
-        # In the first run experience, the user won't have a 'last used' project id
-        # so we need to iterate available projects until we find one that we can get metadata for.
-        attempts = 0
-        if len(jira_projects):
-            for fallback in jira_projects:
-                attempts += 1
-                meta = self.fetch_issue_create_meta(client, fallback["id"])
-                if meta:
-                    logger.info(
-                        "jira.get-issue-create-meta.attempts",
-                        extra={"organization_id": self.organization_id, "attempts": attempts},
-                    )
-                    return meta
-
-        jira_project_ids = "no projects"
-        if len(jira_projects):
-            jira_project_ids = ",".join(project["key"] for project in jira_projects)
-
-        logger.info(
-            "jira.get-issue-create-meta.no-metadata",
-            extra={
-                "organization_id": self.organization_id,
-                "attempts": attempts,
-                "jira_projects": jira_project_ids,
-            },
-        )
-        raise IntegrationError(
-            "Could not get issue create metadata for any Jira projects. "
-            "Ensure that your project permissions are correct."
-        )
-
-    def fetch_issue_create_meta(self, client, project_id):
+    def get_projects(self):
+        client = self.get_client()
+        no_projects_error_message = "Could not fetch project list from Jira Server. Ensure that Jira Server is available and your account is still active."
         try:
-            meta = client.get_create_meta_for_project(project_id)
-        except ApiUnauthorized:
-            logger.info(
-                "jira.fetch-issue-create-meta.unauthorized",
-                extra={"organization_id": self.organization_id, "jira_project": project_id},
-            )
-            raise IntegrationError(
-                "Jira returned: Unauthorized. " "Please check your configuration settings."
-            )
+            jira_projects = client.get_projects_list()
         except ApiError as e:
             logger.info(
-                "jira.fetch-issue-create-meta.error",
+                "jira_server.get_projects.error",
                 extra={
                     "integration_id": self.model.id,
                     "organization_id": self.organization_id,
-                    "jira_project": project_id,
                     "error": str(e),
                 },
             )
-            raise IntegrationError(
-                "There was an error communicating with the Jira API. "
-                "Please try again or contact support."
+            raise IntegrationError(no_projects_error_message)
+        if len(jira_projects) == 0:
+            logger.info(
+                "jira_server.get_projects.no_projects",
+                extra={
+                    "integration_id": self.model.id,
+                    "organization_id": self.organization_id,
+                },
             )
-        return meta
+            raise IntegrationError(no_projects_error_message)
+        return jira_projects
 
     def get_create_issue_config(self, group, user, **kwargs):
         """
@@ -756,8 +702,9 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                 example: "Bug", "Epic", "Story".
         :return:
         """
+
         kwargs = kwargs or {}
-        kwargs["link_referrer"] = "jira_integration"
+        kwargs["link_referrer"] = "jira_server_integration"
         params = kwargs.get("params", {})
         fields = []
         defaults = {}
@@ -766,47 +713,45 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             defaults = self.get_defaults(group.project, user)
 
         project_id = params.get("project", defaults.get("project"))
-        client = self.get_client()
-        try:
-            jira_projects = client.get_projects_list()
-        except ApiError as e:
-            logger.info(
-                "jira.get-create-issue-config.no-projects",
-                extra={
-                    "integration_id": self.model.id,
-                    "organization_id": self.organization_id,
-                    "error": str(e),
-                },
-            )
-            raise IntegrationError(
-                "Could not fetch project list from Jira. Ensure that Jira is"
-                " available and your account is still active."
-            )
+        jira_projects = self.get_projects()
 
-        meta = self.get_issue_create_meta(client, project_id, jira_projects)
-        if not meta:
-            raise IntegrationError(
-                "Could not fetch issue create metadata from Jira. Ensure that"
-                " the integration user has access to the requested project."
-            )
+        if not project_id:
+            project_id = jira_projects[0]["id"]
+
+        client = self.get_client()
+        issue_type_choices = client.get_issue_types(project_id)
+        issue_type_choices_formatted = [
+            (choice["id"], choice["name"]) for choice in issue_type_choices["values"]
+        ]
 
         # check if the issuetype was passed as a parameter
         issue_type = params.get("issuetype", defaults.get("issuetype"))
-        issue_type_meta = self.get_issue_type_meta(issue_type, meta)
-        issue_type_choices = self.make_choices(meta["issuetypes"])
+        # make sure default issue type is actually one that is allowed for project
+        valid_issue_type = any(
+            choice for choice in issue_type_choices["values"] if choice["id"] == issue_type
+        )
 
-        # make sure default issue type is actually
-        # one that is allowed for project
-        if issue_type:
-            if not any(c for c in issue_type_choices if c[0] == issue_type):
-                issue_type = issue_type_meta["id"]
+        if not issue_type or not valid_issue_type:
+            # pick the first issue type in the list
+            issue_type = issue_type_choices["values"][0]["id"]
+        try:
+            issue_type_meta = client.get_issue_fields(project_id, issue_type)
+        except ApiUnauthorized:
+            logger.info(
+                "jira_server.get_create_issue_config.unauthorized",
+                extra={"organization_id": self.organization_id, "jira_project": project_id},
+            )
+            raise IntegrationError(
+                "Could not fetch issue creation metadata from Jira Server. Ensure that"
+                " the integration user has access to the requested project."
+            )
 
         fields = [
             {
                 "name": "project",
                 "label": "Jira Project",
                 "choices": [(p["id"], p["key"]) for p in jira_projects],
-                "default": meta["id"],
+                "default": project_id,
                 "type": "select",
                 "updatesForm": True,
             },
@@ -816,9 +761,11 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                 "label": "Issue Type",
                 "default": issue_type or issue_type_meta["id"],
                 "type": "select",
-                "choices": issue_type_choices,
+                "choices": issue_type_choices_formatted,
                 "updatesForm": True,
-                "required": bool(issue_type_choices),  # required if we have any type choices
+                "required": bool(
+                    issue_type_choices_formatted
+                ),  # required if we have any type choices
             },
         ]
 
@@ -836,8 +783,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             "components": (-100, ""),
             "security": (-50, ""),
         }
-
-        dynamic_fields = list(issue_type_meta["fields"].keys())
+        dynamic_fields = [val["fieldId"] for val in issue_type_meta["values"]]
         # Sort based on priority, then field name
         dynamic_fields.sort(key=lambda f: anti_gravity.get(f, (0, f)))
 
@@ -847,12 +793,14 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                 # don't overwrite the fixed fields for the form.
                 continue
 
-            mb_field = self.build_dynamic_field(issue_type_meta["fields"][field], group)
-            if mb_field:
-                if mb_field["label"] in params.get("ignored", []):
-                    continue
-                mb_field["name"] = field
-                fields.append(mb_field)
+            field_meta = [value for value in issue_type_meta["values"] if value["fieldId"] == field]
+            if len(field_meta) > 0:
+                mb_field = self.build_dynamic_field(field_meta[0], group)
+                if mb_field:
+                    if mb_field["label"] in params.get("ignored", []):
+                        continue
+                    mb_field["name"] = field
+                    fields.append(mb_field)
 
         for field in fields:
             if field["name"] == "priority":
@@ -861,7 +809,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                 field["choices"] = self.make_choices(client.get_priorities())
                 field["default"] = defaults.get("priority", "")
             elif field["name"] == "fixVersions":
-                field["choices"] = self.make_choices(client.get_versions(meta["key"]))
+                field["choices"] = self.make_choices(client.get_versions(project_id))
             elif field["name"] == "labels":
                 field["default"] = defaults.get("labels", "")
             elif field["name"] == "reporter":
@@ -872,7 +820,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                     reporter_info = client.get_user(reporter_id)
                 except ApiError as e:
                     logger.info(
-                        "jira.get-create-issue-config.no-matching-reporter",
+                        "jira_server.get_create_issue_config.no-matching-reporter",
                         extra={
                             "integration_id": self.model.id,
                             "organization_id": self.organization_id,
@@ -905,42 +853,43 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
         cleaned_data = {}
         # protect against mis-configured integration submitting a form without an
         # issuetype assigned.
-        if not data.get("issuetype"):
+        issue_type = data.get("issuetype")
+        if not issue_type:
             raise IntegrationFormError({"issuetype": ["Issue type is required."]})
 
         jira_project = data.get("project")
         if not jira_project:
             raise IntegrationFormError({"project": ["Jira project is required"]})
 
-        meta = client.get_create_meta_for_project(jira_project)
-        if not meta:
+        issue_type_meta = client.get_issue_fields(jira_project, issue_type)
+        if not issue_type_meta:
             raise IntegrationError("Could not fetch issue create configuration from Jira.")
 
-        issue_type_meta = self.get_issue_type_meta(data["issuetype"], meta)
         user_id_field = client.user_id_field()
 
-        fs = issue_type_meta["fields"]
-        for field in fs.keys():
-            f = fs[field]
-            if field == "description":
-                cleaned_data[field] = data[field]
+        issue_type_fields = issue_type_meta["values"]
+
+        for field in issue_type_fields:
+            field_name = field["fieldId"]
+            if field_name == "description":
+                cleaned_data[field_name] = data[field_name]
                 continue
-            elif field == "summary":
+            elif field_name == "summary":
                 cleaned_data["summary"] = data["title"]
                 continue
-            elif field == "labels" and "labels" in data:
+            elif field_name == "labels" and "labels" in data:
                 labels = [label.strip() for label in data["labels"].split(",") if label.strip()]
                 cleaned_data["labels"] = labels
                 continue
-            if field in data.keys():
-                v = data.get(field)
+            if field_name in data.keys():
+                v = data.get(field_name)
                 if not v:
                     continue
 
-                schema = f.get("schema")
+                schema = field.get("schema")
                 if schema:
                     if schema.get("type") == "string" and not schema.get("custom"):
-                        cleaned_data[field] = v
+                        cleaned_data[field_name] = v
                         continue
                     if schema["type"] == "user" or schema.get("items") == "user":
                         if schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES.get("multiuserpicker"):
@@ -984,7 +933,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                         or schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES.get("select")
                     ):
                         v = {"id": v}
-                cleaned_data[field] = v
+                cleaned_data[field_name] = v
 
         if not (isinstance(cleaned_data["issuetype"], dict) and "id" in cleaned_data["issuetype"]):
             # something fishy is going on with this field, working on some Jira
@@ -1131,6 +1080,14 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             comment = data.get("comment")
             if comment:
                 self.get_client().create_comment(external_issue.key, comment)
+
+    def migrate_issues(self):
+        migrate_issues.apply_async(
+            kwargs={
+                "integration_id": self.model.id,
+                "organization_id": self.organization_id,
+            }
+        )
 
 
 class JiraServerIntegrationProvider(IntegrationProvider):
