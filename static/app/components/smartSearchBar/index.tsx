@@ -1294,7 +1294,7 @@ class SmartSearchBar extends Component<Props, State> {
         organization,
         search_type: savedSearchType === 0 ? 'issues' : 'events',
         search_source: searchSource,
-        query,
+        attempted_field_name: tagName,
       });
 
       return {

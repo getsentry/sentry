@@ -31,7 +31,7 @@ export type SearchEventParameters = {
     count: number;
     multi: boolean;
   };
-  'search.invalid_field': SearchEventBase;
+  'search.invalid_field': Omit<SearchEventBase, 'query'> & {attempted_field_name: string};
   'search.operator_autocompleted': SearchEventBase & {search_operator: string};
   'search.search_with_invalid': SearchEventBase;
   'search.searched': SearchEventBase & {search_source?: string};
