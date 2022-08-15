@@ -739,7 +739,7 @@ def _metric_percentile_definition(
                         [
                             Column("metric_id"),
                             indexer.resolve(
-                                org_id, constants.METRICS_MAP[field], UseCaseKey.PERFORMANCE
+                                UseCaseKey.PERFORMANCE, org_id, constants.METRICS_MAP[field]
                             ),
                         ],
                     ),
@@ -757,7 +757,7 @@ def _metric_conditions(org_id, metrics) -> List[Condition]:
             Column("metric_id"),
             Op.IN,
             sorted(
-                indexer.resolve(org_id, constants.METRICS_MAP[metric], UseCaseKey.PERFORMANCE)
+                indexer.resolve(UseCaseKey.PERFORMANCE, org_id, constants.METRICS_MAP[metric])
                 for metric in metrics
             ),
         )
@@ -836,6 +836,28 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
             timestamp=self.start + datetime.timedelta(minutes=5),
         )
 
+    def build_transaction_transform(self, alias):
+        if not options.get("sentry-metrics.performance.tags-values-are-strings"):
+            unparam = indexer.resolve(
+                UseCaseKey.PERFORMANCE, self.organization.id, "<< unparameterized >>"
+            )
+            null = 0
+        else:
+            unparam = "<< unparameterized >>"
+            null = ""
+
+        return Function(
+            "transform",
+            [
+                Column(
+                    f"tags[{indexer.resolve(UseCaseKey.PERFORMANCE, self.organization.id, 'transaction')}]"
+                ),
+                [null],
+                [unparam],
+            ],
+            alias,
+        )
+
 
 class MetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_default_conditions(self):
@@ -854,18 +876,8 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         self.assertCountEqual(
             query.columns,
             [
-                AliasedExpression(
-                    Column(
-                        f"tags[{indexer.resolve(self.organization.id, 'transaction', UseCaseKey.PERFORMANCE)}]"
-                    ),
-                    "tags[transaction]",
-                ),
-                AliasedExpression(
-                    Column(
-                        f"tags[{indexer.resolve(self.organization.id, 'transaction', UseCaseKey.PERFORMANCE)}]"
-                    ),
-                    "transaction",
-                ),
+                self.build_transaction_transform("tags[transaction]"),
+                self.build_transaction_transform("transaction"),
             ],
         )
 
@@ -957,9 +969,9 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                                     [
                                         Column("metric_id"),
                                         indexer.resolve(
+                                            UseCaseKey.PERFORMANCE,
                                             self.organization.id,
                                             constants.METRICS_MAP["transaction.duration"],
-                                            UseCaseKey.PERFORMANCE,
                                         ),
                                     ],
                                 ),
@@ -1028,9 +1040,9 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                             [
                                 Column("metric_id"),
                                 indexer.resolve(
+                                    UseCaseKey.PERFORMANCE,
                                     self.organization.id,
                                     constants.METRICS_MAP["transaction.duration"],
-                                    UseCaseKey.PERFORMANCE,
                                 ),
                             ],
                         ),
@@ -1054,10 +1066,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 *_metric_conditions(self.organization.id, ["transaction.duration"]),
             ],
         )
-        transaction = AliasedExpression(
-            Column(resolve_tag_key(UseCaseKey.PERFORMANCE, self.organization.id, "transaction")),
-            "transaction",
-        )
+        transaction = self.build_transaction_transform("transaction")
         project = Function(
             "transform",
             [
@@ -2187,34 +2196,29 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-        expected = [
-            mock.call(self.organization.id, "transaction", use_case_id=UseCaseKey.PERFORMANCE)
-        ]
+        expected = [mock.call(UseCaseKey.PERFORMANCE, self.organization.id, "transaction")]
 
         if not options.get("sentry-metrics.performance.tags-values-are-strings"):
             expected.append(
-                mock.call(
-                    self.organization.id, "foo_transaction", use_case_id=UseCaseKey.PERFORMANCE
-                )
+                mock.call(UseCaseKey.PERFORMANCE, self.organization.id, "foo_transaction")
+            )
+            expected.append(
+                mock.call(UseCaseKey.PERFORMANCE, self.organization.id, "<< unparameterized >>")
             )
 
         expected.extend(
             [
                 mock.call(
+                    UseCaseKey.PERFORMANCE,
                     self.organization.id,
                     constants.METRICS_MAP["measurements.lcp"],
-                    use_case_id=UseCaseKey.PERFORMANCE,
                 ),
-                mock.call(
-                    self.organization.id, "measurement_rating", use_case_id=UseCaseKey.PERFORMANCE
-                ),
+                mock.call(UseCaseKey.PERFORMANCE, self.organization.id, "measurement_rating"),
             ]
         )
 
         if not options.get("sentry-metrics.performance.tags-values-are-strings"):
-            expected.append(
-                mock.call(self.organization.id, "good", use_case_id=UseCaseKey.PERFORMANCE)
-            )
+            expected.append(mock.call(UseCaseKey.PERFORMANCE, self.organization.id, "good"))
 
         self.assertCountEqual(mock_indexer.mock_calls, expected)
 
@@ -2277,12 +2281,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         )
         self.assertCountEqual(
             snql_query.groupby,
-            [
-                project,
-                Column(
-                    resolve_tag_key(UseCaseKey.PERFORMANCE, self.organization.id, "transaction")
-                ),
-            ],
+            [project, self.build_transaction_transform("transaction")],
         )
 
     def test_missing_function(self):

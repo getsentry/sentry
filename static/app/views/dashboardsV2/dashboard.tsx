@@ -48,6 +48,7 @@ import {
 } from './layoutUtils';
 import SortableWidget from './sortableWidget';
 import {DashboardDetails, DashboardWidgetSource, Widget, WidgetType} from './types';
+import {getDashboardFiltersFromURL} from './utils';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
 const DRAG_RESIZE_CLASS = 'widget-resize';
@@ -80,7 +81,6 @@ type Props = {
   router: InjectedRouter;
   selection: PageFilters;
   widgetLimitReached: boolean;
-  hasUnsavedFilters?: boolean;
   isPreview?: boolean;
   newWidget?: Widget;
   onSetNewWidget?: () => void;
@@ -390,14 +390,8 @@ class Dashboard extends Component<Props, State> {
 
   renderWidget(widget: Widget, index: number) {
     const {isMobile, windowWidth} = this.state;
-    const {
-      isEditing,
-      organization,
-      widgetLimitReached,
-      isPreview,
-      dashboard,
-      hasUnsavedFilters,
-    } = this.props;
+    const {isEditing, organization, widgetLimitReached, isPreview, dashboard, location} =
+      this.props;
 
     const widgetProps = {
       widget,
@@ -407,8 +401,7 @@ class Dashboard extends Component<Props, State> {
       onEdit: this.handleEditWidget(widget, index),
       onDuplicate: this.handleDuplicateWidget(widget, index),
       isPreview,
-      dashboardFilters: dashboard.filters,
-      hasUnsavedFilters,
+      dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
     };
 
     if (organization.features.includes('dashboard-grid-layout')) {

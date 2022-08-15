@@ -13,6 +13,22 @@ from google.cloud.functions_v1.types.functions import DeleteFunctionRequest
 from google.cloud.pubsub_v1 import PublisherClient
 from google.protobuf.field_mask_pb2 import FieldMask
 
+from sentry.utils import json
+
+WRAPPER_JS = """
+const userFunc = require('./user.js');
+Object.assign(process.env, require('./env.json'));
+"""
+
+
+PACKAGE_JSON = {
+    "dependencies": {
+        "@sentry/node": "^6.11.0",
+        "@sentry/tracing": "^6.11.0",
+        "node-fetch": "^2.6.1",
+    }
+}
+
 
 def function_pubsub_name(funcId):
     return "projects/hackweek-sentry-functions/topics/fn-" + funcId
@@ -23,13 +39,13 @@ def create_function_pubsub_topic(funcId):
     publisher.create_topic(name=function_pubsub_name(funcId))
 
 
-def upload_function_files(client, code):
+def upload_function_files(client, code, env_variables):
     f = BytesIO()
     with ZipFile(f, "w") as codezip:
         codezip.writestr("function.js", code)
-        # codezip.writestr("index.js", WRAPPER_JS)
-        # codezip.writestr("package.json", json.dumps(PACKAGE_JSON))
-        # codezip.writestr("env.json", json.dumps(env))
+        codezip.writestr("index.js", WRAPPER_JS)
+        codezip.writestr("package.json", json.dumps(PACKAGE_JSON))
+        codezip.writestr("env.json", json.dumps(env_variables))
     f.seek(0)
 
     upload_url = client.generate_upload_url(
@@ -45,10 +61,10 @@ def upload_function_files(client, code):
     return upload_url
 
 
-def create_function(code, funcId, description):
+def create_function(code, funcId, description, env_variables):
     create_function_pubsub_topic(funcId)
     client = CloudFunctionsServiceClient()
-    upload_url = upload_function_files(client, code)
+    upload_url = upload_function_files(client, code, env_variables)
     client.create_function(
         function=CloudFunction(
             name="projects/hackweek-sentry-functions/locations/us-central1/functions/fn-" + funcId,
@@ -60,14 +76,15 @@ def create_function(code, funcId, description):
                 event_type="providers/cloud.pubsub/eventTypes/topic.publish",
                 resource=function_pubsub_name(funcId),
             ),
+            environment_variables=env_variables,
         ),
         location="projects/hackweek-sentry-functions/locations/us-central1",
     )
 
 
-def update_function(code, funcId, description):
+def update_function(code, funcId, description, env_variables):
     client = CloudFunctionsServiceClient()
-    upload_url = upload_function_files(client, code)
+    upload_url = upload_function_files(client, code, env_variables)
     client.update_function(
         request=UpdateFunctionRequest(
             function=CloudFunction(
@@ -81,8 +98,9 @@ def update_function(code, funcId, description):
                     event_type="providers/cloud.pubsub/eventTypes/topic.publish",
                     resource=function_pubsub_name(funcId),
                 ),
+                environment_variables=env_variables,
             ),
-            update_mask=FieldMask(paths=["source_upload_url"]),
+            update_mask=FieldMask(paths=["source_upload_url", "environment_variables"]),
         )
     )
 
@@ -93,4 +111,12 @@ def delete_function(funcId):
         request=DeleteFunctionRequest(
             name="projects/hackweek-sentry-functions/locations/us-central1/functions/fn-" + funcId,
         ),
+    )
+
+
+def publish_message(funcId, message):
+    publisher = PublisherClient()
+    publisher.publish(
+        topic=function_pubsub_name(funcId),
+        data=message,
     )
