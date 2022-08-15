@@ -206,6 +206,11 @@ export const CustomerProfiler = ({id, children}: {children: ReactNode; id: strin
   );
 };
 
+/**
+ * This component wraps the main component on a page with a measurement checking for visual completedness.
+ * It uses the data check to make sure endpoints have resolved and the component is meaningfully rendering
+ * which sets it apart from simply checking LCP, which makes it a good back up check the LCP heuristic performance.
+ */
 export const VisuallyCompleteWithData = ({
   id,
   hasData,
