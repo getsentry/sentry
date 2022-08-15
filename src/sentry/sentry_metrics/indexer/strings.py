@@ -125,7 +125,7 @@ REVERSE_SHARED_STRINGS = {v: k for k, v in SHARED_STRINGS.items()}
 assert len(SHARED_STRINGS) == len(REVERSE_SHARED_STRINGS)
 
 
-class StaticStringsIndexer(StringIndexer):
+class StaticStringIndexer(StringIndexer):
     """
     Wrapper for static strings
     """
