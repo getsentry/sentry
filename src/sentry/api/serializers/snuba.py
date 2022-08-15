@@ -139,7 +139,7 @@ def zerofill(data, start, end, rollup, allow_partial_buckets=False, fill_default
     return rv
 
 
-def calculateTimeframe(start, end, rollup):
+def calculate_time_frame(start, end, rollup):
     rollup_start = (int(to_timestamp(start)) // rollup) * rollup
     rollup_end = (int(to_timestamp(end)) // rollup) * rollup
     if rollup_end - rollup_start == rollup:
@@ -349,7 +349,7 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
         res["isMetricsData"] = result.data.get("isMetricsData", False)
 
         if hasattr(result, "start") and hasattr(result, "end"):
-            timeframe = calculateTimeframe(result.start, result.end, result.rollup)
+            timeframe = calculate_time_frame(result.start, result.end, result.rollup)
             res["start"] = timeframe["start"]
             res["end"] = timeframe["end"]
 
