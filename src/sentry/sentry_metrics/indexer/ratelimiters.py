@@ -115,7 +115,9 @@ class WritesLimiter:
 
     @metrics.wraps("sentry_metrics.indexer.check_write_limits")
     def check_write_limits(
-        self, use_case_id: UseCaseKey, keys: KeyCollection, indexer_db: str
+        self,
+        use_case_id: UseCaseKey,
+        keys: KeyCollection,
     ) -> RateLimitState:
         """
         Takes a KeyCollection and applies DB write limits as configured via sentry.options.

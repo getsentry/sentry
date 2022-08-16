@@ -36,7 +36,7 @@ class MetricsIngestConfiguration:
 
 
 _METRICS_INGEST_CONFIG_BY_USE_CASE: MutableMapping[
-    Tuple[UseCaseKey, str], MetricsIngestConfiguration
+    Tuple[UseCaseKey, IndexerStorage], MetricsIngestConfiguration
 ] = dict()
 
 
@@ -44,7 +44,9 @@ def _register_ingest_config(config: MetricsIngestConfiguration) -> None:
     _METRICS_INGEST_CONFIG_BY_USE_CASE[(config.use_case_id, config.db_backend)] = config
 
 
-def get_ingest_config(use_case_key: UseCaseKey, db_backend: str) -> MetricsIngestConfiguration:
+def get_ingest_config(
+    use_case_key: UseCaseKey, db_backend: IndexerStorage
+) -> MetricsIngestConfiguration:
     if len(_METRICS_INGEST_CONFIG_BY_USE_CASE) == 0:
         _register_ingest_config(
             MetricsIngestConfiguration(
