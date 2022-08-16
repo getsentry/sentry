@@ -8,7 +8,6 @@ from io import BytesIO
 from typing import Callable, Deque, Mapping, MutableMapping, NamedTuple, Optional, cast
 
 import msgpack
-import sentry_sdk
 from arroyo import Partition
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy
@@ -170,8 +169,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):  # type
                 self._process_recording(cast(RecordingSegmentMessage, message_dict), message)
         except Exception as e:
             # avoid crash looping on bad messsages for now
-            logger.exception("Failed to process message")
-            sentry_sdk.capture_exception(e)
+            logger.exception(e)
 
     def join(self, timeout: Optional[float] = None) -> None:
         wait([f for _, f in self.__futures], timeout=timeout, return_when=ALL_COMPLETED)
@@ -189,11 +187,13 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):  # type
         committable: MutableMapping[Partition, Message[KafkaPayload]] = {}
 
         while self.__futures and self.__futures[0].future.done():
-            message, _ = self.__futures.popleft()
+            message, result = self.__futures.popleft()
+
+            if result.exception() is not None:
+                logger.exception(result.exception())
             # overwrite any existing message as we assume the deque is in order
             # committing offset x means all offsets up to and including x are processed
             committable[message.partition] = message
-
         # Commit the latest offset that has its corresponding produce finished, per partition
 
         if committable:
