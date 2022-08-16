@@ -189,6 +189,47 @@ class PerformanceDetectionTest(unittest.TestCase):
         _detect_performance_issue(db_span_event, sdk_span_mock)
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 3
 
+    def test_calls_n_plus_one_spans_calls(self):
+        # ├── GET list.json
+        # │   ├── GET 1.json
+        # │   ├──  GET 2.json
+        # │   ├──   GET 3.json
+        # │   ├──    GET 4.json
+        # │   └──      GET 5.json
+
+        n_plus_one_event = create_event(
+            [
+                create_span("http.client", 250, "GET /list.json"),
+                modify_span_start(create_span("http.client", 180, "GET /1.json"), 101),
+                modify_span_start(create_span("http.client", 178, "GET /2.json"), 105),
+                modify_span_start(create_span("http.client", 163, "GET /3.json"), 109),
+                modify_span_start(create_span("http.client", 152, "GET /4.json"), 113),
+                modify_span_start(create_span("http.client", 191, "GET /5.json"), 116),
+            ]
+        )
+
+        sdk_span_mock = Mock()
+
+        _detect_performance_issue(n_plus_one_event, sdk_span_mock)
+
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 3
+        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
+            [
+                call(
+                    "_pi_all_issue_count",
+                    1,
+                ),
+                call(
+                    "_pi_transaction",
+                    "aaaaaaaaaaaaaaaa",
+                ),
+                call(
+                    "_pi_n_plus_one",
+                    "bbbbbbbbbbbbbbbb",
+                ),
+            ]
+        )
+
     def test_calls_detect_sequential(self):
         no_sequential_event = create_event([create_span("db", 999.0)] * 4)
         sequential_event = create_event(
