@@ -371,7 +371,7 @@ class GroupSerializerBase(Serializer):
 
     @staticmethod
     def _resolve_and_extend_plugin_annotation(
-        item: Group, current_annotations: Sequence[Any]
+        item: Group, current_annotations: List[Any]
     ) -> Sequence[Any]:
         from sentry.plugins.base import plugins
 
