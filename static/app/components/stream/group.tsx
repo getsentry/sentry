@@ -219,6 +219,7 @@ class StreamGroup extends Component<Props, State> {
 
     if (evt.shiftKey) {
       SelectedGroupStore.shiftToggleItems(this.state.data.id);
+      window.getSelection()?.removeAllRanges();
     } else {
       SelectedGroupStore.toggleSelect(this.state.data.id);
     }
