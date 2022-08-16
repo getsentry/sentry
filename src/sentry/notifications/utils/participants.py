@@ -86,6 +86,15 @@ def get_participants_for_group(
     return participants_by_provider
 
 
+ProviderNotificationValues = Mapping[ExternalProviders, NotificationSettingOptionValues]
+
+ScopedProviderNotificationValues = Mapping[NotificationScopeType, ProviderNotificationValues]
+
+RecipientScopedProviderNotificationValues = Mapping[
+    Union[Team, User], ScopedProviderNotificationValues
+]
+
+
 def get_participants_for_release(
     projects: Iterable[Project],
     organization: Organization,
@@ -98,22 +107,14 @@ def get_participants_for_release(
     parent_specific_scope_type = get_scope_type(notification_setting_type)
 
     def parent_notification_settings_by_recipient(
-        note_setting_type: NotificationSettingTypes,
+        setting_type: NotificationSettingTypes,
         parent: Iterable[Union[Project, Organization]],
         recipients: Iterable[Team | User],
-    ) -> Mapping[
-        Team | User,
-        Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]],
-    ]:
-        by_recipient: MutableMapping[
-            Team | User,
-            Mapping[
-                NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]
-            ],
-        ] = {}
+    ) -> RecipientScopedProviderNotificationValues:
+        by_recipient: MutableMapping[Team | User, ScopedProviderNotificationValues] = {}
         for project_or_org in parent:
             notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
-                note_setting_type,
+                setting_type,
                 recipients=recipients,
                 parent=project_or_org,
             )
