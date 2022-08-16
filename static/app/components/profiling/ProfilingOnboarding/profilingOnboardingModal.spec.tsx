@@ -29,7 +29,12 @@ describe('ProfilingOnboarding', function () {
   });
 
   it('renders default step', () => {
-    render(<ProfilingOnboardingModal {...MockRenderModalProps} />);
+    render(
+      <ProfilingOnboardingModal
+        organization={TestStubs.Organization()}
+        {...MockRenderModalProps}
+      />
+    );
     expect(screen.getByText(/Select a Project/i)).toBeInTheDocument();
   });
 
@@ -38,7 +43,12 @@ describe('ProfilingOnboarding', function () {
       TestStubs.Project({name: 'iOS Project', platform: 'apple-ios'}),
     ]);
 
-    render(<ProfilingOnboardingModal {...MockRenderModalProps} />);
+    render(
+      <ProfilingOnboardingModal
+        organization={TestStubs.Organization()}
+        {...MockRenderModalProps}
+      />
+    );
     selectProject(TestStubs.Project({name: 'iOS Project'}));
     act(() => {
       userEvent.click(screen.getAllByText('Next')[0]!);
@@ -57,7 +67,12 @@ describe('ProfilingOnboarding', function () {
       TestStubs.Project({name: 'javascript', platform: 'javascript'}),
     ]);
 
-    render(<ProfilingOnboardingModal {...MockRenderModalProps} />);
+    render(
+      <ProfilingOnboardingModal
+        organization={TestStubs.Organization()}
+        {...MockRenderModalProps}
+      />
+    );
     selectProject(TestStubs.Project({name: 'javascript'}));
     act(() => {
       userEvent.click(screen.getAllByText('Next')[0]!);
