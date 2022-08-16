@@ -27,6 +27,7 @@ type Extraction = {
 type HookOpts = {
   replay: ReplayReader;
 };
+
 function useExtractedCrumbHtml({replay}: HookOpts) {
   const [breadcrumbRefs, setBreadcrumbReferences] = useState<Extraction[]>([]);
 
@@ -135,11 +136,21 @@ class BreadcrumbReferencesPlugin {
         // @ts-expect-error
         const html = node?.outerHTML || node?.textContent || '';
 
-        this.activities.push({
-          crumb,
-          html,
-          timestamp: nextTimestamp,
-        });
+        // Limit document node depth to 2
+        let truncated = removeNodesAtLevel(html, 2);
+        // If still very long and/or removeNodesAtLevel failed, truncate
+        if (truncated.length > 1500) {
+          truncated = truncated.substring(0, 1500);
+        }
+
+        if (truncated) {
+          this.activities.push({
+            crumb,
+            html: truncated,
+            timestamp: nextTimestamp,
+          });
+        }
+
         this.crumbs.shift();
       }
     }
@@ -147,6 +158,45 @@ class BreadcrumbReferencesPlugin {
     if (this.isFinished(event)) {
       this.onFinish(this.activities);
     }
+  }
+}
+
+function removeNodesAtLevel(html: string, level: number) {
+  const parser = new DOMParser();
+  try {
+    const doc = parser.parseFromString(html, 'text/html');
+
+    const removeChildLevel = (
+      max: number,
+      collection: HTMLCollection,
+      current: number = 0
+    ) => {
+      for (let i = 0; i < collection.length; i++) {
+        const child = collection[i];
+
+        if (child.nodeName === 'STYLE') {
+          child.textContent = '/* Inline CSS */';
+        }
+
+        if (child.nodeName === 'svg') {
+          child.innerHTML = '<!-- SVG -->';
+        }
+
+        if (max <= current) {
+          if (child.childElementCount > 0) {
+            child.innerHTML = `<!-- ${child.childElementCount} descendents -->`;
+          }
+        } else {
+          removeChildLevel(max, child.children, current + 1);
+        }
+      }
+    };
+
+    removeChildLevel(level, doc.body.children);
+    return doc.body.innerHTML;
+  } catch (err) {
+    // If we can't parse the HTML, just return the original
+    return html;
   }
 }
 
