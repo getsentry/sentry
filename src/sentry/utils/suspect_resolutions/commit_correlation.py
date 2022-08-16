@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Sequence, Set
 
-from sentry.models import CommitFileChange, Group, GroupRelease, Release, ReleaseCommit
+from sentry.models import CommitFileChange, Group, GroupRelease, ReleaseCommit
 
 
 @dataclass
@@ -47,13 +47,11 @@ def is_issue_commit_correlated(
 def get_files_changed_in_releases(
     resolved_issue_time: datetime, issue_id: int, project_id: int
 ) -> ReleaseCommitFileChanges:
-    releases = Release.objects.filter(
-        id__in=GroupRelease.objects.filter(
-            group_id=issue_id,
-            project_id=project_id,
-        ).values_list("release_id", flat=True),
-        date_added__gte=(resolved_issue_time - timedelta(hours=5)),
-    )
+    releases = GroupRelease.objects.filter(
+        group_id=issue_id,
+        project_id=project_id,
+        last_seen__gte=(resolved_issue_time - timedelta(hours=5)),
+    ).values_list("release_id", flat=True)
 
     if not releases:
         return ReleaseCommitFileChanges([], set())
