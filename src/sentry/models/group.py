@@ -577,6 +577,19 @@ class Group(Model):
         """
         return self.data.get("type", "default")
 
+    @property
+    def get_issue_type(self):
+        raise NotImplementedError
+
+    def get_issue_category(self):
+        if not self.get_issue_type:
+            return None
+
+        if self.get_issue_type in frozenset(["PERFORMANCE_N_PLUS_ONE", "PERFORMANCE_SLOW_SPAN"]):
+            return "performance"
+        else:
+            return "error"
+
     def get_event_metadata(self) -> Mapping[str, str]:
         """
         Return the metadata of this issue.

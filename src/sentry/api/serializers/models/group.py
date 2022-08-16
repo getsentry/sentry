@@ -3,6 +3,7 @@ from __future__ import annotations
 import functools
 import itertools
 import logging
+from abc import abstractmethod
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import (
@@ -173,6 +174,185 @@ class GroupSerializerBase(Serializer):
         self.collapse = collapse
         self.expand = expand
 
+    def get_attrs(self, item_list: List[Any], user: Any, **kwargs: Any) -> MutableMapping[Any, Any]:
+        GroupMeta.objects.populate_cache(item_list)
+
+        # Note that organization is necessary here for use in `_get_permalink` to avoid
+        # making unnecessary queries.
+        prefetch_related_objects(item_list, "project__organization")
+
+        if user.is_authenticated and item_list:
+            bookmarks = set(
+                GroupBookmark.objects.filter(user=user, group__in=item_list).values_list(
+                    "group_id", flat=True
+                )
+            )
+            seen_groups = dict(
+                GroupSeen.objects.filter(user=user, group__in=item_list).values_list(
+                    "group_id", "last_seen"
+                )
+            )
+            subscriptions = self._get_subscriptions(item_list, user)
+        else:
+            bookmarks = set()
+            seen_groups = {}
+            subscriptions = defaultdict(lambda: (False, False, None))
+
+        assignees = {
+            a.group_id: a.assigned_actor()
+            for a in GroupAssignee.objects.filter(group__in=item_list)
+        }
+        resolved_assignees = ActorTuple.resolve_dict(assignees)
+
+        ignore_items = {g.group_id: g for g in GroupSnooze.objects.filter(group__in=item_list)}
+
+        release_resolutions, commit_resolutions = self._resolve_resolutions(item_list, user)
+
+        actor_ids = {r[-1] for r in release_resolutions.values()}
+        actor_ids.update(r.actor_id for r in ignore_items.values())
+        if actor_ids:
+            users = list(User.objects.filter(id__in=actor_ids, is_active=True))
+            actors = {u.id: d for u, d in zip(users, serialize(users, user))}
+        else:
+            actors = {}
+
+        share_ids = dict(
+            GroupShare.objects.filter(group__in=item_list).values_list("group_id", "uuid")
+        )
+
+        seen_stats = self._get_seen_stats(item_list, user)
+
+        organization_id_list = list({item.project.organization_id for item in item_list})
+        # if no groups, then we can't proceed but this seems to be a valid use case
+        if not item_list:
+            return {}
+        if len(organization_id_list) > 1:
+            # this should never happen but if it does we should know about it
+            logger.warning(
+                "Found multiple organizations for groups: %s, with orgs: %s"
+                % ([item.id for item in item_list], organization_id_list)
+            )
+
+        # should only have 1 org at this point
+        organization_id = organization_id_list[0]
+
+        authorized = self._is_authorized(user, organization_id)
+
+        annotations_by_group_id: MutableMapping[int, List[Any]] = defaultdict(list)
+        for annotations_by_group in itertools.chain.from_iterable(
+            [
+                self._resolve_integration_annotations(organization_id, item_list),
+                [self._resolve_external_issue_annotations(item_list)],
+            ]
+        ):
+            merge_list_dictionaries(annotations_by_group_id, annotations_by_group)
+
+        snuba_stats = self._get_group_snuba_stats(item_list, seen_stats)
+
+        result = {}
+        for item in item_list:
+            active_date = item.active_at or item.first_seen
+
+            resolution_actor = None
+            resolution_type = None
+            resolution = release_resolutions.get(item.id)
+            if resolution:
+                resolution_type = "release"
+                resolution_actor = actors.get(resolution[-1])
+            if not resolution:
+                resolution = commit_resolutions.get(item.id)
+                if resolution:
+                    resolution_type = "commit"
+
+            ignore_item = ignore_items.get(item.id)
+
+            result[item] = {
+                "id": item.id,
+                "assigned_to": resolved_assignees.get(item.id),
+                "is_bookmarked": item.id in bookmarks,
+                "subscription": subscriptions[item.id],
+                "has_seen": seen_groups.get(item.id, active_date) > active_date,
+                "annotations": self._resolve_and_extend_plugin_annotation(
+                    item, annotations_by_group_id[item.id]
+                ),
+                "ignore_until": ignore_item,
+                "ignore_actor": actors.get(ignore_item.actor_id) if ignore_item else None,
+                "resolution": resolution,
+                "resolution_type": resolution_type,
+                "resolution_actor": resolution_actor,
+                "share_id": share_ids.get(item.id),
+                "authorized": authorized,
+            }
+
+            result[item]["is_unhandled"] = bool(snuba_stats.get(item.id, {}).get("unhandled"))
+
+            if seen_stats:
+                result[item].update(seen_stats.get(item, {}))
+        return result
+
+    def serialize(
+        self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
+    ) -> BaseGroupSerializerResponse:
+        status_details, status_label = self._get_status(attrs, obj)
+        permalink = self._get_permalink(attrs, obj)
+        is_subscribed, subscription_details = get_subscription_from_attributes(attrs)
+        share_id = attrs["share_id"]
+        group_dict = {
+            "id": str(obj.id),
+            "shareId": share_id,
+            "shortId": obj.qualified_short_id,
+            "title": obj.title,
+            "culprit": obj.culprit,
+            "permalink": permalink,
+            "logger": obj.logger or None,
+            "level": LOG_LEVELS.get(obj.level, "unknown"),
+            "status": status_label,
+            "statusDetails": status_details,
+            "isPublic": share_id is not None,
+            "platform": obj.platform,
+            "project": {
+                "id": str(obj.project.id),
+                "name": obj.project.name,
+                "slug": obj.project.slug,
+                "platform": obj.project.platform,
+            },
+            "type": obj.get_event_type(),
+            "metadata": obj.get_event_metadata(),
+            "numComments": obj.num_comments,
+            "assignedTo": serialize(attrs["assigned_to"], user, ActorSerializer()),
+            "isBookmarked": attrs["is_bookmarked"],
+            "isSubscribed": is_subscribed,
+            "subscriptionDetails": subscription_details,
+            "hasSeen": attrs["has_seen"],
+            "annotations": attrs["annotations"],
+        }
+
+        # This attribute is currently feature gated
+        if "is_unhandled" in attrs:
+            group_dict["isUnhandled"] = attrs["is_unhandled"]
+        if "times_seen" in attrs:
+            group_dict.update(self._convert_seen_stats(attrs))
+
+        # XXX(gilbert): remove this after performance issues internal testing
+        from sentry import features
+
+        if features.has("projects:performance-issue-details-backend", obj.project):
+            group_dict["issue_category"] = obj.get_issue_category()
+            group_dict["issue_type"] = obj.type
+
+        return group_dict
+
+    @abstractmethod
+    def _get_seen_stats(self, item_list, user):
+        """
+        Returns a dictionary keyed by item that includes:
+            - times_seen
+            - first_seen
+            - last_seen
+            - user_count
+        """
+        pass
+
     def _expand(self, key):
         if self.expand is None:
             return False
@@ -183,16 +363,6 @@ class GroupSerializerBase(Serializer):
         if self.collapse is None:
             return False
         return key in self.collapse
-
-    def _get_seen_stats(self, item_list, user):
-        """
-        Returns a dictionary keyed by item that includes:
-            - times_seen
-            - first_seen
-            - last_seen
-            - user_count
-        """
-        raise NotImplementedError
 
     @staticmethod
     def _get_start_from_seen_stats(seen_stats):
@@ -392,122 +562,6 @@ class GroupSerializerBase(Serializer):
 
         return annotations_for_group
 
-    def get_attrs(self, item_list, user):
-        GroupMeta.objects.populate_cache(item_list)
-
-        # Note that organization is necessary here for use in `_get_permalink` to avoid
-        # making unnecessary queries.
-        prefetch_related_objects(item_list, "project__organization")
-
-        if user.is_authenticated and item_list:
-            bookmarks = set(
-                GroupBookmark.objects.filter(user=user, group__in=item_list).values_list(
-                    "group_id", flat=True
-                )
-            )
-            seen_groups = dict(
-                GroupSeen.objects.filter(user=user, group__in=item_list).values_list(
-                    "group_id", "last_seen"
-                )
-            )
-            subscriptions = self._get_subscriptions(item_list, user)
-        else:
-            bookmarks = set()
-            seen_groups = {}
-            subscriptions = defaultdict(lambda: (False, False, None))
-
-        assignees = {
-            a.group_id: a.assigned_actor()
-            for a in GroupAssignee.objects.filter(group__in=item_list)
-        }
-        resolved_assignees = ActorTuple.resolve_dict(assignees)
-
-        ignore_items = {g.group_id: g for g in GroupSnooze.objects.filter(group__in=item_list)}
-
-        release_resolutions, commit_resolutions = self._resolve_resolutions(item_list, user)
-
-        actor_ids = {r[-1] for r in release_resolutions.values()}
-        actor_ids.update(r.actor_id for r in ignore_items.values())
-        if actor_ids:
-            users = list(User.objects.filter(id__in=actor_ids, is_active=True))
-            actors = {u.id: d for u, d in zip(users, serialize(users, user))}
-        else:
-            actors = {}
-
-        share_ids = dict(
-            GroupShare.objects.filter(group__in=item_list).values_list("group_id", "uuid")
-        )
-
-        seen_stats = self._get_seen_stats(item_list, user)
-
-        organization_id_list = list({item.project.organization_id for item in item_list})
-        # if no groups, then we can't proceed but this seems to be a valid use case
-        if not item_list:
-            return {}
-        if len(organization_id_list) > 1:
-            # this should never happen but if it does we should know about it
-            logger.warning(
-                "Found multiple organizations for groups: %s, with orgs: %s"
-                % ([item.id for item in item_list], organization_id_list)
-            )
-
-        # should only have 1 org at this point
-        organization_id = organization_id_list[0]
-
-        authorized = self._is_authorized(user, organization_id)
-
-        annotations_by_group_id: MutableMapping[int, List[Any]] = defaultdict(list)
-        for annotations_by_group in itertools.chain.from_iterable(
-            [
-                self._resolve_integration_annotations(organization_id, item_list),
-                [self._resolve_external_issue_annotations(item_list)],
-            ]
-        ):
-            merge_list_dictionaries(annotations_by_group_id, annotations_by_group)
-
-        snuba_stats = self._get_group_snuba_stats(item_list, seen_stats)
-
-        result = {}
-        for item in item_list:
-            active_date = item.active_at or item.first_seen
-
-            resolution_actor = None
-            resolution_type = None
-            resolution = release_resolutions.get(item.id)
-            if resolution:
-                resolution_type = "release"
-                resolution_actor = actors.get(resolution[-1])
-            if not resolution:
-                resolution = commit_resolutions.get(item.id)
-                if resolution:
-                    resolution_type = "commit"
-
-            ignore_item = ignore_items.get(item.id)
-
-            result[item] = {
-                "id": item.id,
-                "assigned_to": resolved_assignees.get(item.id),
-                "is_bookmarked": item.id in bookmarks,
-                "subscription": subscriptions[item.id],
-                "has_seen": seen_groups.get(item.id, active_date) > active_date,
-                "annotations": self._resolve_and_extend_plugin_annotation(
-                    item, annotations_by_group_id[item.id]
-                ),
-                "ignore_until": ignore_item,
-                "ignore_actor": actors.get(ignore_item.actor_id) if ignore_item else None,
-                "resolution": resolution,
-                "resolution_type": resolution_type,
-                "resolution_actor": resolution_actor,
-                "share_id": share_ids.get(item.id),
-                "authorized": authorized,
-            }
-
-            result[item]["is_unhandled"] = bool(snuba_stats.get(item.id, {}).get("unhandled"))
-
-            if seen_stats:
-                result[item].update(seen_stats.get(item, {}))
-        return result
-
     def _get_status(self, attrs, obj):
         status = obj.status
         status_details = {}
@@ -592,48 +646,6 @@ class GroupSerializerBase(Serializer):
                 return obj.get_absolute_url()
         else:
             return None
-
-    def serialize(self, obj, attrs, user) -> BaseGroupSerializerResponse:
-        status_details, status_label = self._get_status(attrs, obj)
-        permalink = self._get_permalink(attrs, obj)
-        is_subscribed, subscription_details = get_subscription_from_attributes(attrs)
-        share_id = attrs["share_id"]
-        group_dict = {
-            "id": str(obj.id),
-            "shareId": share_id,
-            "shortId": obj.qualified_short_id,
-            "title": obj.title,
-            "culprit": obj.culprit,
-            "permalink": permalink,
-            "logger": obj.logger or None,
-            "level": LOG_LEVELS.get(obj.level, "unknown"),
-            "status": status_label,
-            "statusDetails": status_details,
-            "isPublic": share_id is not None,
-            "platform": obj.platform,
-            "project": {
-                "id": str(obj.project.id),
-                "name": obj.project.name,
-                "slug": obj.project.slug,
-                "platform": obj.project.platform,
-            },
-            "type": obj.get_event_type(),
-            "metadata": obj.get_event_metadata(),
-            "numComments": obj.num_comments,
-            "assignedTo": serialize(attrs["assigned_to"], user, ActorSerializer()),
-            "isBookmarked": attrs["is_bookmarked"],
-            "isSubscribed": is_subscribed,
-            "subscriptionDetails": subscription_details,
-            "hasSeen": attrs["has_seen"],
-            "annotations": attrs["annotations"],
-        }
-
-        # This attribute is currently feature gated
-        if "is_unhandled" in attrs:
-            group_dict["isUnhandled"] = attrs["is_unhandled"]
-        if "times_seen" in attrs:
-            group_dict.update(self._convert_seen_stats(attrs))
-        return group_dict
 
     def _convert_seen_stats(self, stats):
         return {
@@ -943,8 +955,8 @@ class GroupSerializerSnuba(GroupSerializerBase):
             first_seen = {item_id: value["first_seen"] for item_id, value in seen_data.items()}
             times_seen = {item_id: value["times_seen"] for item_id, value in seen_data.items()}
         else:
-            if environment_ids:
-                first_seen = {
+            first_seen = (
+                {
                     ge["group_id"]: ge["first_seen__min"]
                     for ge in GroupEnvironment.objects.filter(
                         group_id__in=[item.id for item in item_list],
@@ -953,20 +965,20 @@ class GroupSerializerSnuba(GroupSerializerBase):
                     .values("group_id")
                     .annotate(Min("first_seen"))
                 }
-            else:
-                first_seen = {item.id: item.first_seen for item in item_list}
+                if environment_ids
+                else {item.id: item.first_seen for item in item_list}
+            )
             times_seen = {item.id: item.times_seen for item in item_list}
 
-        attrs = {}
-        for item in item_list:
-            attrs[item] = {
+        return {
+            item: {
                 "times_seen": times_seen.get(item.id, 0),
                 "first_seen": first_seen.get(item.id),
                 "last_seen": last_seen.get(item.id),
                 "user_count": user_counts.get(item.id, 0),
             }
-
-        return attrs
+            for item in item_list
+        }
 
     def _get_seen_stats(self, item_list, user):
         return self._execute_seen_stats_query(
