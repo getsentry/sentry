@@ -1,7 +1,9 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
+import Button from 'sentry/components/button';
 import {t} from 'sentry/locale';
+import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {
   importDroppedProfile,
   ProfileGroup,
@@ -16,7 +18,9 @@ function ProfileDragDropImport({
   onImport,
   children,
 }: ProfileDragDropImportProps): React.ReactElement {
-  const [dropState, setDropState] = useState<'idle' | 'dragover' | 'processing'>('idle');
+  const [dropState, setDropState] = useState<
+    'idle' | 'dragover' | 'processing' | 'errored'
+  >('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const onDrop = useCallback(
@@ -36,7 +40,7 @@ function ProfileDragDropImport({
             onImport(profile);
           })
           .catch(e => {
-            setDropState('idle');
+            setDropState('errored');
             setErrorMessage(e.message);
           });
       }
@@ -61,12 +65,24 @@ function ProfileDragDropImport({
     evt.preventDefault();
   }, []);
 
+  const onDismiss = useCallback(() => {
+    setDropState('idle');
+    setErrorMessage(null);
+  }, []);
+
   return (
     <DragDropContainer onDragEnter={onDragEnter}>
-      {dropState === 'idle' ? null : (
-        <Overlay onDrop={onDrop} onDragOver={onDragOver} onDragLeave={onDragLeave}>
-          {t('Drop here')}
+      {dropState === 'idle' ? null : dropState === 'errored' ? (
+        <Overlay>
+          {t('Failed to import profile with error')}
           <p>{errorMessage}</p>
+          <div>
+            <Button onClick={onDismiss}>{t('Dismiss')}</Button>
+          </div>
+        </Overlay>
+      ) : (
+        <Overlay onDrop={onDrop} onDragOver={onDragOver} onDragLeave={onDragLeave}>
+          {t('Drop profile here')}
         </Overlay>
       )}
       {children}
@@ -83,14 +99,15 @@ const DragDropContainer = styled('div')`
 const Overlay = styled('div')`
   position: absolute;
   left: 0;
-  top: 0;
+  bottom: 0;
   width: 100%;
-  height: 100%;
+  height: calc(100% - ${LightFlamegraphTheme.SIZES.TIMELINE_HEIGHT}px);
   display: grid;
   grid: auto/50%;
   place-content: center;
   z-index: ${p => p.theme.zIndex.modal};
   text-align: center;
+  background-color: ${p => p.theme.surface100};
 `;
 
 export {ProfileDragDropImport};

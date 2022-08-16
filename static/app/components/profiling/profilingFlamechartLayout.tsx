@@ -138,6 +138,7 @@ const ZoomViewContainer = styled('div')`
   flex-direction: column;
   flex: 1 1 100%;
   grid-area: flamegraph;
+  position: relative;
 `;
 
 const FrameStackContainer = styled('div')<{layout: FlamegraphPreferences['layout']}>`
