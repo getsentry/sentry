@@ -83,10 +83,11 @@ class GetDateRangeFromParamsTest(unittest.TestCase):
 class SCIMUtilsTest(SCIMTestCase, SCIMEndpoint):
     def test_fix_log_name(self):
         request = HttpRequest()
+        suffix = "681d6e"
         request.user = self.create_user(
-            username="scim-internal-integration-681d6e-ad37e179-501c-4639-bc83-9780ca1"
+            username=f"scim-internal-integration-{suffix}-ad37e179-501c-4639-bc83-9780ca1"
         )
 
         request = self.fix_log_name(request)
 
-        assert request.user.username == "SCIM Internal Integration (681d6e)"
+        assert request.user.username == f"SCIM Internal Integration ({suffix})"
