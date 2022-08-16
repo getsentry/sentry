@@ -65,7 +65,7 @@ parsimonious==0.8.0
 petname==2.6
 phabricator==0.7.0
 phonenumberslite==8.12.0
-pillow==9.0.1
+pillow==9.2.0
 progressbar2==3.41.0
 proto-plus==1.20.4
 protobuf==3.19.0
@@ -98,11 +98,11 @@ s3transfer==0.5.2
 selenium==4.3.0
 sentry-arroyo==1.0.3
 sentry-relay==0.8.13
-sentry-sdk==1.9.4
+sentry-sdk==1.9.5
 simplejson==3.17.6
 six==1.16.0
 sniffio==1.2.0
-snuba-sdk==1.0.0
+snuba-sdk==1.0.1
 sortedcontainers==2.4.0
 soupsieve==2.3.2.post1
 sqlparse==0.3.0

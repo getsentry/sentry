@@ -349,6 +349,7 @@ INSTALLED_APPS = (
     "sentry.plugins.sentry_useragents.apps.Config",
     "sentry.plugins.sentry_webhooks.apps.Config",
     "sentry.utils.suspect_resolutions.apps.Config",
+    "sentry.utils.suspect_resolutions_releases.apps.Config",
     "social_auth",
     "sudo",
     "sentry.eventstream",
@@ -597,6 +598,7 @@ CELERY_IMPORTS = (
     "sentry.release_health.duplex",
     "sentry.release_health.tasks",
     "sentry.utils.suspect_resolutions.get_suspect_resolutions",
+    "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -669,6 +671,7 @@ CELERY_QUEUES = [
     Queue("profiles.process", routing_key="profiles.process"),
     Queue("release_health.duplex", routing_key="release_health.duplex"),
     Queue("get_suspect_resolutions", routing_key="get_suspect_resolutions"),
+    Queue("get_suspect_resolutions_releases", routing_key="get_suspect_resolutions_releases"),
 ]
 
 for queue in CELERY_QUEUES:
@@ -1125,10 +1128,12 @@ SENTRY_FEATURES = {
     "organizations:relay": True,
     # Enable Sentry Functions
     "organizations:sentry-functions": False,
-    # Enable experimental session replay UI
+    # Enable experimental session replay backend APIs
     "organizations:session-replay": False,
     # Enable experimental session replay SDK for recording on Sentry
     "organizations:session-replay-sdk": False,
+    # Enable experimental session replay UI
+    "organizations:session-replay-ui": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
@@ -2742,7 +2747,6 @@ ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT = 300
 
 # Default string indexer cache options
 SENTRY_STRING_INDEXER_CACHE_OPTIONS = {
-    "version": 1,
     "cache_name": "default",
 }
 

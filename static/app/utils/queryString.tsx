@@ -58,7 +58,6 @@ export function appendTagCondition(
 // This function has multiple signatures to help with typing in callers.
 export function decodeScalar(value: QueryValue): string | undefined;
 export function decodeScalar(value: QueryValue, fallback: string): string;
-
 export function decodeScalar(value: QueryValue, fallback?: string): string | undefined {
   if (!value) {
     return fallback;
@@ -79,6 +78,9 @@ export function decodeList(value: string[] | string | undefined | null): string[
   return Array.isArray(value) ? value : isString(value) ? [value] : [];
 }
 
+// This function has multiple signatures to help with typing in callers.
+export function decodeInteger(value: QueryValue): number | undefined;
+export function decodeInteger(value: QueryValue, fallback: number): number;
 export function decodeInteger(value: QueryValue, fallback?: number): number | undefined {
   const unwrapped = decodeScalar(value);
 
