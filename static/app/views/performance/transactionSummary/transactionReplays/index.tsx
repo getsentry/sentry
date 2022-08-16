@@ -1,8 +1,11 @@
 import {Location} from 'history';
 
+import Feature from 'sentry/components/acl/feature';
+import Alert from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
 import {Organization, Project} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -26,16 +29,30 @@ type Props = {
 function TransactionReplays(props: Props) {
   const {location, organization, projects} = props;
 
+  function renderNoAccess() {
+    return (
+      <PageContent>
+        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      </PageContent>
+    );
+  }
+
   return (
-    <PageLayout
-      location={location}
+    <Feature
+      features={['session-replay-ui']}
       organization={organization}
-      projects={projects}
-      tab={Tab.Replays}
-      getDocumentTitle={getDocumentTitle}
-      generateEventView={generateEventView}
-      childComponent={ReplaysContentWrapper}
-    />
+      renderDisabled={renderNoAccess}
+    >
+      <PageLayout
+        location={location}
+        organization={organization}
+        projects={projects}
+        tab={Tab.Replays}
+        getDocumentTitle={getDocumentTitle}
+        generateEventView={generateEventView}
+        childComponent={ReplaysContentWrapper}
+      />
+    </Feature>
   );
 }
 
