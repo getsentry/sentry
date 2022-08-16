@@ -58,6 +58,16 @@ type VitalsAlert = {
 
 // define the event key to payload mappings
 export type GrowthEventParameters = {
+  'assistant.guide_cued': {
+    guide: string;
+  };
+  'assistant.guide_dismissed': {
+    guide: string;
+    step: number;
+  };
+  'assistant.guide_finished': {
+    guide: string;
+  };
   'growth.clicked_enter_sandbox': {
     scenario: string;
     source?: string;
@@ -153,6 +163,8 @@ export type GrowthEventParameters = {
 type GrowthAnalyticsKey = keyof GrowthEventParameters;
 
 export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
+  'assistant.guide_finished': 'Assistant Guide Finished',
+  'assistant.guide_dismissed': 'Assistant Guide Dismissed',
   'growth.clicked_mobile_prompt_setup_project':
     'Growth: Clicked Mobile Prompt Setup Project',
   'growth.clicked_mobile_prompt_ask_teammate':
@@ -216,4 +228,5 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'growth.onboarding_wizard_clicked_more_details':
     'Onboarding Wizard: Clicked More Details',
   'growth.onboarding_wizard_interacted': 'Onboarding Wizard: Interacted',
+  'assistant.guide_cued': 'Assistant Guide Cued',
 };
