@@ -289,8 +289,8 @@ class IssueListOverview extends Component<Props, State> {
 
     const {query} = location.query;
 
-    if (query !== undefined) {
-      return query as string;
+    if (typeof query === 'string') {
+      return query;
     }
 
     return DEFAULT_QUERY;
