@@ -1877,15 +1877,12 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return self._indexer_cache[value]
 
-    def resolve_tag_value(self, value: str) -> Union[int, str]:
+    def resolve_tag_value(self, value: str) -> Optional[Union[int, str]]:
         if self.is_performance and self.tag_values_are_strings:
             return value
         if self.dry_run:
             return -1
-        result = self.resolve_metric_index(value)
-        if result is None:
-            raise IncompatibleMetricsQuery("Tag value was not found")
-        return result
+        return self.resolve_metric_index(value)
 
     def _default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         if search_filter.value.is_wildcard():
@@ -1904,9 +1901,17 @@ class MetricsQueryBuilder(QueryBuilder):
         is_tag = isinstance(lhs, Column) and lhs.subscriptable == "tags"
         if is_tag:
             if isinstance(value, list):
-                value = [self.resolve_tag_value(v) for v in value]
+                resolved_value = []
+                for item in value:
+                    resolved_item = self.resolve_tag_value(item)
+                    if resolved_item is None:
+                        raise IncompatibleMetricsQuery(f"{name} value {item} in filter not found")
+                    resolved_value.append(resolved_item)
             else:
-                value = self.resolve_tag_value(value)
+                resolved_value = self.resolve_tag_value(value)
+                if resolved_value is None:
+                    raise IncompatibleMetricsQuery(f"{name} value {value} in filter not found")
+            value = resolved_value
 
         # timestamp{,.to_{hour,day}} need a datetime string
         # last_seen needs an integer
