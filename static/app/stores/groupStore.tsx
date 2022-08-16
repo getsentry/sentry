@@ -183,8 +183,8 @@ const storeConfig: GroupStoreDefinition = {
     return this.statuses[id][status] || false;
   },
 
-  indexOfActivity(group_id, id) {
-    const group = this.get(group_id);
+  indexOfActivity(groupId, id) {
+    const group = this.get(groupId);
     if (!group) {
       return -1;
     }
@@ -216,13 +216,13 @@ const storeConfig: GroupStoreDefinition = {
     this.trigger(new Set([id]));
   },
 
-  updateActivity(group_id, id, data) {
-    const group = this.get(group_id);
+  updateActivity(groupId, id, data) {
+    const group = this.get(groupId);
     if (!group) {
       return;
     }
 
-    const index = this.indexOfActivity(group_id, id);
+    const index = this.indexOfActivity(groupId, id);
     if (index === -1) {
       return;
     }
@@ -234,8 +234,8 @@ const storeConfig: GroupStoreDefinition = {
     this.trigger(new Set([group.id]));
   },
 
-  removeActivity(group_id, id) {
-    const group = this.get(group_id);
+  removeActivity(groupId, id) {
+    const group = this.get(groupId);
     if (!group) {
       return -1;
     }
