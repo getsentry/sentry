@@ -133,7 +133,7 @@ const CreateAlertButton = withRouter(
         params.append('project', providedProj);
       }
       if (alertOption) {
-        params.append('alertOption', alertOption);
+        params.append('alert_option', alertOption);
       }
       return `/organizations/${organization.slug}/alerts/wizard/?${params.toString()}`;
     };
