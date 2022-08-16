@@ -1907,11 +1907,12 @@ class MetricsQueryBuilder(QueryBuilder):
                     if resolved_item is None:
                         raise IncompatibleMetricsQuery(f"{name} value {item} in filter not found")
                     resolved_value.append(resolved_item)
+                value = resolved_value
             else:
-                resolved_value = self.resolve_tag_value(value)
-                if resolved_value is None:
+                resolved_item = self.resolve_tag_value(value)
+                if resolved_item is None:
                     raise IncompatibleMetricsQuery(f"{name} value {value} in filter not found")
-            value = resolved_value
+                value = resolved_item
 
         # timestamp{,.to_{hour,day}} need a datetime string
         # last_seen needs an integer
