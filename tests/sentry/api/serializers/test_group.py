@@ -249,19 +249,20 @@ class GroupSerializerTest(TestCase):
         for default_value, project_value, is_subscribed, has_details in combinations:
             UserOption.objects.clear_local_cache()
 
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.EMAIL,
-                NotificationSettingTypes.WORKFLOW,
-                default_value,
-                user=user,
-            )
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.EMAIL,
-                NotificationSettingTypes.WORKFLOW,
-                project_value,
-                user=user,
-                project=group.project,
-            )
+            for provider in [ExternalProviders.EMAIL, ExternalProviders.SLACK]:
+                NotificationSetting.objects.update_settings(
+                    provider,
+                    NotificationSettingTypes.WORKFLOW,
+                    default_value,
+                    user=user,
+                )
+                NotificationSetting.objects.update_settings(
+                    provider,
+                    NotificationSettingTypes.WORKFLOW,
+                    project_value,
+                    user=user,
+                    project=group.project,
+                )
 
             result = serialize(group, user)
             subscription_details = result.get("subscriptionDetails")
@@ -288,6 +289,13 @@ class GroupSerializerTest(TestCase):
             user=user,
         )
 
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.WORKFLOW,
+            NotificationSettingOptionValues.NEVER,
+            user=user,
+        )
+
         result = serialize(group, user)
         assert not result["isSubscribed"]
         assert result["subscriptionDetails"] == {"disabled": True}
@@ -302,6 +310,14 @@ class GroupSerializerTest(TestCase):
 
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
+            NotificationSettingTypes.WORKFLOW,
+            NotificationSettingOptionValues.NEVER,
+            user=user,
+            project=group.project,
+        )
+
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.NEVER,
             user=user,

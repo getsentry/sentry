@@ -643,6 +643,15 @@ class IssueListOverview extends Component<Props, State> {
           queryMaxCount,
           pageLinks: pageLinks !== null ? pageLinks : '',
         });
+
+        if (data.length === 0) {
+          trackAdvancedAnalyticsEvent('issue_search.empty', {
+            organization: this.props.organization,
+            search_type: 'issues',
+            search_source: 'main_search',
+            query,
+          });
+        }
       },
       error: err => {
         trackAdvancedAnalyticsEvent('issue_search.failed', {
@@ -850,6 +859,13 @@ class IssueListOverview extends Component<Props, State> {
     });
     trackAdvancedAnalyticsEvent('issue.search_sidebar_clicked', {
       organization,
+    });
+  };
+
+  paginationAnalyticsEvent = (direction: string) => {
+    trackAdvancedAnalyticsEvent('issues_stream.paginate', {
+      organization: this.props.organization,
+      direction,
     });
   };
 
@@ -1300,6 +1316,7 @@ class IssueListOverview extends Component<Props, State> {
                 })}
                 pageLinks={pageLinks}
                 onCursor={this.onCursorChange}
+                paginationAnalyticsEvent={this.paginationAnalyticsEvent}
               />
             </Layout.Main>
 

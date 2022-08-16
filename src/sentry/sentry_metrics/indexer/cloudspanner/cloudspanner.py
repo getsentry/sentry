@@ -7,7 +7,7 @@ from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.base import KeyResult, KeyResults, StringIndexer
 from sentry.sentry_metrics.indexer.cache import CachingIndexer, StringIndexerCache
 from sentry.sentry_metrics.indexer.id_generator import reverse_bits
-from sentry.sentry_metrics.indexer.static_strings import StaticStringIndexer
+from sentry.sentry_metrics.indexer.strings import StaticStringIndexer
 from sentry.utils.codecs import Codec
 
 EncodedId = int

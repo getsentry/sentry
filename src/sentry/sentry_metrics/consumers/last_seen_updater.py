@@ -16,7 +16,7 @@ from sentry.sentry_metrics.configuration import MetricsIngestConfiguration
 from sentry.sentry_metrics.consumers.indexer.common import get_config
 from sentry.sentry_metrics.consumers.indexer.multiprocess import logger
 from sentry.sentry_metrics.indexer.base import FetchType
-from sentry.sentry_metrics.indexer.db import TABLE_MAPPING, IndexerTable
+from sentry.sentry_metrics.indexer.postgres.models import TABLE_MAPPING, IndexerTable
 from sentry.utils import json
 
 MAPPING_META = "mapping_meta"
@@ -125,7 +125,7 @@ def _last_seen_updater_processing_factory(
         process_message=retrieve_db_read_keys,
         prefilter=LastSeenUpdaterMessageFilter(metrics=get_metrics()),
         collector=lambda: LastSeenUpdaterCollector(
-            metrics=get_metrics(), table=TABLE_MAPPING[ingest_config.db_model]
+            metrics=get_metrics(), table=TABLE_MAPPING[ingest_config.use_case_id]
         ),
     )
 

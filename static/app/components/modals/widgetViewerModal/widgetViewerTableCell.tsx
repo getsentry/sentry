@@ -174,6 +174,7 @@ export const renderGridBodyCell =
         if (!tableData || !tableData.meta) {
           return dataRow[column.key];
         }
+        const unit = tableData.meta.units?.[column.key];
         cell = getFieldRenderer(
           columnKey,
           tableData.meta,
@@ -181,6 +182,7 @@ export const renderGridBodyCell =
         )(dataRow, {
           organization,
           location,
+          unit,
         });
 
         const fieldName = getAggregateAlias(columnKey);
