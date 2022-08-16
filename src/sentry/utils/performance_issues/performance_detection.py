@@ -24,6 +24,7 @@ class DetectorType(Enum):
     DUPLICATE_SPANS = "duplicates"
     SEQUENTIAL_SLOW_SPANS = "sequential"
     LONG_TASK_SPANS = "long_task"
+    N_PLUS_ONE_SPANS = "n_plus_one"
 
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion
@@ -85,6 +86,13 @@ def get_default_detection_settings():
                 "allowed_span_ops": ["ui.long-task", "ui.sentry.long-task"],
             }
         ],
+        DetectorType.N_PLUS_ONE_SPANS: [
+            {
+                "count": 5,
+                "start_time_threshold": 5.0,  # ms
+                "allowed_span_ops": ["http.client"],
+            }
+        ],
     }
 
 
@@ -99,6 +107,7 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
         DetectorType.SLOW_SPAN: SlowSpanDetector(detection_settings),
         DetectorType.SEQUENTIAL_SLOW_SPANS: SequentialSlowSpanDetector(detection_settings),
         DetectorType.LONG_TASK_SPANS: LongTaskSpanDetector(detection_settings),
+        DetectorType.N_PLUS_ONE_SPANS: NPlusOneSpanDetector(detection_settings),
     }
 
     for span in spans:
@@ -409,6 +418,64 @@ class LongTaskSpanDetector(PerformanceDetector):
             self.stored_issues[fingerprint] = PerformanceSpanIssue(
                 span_id, op_prefix, self.spans_involved
             )
+
+
+class NPlusOneSpanDetector(PerformanceDetector):
+    """
+    Checks for multiple concurrent API calls.
+    N.B.1. Non-greedy! Returns the first N concurrent spans of a series of
+      concurrent spans, rather than all spans in a concurrent series.
+    N.B.2. Assumes that spans are passed in asceding order of `start_timestamp`
+    N.B.3. Only returns _the first_ set of concurrent calls of all possible.
+    """
+
+    __slots__ = ("spans_involved", "stored_issues")
+
+    settings_key = DetectorType.N_PLUS_ONE_SPANS
+
+    def init(self):
+        self.spans_involved = {}
+        self.most_recent_start_time = {}
+        self.stored_issues = {}
+
+    def visit_span(self, span: Span):
+        settings_for_span = self.settings_for_span(span)
+        if not settings_for_span:
+            return
+
+        op, span_id, op_prefix, span_duration, settings = settings_for_span
+
+        start_time_threshold = timedelta(milliseconds=settings.get("start_time_threshold", 0))
+        count = settings.get("count", 10)
+
+        fingerprint = fingerprint_span_op(span)
+        if not fingerprint:
+            return
+
+        if fingerprint not in self.spans_involved:
+            self.spans_involved[fingerprint] = []
+            self.most_recent_start_time[fingerprint] = 0
+
+        delta_to_previous_span_start_time = timedelta(
+            seconds=(span["start_timestamp"] - self.most_recent_start_time[fingerprint])
+        )
+
+        self.most_recent_start_time[fingerprint] = span["start_timestamp"]
+
+        if delta_to_previous_span_start_time >= start_time_threshold:
+            # This span is subsequent to the most recent span
+            self.spans_involved[fingerprint] = [span_id]
+            return
+
+        else:
+            # This span is approximately concurrent with the most recent span
+            self.spans_involved[fingerprint].append(span)
+
+        if not self.stored_issues.get(fingerprint, False):
+            if len(self.spans_involved[fingerprint]) >= count:
+                self.stored_issues[fingerprint] = PerformanceSpanIssue(
+                    span_id, op_prefix, self.spans_involved[fingerprint]
+                )
 
 
 # Reports metrics and creates spans for detection
