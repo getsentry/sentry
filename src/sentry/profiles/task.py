@@ -342,10 +342,18 @@ def _insert_vroom_profile(profile: Profile) -> bool:
             profile["call_trees"] = json.loads(response.data)["call_trees"]
         else:
             metrics.incr(
-                "profiling.insert_vroom_profile.error", tags={"platform": profile["platform"]}
+                "profiling.insert_vroom_profile.error",
+                tags={"platform": profile["platform"], "reason": "bad status"},
             )
             return False
         return True
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        metrics.incr(
+            "profiling.insert_vroom_profile.error",
+            tags={"platform": profile["platform"], "reason": "encountered error"},
+        )
+        return False
     finally:
         profile["received"] = original_timestamp
         profile["profile"] = ""

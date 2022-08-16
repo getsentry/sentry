@@ -2,8 +2,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class TestStoreMissingReleaseIDsInDashboardFilters(TestMigrations):
-    migrate_from = "0313_sentry_functions_env_variables"
-    migrate_to = "0314_store_missing_release_ids_for_dashboard_filters"
+    migrate_from = "0314_bit_int_for_org_and_project_id"
+    migrate_to = "0315_store_missing_release_ids_for_dashboard_filters"
 
     def setup_before_migration(self, apps):
         Release = apps.get_model("sentry", "Release")

@@ -1,8 +1,8 @@
 import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
-jest.mock('sentry/utils/analytics');
+jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
 describe('GuideStore', function () {
   let data;
@@ -13,7 +13,7 @@ describe('GuideStore', function () {
   };
 
   beforeEach(function () {
-    trackAnalyticsEvent.mockClear();
+    trackAdvancedAnalyticsEvent.mockClear();
     ConfigStore.config = {
       user,
     };
@@ -96,12 +96,9 @@ describe('GuideStore', function () {
     GuideStore.fetchSucceeded(data);
     expect(spy).toHaveBeenCalledWith('issue');
 
-    expect(trackAnalyticsEvent).toHaveBeenCalledWith({
+    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith('assistant.guide_cued', {
       guide: 'issue',
-      eventKey: 'assistant.guide_cued',
-      eventName: 'Assistant Guide Cued',
-      organization_id: null,
-      user_id: parseInt(user.id, 10),
+      organization: null,
     });
 
     expect(spy).toHaveBeenCalledTimes(1);

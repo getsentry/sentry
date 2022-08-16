@@ -47,7 +47,7 @@ class Migration(CheckedMigration):
     atomic = False
 
     dependencies = [
-        ("sentry", "0313_sentry_functions_env_variables"),
+        ("sentry", "0315_bit_int_for_org_and_project_id"),
     ]
 
     operations = [
