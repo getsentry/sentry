@@ -660,3 +660,25 @@ class Group(Model):
     @times_seen_pending.setter
     def times_seen_pending(self, times_seen: int):
         self._times_seen_pending = times_seen
+
+    def get_issue_category(self):
+        from sentry.types.issues import Issue, TransactionNPlusOneIssue, TransactionSlowSpanIssue
+
+        if self.type == GroupType.ERROR.value:
+            return Issue()
+        elif self.type == GroupType.PERFORMANCE_N_PLUS_ONE.value:
+            return TransactionNPlusOneIssue()
+        elif self.type == GroupType.PERFORMANCE_SLOW_SPAN.value:
+            return TransactionSlowSpanIssue()
+
+        return None
+
+    @property
+    def issue_type(self):
+        issue = self.get_issue_category()
+        return issue.type
+
+    @property
+    def issue_subtype(self):
+        issue = self.get_issue_category()
+        return issue.subtype
