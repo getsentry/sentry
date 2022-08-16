@@ -8,11 +8,11 @@ import {t} from 'sentry/locale';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
-  orgId: string;
+  orgSlug: string;
   replayRecord: ReplayRecord | undefined;
 };
 
-function DetailsPageBreadcrumbs({orgId, replayRecord}: Props) {
+function DetailsPageBreadcrumbs({orgSlug, replayRecord}: Props) {
   const labelTitle =
     replayRecord?.user.name ||
     replayRecord?.user.email ||
@@ -23,7 +23,7 @@ function DetailsPageBreadcrumbs({orgId, replayRecord}: Props) {
     <Breadcrumbs
       crumbs={[
         {
-          to: `/organizations/${orgId}/replays/`,
+          to: `/organizations/${orgSlug}/replays/`,
           label: t('Replays'),
         },
         {

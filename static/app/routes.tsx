@@ -1046,12 +1046,12 @@ function buildRoutes() {
 
   const replayRoutes = (
     <Route
-      path="/organizations/:orgId/replays/"
+      path="/organizations/:orgSlug/replays/"
       component={make(() => import('sentry/views/replays'))}
     >
       <IndexRoute component={make(() => import('sentry/views/replays/replays'))} />
       <Route
-        path=":eventSlug/"
+        path=":replaySlug/"
         component={make(() => import('sentry/views/replays/details'))}
       />
     </Route>

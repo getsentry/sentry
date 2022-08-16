@@ -55,14 +55,14 @@ type State = {
 
 type Options = {
   /**
-   * The projectSlug and eventId concatenated together
-   */
-  eventSlug: string;
-
-  /**
    * The organization slug
    */
-  orgId: string;
+  orgSlug: string;
+
+  /**
+   * The projectSlug and eventId concatenated together
+   */
+  replaySlug: string;
 };
 
 // Errors if it is an interface
@@ -129,30 +129,30 @@ const INITIAL_STATE: State = Object.freeze({
  * Front-end processing, filtering and re-mixing of the different data streams
  * must be delegated to the `ReplayReader` class.
  *
- * @param {orgId, eventSlug} Where to find the root replay event
+ * @param {orgSlug, replaySlug} Where to find the root replay event
  * @returns An object representing a unified result of the network requests. Either a single `ReplayReader` data object or fetch errors.
  */
-function useReplayData({eventSlug, orgId}: Options): Result {
-  const [projectId, eventId] = eventSlug.split(':');
+function useReplayData({orgSlug, replaySlug}: Options): Result {
+  const [projectId, eventId] = replaySlug.split(':');
 
   const api = useApi();
   const [state, setState] = useState<State>(INITIAL_STATE);
 
   const fetchEvent = useCallback(() => {
     return api.requestPromise(
-      `/organizations/${orgId}/events/${eventSlug}/`
+      `/organizations/${orgSlug}/events/${replaySlug}/`
     ) as Promise<EventTransaction>;
-  }, [api, orgId, eventSlug]);
+  }, [api, orgSlug, replaySlug]);
 
   const fetchRRWebEvents = useCallback(async () => {
     const attachmentIds = (await api.requestPromise(
-      `/projects/${orgId}/${projectId}/events/${eventId}/attachments/`
+      `/projects/${orgSlug}/${projectId}/events/${eventId}/attachments/`
     )) as IssueAttachment[];
     const rrwebAttachmentIds = attachmentIds.filter(isRRWebEventAttachment);
     const attachments = await Promise.all(
       rrwebAttachmentIds.map(async attachment => {
         const response = await api.requestPromise(
-          `/api/0/projects/${orgId}/${projectId}/events/${eventId}/attachments/${attachment.id}/?download`,
+          `/api/0/projects/${orgSlug}/${projectId}/events/${eventId}/attachments/${attachment.id}/?download`,
           {
             includeAllArgs: true,
           }
@@ -180,7 +180,7 @@ function useReplayData({eventSlug, orgId}: Options): Result {
 
     // ReplayAttachment[] => ReplayAttachment (merge each key of ReplayAttachment)
     return flattenListOfObjects(attachments);
-  }, [api, eventId, orgId, projectId]);
+  }, [api, eventId, orgSlug, projectId]);
 
   const {isLoading: isErrorsFetching, data: errors} = useReplayErrors({
     replayId: eventId,
