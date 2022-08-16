@@ -12,6 +12,7 @@ from sentry.models import (
     DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
+from sentry.models.release import Release
 from sentry.utils import json
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
@@ -125,6 +126,15 @@ class DashboardListSerializer(Serializer):
         return data
 
 
+class DashboardReleaseSerializer(Serializer):
+    def serialize(self, obj, attrs, user, **kwargs):
+        return {
+            "id": str(obj.id),
+            "version": obj.version,
+            "dateCreated": obj.date_added,
+        }
+
+
 @register(Dashboard)
 class DashboardDetailsSerializer(Serializer):
     def get_attrs(self, item_list, user):
@@ -148,7 +158,7 @@ class DashboardDetailsSerializer(Serializer):
         from sentry.api.serializers.rest_framework.base import camel_to_snake_case
 
         page_filter_keys = ["environment", "period", "utc"]
-        dashboard_filter_keys = ["release", "releaseId"]
+        dashboard_filter_keys = ["release"]
         data = {
             "id": str(obj.id),
             "title": obj.title,
@@ -170,6 +180,12 @@ class DashboardDetailsSerializer(Serializer):
             for key in dashboard_filter_keys:
                 if obj.filters.get(camel_to_snake_case(key)) is not None:
                     data["filters"][key] = obj.filters[camel_to_snake_case(key)]
+
+            if obj.filters.get("release_id"):
+                data["filters"]["releaseObj"] = [
+                    serialize(release, user, DashboardReleaseSerializer())
+                    for release in Release.objects.filter(id__in=obj.filters["release_id"])
+                ]
 
             start, end = obj.filters.get("start"), obj.filters.get("end")
             if start and end:

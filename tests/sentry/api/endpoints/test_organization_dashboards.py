@@ -479,6 +479,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
     def test_post_dashboard_with_filters(self):
         project1 = self.create_project(name="foo", organization=self.organization)
+        release = self.create_release(project=project1, version="v1")
         project2 = self.create_project(name="bar", organization=self.organization)
 
         response = self.do_request(
@@ -489,7 +490,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                 "projects": [project1.id, project2.id],
                 "environment": ["alpha"],
                 "period": "7d",
-                "filters": {"release": ["v1"], "releaseId": ["1"]},
+                "filters": {"release": ["v1"], "releaseId": [f"{release.id}"]},
             },
         )
         assert response.status_code == 201
@@ -497,7 +498,9 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.data["environment"] == ["alpha"]
         assert response.data["period"] == "7d"
         assert response.data["filters"]["release"] == ["v1"]
-        assert response.data["filters"]["releaseId"] == ["1"]
+        assert response.data["filters"]["releaseObj"] == [
+            {"id": "1", "version": "v1", "dateCreated": release.date_added}
+        ]
 
     def test_post_with_start_and_end_filter(self):
         start = iso_format(datetime.now() - timedelta(seconds=10))

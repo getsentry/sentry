@@ -9,8 +9,9 @@ from sentry.models import (
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
     DashboardWidgetTypes,
+    Project,
+    Release,
 )
-from sentry.models.project import Project
 from sentry.testutils import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import iso_format
 
@@ -202,6 +203,21 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
 
         assert response.data["expired"]
         assert iso_format(response.data["start"]) == expected_adjusted_retention_start
+
+    def test_release_data_is_returned_when_dashboard_has_release_ids(self):
+        test_release = Release.objects.create(organization_id=self.organization.id, version="v1")
+        filters = {"environment": ["alpha"], "period": "24hr", "release_id": [f"{test_release.id}"]}
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Filters",
+            created_by=self.user,
+            organization=self.organization,
+            filters=filters,
+        )
+
+        response = self.do_request("get", self.url(dashboard.id))
+        assert response.data["filters"]["releaseObj"] == [
+            {"id": "1", "version": "v1", "dateCreated": test_release.date_added}
+        ]
 
 
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):

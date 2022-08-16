@@ -511,7 +511,7 @@ class ReleaseSerializer(Serializer):
             return rv
 
         d = {
-            "id": obj.id,
+            "id": str(obj.id),
             "version": obj.version,
             "status": ReleaseStatus.to_string(obj.status),
             "shortVersion": obj.version,
