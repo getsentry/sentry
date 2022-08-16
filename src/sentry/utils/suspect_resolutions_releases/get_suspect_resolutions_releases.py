@@ -43,19 +43,23 @@ def get_suspect_resolutions_releases(release: Release) -> Sequence[int]:
             for project_id, r_list in releases_by_project.items()
         }
 
-        active_issue_ids_per_project = {
-            project_id: GroupRelease.objects.filter(release_id=release.id).values_list(
-                "group_id", flat=True
+        active_issue_per_project = {
+            project_id: Group.objects.filter(
+                id__in=list(
+                    GroupRelease.objects.filter(release_id=release.id).values_list(
+                        "group_id", flat=True
+                    )
+                ),
+                status=GroupStatus.UNRESOLVED,
             )
             for project_id, release in latest_release_per_project.items()
         }
 
-        suspect_issue_candidate_ids = [
-            group_id.first()
-            for project_id, group_id in active_issue_ids_per_project.items()
-            if Group.objects.filter(id=group_id.first(), status=GroupStatus.UNRESOLVED)
-        ]
-        suspect_issue_candidates = list(Group.objects.filter(id__in=suspect_issue_candidate_ids))
+        suspect_issue_candidates = {
+            group_ids_by_project[0]
+            for project_id, group_ids_by_project in active_issue_per_project.items()
+            if len(group_ids_by_project) > 0
+        }
 
         for issue in suspect_issue_candidates:
             if issue.last_seen < release.date_added:
