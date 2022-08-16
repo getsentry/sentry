@@ -17,7 +17,7 @@ import {Group, Organization, Project, SharedViewOrganization} from 'sentry/types
 import {Entry, EntryType, Event, EventError, EventTransaction} from 'sentry/types/event';
 
 import {EmbeddedSpanTree} from './interfaces/spans/embeddedSpanTree';
-import {FocusedSpanIDMap} from './interfaces/spans/types';
+import {EXPANDED_SPANS_KEY, FocusedSpanIDMap} from './interfaces/spans/types';
 
 type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> & {
   entry: Entry;
@@ -166,6 +166,8 @@ function EventEntry({
 
       // TODO: Need to dynamically determine the project slug for this issue
       const INTERNAL_PROJECT = 'sentry';
+
+      focusedSpanIds[EXPANDED_SPANS_KEY] = new Set();
 
       return (
         <EmbeddedSpanTree

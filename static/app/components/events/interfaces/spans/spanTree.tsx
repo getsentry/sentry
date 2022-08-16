@@ -8,6 +8,7 @@ import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 
 import {DragManagerChildrenProps} from './dragManager';
+import {HiddenSpansBar} from './hiddenSpansBar';
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
 import SpanBar from './spanBar';
 import {SpanDescendantGroupBar} from './spanDescendantGroupBar';
@@ -16,6 +17,7 @@ import {
   EnhancedProcessedSpanType,
   EnhancedSpan,
   FilterSpans,
+  FocusedSpanIDMap,
   GroupType,
   ParsedTraceType,
   SpanType,
@@ -30,6 +32,7 @@ type PropType = ScrollbarManagerChildrenProps & {
   spans: EnhancedProcessedSpanType[];
   traceViewRef: React.RefObject<HTMLDivElement>;
   waterfallModel: WaterfallModel;
+  focusedSpanIds?: FocusedSpanIDMap;
 };
 
 class SpanTree extends Component<PropType> {
@@ -83,6 +86,8 @@ class SpanTree extends Component<PropType> {
       filteredSpansAbove,
     } = input;
 
+    const {focusedSpanIds, waterfallModel} = this.props;
+
     const messages: React.ReactNode[] = [];
 
     const showHiddenSpansMessage = !isCurrentSpanHidden && numOfSpansOutOfViewAbove > 0;
@@ -99,7 +104,6 @@ class SpanTree extends Component<PropType> {
       !isCurrentSpanFilteredOut && numOfFilteredSpansAbove > 0;
 
     if (showFilteredSpansMessage) {
-      filteredSpansAbove;
       if (!isCurrentSpanHidden) {
         if (numOfFilteredSpansAbove === 1) {
           messages.push(
@@ -125,7 +129,18 @@ class SpanTree extends Component<PropType> {
       return null;
     }
 
-    return <MessageRow>{messages}</MessageRow>;
+    if (!focusedSpanIds) {
+      return <MessageRow>{messages}</MessageRow>;
+    }
+
+    return (
+      <HiddenSpansBar
+        spans={filteredSpansAbove.slice(0)}
+        expandHiddenSpans={waterfallModel.expandHiddenSpans}
+      >
+        {messages}
+      </HiddenSpansBar>
+    );
   }
 
   generateLimitExceededMessage() {

@@ -444,12 +444,6 @@ class SpanTreeModel {
           return acc;
         }
 
-        // NOTE: I am making the assumption here that grouped sibling spans will not have children.
-        // By making this assumption, I can immediately wrap the grouped spans here without having
-        // to recursively traverse them.
-
-        // This may not be the case, and needs to be looked into later
-
         const key = getSiblingGroupKey(group[0].span, occurrence);
         if (this.expandedSiblingGroups.has(key)) {
           // This check is needed here, since it is possible that a user could be filtering for a specific span ID.

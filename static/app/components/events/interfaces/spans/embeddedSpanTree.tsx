@@ -107,7 +107,10 @@ export function EmbeddedSpanTree(props: Props) {
                   organization={organization}
                   focusedSpanIds={focusedSpanIds}
                   waterfallModel={
-                    new WaterfallModel(results.tableData as EventTransaction)
+                    new WaterfallModel(
+                      results.tableData as EventTransaction,
+                      focusedSpanIds
+                    )
                   }
                 />
               </Section>

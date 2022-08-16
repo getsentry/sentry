@@ -9,6 +9,8 @@ import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 import {ActiveOperationFilter, noFilter, toggleAllFilters, toggleFilter} from './filter';
 import SpanTreeModel from './spanTreeModel';
 import {
+  EnhancedProcessedSpanType,
+  EXPANDED_SPANS_KEY,
   FilterSpans,
   FocusedSpanIDMap,
   IndexedFusedSpan,
@@ -33,8 +35,9 @@ class WaterfallModel {
   searchQuery: string | undefined = undefined;
   hiddenSpanSubTrees: Set<string>;
   traceBounds: Array<TraceBound>;
+  focusedSpanIds: FocusedSpanIDMap | undefined = undefined;
 
-  constructor(event: Readonly<EventTransaction>) {
+  constructor(event: Readonly<EventTransaction>, focusedSpanIds?: FocusedSpanIDMap) {
     this.event = event;
 
     this.parsedTrace = parseTrace(event);
@@ -55,6 +58,8 @@ class WaterfallModel {
     // Set of span IDs whose sub-trees should be hidden. This is used for the
     // span tree toggling product feature.
     this.hiddenSpanSubTrees = new Set();
+
+    this.focusedSpanIds = focusedSpanIds;
 
     makeObservable(this, {
       parsedTrace: observable,
@@ -79,6 +84,9 @@ class WaterfallModel {
       traceBounds: observable,
       addTraceBounds: action,
       removeTraceBounds: action,
+
+      focusedSpanIds: observable,
+      expandHiddenSpans: action,
     });
   }
 
@@ -274,17 +282,14 @@ class WaterfallModel {
     });
   };
 
-  getWaterfall = (
-    {
-      viewStart,
-      viewEnd,
-    }: {
-      // in [0, 1]
-      viewEnd: number;
-      viewStart: number; // in [0, 1]
-    },
-    focusedSpanIds?: FocusedSpanIDMap
-  ) => {
+  getWaterfall = ({
+    viewStart,
+    viewEnd,
+  }: {
+    // in [0, 1]
+    viewEnd: number;
+    viewStart: number; // in [0, 1]
+  }) => {
     const generateBounds = this.generateBounds({
       viewStart,
       viewEnd,
@@ -300,7 +305,7 @@ class WaterfallModel {
       hiddenSpanSubTrees: this.hiddenSpanSubTrees,
       spanAncestors: new Set(),
       filterSpans: this.filterSpans,
-      focusedSpanIds,
+      focusedSpanIds: this.focusedSpanIds,
       previousSiblingEndTimestamp: undefined,
       event: this.event,
       isOnlySibling: true,
@@ -309,6 +314,16 @@ class WaterfallModel {
       isNestedSpanGroupExpanded: false,
       addTraceBounds: this.addTraceBounds,
       removeTraceBounds: this.removeTraceBounds,
+    });
+  };
+
+  expandHiddenSpans = (spans: EnhancedProcessedSpanType[]) => {
+    spans.forEach(span => {
+      if (span.type !== 'filtered_out') {
+        return;
+      }
+
+      this.focusedSpanIds?.[EXPANDED_SPANS_KEY].add(span.span.span_id);
     });
   };
 }

@@ -209,3 +209,8 @@ export enum GroupType {
 }
 
 export type FocusedSpanIDMap = Record<string, Set<string>>;
+
+// This key will be used in FocusedSpanIDMap to access the 'hidden' spans in the embedded span tree which have been expanded.
+// Users should be able to expand these hidden spans to see them, at which point their respective span ids
+// will be inserted into the map using this key
+export const EXPANDED_SPANS_KEY = 'EXPANDED_SPANS';
