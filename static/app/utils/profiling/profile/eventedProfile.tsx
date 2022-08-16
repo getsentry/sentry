@@ -137,6 +137,7 @@ export class EventedProfile extends Profile {
   leaveFrame(_event: Frame, at: number): void {
     this.addWeightToFrames(at);
     this.addWeightsToNodes(at);
+    this.trackSampleStats(at);
 
     const leavingStackTop = this.appendOrderStack.pop();
 

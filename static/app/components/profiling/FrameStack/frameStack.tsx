@@ -171,6 +171,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
         />
         <ListItem margin="none">
           <ExportProfileButton
+            variant="xs"
             eventId={params.eventId}
             orgId={params.orgId}
             projectId={params.projectId}
