@@ -526,6 +526,41 @@ describe('Modals -> WidgetViewerModal', function () {
             calls[calls.length - 1][0].option.yAxis.axisLabel.formatter;
           expect(yAxisFormatter(123)).toEqual('123ms');
         });
+
+        it('does not allow sorting by transaction name when widget is using metrics', async function () {
+          const eventsMock = MockApiClient.addMockResponse({
+            url: '/organizations/org-slug/events/',
+            body: {
+              data: [
+                {
+                  title: '/organizations/:orgId/dashboards/',
+                  id: '1',
+                  count: 1,
+                },
+              ],
+              meta: {
+                fields: {
+                  title: 'string',
+                  id: 'string',
+                  count: 1,
+                },
+                isMetricsData: true,
+              },
+            },
+          });
+          await renderModal({
+            initialData: initialDataWithFlag,
+            widget: mockWidget,
+            seriesData: [],
+            seriesResultsType: 'duration',
+          });
+          expect(eventsMock).toHaveBeenCalledTimes(1);
+          expect(screen.getByText('title')).toBeInTheDocument();
+          userEvent.click(screen.getByText('title'));
+          expect(initialData.router.push).not.toHaveBeenCalledWith({
+            query: {sort: ['-title']},
+          });
+        });
       });
     });
 
