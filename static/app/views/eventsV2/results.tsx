@@ -466,7 +466,7 @@ class Results extends Component<Props, State> {
       return (
         <Alert type="info" showIcon>
           {t(
-            "You've navigated to this page from a performance metric widget generated from processed events. The results here only show sampled events."
+            "You've navigated to this page from a performance metric widget generated from processed events. The results here only show indexed events."
           )}
         </Alert>
       );

@@ -1669,7 +1669,7 @@ describe('Results', function () {
     await tick();
     wrapper.update();
     expect(wrapper.find('Alert').find('Message').text()).toEqual(
-      "You've navigated to this page from a performance metric widget generated from processed events. The results here only show sampled events."
+      "You've navigated to this page from a performance metric widget generated from processed events. The results here only show indexed events."
     );
   });
 
