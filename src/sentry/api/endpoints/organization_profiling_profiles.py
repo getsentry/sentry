@@ -11,6 +11,8 @@ from sentry import features
 # from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.serializers.snuba import calculate_time_frame
+from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Organization
 from sentry.utils import json
@@ -138,7 +140,20 @@ class OrganizationProfilingStatsEndpoint(OrganizationProfilingBaseEndpoint):
         try:
             params = self.get_profiling_params(request, organization)
         except NoProjects:
-            return Response([])
+            # even when there are no projects, we should at least return a response
+            # of the same shape
+            start, end = get_date_range_from_params(request.GET)
+            rollup = self.get_granularity(request, {"start": start, "end": end})
+            return Response(
+                {
+                    "data": [],
+                    "meta": {
+                        "dataset": "profiles",
+                        **calculate_time_frame(start, end, rollup),
+                    },
+                    "timestamps": [],
+                }
+            )
 
         kwargs = {"params": params}
         if "Accept-Encoding" in request.headers:

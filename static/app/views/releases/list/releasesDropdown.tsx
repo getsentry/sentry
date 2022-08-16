@@ -18,7 +18,7 @@ const ReleasesDropdown = ({label: prefix, options, selected, onSelect}: Props) =
       value: key,
       label,
       tooltip,
-      isDisabled: disabled,
+      disabled,
     })
   );
 

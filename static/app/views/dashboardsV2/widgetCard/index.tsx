@@ -52,7 +52,6 @@ type Props = WithRouterProps & {
   widgetLimitReached: boolean;
   dashboardFilters?: DashboardFilters;
   draggableProps?: DraggableProps;
-  hasUnsavedFilters?: boolean;
   hideToolbar?: boolean;
   index?: string;
   isMobile?: boolean;
@@ -73,6 +72,7 @@ type Props = WithRouterProps & {
 type State = {
   pageLinks?: string;
   seriesData?: Series[];
+  seriesResultsType?: string;
   tableData?: TableDataWithTitle[];
   totalIssuesCount?: string;
 };
@@ -162,10 +162,10 @@ class WidgetCard extends Component<Props, State> {
       router,
       location,
       index,
-      hasUnsavedFilters,
     } = this.props;
 
-    const {seriesData, tableData, pageLinks, totalIssuesCount} = this.state;
+    const {seriesData, tableData, pageLinks, totalIssuesCount, seriesResultsType} =
+      this.state;
 
     if (isEditing) {
       return null;
@@ -187,10 +187,10 @@ class WidgetCard extends Component<Props, State> {
         location={location}
         index={index}
         seriesData={seriesData}
+        seriesResultsType={seriesResultsType}
         tableData={tableData}
         pageLinks={pageLinks}
         totalIssuesCount={totalIssuesCount}
-        hasUnsavedFilters={hasUnsavedFilters}
       />
     );
   }
@@ -200,10 +200,12 @@ class WidgetCard extends Component<Props, State> {
     timeseriesResults,
     totalIssuesCount,
     pageLinks,
+    timeseriesResultsType,
   }: {
     pageLinks?: string;
     tableResults?: TableDataWithTitle[];
     timeseriesResults?: Series[];
+    timeseriesResultsType?: string;
     totalIssuesCount?: string;
   }) => {
     this.setState({
@@ -211,6 +213,7 @@ class WidgetCard extends Component<Props, State> {
       tableData: tableResults,
       totalIssuesCount,
       pageLinks,
+      seriesResultsType: timeseriesResultsType,
     });
   };
 
