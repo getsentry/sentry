@@ -18,20 +18,15 @@ from sentry.utils import metrics
 OrgId = int
 
 
-def _build_quota_key(use_case_id: UseCaseKey, org_id: Optional[OrgId] = None) -> str:
-    use_case_str = {
-        UseCaseKey.PERFORMANCE: "performance",
-        UseCaseKey.RELEASE_HEALTH: "releasehealth",
-    }[use_case_id]
-
+def _build_quota_key(namespace: str, org_id: Optional[OrgId] = None) -> str:
     if org_id is not None:
-        return f"metrics-indexer-{use_case_str}-org-{org_id}"
+        return f"metrics-indexer-{namespace}-org-{org_id}"
     else:
-        return f"metrics-indexer-{use_case_str}-global"
+        return f"metrics-indexer-{namespace}-global"
 
 
 @metrics.wraps("sentry_metrics.indexer.construct_quotas")
-def _construct_quotas(use_case_id: UseCaseKey) -> Sequence[Quota]:
+def _construct_quotas(use_case_id: UseCaseKey, namespace: str) -> Sequence[Quota]:
     """
     Construct write limit's quotas based on current sentry options.
 
@@ -40,7 +35,7 @@ def _construct_quotas(use_case_id: UseCaseKey) -> Sequence[Quota]:
     """
     if use_case_id == UseCaseKey.PERFORMANCE:
         return [
-            Quota(prefix_override=_build_quota_key(UseCaseKey.PERFORMANCE, None), **args)
+            Quota(prefix_override=_build_quota_key(namespace, None), **args)
             for args in options.get("sentry-metrics.writes-limiter.limits.performance.global")
         ] + [
             Quota(prefix_override=None, **args)
@@ -48,7 +43,7 @@ def _construct_quotas(use_case_id: UseCaseKey) -> Sequence[Quota]:
         ]
     elif use_case_id == UseCaseKey.RELEASE_HEALTH:
         return [
-            Quota(prefix_override=_build_quota_key(UseCaseKey.RELEASE_HEALTH, None), **args)
+            Quota(prefix_override=_build_quota_key(namespace, None), **args)
             for args in options.get("sentry-metrics.writes-limiter.limits.releasehealth.global")
         ] + [
             Quota(prefix_override=None, **args)
@@ -60,18 +55,18 @@ def _construct_quotas(use_case_id: UseCaseKey) -> Sequence[Quota]:
 
 @metrics.wraps("sentry_metrics.indexer.construct_quota_requests")
 def _construct_quota_requests(
-    use_case_id: UseCaseKey, keys: KeyCollection
+    use_case_id: UseCaseKey, namespace: str, keys: KeyCollection
 ) -> Tuple[Sequence[OrgId], Sequence[RequestedQuota]]:
     org_ids = []
     requests = []
-    quotas = _construct_quotas(use_case_id)
+    quotas = _construct_quotas(use_case_id, namespace)
 
     if quotas:
         for org_id, strings in keys.mapping.items():
             org_ids.append(org_id)
             requests.append(
                 RequestedQuota(
-                    prefix=_build_quota_key(use_case_id, org_id),
+                    prefix=_build_quota_key(namespace, org_id),
                     requested=len(strings),
                     quotas=quotas,
                 )
@@ -143,7 +138,7 @@ class WritesLimiter:
         Upon (successful) exit, rate limits are consumed.
         """
 
-        org_ids, requests = _construct_quota_requests(use_case_id, keys)
+        org_ids, requests = _construct_quota_requests(use_case_id, namespace, keys)
         timestamp, grants = self._get_rate_limiter(use_case_id, namespace).check_within_quotas(
             requests
         )

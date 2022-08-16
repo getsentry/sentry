@@ -99,3 +99,49 @@ def test_writes_limiter_global_limit(set_sentry_option):
         UseCaseKey.PERFORMANCE, PERFORMANCE_PG_NAMESPACE, key_collection
     ) as state:
         assert len(state.dropped_strings) == 2
+
+
+def test_writes_limiter_respects_namespaces(set_sentry_option):
+    """
+    Rate limiters can have the same use case but different namespaces,
+    so each namespace should have it's own quota.
+
+    Here we test that a namespace currently exceededing quota results in
+    dropping all strings for subsequent calls to check_write_limits, while
+    a different namespace is unaffected (no strings are dropped).
+    """
+    set_sentry_option(
+        "sentry-metrics.writes-limiter.limits.performance.per-org",
+        [{"window_seconds": 20, "granularity_seconds": 20, "limit": 2}],
+    )
+    set_sentry_option("sentry-metrics.writes-limiter.limits.performance.global", [])
+    writes_limiter = get_writes_limiter()
+
+    key_collection = KeyCollection(
+        {
+            1: {"a", "b", "c"},
+            2: {"a", "b", "c"},
+        }
+    )
+
+    with writes_limiter.check_write_limits(
+        UseCaseKey.PERFORMANCE, PERFORMANCE_PG_NAMESPACE, key_collection
+    ) as state:
+        assert len(state.dropped_strings) == 2
+
+    key_collection = KeyCollection(
+        {
+            1: {"d", "e"},
+            2: {"d", "e"},
+        }
+    )
+
+    with writes_limiter.check_write_limits(
+        UseCaseKey.PERFORMANCE, PERFORMANCE_PG_NAMESPACE, key_collection
+    ) as state:
+        assert len(state.dropped_strings) == 4
+
+    with writes_limiter.check_write_limits(
+        UseCaseKey.PERFORMANCE, "other-performance-namespace", key_collection
+    ) as state:
+        assert not state.dropped_strings
