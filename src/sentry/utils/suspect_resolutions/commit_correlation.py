@@ -39,8 +39,8 @@ def is_issue_commit_correlated(
 
     return CommitCorrelatedResult(
         not resolved_filechanges.files_changed.isdisjoint(candidate_filechanges.files_changed),
-        resolved_filechanges.release_ids.first(),
-        candidate_filechanges.release_ids.first(),
+        resolved_filechanges.release_ids,
+        candidate_filechanges.release_ids,
     )
 
 
