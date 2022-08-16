@@ -10,7 +10,7 @@ import MenuItem from 'sentry/components/menuItem';
 import {IconAdd, IconPin, IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {SavedSearch, SavedSearchType} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import CreateSavedSearchModal from 'sentry/views/issueList/createSavedSearchModal';
 
 import SmartSearchBar from './index';
@@ -54,10 +54,8 @@ export function makePinSearchAction({pinnedSearch, sort}: PinSearchActionOpts) {
 
       const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
 
-      trackAnalyticsEvent({
-        eventKey: 'search.pin',
-        eventName: 'Search: Pin',
-        organization_id: organization.id,
+      trackAdvancedAnalyticsEvent('search.pin', {
+        organization,
         action: !!pinnedSearch ? 'unpin' : 'pin',
         search_type: savedSearchType === SavedSearchType.ISSUE ? 'issues' : 'events',
         query: pinnedSearch?.query ?? query,

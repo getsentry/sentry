@@ -33,6 +33,11 @@ export type SearchEventParameters = {
   };
   'search.invalid_field': Omit<SearchEventBase, 'query'> & {attempted_field_name: string};
   'search.operator_autocompleted': SearchEventBase & {search_operator: string};
+  'search.pin': {
+    action: 'pin' | 'unpin';
+    search_type: string;
+    query?: string;
+  };
   'search.search_with_invalid': SearchEventBase;
   'search.searched': SearchEventBase & {search_source?: string};
   'search.shortcut_used': SearchEventBase & {
@@ -72,4 +77,5 @@ export const searchEventMap: Record<SearchEventKey, string | null> = {
   'projectselector.clear': 'Project Selector: Clear',
   'projectselector.toggle': 'Project Selector: Toggle',
   'projectselector.multi_button_clicked': 'Project Selector: Multi Button Clicked',
+  'search.pin': 'Search: Pin',
 };
