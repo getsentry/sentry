@@ -88,7 +88,20 @@ function ReleasesSelectControl({
       onChange={opts => setActiveReleases(opts.map(opt => opt.value))}
       onClose={() => {
         resetSearch();
-        handleChangeFilter?.({[DashboardFilterKeys.RELEASE]: activeReleases});
+        const activeReleasesVersions = new Set(activeReleases);
+
+        const activeReleasesById = releases
+          .filter(release => activeReleasesVersions.has(release.version))
+          .map(release => release.id);
+
+        if (activeReleasesVersions.has('latest')) {
+          activeReleasesById.push('latest');
+        }
+
+        handleChangeFilter?.({
+          [DashboardFilterKeys.RELEASE]: activeReleases,
+          [DashboardFilterKeys.RELEASE_ID]: activeReleasesById,
+        });
       }}
       value={activeReleases}
       triggerLabel={

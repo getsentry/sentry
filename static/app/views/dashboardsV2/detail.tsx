@@ -418,7 +418,7 @@ class DashboardDetail extends Component<Props, State> {
       filterParams[key] = activeFilters[key].length ? activeFilters[key] : '';
     });
 
-    if (!isEqual(activeFilters, dashboard.filters?.release)) {
+    if (!isEqual(activeFilters, dashboard.filters)) {
       browserHistory.push({
         ...location,
         query: {
@@ -558,7 +558,7 @@ class DashboardDetail extends Component<Props, State> {
               browserHistory.replace({
                 pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
                 query: {
-                  query: omit(location.query, DashboardFilterKeys.RELEASE),
+                  query: omit(location.query, Object.values(DashboardFilterKeys)),
                 },
               });
             },
@@ -869,7 +869,10 @@ class DashboardDetail extends Component<Props, State> {
                           addSuccessMessage(t('Dashboard filters updated'));
                           browserHistory.replace({
                             pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
-                            query: omit(location.query, DashboardFilterKeys.RELEASE),
+                            query: omit(
+                              location.query,
+                              Object.values(DashboardFilterKeys)
+                            ),
                           });
                         },
                         () => undefined
