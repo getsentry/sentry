@@ -14,7 +14,7 @@ def store_missing_release_ids_for_dashboard_filters(apps, schema_editor):
         if (
             dashboard.filters
             and dashboard.filters["release"]
-            and not dashboard.filters.get("release_id", None)
+            and not dashboard.filters.get("release_id")
         ):
             release_ids = list(
                 Release.objects.filter(version__in=dashboard.filters["release"]).values_list(
