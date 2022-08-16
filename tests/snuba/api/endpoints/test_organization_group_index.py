@@ -1828,7 +1828,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         owners = response.data[0]["owners"]
         assert len(owners) == 1
         assert owners[0]["owner"] == f"user:{user2.id}"
-        assert owners[0]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.RELEASE_COMMIT]
+        assert owners[0]["type"] == "releaseCommit"
 
     def test_multiple_committers(self):
         release = self.create_release(project=self.project, version="1.0.0")
@@ -1881,7 +1881,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert owners[0]["owner"] == f"user:{self.user.id}"
         assert owners[0]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.SUSPECT_COMMIT]
         assert owners[1]["owner"] == f"user:{user2.id}"
-        assert owners[1]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.RELEASE_COMMIT]
+        assert owners[1]["type"] == "releaseCommit"
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):

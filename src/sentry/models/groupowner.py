@@ -13,20 +13,18 @@ from sentry.db.models import FlexibleForeignKey, Model
 class GroupOwnerType(Enum):
     SUSPECT_COMMIT = 0
     OWNERSHIP_RULE = 1
-    RELEASE_COMMIT = 2
 
 
 GROUP_OWNER_TYPE = {
     GroupOwnerType.SUSPECT_COMMIT: "suspectCommit",
     GroupOwnerType.OWNERSHIP_RULE: "ownershipRule",
-    GroupOwnerType.RELEASE_COMMIT: "releaseCommit",
 }
 
 
 class OwnersSerialized(TypedDict):
     type: GroupOwnerType
-    author: str
-    commits: models.DateTimeField
+    owner: str
+    date_added: models.DateTimeField
 
 
 class GroupOwner(Model):
@@ -146,10 +144,10 @@ def get_release_committers_for_group(group_id: List[int]) -> List[OwnersSerializ
     }
 
     return [
-        {
-            "type": GROUP_OWNER_TYPE[GroupOwnerType.RELEASE_COMMIT],
-            "owner": f"user:{user_id}",
-            "date_added": latest_rc.commit.date_added,
-        }
+        OwnersSerialized(
+            type="releaseCommit",
+            owner=f"user:{user_id}",
+            date_added=latest_rc.commit.date_added,
+        )
         for user_id, latest_rc in user_to_latest_rc.items()
     ]
