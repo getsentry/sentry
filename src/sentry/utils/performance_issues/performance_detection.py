@@ -441,7 +441,7 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
 
     def init(self):
         self.stored_issues = {}
-        self.transaction_start = timedelta(seconds=self.event().get("transaction_start", 0))
+        self.transaction_start = timedelta(seconds=self.event().get("start_timestamp", 0))
         self.fcp = None
 
         # Only concern ourselves with transactions where the FCP is within the
