@@ -1,3 +1,5 @@
+import re
+
 from django.db.models import prefetch_related_objects
 
 from sentry import audit_log
@@ -14,6 +16,14 @@ def fix(data):
             data["teams"] = [t.id for t in data["teams"]]
 
     return data
+
+
+def override_actor_id(user):
+    uuid_regex = re.compile(
+        r".*[0-9a-fA-F]{6}\-[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{7}"
+    )
+    uuid_match = re.match(uuid_regex, user.get_display_name())
+    return uuid_match
 
 
 @register(AuditLogEntry)
@@ -35,7 +45,7 @@ class AuditLogEntrySerializer(Serializer):
         return {
             item: {
                 "actor": users[str(item.actor_id)]
-                if item.actor_id
+                if item.actor_id and not override_actor_id(item.actor)
                 else {"name": item.get_actor_name()},
                 "targetUser": users.get(str(item.target_user_id)) or item.target_user_id,
             }

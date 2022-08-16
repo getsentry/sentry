@@ -14,7 +14,6 @@ from sentry.models import (
 
 
 def create_audit_entry(request, transaction_id=None, logger=None, **kwargs):
-    request = fix_log_name(request)
     user = kwargs.pop("actor", request.user if request.user.is_authenticated else None)
     api_key = get_api_key_for_audit_log(request)
 
@@ -152,20 +151,3 @@ def create_system_audit_entry(transaction_id=None, logger=None, **kwargs):
             logger.info(entry, extra=extra)
 
     return entry
-
-
-def fix_log_name(request):
-    # fix username if needed
-    scim_prefix = "scim-internal-integration-"
-    scim_regex = re.compile(
-        scim_prefix
-        + r"([0-9a-fA-F]{6})\-[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{7}"
-    )
-    scim_match = re.match(scim_regex, request.user.username)
-
-    if scim_match:
-        uuid_prefix = scim_match.groups()[0]
-        request.user.username = "SCIM Internal Integration (" + uuid_prefix + ")"
-        request.user.save()
-
-    return request

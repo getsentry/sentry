@@ -255,16 +255,3 @@ class CreateAuditEntryTest(TestCase):
         assert entry.organization == self.org
         assert entry.target_object == self.org.id
         assert audit_log.get(entry.event).render(entry) == "disabled sso (GitHub)"
-
-
-class SCIMAuditEntryTest(SCIMTestCase, SCIMEndpoint):
-    def test_fix_log_name(self):
-        request = HttpRequest()
-        suffix = "681d6e"
-        request.user = self.create_user(
-            username=f"scim-internal-integration-{suffix}-ad37e179-501c-4639-bc83-9780ca1"
-        )
-
-        request = fix_log_name(request)
-
-        assert request.user.username == f"SCIM Internal Integration ({suffix})"

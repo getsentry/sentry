@@ -1,3 +1,5 @@
+import re
+
 from django.db import models
 from django.utils import timezone
 
@@ -59,6 +61,20 @@ class AuditLogEntry(Model):
         super().save(*args, **kwargs)
 
     def get_actor_name(self):
+        # fix display name if needed
+        uuid_regex = re.compile(
+            r"(.*)([0-9a-fA-F]{6})\-[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{7}"
+        )
+        uuid_match = re.match(uuid_regex, self.actor.get_display_name())
+
+        if uuid_match:
+            uuid_prefix = uuid_match.groups()[1]
+            integration_name = (uuid_match.groups()[0]).replace("-", " ")
+            integration_name = integration_name.title()
+            integration_name = integration_name.replace("Scim", "SCIM")
+
+            return integration_name + " (" + uuid_prefix + ")"
+
         if self.actor:
             return self.actor.get_display_name()
         elif self.actor_key:

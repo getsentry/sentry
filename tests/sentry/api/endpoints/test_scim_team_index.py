@@ -46,20 +46,6 @@ class SCIMGroupIndexTests(SCIMTestCase, OrganizationSCIMTeamIndex):
         assert Team.objects.get(id=team_id).name == "Test SCIMv2"
         assert len(Team.objects.get(id=team_id).member_set) == 0
 
-        # test audit log
-        suffix = "681d6e"
-        response.user = self.create_user(
-            username=f"scim-internal-integration-{suffix}-ad37e179-501c-4639-bc83-9780ca1"
-        )
-        response.data["id"] = str(int(team_id) + 1)
-        response.data["displayName"] = "Test SCIMv3"
-        response.META = {"REMOTE_ADDR": "128.218.229.26"}
-        self.post(request=response, organization=self.organization)
-
-        audit_logs = AuditLogEntry.objects.filter(organization=self.organization)
-        assert audit_logs[1].actor_label == f"SCIM Internal Integration ({suffix})"
-        assert audit_logs[1].event == 20  # TEAM_ADD
-
     def test_scim_team_index_populated(self):
         team = self.create_team(organization=self.organization)
 
