@@ -19,9 +19,7 @@ from sentry.sentry_metrics.indexer.id_generator import get_id
 
 @pytest.fixture(scope="module")
 def testing_indexer():
-    indexer = RawCloudSpannerIndexer(
-        instance_id="", database_id=""
-    )
+    indexer = RawCloudSpannerIndexer(instance_id="", database_id="")
 
     indexer.validate()
     return indexer
@@ -144,8 +142,7 @@ def test_spanner_indexer_insert_batch_no_conflict_does_not_trigger_individual_in
         last_seen=datetime.now(),
         retention_days=55,
     )
-    testing_indexer._insert_db_records(UseCaseKey.PERFORMANCE, [model1],
-                                       key_results1)
+    testing_indexer._insert_db_records(UseCaseKey.PERFORMANCE, [model1], key_results1)
 
     # Insert the same record with a different id but the key result would
     # have the id of model1.
@@ -160,8 +157,7 @@ def test_spanner_indexer_insert_batch_no_conflict_does_not_trigger_individual_in
         last_seen=datetime.now(),
         retention_days=55,
     )
-    testing_indexer._insert_db_records(UseCaseKey.PERFORMANCE, [model2],
-                                       key_results2)
+    testing_indexer._insert_db_records(UseCaseKey.PERFORMANCE, [model2], key_results2)
     assert mock.call_count == 0, "Insert with collisions should not be called"
 
 
@@ -190,8 +186,7 @@ def test_spanner_indexer_insert_batch_conflict_triggers_individual_transactions(
         last_seen=datetime.now(),
         retention_days=55,
     )
-    testing_indexer._insert_db_records(UseCaseKey.PERFORMANCE, [model1],
-                                       key_results1)
+    testing_indexer._insert_db_records(UseCaseKey.PERFORMANCE, [model1], key_results1)
 
     # Insert the same record with a different id but the key result would
     # have the id of model1.
@@ -206,8 +201,7 @@ def test_spanner_indexer_insert_batch_conflict_triggers_individual_transactions(
         last_seen=datetime.now(),
         retention_days=55,
     )
-    testing_indexer._insert_db_records(UseCaseKey.PERFORMANCE, [model2],
-                                       key_results2)
+    testing_indexer._insert_db_records(UseCaseKey.PERFORMANCE, [model2], key_results2)
     assert mock.call_count == 1, "Insert with collisions should be called"
 
 
@@ -236,9 +230,7 @@ def test_spanner_indexer_individual_insert(testing_indexer):
         last_seen=datetime.now(),
         retention_days=55,
     )
-    testing_indexer._insert_collisions_handled(UseCaseKey.PERFORMANCE,
-                                               [model1],
-                                               key_results1)
+    testing_indexer._insert_collisions_handled(UseCaseKey.PERFORMANCE, [model1], key_results1)
     assert (
         key_results1.get_mapped_key_strings_to_ints()
         == expected_key_result.get_mapped_key_strings_to_ints()
@@ -257,9 +249,7 @@ def test_spanner_indexer_individual_insert(testing_indexer):
         last_seen=datetime.now(),
         retention_days=55,
     )
-    testing_indexer._insert_collisions_handled(UseCaseKey.PERFORMANCE,
-                                               [model2],
-                                               key_results2)
+    testing_indexer._insert_collisions_handled(UseCaseKey.PERFORMANCE, [model2], key_results2)
     assert (
         key_results2.get_mapped_key_strings_to_ints()
         == expected_key_result.get_mapped_key_strings_to_ints()
