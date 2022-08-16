@@ -497,7 +497,7 @@ class NPlusOneSpanDetector(PerformanceDetector):
     Checks for multiple concurrent API calls.
     N.B.1. Non-greedy! Returns the first N concurrent spans of a series of
       concurrent spans, rather than all spans in a concurrent series.
-    N.B.2. Assumes that spans are passed in asceding order of `start_timestamp`
+    N.B.2. Assumes that spans are passed in ascending order of `start_timestamp`
     N.B.3. Only returns _the first_ set of concurrent calls of all possible.
     """
 
