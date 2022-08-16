@@ -24,10 +24,6 @@ logger = logging.getLogger(__name__)
 
 
 class Unbatcher(ProcessingStep[MessageBatch]):  # type: ignore
-    """
-    Temporary Transform Step
-    """
-
     def __init__(
         self,
         next_step: ProcessingStep[KafkaPayload],
