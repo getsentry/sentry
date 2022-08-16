@@ -1,5 +1,3 @@
-import isUndefined from 'lodash/isUndefined';
-
 import {Form} from 'sentry/components/forms';
 import {Panel, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
@@ -49,7 +47,7 @@ export default class AdminSettings extends AsyncView<{}, State> {
       // TODO(dcramer): we should not be mutating options
       const option = data[key] ?? {field: {}, value: undefined};
 
-      if (isUndefined(option.value) || option.value === '') {
+      if (option.value === undefined || option.value === '') {
         const defn = getOption(key);
         initialData[key] = defn.defaultValue ? defn.defaultValue() : '';
       } else {

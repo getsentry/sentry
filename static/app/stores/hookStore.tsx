@@ -1,4 +1,3 @@
-import isUndefined from 'lodash/isUndefined';
 import {createStore, StoreDefinition} from 'reflux';
 
 import {HookName, Hooks} from 'sentry/types/hooks';
@@ -25,7 +24,7 @@ const storeConfig: HookStoreDefinition = {
   },
 
   add(hookName, callback) {
-    if (isUndefined(this.hooks[hookName])) {
+    if (this.hooks[hookName] === undefined) {
       this.hooks[hookName] = [];
     }
 
@@ -34,7 +33,7 @@ const storeConfig: HookStoreDefinition = {
   },
 
   remove(hookName, callback) {
-    if (isUndefined(this.hooks[hookName])) {
+    if (this.hooks[hookName] === undefined) {
       return;
     }
     this.hooks[hookName] = this.hooks[hookName]!.filter(cb => cb !== callback);
