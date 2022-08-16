@@ -370,7 +370,7 @@ class GroupSerializerBase(Serializer):
         return integration_annotations
 
     @staticmethod
-    def _resolve_plugin_annotation(
+    def _resolve_and_extend_plugin_annotation(
         item: Group, current_annotations: Sequence[Any]
     ) -> Sequence[Any]:
         from sentry.plugins.base import plugins
@@ -490,7 +490,7 @@ class GroupSerializerBase(Serializer):
                 "is_bookmarked": item.id in bookmarks,
                 "subscription": subscriptions[item.id],
                 "has_seen": seen_groups.get(item.id, active_date) > active_date,
-                "annotations": self._resolve_plugin_annotation(
+                "annotations": self._resolve_and_extend_plugin_annotation(
                     item, annotations_by_group_id[item.id]
                 ),
                 "ignore_until": ignore_item,
