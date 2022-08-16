@@ -1,6 +1,6 @@
 from django.urls import reverse
 
-from sentry.models import AuditLogEntry, Team
+from sentry.models import Team
 from sentry.scim.endpoints.teams import OrganizationSCIMTeamIndex
 from sentry.testutils import SCIMTestCase
 

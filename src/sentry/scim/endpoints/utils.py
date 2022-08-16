@@ -1,4 +1,3 @@
-import re
 from typing import Dict, List
 
 from drf_spectacular.utils import extend_schema

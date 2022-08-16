@@ -1,5 +1,3 @@
-import re
-
 from sentry import audit_log
 from sentry.models import (
     ApiKey,
