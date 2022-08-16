@@ -3,14 +3,17 @@ import logging
 from arroyo.types import Message
 
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import MetricsIngestConfiguration
+from sentry.sentry_metrics.configuration import IndexerStorage, MetricsIngestConfiguration
 from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch
 from sentry.sentry_metrics.consumers.indexer.common import MessageBatch
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
-DB_INDEXER_MAP = {CLOUDSPANNER_DB: CloudSpannerIndexer, POSTGRES_DB: PostgresIndexer}
+STORAGE_TO_INDEXER = {
+    IndexerStorage.CLOUDSPANNER: CloudSpannerIndexer,
+    IndexerStorage.POSTGRES: PostgresIndexer,
+}
 
 
 class MessageProcessor:

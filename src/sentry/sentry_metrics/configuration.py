@@ -18,14 +18,15 @@ PERFORMANCE_PG_NAMESPACE = "performance"
 RELEASE_HEALTH_CS_NAMESPACE = "releasehealth.cs"
 PERFORMANCE_CS_NAMESPACE = "performance.cs"
 
-# DB Backends
-CLOUDSPANNER_DB = "cloudspanner"
-POSTGRES_DB = "postgres"
+
+class IndexerStorage(Enum):
+    CLOUDSPANNER = "cloudspanner"
+    POSTGRES = "postgres"
 
 
 @dataclass(frozen=True)
 class MetricsIngestConfiguration:
-    db_backend: str
+    db_backend: IndexerStorage
     input_topic: str
     output_topic: str
     use_case_id: UseCaseKey
@@ -47,7 +48,7 @@ def get_ingest_config(use_case_key: UseCaseKey, db_backend: str) -> MetricsInges
     if len(_METRICS_INGEST_CONFIG_BY_USE_CASE) == 0:
         _register_ingest_config(
             MetricsIngestConfiguration(
-                db_backend=POSTGRES_DB,
+                db_backend=IndexerStorage.POSTGRES,
                 input_topic=settings.KAFKA_INGEST_METRICS,
                 output_topic=settings.KAFKA_SNUBA_METRICS,
                 use_case_id=UseCaseKey.RELEASE_HEALTH,
@@ -59,7 +60,7 @@ def get_ingest_config(use_case_key: UseCaseKey, db_backend: str) -> MetricsInges
 
         _register_ingest_config(
             MetricsIngestConfiguration(
-                db_backend=POSTGRES_DB,
+                db_backend=IndexerStorage.POSTGRES,
                 input_topic=settings.KAFKA_INGEST_PERFORMANCE_METRICS,
                 output_topic=settings.KAFKA_SNUBA_GENERIC_METRICS,
                 use_case_id=UseCaseKey.PERFORMANCE,
@@ -69,15 +70,11 @@ def get_ingest_config(use_case_key: UseCaseKey, db_backend: str) -> MetricsInges
             )
         )
 
-        # Make sure that if we run backends in parallel we aren't
-        # double producing to the snuba-metrics-generics topic
-        dummy_output_topic = settings.KAFKA_SNUBA_GENERICS_METRICS_DUMMY
-
         _register_ingest_config(
             MetricsIngestConfiguration(
-                db_backend=CLOUDSPANNER_DB,
+                db_backend=IndexerStorage.CLOUDSPANNER,
                 input_topic=settings.KAFKA_INGEST_METRICS,
-                output_topic=dummy_output_topic,
+                output_topic=settings.KAFKA_SNUBA_GENERICS_METRICS_CS,
                 use_case_id=UseCaseKey.RELEASE_HEALTH,
                 internal_metrics_tag="release-health-spanner",
                 writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS,
@@ -87,9 +84,9 @@ def get_ingest_config(use_case_key: UseCaseKey, db_backend: str) -> MetricsInges
 
         _register_ingest_config(
             MetricsIngestConfiguration(
-                db_backend=CLOUDSPANNER_DB,
+                db_backend=IndexerStorage.CLOUDSPANNER,
                 input_topic=settings.KAFKA_INGEST_PERFORMANCE_METRICS,
-                output_topic=dummy_output_topic,
+                output_topic=settings.KAFKA_SNUBA_GENERICS_METRICS_CS,
                 use_case_id=UseCaseKey.PERFORMANCE,
                 internal_metrics_tag="perf-spanner",
                 writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS_PERFORMANCE,
