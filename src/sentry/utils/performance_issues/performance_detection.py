@@ -3,7 +3,7 @@ import random
 from abc import ABC, abstractmethod
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import sentry_sdk
 
@@ -103,28 +103,27 @@ def get_default_detection_settings():
     }
 
 
-def _detect_performance_issue(data: Event, sdk_span: Any):
-    event_id = data.get("event_id", None)
-    spans = data.get("spans", [])
+def _detect_performance_issue(event: Event, sdk_span: Any):
+    spans = event.get("spans", [])
 
     detection_settings = get_default_detection_settings()
     detectors = {
-        DetectorType.DUPLICATE_SPANS: DuplicateSpanDetector(detection_settings, data),
-        DetectorType.DUPLICATE_SPANS_HASH: DuplicateSpanHashDetector(detection_settings, data),
-        DetectorType.SLOW_SPAN: SlowSpanDetector(detection_settings, data),
-        DetectorType.SEQUENTIAL_SLOW_SPANS: SequentialSlowSpanDetector(detection_settings, data),
-        DetectorType.LONG_TASK_SPANS: LongTaskSpanDetector(detection_settings, data),
+        DetectorType.DUPLICATE_SPANS: DuplicateSpanDetector(detection_settings, event),
+        DetectorType.DUPLICATE_SPANS_HASH: DuplicateSpanHashDetector(detection_settings, event),
+        DetectorType.SLOW_SPAN: SlowSpanDetector(detection_settings, event),
+        DetectorType.SEQUENTIAL_SLOW_SPANS: SequentialSlowSpanDetector(detection_settings, event),
+        DetectorType.LONG_TASK_SPANS: LongTaskSpanDetector(detection_settings, event),
         DetectorType.RENDER_BLOCKING_ASSET_SPAN: RenderBlockingAssetSpanDetector(
-            detection_settings, data
+            detection_settings, event
         ),
-        DetectorType.N_PLUS_ONE_SPANS: NPlusOneSpanDetector(detection_settings, data),
+        DetectorType.N_PLUS_ONE_SPANS: NPlusOneSpanDetector(detection_settings, event),
     }
 
     for span in spans:
         for _, detector in detectors.items():
             detector.visit_span(span)
 
-    report_metrics_for_detectors(event_id, detectors, sdk_span)
+    report_metrics_for_detectors(event, detectors, sdk_span)
 
 
 # Creates a stable fingerprint given the same span details using sha1.
@@ -553,21 +552,13 @@ class NPlusOneSpanDetector(PerformanceDetector):
 
 # Reports metrics and creates spans for detection
 def report_metrics_for_detectors(
-    event_id: Optional[str], detectors: Dict[str, PerformanceDetector], sdk_span: Any
+    event: Event, detectors: Dict[str, PerformanceDetector], sdk_span: Any
 ):
-    all_detected_issues = [i for _, d in detectors.items() for i in d.stored_issues]
-    has_detected_issues = bool(all_detected_issues)
+    event_id = event.get("event_id", None)
+    issue_count = 0
 
-    if has_detected_issues:
-        sdk_span.containing_transaction.set_tag("_pi_all_issue_count", len(all_detected_issues))
-        metrics.incr(
-            "performance.performance_issue.aggregate",
-            len(all_detected_issues),
-        )
-        if event_id:
-            sdk_span.containing_transaction.set_tag("_pi_transaction", event_id)
+    detected_tags = {"project_id_bucket": event}
 
-    detected_tags = {}
     for detector_enum, detector in detectors.items():
         detector_key = detector_enum.value
         detected_issues = detector.stored_issues
@@ -576,6 +567,9 @@ def report_metrics_for_detectors(
 
         if not detected_issue_keys:
             continue
+
+        if len(detected_issue_keys) > 0:
+            issue_count += len(detected_issue_keys)
 
         first_issue = detected_issues[detected_issue_keys[0]]
         if first_issue.fingerprint:
@@ -589,8 +583,22 @@ def report_metrics_for_detectors(
             tags={f"op_{n.allowed_op}": True for n in detected_issues.values()},
         )
 
+    has_issues = issue_count > 0
+
+    if has_issues:
+        sdk_span.containing_transaction.set_tag("_pi_all_issue_count", len(issue_count))
+        metrics.incr(
+            "performance.performance_issue.aggregate",
+            len(issue_count),
+        )
+        if event_id:
+            sdk_span.containing_transaction.set_tag("_pi_transaction", event_id)
+
+    detected_tags["is_main_project"] = event.project_id in [1]
+    detected_tags["project_id_bucket"] = event.project_id % 10
+
     metrics.incr(
         "performance.performance_issue.detected",
-        instance=str(has_detected_issues),
+        instance=str(has_issues),
         tags=detected_tags,
     )
