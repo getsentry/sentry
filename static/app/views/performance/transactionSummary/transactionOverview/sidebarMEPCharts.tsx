@@ -128,7 +128,8 @@ function getDataCounts({
     chartData?.series[0]?.data.reduce((sum, {value}) => sum + value, 0) ?? 0;
   const metricsCount =
     metricsChartData?.series[0]?.data.reduce((sum, {value}) => sum + value, 0) ?? 0;
-  const missingMetrics = !metricsCount && transactionCount;
+  const missingMetrics =
+    (!metricsCount && transactionCount) || metricsCount < transactionCount;
   return {
     transactionCount,
     metricsCount,
