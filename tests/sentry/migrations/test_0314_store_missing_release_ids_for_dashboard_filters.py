@@ -31,6 +31,10 @@ class TestStoreMissingReleaseIDsInDashboardFilters(TestMigrations):
         )
 
     def test(self):
+        self.dashboard_with_latest.refresh_from_db()
+        self.dashboard_without_releases.refresh_from_db()
+        self.dashboard_with_no_filters.refresh_from_db()
+
         assert self.dashboard_with_latest.filters["release_id"] == [self.test_release.id, "latest"]
-        assert self.dashboard_without_releases.get("release_id", None) is None
+        assert self.dashboard_without_releases.filters.get("release_id", None) is None
         assert self.dashboard_with_no_filters.filters is None
