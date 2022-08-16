@@ -61,7 +61,7 @@ function ReleasesSelectControl({
       menuTitle={
         <MenuTitleWrapper>
           {t('Filter Releases')}
-          <FeatureBadge type="beta" />
+          <FeatureBadge type="new" />
         </MenuTitleWrapper>
       }
       className={className}

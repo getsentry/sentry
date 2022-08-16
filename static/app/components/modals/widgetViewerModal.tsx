@@ -86,6 +86,7 @@ export interface WidgetViewerModalOptions {
   onEdit?: () => void;
   pageLinks?: string;
   seriesData?: Series[];
+  seriesResultsType?: string;
   tableData?: TableDataWithTitle[];
   totalIssuesCount?: string;
 }
@@ -165,6 +166,7 @@ function WidgetViewerModal(props: Props) {
     tableData,
     totalIssuesCount,
     pageLinks: defaultPageLinks,
+    seriesResultsType,
   } = props;
   const shouldShowSlider = organization.features.includes('widget-viewer-modal-minimap');
   // Get widget zoom from location
@@ -794,6 +796,7 @@ function WidgetViewerModal(props: Props) {
             {(!!seriesData || !!tableData) && chartUnmodified ? (
               <MemoizedWidgetCardChart
                 timeseriesResults={seriesData}
+                timeseriesResultsType={seriesResultsType}
                 tableResults={tableData}
                 errorMessage={undefined}
                 loading={false}

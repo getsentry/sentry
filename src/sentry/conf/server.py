@@ -976,8 +976,6 @@ SENTRY_FEATURES = {
     "organizations:performance-frontend-use-events-endpoint": True,
     # Enables events endpoint rate limit
     "organizations:discover-events-rate-limit": False,
-    # Enable duplicating alert rules.
-    "organizations:duplicate-alert-rule": True,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
     # Allow organizations to configure all symbol sources.
@@ -1194,8 +1192,6 @@ SENTRY_FEATURES = {
     "projects:kafka-ingest": False,
     # Workflow 2.0 Auto associate commits to commit sha release
     "projects:auto-associate-commits-to-release": False,
-    # Automatically opt IN users to receiving Slack notifications.
-    "users:notification-slack-automatic": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }
@@ -1454,6 +1450,12 @@ SENTRY_NEWSLETTER_OPTIONS = {}
 
 SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
 SENTRY_EVENTSTREAM_OPTIONS = {}
+
+# Send transaction events to random Kafka partitions. Currently
+# this defaults to false as transaction events are partitioned the same
+# as errors (by project ID). Eventually we will flip the default and remove
+# this from settings entirely.
+SENTRY_EVENTSTREAM_PARTITION_TRANSACTIONS_RANDOMLY = False
 
 # rollups must be ordered from highest granularity to lowest
 SENTRY_TSDB_ROLLUPS = (
@@ -2743,7 +2745,6 @@ ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT = 300
 
 # Default string indexer cache options
 SENTRY_STRING_INDEXER_CACHE_OPTIONS = {
-    "version": 1,
     "cache_name": "default",
 }
 

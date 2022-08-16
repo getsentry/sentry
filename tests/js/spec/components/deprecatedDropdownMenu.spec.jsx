@@ -1,15 +1,15 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import DropdownMenu from 'sentry/components/dropdownMenu';
+import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 
 jest.useFakeTimers();
 
-describe('DropdownMenu', function () {
+describe('dropdownMenuDeprecated', function () {
   let wrapper;
 
   beforeEach(function () {
     wrapper = mountWithTheme(
-      <DropdownMenu>
+      <DeprecatedDropdownMenu>
         {({getRootProps, getActorProps, getMenuProps, isOpen}) => (
           <span {...getRootProps({})}>
             <button {...getActorProps({})}>Open Dropdown</button>
@@ -20,7 +20,7 @@ describe('DropdownMenu', function () {
             )}
           </span>
         )}
-      </DropdownMenu>
+      </DeprecatedDropdownMenu>
     );
   });
 
@@ -69,7 +69,7 @@ describe('DropdownMenu', function () {
 
   it('ignores "Escape" key if `closeOnEscape` is false', function () {
     wrapper = mountWithTheme(
-      <DropdownMenu closeOnEscape={false}>
+      <DeprecatedDropdownMenu closeOnEscape={false}>
         {({getRootProps, getActorProps, getMenuProps, isOpen}) => (
           <span {...getRootProps({})}>
             <button {...getActorProps({})}>Open Dropdown</button>
@@ -80,7 +80,7 @@ describe('DropdownMenu', function () {
             )}
           </span>
         )}
-      </DropdownMenu>
+      </DeprecatedDropdownMenu>
     );
 
     wrapper.find('button').simulate('click');
@@ -92,7 +92,7 @@ describe('DropdownMenu', function () {
 
   it('keeps dropdown open when clicking on anything in menu with `keepMenuOpen` prop', function () {
     wrapper = mountWithTheme(
-      <DropdownMenu keepMenuOpen>
+      <DeprecatedDropdownMenu keepMenuOpen>
         {({getRootProps, getActorProps, getMenuProps, isOpen}) => (
           <span {...getRootProps({})}>
             <button {...getActorProps({})}>Open Dropdown</button>
@@ -103,7 +103,7 @@ describe('DropdownMenu', function () {
             )}
           </span>
         )}
-      </DropdownMenu>
+      </DeprecatedDropdownMenu>
     );
 
     wrapper.find('button').simulate('click');
@@ -120,7 +120,7 @@ describe('DropdownMenu', function () {
     const removeSpy = jest.spyOn(document, 'removeEventListener');
 
     wrapper = mountWithTheme(
-      <DropdownMenu keepMenuOpen>
+      <DeprecatedDropdownMenu keepMenuOpen>
         {({getRootProps, getActorProps, getMenuProps, isOpen}) => (
           <span
             {...getRootProps({
@@ -148,7 +148,7 @@ describe('DropdownMenu', function () {
             )}
           </span>
         )}
-      </DropdownMenu>
+      </DeprecatedDropdownMenu>
     );
 
     expect(wrapper.find('ul')).toHaveLength(0);
@@ -177,7 +177,7 @@ describe('DropdownMenu', function () {
     const removeSpy = jest.spyOn(document, 'removeEventListener');
 
     wrapper = mountWithTheme(
-      <DropdownMenu alwaysRenderMenu>
+      <DeprecatedDropdownMenu alwaysRenderMenu>
         {({getRootProps, getActorProps, getMenuProps}) => (
           <span
             {...getRootProps({
@@ -200,7 +200,7 @@ describe('DropdownMenu', function () {
             </ul>
           </span>
         )}
-      </DropdownMenu>
+      </DeprecatedDropdownMenu>
     );
 
     // Make sure this is only called when menu is open
@@ -220,7 +220,7 @@ describe('DropdownMenu', function () {
 
   it('does not close nested dropdown on actor clicks', function () {
     wrapper = mountWithTheme(
-      <DropdownMenu isNestedDropdown>
+      <DeprecatedDropdownMenu isNestedDropdown>
         {({getRootProps, getActorProps, getMenuProps}) => (
           <span {...getRootProps({})}>
             <button {...getActorProps({})}>Open Dropdown</button>
@@ -231,7 +231,7 @@ describe('DropdownMenu', function () {
             }
           </span>
         )}
-      </DropdownMenu>
+      </DeprecatedDropdownMenu>
     );
     wrapper.find('button').simulate('mouseEnter');
     expect(wrapper.find('[data-test-id="menu-item"]')).toHaveLength(1);
