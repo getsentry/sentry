@@ -178,6 +178,10 @@ function removeNodesAtLevel(html: string, level: number) {
           child.textContent = '/* Inline CSS */';
         }
 
+        if (child.nodeName === 'svg') {
+          child.innerHTML = '<!-- SVG -->';
+        }
+
         if (max <= current) {
           if (child.childElementCount > 0) {
             child.innerHTML = `<!-- ${child.childElementCount} descendents -->`;
