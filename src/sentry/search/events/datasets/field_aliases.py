@@ -9,8 +9,6 @@ from sentry.models import Project, ProjectTeam
 from sentry.search.events import constants, fields
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import SelectType
-from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.utils import resolve_tag_value
 from sentry.utils.numbers import format_grouped_length
 
 
