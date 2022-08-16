@@ -17,7 +17,7 @@ import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import {AvatarProject, Organization, Project} from 'sentry/types';
 import {defined, isUrl} from 'sentry/utils';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView, {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import {
   AGGREGATIONS,
@@ -694,12 +694,13 @@ const spanOperationRelativeBreakdownRenderer = (
                   if (filter === SpanOperationBreakdownFilter.None) {
                     return;
                   }
-                  trackAnalyticsEvent({
-                    eventName: 'Performance Views: Select Relative Breakdown',
-                    eventKey: 'performance_views.relative_breakdown.selection',
-                    organization_id: parseInt(organization.id, 10),
-                    action: filter as string,
-                  });
+                  trackAdvancedAnalyticsEvent(
+                    'performance_views.relative_breakdown.selection',
+                    {
+                      action: filter,
+                      organization,
+                    }
+                  );
                   browserHistory.push({
                     pathname: location.pathname,
                     query: {
