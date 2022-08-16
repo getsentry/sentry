@@ -10,6 +10,7 @@ class SuspectResolutionReleasesEvaluation(analytics.Event):
         analytics.Attribute("current_release_id"),
         analytics.Attribute("issue_id"),
         analytics.Attribute("project_id"),
+        analytics.Attribute("is_suspect_resolution"),
     )
 
 

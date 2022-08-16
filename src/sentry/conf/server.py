@@ -1190,8 +1190,6 @@ SENTRY_FEATURES = {
     "projects:servicehooks": False,
     # Enable suspect resolutions feature
     "projects:suspect-resolutions": False,
-    # Enable suspect resolutions releases feature
-    "projects:suspect-resolutions-releases": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
     "projects:kafka-ingest": False,
     # Workflow 2.0 Auto associate commits to commit sha release
