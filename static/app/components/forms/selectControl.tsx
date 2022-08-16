@@ -287,14 +287,17 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
               cursor: 'text',
               background: theme.backgroundSecondary,
             }
-          : {paddingLeft: theme.formPadding[size ?? 'md'].paddingLeft}),
+          : {
+              paddingLeft: theme.formPadding[size ?? 'md'].paddingLeft,
+              paddingRight: space(0.5),
+            }),
       }),
       input: (provided: React.CSSProperties) => ({
         ...provided,
         color: theme.formText,
+        margin: 0,
         ...(isCompact && {
           padding: 0,
-          margin: 0,
         }),
       }),
       singleValue: (provided: React.CSSProperties) => ({
@@ -302,6 +305,11 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         color: theme.formText,
         display: 'flex',
         alignItems: 'center',
+        marginLeft: 0,
+        marginRight: 0,
+        width: `calc(100% - ${theme.formPadding[size ?? 'md'].paddingLeft}px - ${space(
+          0.5
+        )})`,
       }),
       placeholder: (provided: React.CSSProperties) => ({
         ...provided,
