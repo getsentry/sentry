@@ -59,6 +59,7 @@ class WaterfallModel {
     // span tree toggling product feature.
     this.hiddenSpanSubTrees = new Set();
 
+    // When viewing the span waterfall from a Performance Issue, a set of span IDs may be provided
     this.focusedSpanIds = focusedSpanIds;
 
     makeObservable(this, {
