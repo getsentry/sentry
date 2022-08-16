@@ -11,11 +11,7 @@ from sentry.utils.suspect_resolutions_releases import ALGO_VERSION, analytics
 
 @release_created.connect(weak=False)
 def record_suspect_resolutions_releases(release, **kwargs) -> None:
-    if (
-        release.projects
-        and release.projects.exists()
-        and features.has("projects:suspect-resolutions", release.projects)
-    ):
+    if release.projects.exists() and features.has("projects:suspect-resolutions", release.projects):
         get_suspect_resolutions_releases.delay(
             release,
             eta=datetime.now() + timedelta(hours=1),
