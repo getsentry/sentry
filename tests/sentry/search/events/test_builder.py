@@ -1141,7 +1141,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
         with pytest.raises(
             IncompatibleMetricsQuery,
-            match=re.escape("Tag value was not found"),
+            match=re.compile("Transaction value .* in filter not found"),
         ):
             MetricsQueryBuilder(
                 self.params,
@@ -1155,7 +1155,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             pytest.skip("test does not apply if tag values are in clickhouse")
         with pytest.raises(
             IncompatibleMetricsQuery,
-            match=re.escape("Tag value was not found"),
+            match=re.compile("Transaction value .* in filter not found"),
         ):
             MetricsQueryBuilder(
                 self.params,
@@ -2411,7 +2411,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             pytest.skip("test does not apply if tag values are in clickhouse")
         with pytest.raises(
             IncompatibleMetricsQuery,
-            match=re.escape("Tag value was not found"),
+            match=re.compile("Transaction value .* in filter not found"),
         ):
             TimeseriesMetricQueryBuilder(
                 self.params,
@@ -2426,7 +2426,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             pytest.skip("test does not apply if tag values are in clickhouse")
         with pytest.raises(
             IncompatibleMetricsQuery,
-            match=re.escape("Tag value was not found"),
+            match=re.compile("Transaction value .* in filter not found"),
         ):
             TimeseriesMetricQueryBuilder(
                 self.params,
