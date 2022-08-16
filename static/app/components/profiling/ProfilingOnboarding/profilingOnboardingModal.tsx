@@ -12,8 +12,11 @@ import Tag from 'sentry/components/tag';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Project} from 'sentry/types/project';
+import {Organization} from 'sentry/types';
+import {RequestState} from 'sentry/types/core';
+import {Project, ProjectSdkUpdates} from 'sentry/types/project';
 import useProjects from 'sentry/utils/useProjects';
+import {useProjectSdkUpdates} from 'sentry/utils/useProjectSdk';
 
 // This is just a doubly linked list of steps
 interface OnboardingStep {
@@ -48,7 +51,11 @@ function useOnboardingRouter(initialStep: OnboardingStep): OnboardingRouterState
 // The wrapper component for all of the onboarding steps. Keeps track of the current step
 // and all state. This ensures that moving from step to step does not require users to redo their actions
 // and each step can just re-initialize with the values that the user has already selected.
-export function ProfilingOnboardingModal(props: ModalRenderProps) {
+
+interface ProfilingOnboardingModalProps extends ModalRenderProps {
+  organization: Organization;
+}
+export function ProfilingOnboardingModal(props: ProfilingOnboardingModalProps) {
   const [state, toStep] = useOnboardingRouter({
     previous: null,
     current: SelectProjectStep,
@@ -111,6 +118,7 @@ function splitProjectsByProfilingSupport(projects: Project[]): {
 // We proxy the modal props to each individaul modal component
 // so that each can build their own modal and they can remain independent.
 interface OnboardingStepProps extends ModalRenderProps {
+  organization: Organization;
   project: Project | null;
   setProject: React.Dispatch<React.SetStateAction<Project | null>>;
   step: OnboardingStep;
@@ -126,6 +134,7 @@ function SelectProjectStep({
   step,
   project,
   setProject,
+  organization,
 }: OnboardingStepProps) {
   const {projects} = useProjects();
 
@@ -189,8 +198,12 @@ function SelectProjectStep({
               />
             </div>
           </li>
-          {project?.platform === 'android' ? <AndroidInstallSteps /> : null}
-          {project?.platform === 'apple-ios' ? <IOSInstallSteps /> : null}
+          {project?.platform === 'android' ? (
+            <AndroidInstallSteps project={project} organization={organization} />
+          ) : null}
+          {project?.platform === 'apple-ios' ? (
+            <IOSInstallSteps project={project} organization={organization} />
+          ) : null}
         </StyledList>
         <ModalFooter>
           <ModalActions>
@@ -230,16 +243,73 @@ function SetupPerformanceMonitoringStep({href}: {href: string}) {
   );
 }
 
-function AndroidInstallSteps() {
+interface ProjectSdkUpdateProps {
+  minSdkVersion: string;
+  project: Project;
+  sdkUpdates: RequestState<ProjectSdkUpdates | null>;
+}
+function ProjectSdkUpdate(props: ProjectSdkUpdateProps) {
+  if (props.sdkUpdates.type !== 'resolved') {
+    return <div>{t('Verifying Sentry SDK')}</div>;
+  }
+
+  return (
+    <Fragment>
+      <SDKUpdatesContainer>
+        <SdkUpdatesPlatformIcon platform={props.project.platform ?? 'unknown'} />
+        <span>{props.project.name}</span>
+      </SDKUpdatesContainer>
+      {props.sdkUpdates.data === null ? (
+        <SdkUpdatesText>
+          {t('This project is using the latest SDK version.')}
+        </SdkUpdatesText>
+      ) : (
+        <SdkUpdatesText>
+          {t(
+            'For profiling to function, we requires you to update your Sentry SDK to version %s or higher.',
+            props.minSdkVersion
+          )}
+        </SdkUpdatesText>
+      )}
+    </Fragment>
+  );
+}
+
+const SdkUpdatesText = styled('p')`
+  margin-top: ${space(1.5)};
+  padding-left: ${space(4)};
+`;
+
+// doesnt use space because it's just off by 2px all the time
+const SdkUpdatesPlatformIcon = styled(PlatformIcon)`
+  margin-right: 10px;
+`;
+
+const SDKUpdatesContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  margin-top: ${space(1.5)};
+  font-size: ${p => p.theme.fontSizeLarge};
+`;
+
+function AndroidInstallSteps({
+  project,
+  organization,
+}: {
+  organization: Organization;
+  project: Project;
+}) {
+  const sdkUpdates = useProjectSdkUpdates({organization, projectId: project.id});
+
   return (
     <Fragment>
       <li>
         <StepTitle>{t('Update your projects SDK version')}</StepTitle>
-        <p>
-          {t(
-            'Make sure your SDKs are upgraded to at least version 6.0.0 (sentry-android).'
-          )}
-        </p>
+        <ProjectSdkUpdate
+          minSdkVersion="6.0.0 (sentry-android)"
+          project={project}
+          sdkUpdates={sdkUpdates}
+        />
       </li>
       <li>
         <SetupPerformanceMonitoringStep href="https://docs.sentry.io/platforms/android/performance/" />
@@ -258,16 +328,24 @@ function AndroidInstallSteps() {
   );
 }
 
-function IOSInstallSteps() {
+function IOSInstallSteps({
+  project,
+  organization,
+}: {
+  organization: Organization;
+  project: Project;
+}) {
+  const sdkUpdates = useProjectSdkUpdates({organization, projectId: project.id});
+
   return (
     <Fragment>
       <li>
         <StepTitle>{t('Update your projects SDK version')}</StepTitle>
-        <p>
-          {t(
-            'Make sure your SDKs are upgraded to at least version 7.23.0 (sentry-cocoa).'
-          )}
-        </p>
+        <ProjectSdkUpdate
+          minSdkVersion="7.23.0 (sentry-cocoa)"
+          project={project}
+          sdkUpdates={sdkUpdates}
+        />
       </li>
       <li>
         <SetupPerformanceMonitoringStep href="https://docs.sentry.io/platforms/apple/guides/ios/performance/" />
