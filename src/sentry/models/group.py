@@ -405,8 +405,6 @@ class Group(Model):
     is_public = models.NullBooleanField(default=False, null=True)
     data = GzippedDictField(blank=True, null=True)
     short_id = BoundedBigIntegerField(null=True)
-
-    objects = GroupManager(cache_fields=("id",))
     type = BoundedPositiveIntegerField(
         default=GroupType.ERROR.value,
         choices=(
@@ -415,6 +413,8 @@ class Group(Model):
             (GroupType.PERFORMANCE_SLOW_SPAN, _("Slow Span")),
         ),
     )
+
+    objects = GroupManager(cache_fields=("id",))
 
     class Meta:
         app_label = "sentry"

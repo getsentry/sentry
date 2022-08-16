@@ -45,9 +45,7 @@ class Migration(CheckedMigration):
                 migrations.AddField(
                     model_name="group",
                     name="type",
-                    field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(
-                        default=sentry.models.group.GroupType(1)
-                    ),
+                    field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(default=1),
                 ),
             ],
         )
