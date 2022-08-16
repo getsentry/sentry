@@ -75,14 +75,12 @@ class SpanTree extends Component<PropType> {
     filteredSpansAbove: EnhancedProcessedSpanType[];
     isCurrentSpanFilteredOut: boolean;
     isCurrentSpanHidden: boolean;
-    numOfFilteredSpansAbove: number;
     numOfSpansOutOfViewAbove: number;
   }): React.ReactNode {
     const {
       isCurrentSpanHidden,
       numOfSpansOutOfViewAbove,
       isCurrentSpanFilteredOut,
-      numOfFilteredSpansAbove,
       filteredSpansAbove,
     } = input;
 
@@ -99,6 +97,8 @@ class SpanTree extends Component<PropType> {
         </span>
       );
     }
+
+    const numOfFilteredSpansAbove = filteredSpansAbove.length;
 
     const showFilteredSpansMessage =
       !isCurrentSpanFilteredOut && numOfFilteredSpansAbove > 0;
@@ -186,7 +186,6 @@ class SpanTree extends Component<PropType> {
 
     type AccType = {
       filteredSpansAbove: EnhancedProcessedSpanType[];
-      numOfFilteredSpansAbove: number;
       numOfSpansOutOfViewAbove: number;
       spanNumber: number;
       spanTree: React.ReactNode[];
@@ -206,18 +205,12 @@ class SpanTree extends Component<PropType> {
       }
     }, 0);
 
-    const {
-      spanTree,
-      numOfSpansOutOfViewAbove,
-      numOfFilteredSpansAbove,
-      filteredSpansAbove,
-    } = spans.reduce(
+    const {spanTree, numOfSpansOutOfViewAbove, filteredSpansAbove} = spans.reduce(
       (acc: AccType, payload: EnhancedProcessedSpanType) => {
         const {type} = payload;
 
         switch (payload.type) {
           case 'filtered_out': {
-            acc.numOfFilteredSpansAbove += 1;
             acc.filteredSpansAbove.push(payload);
             return acc;
           }
@@ -231,7 +224,7 @@ class SpanTree extends Component<PropType> {
         }
 
         const previousSpanNotDisplayed =
-          acc.numOfFilteredSpansAbove > 0 || acc.numOfSpansOutOfViewAbove > 0;
+          acc.filteredSpansAbove.length > 0 || acc.numOfSpansOutOfViewAbove > 0;
 
         if (previousSpanNotDisplayed) {
           const infoMessage = this.generateInfoMessage({
@@ -239,7 +232,6 @@ class SpanTree extends Component<PropType> {
             filteredSpansAbove: acc.filteredSpansAbove,
             numOfSpansOutOfViewAbove: acc.numOfSpansOutOfViewAbove,
             isCurrentSpanFilteredOut: false,
-            numOfFilteredSpansAbove: acc.numOfFilteredSpansAbove,
           });
           acc.spanTree.push(infoMessage);
         }
@@ -264,6 +256,10 @@ class SpanTree extends Component<PropType> {
             />
           );
           acc.spanNumber = spanNumber + 1;
+
+          acc.numOfSpansOutOfViewAbove = 0;
+          acc.filteredSpansAbove = [];
+
           return acc;
         }
 
@@ -286,6 +282,10 @@ class SpanTree extends Component<PropType> {
             />
           );
           acc.spanNumber = spanNumber + 1;
+
+          acc.numOfSpansOutOfViewAbove = 0;
+          acc.filteredSpansAbove = [];
+
           return acc;
         }
 
@@ -295,7 +295,6 @@ class SpanTree extends Component<PropType> {
         const spanBarColor: string = pickBarColor(getSpanOperation(span));
         const numOfSpanChildren = payload.numOfSpanChildren;
 
-        acc.numOfFilteredSpansAbove = 0;
         acc.numOfSpansOutOfViewAbove = 0;
         acc.filteredSpansAbove = [];
 
@@ -359,7 +358,6 @@ class SpanTree extends Component<PropType> {
       {
         filteredSpansAbove: [],
         numOfSpansOutOfViewAbove: 0,
-        numOfFilteredSpansAbove: 0,
         spanTree: [],
         spanNumber: 1, // 1-based indexing
       }
@@ -369,7 +367,6 @@ class SpanTree extends Component<PropType> {
       isCurrentSpanHidden: false,
       numOfSpansOutOfViewAbove,
       isCurrentSpanFilteredOut: false,
-      numOfFilteredSpansAbove,
       filteredSpansAbove,
     });
 
