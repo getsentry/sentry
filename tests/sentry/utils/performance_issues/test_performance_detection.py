@@ -312,6 +312,18 @@ class PerformanceDetectionTest(unittest.TestCase):
                 ),
             ],
         }
+        no_fcp_event = {
+            "event_id": "a" * 16,
+            "measurements": {
+                "fcp": {
+                    "value": None,
+                    "unit": "millisecond",
+                }
+            },
+            "spans": [
+                create_span("resource.script", duration=1000.0),
+            ],
+        }
         short_render_blocking_asset_event = {
             "event_id": "a" * 16,
             "measurements": {
@@ -331,6 +343,9 @@ class PerformanceDetectionTest(unittest.TestCase):
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
 
         _detect_performance_issue(short_render_blocking_asset_event, sdk_span_mock)
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
+
+        _detect_performance_issue(no_fcp_event, sdk_span_mock)
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
 
         _detect_performance_issue(render_blocking_asset_event, sdk_span_mock)
