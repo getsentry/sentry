@@ -91,17 +91,7 @@ class U2fInterface(AuthenticatorInterface):
         return {}
 
     def start_enrollment(self, user):
-        credentials = []
-        # there are 2 types of registered keys from the registered devices, those with type
-        # AuthenticatorData are those from WebAuthn registered devices that we don't have to modify
-        # the other is those registered with u2f-api and it a dict with the keys keyHandle and publicKey
-        for registeredKey in self.get_u2f_devices():
-            if type(registeredKey) == AuthenticatorData:
-                credentials.append(registeredKey.credential_data)
-            else:
-                c = create_credential_object(registeredKey)
-                credentials.append(c)
-
+        credentials = self.credentials()
         registration_data, state = self.webauthn_registration_server.register_begin(
             user={
                 "id": user.id.to_bytes(64, byteorder="big"),
@@ -127,6 +117,18 @@ class U2fInterface(AuthenticatorInterface):
                 data["binding"].setdefault("version", "U2F_V2")
                 rv.append(DeviceRegistration(data["binding"]))
         return rv
+
+    def credentials(self):
+        credentials = []
+        # there are 2 types of registered keys from the registered devices, those with type
+        # AuthenticatorData are those from WebAuthn registered devices that we don't have to modify
+        # the other is those registered with u2f-api and it a dict with the keys keyHandle and publicKey
+        for device in self.get_u2f_devices():
+            if type(device) == AuthenticatorData:
+                credentials.append(device.credential_data)
+            else:
+                credentials.append(create_credential_object(device))
+        return credentials
 
     def remove_u2f_device(self, key):
         """Removes a U2F device but never removes the last one.  This returns
@@ -182,13 +184,7 @@ class U2fInterface(AuthenticatorInterface):
         )
 
     def activate(self, request: Request):
-        credentials = []
-
-        for device in self.get_u2f_devices():
-            if type(device) == AuthenticatorData:
-                credentials.append(device.credential_data)
-            else:
-                credentials.append(create_credential_object(device))
+        credentials = self.credentials()
         challenge, state = self.webauthn_authentication_server.authenticate_begin(
             credentials=credentials
         )
@@ -198,12 +194,7 @@ class U2fInterface(AuthenticatorInterface):
 
     def validate_response(self, request: Request, challenge, response):
         try:
-            credentials = []
-            for device in self.get_u2f_devices():
-                if type(device) == AuthenticatorData:
-                    credentials.append(device.credential_data)
-                else:
-                    credentials.append(create_credential_object(device))
+            credentials = self.credentials()
             self.webauthn_authentication_server.authenticate_complete(
                 state=request.session["webauthn_authentication_state"],
                 credentials=credentials,
