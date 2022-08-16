@@ -649,10 +649,17 @@ function WidgetBuilder({
       if (datasetConfig.handleOrderByReset) {
         // If widget is metric backed, don't default to sorting by transaction unless its the only column
         // Sorting by transaction is not supported in metrics
-        if (isMetricsData && fieldStrings.length > 1) {
+        if (
+          isMetricsData &&
+          fieldStrings.some(
+            fieldString => !['transaction', 'title'].includes(fieldString)
+          )
+        ) {
           newQuery = datasetConfig.handleOrderByReset(
             newQuery,
-            fieldStrings.filter(fieldString => fieldString !== 'transaction')
+            fieldStrings.filter(
+              fieldString => !['transaction', 'title'].includes(fieldString)
+            )
           );
         } else {
           newQuery = datasetConfig.handleOrderByReset(newQuery, fieldStrings);
