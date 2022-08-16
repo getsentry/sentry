@@ -193,8 +193,6 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
             {"name": request.data["displayName"], "slug": slugify(request.data["displayName"])}
         ),
 
-        request = self.fix_log_name(request)
-
         return super().post(request, organization)
 
 
@@ -267,7 +265,6 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
 
             with transaction.atomic():
                 omt = OrganizationMemberTeam.objects.create(team=team, organizationmember=member)
-                request = self.fix_log_name(request)
                 self.create_audit_entry(
                     request=request,
                     organization=team.organization,
@@ -285,7 +282,6 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             except OrganizationMemberTeam.DoesNotExist:
                 return
 
-            request = self.fix_log_name(request)
             self.create_audit_entry(
                 request=request,
                 organization=team.organization,
@@ -304,7 +300,6 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         )
         if serializer.is_valid():
             team = serializer.save()
-            request = self.fix_log_name(request)
             self.create_audit_entry(
                 request=request,
                 organization=team.organization,
@@ -436,7 +431,6 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         """
         Delete a team with a SCIM Group DELETE Request.
         """
-        request = self.fix_log_name(request)
 
         return super().delete(request, team)
 
