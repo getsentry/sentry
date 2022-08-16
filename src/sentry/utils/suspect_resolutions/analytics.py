@@ -5,6 +5,7 @@ class SuspectResolutionEvaluation(analytics.Event):
     type = "suspect_resolution.evaluation"
 
     attributes = (
+        analytics.Attribute("algo_version"),
         analytics.Attribute("resolved_group_id"),
         analytics.Attribute("candidate_group_id"),
         analytics.Attribute("resolved_group_resolution_type"),

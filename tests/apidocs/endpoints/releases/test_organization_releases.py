@@ -15,6 +15,8 @@ class OrganizationReleasesDocsTest(APIDocsTestCase):
 
         team1 = self.create_team(organization=org)
         team2 = self.create_team(organization=org)
+        self.create_team_membership(team1, user=user)
+        self.create_team_membership(team2, user=user)
 
         self.project1 = self.create_project(teams=[team1], organization=org)
         self.project2 = self.create_project(teams=[team2], organization=org2)

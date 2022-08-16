@@ -21,6 +21,13 @@ type Props = {
   isDisabled?: boolean;
 };
 
+const ALIASED_RELEASES = [
+  {
+    label: t('Latest Release(s)'),
+    value: 'latest',
+  },
+];
+
 function ReleasesSelectControl({
   handleChangeFilter,
   selectedReleases,
@@ -54,7 +61,7 @@ function ReleasesSelectControl({
       menuTitle={
         <MenuTitleWrapper>
           {t('Filter Releases')}
-          <FeatureBadge type="beta" />
+          <FeatureBadge type="new" />
         </MenuTitleWrapper>
       }
       className={className}
@@ -66,12 +73,15 @@ function ReleasesSelectControl({
           value: '_releases',
           label: t('Sorted by date created'),
           options: releases.length
-            ? releases.map(release => {
-                return {
-                  label: release.shortVersion ?? release.version,
-                  value: release.version,
-                };
-              })
+            ? [
+                ...ALIASED_RELEASES,
+                ...releases.map(release => {
+                  return {
+                    label: release.shortVersion ?? release.version,
+                    value: release.version,
+                  };
+                }),
+              ]
             : [],
         },
       ]}
