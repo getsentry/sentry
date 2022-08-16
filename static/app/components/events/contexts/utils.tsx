@@ -110,6 +110,7 @@ export function geKnownData<Data, DataType>({
   data,
   knownDataTypes,
   meta,
+  raw,
   onGetKnownDataDetails,
 }: {
   data: Data;
@@ -121,6 +122,7 @@ export function geKnownData<Data, DataType>({
       }
     | undefined;
   meta?: Record<any, any>;
+  raw?: boolean;
 }): KeyValueListData {
   const filteredTypes = knownDataTypes.filter(knownDataType => {
     if (
@@ -147,7 +149,9 @@ export function geKnownData<Data, DataType>({
       return {
         key: type,
         ...knownDataDetails,
-        value: (
+        value: raw ? (
+          knownDataDetails.value
+        ) : (
           <ContextData
             data={knownDataDetails.value}
             meta={meta?.[type]}

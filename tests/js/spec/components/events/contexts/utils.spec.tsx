@@ -81,5 +81,35 @@ describe('contexts utils', function () {
         },
       ]);
     });
+
+    it('does not format the value when displaying raw', function () {
+      const data = {device_app_hash: 'abc'};
+      const knownDataTypes = ['device_app_hash'];
+
+      const knownData = geKnownData({
+        data,
+        knownDataTypes,
+        raw: true,
+        onGetKnownDataDetails: v => {
+          if (v.type === 'device_app_hash') {
+            return {
+              subject: 'Device App Hash',
+              value: v.data.device_app_hash,
+            };
+          }
+
+          return undefined;
+        },
+      });
+
+      expect(knownData).toEqual([
+        {
+          key: 'device_app_hash',
+          value: 'abc',
+          subject: 'Device App Hash',
+          meta: undefined,
+        },
+      ]);
+    });
   });
 });
