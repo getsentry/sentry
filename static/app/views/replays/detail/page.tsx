@@ -16,21 +16,21 @@ import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
   children: ReactNode;
-  orgId: string;
+  orgSlug: string;
   crumbs?: Crumb[];
   durationMs?: number;
   replayRecord?: ReplayRecord;
 };
 
-function Page({children, crumbs, durationMs, orgId, replayRecord}: Props) {
+function Page({children, crumbs, durationMs, orgSlug, replayRecord}: Props) {
   const title = replayRecord
-    ? `${replayRecord.id} - Replays - ${orgId}`
-    : `Replays - ${orgId}`;
+    ? `${replayRecord.id} - Replays - ${orgSlug}`
+    : `Replays - ${orgSlug}`;
 
   const header = (
     <Header>
       <HeaderContent>
-        <DetailsPageBreadcrumbs orgId={orgId} replayRecord={replayRecord} />
+        <DetailsPageBreadcrumbs orgSlug={orgSlug} replayRecord={replayRecord} />
       </HeaderContent>
       <ButtonActionsWrapper>
         <FeatureFeedback featureName="replay" buttonProps={{size: 'xs'}} />

@@ -6,9 +6,7 @@ import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
 export function getDescription(crumb: Crumb) {
   switch (crumb.type) {
     case BreadcrumbType.NAVIGATION:
-      return `${crumb.data?.from ? `${crumb.data?.from} => ` : ''}${
-        crumb.data?.to ?? ''
-      }`;
+      return `${crumb.data?.to ?? ''}`;
     case BreadcrumbType.DEFAULT:
       return JSON.stringify(crumb.data);
     default:

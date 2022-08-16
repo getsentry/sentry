@@ -25,6 +25,38 @@ describe('SampledProfile', () => {
     expect(profile.endedAt).toBe(1000);
   });
 
+  it('tracks discarded samples', () => {
+    const trace: Profiling.SampledProfile = {
+      name: 'profile',
+      startValue: 0,
+      endValue: 1000,
+      unit: 'milliseconds',
+      threadID: 0,
+      type: 'sampled',
+      weights: [0],
+      samples: [[0]],
+    };
+
+    const profile = SampledProfile.FromProfile(trace, createFrameIndex([{name: 'f0'}]));
+    expect(profile.stats.discardedSamplesCount).toBe(1);
+  });
+
+  it('tracks negative samples', () => {
+    const trace: Profiling.SampledProfile = {
+      name: 'profile',
+      startValue: 0,
+      endValue: 1000,
+      unit: 'milliseconds',
+      threadID: 0,
+      type: 'sampled',
+      weights: [0, -1],
+      samples: [[0], [0]],
+    };
+
+    const profile = SampledProfile.FromProfile(trace, createFrameIndex([{name: 'f0'}]));
+    expect(profile.stats.negativeSamplesCount).toBe(1);
+  });
+
   it('rebuilds the stack', () => {
     const trace: Profiling.SampledProfile = {
       name: 'profile',

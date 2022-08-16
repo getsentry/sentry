@@ -22,14 +22,14 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
     type: 'select',
     label: (
       <Fragment>
-        {t('Issues in My Releases')} <FeatureBadge type="alpha" />
+        {t('Release Issues')} <FeatureBadge type="alpha" />
       </Fragment>
     ),
     choices: [
       ['always', t('On')],
       ['never', t('Off')],
     ],
-    help: t('Get a notification when an issue happens shortly after your release.'),
+    help: t('Notifications sent for issues likely caused by your code changes.'),
   },
   workflow: {
     name: 'workflow',
