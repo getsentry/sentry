@@ -32,7 +32,7 @@ PACKAGE_JSON = {
 
 
 def function_pubsub_name(funcId):
-    return "projects/" + SENTRY_FUNCTIONS_PROJECT_NAME + "/topics/fn-" + funcId
+    return f"projects/{SENTRY_FUNCTIONS_PROJECT_NAME}/topics/fn-{funcId}"
 
 
 def create_function_pubsub_topic(funcId):
@@ -51,10 +51,7 @@ def upload_function_files(client, code, env_variables):
 
     upload_url = client.generate_upload_url(
         request=GenerateUploadUrlRequest(
-            parent="projects/"
-            + SENTRY_FUNCTIONS_PROJECT_NAME
-            + "/locations/"
-            + SENTRY_FUNCTIONS_REGION
+            parent=f"projects/{SENTRY_FUNCTIONS_PROJECT_NAME}/locations/{SENTRY_FUNCTIONS_REGION}"
         )
     ).upload_url
     requests.put(
@@ -71,12 +68,7 @@ def create_function(code, funcId, description, env_variables):
     upload_url = upload_function_files(client, code, env_variables)
     client.create_function(
         function=CloudFunction(
-            name="projects/"
-            + SENTRY_FUNCTIONS_PROJECT_NAME
-            + "/locations/"
-            + SENTRY_FUNCTIONS_REGION
-            + "/functions/fn-"
-            + funcId,
+            name=f"projects/{SENTRY_FUNCTIONS_PROJECT_NAME}/locations/{SENTRY_FUNCTIONS_REGION}/functions/fn-{funcId}",
             description=description,
             source_upload_url=upload_url,
             runtime="nodejs16",
@@ -87,10 +79,7 @@ def create_function(code, funcId, description, env_variables):
             ),
             environment_variables=env_variables,
         ),
-        location="projects/"
-        + SENTRY_FUNCTIONS_PROJECT_NAME
-        + "/locations/"
-        + SENTRY_FUNCTIONS_REGION,
+        location=f"projects/{SENTRY_FUNCTIONS_PROJECT_NAME}/locations/{SENTRY_FUNCTIONS_REGION}",
     )
 
 
@@ -100,12 +89,7 @@ def update_function(code, funcId, description, env_variables):
     client.update_function(
         request=UpdateFunctionRequest(
             function=CloudFunction(
-                name="projects/"
-                + SENTRY_FUNCTIONS_PROJECT_NAME
-                + "/locations/"
-                + SENTRY_FUNCTIONS_REGION
-                + "/functions/fn-"
-                + funcId,
+                name=f"projects/{SENTRY_FUNCTIONS_PROJECT_NAME}/locations/{SENTRY_FUNCTIONS_REGION}/functions/fn-{funcId}",
                 description=description,
                 source_upload_url=upload_url,
                 runtime="nodejs16",
@@ -125,12 +109,7 @@ def delete_function(funcId):
     client = CloudFunctionsServiceClient()
     client.delete_function(
         request=DeleteFunctionRequest(
-            name="projects/"
-            + SENTRY_FUNCTIONS_PROJECT_NAME
-            + "/locations/"
-            + SENTRY_FUNCTIONS_REGION
-            + "/functions/fn-"
-            + funcId,
+            name=f"projects/{SENTRY_FUNCTIONS_PROJECT_NAME}/locations/{SENTRY_FUNCTIONS_REGION}/functions/fn-{funcId}",
         ),
     )
 
