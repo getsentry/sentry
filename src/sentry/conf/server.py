@@ -2742,7 +2742,6 @@ ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT = 300
 
 # Default string indexer cache options
 SENTRY_STRING_INDEXER_CACHE_OPTIONS = {
-    "version": 1,
     "cache_name": "default",
 }
 
