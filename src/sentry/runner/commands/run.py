@@ -596,6 +596,7 @@ def metrics_streaming_consumer(**options):
 @click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 @click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 @click.option("--ingest-profile", required=True)
+@click.option("--indexer-db", default="postgres")
 @click.option("max_msg_batch_size", "--max-msg-batch-size", type=int, default=50)
 @click.option("max_msg_batch_time", "--max-msg-batch-time-ms", type=int, default=10000)
 @click.option("max_parallel_batch_size", "--max-parallel-batch-size", type=int, default=50)
@@ -609,7 +610,7 @@ def metrics_parallel_consumer(**options):
 
     use_case = UseCaseKey(options["ingest_profile"])
     sentry_sdk.set_tag("sentry_metrics.use_case_key", use_case.value)
-    ingest_config = get_ingest_config(use_case)
+    ingest_config = get_ingest_config(use_case, options["db_backend"])
 
     streamer = get_parallel_metrics_consumer(indexer_profile=ingest_config, **options)
 

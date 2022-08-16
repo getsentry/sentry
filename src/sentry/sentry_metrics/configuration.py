@@ -4,8 +4,6 @@ from typing import Any, Mapping, MutableMapping, Optional, Tuple
 
 from django.conf import settings
 
-from .db import CLOUDSPANNER_DB, POSTGRES_DB
-
 
 class UseCaseKey(Enum):
     RELEASE_HEALTH = "release-health"
@@ -17,6 +15,12 @@ class UseCaseKey(Enum):
 # backwards compatibility
 RELEASE_HEALTH_PG_NAMESPACE = "releasehealth"
 PERFORMANCE_PG_NAMESPACE = "performance"
+RELEASE_HEALTH_CS_NAMESPACE = "releasehealth.cs"
+PERFORMANCE_CS_NAMESPACE = "performance.cs"
+
+# DB Backends
+CLOUDSPANNER_DB = "cloudspanner"
+POSTGRES_DB = "postgres"
 
 
 @dataclass(frozen=True)
@@ -61,6 +65,7 @@ def get_ingest_config(use_case_key: UseCaseKey, db_backend: str) -> MetricsInges
                 use_case_id=UseCaseKey.PERFORMANCE,
                 internal_metrics_tag="perf",
                 writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS_PERFORMANCE,
+                writes_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
             )
         )
 
@@ -76,6 +81,7 @@ def get_ingest_config(use_case_key: UseCaseKey, db_backend: str) -> MetricsInges
                 use_case_id=UseCaseKey.RELEASE_HEALTH,
                 internal_metrics_tag="release-health-spanner",
                 writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS,
+                writes_limiter_namespace=RELEASE_HEALTH_CS_NAMESPACE,
             )
         )
 
@@ -87,7 +93,7 @@ def get_ingest_config(use_case_key: UseCaseKey, db_backend: str) -> MetricsInges
                 use_case_id=UseCaseKey.PERFORMANCE,
                 internal_metrics_tag="perf-spanner",
                 writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS_PERFORMANCE,
-                writes_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
+                writes_limiter_namespace=PERFORMANCE_CS_NAMESPACE,
             )
         )
 

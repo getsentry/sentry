@@ -10,6 +10,8 @@ from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
+DB_INDEXER_MAP = {CLOUDSPANNER_DB: CloudSpannerIndexer, POSTGRES_DB: PostgresIndexer}
+
 
 class MessageProcessor:
     # todo: update message processor to take config instead of just use case

@@ -10,7 +10,7 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import MessageRejected
 from arroyo.types import Message, Partition, Topic
 
-from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
+from sentry.sentry_metrics.configuration import POSTGRES_DB, UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.consumers.indexer.batch import invalid_metric_tags, valid_metric_name
 from sentry.sentry_metrics.consumers.indexer.common import (
     BatchMessages,

@@ -5,7 +5,7 @@ from typing import Any, Mapping, Optional, Set
 from django.conf import settings
 from django.db.models import Q
 
-from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
+from sentry.sentry_metrics.configuration import POSTGRES_DB, UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
     KeyCollection,
@@ -26,7 +26,6 @@ _INDEXER_CACHE_METRIC = "sentry_metrics.indexer.memcache"
 _INDEXER_DB_METRIC = "sentry_metrics.indexer.postgres"
 
 _PARTITION_KEY = "pg"
-_INDEXER_DB = "postgres"
 
 indexer_cache = StringIndexerCache(
     **settings.SENTRY_STRING_INDEXER_CACHE_OPTIONS, partition_key=_PARTITION_KEY
