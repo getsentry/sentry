@@ -74,10 +74,10 @@ def test_spanner_indexer_implementation_basic(testing_indexer):
 
     with testing_indexer.database.snapshot() as snapshot:
         result = snapshot.read(
-            testing_indexer._table_name,
+            testing_indexer._get_table_name(UseCaseKey.PERFORMANCE),
             columns=["id"],
             keyset=spanner.KeySet(keys=[[record["org_id"], record["string"]]]),
-            index=testing_indexer._unique_organization_string_index,
+            index=testing_indexer._get_unique_org_string_index_name(UseCaseKey.PERFORMANCE),
         )
 
     all_results = list(result)
@@ -121,7 +121,7 @@ def test_spanner_indexer_implementation_bulk_insert_twice_gives_same_result(test
 
 
 @patch(
-    "sentry.sentry_metrics.indexer.cloudspanner.cloudspanner.RawCloudSpannerIndexer._insert_individual_records"
+    "sentry.sentry_metrics.indexer.cloudspanner.cloudspanner.RawCloudSpannerIndexer._insert_collisions_handled"
 )
 @pytest.mark.skip(reason="TODO: Implement it correctly")
 def test_spanner_indexer_insert_batch_no_conflict_does_not_trigger_individual_inserts(
@@ -162,11 +162,11 @@ def test_spanner_indexer_insert_batch_no_conflict_does_not_trigger_individual_in
     )
     testing_indexer._insert_db_records(UseCaseKey.PERFORMANCE, [model2],
                                        key_results2)
-    assert mock.call_count == 0, "Individual insert should not be called"
+    assert mock.call_count == 0, "Insert with collisions should not be called"
 
 
 @patch(
-    "sentry.sentry_metrics.indexer.cloudspanner.cloudspanner.RawCloudSpannerIndexer._insert_individual_records"
+    "sentry.sentry_metrics.indexer.cloudspanner.cloudspanner.RawCloudSpannerIndexer._insert_collisions_handled"
 )
 @pytest.mark.skip(reason="TODO: Implement it correctly")
 def test_spanner_indexer_insert_batch_conflict_triggers_individual_transactions(
@@ -208,7 +208,7 @@ def test_spanner_indexer_insert_batch_conflict_triggers_individual_transactions(
     )
     testing_indexer._insert_db_records(UseCaseKey.PERFORMANCE, [model2],
                                        key_results2)
-    assert mock.call_count == 1, "Individual insert should be called"
+    assert mock.call_count == 1, "Insert with collisions should be called"
 
 
 @pytest.mark.django_db

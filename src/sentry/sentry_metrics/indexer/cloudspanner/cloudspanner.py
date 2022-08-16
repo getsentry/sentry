@@ -260,10 +260,11 @@ class RawCloudSpannerIndexer(StringIndexer):
             missing_records = []
             for row in rows:
                 if (row.organization_id, row.string) not in exisiting_org_string_set\
-                        or row.id not in existing_id_string_set:
+                        and row.id not in existing_id_string_set:
                     missing_records.append(row)
 
-            transaction.insert(self._get_table_name(use_case_id),
+            if missing_records:
+                transaction.insert(self._get_table_name(use_case_id),
                                columns=get_column_names(), values=missing_records)
 
         metrics.incr(
@@ -273,7 +274,7 @@ class RawCloudSpannerIndexer(StringIndexer):
         transaction_succeeded = False
         while not transaction_succeeded:
             try:
-                self.database.run_in_transaction(insert_rw_transaction_uow)
+                self.database.run_in_transaction(insert_rw_transaction_uow, rows_to_insert)
                 transaction_succeeded = True
             except google.api_core.exceptions.AlreadyExists:
                 metrics.incr(_INDEXER_DB_RW_TRANSACTION_FAILED_METRIC)
@@ -345,7 +346,8 @@ class RawCloudSpannerIndexer(StringIndexer):
             new_records = self._create_db_records(filtered_db_write_keys)
             db_write_key_results = KeyResults()
             with metrics.timer("sentry_metrics.indexer.pg_bulk_create"):
-                self._insert_db_records(new_records, db_write_key_results)
+                self._insert_db_records(use_case_id, new_records,
+                                         db_write_key_results)
 
         return db_read_key_results.merge(db_write_key_results).merge(rate_limited_key_results)
 
