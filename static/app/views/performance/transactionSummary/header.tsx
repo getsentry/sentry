@@ -312,10 +312,7 @@ class TransactionHeader extends Component<Props> {
               </ListLink>
             </Feature>
             {this.renderWebVitalsTab()}
-            <Feature
-              features={['session-replay-ui']}
-              organization={organization}
-            >
+            <Feature features={['session-replay-ui']} organization={organization}>
               <ListLink
                 data-test-id="replays-tab"
                 to={replaysTarget}
