@@ -11,6 +11,8 @@ class CandidateMetricCorrResult:
     candidate_suspect_resolution_id: int
     is_correlated: bool
     coefficient: float
+    candidate_issue_total_events: int
+    resolved_issue_total_events: int
 
 
 @dataclass
@@ -47,6 +49,9 @@ def is_issue_error_rate_correlated(
     x = [events for _, events in data[resolved_issue.id]]
     y = {csr.id: [events for _, events in data[csr.id]] for csr in candidate_suspect_resolutions}
 
+    resolved_issue_total_events = sum(x)
+    candidate_issue_total_events = sum(y)
+
     coefficients = {csr_id: calculate_pearson_correlation_coefficient(x, y[csr_id]) for csr_id in y}
 
     results = [
@@ -54,6 +59,8 @@ def is_issue_error_rate_correlated(
             candidate_suspect_resolution_id=csr_id,
             is_correlated=coefficient > 0.4,
             coefficient=coefficient,
+            candidate_issue_total_events=candidate_issue_total_events,
+            resolved_issue_total_events=resolved_issue_total_events,
         )
         for (csr_id, coefficient) in coefficients.items()
     ]
