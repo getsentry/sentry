@@ -9,6 +9,7 @@ import {IconCalendar, IconClock, IconFire} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import {defined} from 'sentry/utils';
+import useProjects from 'sentry/utils/useProjects';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -22,20 +23,19 @@ function EventMetaData({crumbs, durationMs, replayRecord}: Props) {
   const {
     params: {replaySlug},
   } = useRouteContext();
+  const {projects} = useProjects();
+
   const errors = crumbs?.filter(crumb => crumb.type === 'error').length;
+
+  const project = projects.find(p => p.id === replayRecord?.projectId) || {
+    slug: replaySlug.split(':')[0],
+    id: replaySlug.split(':')[1],
+  };
 
   return (
     <KeyMetrics>
       {replayRecord ? (
-        <ProjectBadge
-          project={
-            replayRecord.project || {
-              slug: replaySlug.split(':')[0],
-              id: replaySlug.split(':')[1],
-            }
-          }
-          avatarSize={16}
-        />
+        <ProjectBadge project={project} avatarSize={16} />
       ) : (
         <HeaderPlaceholder />
       )}

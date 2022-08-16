@@ -9,7 +9,6 @@ import useReplayErrors from 'sentry/utils/replays/hooks/useReplayErrors';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
-import useProjects from 'sentry/utils/useProjects';
 import type {
   RecordingEvent,
   ReplayCrumb,
@@ -227,7 +226,6 @@ function useReplayData({eventSlug, orgId}: Options): Result {
     loadEvents();
   }, [loadEvents]);
 
-  const {projects} = useProjects();
   const replay = useMemo(() => {
     return ReplayReader.factory({
       event: state.event,
@@ -235,16 +233,8 @@ function useReplayData({eventSlug, orgId}: Options): Result {
       rrwebEvents: state.rrwebEvents,
       breadcrumbs: state.breadcrumbs,
       spans: state.spans,
-      projects,
     });
-  }, [
-    state.event,
-    state.rrwebEvents,
-    state.breadcrumbs,
-    state.spans,
-    state.errors,
-    projects,
-  ]);
+  }, [state.event, state.rrwebEvents, state.breadcrumbs, state.spans, state.errors]);
 
   return {
     fetchError: state.fetchError,

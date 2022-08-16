@@ -1,7 +1,6 @@
 import type {BreadcrumbTypeNavigation, Crumb} from 'sentry/types/breadcrumbs';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import type {Event, EventTransaction} from 'sentry/types/event';
-import type {Project} from 'sentry/types/project';
 import {
   breadcrumbFactory,
   replayTimestamps,
@@ -26,8 +25,6 @@ interface ReplayReaderParams {
    */
   event: Event | undefined;
 
-  projects: Project[];
-
   /**
    * The captured data from rrweb.
    * Saved as N attachments that belong to the root Replay event.
@@ -42,19 +39,12 @@ type RequiredNotNull<T> = {
 };
 
 export default class ReplayReader {
-  static factory({
-    breadcrumbs,
-    event,
-    errors,
-    rrwebEvents,
-    spans,
-    projects,
-  }: ReplayReaderParams) {
+  static factory({breadcrumbs, event, errors, rrwebEvents, spans}: ReplayReaderParams) {
     if (!breadcrumbs || !event || !rrwebEvents || !spans || !errors) {
       return null;
     }
 
-    return new ReplayReader({breadcrumbs, event, errors, rrwebEvents, spans, projects});
+    return new ReplayReader({breadcrumbs, event, errors, rrwebEvents, spans});
   }
 
   private constructor({
@@ -63,7 +53,6 @@ export default class ReplayReader {
     errors,
     rrwebEvents,
     spans,
-    projects,
   }: RequiredNotNull<ReplayReaderParams>) {
     const {startTimestampMs, endTimestampMs} = replayTimestamps(
       rrwebEvents,
@@ -128,7 +117,6 @@ export default class ReplayReader {
         version: null,
       },
       platform: this.event.platform,
-      project: projects.find(project => project.id === String(this.event.projectID)),
       projectId: this.event.projectID,
       release: null, // event.release is not a string, expected to be `version@1.4`
       sdk: {
