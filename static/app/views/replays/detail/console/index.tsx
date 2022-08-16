@@ -22,8 +22,8 @@ import {filterBreadcrumbs} from 'sentry/views/replays/detail/console/utils';
 
 interface Props {
   breadcrumbs: Extract<Crumb, BreadcrumbTypeDefault>[];
-  parentRef: RefObject<HTMLElement>;
   startTimestampMs: number;
+  parentRef?: RefObject<HTMLElement>;
 }
 
 const getDistinctLogLevels = (breadcrumbs: Crumb[]) =>

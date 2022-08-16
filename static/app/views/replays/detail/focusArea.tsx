@@ -17,7 +17,7 @@ import NetworkList from 'sentry/views/replays/detail/network';
 import Trace from 'sentry/views/replays/detail/trace';
 
 type Props = {
-  parentRef: RefObject<HTMLDivElement>;
+  parentRef?: RefObject<HTMLDivElement>;
 };
 
 function getBreadcrumbsByCategory(breadcrumbs: Crumb[], categories: string[]) {
