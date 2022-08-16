@@ -16,7 +16,7 @@ import {Organization} from 'sentry/types';
 import {RequestState} from 'sentry/types/core';
 import {Project, ProjectSdkUpdates} from 'sentry/types/project';
 import useProjects from 'sentry/utils/useProjects';
-import {useProjectSdkUpdates} from 'sentry/utils/useProjectSdk';
+import {useProjectSdkUpdates} from 'sentry/utils/useProjectSdkUpdates';
 
 // This is just a doubly linked list of steps
 interface OnboardingStep {

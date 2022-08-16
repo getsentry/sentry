@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 
 import {Client} from 'sentry/api';
 import {RequestState} from 'sentry/types';
@@ -21,16 +21,11 @@ export function useProjectSdkUpdates(
   options: UseProjectSdkOptions
 ): RequestState<ProjectSdkUpdates | null> {
   const api = useApi();
-
-  const [state, setState] = useState<RequestState<ProjectSdkUpdates | null>>({
+  const [state, setState] = useState<RequestState<ProjectSdkUpdates[] | null>>({
     type: 'initial',
   });
 
   useEffect(() => {
-    if (options.projectId === undefined) {
-      return undefined;
-    }
-
     let unmounted = false;
 
     loadSdkUpdates(api, options.organization.slug).then(data => {
@@ -40,14 +35,29 @@ export function useProjectSdkUpdates(
 
       setState({
         type: 'resolved',
-        data: data.find(project => project.projectId === options.projectId) ?? null,
+        data,
       });
     });
 
     return () => {
       unmounted = true;
     };
-  }, [api, options.projectId, options.organization.slug]);
+  }, [api, options.organization.slug]);
 
-  return state;
+  const stateForProject = useMemo((): RequestState<ProjectSdkUpdates | null> => {
+    if (state.type === 'resolved') {
+      return {
+        ...state,
+        type: 'resolved',
+        data:
+          state.type === 'resolved' && state.data
+            ? state.data.find(sdk => sdk.projectId === options.projectId) ?? null
+            : null,
+      };
+    }
+
+    return state;
+  }, [state, options.projectId]);
+
+  return stateForProject;
 }
