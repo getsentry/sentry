@@ -1,4 +1,5 @@
 from collections import defaultdict
+from datetime import timedelta, timezone
 from typing import Mapping, Sequence
 
 from sentry import features
@@ -11,7 +12,11 @@ from sentry.utils.suspect_resolutions_releases import ALGO_VERSION, analytics
 @release_created.connect(weak=False)
 def record_suspect_resolutions_releases(release, **kwargs) -> None:
     if features.has("projects:suspect-resolutions"):
-        get_suspect_resolutions_releases.delay(release)
+        get_suspect_resolutions_releases.delay(
+            release,
+            eta=timezone.now() + timedelta(hours=1),
+            expires=timezone.now() + timedelta(hours=1, minutes=30),
+        )
 
 
 @instrumented_task(
