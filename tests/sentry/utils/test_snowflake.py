@@ -1,26 +1,26 @@
 from datetime import datetime
 
 import pytest
+from django.conf import settings
 from freezegun import freeze_time
 
 from sentry.testutils import TestCase
 from sentry.utils.snowflake import (
     _TTL,
     MAX_AVAILABLE_REGION_SEQUENCES,
-    SENTRY_EPOCH_START,
     generate_snowflake_id,
     get_redis_cluster,
 )
 
 
 class SnowflakeUtilsTest(TestCase):
-    CURRENT_TIME = datetime(2022, 6, 21, 6, 0)
+    CURRENT_TIME = datetime(2022, 7, 21, 6, 0)
 
     @freeze_time(CURRENT_TIME)
     def test_generate_correct_ids(self):
         snowflake_id = generate_snowflake_id("test_redis_key")
         expected_value = (16 << 48) + (
-            int(self.CURRENT_TIME.timestamp() - SENTRY_EPOCH_START) << 16
+            int(self.CURRENT_TIME.timestamp() - settings.SENTRY_SNOWFLAKE_EPOCH_START) << 16
         )
 
         assert snowflake_id == expected_value
@@ -40,7 +40,7 @@ class SnowflakeUtilsTest(TestCase):
         snowflake_id = generate_snowflake_id("test_redis_key")
 
         expected_value = (16 << 48) + (
-            (int(self.CURRENT_TIME.timestamp() - SENTRY_EPOCH_START) - 1) << 16
+            (int(self.CURRENT_TIME.timestamp() - settings.SENTRY_SNOWFLAKE_EPOCH_START) - 1) << 16
         )
 
         assert snowflake_id == expected_value
@@ -48,7 +48,7 @@ class SnowflakeUtilsTest(TestCase):
     @freeze_time(CURRENT_TIME)
     def test_out_of_region_sequences(self):
         cluster = get_redis_cluster("test_redis_key")
-        current_timestamp = int(datetime.now().timestamp() - SENTRY_EPOCH_START)
+        current_timestamp = int(datetime.now().timestamp() - settings.SENTRY_SNOWFLAKE_EPOCH_START)
         for i in range(int(_TTL.total_seconds())):
             timestamp = current_timestamp - i
             cluster.set(str(timestamp), 16)

@@ -3,6 +3,7 @@ from __future__ import annotations
 import collections
 import os
 import random
+from datetime import datetime
 from hashlib import md5
 from typing import TypeVar
 from unittest import mock
@@ -180,6 +181,9 @@ def pytest_configure(config):
     )
 
     settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = False
+    settings.SENTRY_USE_BIG_INTS = True
+
+    settings.SENTRY_SNOWFLAKE_EPOCH_START = datetime(1999, 12, 31, 0, 0).timestamp()
 
     # Plugin-related settings
     settings.ASANA_CLIENT_ID = "abc"

@@ -16,7 +16,7 @@ class CollectProjectPlatformsTest(TestCase):
         self.create_group(project=project2, last_seen=now, platform="python")
 
         with self.tasks():
-            collect_project_platforms()
+            collect_project_platforms(1)
 
         assert ProjectPlatform.objects.filter(project_id=project1.id, platform="php").exists()
         assert ProjectPlatform.objects.filter(project_id=project1.id, platform="perl").exists()

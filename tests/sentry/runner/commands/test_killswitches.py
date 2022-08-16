@@ -149,5 +149,9 @@ class KillswitchesTest(CliTestCase):
 
         # All organisations should have been invalidated:
         assert mock_schedule.mock_calls == [
-            mock.call(trigger="invalidate-all", organization_id=1, countdown=0)
+            mock.call(
+                trigger="invalidate-all",
+                organization_id=mock_schedule.mock_calls[0].kwargs["organization_id"],
+                countdown=0,
+            )
         ]
