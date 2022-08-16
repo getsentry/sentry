@@ -63,9 +63,9 @@ export default function Trace({replayRecord, organization}: Props) {
 
   const {
     location,
-    params: {eventSlug, orgSlug},
+    params: {replaySlug, orgSlug},
   } = useRouteContext();
-  const [, eventId] = eventSlug.split(':');
+  const [, eventId] = replaySlug.split(':');
 
   const start = getUtcDateString(replayRecord.startedAt.getTime());
   const end = getUtcDateString(replayRecord.finishedAt.getTime());
