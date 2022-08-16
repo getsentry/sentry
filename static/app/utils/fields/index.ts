@@ -784,7 +784,7 @@ export const FIELDS: Record<FieldKey & AggregationKey & MobileVital, FieldDefini
     valueType: FieldValueType.STRING,
   },
   [FieldKey.TRACE_SPAN]: {
-    desc: t('Span identification number of the root span t('),
+    desc: t('Span identification number of the root span'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
