@@ -1,6 +1,8 @@
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Mapping, Sequence
+
+from django.utils import timezone
 
 from sentry import features
 from sentry.models import Group, GroupRelease, GroupStatus, Release, ReleaseProject
@@ -14,8 +16,8 @@ def record_suspect_resolutions_releases(release, **kwargs) -> None:
     if release.projects.exists() and features.has("projects:suspect-resolutions", release.projects):
         get_suspect_resolutions_releases.delay(
             release,
-            eta=datetime.now() + timedelta(hours=1),
-            expires=datetime.now() + timedelta(hours=1, minutes=30),
+            eta=timezone.now() + timedelta(hours=1),
+            expires=timezone.now() + timedelta(hours=1, minutes=30),
         )
 
 
