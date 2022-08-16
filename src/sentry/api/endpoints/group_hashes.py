@@ -50,7 +50,7 @@ class GroupHashesEndpoint(GroupEndpoint):
         if id_list is None:
             return Response()
 
-        hash_list = (
+        hash_list = list(
             GroupHash.objects.filter(project_id=group.project_id, group=group.id, hash__in=id_list)
             .exclude(state=GroupHash.State.LOCKED_IN_MIGRATION)
             .values_list("hash", flat=True)
