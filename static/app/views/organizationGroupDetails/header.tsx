@@ -367,7 +367,7 @@ class GroupHeader extends Component<Props, State> {
                 {t('Similar Issues')}
               </ListLink>
             )}
-            <Feature features={['session-replay']} organization={organization}>
+            <Feature features={['session-replay-ui']} organization={organization}>
               <ListLink
                 to={`${baseUrl}replays/${location.search}`}
                 isActive={() => currentTab === Tab.REPLAYS}

@@ -462,7 +462,7 @@ function MiniReplayView({
   replayId,
 }: MiniReplayViewProps) {
   const hasEventAttachmentsFeature = orgFeatures.includes('event-attachments');
-  const hasSessionReplayFeature = orgFeatures.includes('session-replay');
+  const hasSessionReplayFeature = orgFeatures.includes('session-replay-ui');
 
   if (replayId && hasSessionReplayFeature) {
     return (
