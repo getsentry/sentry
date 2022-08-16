@@ -200,11 +200,13 @@ class Organization(Model, SnowflakeIdMixin):
                 slugify_target = slugify_target.replace("_", "-").strip("-")
                 slugify_instance(self, slugify_target, reserved=RESERVED_ORGANIZATION_SLUGS)
 
-        snowflake_redis_key = "organization_snowflake_key"
         if SENTRY_USE_SNOWFLAKE:
+            snowflake_redis_key = "organization_snowflake_key"
             self.save_with_snowflake_id(
                 snowflake_redis_key, lambda: super(Organization, self).save(*args, **kwargs)
             )
+        else:
+            super().save(*args, **kwargs)
 
     def delete(self, **kwargs):
         from sentry.models import NotificationSetting

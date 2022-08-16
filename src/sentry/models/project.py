@@ -180,12 +180,13 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
                     max_length=50,
                 )
 
-        snowflake_redis_key = "project_snowflake_key"
         if SENTRY_USE_SNOWFLAKE:
+            snowflake_redis_key = "project_snowflake_key"
             self.save_with_snowflake_id(
                 snowflake_redis_key, lambda: super(Project, self).save(*args, **kwargs)
             )
-
+        else:
+            super().save(*args, **kwargs)
         self.update_rev_for_option()
 
     def get_absolute_url(self, params=None):
