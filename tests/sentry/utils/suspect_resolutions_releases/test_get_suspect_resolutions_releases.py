@@ -22,7 +22,7 @@ class GetSuspectResolutionsReleasesTest(TestCase):
         previous_release = self.create_release(date_added=timezone.now() - timedelta(days=1))
         current_release = self.create_release(date_added=timezone.now())
 
-        ReleaseProject.objects.create(project_id=project.id, release_id=previous_release.id)
+        rp1 = ReleaseProject.objects.create(project_id=project.id, release_id=previous_release.id)
         ReleaseProject.objects.create(project_id=project.id, release_id=current_release.id)
         GroupRelease.objects.create(
             project_id=project.id, group_id=issue.id, release_id=previous_release.id
@@ -41,5 +41,6 @@ class GetSuspectResolutionsReleasesTest(TestCase):
                 current_release_id=current_release.id,
                 issue_id=issue.id,
                 is_suspect_resolution=True,
+                latest_release_id=rp1.release_id,
             )
         ]

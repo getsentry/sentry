@@ -68,6 +68,7 @@ def get_suspect_resolutions_releases(release: Release) -> Sequence[int]:
                 current_release_id=release.id,
                 issue_id=issue.id,
                 is_suspect_resolution=is_suspect_resolution,
+                latest_release_id=latest_release_per_project[issue.project.id].id,
             )
 
         return suspect_resolution_issue_ids
