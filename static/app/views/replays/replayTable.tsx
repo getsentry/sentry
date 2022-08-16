@@ -65,7 +65,7 @@ function ReplayTable({replayList, idKey, showProjectColumn}: Props) {
             displayName={
               <Link
                 to={`/organizations/${organization.slug}/replays/${generateEventSlug({
-                  project: projects.find(p => p.id === String(replay.project)),
+                  project: replay.project,
                   id: replay[idKey],
                 })}/`}
               >
