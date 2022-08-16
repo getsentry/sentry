@@ -1118,6 +1118,7 @@ function WidgetBuilder({
                         selection={pageFilters}
                         widgetType={widgetType}
                         dashboardFilters={dashboard.filters}
+                        location={location}
                       />
                       {widgetBuilderNewDesign && isTimeseriesChart && (
                         <GroupByStep

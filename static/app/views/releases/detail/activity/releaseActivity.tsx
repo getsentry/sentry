@@ -16,7 +16,7 @@ export function ReleaseActivityList() {
   const params = useParams();
   const {project} = useContext(ReleaseContext);
 
-  const {data, renderComponent} = useApiRequests({
+  const {data, renderComponent} = useApiRequests<{activities: ReleaseActivity[]}>({
     endpoints: [
       [
         'activities',
@@ -26,7 +26,7 @@ export function ReleaseActivityList() {
   });
 
   useEffect(() => {
-    const groups = (data.activities as ReleaseActivity[] | null)
+    const groups = data.activities
       ?.filter(
         (activity): activity is ReleaseActivityIssue =>
           activity.type === ReleaseActivityType.ISSUE
@@ -41,7 +41,7 @@ export function ReleaseActivityList() {
     };
   }, [data.activities]);
 
-  const activities: ReleaseActivity[] = data.activities ?? [];
+  const activities = data.activities ?? [];
   const isFinished = activities.some(
     activity => activity.type === ReleaseActivityType.FINISHED
   );

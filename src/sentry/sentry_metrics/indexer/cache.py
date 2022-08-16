@@ -1,19 +1,33 @@
 import logging
 import random
-from typing import Mapping, MutableMapping, Optional, Sequence
+from typing import Mapping, MutableMapping, Optional, Sequence, Set
 
 from django.conf import settings
 from django.core.cache import caches
 
+from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.indexer.base import (
+    FetchType,
+    KeyCollection,
+    KeyResult,
+    KeyResults,
+    StringIndexer,
+)
+from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
 
 logger = logging.getLogger(__name__)
 
+_INDEXER_CACHE_METRIC = "sentry_metrics.indexer.memcache"
+# only used to compare to the older version of the PGIndexer
+_INDEXER_CACHE_FETCH_METRIC = "sentry_metrics.indexer.memcache.fetch"
+
 
 class StringIndexerCache:
-    def __init__(self, version: int, cache_name: str):
-        self.version = version
+    def __init__(self, cache_name: str, partition_key: str):
+        self.version = 1
         self.cache = caches[cache_name]
+        self.partition_key = partition_key
 
     @property
     def randomized_ttl(self) -> int:
@@ -25,7 +39,7 @@ class StringIndexerCache:
 
     def make_cache_key(self, key: str, cache_namespace: str) -> str:
         hashed = md5_text(key).hexdigest()
-        return f"indexer:org:str:{cache_namespace}:{hashed}"
+        return f"indexer:{self.partition_key}:org:str:{cache_namespace}:{hashed}"
 
     def _format_results(
         self, keys: Sequence[str], results: Mapping[str, Optional[int]], cache_namespace: str
@@ -83,5 +97,73 @@ class StringIndexerCache:
         self.cache.delete_many(cache_keys, version=self.version)
 
 
-# todo: dont hard code 1 as the version
-indexer_cache = StringIndexerCache(**settings.SENTRY_STRING_INDEXER_CACHE_OPTIONS)
+class CachingIndexer(StringIndexer):
+    def __init__(self, cache: StringIndexerCache, indexer: StringIndexer) -> None:
+        self.cache = cache
+        self.indexer = indexer
+
+    def bulk_record(
+        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
+    ) -> KeyResults:
+        cache_keys = KeyCollection(org_strings)
+        metrics.gauge("sentry_metrics.indexer.lookups_per_batch", value=cache_keys.size)
+        cache_key_strs = cache_keys.as_strings()
+        cache_results = self.cache.get_many(cache_key_strs, use_case_id.value)
+
+        hits = [k for k, v in cache_results.items() if v is not None]
+        metrics.incr(
+            _INDEXER_CACHE_METRIC,
+            tags={"cache_hit": "true", "caller": "get_many_ids"},
+            amount=len(hits),
+        )
+        metrics.incr(
+            _INDEXER_CACHE_METRIC,
+            tags={"cache_hit": "false", "caller": "get_many_ids"},
+            amount=len(cache_results) - len(hits),
+        )
+
+        # used to compare to pre org_id indexer cache fetch metric
+        metrics.incr(
+            _INDEXER_CACHE_FETCH_METRIC,
+            amount=cache_keys.size,
+        )
+
+        cache_key_results = KeyResults()
+        cache_key_results.add_key_results(
+            [KeyResult.from_string(k, v) for k, v in cache_results.items() if v is not None],
+            FetchType.CACHE_HIT,
+        )
+
+        db_record_keys = cache_key_results.get_unmapped_keys(cache_keys)
+
+        if db_record_keys.size == 0:
+            return cache_key_results
+
+        db_record_key_results = self.indexer.bulk_record(use_case_id, db_record_keys.mapping)
+        self.cache.set_many(
+            db_record_key_results.get_mapped_key_strings_to_ints(), use_case_id.value
+        )
+        return cache_key_results.merge(db_record_key_results)
+
+    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+        result = self.bulk_record(use_case_id=use_case_id, org_strings={org_id: {string}})
+        return result[org_id][string]
+
+    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+        key = f"{org_id}:{string}"
+        result = self.cache.get(key, use_case_id.value)
+
+        if result and isinstance(result, int):
+            metrics.incr(_INDEXER_CACHE_METRIC, tags={"cache_hit": "true", "caller": "resolve"})
+            return result
+
+        metrics.incr(_INDEXER_CACHE_METRIC, tags={"cache_hit": "false", "caller": "resolve"})
+        id = self.indexer.resolve(use_case_id, org_id, string)
+
+        if id is not None:
+            self.cache.set(key, id, use_case_id.value)
+
+        return id
+
+    def reverse_resolve(self, use_case_id: UseCaseKey, id: int) -> Optional[str]:
+        return self.indexer.reverse_resolve(use_case_id, id)

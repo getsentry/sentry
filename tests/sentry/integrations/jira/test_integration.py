@@ -13,6 +13,8 @@ from fixtures.integrations.jira import StubJiraApiClient
 from sentry.integrations.jira.integration import JiraIntegrationProvider
 from sentry.models import (
     ExternalIssue,
+    GroupLink,
+    GroupMeta,
     Integration,
     IntegrationExternalProject,
     OrganizationIntegration,
@@ -24,6 +26,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
+from sentry_plugins.jira.plugin import JiraPlugin
 
 
 def get_client():
@@ -882,6 +885,125 @@ class JiraIntegrationTest(APITestCase):
                     "123",
                     "Sentry Admin wrote:\n\n{quote}%s{quote}" % comment,
                 )
+
+
+class JiraMigrationIntegrationTest(APITestCase):
+    @fixture
+    def integration(self):
+        integration = Integration.objects.create(
+            provider="jira",
+            name="Jira Cloud",
+            metadata={
+                "oauth_client_id": "oauth-client-id",
+                "shared_secret": "a-super-secret-key-from-atlassian",
+                "base_url": "https://example.atlassian.net",
+                "domain_name": "example.atlassian.net",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+        return integration
+
+    def setUp(self):
+        super().setUp()
+        self.plugin = JiraPlugin()
+        self.plugin.set_option("enabled", True, self.project)
+        self.plugin.set_option("default_project", "SEN", self.project)
+        self.plugin.set_option("instance_url", "https://example.atlassian.net", self.project)
+        self.plugin.set_option("ignored_fields", "hellboy, meow", self.project)
+        self.installation = self.integration.get_installation(self.organization.id)
+        self.login_as(self.user)
+
+    def test_migrate_plugin(self):
+        """Test that 2 projects with the Jira plugin enabled that each have an issue created
+        from the plugin are migrated along with the ignored fields
+        """
+        project2 = self.create_project(
+            name="hellbar", organization=self.organization, teams=[self.team]
+        )
+        plugin2 = JiraPlugin()
+        plugin2.set_option("enabled", True, project2)
+        plugin2.set_option("default_project", "BAR", project2)
+        plugin2.set_option("instance_url", "https://example.atlassian.net", project2)
+
+        group = self.create_group(message="Hello world", culprit="foo.bar")
+        plugin_issue = GroupMeta.objects.create(
+            key=f"{self.plugin.slug}:tid", group_id=group.id, value="SEN-1"
+        )
+        group2 = self.create_group(message="Hello world", culprit="foo.bar")
+        plugin2_issue = GroupMeta.objects.create(
+            key=f"{self.plugin.slug}:tid", group_id=group2.id, value="BAR-1"
+        )
+        org_integration = OrganizationIntegration.objects.get(integration_id=self.integration.id)
+        org_integration.config.update({"issues_ignored_fields": ["reporter", "test"]})
+        org_integration.save()
+
+        with self.tasks():
+            self.installation.migrate_issues()
+
+        assert ExternalIssue.objects.filter(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            key=plugin_issue.value,
+        ).exists()
+        assert ExternalIssue.objects.filter(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            key=plugin2_issue.value,
+        ).exists()
+        assert not GroupMeta.objects.filter(
+            key=f"{self.plugin.slug}:tid", group_id=group.id, value="SEN-1"
+        ).exists()
+        assert not GroupMeta.objects.filter(
+            key=f"{self.plugin.slug}:tid", group_id=group.id, value="BAR-1"
+        ).exists()
+
+        oi = OrganizationIntegration.objects.get(integration_id=self.integration.id)
+        assert len(oi.config["issues_ignored_fields"]) == 4
+
+        assert self.plugin.get_option("enabled", self.project) is False
+        assert plugin2.get_option("enabled", project2) is False
+
+    def test_instance_url_mismatch(self):
+        """Test that if the plugin's instance URL does not match the integration's base URL, we don't migrate the issues"""
+        self.plugin.set_option("instance_url", "https://hellboy.atlassian.net", self.project)
+        group = self.create_group(message="Hello world", culprit="foo.bar")
+        plugin_issue = GroupMeta.objects.create(
+            key=f"{self.plugin.slug}:tid", group_id=group.id, value="SEN-1"
+        )
+        with self.tasks():
+            self.installation.migrate_issues()
+
+        assert not ExternalIssue.objects.filter(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            key=plugin_issue.value,
+        ).exists()
+        assert GroupMeta.objects.filter(
+            key=f"{self.plugin.slug}:tid", group_id=group.id, value="SEN-1"
+        ).exists()
+
+    def test_external_issue_already_exists(self):
+        """Test that if an issue already exists during migration, we continue with no issue"""
+
+        group = self.create_group(message="Hello world", culprit="foo.bar")
+        GroupMeta.objects.create(key=f"{self.plugin.slug}:tid", group_id=group.id, value="SEN-1")
+        group2 = self.create_group(message="Hello world", culprit="foo.bar")
+        GroupMeta.objects.create(key=f"{self.plugin.slug}:tid", group_id=group2.id, value="BAR-1")
+        integration_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            key="BAR-1",
+        )
+        GroupLink.objects.create(
+            group_id=group2.id,
+            project_id=self.project.id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=integration_issue.id,
+            relationship=GroupLink.Relationship.references,
+        )
+
+        with self.tasks():
+            self.installation.migrate_issues()
 
 
 class JiraInstallationTest(IntegrationTestCase):

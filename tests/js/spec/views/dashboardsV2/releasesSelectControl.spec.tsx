@@ -37,6 +37,7 @@ describe('Dashboards > ReleasesSelectControl', function () {
     expect(screen.getByText('All Releases')).toBeInTheDocument();
 
     userEvent.click(screen.getByText('All Releases'));
+    expect(screen.getByText('Latest Release(s)')).toBeInTheDocument();
     userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
 
     userEvent.click(document.body);

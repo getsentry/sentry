@@ -1099,6 +1099,69 @@ describe('Dashboards > Detail', function () {
             ...TestStubs.location(),
             query: {
               statsPeriod: '7d',
+              release: ['sentry-android-shop@1.2.0'],
+            },
+          },
+        },
+      });
+      render(
+        <ViewEditDashboard
+          organization={testData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={testData.router}
+          location={testData.router.location}
+        />,
+        {context: testData.routerContext, organization: testData.organization}
+      );
+
+      userEvent.click(await screen.findByText('Save'));
+
+      expect(mockPut).toHaveBeenCalledWith(
+        '/organizations/org-slug/dashboards/1/',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            period: '7d',
+            filters: {release: ['sentry-android-shop@1.2.0']},
+          }),
+        })
+      );
+    });
+
+    it('can clear dashboard filters in compact select', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: TestStubs.Dashboard(widgets, {
+          id: '1',
+          title: 'Custom Errors',
+          filters: {release: ['sentry-android-shop@1.2.0']},
+        }),
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/',
+        body: [
+          TestStubs.Release({
+            shortVersion: 'sentry-android-shop@1.2.0',
+            version: 'sentry-android-shop@1.2.0',
+          }),
+        ],
+      });
+      const testData = initializeOrg({
+        organization: TestStubs.Organization({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-query',
+            'dashboard-grid-layout',
+            'dashboards-top-level-filter',
+          ],
+        }),
+        router: {
+          location: {
+            ...TestStubs.location(),
+            query: {
+              statsPeriod: '7d',
             },
           },
         },
@@ -1114,17 +1177,15 @@ describe('Dashboards > Detail', function () {
       );
 
       await screen.findByText('7D');
-      userEvent.click(await screen.findByText('All Releases'));
-      userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
+      userEvent.click(await screen.findByText('sentry-android-shop@1.2.0'));
+      userEvent.click(screen.getByText('Clear'));
+      screen.getByText('All Releases');
+      userEvent.click(document.body);
 
-      userEvent.click(screen.getByText('Save'));
-
-      expect(mockPut).toHaveBeenCalledWith(
-        '/organizations/org-slug/dashboards/1/',
+      expect(browserHistory.push).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({
-            period: '7d',
-            filters: {release: ['sentry-android-shop@1.2.0']},
+          query: expect.objectContaining({
+            release: '',
           }),
         })
       );
@@ -1238,7 +1299,7 @@ describe('Dashboards > Detail', function () {
       );
     });
 
-    it('disables dashboard actions when there are unsaved filters', async () => {
+    it('disables the Edit Dashboard button when there are unsaved filters', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
         body: [
@@ -1283,26 +1344,7 @@ describe('Dashboards > Detail', function () {
 
       expect(await screen.findByText('Save')).toBeInTheDocument();
       expect(screen.getByText('Cancel')).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Add Widget'})).toBeDisabled();
       expect(screen.getByRole('button', {name: 'Edit Dashboard'})).toBeDisabled();
-
-      userEvent.click(screen.getAllByLabelText('Widget actions')[0]);
-
-      expect(screen.getByTestId('edit-widget')).toHaveAttribute('aria-disabled', 'true');
-      expect(screen.getByTestId('duplicate-widget')).toHaveAttribute(
-        'aria-disabled',
-        'true'
-      );
-      expect(screen.getByTestId('delete-widget')).toHaveAttribute(
-        'aria-disabled',
-        'true'
-      );
-
-      // Open in discover shouldn't be disabled
-      expect(screen.getByTestId('open-in-discover')).toHaveAttribute(
-        'aria-disabled',
-        'false'
-      );
     });
 
     it('ignores the order of selection of page filters to render unsaved filters', async () => {

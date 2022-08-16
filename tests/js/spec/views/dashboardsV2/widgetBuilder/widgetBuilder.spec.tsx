@@ -239,6 +239,13 @@ describe('WidgetBuilder', function () {
       method: 'GET',
       body: {},
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/is/values/',
+      method: 'GET',
+      body: [],
+    });
+
     TagStore.reset();
   });
 

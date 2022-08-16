@@ -1609,6 +1609,9 @@ class MetricsQueryBuilder(QueryBuilder):
         self.allow_metric_aggregates = allow_metric_aggregates
         self._indexer_cache: Dict[str, Optional[int]] = {}
         self._custom_measurement_cache: Optional[List[MetricMeta]] = None
+        self.tag_values_are_strings = options.get(
+            "sentry-metrics.performance.tags-values-are-strings"
+        )
         # Don't do any of the actions that would impact performance in anyway
         # Skips all indexer checks, and won't interact with clickhouse
         self.dry_run = dry_run
@@ -1687,9 +1690,7 @@ class MetricsQueryBuilder(QueryBuilder):
         tag_id = self.resolve_metric_index(col)
         if tag_id is None:
             raise InvalidSearchQuery(f"Unknown field: {col}")
-        if self.is_performance and options.get(
-            "sentry-metrics.performance.tags-values-are-strings"
-        ):
+        if self.is_performance and self.tag_values_are_strings:
             return f"tags_raw[{tag_id}]"
         else:
             return f"tags[{tag_id}]"
@@ -1876,10 +1877,8 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return self._indexer_cache[value]
 
-    def _resolve_tag_value(self, value: str) -> Union[int, str]:
-        if self.is_performance and options.get(
-            "sentry-metrics.performance.tags-values-are-strings"
-        ):
+    def resolve_tag_value(self, value: str) -> Union[int, str]:
+        if self.is_performance and self.tag_values_are_strings:
             return value
         if self.dry_run:
             return -1
@@ -1905,9 +1904,9 @@ class MetricsQueryBuilder(QueryBuilder):
         is_tag = isinstance(lhs, Column) and lhs.subscriptable == "tags"
         if is_tag:
             if isinstance(value, list):
-                value = [self._resolve_tag_value(v) for v in value]
+                value = [self.resolve_tag_value(v) for v in value]
             else:
-                value = self._resolve_tag_value(value)
+                value = self.resolve_tag_value(value)
 
         # timestamp{,.to_{hour,day}} need a datetime string
         # last_seen needs an integer
@@ -2101,7 +2100,9 @@ class MetricsQueryBuilder(QueryBuilder):
         """Check that the orderby doesn't include any direct tags, this shouldn't raise an error for project since we
         transform it"""
         for orderby in self.orderby:
-            if isinstance(orderby.exp, Column) and orderby.exp.subscriptable == "tags":
+            if (isinstance(orderby.exp, Column) and orderby.exp.subscriptable == "tags") or (
+                isinstance(orderby.exp, Function) and orderby.exp.alias in ["transaction", "title"]
+            ):
                 raise IncompatibleMetricsQuery("Can't orderby tags")
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
