@@ -2,6 +2,7 @@ import isArray from 'lodash/isArray';
 import isUndefined from 'lodash/isUndefined';
 import {createStore, StoreDefinition} from 'reflux';
 
+import {Indicator} from 'sentry/actionCreators/indicator';
 import GroupActions from 'sentry/actions/groupActions';
 import {t} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
@@ -15,7 +16,7 @@ import {
 } from 'sentry/types';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-function showAlert(msg, type) {
+function showAlert(msg: string, type: Indicator['type']) {
   IndicatorStore.addMessage(msg, type, {duration: 4000});
 }
 
