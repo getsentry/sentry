@@ -8,7 +8,6 @@ import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 
 import {DragManagerChildrenProps} from './dragManager';
-import {HiddenSpansBar} from './hiddenSpansBar';
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
 import SpanBar from './spanBar';
 import {SpanDescendantGroupBar} from './spanDescendantGroupBar';
@@ -129,17 +128,17 @@ class SpanTree extends Component<PropType> {
       return null;
     }
 
-    if (!focusedSpanIds) {
-      return <MessageRow>{messages}</MessageRow>;
-    }
-
     return (
-      <HiddenSpansBar
-        spans={filteredSpansAbove.slice(0)}
-        expandHiddenSpans={waterfallModel.expandHiddenSpans}
+      <MessageRow
+        onClick={
+          focusedSpanIds
+            ? () => waterfallModel.expandHiddenSpans(filteredSpansAbove.slice(0))
+            : undefined
+        }
+        cursor={focusedSpanIds ? 'pointer' : 'default'}
       >
         {messages}
-      </HiddenSpansBar>
+      </MessageRow>
     );
   }
 
