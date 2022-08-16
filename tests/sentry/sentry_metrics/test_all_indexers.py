@@ -38,7 +38,6 @@ def indexer(indexer_cls):
 @pytest.fixture
 def indexer_cache():
     indexer_cache = StringIndexerCache(
-        version=1,
         cache_name="default",
         partition_key="test",
     )

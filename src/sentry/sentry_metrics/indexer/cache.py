@@ -24,8 +24,8 @@ _INDEXER_CACHE_FETCH_METRIC = "sentry_metrics.indexer.memcache.fetch"
 
 
 class StringIndexerCache:
-    def __init__(self, version: int, cache_name: str, partition_key: str):
-        self.version = version
+    def __init__(self, cache_name: str, partition_key: str):
+        self.version = 1
         self.cache = caches[cache_name]
         self.partition_key = partition_key
 
