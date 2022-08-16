@@ -31,6 +31,10 @@ _METRICS_INGEST_CONFIG_BY_USE_CASE: MutableMapping[UseCaseKey, MetricsIngestConf
 
 
 def _register_ingest_config(config: MetricsIngestConfiguration) -> None:
+    for registered_config in _METRICS_INGEST_CONFIG_BY_USE_CASE.values():
+        assert (
+            registered_config.writes_limiter_namespace != config.writes_limiter_namespace
+        ), "namespace must be unique!"
     _METRICS_INGEST_CONFIG_BY_USE_CASE[config.use_case_id] = config
 
 
