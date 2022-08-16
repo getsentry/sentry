@@ -13,7 +13,7 @@ from google.cloud.functions_v1.types.functions import DeleteFunctionRequest
 from google.cloud.pubsub_v1 import PublisherClient
 from google.protobuf.field_mask_pb2 import FieldMask
 
-from sentry.conf.server import SENTRY_FUNCTIONS_PROJECT_NAME
+from sentry.conf.server import SENTRY_FUNCTIONS_PROJECT_NAME, SENTRY_FUNCTIONS_REGION
 from sentry.utils import json
 
 WRAPPER_JS = """
@@ -51,7 +51,10 @@ def upload_function_files(client, code, env_variables):
 
     upload_url = client.generate_upload_url(
         request=GenerateUploadUrlRequest(
-            parent="projects/" + SENTRY_FUNCTIONS_PROJECT_NAME + "/locations/us-central1"
+            parent="projects/"
+            + SENTRY_FUNCTIONS_PROJECT_NAME
+            + "/locations/"
+            + SENTRY_FUNCTIONS_REGION
         )
     ).upload_url
     requests.put(
@@ -70,7 +73,9 @@ def create_function(code, funcId, description, env_variables):
         function=CloudFunction(
             name="projects/"
             + SENTRY_FUNCTIONS_PROJECT_NAME
-            + "/locations/us-central1/functions/fn-"
+            + "/locations/"
+            + SENTRY_FUNCTIONS_REGION
+            + "/functions/fn-"
             + funcId,
             description=description,
             source_upload_url=upload_url,
@@ -82,7 +87,10 @@ def create_function(code, funcId, description, env_variables):
             ),
             environment_variables=env_variables,
         ),
-        location="projects/" + SENTRY_FUNCTIONS_PROJECT_NAME + "/locations/us-central1",
+        location="projects/"
+        + SENTRY_FUNCTIONS_PROJECT_NAME
+        + "/locations/"
+        + SENTRY_FUNCTIONS_REGION,
     )
 
 
@@ -94,7 +102,9 @@ def update_function(code, funcId, description, env_variables):
             function=CloudFunction(
                 name="projects/"
                 + SENTRY_FUNCTIONS_PROJECT_NAME
-                + "/locations/us-central1/functions/fn-"
+                + "/locations/"
+                + SENTRY_FUNCTIONS_REGION
+                + "/functions/fn-"
                 + funcId,
                 description=description,
                 source_upload_url=upload_url,
@@ -117,7 +127,9 @@ def delete_function(funcId):
         request=DeleteFunctionRequest(
             name="projects/"
             + SENTRY_FUNCTIONS_PROJECT_NAME
-            + "/locations/us-central1/functions/fn-"
+            + "/locations/"
+            + SENTRY_FUNCTIONS_REGION
+            + "/functions/fn-"
             + funcId,
         ),
     )
