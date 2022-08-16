@@ -1,8 +1,8 @@
-import {createRef, Fragment, HTMLProps, PureComponent} from 'react';
+import {createRef, Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import Input from 'sentry/components/input';
+import Input, {InputProps} from 'sentry/components/input';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
@@ -29,7 +29,7 @@ type DefaultProps = {
 };
 
 type Props = DefaultProps &
-  HTMLProps<HTMLInputElement> & {
+  InputProps & {
     onUpdate: (value: string) => void;
     value: string;
     hideFieldOptions?: boolean;
@@ -257,7 +257,7 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
   }
 
   render() {
-    const {onUpdate: _onUpdate, options: _options, as: _as, ...props} = this.props;
+    const {onUpdate: _onUpdate, options: _options, ...props} = this.props;
     const {dropdownVisible, dropdownOptionGroups} = this.state;
     return (
       <Container isOpen={dropdownVisible}>

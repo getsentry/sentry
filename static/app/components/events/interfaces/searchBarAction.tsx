@@ -57,6 +57,7 @@ function SearchBarAction({
         />
       )}
       <StyledSearchBar
+        size="sm"
         onChange={onChange}
         query={query}
         placeholder={placeholder}
