@@ -1,8 +1,7 @@
 import logging
-import re
 from datetime import datetime
 from http import HTTPStatus
-from typing import Any, Mapping, Optional, Sequence, Set, MutableSequence
+from typing import Any, Mapping, Optional, Sequence, Set
 
 import google.api_core.exceptions
 from django.conf import settings
@@ -306,7 +305,7 @@ class RawCloudSpannerIndexer(StringIndexer):
 
         db_read_key_results = KeyResults()
         db_read_key_results.add_key_results(
-            self._get_db_records(db_read_keys),
+            self._get_db_records(use_case_id, db_read_keys),
             FetchType.DB_READ,
         )
         db_write_keys = db_read_key_results.get_unmapped_keys(db_read_keys)
