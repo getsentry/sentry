@@ -1,5 +1,4 @@
 from django.contrib.auth.models import AnonymousUser
-from django.http.request import HttpRequest
 
 from sentry import audit_log
 from sentry.models import (
@@ -10,9 +9,8 @@ from sentry.models import (
     Organization,
     OrganizationStatus,
 )
-from sentry.scim.endpoints.utils import SCIMEndpoint
-from sentry.testutils import SCIMTestCase, TestCase
-from sentry.utils.audit import create_audit_entry, create_system_audit_entry, fix_log_name
+from sentry.testutils import TestCase
+from sentry.utils.audit import create_audit_entry, create_system_audit_entry
 
 username = "hello" * 20
 
