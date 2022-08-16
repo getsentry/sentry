@@ -5,22 +5,37 @@ import type {RawCrumb} from 'sentry/types/breadcrumbs';
 // Keep this in sync with the backend blueprint
 // "ReplayRecord" is distinct from the common: "replay = new ReplayReader()"
 export type ReplayRecord = {
+  browser: {
+    name: null | string;
+    version: null | string;
+  };
   countErrors: number;
   countSegments: number;
   countUrls: number;
+  device: {
+    brand: null | string;
+    family: null | string;
+    model: null | string;
+    name: null | string;
+  };
   dist: null | string;
-  duration: number;
+  duration: number; // Seconds
   environment: null | string;
   errorIds: string[];
   finishedAt: Date; // API will send a string, needs to be hydrated
+  id: string;
   longestTransaction: number;
+  os: {
+    name: null | string;
+    version: null | string;
+  };
   platform: string;
   projectId: string;
-  projectSlug: string;
   release: null | string;
-  replayId: string;
-  sdkName: string;
-  sdkVersion: string;
+  sdk: {
+    name: string;
+    version: string;
+  };
   startedAt: Date; // API will send a string, needs to be hydrated
   tags: Record<string, string>;
   title: string;
@@ -29,12 +44,22 @@ export type ReplayRecord = {
   user: {
     email: null | string;
     id: null | string;
-    ipAddress: null | string;
+    ip_address: null | string;
     name: null | string;
   };
   userAgent: string;
 };
 
+export type ReplaySegment = {
+  dateAdded: string;
+  projectId: string;
+  replayId: string;
+  segmentId: number;
+};
+
+/**
+ * @deprecated
+ */
 export type ReplayDiscoveryListItem = {
   eventID: string;
   id: string;
@@ -97,6 +122,8 @@ export interface ReplayError {
 
 /**
  * Replay custom discover query
+ *
+ * @deprecated
  */
 export type ReplayDurationAndErrors = {
   count_if_event_type_equals_error: number;

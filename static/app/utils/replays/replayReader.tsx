@@ -90,24 +90,39 @@ export default class ReplayReader {
       .filter(Boolean) as string[];
 
     this.replayRecord = {
+      browser: {
+        name: null,
+        version: null,
+      },
       countErrors: this.getRawCrumbs().filter(
         crumb => crumb.category === BreadcrumbType.ERROR
       ).length,
       countSegments: 0,
       countUrls: urls.length,
-      errorIds: [],
       dist: this.event.dist,
+      device: {
+        brand: null,
+        family: null,
+        model: null,
+        name: null,
+      },
       duration: endTimestampMs - startTimestampMs,
       environment: null,
+      errorIds: [],
       finishedAt: new Date(endTimestampMs), // TODO(replay): Convert from string to Date when reading API
+      id: this.event.id,
       longestTransaction: 0,
+      os: {
+        name: null,
+        version: null,
+      },
       platform: this.event.platform,
       projectId: this.event.projectID,
-      projectSlug: '', // TODO(replay): Read from useProject to fill this in
       release: null, // event.release is not a string, expected to be `version@1.4`
-      replayId: this.event.id,
-      sdkName: this.event.sdk?.name,
-      sdkVersion: this.event.sdk?.version,
+      sdk: {
+        name: this.event.sdk?.name,
+        version: this.event.sdk?.version,
+      },
       startedAt: new Date(startTimestampMs), // TODO(replay): Convert from string to Date when reading API
       tags: this.event.tags.reduce((tags, {key, value}) => {
         tags[key] = value;
@@ -116,13 +131,13 @@ export default class ReplayReader {
       title: this.event.title,
       traceIds: [],
       urls,
-      userAgent: '',
       user: {
         email: this.event.user?.email,
         id: this.event.user?.id,
-        ipAddress: this.event.user?.ip_address,
+        ip_address: this.event.user?.ip_address,
         name: this.event.user?.name,
       },
+      userAgent: '',
     } as ReplayRecord;
   }
 
@@ -131,10 +146,6 @@ export default class ReplayReader {
   private rrwebEvents: RecordingEvent[];
   private breadcrumbs: Crumb[];
   private spans: ReplaySpan[];
-
-  getEvent = () => {
-    return this.event;
-  };
 
   /**
    * @returns Duration of Replay (milliseonds)

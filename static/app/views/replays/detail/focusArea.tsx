@@ -83,9 +83,7 @@ function FocusArea({}: Props) {
         </Feature>
       );
     case 'issues':
-      return (
-        <IssueList replayId={replayRecord.replayId} projectId={replayRecord.projectId} />
-      );
+      return <IssueList replayId={replayRecord.id} projectId={replayRecord.projectId} />;
     case 'dom':
       return <DomMutations replay={replay} />;
     case 'memory':
