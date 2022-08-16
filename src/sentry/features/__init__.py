@@ -209,7 +209,6 @@ default_manager.add("projects:suspect-resolutions", ProjectFeature, True)
 
 # Project plugin features
 default_manager.add("projects:plugins", ProjectPluginFeature)
-default_manager.add("users:notification-slack-automatic", UserFeature)
 
 # Workflow 2.0 Project features
 default_manager.add("projects:auto-associate-commits-to-release", ProjectFeature)

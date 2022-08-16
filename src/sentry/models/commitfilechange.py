@@ -5,7 +5,7 @@ from django.db.models.signals import post_save
 
 from sentry.db.models import (
     BaseManager,
-    BoundedPositiveIntegerField,
+    BoundedBigIntegerField,
     FlexibleForeignKey,
     Model,
     sane_repr,
@@ -22,7 +22,7 @@ class CommitFileChangeManager(BaseManager):
 class CommitFileChange(Model):
     __include_in_export__ = False
 
-    organization_id = BoundedPositiveIntegerField(db_index=True)
+    organization_id = BoundedBigIntegerField(db_index=True)
     commit = FlexibleForeignKey("sentry.Commit")
     filename = models.TextField()
     type = models.CharField(
