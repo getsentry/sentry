@@ -1,6 +1,6 @@
 from collections import namedtuple
 from enum import Enum
-from typing import Any, Sequence, Mapping, MutableMapping
+from typing import Any, Mapping, MutableMapping, Sequence
 
 from sentry.sentry_metrics.configuration import UseCaseKey
 
@@ -30,12 +30,11 @@ SpannerIndexerModel = namedtuple(
 DATABASE_PARAMETERS: Mapping[UseCaseKey, Mapping[str, str]] = {
     UseCaseKey.PERFORMANCE: {
         "table_name": "perfstringindexer",
-        "unique_organization_string_index_name":
-            "unique_organization_string_index",
+        "unique_organization_string_index_name": "unique_organization_string_index",
     },
-    UseCaseKey.RELEASE_HEALTH: {
-    }
+    UseCaseKey.RELEASE_HEALTH: {},
 }
+
 
 def get_column_names() -> Sequence[str]:
     return _COLUMNS
