@@ -32,7 +32,11 @@ export interface ProfileGroup {
 }
 
 export function importProfile(
-  input: Profiling.Schema | JSSelfProfiling.Trace | ChromeTrace.ProfileType,
+  input:
+    | Profiling.Schema
+    | JSSelfProfiling.Trace
+    | ChromeTrace.ProfileType
+    | [Profiling.NodeProfile, {}], // this is hack so that we distinguish between typescript and node profiles
   traceID: string
 ): ProfileGroup {
   const transaction = Sentry.startTransaction({
