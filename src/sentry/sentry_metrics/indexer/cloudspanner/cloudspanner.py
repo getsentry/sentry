@@ -17,8 +17,9 @@ from sentry.sentry_metrics.indexer.base import (
 )
 from sentry.sentry_metrics.indexer.cache import CachingIndexer, StringIndexerCache
 from sentry.sentry_metrics.indexer.cloudspanner.cloudspanner_model import (
+    DATABASE_PARAMETERS,
     SpannerIndexerModel,
-    get_column_names, DATABASE_PARAMETERS,
+    get_column_names,
 )
 from sentry.sentry_metrics.indexer.id_generator import get_id, reverse_bits
 from sentry.sentry_metrics.indexer.ratelimiters import writes_limiter
@@ -37,8 +38,9 @@ DecodedId = int
 _CLOUDSPANNER_SUFFIX = "postgres"
 _INDEXER_DB_METRIC = f"sentry_metrics.indexer.{_CLOUDSPANNER_SUFFIX}"
 _INDEXER_DB_INSERT_METRIC = f"sentry_metrics.indexer.{_CLOUDSPANNER_SUFFIX}.insert"
-_INDEXER_DB_RW_TRANSACTION_FAILED_METRIC = \
+_INDEXER_DB_RW_TRANSACTION_FAILED_METRIC = (
     f"sentry_metrics.indexer.{_CLOUDSPANNER_SUFFIX}.rw_transaction_failed"
+)
 _DEFAULT_RETENTION_DAYS = 90
 _PARTITION_KEY = "cs"
 
@@ -108,7 +110,9 @@ class RawCloudSpannerIndexer(StringIndexer):
                 # TODO: What is the correct way to handle connection errors?
                 pass
 
-    def _get_db_records(self, use_case_id: UseCaseKey, db_keys: KeyCollection) -> Sequence[KeyResult]:
+    def _get_db_records(
+        self, use_case_id: UseCaseKey, db_keys: KeyCollection
+    ) -> Sequence[KeyResult]:
         spanner_keyset = []
         for organization_id, string in db_keys.as_tuples():
             spanner_keyset.append([organization_id, string])
@@ -149,8 +153,10 @@ class RawCloudSpannerIndexer(StringIndexer):
         return rows_to_insert
 
     def _insert_db_records(
-        self, use_case_id: UseCaseKey, rows_to_insert: Sequence[
-                SpannerIndexerModel], key_results: KeyResults
+        self,
+        use_case_id: UseCaseKey,
+        rows_to_insert: Sequence[SpannerIndexerModel],
+        key_results: KeyResults,
     ) -> None:
         """
         Insert a bunch of db_keys records into the database. When there is a
@@ -162,15 +168,15 @@ class RawCloudSpannerIndexer(StringIndexer):
         to check whether DB records match with what we tried to insert.
         """
         try:
-            self._insert_collisions_not_handled(use_case_id, rows_to_insert,
-                                                key_results)
+            self._insert_collisions_not_handled(use_case_id, rows_to_insert, key_results)
         except CloudSpannerRowAlreadyExists:
-            self._insert_collisions_handled(use_case_id, rows_to_insert,
-                                            key_results)
+            self._insert_collisions_handled(use_case_id, rows_to_insert, key_results)
 
     def _insert_collisions_not_handled(
-        self, use_case_id: UseCaseKey, rows_to_insert: Sequence[
-                SpannerIndexerModel], key_results: KeyResults
+        self,
+        use_case_id: UseCaseKey,
+        rows_to_insert: Sequence[SpannerIndexerModel],
+        key_results: KeyResults,
     ) -> None:
         """
         Insert a batch of records in a transaction. This is the preferred
@@ -184,11 +190,10 @@ class RawCloudSpannerIndexer(StringIndexer):
         CloudSpannerRowAlreadyExists exception.
         """
 
-        def insert_uow(transaction: Any, rows:
-        Sequence[SpannerIndexerModel]) -> None:
-            transaction.insert(table=self._get_table_name(use_case_id),
-                               columns=get_column_names(),
-                               values=rows)
+        def insert_uow(transaction: Any, rows: Sequence[SpannerIndexerModel]) -> None:
+            transaction.insert(
+                table=self._get_table_name(use_case_id), columns=get_column_names(), values=rows
+            )
 
         try:
             self.database.run_in_transaction(insert_uow, rows_to_insert)
@@ -213,32 +218,34 @@ class RawCloudSpannerIndexer(StringIndexer):
             )
 
     def _insert_collisions_handled(
-        self, use_case_id: UseCaseKey, rows_to_insert: Sequence[SpannerIndexerModel], key_results:
-            KeyResults
+        self,
+        use_case_id: UseCaseKey,
+        rows_to_insert: Sequence[SpannerIndexerModel],
+        key_results: KeyResults,
     ) -> None:
         """
-        Insert the records in a transaction while handling collisions that 
-        might happen during an INSERT. Collisions can happen  when multiple 
+        Insert the records in a transaction while handling collisions that
+        might happen during an INSERT. Collisions can happen  when multiple
         consumers try to write records with same organization_id and string.
 
         The basic logic is to retry the below in a loop until the transaction
         succeeds.
         The logic within a transaction is as follows:
-        1. Get records from the database for the organization_id and string 
+        1. Get records from the database for the organization_id and string
         which are present in the rows.
         2. Get records from the database for the id which are present in the rows.
-        3. Create a new list of records to be inserted which excludes the 
+        3. Create a new list of records to be inserted which excludes the
         records which are present in the above two lists.
         4. Insert the new list of records in a transaction.
-        
-        Once the transaction succeeds, we update the key_results by 
-        performing a read of the organization_id and string which were 
+
+        Once the transaction succeeds, we update the key_results by
+        performing a read of the organization_id and string which were
         supposed to be originally inserted.
         """
 
-        def insert_rw_transaction_uow(transaction: Any,
-                                      rows: Sequence[
-                                             SpannerIndexerModel]) -> None:
+        def insert_rw_transaction_uow(
+            transaction: Any, rows: Sequence[SpannerIndexerModel]
+        ) -> None:
             existing_org_string_results = transaction.read(
                 table=self._get_table_name(use_case_id),
                 columns=["organization_id", "string", "id"],
@@ -252,20 +259,24 @@ class RawCloudSpannerIndexer(StringIndexer):
                 keyset=spanner.KeySet(keys=[[row.id] for row in rows]),
             )
 
-            existing_records = list(existing_org_string_results) + list(
-                existing_id_results)
+            existing_records = list(existing_org_string_results) + list(existing_id_results)
             exisiting_org_string_set = {(row[0], row[1]) for row in existing_records}
             existing_id_string_set = {row[2] for row in existing_records}
 
             missing_records = []
             for row in rows:
-                if (row.organization_id, row.string) not in exisiting_org_string_set\
-                        and row.id not in existing_id_string_set:
+                if (
+                    row.organization_id,
+                    row.string,
+                ) not in exisiting_org_string_set and row.id not in existing_id_string_set:
                     missing_records.append(row)
 
             if missing_records:
-                transaction.insert(self._get_table_name(use_case_id),
-                               columns=get_column_names(), values=missing_records)
+                transaction.insert(
+                    self._get_table_name(use_case_id),
+                    columns=get_column_names(),
+                    values=missing_records,
+                )
 
         metrics.incr(
             _INDEXER_DB_INSERT_METRIC,
@@ -283,7 +294,9 @@ class RawCloudSpannerIndexer(StringIndexer):
                     result = snapshot.read(
                         table=self._get_table_name(use_case_id),
                         columns=["organization_id", "string", "id"],
-                        keyset=spanner.KeySet(keys=[[row.organization_id, row.string] for row in rows_to_insert]),
+                        keyset=spanner.KeySet(
+                            keys=[[row.organization_id, row.string] for row in rows_to_insert]
+                        ),
                         index=self._get_unique_org_string_index_name(use_case_id),
                     )
                     result_list = list(result)
@@ -346,8 +359,7 @@ class RawCloudSpannerIndexer(StringIndexer):
             new_records = self._create_db_records(filtered_db_write_keys)
             db_write_key_results = KeyResults()
             with metrics.timer("sentry_metrics.indexer.pg_bulk_create"):
-                self._insert_db_records(use_case_id, new_records,
-                                         db_write_key_results)
+                self._insert_db_records(use_case_id, new_records, db_write_key_results)
 
         return db_read_key_results.merge(db_write_key_results).merge(rate_limited_key_results)
 
