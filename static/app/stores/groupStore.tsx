@@ -256,33 +256,7 @@ const storeConfig: GroupStoreDefinition = {
   },
 
   get(id) {
-    // TODO(ts) This needs to be constrained further. It was left as any
-    // because the PendingChanges signatures and this were not aligned.
-    const pendingForId: any[] = [];
-    this.pendingChanges.forEach(change => {
-      if (change.id === id) {
-        pendingForId.push(change);
-      }
-    });
-
-    for (let i = 0; i < this.items.length; i++) {
-      if (this.items[i].id === id) {
-        let rItem = this.items[i];
-        if (pendingForId.length) {
-          // copy the object so dirty state doesnt mutate original
-          rItem = {...rItem};
-
-          for (let c = 0; c < pendingForId.length; c++) {
-            rItem = {
-              ...rItem,
-              ...pendingForId[c].params,
-            };
-          }
-        }
-        return rItem;
-      }
-    }
-    return undefined;
+    return this.getAllItems().find(item => item.id === id);
   },
 
   getAllItemIds() {
