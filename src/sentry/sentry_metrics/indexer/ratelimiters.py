@@ -19,11 +19,15 @@ OrgId = int
 
 
 def _build_quota_key(use_case_id: UseCaseKey, org_id: Optional[OrgId] = None) -> str:
+    use_case_str = {
+        UseCaseKey.PERFORMANCE: "performance",
+        UseCaseKey.RELEASE_HEALTH: "releasehealth",
+    }[use_case_id]
 
     if org_id is not None:
-        return f"metrics-indexer-{use_case_id}-org-{org_id}"
+        return f"metrics-indexer-{use_case_str}-org-{org_id}"
     else:
-        return f"metrics-indexer-{use_case_id}-global"
+        return f"metrics-indexer-{use_case_str}-global"
 
 
 @metrics.wraps("sentry_metrics.indexer.construct_quotas")
