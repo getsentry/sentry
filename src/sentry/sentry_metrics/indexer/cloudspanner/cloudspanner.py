@@ -2,7 +2,7 @@ import logging
 import re
 from datetime import datetime
 from http import HTTPStatus
-from typing import Any, Mapping, Optional, Sequence, Set
+from typing import Any, Mapping, Optional, Sequence, Set, MutableSequence
 
 import google.api_core.exceptions
 from django.conf import settings
@@ -32,20 +32,16 @@ logger = logging.getLogger(__name__)
 EncodedId = int
 DecodedId = int
 
-_INDEXER_DB_METRIC = "sentry_metrics.indexer.cloudspanner"
-_INDEXER_DB_INSERT_METRIC = "sentry_metrics.indexer.cloudspanner.insert"
-_INDEXER_DB_INSERT_ROWS_METRIC = "sentry_metrics.indexer.cloudspanner.insert_rows"
+# TODO: This is a temporary hack to get around the fact that majority
+# of the graphs we have use postgres. This should be changed to
+# "cloudspanner" once we move to production.
+_CLOUDSPANNER_SUFFIX = "postgres"
+_INDEXER_DB_METRIC = f"sentry_metrics.indexer.{_CLOUDSPANNER_SUFFIX}"
+_INDEXER_DB_INSERT_METRIC = f"sentry_metrics.indexer.{_CLOUDSPANNER_SUFFIX}.insert"
+_INDEXER_DB_RW_TRANSACTION_FAILED_METRIC = \
+    f"sentry_metrics.indexer.{_CLOUDSPANNER_SUFFIX}.rw_transaction_failed"
 _DEFAULT_RETENTION_DAYS = 90
 _PARTITION_KEY = "cs"
-
-# Captures the details of spanner unique constraint violation.
-# The capture group is the combination of organization_id,string,id.
-# Example error message is
-# Unique index violation on index unique_organization_string_index at index key
-# [100000,dBdOCvybLK,6866628476861885949]. It conflicts with row
-# [6866628476861885949] in table perfstringindexer_v2.
-_UNIQUE_INDEX_VIOLATION_STRING = "Unique index violation"
-_UNIQUE_VIOLATION_EXISITING_RE = re.compile(r"\[([^]]+)]")
 
 indexer_cache = StringIndexerCache(
     **settings.SENTRY_STRING_INDEXER_CACHE_OPTIONS, partition_key=_PARTITION_KEY
@@ -167,46 +163,42 @@ class RawCloudSpannerIndexer(StringIndexer):
         to check whether DB records match with what we tried to insert.
         """
         try:
-            self._insert_batched_records(use_case_id, rows_to_insert,
-                                         key_results)
+            self._insert_collisions_not_handled(use_case_id, rows_to_insert,
+                                                key_results)
         except CloudSpannerRowAlreadyExists:
-            self._insert_individual_records(use_case_id, rows_to_insert,
+            self._insert_collisions_handled(use_case_id, rows_to_insert,
                                             key_results)
 
-    def _insert_batched_records(
+    def _insert_collisions_not_handled(
         self, use_case_id: UseCaseKey, rows_to_insert: Sequence[
                 SpannerIndexerModel], key_results: KeyResults
     ) -> None:
         """
         Insert a batch of records in a transaction. This is the preferred
         way of inserting records as it will reduce the number of operations
-        which need to be performed in a transaction.
+        which need to be performed in a transaction. If the isnert succeeds,
+        we update the key_results with the records that were inserted.
 
         The transaction could fail if there are collisions with existing
         records. In such a case, none of the records which we are trying to
-        batch insert will be inserted. We would need to do individual insert
-        using insert_individual_records.
+        batch insert will be inserted. We raise a
+        CloudSpannerRowAlreadyExists exception.
         """
 
-        def insert_batch_transaction_uow(transaction: Any) -> None:
+        def insert_uow(transaction: Any, rows:
+        Sequence[SpannerIndexerModel]) -> None:
             transaction.insert(table=self._get_table_name(use_case_id),
                                columns=get_column_names(),
-                               values=rows_to_insert)
-
+                               values=rows)
 
         try:
-            self.database.run_in_transaction(insert_batch_transaction_uow)
+            self.database.run_in_transaction(insert_uow, rows_to_insert)
         except google.api_core.exceptions.AlreadyExists as exc:
             if exc.code == HTTPStatus.CONFLICT:
                 raise CloudSpannerRowAlreadyExists
         else:
             metrics.incr(
                 _INDEXER_DB_INSERT_METRIC,
-                tags={"batch": "true"},
-            )
-            metrics.incr(
-                _INDEXER_DB_INSERT_ROWS_METRIC,
-                amount=len(rows_to_insert),
                 tags={"batch": "true"},
             )
             key_results.add_key_results(
@@ -221,93 +213,91 @@ class RawCloudSpannerIndexer(StringIndexer):
                 fetch_type=FetchType.FIRST_SEEN,
             )
 
-    def _insert_individual_records(
+    def _insert_collisions_handled(
         self, use_case_id: UseCaseKey, rows_to_insert: Sequence[SpannerIndexerModel], key_results:
             KeyResults
     ) -> None:
         """
-        Insert the individual records in a transaction. We would need
-        to do this in scenarios where batch insert of the transaction
-        failed. Which can happen during collisions when multiple consumers
-        try to write records with same organization_id and string.
+        Insert the records in a transaction while handling collisions that 
+        might happen during an INSERT. Collisions can happen  when multiple 
+        consumers try to write records with same organization_id and string.
 
-        During an individual insert, we would get a unique constraint violation
-        exception for the existing record. The exception provides the
-        existing record id on which the record conflicts. We use this id
-        and decode it to populate the key_results.
-
-        decoded_id would be one of the following:
-        1. The id we generated for the record.
-        2. The id of the existing record on which the record conflicts
-        based on
-          a. The id received from the exception message when record was
-          being inserted.
-          b. The id of the existing record by performing a transaction read
-          for matching organization_id and string.
-
-        # TODO: Validate whether we should perform transaction read when
-        there is a conflict or we using the decoded it from the exception
-        is enough.
+        The basic logic is to retry the below in a loop until the transaction
+        succeeds.
+        The logic within a transaction is as follows:
+        1. Get records from the database for the organization_id and string 
+        which are present in the rows.
+        2. Get records from the database for the id which are present in the rows.
+        3. Create a new list of records to be inserted which excludes the 
+        records which are present in the above two lists.
+        4. Insert the new list of records in a transaction.
+        
+        Once the transaction succeeds, we update the key_results by 
+        performing a read of the organization_id and string which were 
+        supposed to be originally inserted.
         """
 
-        def insert_individual_record_uow(transaction: Any) -> None:
+        def insert_rw_transaction_uow(transaction: Any,
+                                      rows: Sequence[
+                                             SpannerIndexerModel]) -> None:
+            existing_org_string_results = transaction.read(
+                table=self._get_table_name(use_case_id),
+                columns=["organization_id", "string", "id"],
+                keyset=spanner.KeySet(keys=[[row.organization_id, row.string] for row in rows]),
+                index=self._get_unique_org_string_index_name(use_case_id),
+            )
+
+            existing_id_results = transaction.read(
+                table=self._get_table_name(use_case_id),
+                columns=["organization_id", "string", "id"],
+                keyset=spanner.KeySet(keys=[[row.id] for row in rows]),
+            )
+
+            existing_records = list(existing_org_string_results) + list(
+                existing_id_results)
+            exisiting_org_string_set = {(row[0], row[1]) for row in existing_records}
+            existing_id_string_set = {row[2] for row in existing_records}
+
+            missing_records = []
+            for row in rows:
+                if (row.organization_id, row.string) not in exisiting_org_string_set\
+                        or row.id not in existing_id_string_set:
+                    missing_records.append(row)
+
             transaction.insert(self._get_table_name(use_case_id),
-                               columns=get_column_names(), values=[
-                row])
+                               columns=get_column_names(), values=missing_records)
 
         metrics.incr(
             _INDEXER_DB_INSERT_METRIC,
             tags={"batch": "false"},
         )
-        for row in rows_to_insert:
+        transaction_succeeded = False
+        while not transaction_succeeded:
             try:
-                self.database.run_in_transaction(insert_individual_record_uow)
-                metrics.incr(
-                    _INDEXER_DB_INSERT_ROWS_METRIC,
-                    tags={"batch": "false"},
-                )
-                key_results.add_key_result(
-                    KeyResult(
-                        org_id=row.organization_id,
-                        string=row.string,
-                        id=row.decoded_id,
-                    ),
-                    fetch_type=FetchType.FIRST_SEEN,
-                )
-            except google.api_core.exceptions.AlreadyExists as exc:
-                if exc.code == HTTPStatus.CONFLICT and exc.message.startswith(
-                    _UNIQUE_INDEX_VIOLATION_STRING
-                ):
-                    regex_match = re.search(_UNIQUE_VIOLATION_EXISITING_RE, str(exc.message))
-                    if regex_match:
-                        group = regex_match.group(1)
-                        _, _, existing_encoded_id = group.split(",")
-                        key_results.add_key_result(
+                self.database.run_in_transaction(insert_rw_transaction_uow)
+                transaction_succeeded = True
+            except google.api_core.exceptions.AlreadyExists:
+                metrics.incr(_INDEXER_DB_RW_TRANSACTION_FAILED_METRIC)
+            else:
+                with self.database.snapshot() as snapshot:
+                    result = snapshot.read(
+                        table=self._get_table_name(use_case_id),
+                        columns=["organization_id", "string", "id"],
+                        keyset=spanner.KeySet(keys=[[row.organization_id, row.string] for row in rows_to_insert]),
+                        index=self._get_unique_org_string_index_name(use_case_id),
+                    )
+                    result_list = list(result)
+                    key_results.add_key_results(
+                        [
                             KeyResult(
-                                org_id=row.organization_id,
-                                string=row.string,
-                                id=self.__codec.decode(int(existing_encoded_id)),
-                            ),
-                            fetch_type=FetchType.FIRST_SEEN,
-                        )
-                    else:
-                        with self.database.snapshot() as snapshot:
-                            result = snapshot.read(
-                                table=self._get_table_name(use_case_id),
-                                columns=["id"],
-                                keyset=spanner.KeySet(keys=[[row.organization_id, row.string]]),
-                                index=self._get_unique_org_string_index_name(use_case_id),
+                                org_id=row[0],
+                                string=row[1],
+                                id=self.__codec.decode(row[2]),
                             )
-                        result_list = list(result)
-                        existing_encoded_id = result_list[0][0]
-                        key_results.add_key_result(
-                            KeyResult(
-                                org_id=row.organization_id,
-                                string=row.string,
-                                id=self.__codec.decode(int(existing_encoded_id)),
-                            ),
-                            fetch_type=FetchType.FIRST_SEEN,
-                        )
+                            for row in result_list
+                        ],
+                        fetch_type=FetchType.FIRST_SEEN,
+                    )
 
     def bulk_record(
         self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
@@ -363,7 +353,7 @@ class RawCloudSpannerIndexer(StringIndexer):
     def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
         """Store a string and return the integer ID generated for it"""
         result = self.bulk_record(use_case_id=use_case_id, org_strings={org_id: {string}})
-        return int(result[org_id][string]) if result else None
+        return result[org_id][string]
 
     def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
         """Resolve a string to an integer ID"""

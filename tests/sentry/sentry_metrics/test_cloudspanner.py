@@ -236,7 +236,7 @@ def test_spanner_indexer_individual_insert(testing_indexer):
         last_seen=datetime.now(),
         retention_days=55,
     )
-    testing_indexer._insert_individual_records(UseCaseKey.PERFORMANCE,
+    testing_indexer._insert_collisions_handled(UseCaseKey.PERFORMANCE,
                                                [model1],
                                                key_results1)
     assert (
@@ -257,7 +257,7 @@ def test_spanner_indexer_individual_insert(testing_indexer):
         last_seen=datetime.now(),
         retention_days=55,
     )
-    testing_indexer._insert_individual_records(UseCaseKey.PERFORMANCE, 
+    testing_indexer._insert_collisions_handled(UseCaseKey.PERFORMANCE,
                                                [model2],
                                                key_results2)
     assert (
