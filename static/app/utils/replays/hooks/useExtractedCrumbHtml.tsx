@@ -6,7 +6,6 @@ import {eventWithTime} from 'rrweb/typings/types';
 
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
-import {element} from 'prop-types';
 
 // Copied from `node_modules/rrweb/typings/types.d.ts`
 enum EventType {
@@ -140,8 +139,8 @@ class BreadcrumbReferencesPlugin {
         // Limit document node depth to 2
         let truncated = removeNodesAtLevel(html, 2);
         // If still very long and/or removeNodesAtLevel failed, truncate
-        if (truncated.length > 2000) {
-          truncated = truncated.substring(0, 2000);
+        if (truncated.length > 1500) {
+          truncated = truncated.substring(0, 1500);
         }
 
         if (truncated) {
@@ -174,8 +173,15 @@ function removeNodesAtLevel(html: string, level: number) {
     ) => {
       for (let i = 0; i < collection.length; i++) {
         const child = collection[i];
+
+        if (child.nodeName === 'STYLE') {
+          child.textContent = '/* Inline CSS */';
+        }
+
         if (max <= current) {
-          child.innerHTML = `<!-- ${child.childElementCount} descendents -->`;
+          if (child.childElementCount > 0) {
+            child.innerHTML = `<!-- ${child.childElementCount} descendents -->`;
+          }
         } else {
           removeChildLevel(max, child.children, current + 1);
         }
