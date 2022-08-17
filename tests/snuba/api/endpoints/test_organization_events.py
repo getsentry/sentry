@@ -1467,9 +1467,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             self.store_event(data, project_id=self.project.id)
 
         # Shouldn't count towards misery
-        data = self.load_data(
-            timestamp=before_now(minutes=(10)), duration=timedelta(milliseconds=0)
-        )
+        data = self.load_data(timestamp=before_now(minutes=10), duration=timedelta(milliseconds=0))
         data["transaction"] = "/misery/new/"
         data["user"] = {"email": "7@example.com"}
         data["measurements"] = {}
@@ -1556,7 +1554,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
         # Shouldn't count towards apdex
         data = self.load_data(
-            timestamp=before_now(minutes=(10)),
+            timestamp=before_now(minutes=10),
             duration=timedelta(milliseconds=0),
         )
         data["transaction"] = "/apdex/new/"
@@ -5053,7 +5051,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
     def test_tag_that_looks_like_aggregate(self):
         data = self.load_data(
-            timestamp=before_now(minutes=(1)),
+            timestamp=before_now(minutes=1),
         )
         data["tags"] = {"p95": "<5k"}
         self.store_event(data, project_id=self.project.id)

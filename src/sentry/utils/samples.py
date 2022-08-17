@@ -181,7 +181,7 @@ def load_data(
 
     # Generate a timestamp in the present.
     if timestamp is None:
-        timestamp = before_now(seconds=1)
+        timestamp = before_now(minutes=1)
     timestamp = timestamp.replace(tzinfo=pytz.utc)
     data.setdefault("timestamp", to_timestamp(timestamp))
 
