@@ -9,48 +9,59 @@ import type {
   RawCrumb,
 } from 'sentry/types/breadcrumbs';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
-import {Event} from 'sentry/types/event';
 import type {
   RecordingEvent,
   ReplayCrumb,
   ReplayError,
+  ReplayRecord,
   ReplaySpan,
 } from 'sentry/views/replays/types';
 
+export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
+  return {
+    ...apiResponse,
+    ...(apiResponse.startedAt ? {startedAt: new Date(apiResponse.startedAt)} : {}),
+    ...(apiResponse.finishedAt ? {finishedAt: new Date(apiResponse.finishedAt)} : {}),
+    user: {
+      email: apiResponse.user.email || '',
+      id: apiResponse.user.id || '',
+      ip_address: apiResponse.user.ip_address || '',
+      name: apiResponse.user.name || '',
+      username: '',
+    },
+  };
+}
+
 export function rrwebEventListFactory(
-  startTimestampMs: number,
-  endTimestampMs: number,
+  replayRecord: ReplayRecord,
   rrwebEvents: RecordingEvent[]
 ) {
   const events = ([] as RecordingEvent[]).concat(rrwebEvents).concat({
     type: 5, // EventType.Custom,
-    timestamp: endTimestampMs,
+    timestamp: replayRecord.finishedAt.getTime(),
     data: {
       tag: 'replay-end',
     },
   });
+
   events.sort((a, b) => a.timestamp - b.timestamp);
 
-  const firstRRWebEvent = first(events);
-  if (firstRRWebEvent) {
-    firstRRWebEvent.timestamp = startTimestampMs;
-  }
+  const firstRRWebEvent = first(events) as RecordingEvent;
+  firstRRWebEvent.timestamp = replayRecord.startedAt.getTime();
 
   return events;
 }
 
 export function breadcrumbFactory(
-  startTimestamp: number,
-  rootEvent: Event,
+  replayRecord: ReplayRecord,
   errors: ReplayError[],
   rawCrumbs: ReplayCrumb[],
   spans: ReplaySpan[]
 ): Crumb[] {
-  const {tags} = rootEvent;
-  const initialUrl = tags.find(tag => tag.key === 'url')?.value;
+  const initialUrl = replayRecord.tags.url;
   const initBreadcrumb = {
     type: BreadcrumbType.INIT,
-    timestamp: new Date(startTimestamp).toISOString(),
+    timestamp: replayRecord.startedAt.toISOString(),
     level: BreadcrumbLevelType.INFO,
     message: initialUrl,
     data: {
@@ -134,11 +145,10 @@ export function spansFactory(spans: ReplaySpan[]) {
 }
 
 /**
- * The original `this._event.startTimestamp` and `this._event.endTimestamp`
- * are the same. It's because the root replay event is re-purposing the
- * `transaction` type, but it is not a real span occurring over time.
- * So we need to figure out the real start and end timestamps based on when
+ * We need to figure out the real start and end timestamps based on when
  * first and last bits of data were collected. In milliseconds.
+ *
+ * @deprecated Once the backend returns the corrected timestamps, this is not needed.
  */
 export function replayTimestamps(
   rrwebEvents: RecordingEvent[],

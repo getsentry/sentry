@@ -1,3 +1,4 @@
+import {Fragment, useEffect} from 'react';
 import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
@@ -6,14 +7,18 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
-import {Organization, Project} from 'sentry/types';
-import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import type {Organization, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
+import useReplayList, {
+  DEFAULT_SORT,
+  REPLAY_LIST_FIELDS,
+} from 'sentry/utils/replays/hooks/useReplayList';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
+import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 import PageLayout, {ChildProps} from '../pageLayout';
 import Tab from '../tabs';
@@ -21,7 +26,7 @@ import Tab from '../tabs';
 import ReplaysContent from './content';
 
 type Props = {
-  location: Location;
+  location: Location<ReplayListLocationQuery>;
   organization: Organization;
   projects: Project[];
 };
@@ -56,40 +61,39 @@ function TransactionReplays(props: Props) {
   );
 }
 
-function ReplaysContentWrapper(props: ChildProps) {
-  const {location, organization, eventView, transactionName, setError} = props;
+function ReplaysContentWrapper({
+  eventView,
+  location,
+  organization,
+  setError,
+}: ChildProps) {
+  const {replays, pageLinks, isFetching, fetchError} = useReplayList({
+    organization,
+    eventView,
+  });
 
-  return (
-    <DiscoverQuery
+  useEffect(() => {
+    setError(fetchError?.message);
+  }, [setError, fetchError]);
+
+  if (isFetching) {
+    return (
+      <Layout.Main fullWidth>
+        <LoadingIndicator />
+      </Layout.Main>
+    );
+  }
+  return replays ? (
+    <ReplaysContent
       eventView={eventView}
-      orgSlug={organization.slug}
+      isFetching={isFetching}
       location={location}
-      setError={error => setError(error?.message)}
-      referrer="api.performance.transaction-summary"
-      cursor="0:0:0"
-      useEvents
-    >
-      {({isLoading, tableData, pageLinks}) => {
-        if (isLoading) {
-          return (
-            <Layout.Main fullWidth>
-              <LoadingIndicator />
-            </Layout.Main>
-          );
-        }
-        return tableData ? (
-          <ReplaysContent
-            eventView={eventView}
-            location={location}
-            organization={organization}
-            setError={setError}
-            transactionName={transactionName}
-            tableData={tableData}
-            pageLinks={pageLinks}
-          />
-        ) : null;
-      }}
-    </DiscoverQuery>
+      organization={organization}
+      pageLinks={pageLinks}
+      replays={replays}
+    />
+  ) : (
+    <Fragment>{null}</Fragment>
   );
 }
 
@@ -110,11 +114,10 @@ function generateEventView({
 }: {
   location: Location;
   transactionName: string;
-}): EventView {
+}) {
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
 
-  conditions.setFilterValues('event.type', ['transaction']);
   conditions.setFilterValues('transaction', [transactionName]);
 
   Object.keys(conditions.filters).forEach(field => {
@@ -123,30 +126,15 @@ function generateEventView({
     }
   });
 
-  // Default fields for relative span view
-  const fields = [
-    'replayId',
-    'eventID',
-    'project',
-    'timestamp',
-    'url',
-    'user.display',
-    'user.email',
-    'user.id',
-    'user.ip_address',
-    'user.name',
-    'user.username',
-  ];
-
   return EventView.fromNewQueryWithLocation(
     {
-      id: undefined,
-      version: 2,
+      id: '',
       name: transactionName,
-      fields,
-      query: `${conditions.formatString()} has:replayId`,
+      version: 2,
+      fields: REPLAY_LIST_FIELDS,
       projects: [],
-      orderby: decodeScalar(location.query.sort, '-timestamp'),
+      query: conditions.formatString(),
+      orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
     },
     location
   );
