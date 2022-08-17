@@ -8,14 +8,45 @@ import SidebarMenuItem from 'sentry/components/sidebar/sidebarMenuItem';
 import SidebarOrgSummary from 'sentry/components/sidebar/sidebarOrgSummary';
 import {IconAdd, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import {OrganizationSummary} from 'sentry/types';
 import shouldUseLegacyRoute from 'sentry/utils/shouldUseLegacyRoute';
 import useOrganization from 'sentry/utils/useOrganization';
+import useResolveRoute from 'sentry/utils/useResolveRoute';
 import withOrganizations from 'sentry/utils/withOrganizations';
 
 import Divider from './divider.styled';
+
+function OrganizationMenuItem({organization}: {organization: OrganizationSummary}) {
+  const currentOrganization = useOrganization();
+  const {slug} = organization;
+
+  const menuItemProps: Partial<React.ComponentProps<typeof SidebarMenuItem>> = {};
+
+  const route = useResolveRoute(organization, `/organizations/${slug}/`);
+
+  if (!route) {
+    return null;
+  }
+
+  if (shouldUseLegacyRoute(organization)) {
+    if (currentOrganization.features.includes('customer-domains')) {
+      menuItemProps.href = route;
+      menuItemProps.openInNewTab = false;
+    } else {
+      menuItemProps.to = route;
+    }
+  } else {
+    menuItemProps.href = route;
+    menuItemProps.openInNewTab = false;
+  }
+
+  return (
+    <SidebarMenuItem {...menuItemProps}>
+      <SidebarOrgSummary organization={organization} />
+    </SidebarMenuItem>
+  );
+}
 
 type Props = {
   canCreateOrganization: boolean;
@@ -25,8 +56,6 @@ type Props = {
  * Switch Organization Menu Label + Sub Menu
  */
 function SwitchOrganization({organizations, canCreateOrganization}: Props) {
-  const currentOrganization = useOrganization();
-
   return (
     <DeprecatedDropdownMenu isNestedDropdown>
       {({isOpen, getMenuProps, getActorProps}) => (
@@ -58,32 +87,11 @@ function SwitchOrganization({organizations, canCreateOrganization}: Props) {
             >
               <OrganizationList role="list">
                 {sortBy(organizations, ['status.id']).map(organization => {
-                  const {slug, links} = organization;
-                  const {organizationUrl} = links;
-
-                  const menuItemProps: Partial<
-                    React.ComponentProps<typeof SidebarMenuItem>
-                  > = {};
-
-                  if (shouldUseLegacyRoute(organization)) {
-                    if (currentOrganization.features.includes('customer-domains')) {
-                      // If the current org is a customer domain, then we need to change the hostname in addition to
-                      // updating the path.
-                      const {sentryUrl} = ConfigStore.get('links');
-                      menuItemProps.href = `${sentryUrl}/organizations/${slug}/`;
-                      menuItemProps.openInNewTab = false;
-                    } else {
-                      menuItemProps.to = `/organizations/${slug}/`;
-                    }
-                  } else {
-                    menuItemProps.href = organizationUrl;
-                    menuItemProps.openInNewTab = false;
-                  }
-
                   return (
-                    <SidebarMenuItem key={slug} {...menuItemProps}>
-                      <SidebarOrgSummary organization={organization} />
-                    </SidebarMenuItem>
+                    <OrganizationMenuItem
+                      key={organization.slug}
+                      organization={organization}
+                    />
                   );
                 })}
               </OrganizationList>

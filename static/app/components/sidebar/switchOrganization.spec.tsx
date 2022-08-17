@@ -83,7 +83,7 @@ describe('SwitchOrganization', function () {
 
     const org2Link = screen.getByRole('link', {name: 'org2 Organization 2'});
     expect(org2Link).toBeInTheDocument();
-    expect(org2Link).toHaveAttribute('href', 'http://org2.sentry.io');
+    expect(org2Link).toHaveAttribute('href', 'http://org2.sentry.io/organizations/org2/');
     jest.useRealTimers();
   });
 
@@ -161,7 +161,7 @@ describe('SwitchOrganization', function () {
 
     const org2Link = screen.getByRole('link', {name: 'org2 Organization 2'});
     expect(org2Link).toBeInTheDocument();
-    expect(org2Link).toHaveAttribute('href', 'http://org2.sentry.io');
+    expect(org2Link).toHaveAttribute('href', 'http://org2.sentry.io/organizations/org2/');
     jest.useRealTimers();
   });
 
@@ -208,7 +208,7 @@ describe('SwitchOrganization', function () {
 
     const org3Link = screen.getByRole('link', {name: 'org3 Organization 3'});
     expect(org3Link).toBeInTheDocument();
-    expect(org3Link).toHaveAttribute('href', 'http://org3.sentry.io');
+    expect(org3Link).toHaveAttribute('href', 'http://org3.sentry.io/organizations/org3/');
     jest.useRealTimers();
   });
 
