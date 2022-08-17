@@ -2124,6 +2124,9 @@ SENTRY_SDK_CONFIG = {
     "debug": True,
     "send_default_pii": True,
     "auto_enabling_integrations": False,
+    "_experiments": {
+        "custom_measurements": True,
+    },
 }
 
 # Callable to bind additional context for the Sentry SDK

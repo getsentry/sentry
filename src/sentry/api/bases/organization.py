@@ -27,7 +27,7 @@ from sentry.models import (
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
 from sentry.utils.numbers import format_grouped_length
-from sentry.utils.sdk import bind_organization_context
+from sentry.utils.sdk import bind_organization_context, set_measurement
 
 
 class NoProjects(Exception):
@@ -326,6 +326,7 @@ class OrganizationEndpoint(Endpoint):
         len_projects = len(projects)
         sentry_sdk.set_tag("query.num_projects", len_projects)
         sentry_sdk.set_tag("query.num_projects.grouped", format_grouped_length(len_projects))
+        set_measurement("query.num_projects", len_projects)
 
         params = {
             "start": start,
