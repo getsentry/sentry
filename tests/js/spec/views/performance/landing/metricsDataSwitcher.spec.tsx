@@ -10,8 +10,10 @@ export function addMetricsDataMock(settings?: {
   metricsCount: number;
   nullCount: number;
   unparamCount: number;
+  compatibleProjects?: number[];
   dynamicSampledProjects?: number[];
 }) {
+  const compatible_projects = settings?.compatibleProjects ?? [];
   const metricsCount = settings?.metricsCount ?? 10;
   const unparamCount = settings?.unparamCount ?? 0;
   const nullCount = settings?.nullCount ?? 0;
@@ -21,7 +23,7 @@ export function addMetricsDataMock(settings?: {
     method: 'GET',
     url: `/organizations/org-slug/metrics-compatibility/`,
     body: {
-      compatible_projects: [],
+      compatible_projects,
       dynamic_sampling_projects,
     },
   });
@@ -234,11 +236,12 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders with feature flag and any incompatible transactions on multiple projects', async function () {
+  it('renders with feature flag and any incompatible transactions on multiple projects with at least one compatible project', async function () {
     addMetricsDataMock({
       metricsCount: 100,
       nullCount: 1,
       unparamCount: 0,
+      compatibleProjects: [1],
     });
     const project = TestStubs.Project({id: 1});
     const project2 = TestStubs.Project({id: 2});
@@ -252,6 +255,28 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
     expect(await screen.findByTestId('smart-search-bar')).toBeInTheDocument();
     expect(
       await screen.findByTestId('landing-mep-alert-multi-project-incompatible')
+    ).toBeInTheDocument();
+  });
+
+  it('renders with feature flag and any incompatible transactions on multiple projects with no compatible project', async function () {
+    addMetricsDataMock({
+      metricsCount: 100,
+      nullCount: 1,
+      unparamCount: 0,
+      compatibleProjects: [],
+    });
+    const project = TestStubs.Project({id: 1});
+    const project2 = TestStubs.Project({id: 2});
+    const data = initializeData({
+      project: '-1',
+      projects: [project, project2],
+      features,
+    });
+
+    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+    expect(await screen.findByTestId('smart-search-bar')).toBeInTheDocument();
+    expect(
+      await screen.findByTestId('landing-mep-alert-multi-project-all-incompatible')
     ).toBeInTheDocument();
   });
 
