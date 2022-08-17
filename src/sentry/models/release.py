@@ -16,7 +16,6 @@ from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 from sentry_relay import RelayError, parse_release
 
-from sentry.app import locks
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
 from sentry.db.models import (
     ArrayField,
@@ -29,6 +28,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.exceptions import InvalidSearchQuery
+from sentry.locks import locks
 from sentry.models import (
     Activity,
     BaseManager,
@@ -440,7 +440,7 @@ class Release(Model):
     )
 
     # DEPRECATED
-    project_id = BoundedPositiveIntegerField(null=True)
+    project_id = BoundedBigIntegerField(null=True)
     version = models.CharField(max_length=DB_VERSION_LENGTH)
     # ref might be the branch name being released
     ref = models.CharField(max_length=DB_VERSION_LENGTH, null=True, blank=True)

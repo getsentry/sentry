@@ -12,7 +12,7 @@ from django.utils.text import capfirst
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import newsletter, options
-from sentry.app import ratelimiter
+from sentry import ratelimits as ratelimiter
 from sentry.auth import password_validation
 from sentry.models import User
 from sentry.utils.auth import find_users, logger

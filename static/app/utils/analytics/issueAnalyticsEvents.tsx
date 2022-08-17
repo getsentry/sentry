@@ -27,6 +27,11 @@ export type IssueEventParameters = {
     group?: string;
     platform?: string;
   };
+  'issue_search.empty': {
+    query: string;
+    search_source: string;
+    search_type: string;
+  };
   'issue_search.failed': {
     error: string;
     search_source: string;
@@ -38,6 +43,9 @@ export type IssueEventParameters = {
     assigned_suggestion_reason?: string;
   };
   'issues_stream.issue_clicked': IssueStream;
+  'issues_stream.paginate': {
+    direction: string;
+  };
   'issues_stream.realtime_clicked': {
     enabled: boolean;
   };
@@ -49,6 +57,8 @@ export type IssueEventParameters = {
     tab: string;
   };
   resolve_issue: {release: string};
+  'span_view.embedded_child.hide': {};
+  'span_view.embedded_child.show': {};
   'tag.clicked': {
     is_clickable: boolean;
   };
@@ -64,14 +74,18 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_error_banner.viewed': 'Issue Error Banner Viewed',
   'issues_tab.viewed': 'Viewed Issues Tab', // high volume but send to our secondary event store anyways
   'issue_search.failed': 'Issue Search: Failed',
+  'issue_search.empty': 'Issue Search: Empty',
   'issue.search_sidebar_clicked': 'Issue Search Sidebar Clicked',
   'inbox_tab.issue_clicked': 'Clicked Issue from Inbox Tab',
   'issues_stream.realtime_clicked': 'Issues Stream: Realtime Clicked',
   'issues_stream.issue_clicked': 'Clicked Issue from Issues Stream',
   'issues_stream.issue_assigned': 'Assigned Issue from Issues Stream',
   'issues_stream.sort_changed': 'Changed Sort on Issues Stream',
+  'issues_stream.paginate': 'Paginate Issues Stream',
   'issue.shared_publicly': 'Issue Shared Publicly',
   resolve_issue: 'Resolve Issue',
   'tag.clicked': 'Tag: Clicked',
   'issue.quick_trace_status': 'Issue Quick Trace Status',
+  'span_view.embedded_child.hide': 'Span View: Hide Embedded Transaction',
+  'span_view.embedded_child.show': 'Span View: Show Embedded Transaction',
 };

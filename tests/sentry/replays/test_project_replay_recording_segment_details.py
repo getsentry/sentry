@@ -43,10 +43,10 @@ class ReplayRecordingSegmentDetailsTestCase(APITestCase):
             response = self.client.get(self.url)
 
             assert response.status_code == 200, response.content
-            assert response.data["data"]["replay_id"] == self.recording_segment.replay_id
-            assert response.data["data"]["segment_id"] == self.recording_segment.segment_id
-            assert response.data["data"]["project_id"] == self.recording_segment.project_id
-            assert response.data["data"]["date_added"] == self.recording_segment.date_added
+            assert response.data["data"]["replayId"] == self.recording_segment.replay_id
+            assert response.data["data"]["segmentId"] == self.recording_segment.segment_id
+            assert response.data["data"]["projectId"] == str(self.recording_segment.project_id)
+            assert response.data["data"]["dateAdded"] == self.recording_segment.date_added
 
     def test_get_replay_recording_segment_download(self):
         self.login_as(user=self.user)

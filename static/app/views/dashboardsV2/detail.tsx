@@ -44,7 +44,6 @@ import {
   cloneDashboard,
   getCurrentPageFilters,
   getDashboardFiltersFromURL,
-  hasSavedPageFilters,
   hasUnsavedFilterChanges,
   isWidgetUsingTransactionName,
   resetPageFilters,
@@ -152,7 +151,8 @@ class DashboardDetail extends Component<Props, State> {
       location,
       router,
     } = this.props;
-    const {seriesData, tableData, pageLinks, totalIssuesCount} = this.state;
+    const {seriesData, tableData, pageLinks, totalIssuesCount, seriesResultsType} =
+      this.state;
     if (isWidgetViewerPath(location.pathname)) {
       const widget =
         defined(widgetId) &&
@@ -163,6 +163,7 @@ class DashboardDetail extends Component<Props, State> {
           organization,
           widget,
           seriesData,
+          seriesResultsType,
           tableData,
           pageLinks,
           totalIssuesCount,
@@ -412,12 +413,17 @@ class DashboardDetail extends Component<Props, State> {
       return;
     }
 
-    if (!isEqual(activeFilters, dashboard.filters?.release)) {
+    const filterParams: DashboardFilters = {};
+    Object.keys(activeFilters).forEach(key => {
+      filterParams[key] = activeFilters[key].length ? activeFilters[key] : '';
+    });
+
+    if (!isEqual(activeFilters, dashboard.filters)) {
       browserHistory.push({
         ...location,
         query: {
           ...location.query,
-          ...activeFilters,
+          ...filterParams,
         },
       });
     }
@@ -552,7 +558,7 @@ class DashboardDetail extends Component<Props, State> {
               browserHistory.replace({
                 pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
                 query: {
-                  query: omit(location.query, DashboardFilterKeys.RELEASE),
+                  query: omit(location.query, Object.values(DashboardFilterKeys)),
                 },
               });
             },
@@ -663,10 +669,6 @@ class DashboardDetail extends Component<Props, State> {
             period: DEFAULT_STATS_PERIOD,
           },
         }}
-        skipLoadLastUsed={
-          organization.features.includes('dashboards-top-level-filter') &&
-          hasSavedPageFilters(dashboard)
-        }
       >
         <PageContent>
           <NoProjectMessage organization={organization}>
@@ -768,10 +770,6 @@ class DashboardDetail extends Component<Props, State> {
               period: DEFAULT_STATS_PERIOD,
             },
           }}
-          skipLoadLastUsed={
-            organization.features.includes('dashboards-top-level-filter') &&
-            hasSavedPageFilters(dashboard)
-          }
         >
           <StyledPageContent>
             <NoProjectMessage organization={organization}>
@@ -871,7 +869,10 @@ class DashboardDetail extends Component<Props, State> {
                           addSuccessMessage(t('Dashboard filters updated'));
                           browserHistory.replace({
                             pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
-                            query: omit(location.query, DashboardFilterKeys.RELEASE),
+                            query: omit(
+                              location.query,
+                              Object.values(DashboardFilterKeys)
+                            ),
                           });
                         },
                         () => undefined

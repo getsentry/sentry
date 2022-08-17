@@ -36,6 +36,49 @@ describe('jsSelfProfile', () => {
     expect(profile.appendOrderTree.children[0].frame.resource).toBe('app.js');
   });
 
+  it('tracks discarded samples', () => {
+    const trace: JSSelfProfiling.Trace = {
+      resources: ['app.js', 'vendor.js'],
+      frames: [{name: 'ReactDOM.render', line: 1, column: 1, resourceId: 0}],
+      samples: [
+        {
+          timestamp: 0,
+        },
+      ],
+      stacks: [
+        {
+          frameId: 0,
+        },
+      ],
+    };
+
+    const profile = JSSelfProfile.FromProfile(trace, createFrameIndex([{name: 'f0'}]));
+    expect(profile.stats.discardedSamplesCount).toBe(1);
+  });
+
+  it('tracks negative samples', () => {
+    const trace: JSSelfProfiling.Trace = {
+      resources: ['app.js', 'vendor.js'],
+      frames: [{name: 'ReactDOM.render', line: 1, column: 1, resourceId: 0}],
+      samples: [
+        {
+          timestamp: 0,
+        },
+        {
+          timestamp: -1,
+        },
+      ],
+      stacks: [
+        {
+          frameId: 0,
+        },
+      ],
+    };
+
+    const profile = JSSelfProfile.FromProfile(trace, createFrameIndex([{name: 'f0'}]));
+    expect(profile.stats.negativeSamplesCount).toBe(1);
+  });
+
   it('handles the first stack sample differently', () => {
     const trace: JSSelfProfiling.Trace = {
       resources: ['app.js'],

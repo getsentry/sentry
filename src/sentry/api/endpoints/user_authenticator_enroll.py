@@ -8,11 +8,11 @@ from rest_framework.fields import SkipField
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import ratelimits as ratelimiter
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import email_verification_required, sudo_required
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.api.serializers import serialize
-from sentry.app import ratelimiter
 from sentry.auth.authenticators.base import EnrollmentStatus, NewEnrollmentDisallowed
 from sentry.auth.authenticators.sms import SMSRateLimitExceeded
 from sentry.models import Authenticator

@@ -6,14 +6,18 @@ from django.conf import settings
 from django.db.models import Q
 
 from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
-from sentry.sentry_metrics.indexer.base import KeyCollection, KeyResult, KeyResults, StringIndexer
+from sentry.sentry_metrics.indexer.base import (
+    FetchType,
+    KeyCollection,
+    KeyResult,
+    KeyResults,
+    StringIndexer,
+)
 from sentry.sentry_metrics.indexer.cache import CachingIndexer, StringIndexerCache
-from sentry.sentry_metrics.indexer.db import TABLE_MAPPING, IndexerTable
+from sentry.sentry_metrics.indexer.postgres.models import TABLE_MAPPING, IndexerTable
 from sentry.sentry_metrics.indexer.ratelimiters import writes_limiter
 from sentry.sentry_metrics.indexer.strings import StaticStringIndexer
 from sentry.utils import metrics
-
-from .base import FetchType
 
 __all__ = ["PostgresIndexer"]
 
@@ -73,7 +77,11 @@ class PGStringIndexerV2(StringIndexer):
         if db_write_keys.size == 0:
             return db_read_key_results
 
-        with writes_limiter.check_write_limits(use_case_id, db_write_keys) as writes_limiter_state:
+        ratelimiter_namespace = get_ingest_config(use_case_id).writes_limiter_namespace
+
+        with writes_limiter.check_write_limits(
+            use_case_id, ratelimiter_namespace, db_write_keys
+        ) as writes_limiter_state:
             # After the DB has successfully committed writes, we exit this
             # context manager and consume quotas. If the DB crashes we
             # shouldn't consume quota.
@@ -148,7 +156,7 @@ class PGStringIndexerV2(StringIndexer):
         return string
 
     def _table(self, use_case_id: UseCaseKey) -> IndexerTable:
-        return TABLE_MAPPING[get_ingest_config(use_case_id).db_model]
+        return TABLE_MAPPING[use_case_id]
 
 
 class PostgresIndexer(StaticStringIndexer):

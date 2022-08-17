@@ -14,7 +14,7 @@ from sentry.utils.db import atomic_transaction
     acks_late=True,
 )
 def delete_file(path, checksum, **kwargs):
-    from sentry.app import locks
+    from sentry.locks import locks
     from sentry.models.file import FileBlob, get_storage
     from sentry.utils.retries import TimedRetryPolicy
 

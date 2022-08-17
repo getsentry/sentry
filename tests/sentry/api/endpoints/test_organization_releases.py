@@ -12,8 +12,9 @@ from sentry.api.endpoints.organization_releases import (
     ReleaseHeadCommitSerializer,
     ReleaseSerializerWithProjects,
 )
-from sentry.app import locks
+from sentry.auth import access
 from sentry.constants import BAD_RELEASE_CHARS, MAX_COMMIT_LENGTH, MAX_VERSION_LENGTH
+from sentry.locks import locks
 from sentry.models import (
     Activity,
     ApiKey,
@@ -627,6 +628,52 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
             date_released=datetime(2013, 8, 15, 3, 8, 24, 880386),
         )
         release3.add_project(project1)
+
+        ax = access.from_user(user, org)
+        assert ax.has_projects_access([project1])
+        assert ax.has_project_membership(project1)
+        assert not ax.has_project_membership(project2)
+
+        response = self.get_success_response(org.slug)
+        self.assert_expected_versions(response, [release1, release3])
+
+    def test_project_permissions_open_access(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.create_organization()
+        org.flags.allow_joinleave = True
+        org.save()
+
+        team1 = self.create_team(organization=org)
+        team2 = self.create_team(organization=org)
+
+        project1 = self.create_project(teams=[team1], organization=org)
+        project2 = self.create_project(teams=[team2], organization=org)
+
+        self.create_member(teams=[team1], user=user, organization=org)
+        self.login_as(user=user)
+
+        release1 = Release.objects.create(
+            organization_id=org.id, version="1", date_added=datetime(2013, 8, 13, 3, 8, 24, 880386)
+        )
+        release1.add_project(project1)
+
+        release2 = Release.objects.create(
+            organization_id=org.id, version="2", date_added=datetime(2013, 8, 14, 3, 8, 24, 880386)
+        )
+        release2.add_project(project2)
+
+        release3 = Release.objects.create(
+            organization_id=org.id,
+            version="3",
+            date_added=datetime(2013, 8, 12, 3, 8, 24, 880386),
+            date_released=datetime(2013, 8, 15, 3, 8, 24, 880386),
+        )
+        release3.add_project(project1)
+
+        ax = access.from_user(user, org)
+        assert ax.has_projects_access([project1, project2])
+        assert ax.has_project_membership(project1)
+        assert not ax.has_project_membership(project2)
 
         response = self.get_success_response(org.slug)
         self.assert_expected_versions(response, [release1, release3])
@@ -1794,7 +1841,7 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
     def setUp(self):
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user)
-        team = self.create_team(organization=org)
+        team = self.create_team(organization=org, members=[self.user])
         project1 = self.create_project(organization=org, teams=[team], name="foo")
         project2 = self.create_project(organization=org, teams=[team], name="bar")
 

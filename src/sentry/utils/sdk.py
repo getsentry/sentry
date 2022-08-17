@@ -186,7 +186,7 @@ def set_current_event_project(project_id):
 
 
 def get_project_key():
-    from sentry.models import ProjectKey
+    from sentry.models.projectkey import ProjectKey
 
     if not settings.SENTRY_PROJECT:
         return None

@@ -28,8 +28,8 @@ export default function EventReplay({replayId, orgSlug, projectSlug}: Props) {
       <ErrorBoundary mini>
         <LazyLoad
           component={() => import('./replayContent')}
-          eventSlug={`${projectSlug}:${replayId}`}
-          orgId={orgSlug}
+          replaySlug={`${projectSlug}:${replayId}`}
+          orgSlug={orgSlug}
         />
       </ErrorBoundary>
     </EventDataSection>
