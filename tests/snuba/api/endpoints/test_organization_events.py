@@ -20,7 +20,7 @@ from sentry.models.transaction_threshold import (
 from sentry.search.events import constants
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before, before_now, iso_format
 from sentry.testutils.skips import requires_not_arm64
 from sentry.utils import json
 from sentry.utils.samples import load_data
@@ -35,7 +35,8 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
     def setUp(self):
         super().setUp()
-        self.ten_mins_ago = iso_format(before_now(minutes=10))
+        self.ten_mins_ago_datetime = before_now(minutes=10)
+        self.ten_mins_ago = iso_format(self.ten_mins_ago_datetime)
         self.eleven_mins_ago = iso_format(before_now(minutes=11))
         self.transaction_data = load_data("transaction", timestamp=before_now(minutes=10))
         self.features = {}
@@ -1458,8 +1459,8 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         # Shouldn't count towards misery
         data = load_data(
             "transaction",
-            timestamp=before_now(minutes=(10)),
-            start_timestamp=before_now(minutes=(10)),
+            timestamp=self.ten_mins_ago_datetime,
+            start_timestamp=self.ten_mins_ago_datetime,
         )
         data["transaction"] = "/misery/new/"
         data["user"] = {"email": "7@example.com"}
@@ -1996,16 +1997,16 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
     def test_aggregation_alias_comparison(self):
         data = load_data(
             "transaction",
-            timestamp=before_now(minutes=10),
-            start_timestamp=before_now(minutes=10, seconds=5),
+            timestamp=self.ten_mins_ago_datetime,
+            start_timestamp=before(self.ten_mins_ago_datetime, seconds=5),
         )
         data["transaction"] = "/aggregates/1"
         self.store_event(data, project_id=self.project.id)
 
         data = load_data(
             "transaction",
-            timestamp=before_now(minutes=10),
-            start_timestamp=before_now(minutes=10, seconds=3),
+            timestamp=self.ten_mins_ago_datetime,
+            start_timestamp=before(self.ten_mins_ago_datetime, seconds=3),
         )
         data["transaction"] = "/aggregates/2"
         event = self.store_event(data, project_id=self.project.id)
@@ -2026,16 +2027,16 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
     def test_auto_aggregations(self):
         data = load_data(
             "transaction",
-            timestamp=before_now(minutes=10),
-            start_timestamp=before_now(minutes=10, seconds=5),
+            timestamp=self.ten_mins_ago_datetime,
+            start_timestamp=before(self.ten_mins_ago_datetime, seconds=5),
         )
         data["transaction"] = "/aggregates/1"
         self.store_event(data, project_id=self.project.id)
 
         data = load_data(
             "transaction",
-            timestamp=before_now(minutes=10),
-            start_timestamp=before_now(minutes=10, seconds=3),
+            timestamp=self.ten_mins_ago_datetime,
+            start_timestamp=before(self.ten_mins_ago_datetime, seconds=3),
         )
         data["transaction"] = "/aggregates/2"
         event = self.store_event(data, project_id=self.project.id)
@@ -2174,16 +2175,16 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
     def test_percentile_function(self):
         data = load_data(
             "transaction",
-            timestamp=before_now(minutes=10),
-            start_timestamp=before_now(minutes=10, seconds=5),
+            timestamp=self.ten_mins_ago_datetime,
+            start_timestamp=before(self.ten_mins_ago_datetime, seconds=5),
         )
         data["transaction"] = "/aggregates/1"
         event1 = self.store_event(data, project_id=self.project.id)
 
         data = load_data(
             "transaction",
-            timestamp=before_now(minutes=10),
-            start_timestamp=before_now(minutes=10, seconds=3),
+            timestamp=self.ten_mins_ago_datetime,
+            start_timestamp=before(self.ten_mins_ago_datetime, seconds=3),
         )
         data["transaction"] = "/aggregates/2"
         event2 = self.store_event(data, project_id=self.project.id)
@@ -2206,16 +2207,16 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
     def test_percentile_function_as_condition(self):
         data = load_data(
             "transaction",
-            timestamp=before_now(minutes=10),
-            start_timestamp=before_now(minutes=10, seconds=5),
+            timestamp=self.ten_mins_ago_datetime,
+            start_timestamp=before(self.ten_mins_ago_datetime, seconds=5),
         )
         data["transaction"] = "/aggregates/1"
         event1 = self.store_event(data, project_id=self.project.id)
 
         data = load_data(
             "transaction",
-            timestamp=before_now(minutes=10),
-            start_timestamp=before_now(minutes=10, seconds=3),
+            timestamp=self.ten_mins_ago_datetime,
+            start_timestamp=before(self.ten_mins_ago_datetime, seconds=3),
         )
         data["transaction"] = "/aggregates/2"
         self.store_event(data, project_id=self.project.id)
@@ -2236,16 +2237,16 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
     def test_epm_function(self):
         data = load_data(
             "transaction",
-            timestamp=before_now(minutes=10),
-            start_timestamp=before_now(minutes=10, seconds=5),
+            timestamp=self.ten_mins_ago_datetime,
+            start_timestamp=before(self.ten_mins_ago_datetime, seconds=5),
         )
         data["transaction"] = "/aggregates/1"
         event1 = self.store_event(data, project_id=self.project.id)
 
         data = load_data(
             "transaction",
-            timestamp=before_now(minutes=10),
-            start_timestamp=before_now(minutes=10, seconds=3),
+            timestamp=self.ten_mins_ago_datetime,
+            start_timestamp=before(self.ten_mins_ago_datetime, seconds=3),
         )
         data["transaction"] = "/aggregates/2"
         event2 = self.store_event(data, project_id=self.project.id)
@@ -2987,8 +2988,8 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
         data = load_data(
             "transaction",
-            timestamp=before_now(minutes=10),
-            start_timestamp=before_now(minutes=10, seconds=5),
+            timestamp=self.ten_mins_ago_datetime,
+            start_timestamp=before(self.ten_mins_ago_datetime, seconds=5),
         )
         data["transaction"] = "/failure_rate/1"
         data["contexts"]["trace"]["status"] = "unauthenticated"
@@ -3209,8 +3210,8 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
         data = load_data(
             "transaction",
-            timestamp=before_now(minutes=10),
-            start_timestamp=before_now(minutes=10, seconds=5),
+            timestamp=self.ten_mins_ago_datetime,
+            start_timestamp=before(self.ten_mins_ago_datetime, seconds=5),
         )
         data["transaction"] = "/failure_rate/2"
         data["contexts"]["trace"]["status"] = "unauthenticated"
@@ -3339,8 +3340,8 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
         data = load_data(
             "transaction",
-            timestamp=before_now(minutes=10),
-            start_timestamp=before_now(minutes=10, seconds=5),
+            timestamp=self.ten_mins_ago_datetime,
+            start_timestamp=before(self.ten_mins_ago_datetime, seconds=5),
         )
         data["transaction"] = "/failure_rate/2"
         data["contexts"]["trace"]["status"] = "unauthenticated"
