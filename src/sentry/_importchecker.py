@@ -59,17 +59,6 @@ def emit_ascii_tree(filename):
     for from_name, to_name in observations:
         dependencies.setdefault(from_name, set()).add(to_name)
 
-    def _total_weight(name, seen=None):
-        if seen is None:
-            seen = set()
-        if name in seen:
-            return 0
-        seen.add(name)
-        rv = 0
-        for child in dependencies.get(name, ()):
-            rv += _total_weight(child, seen)
-        return rv
-
     indentation = 0
 
     def _write_dep(f, name, seen=None):
@@ -77,21 +66,28 @@ def emit_ascii_tree(filename):
         marker = f"{indentation:02}"
         children = dependencies.get(name) or []
         if seen is None:
-            seen = set()
+            seen = {}
         if name in seen:
-            f.write(f"{' ' * indentation}-{marker} {name} (*)\n")
+            count = seen[name]
+            seen[name] = count + 1
+            f.write(f"{'  ' * indentation}-{marker} {name} ({count})\n")
             return
-        seen.add(name)
-        f.write(f"{' ' * indentation}-{marker} {name}:\n")
-        indentation += 2
+        seen[name] = 1
+        f.write(f"{'  ' * indentation}-{marker} {name}:\n")
+        indentation += 1
         for child in sorted(children):
             _write_dep(f, child, seen=seen)
-        indentation -= 2
+        indentation -= 1
 
-    seen = set()
+    seen = {}
     with open(filename, "w") as f:
         for name in import_order:
             _write_dep(f, name, seen=seen)
+
+        top_n = sorted(seen.items(), key=lambda x: x[1], reverse=True)
+        f.write("\nTop dependencies:\n")
+        for name, count in top_n[:30]:
+            f.write(f"  - {name}: {count}\n")
 
 
 def track_import(from_name, to_name, fromlist):
