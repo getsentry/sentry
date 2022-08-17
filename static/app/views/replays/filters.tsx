@@ -18,31 +18,23 @@ type Props = {
 function ReplaysFilters({organization, handleSearchQuery, query}: Props) {
   return (
     <FilterContainer>
-      <SearchContainer>
-        <PageFilterBar condensed>
-          <ProjectPageFilter resetParamsOnChange={['cursor']} />
-          <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
-          <DatePageFilter alignDropdown="left" resetParamsOnChange={['cursor']} />
-        </PageFilterBar>
-        <SearchBar
-          organization={organization}
-          defaultQuery=""
-          query={query}
-          placeholder={t('Search')}
-          onSearch={handleSearchQuery}
-        />
-      </SearchContainer>
+      <PageFilterBar condensed>
+        <ProjectPageFilter resetParamsOnChange={['cursor']} />
+        <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
+        <DatePageFilter alignDropdown="left" resetParamsOnChange={['cursor']} />
+      </PageFilterBar>
+      <SearchBar
+        organization={organization}
+        defaultQuery=""
+        query={query}
+        placeholder={t('Search')}
+        onSearch={handleSearchQuery}
+      />
     </FilterContainer>
   );
 }
 
 const FilterContainer = styled('div')`
-  display: grid;
-  gap: ${space(1)};
-  margin-bottom: ${space(1)};
-`;
-
-const SearchContainer = styled('div')`
   display: inline-grid;
   grid-template-columns: minmax(0, max-content) minmax(20rem, 1fr);
   gap: ${space(1)};

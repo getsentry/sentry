@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import type {RouteComponentProps} from 'react-router';
 
 import DetailedError from 'sentry/components/errors/detailedError';
 import NotFound from 'sentry/components/errors/notFound';
@@ -10,20 +11,24 @@ import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import useReplayLayout from 'sentry/utils/replays/hooks/useReplayLayout';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
 import Layout from 'sentry/views/replays/detail/layout';
 import Page from 'sentry/views/replays/detail/page';
 
-function ReplayDetails() {
-  const {
-    location,
-    params: {replaySlug, orgSlug},
-  } = useRouteContext();
+type Props = RouteComponentProps<
+  {orgSlug: string; replaySlug: string},
+  {},
+  any,
+  {t: number}
+>;
 
-  const {
-    t: initialTimeOffset, // Time, in seconds, where the video should start
-  } = location.query;
-
+function ReplayDetails({
+  location: {
+    query: {
+      t: initialTimeOffset, // Time, in seconds, where the video should start
+    },
+  },
+  params: {orgSlug, replaySlug},
+}: Props) {
   const {fetching, onRetry, replay} = useReplayData({
     replaySlug,
     orgSlug,
