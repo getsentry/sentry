@@ -140,7 +140,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
 
     return (
       <Fragment key={index}>
-        <Item center {...columnHandlers}>
+        <Item {...columnHandlers}>
           {network.data.statusCode ? (
             <StatusContainer>{network.data.statusCode}</StatusContainer>
           ) : (
