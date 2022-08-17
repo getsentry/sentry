@@ -22,6 +22,7 @@ PERFORMANCE_CS_NAMESPACE = "performance.cs"
 class IndexerStorage(Enum):
     CLOUDSPANNER = "cloudspanner"
     POSTGRES = "postgres"
+    MOCK = "mock"
 
 
 @dataclass(frozen=True)
@@ -93,6 +94,19 @@ def get_ingest_config(
                 internal_metrics_tag="perf-spanner",
                 writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS_PERFORMANCE,
                 writes_limiter_namespace=PERFORMANCE_CS_NAMESPACE,
+            )
+        )
+
+    if db_backend == IndexerStorage.MOCK:
+        _register_ingest_config(
+            MetricsIngestConfiguration(
+                db_backend=IndexerStorage.MOCK,
+                input_topic="topic",
+                output_topic="output-topic",
+                use_case_id=use_case_key,
+                internal_metrics_tag="release-health",
+                writes_limiter_cluster_options={},
+                writes_limiter_namespace="test-namespace",
             )
         )
 

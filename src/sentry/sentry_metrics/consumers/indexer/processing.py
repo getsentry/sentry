@@ -1,18 +1,23 @@
 import logging
 
 from arroyo.types import Message
+from django.conf import settings
 
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import IndexerStorage, MetricsIngestConfiguration
 from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch
 from sentry.sentry_metrics.consumers.indexer.common import MessageBatch
+from sentry.sentry_metrics.indexer.cloudspanner.cloudspanner import CloudSpannerIndexer
+from sentry.sentry_metrics.indexer.mock import MockIndexer
+from sentry.sentry_metrics.indexer.postgres.postgres_v2 import PostgresIndexer
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
 STORAGE_TO_INDEXER = {
-    IndexerStorage.CLOUDSPANNER: CloudSpannerIndexer,
-    IndexerStorage.POSTGRES: PostgresIndexer,
+    IndexerStorage.CLOUDSPANNER: lambda: CloudSpannerIndexer(**settings.CLOUDSPANNER_OPTIONS),
+    IndexerStorage.POSTGRES: PostgresIndexer(),
+    IndexerStorage.MOCK: MockIndexer(),
 }
 
 
