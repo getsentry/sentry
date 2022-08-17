@@ -509,48 +509,6 @@ table.table.key-value {
   }
 }
 
-/**
-* Search
-* ============================================================================
-*/
-
-.search {
-  form {
-    display: block;
-    position: relative;
-  }
-
-  .search-input {
-    // Match the height of buttons adjacent to the search input.
-    height: 40px;
-    padding: 8px 34px 8px 37px;
-    font-size: 14px;
-    background: #fff;
-    transition: none;
-  }
-
-  &.disabled {
-    position: relative;
-
-    .search-input {
-      border: 1px solid lighten(@trim, 4);
-      background: @white-dark;
-      color: @gray-light;
-      box-shadow: none;
-    }
-
-    &:after {
-      display: block;
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-    }
-  }
-}
-
 // Sparkline grid
 
 .innerColumn(@columnSpan: 1) {

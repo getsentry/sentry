@@ -1,160 +1,135 @@
-import {createRef, PureComponent} from 'react';
+import {useCallback, useRef, useState} from 'react';
+import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
-import classNames from 'classnames';
 
 import Button from 'sentry/components/button';
 import Input, {InputProps} from 'sentry/components/input';
 import {IconSearch} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 
 interface SearchBarProps extends Omit<InputProps, 'onChange'> {
-  defaultQuery: string;
-  onSearch: (query: string) => void;
-  query: string;
+  defaultQuery?: string;
   onChange?: (query: string) => void;
+  onSearch?: (query: string) => void;
+  query?: string;
   width?: string;
 }
 
-type State = {
-  dropdownVisible: boolean;
-  query: string;
-};
+function SearchBar({
+  query: queryProp,
+  defaultQuery = '',
+  onChange,
+  onSearch,
+  width,
+  size,
+  className,
+  ...inputProps
+}: SearchBarProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
 
-class SearchBar extends PureComponent<SearchBarProps, State> {
-  static defaultProps: Pick<SearchBarProps, 'query' | 'defaultQuery' | 'onSearch'> = {
-    query: '',
-    defaultQuery: '',
-    onSearch: function () {},
-  };
+  const [query, setQuery] = useState(queryProp ?? defaultQuery);
 
-  state: State = {
-    query: this.props.query || this.props.defaultQuery,
-    dropdownVisible: false,
-  };
+  const onQueryChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const {value} = e.target;
+      setQuery(value);
+      onChange?.(value);
+    },
+    [onChange]
+  );
 
-  UNSAFE_componentWillReceiveProps(nextProps: SearchBarProps) {
-    if (nextProps.query !== this.props.query) {
-      this.setState({
-        query: nextProps.query,
-      });
-    }
-  }
+  const onSubmit = useCallback(
+    (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      inputRef.current?.blur();
+      onSearch?.(query);
+    },
+    [onSearch, query]
+  );
 
-  searchInputRef = createRef<HTMLInputElement>();
+  const clearSearch = useCallback(() => {
+    setQuery('');
+    onChange?.('');
+    onSearch?.('');
+  }, [onChange, onSearch]);
 
-  blur = () => {
-    if (this.searchInputRef.current) {
-      this.searchInputRef.current.blur();
-    }
-  };
-
-  onSubmit = (evt: React.FormEvent<HTMLFormElement>) => {
-    evt.preventDefault();
-    this.blur();
-    this.props.onSearch(this.state.query);
-  };
-
-  clearSearch = () => {
-    this.setState({query: this.props.defaultQuery}, () => {
-      this.props.onSearch(this.state.query);
-      callIfFunction(this.props.onChange, this.state.query);
-    });
-  };
-
-  onQueryFocus = () => {
-    this.setState({
-      dropdownVisible: true,
-    });
-  };
-
-  onQueryBlur = () => {
-    this.setState({dropdownVisible: false});
-  };
-
-  onQueryChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
-    const {value} = evt.target;
-
-    this.setState({query: value});
-    callIfFunction(this.props.onChange, value);
-  };
-
-  render() {
-    // Remove keys that should not be passed into Input
-    const {
-      className,
-      width,
-      query: _q,
-      defaultQuery,
-      onChange: _oC,
-      onSearch: _oS,
-      ...inputProps
-    } = this.props;
-
-    return (
-      <div className={classNames('search', className)}>
-        <form className="form-horizontal" onSubmit={this.onSubmit}>
-          <div>
-            <StyledInput
-              {...inputProps}
-              type="text"
-              className="search-input"
-              name="query"
-              ref={this.searchInputRef}
-              autoComplete="off"
-              value={this.state.query}
-              onBlur={this.onQueryBlur}
-              onChange={this.onQueryChange}
-              width={width}
-            />
-            <StyledIconSearch className="search-input-icon" size="sm" color="gray300" />
-            {this.state.query !== defaultQuery && (
-              <SearchClearButton
-                type="button"
-                className="search-clear-form"
-                priority="link"
-                onClick={this.clearSearch}
-                size="xs"
-                icon={<IconClose />}
-                aria-label={t('Clear')}
-              />
-            )}
-          </div>
-        </form>
-      </div>
-    );
-  }
+  return (
+    <FormWrap onSubmit={onSubmit} className={className}>
+      <StyledInput
+        {...inputProps}
+        ref={inputRef}
+        type="text"
+        name="query"
+        autoComplete="off"
+        value={query}
+        onChange={onQueryChange}
+        width={width}
+        size={size}
+        showClearButton={!!query}
+      />
+      <StyledIconSearch
+        color="subText"
+        size={size === 'xs' ? 'xs' : 'sm'}
+        inputSize={size}
+      />
+      {!!query && (
+        <SearchClearButton
+          type="button"
+          priority="link"
+          onClick={clearSearch}
+          size="xs"
+          icon={<IconClose size="xs" />}
+          aria-label={t('Clear')}
+          inputSize={size}
+        />
+      )}
+    </FormWrap>
+  );
 }
 
-const StyledInput = styled(Input)`
+const FormWrap = styled('form')`
+  display: block;
+  position: relative;
+`;
+
+const StyledInput = styled(Input)<{showClearButton: boolean}>`
   width: ${p => (p.width ? p.width : undefined)};
+  padding-left: ${p => `calc(
+    ${p.theme.formPadding[p.size ?? 'md'].paddingLeft}px * 1.5 +
+    ${p.theme.iconSizes.sm}
+  )`};
 
-  &.focus-visible {
-    box-shadow: 0 0 0 1px ${p => p.theme.focusBorder};
-    border-color: ${p => p.theme.focusBorder};
-    outline: none;
-  }
+  ${p =>
+    p.showClearButton &&
+    `
+      padding-right: calc(
+        ${p.theme.formPadding[p.size ?? 'md'].paddingRight}px * 1.5 +
+        ${p.theme.iconSizes.xs}
+      );
+    `}
 `;
 
-const StyledIconSearch = styled(IconSearch)`
+const StyledIconSearch = styled(IconSearch, {
+  shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
+})<{inputSize: InputProps['size']}>`
+  position: absolute;
+  top: 50%;
+  left: ${p => p.theme.formPadding[p.inputSize ?? 'md'].paddingLeft}px;
+  transform: translateY(-50%);
+  pointer-events: none;
+`;
+
+const SearchClearButton = styled(Button)<{inputSize: InputProps['size']}>`
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  left: 14px;
-`;
-
-const SearchClearButton = styled(Button)`
-  position: absolute;
-  top: 50%;
-  height: 16px;
-  transform: translateY(-50%);
-  right: 10px;
+  right: ${p => p.theme.formPadding[p.inputSize ?? 'md'].paddingRight}px;
   font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.gray200};
+  color: ${p => p.theme.subText};
 
   &:hover {
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.textColor};
   }
 `;
 
