@@ -1,4 +1,4 @@
-import {useMemo, useRef, useState} from 'react';
+import {useCallback, useRef, useState} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
@@ -7,7 +7,6 @@ import Input, {InputProps} from 'sentry/components/input';
 import {IconSearch} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 
 interface SearchBarProps extends Omit<InputProps, 'onChange'> {
   defaultQuery?: string;
@@ -31,25 +30,30 @@ function SearchBar({
 
   const [query, setQuery] = useState(queryProp ?? defaultQuery);
 
-  function onQueryChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const {value} = e.target;
-    setQuery(value);
-    callIfFunction(onChange, value);
-  }
+  const onQueryChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const {value} = e.target;
+      setQuery(value);
+      onChange?.(value);
+    },
+    [onChange]
+  );
 
-  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    inputRef.current?.blur();
-    callIfFunction(onSearch, query);
-  }
+  const onSubmit = useCallback(
+    (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      inputRef.current?.blur();
+      onSearch?.(query);
+    },
+    [onSearch, query]
+  );
 
-  function clearSearch() {
+  const clearSearch = useCallback(() => {
     setQuery('');
-    callIfFunction(onChange, '');
-    callIfFunction(onSearch, '');
-  }
+    onChange?.('');
+    onSearch?.('');
+  }, [onChange, onSearch]);
 
-  const iconSize = useMemo(() => (size === 'xs' ? 'xs' : 'sm'), [size]);
   return (
     <FormWrap onSubmit={onSubmit} className={className}>
       <StyledInput
@@ -64,7 +68,11 @@ function SearchBar({
         size={size}
         showClearButton={!!query}
       />
-      <StyledIconSearch color="subText" size={iconSize} inputSize={size} />
+      <StyledIconSearch
+        color="subText"
+        size={size === 'xs' ? 'xs' : 'sm'}
+        inputSize={size}
+      />
       {!!query && (
         <SearchClearButton
           type="button"
