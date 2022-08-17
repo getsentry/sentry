@@ -1421,6 +1421,24 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200, response.data
         assert response.data["projects"] == []
 
+    def test_update_dashboard_with_release_ids(self):
+        release = self.create_release(version="v1")
+        dashboard = Dashboard.objects.create(
+            title="Dashboard",
+            created_by=self.user,
+            organization=self.organization,
+        )
+        data = {"filters": {"releaseId": [release.id]}}
+        response = self.do_request("put", self.url(dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+        assert response.data["filters"]["releaseObj"] == [
+            {
+                "id": "1",
+                "version": "v1",
+                "dateCreated": release.date_added,
+            }
+        ]
+
 
 class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):
     def url(self, dashboard_id):
