@@ -7,13 +7,13 @@ sentry.models.deploy
 from django.db import models
 from django.utils import timezone
 
-from sentry.app import locks
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
 )
+from sentry.locks import locks
 from sentry.types.activity import ActivityType
 from sentry.utils.retries import TimedRetryPolicy
 

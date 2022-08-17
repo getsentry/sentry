@@ -7,13 +7,16 @@ import GenericDiscoverQuery, {
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import useApi from 'sentry/utils/useApi';
 
-export interface MetricsCompatibilityData {
-  compatible_projects?: number[];
-  dynamic_sampling_projects?: number[];
+export interface MetricsCompatibilitySumData {
+  sum: {
+    metrics?: number;
+    metrics_null?: number;
+    metrics_unparam?: number;
+  };
 }
 
 type QueryProps = Omit<DiscoverQueryProps, 'eventView' | 'api'> & {
-  children: (props: GenericChildrenProps<MetricsCompatibilityData>) => React.ReactNode;
+  children: (props: GenericChildrenProps<MetricsCompatibilitySumData>) => React.ReactNode;
   eventView: EventView;
 };
 
@@ -29,11 +32,11 @@ function getRequestPayload({
   ]);
 }
 
-export default function MetricsCompatibilityQuery({children, ...props}: QueryProps) {
+export default function MetricsCompatibilitySumsQuery({children, ...props}: QueryProps) {
   const api = useApi();
   return (
-    <GenericDiscoverQuery<MetricsCompatibilityData, {}>
-      route="metrics-compatibility-sums"
+    <GenericDiscoverQuery<MetricsCompatibilitySumData, {}>
+      route="metrics-compatibility"
       getRequestPayload={getRequestPayload}
       {...props}
       api={api}
