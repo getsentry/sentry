@@ -5,7 +5,10 @@ from tools.flake8_plugin import SentryCheck
 
 def _run(src):
     tree = ast.parse(src)
-    return sorted("t.py:{}:{}: {}".format(*error) for error in SentryCheck(tree=tree).run())
+    return sorted(
+        "t.py:{}:{}: {}".format(*error)
+        for error in SentryCheck(tree=tree, filename="getsentry/foo.py").run()
+    )
 
 
 def test_S001():
@@ -75,4 +78,14 @@ class Test(unittest.TestCase):
     errors = _run(S004_py)
     assert errors == [
         "t.py:7:13: S004 Use `pytest.raises` instead for better debuggability.",
+    ]
+
+
+def test_S005():
+    S005_py = """\
+from sentry.models import User
+"""
+    errors = _run(S005_py)
+    assert errors == [
+        "t.py:1:0: S005 Do not import models from sentry.models but the actual module",
     ]
