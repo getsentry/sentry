@@ -27,7 +27,7 @@ GROUP_OWNER_TYPE = {
 class OwnersSerialized(TypedDict):
     type: GroupOwnerType
     owner: str
-    date_added: models.DateTimeField
+    dateAdded: models.DateTimeField
 
 
 class OwnersSerializedWithCommits(TypedDict):
