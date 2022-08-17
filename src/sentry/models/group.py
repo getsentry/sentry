@@ -408,9 +408,9 @@ class Group(Model):
     type = BoundedPositiveIntegerField(
         default=GroupType.ERROR.value,
         choices=(
-            (GroupType.ERROR, _("Error")),
-            (GroupType.PERFORMANCE_N_PLUS_ONE, _("N Plus One")),
-            (GroupType.PERFORMANCE_SLOW_SPAN, _("Slow Span")),
+            (GroupType.ERROR.value, _("Error")),
+            (GroupType.PERFORMANCE_N_PLUS_ONE.value, _("N Plus One")),
+            (GroupType.PERFORMANCE_SLOW_SPAN.value, _("Slow Span")),
         ),
     )
 
