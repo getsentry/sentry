@@ -117,12 +117,10 @@ class AuthVerifyEndpointTest(APITestCase):
         assert {"response": "response"} in validate_response.call_args[0]
 
 
-class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, AuthVerifyEndpointTest, APITestCase):
+class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
     path = "/api/0/auth/"
 
-    @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
-    @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
-    def test_superuser_sso_user_no_password_saas_product(self, validate_response, is_available):
+    def test_superuser_sso_user_no_password_saas_product(self):
         from sentry.auth.superuser import COOKIE_NAME, Superuser
 
         with self.settings(SENTRY_SELF_HOSTED=False):
@@ -131,8 +129,6 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, AuthVerifyEndpointTe
             )
 
             user = self.create_user("foo@example.com", is_superuser=True)
-
-            self.get_auth(user)
 
             user.update(password="")
 
@@ -147,8 +143,6 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, AuthVerifyEndpointTe
                         self.path,
                         data={
                             "isSuperuserModal": True,
-                            "challenge": """{"challenge":"challenge"}""",
-                            "response": """{"response":"response"}""",
                             "superuserAccessCategory": "for_unit_test",
                             "superuserReason": "for testing",
                         },
@@ -156,37 +150,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, AuthVerifyEndpointTe
                     assert response.status_code == 200
                     assert COOKIE_NAME in response.cookies
 
-    def test_superuser_sso_user_no_u2f_saas_product(self):
-        from sentry.auth.superuser import Superuser
-
-        with self.settings(SENTRY_SELF_HOSTED=False):
-            org_provider = AuthProvider.objects.create(
-                organization=self.organization, provider="dummy"
-            )
-
-            user = self.create_user("foo@example.com", is_superuser=True)
-
-            self.get_auth(user)
-
-            AuthIdentity.objects.create(user=user, auth_provider=org_provider)
-
-            with mock.patch.object(Superuser, "org_id", self.organization.id), override_settings(
-                SUPERUSER_ORG_ID=self.organization.id
-            ):
-                with self.settings(SENTRY_SELF_HOSTED=False):
-                    self.login_as(user, organization_id=self.organization.id)
-                    response = self.client.put(
-                        self.path,
-                        data={
-                            "isSuperuserModal": True,
-                            "superuserReason": "for testing",
-                        },
-                    )
-                    assert response.status_code == 403
-
-    @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
-    @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
-    def test_superuser_sso_user_has_password_saas_product(self, validate_response, is_available):
+    def test_superuser_sso_user_has_password_saas_product(self):
         from sentry.auth.superuser import COOKIE_NAME, Superuser
 
         with self.settings(
@@ -198,8 +162,6 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, AuthVerifyEndpointTe
 
             user = self.create_user("foo@example.com", is_superuser=True)
 
-            self.get_auth(user)
-
             AuthIdentity.objects.create(user=user, auth_provider=org_provider)
 
             with mock.patch.object(Superuser, "org_id", self.organization.id), override_settings(
@@ -211,8 +173,6 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, AuthVerifyEndpointTe
                         self.path,
                         data={
                             "isSuperuserModal": True,
-                            "challenge": """{"challenge":"challenge"}""",
-                            "response": """{"response":"response"}""",
                             "superuserAccessCategory": "for_unit_test",
                             "superuserReason": "for testing",
                         },
@@ -220,9 +180,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, AuthVerifyEndpointTe
                     assert response.status_code == 200
                     assert COOKIE_NAME in response.cookies
 
-    @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
-    @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
-    def test_superuser_no_sso_user_has_password_saas_product(self, validate_response, is_available):
+    def test_superuser_no_sso_user_has_password_saas_product(self):
         from sentry.auth.superuser import Superuser
 
         with self.settings(
@@ -231,8 +189,6 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, AuthVerifyEndpointTe
             AuthProvider.objects.create(organization=self.organization, provider="dummy")
 
             user = self.create_user("foo@example.com", is_superuser=True)
-
-            self.get_auth(user)
 
             with mock.patch.object(Superuser, "org_id", self.organization.id), override_settings(
                 SUPERUSER_ORG_ID=self.organization.id
