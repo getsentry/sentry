@@ -358,6 +358,9 @@ class GroupType(Enum):
     PERFORMANCE_N_PLUS_ONE = 1000
     PERFORMANCE_SLOW_SPAN = 1001
 
+class IssueCategory(Enum):
+    ERROR = 1
+    PERFORMANCE = 2
 
 class Group(Model):
     """
@@ -661,24 +664,31 @@ class Group(Model):
     def times_seen_pending(self, times_seen: int):
         self._times_seen_pending = times_seen
 
-    def get_issue_category(self):
-        from sentry.types.issues import Issue, TransactionNPlusOneIssue, TransactionSlowSpanIssue
+    def get_type_category_mapping(self):
+        return {
+            GroupType.ERROR: IssueCategory.ERROR,
+            GroupType.PERFORMANCE_N_PLUS_ONE: IssueCategory.PERFORMANCE,
+            GroupType.PERFORMANCE_SLOW_SPAN: IssueCategory.PERFORMANCE,
+        }
 
-        if self.type == GroupType.ERROR.value:
-            return Issue()
-        elif self.type == GroupType.PERFORMANCE_N_PLUS_ONE.value:
-            return TransactionNPlusOneIssue()
-        elif self.type == GroupType.PERFORMANCE_SLOW_SPAN.value:
-            return TransactionSlowSpanIssue()
+    def get_category_type_mapping(self):
+        category_type_mapping = {}
 
-        return None
+        for type, category in self.get_type_category_mapping().items():
+            if category_type_mapping.get(category):
+                category_type_mapping[category].append(type)
+            else:
+                category_type_mapping[category] = [type]
+
+        return category_type_mapping
 
     @property
     def issue_type(self):
-        issue = self.get_issue_category()
-        return issue.type
+        return GroupType(self.type)
 
     @property
-    def issue_subtype(self):
-        issue = self.get_issue_category()
-        return issue.subtype
+    def issue_category(self):
+        for type, category in self.get_type_category_mapping().items():
+            if type == self.issue_type:
+                return category
+        return None
