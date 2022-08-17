@@ -19,6 +19,8 @@ def fix(data):
 
 
 def override_actor_id(user):
+    # overrides the usage of actor_id only to make SCIM token
+    # name more readable (for now)
     scim_prefix = "scim-internal-integration-"
     scim_regex = re.compile(
         scim_prefix
