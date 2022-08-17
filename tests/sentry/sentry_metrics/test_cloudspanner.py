@@ -19,8 +19,7 @@ from sentry.sentry_metrics.indexer.id_generator import get_id
 
 @pytest.fixture(scope="module")
 def testing_indexer():
-    indexer = RawCloudSpannerIndexer(instance_id="",
-                                     database_id="")
+    indexer = RawCloudSpannerIndexer(instance_id="", database_id="")
 
     indexer.validate()
     return indexer
@@ -56,7 +55,7 @@ def get_random_string(length: int) -> str:
     return "".join(random.choice(string.ascii_letters) for _ in range(length))
 
 
-#@pytest.mark.skip(reason="TODO: Implement it correctly")
+# @pytest.mark.skip(reason="TODO: Implement it correctly")
 def test_spanner_indexer_implementation_basic(testing_indexer):
     """
     Test the basic implementation of the CloudSpannerIndexer by performing a
