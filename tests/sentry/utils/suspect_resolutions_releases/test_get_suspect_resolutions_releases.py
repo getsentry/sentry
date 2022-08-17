@@ -4,6 +4,7 @@ from unittest import mock
 from django.utils import timezone
 
 from sentry.models import GroupRelease, GroupStatus, ReleaseProject
+from sentry.signals import release_created
 from sentry.testutils import TestCase
 from sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases import (
     get_suspect_resolutions_releases,
@@ -44,3 +45,14 @@ class GetSuspectResolutionsReleasesTest(TestCase):
                 latest_release_id=rp1.release_id,
             )
         ]
+
+    @mock.patch(
+        "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases.get_suspect_resolutions_releases"
+    )
+    def test_record_suspect_resolutions_releases(self, mock_record_suspect_resolutions_releases):
+        release = self.create_release(date_added=timezone.now())
+
+        with self.feature("projects:suspect-resolutions"):
+            release_created.send(release=release, sender=self.__class__)
+
+        assert len(mock_record_suspect_resolutions_releases.mock_calls) == 1

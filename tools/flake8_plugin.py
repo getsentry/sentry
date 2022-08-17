@@ -18,14 +18,25 @@ S003_modules = frozenset(("json", "simplejson"))
 S004_msg = "S004 Use `pytest.raises` instead for better debuggability."
 S004_methods = frozenset(("assertRaises", "assertRaisesRegex"))
 
+S005_msg = "S005 Do not import models from sentry.models but the actual module"
+
 
 class SentryVisitor(ast.NodeVisitor):
-    def __init__(self) -> None:
+    def __init__(self, filename: str) -> None:
         self.errors: list[tuple[int, int, str]] = []
+        self.filename = filename
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
-        if node.module and not node.level and node.module.split(".")[0] in S003_modules:
-            self.errors.append((node.lineno, node.col_offset, S003_msg))
+        if node.module and not node.level:
+            if node.module.split(".")[0] in S003_modules:
+                self.errors.append((node.lineno, node.col_offset, S003_msg))
+            # for now only enforce this in getsentry
+            elif (
+                "getsentry/" in self.filename
+                and node.module == "sentry.models"
+                and any(x.name.isupper() or x.name.istitle() for x in node.names)
+            ):
+                self.errors.append((node.lineno, node.col_offset, S005_msg))
 
         self.generic_visit(node)
 
@@ -55,11 +66,12 @@ class SentryCheck:
     name = "sentry-flake8"
     version = "0"
 
-    def __init__(self, tree: ast.AST) -> None:
+    def __init__(self, tree: ast.AST, filename: str) -> None:
         self.tree = tree
+        self.filename = filename
 
     def run(self) -> Generator[tuple[int, int, str, type[Any]], None, None]:
-        visitor = SentryVisitor()
+        visitor = SentryVisitor(self.filename)
         visitor.visit(self.tree)
 
         for e in visitor.errors:
