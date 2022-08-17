@@ -27,7 +27,7 @@ class GetSuspectResolutionsTest(TestCase):
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_error_rate_correlated",
         mock.Mock(
             return_value=IssueReleaseMetricCorrResult(
-                [(CandidateMetricCorrResult(0, True, 0.5))],
+                [(CandidateMetricCorrResult(0, True, 0.5, 100, 100))],
                 timezone.now(),
                 timezone.now() - timedelta(days=1),
                 timezone.now() - timedelta(hours=2),
@@ -56,7 +56,7 @@ class GetSuspectResolutionsTest(TestCase):
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_error_rate_correlated",
         mock.Mock(
             return_value=IssueReleaseMetricCorrResult(
-                [(CandidateMetricCorrResult(0, True, 0.5))],
+                [(CandidateMetricCorrResult(0, True, 0.5, 100, 100))],
                 timezone.now(),
                 timezone.now() - timedelta(days=1),
                 timezone.now() - timedelta(hours=2),
@@ -80,7 +80,7 @@ class GetSuspectResolutionsTest(TestCase):
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_error_rate_correlated",
         mock.Mock(
             return_value=IssueReleaseMetricCorrResult(
-                [(CandidateMetricCorrResult(0, False, 0.2))],
+                [(CandidateMetricCorrResult(0, False, 0.2, 100, 100))],
                 timezone.now(),
                 timezone.now() - timedelta(days=1),
                 timezone.now() - timedelta(hours=2),
@@ -103,7 +103,7 @@ class GetSuspectResolutionsTest(TestCase):
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_error_rate_correlated",
         mock.Mock(
             return_value=IssueReleaseMetricCorrResult(
-                [(CandidateMetricCorrResult(0, False, 0.2))],
+                [(CandidateMetricCorrResult(0, False, 0.2, 100, 100))],
                 timezone.now(),
                 timezone.now() - timedelta(days=1),
                 timezone.now() - timedelta(hours=2),
@@ -158,7 +158,7 @@ class GetSuspectResolutionsTest(TestCase):
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_error_rate_correlated",
         mock.Mock(
             return_value=IssueReleaseMetricCorrResult(
-                [(CandidateMetricCorrResult(0, True, 0.5))],
+                [(CandidateMetricCorrResult(0, True, 0.5, 100, 100))],
                 datetime(2022, 1, 3),
                 datetime(2022, 1, 2),
                 datetime(2022, 1, 1),
@@ -193,6 +193,8 @@ class GetSuspectResolutionsTest(TestCase):
                 is_commit_correlated=True,
                 resolved_issue_release_ids=[1, 2],
                 candidate_issue_release_ids=[3, 4],
+                resolved_issue_total_events=100,
+                candidate_issue_total_events=100,
             )
         ]
 
@@ -202,9 +204,7 @@ class GetSuspectResolutionsTest(TestCase):
         project = self.create_project(organization=organization)
         user = self.create_user()
         resolved_issue = self.create_group(project=project)
-        resolution_type = Activity.objects.create(
-            project=project, group=resolved_issue, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
-        )
+        resolution_type = "in_release"
 
         with self.feature("projects:suspect-resolutions"):
             issue_resolved.send(
@@ -212,7 +212,7 @@ class GetSuspectResolutionsTest(TestCase):
                 project=project,
                 group=resolved_issue,
                 user=user,
-                resolution_type=resolution_type.type,
+                resolution_type=resolution_type,
                 sender=type(self.project),
             )
 

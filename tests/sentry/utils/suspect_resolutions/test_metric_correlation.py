@@ -56,6 +56,9 @@ class MetricCorrelationTest(TestCase):
         group1_pearson_values = [events for _, events in group1_events]
         group2_pearson_values = [events for _, events in group2_events]
 
+        group1_total_events = sum(group1_pearson_values)
+        group2_total_events = sum(group2_pearson_values)
+
         coefficient = calculate_pearson_correlation_coefficient(
             group1_pearson_values, group2_pearson_values
         )
@@ -67,6 +70,8 @@ class MetricCorrelationTest(TestCase):
                 candidate_suspect_resolution_id=group2.id,
                 is_correlated=True,
                 coefficient=coefficient,
+                candidate_issue_total_events=group2_total_events,
+                resolved_issue_total_events=group1_total_events,
             )
         ]
         assert result.issue_resolved_time == group1.resolved_at
@@ -85,6 +90,9 @@ class MetricCorrelationTest(TestCase):
         group1_pearson_values = [events for _, events in group1_events]
         group2_pearson_values = [events for _, events in group2_events]
 
+        group1_total_events = sum(group1_pearson_values)
+        group2_total_events = sum(group2_pearson_values)
+
         coefficient = calculate_pearson_correlation_coefficient(
             group1_pearson_values, group2_pearson_values
         )
@@ -96,6 +104,8 @@ class MetricCorrelationTest(TestCase):
                 candidate_suspect_resolution_id=group2.id,
                 is_correlated=False,
                 coefficient=coefficient,
+                candidate_issue_total_events=group2_total_events,
+                resolved_issue_total_events=group1_total_events,
             )
         ]
         assert result.issue_resolved_time == group1.resolved_at
@@ -113,6 +123,9 @@ class MetricCorrelationTest(TestCase):
         group1_pearson_values = [events for _, events in group1_events]
         group2_pearson_values = [events for _, events in group1_events]
 
+        group1_total_events = sum(group1_pearson_values)
+        group2_total_events = sum(group2_pearson_values)
+
         coefficient = calculate_pearson_correlation_coefficient(
             group1_pearson_values, group2_pearson_values
         )
@@ -124,6 +137,8 @@ class MetricCorrelationTest(TestCase):
                 candidate_suspect_resolution_id=group2.id,
                 is_correlated=True,
                 coefficient=coefficient,
+                candidate_issue_total_events=group2_total_events,
+                resolved_issue_total_events=group1_total_events,
             )
         ]
         assert result.issue_resolved_time == group1.resolved_at
@@ -158,6 +173,11 @@ class MetricCorrelationTest(TestCase):
         group3_pearson_values = [events for _, events in group3_events]
         group4_pearson_values = [events for _, events in group4_events]
 
+        group1_total_events = sum(group1_pearson_values)
+        group2_total_events = sum(group2_pearson_values)
+        group3_total_events = sum(group3_pearson_values)
+        group4_total_events = sum(group4_pearson_values)
+
         coefficient_group2 = calculate_pearson_correlation_coefficient(
             group1_pearson_values, group2_pearson_values
         )
@@ -175,16 +195,22 @@ class MetricCorrelationTest(TestCase):
                 candidate_suspect_resolution_id=group2.id,
                 is_correlated=True,
                 coefficient=coefficient_group2,
+                candidate_issue_total_events=group2_total_events,
+                resolved_issue_total_events=group1_total_events,
             ),
             CandidateMetricCorrResult(
                 candidate_suspect_resolution_id=group3.id,
                 is_correlated=True,
                 coefficient=coefficient_group3,
+                candidate_issue_total_events=group3_total_events,
+                resolved_issue_total_events=group1_total_events,
             ),
             CandidateMetricCorrResult(
                 candidate_suspect_resolution_id=group4.id,
                 is_correlated=True,
                 coefficient=coefficient_group4,
+                candidate_issue_total_events=group4_total_events,
+                resolved_issue_total_events=group1_total_events,
             ),
         ]
         assert result.issue_resolved_time == group1.resolved_at
