@@ -1,6 +1,7 @@
 import {CSSProperties, useCallback, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
@@ -15,6 +16,7 @@ import {Organization, PageFilters, SelectValue} from 'sentry/types';
 import usePrevious from 'sentry/utils/usePrevious';
 import {DashboardFilters, DisplayType, Widget} from 'sentry/views/dashboardsV2/types';
 
+import {getDashboardFiltersFromURL} from '../../utils';
 import WidgetCard, {WidgetCardPanel} from '../../widgetCard';
 import {displayTypes} from '../utils';
 
@@ -22,6 +24,7 @@ import {BuildStep} from './buildStep';
 
 interface Props {
   displayType: DisplayType;
+  location: Location;
   onChange: (displayType: DisplayType) => void;
   organization: Organization;
   pageFilters: PageFilters;
@@ -40,6 +43,7 @@ export function VisualizationStep({
   widget,
   noDashboardsMEPProvider,
   dashboardFilters,
+  location,
 }: Props) {
   const [debouncedWidget, setDebouncedWidget] = useState(widget);
 
@@ -104,7 +108,7 @@ export function VisualizationStep({
           organization={organization}
           selection={pageFilters}
           widget={debouncedWidget}
-          dashboardFilters={dashboardFilters}
+          dashboardFilters={getDashboardFiltersFromURL(location) ?? dashboardFilters}
           isEditing={false}
           widgetLimitReached={false}
           renderErrorMessage={errorMessage =>

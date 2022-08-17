@@ -1,7 +1,7 @@
 import isArray from 'lodash/isArray';
-import isUndefined from 'lodash/isUndefined';
 import {createStore, StoreDefinition} from 'reflux';
 
+import {Indicator} from 'sentry/actionCreators/indicator';
 import GroupActions from 'sentry/actions/groupActions';
 import {t} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
@@ -15,34 +15,16 @@ import {
 } from 'sentry/types';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-function showAlert(msg, type) {
+function showAlert(msg: string, type: Indicator['type']) {
   IndicatorStore.addMessage(msg, type, {duration: 4000});
 }
 
-// TODO(ts) Type this any better.
-type Change = [string, string, any];
+type ChangeId = string;
 
-class PendingChangeQueue {
-  changes: Change[] = [];
-
-  getForItem(itemId: string) {
-    return this.changes.filter((change: Change) => change[1] === itemId);
-  }
-
-  push(changeId: string, itemId: string, data: any) {
-    this.changes.push([changeId, itemId, data]);
-  }
-
-  remove(changeId: string, itemId?: string) {
-    this.changes = this.changes.filter(
-      change => change[0] !== changeId || change[1] !== itemId
-    );
-  }
-
-  forEach(...args: any[]) {
-    this.changes.forEach.apply(this.changes, args);
-  }
-}
+type Change = {
+  data: any;
+  itemId: string;
+};
 
 type Item = BaseGroup | Group | GroupCollapseRelease;
 
@@ -51,7 +33,7 @@ interface InternalDefinition {
   indexOfActivity: (groupId: string, id: string) => number;
   items: Item[];
 
-  pendingChanges: PendingChangeQueue;
+  pendingChanges: Map<ChangeId, Change>;
   removeActivity: (groupId: string, id: string) => number;
   statuses: Record<string, Record<string, boolean>>;
   updateActivity: (groupId: string, id: string, data: Partial<Activity>) => void;
@@ -93,13 +75,15 @@ interface GroupStoreDefinition extends StoreDefinition, InternalDefinition {
     itemIds: string[],
     response: Partial<Group>
   ) => void;
+
   remove: (itemIds: string[]) => void;
+
   reset: () => void;
 }
 
 const storeConfig: GroupStoreDefinition = {
   listenables: [GroupActions],
-  pendingChanges: new PendingChangeQueue(),
+  pendingChanges: new Map(),
   items: [],
   statuses: {},
 
@@ -108,7 +92,7 @@ const storeConfig: GroupStoreDefinition = {
   },
 
   reset() {
-    this.pendingChanges = new PendingChangeQueue();
+    this.pendingChanges = new Map();
     this.items = [];
     this.statuses = {};
   },
@@ -163,28 +147,25 @@ const storeConfig: GroupStoreDefinition = {
   },
 
   addStatus(id, status) {
-    if (isUndefined(this.statuses[id])) {
+    if (this.statuses[id] === undefined) {
       this.statuses[id] = {};
     }
     this.statuses[id][status] = true;
   },
 
   clearStatus(id, status) {
-    if (isUndefined(this.statuses[id])) {
+    if (this.statuses[id] === undefined) {
       return;
     }
     this.statuses[id][status] = false;
   },
 
   hasStatus(id, status) {
-    if (isUndefined(this.statuses[id])) {
-      return false;
-    }
-    return this.statuses[id][status] || false;
+    return this.statuses[id]?.[status] || false;
   },
 
-  indexOfActivity(group_id, id) {
-    const group = this.get(group_id);
+  indexOfActivity(groupId, id) {
+    const group = this.get(groupId);
     if (!group) {
       return -1;
     }
@@ -216,13 +197,13 @@ const storeConfig: GroupStoreDefinition = {
     this.trigger(new Set([id]));
   },
 
-  updateActivity(group_id, id, data) {
-    const group = this.get(group_id);
+  updateActivity(groupId, id, data) {
+    const group = this.get(groupId);
     if (!group) {
       return;
     }
 
-    const index = this.indexOfActivity(group_id, id);
+    const index = this.indexOfActivity(groupId, id);
     if (index === -1) {
       return;
     }
@@ -234,8 +215,8 @@ const storeConfig: GroupStoreDefinition = {
     this.trigger(new Set([group.id]));
   },
 
-  removeActivity(group_id, id) {
-    const group = this.get(group_id);
+  removeActivity(groupId, id) {
+    const group = this.get(groupId);
     if (!group) {
       return -1;
     }
@@ -264,29 +245,24 @@ const storeConfig: GroupStoreDefinition = {
   },
 
   getAllItems() {
-    // regroup pending changes by their itemID
-    const pendingById = {};
+    // Merge pending changes into the existing group items. This gives the
+    // apperance of optimistic updates
+    const pendingById: Record<string, Change[]> = {};
+
     this.pendingChanges.forEach(change => {
-      if (isUndefined(pendingById[change.id])) {
-        pendingById[change.id] = [];
-      }
-      pendingById[change.id].push(change);
+      const existing = pendingById[change.itemId] ?? [];
+      pendingById[change.itemId] = [...existing, change];
     });
 
-    return this.items.map(item => {
-      let rItem = item;
-      if (!isUndefined(pendingById[item.id])) {
-        // copy the object so dirty state doesnt mutate original
-        rItem = {...rItem};
-        pendingById[item.id].forEach(change => {
-          rItem = {
-            ...rItem,
-            ...change.params,
-          };
-        });
-      }
-      return rItem;
-    });
+    // Merge pending changes into the item if it has them
+    return this.items.map(item =>
+      pendingById[item.id] === undefined
+        ? item
+        : {
+            ...item,
+            ...pendingById[item.id].reduce((a, change) => ({...a, ...change.data}), {}),
+          }
+    );
   },
 
   onAssignTo(_changeId, itemId, _data) {
@@ -416,10 +392,7 @@ const storeConfig: GroupStoreDefinition = {
    * If itemIds is undefined, returns all ids in the store
    */
   _itemIdsOrAll(itemIds) {
-    if (isUndefined(itemIds)) {
-      itemIds = this.items.map(item => item.id);
-    }
-    return itemIds;
+    return itemIds === undefined ? this.getAllItemIds() : itemIds;
   },
 
   onUpdate(changeId, itemIds, data) {
@@ -427,7 +400,7 @@ const storeConfig: GroupStoreDefinition = {
 
     itemIds.forEach(itemId => {
       this.addStatus(itemId, 'update');
-      this.pendingChanges.push(changeId, itemId, data);
+      this.pendingChanges.set(changeId, {itemId, data});
     });
     this.trigger(new Set(itemIds));
   },
@@ -435,7 +408,7 @@ const storeConfig: GroupStoreDefinition = {
   onUpdateError(changeId, itemIds, _error, failSilently) {
     itemIds = this._itemIdsOrAll(itemIds);
 
-    this.pendingChanges.remove(changeId);
+    this.pendingChanges.delete(changeId);
     itemIds.forEach(itemId => {
       this.clearStatus(itemId, 'update');
     });
@@ -457,7 +430,7 @@ const storeConfig: GroupStoreDefinition = {
         this.clearStatus(item.id, 'update');
       }
     });
-    this.pendingChanges.remove(changeId);
+    this.pendingChanges.delete(changeId);
     this.trigger(new Set(itemIds));
   },
 
