@@ -15,11 +15,6 @@ def before_now(**kwargs):
     return date - timedelta(microseconds=date.microsecond % 1000)
 
 
-def before(timestamp, **kwargs):
-    date = timestamp - timedelta(**kwargs)
-    return date - timedelta(microseconds=date.microsecond % 1000)
-
-
 def timestamp_format(datetime):
     return time.mktime(datetime.utctimetuple()) + datetime.microsecond / 1e6
 
