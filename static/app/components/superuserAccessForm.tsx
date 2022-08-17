@@ -7,40 +7,92 @@ import Alert from 'sentry/components/alert';
 import Form from 'sentry/components/forms/form';
 import Hook from 'sentry/components/hook';
 import ThemeAndStyleProvider from 'sentry/components/themeAndStyleProvider';
+import U2fContainer from 'sentry/components/u2f/u2fContainer';
 import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {Authenticator} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
 import Button from './button';
+
+type OnTapProps = NonNullable<React.ComponentProps<typeof U2fContainer>['onTap']>;
 
 type Props = {
   api: Client;
 };
 
 type State = {
+  authenticators: Array<Authenticator>;
   error: boolean;
   errorType: string;
+  showAccessForms: boolean;
+  superuserAccessCategory: string;
+  superuserReason: string;
 };
 
 class SuperuserAccessForm extends Component<Props, State> {
   state: State = {
+    authenticators: [],
     error: false,
     errorType: '',
+    showAccessForms: true,
+    superuserAccessCategory: '',
+    superuserReason: '',
   };
 
-  handleSubmit = async () => {
-    const {api} = this.props;
-    const data = {
-      isSuperuserModal: true,
+  componentDidMount() {
+    this.getAuthenticators();
+  }
+
+  handleSubmitCOPS = () => {
+    this.setState({
       superuserAccessCategory: 'cops_csm',
       superuserReason: 'COPS and CSM use',
-    };
+    });
+  };
+
+  handleSubmit = async data => {
+    const {api} = this.props;
+    const {superuserAccessCategory, superuserReason, authenticators} = this.state;
+
+    const suAccessCategory = superuserAccessCategory || data.superuserAccessCategory;
+
+    const suReason = superuserReason || data.superuserReason;
+
+    if (!authenticators.length) {
+      this.handleError('No Authenticator');
+      return;
+    }
+
+    if (this.state.showAccessForms) {
+      this.setState({
+        showAccessForms: false,
+        superuserAccessCategory: suAccessCategory,
+        superuserReason: suReason,
+      });
+    } else {
+      try {
+        await api.requestPromise('/auth/', {method: 'PUT', data});
+        this.handleSuccess();
+      } catch (err) {
+        this.handleError(err);
+      }
+    }
+  };
+
+  handleU2fTap = async (data: Parameters<OnTapProps>[0]) => {
+    const {api} = this.props;
+
     try {
+      data.isSuperuserModal = true;
+      data.superuserAccessCategory = this.state.superuserAccessCategory;
+      data.superuserReason = this.state.superuserReason;
       await api.requestPromise('/auth/', {method: 'PUT', data});
       this.handleSuccess();
     } catch (err) {
-      this.handleError(err);
+      // u2fInterface relies on this
+      throw err;
     }
   };
 
@@ -51,17 +103,24 @@ class SuperuserAccessForm extends Component<Props, State> {
   handleError = err => {
     let errorType = '';
     if (err.status === 403) {
-      errorType = ErrorCodes.invalidPassword;
+      if (err.responseJSON.detail.code === 'no_u2f') {
+        errorType = ErrorCodes.noAuthenticator;
+      } else {
+        errorType = ErrorCodes.invalidPassword;
+      }
     } else if (err.status === 401) {
       errorType = ErrorCodes.invalidSSOSession;
     } else if (err.status === 400) {
       errorType = ErrorCodes.invalidAccessCategory;
+    } else if (err === 'No Authenticator') {
+      errorType = ErrorCodes.noAuthenticator;
     } else {
       errorType = ErrorCodes.unknownError;
     }
     this.setState({
       error: true,
       errorType,
+      showAccessForms: true,
     });
   };
 
@@ -75,8 +134,19 @@ class SuperuserAccessForm extends Component<Props, State> {
     window.location.assign('/auth/login/');
   };
 
+  async getAuthenticators() {
+    const {api} = this.props;
+
+    try {
+      const authenticators = await api.requestPromise('/authenticators/');
+      this.setState({authenticators: authenticators ?? []});
+    } catch {
+      // ignore errors
+    }
+  }
+
   render() {
-    const {error, errorType} = this.state;
+    const {authenticators, error, errorType, showAccessForms} = this.state;
     if (errorType === ErrorCodes.invalidSSOSession) {
       this.handleLogout();
       return null;
@@ -87,6 +157,7 @@ class SuperuserAccessForm extends Component<Props, State> {
           apiMethod="PUT"
           apiEndpoint="/auth/"
           submitLabel={t('Continue')}
+          onSubmit={this.handleSubmit}
           onSubmitSuccess={this.handleSuccess}
           onSubmitError={this.handleError}
           initialData={{isSuperuserModal: true}}
@@ -102,7 +173,14 @@ class SuperuserAccessForm extends Component<Props, State> {
               {t(errorType)}
             </StyledAlert>
           )}
-          <Hook name="component:superuser-access-category" />
+          {showAccessForms && <Hook name="component:superuser-access-category" />}
+          {!showAccessForms && (
+            <U2fContainer
+              authenticators={authenticators}
+              displayMode="sudo"
+              onTap={this.handleU2fTap}
+            />
+          )}
         </Form>
       </ThemeAndStyleProvider>
     );
