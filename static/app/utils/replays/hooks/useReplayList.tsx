@@ -79,6 +79,7 @@ function useReplayList({
         query: eventView.getEventsAPIPayload(location),
       });
 
+      // TODO(replays): Remove the `slice()` call once `pageLinks` is in response headers.
       const records = response.data.slice(0, queryLimit);
 
       // TODO(replays): Response should include pageLinks header instead of this.

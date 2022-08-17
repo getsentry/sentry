@@ -10,7 +10,7 @@ interface Props {
 
 const palette = new Array(10).fill([CHART_PALETTE[0][0]]);
 
-function replayHighlight({replay}: Props) {
+function ReplayHighlight({replay}: Props) {
   let score = 1;
 
   if (replay) {
@@ -26,4 +26,4 @@ function replayHighlight({replay}: Props) {
   return <ScoreBar size={20} score={score} palette={palette} radius={0} />;
 }
 
-export default replayHighlight;
+export default ReplayHighlight;

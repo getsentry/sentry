@@ -126,20 +126,15 @@ function ReplayTableRow({
           <Link
             to={`/organizations/${organization.slug}/replays/${project?.slug}:${replay.id}/`}
           >
-            {replay.user.name ||
+            {replay.user.username ||
+              replay.user.name ||
               replay.user.email ||
               replay.user.ip_address ||
               replay.user.id ||
               ''}
           </Link>
         }
-        user={{
-          email: replay.user.email || '',
-          id: replay.user.id || '',
-          ip_address: replay.user.ip_address || '',
-          name: replay.user.name || '',
-          username: '',
-        }}
+        user={replay.user}
         // this is the subheading for the avatar, so displayEmail in this case is a misnomer
         displayEmail={<StringWalker urls={replay.urls} />}
       />
