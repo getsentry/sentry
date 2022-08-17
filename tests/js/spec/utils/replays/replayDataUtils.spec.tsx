@@ -1,11 +1,11 @@
 import {
   breadcrumbFactory,
   // breadcrumbValuesFromEvents,
-  // replayTimestamps,
   rrwebEventListFactory,
   // spanDataFromEvents,
   // spanEntryFactory,
 } from 'sentry/utils/replays/replayDataUtils';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 describe('breadcrumbFactory', () => {
   function createSpan(extra: {
@@ -34,7 +34,14 @@ describe('breadcrumbFactory', () => {
       }),
     ];
 
-    const results = breadcrumbFactory(0, TestStubs.Event(), [], [], rawSpans);
+    const results = breadcrumbFactory(
+      TestStubs.Event({
+        startedAt: new Date(0),
+      }),
+      [],
+      [],
+      rawSpans
+    );
 
     expect(results).toMatchInlineSnapshot(`
       Array [
@@ -82,7 +89,14 @@ describe('breadcrumbFactory', () => {
       }),
     ];
 
-    const results = breadcrumbFactory(0, TestStubs.Event(), [], [], rawSpans);
+    const results = breadcrumbFactory(
+      TestStubs.Event({
+        startedAt: new Date(0),
+      }),
+      [],
+      [],
+      rawSpans
+    );
 
     expect(results).toMatchInlineSnapshot(`
       Array [
@@ -108,7 +122,12 @@ describe('breadcrumbFactory', () => {
 
 describe('rrwebEventListFactory', () => {
   it('returns a list of replay events for highlights', function () {
-    const results = rrwebEventListFactory(0, 0, []);
+    const replayRecord = {
+      startedAt: new Date(13),
+      finishedAt: new Date(213),
+    } as ReplayRecord;
+
+    const results = rrwebEventListFactory(replayRecord, []);
 
     expect(results).toMatchInlineSnapshot(`
       Array [
@@ -116,7 +135,7 @@ describe('rrwebEventListFactory', () => {
           "data": Object {
             "tag": "replay-end",
           },
-          "timestamp": 0,
+          "timestamp": 13,
           "type": 5,
         },
       ]
@@ -127,8 +146,13 @@ describe('rrwebEventListFactory', () => {
     const startTimestampMs = 0;
     const endTimestampMs = 10_000;
 
+    const replayRecord = {
+      startedAt: new Date(startTimestampMs),
+      finishedAt: new Date(endTimestampMs),
+    } as ReplayRecord;
+
     expect(
-      rrwebEventListFactory(startTimestampMs, endTimestampMs, [
+      rrwebEventListFactory(replayRecord, [
         {type: 0, timestamp: 5_000, data: {}},
         {type: 1, timestamp: 1_000, data: {}},
         {type: 2, timestamp: 3_000, data: {}},

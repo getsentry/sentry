@@ -9,7 +9,7 @@ import re
 import socket
 import sys
 import tempfile
-from datetime import timedelta
+from datetime import datetime, timedelta
 from urllib.parse import urlparse
 
 import sentry
@@ -349,6 +349,7 @@ INSTALLED_APPS = (
     "sentry.plugins.sentry_useragents.apps.Config",
     "sentry.plugins.sentry_webhooks.apps.Config",
     "sentry.utils.suspect_resolutions.apps.Config",
+    "sentry.utils.suspect_resolutions_releases.apps.Config",
     "social_auth",
     "sudo",
     "sentry.eventstream",
@@ -597,6 +598,7 @@ CELERY_IMPORTS = (
     "sentry.release_health.duplex",
     "sentry.release_health.tasks",
     "sentry.utils.suspect_resolutions.get_suspect_resolutions",
+    "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -669,6 +671,7 @@ CELERY_QUEUES = [
     Queue("profiles.process", routing_key="profiles.process"),
     Queue("release_health.duplex", routing_key="release_health.duplex"),
     Queue("get_suspect_resolutions", routing_key="get_suspect_resolutions"),
+    Queue("get_suspect_resolutions_releases", routing_key="get_suspect_resolutions_releases"),
 ]
 
 for queue in CELERY_QUEUES:
@@ -973,8 +976,6 @@ SENTRY_FEATURES = {
     "organizations:performance-frontend-use-events-endpoint": True,
     # Enables events endpoint rate limit
     "organizations:discover-events-rate-limit": False,
-    # Enable duplicating alert rules.
-    "organizations:duplicate-alert-rule": True,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
     # Allow organizations to configure all symbol sources.
@@ -1127,10 +1128,12 @@ SENTRY_FEATURES = {
     "organizations:relay": True,
     # Enable Sentry Functions
     "organizations:sentry-functions": False,
-    # Enable experimental session replay UI
+    # Enable experimental session replay backend APIs
     "organizations:session-replay": False,
     # Enable experimental session replay SDK for recording on Sentry
     "organizations:session-replay-sdk": False,
+    # Enable experimental session replay UI
+    "organizations:session-replay-ui": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
@@ -1191,8 +1194,6 @@ SENTRY_FEATURES = {
     "projects:kafka-ingest": False,
     # Workflow 2.0 Auto associate commits to commit sha release
     "projects:auto-associate-commits-to-release": False,
-    # Automatically opt IN users to receiving Slack notifications.
-    "users:notification-slack-automatic": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }
@@ -1451,6 +1452,12 @@ SENTRY_NEWSLETTER_OPTIONS = {}
 
 SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
 SENTRY_EVENTSTREAM_OPTIONS = {}
+
+# Send transaction events to random Kafka partitions. Currently
+# this defaults to false as transaction events are partitioned the same
+# as errors (by project ID). Eventually we will flip the default and remove
+# this from settings entirely.
+SENTRY_EVENTSTREAM_PARTITION_TRANSACTIONS_RANDOMLY = False
 
 # rollups must be ordered from highest granularity to lowest
 SENTRY_TSDB_ROLLUPS = (
@@ -2117,6 +2124,9 @@ SENTRY_SDK_CONFIG = {
     "debug": True,
     "send_default_pii": True,
     "auto_enabling_integrations": False,
+    "_experiments": {
+        "custom_measurements": True,
+    },
 }
 
 # Callable to bind additional context for the Sentry SDK
@@ -2727,6 +2737,8 @@ MAX_REDIS_SNOWFLAKE_RETRY_COUNTER = 5
 
 SNOWFLAKE_VERSION_ID = 1
 SNOWFLAKE_REGION_ID = 0
+SENTRY_SNOWFLAKE_EPOCH_START = datetime(2022, 8, 8, 0, 0).timestamp()
+SENTRY_USE_SNOWFLAKE = False
 
 SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS = {
     "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
@@ -2736,11 +2748,15 @@ SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS = {
 # maximum number of projects allowed to query snuba with for the organization_vitals_overview endpoint
 ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT = 300
 
+
 # Default string indexer cache options
 SENTRY_STRING_INDEXER_CACHE_OPTIONS = {
-    "version": 1,
     "cache_name": "default",
 }
+
+SENTRY_FUNCTIONS_PROJECT_NAME = None
+
+SENTRY_FUNCTIONS_REGION = "us-central1"
 
 # Settings related to ServerComponentMode
 SERVER_COMPONENT_MODE = os.environ.get("SENTRY_SERVER_COMPONENT_MODE", None)

@@ -1,5 +1,6 @@
 import math
 from base64 import b64encode
+from datetime import timedelta
 from unittest import mock
 
 import pytest
@@ -58,6 +59,19 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         with self.feature(features):
             return self.client_get(self.reverse_url(), query, format="json")
+
+    def load_data(self, platform="transaction", timestamp=None, duration=None, **kwargs):
+        if timestamp is None:
+            timestamp = before_now(minutes=1)
+
+        start_timestamp = None
+        if duration is not None:
+            start_timestamp = timestamp - duration
+            start_timestamp = start_timestamp - timedelta(
+                microseconds=start_timestamp.microsecond % 1000
+            )
+
+        return load_data(platform, timestamp=timestamp, start_timestamp=start_timestamp, **kwargs)
 
     def test_no_projects(self):
         response = self.do_request({})
@@ -749,7 +763,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert "project.id" not in response.data["data"][0]
 
     def test_error_handled_condition(self):
-        prototype = load_data("android-ndk")
+        prototype = self.load_data(platform="android-ndk")
         events = (
             ("a" * 32, "not handled", False),
             ("b" * 32, "was handled", True),
@@ -787,7 +801,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             assert [1] == response.data["data"][1]["error.handled"]
 
     def test_error_unhandled_condition(self):
-        prototype = load_data("android-ndk")
+        prototype = self.load_data(platform="android-ndk")
         events = (
             ("a" * 32, "not handled", False),
             ("b" * 32, "was handled", True),
@@ -1300,10 +1314,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             ("three", 3000),
         ]
         for idx, event in enumerate(events):
-            data = load_data(
-                "transaction",
+            data = self.load_data(
                 timestamp=before_now(minutes=(10 + idx)),
-                start_timestamp=before_now(minutes=(10 + idx), milliseconds=event[1]),
+                duration=timedelta(milliseconds=event[1]),
             )
             data["event_id"] = f"{idx}" * 32
             data["transaction"] = f"/count_miserable/horribilis/{idx}"
@@ -1382,10 +1395,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             ("three", 3000),
         ]
         for idx, event in enumerate(events):
-            data = load_data(
-                "transaction",
+            data = self.load_data(
                 timestamp=before_now(minutes=(10 + idx)),
-                start_timestamp=before_now(minutes=(10 + idx), milliseconds=event[1]),
+                duration=timedelta(milliseconds=event[1]),
             )
             data["event_id"] = f"{idx}" * 32
             data["transaction"] = f"/count_miserable/horribilis/{event[0]}"
@@ -1445,8 +1457,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             3000,
         ]
         for idx, lcp in enumerate(lcps):
-            data = load_data(
-                "transaction",
+            data = self.load_data(
                 timestamp=before_now(minutes=(10 + idx)),
             )
             data["event_id"] = f"{idx}" * 32
@@ -1458,11 +1469,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             self.store_event(data, project_id=self.project.id)
 
         # Shouldn't count towards misery
-        data = load_data(
-            "transaction",
-            timestamp=before_now(minutes=(10)),
-            start_timestamp=before_now(minutes=(10)),
-        )
+        data = self.load_data(timestamp=before_now(minutes=10), duration=timedelta(milliseconds=0))
         data["transaction"] = "/misery/new/"
         data["user"] = {"email": "7@example.com"}
         data["measurements"] = {}
@@ -1498,10 +1505,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             ("three", 3000),
         ]
         for idx, event in enumerate(events):
-            data = load_data(
-                "transaction",
+            data = self.load_data(
                 timestamp=before_now(minutes=(10 + idx)),
-                start_timestamp=before_now(minutes=(10 + idx), milliseconds=event[1]),
+                duration=timedelta(milliseconds=event[1]),
             )
             data["event_id"] = f"{idx}" * 32
             data["transaction"] = f"/user_misery/{idx}"
@@ -1537,8 +1543,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             3000,
         ]
         for idx, lcp in enumerate(lcps):
-            data = load_data(
-                "transaction",
+            data = self.load_data(
                 timestamp=before_now(minutes=(10 + idx)),
             )
             data["event_id"] = f"{idx}" * 32
@@ -1550,10 +1555,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             self.store_event(data, project_id=self.project.id)
 
         # Shouldn't count towards apdex
-        data = load_data(
-            "transaction",
-            timestamp=before_now(minutes=(10)),
-            start_timestamp=before_now(minutes=(10)),
+        data = self.load_data(
+            timestamp=before_now(minutes=10),
+            duration=timedelta(milliseconds=0),
         )
         data["transaction"] = "/apdex/new/"
         data["user"] = {"email": "7@example.com"}
@@ -1597,10 +1601,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             ("three", 3000),
         ]
         for idx, event in enumerate(events):
-            data = load_data(
-                "transaction",
+            data = self.load_data(
                 timestamp=before_now(minutes=(10 + idx)),
-                start_timestamp=before_now(minutes=(10 + idx), milliseconds=event[1]),
+                duration=timedelta(milliseconds=event[1]),
             )
             data["event_id"] = f"{idx}" * 32
             data["transaction"] = f"/apdex/new/{event[0]}"
@@ -1656,10 +1659,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             ("three", 3000),
         ]
         for idx, event in enumerate(events):
-            data = load_data(
-                "transaction",
+            data = self.load_data(
                 timestamp=before_now(minutes=(10 + idx)),
-                start_timestamp=before_now(minutes=(10 + idx), milliseconds=event[1]),
+                duration=timedelta(milliseconds=event[1]),
             )
             data["event_id"] = f"{idx}" * 32
             data["transaction"] = f"/count_miserable/horribilis/{event[0]}"
@@ -1707,10 +1709,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             ("four", 4000),
         ]
         for idx, event in enumerate(events):
-            data = load_data(
-                "transaction",
+            data = self.load_data(
                 timestamp=before_now(minutes=(10 + idx)),
-                start_timestamp=before_now(minutes=(10 + idx), milliseconds=event[1]),
+                duration=timedelta(milliseconds=event[1]),
             )
             data["event_id"] = f"{idx}" * 32
             data["transaction"] = f"/count_miserable/horribilis/{idx}"
@@ -1791,10 +1792,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             ("four", 4000),
         ]
         for idx, event in enumerate(events):
-            data = load_data(
-                "transaction",
+            data = self.load_data(
                 timestamp=before_now(minutes=(10 + idx)),
-                start_timestamp=before_now(minutes=(10 + idx), milliseconds=event[1]),
+                duration=timedelta(milliseconds=event[1]),
             )
             data["event_id"] = f"{idx}" * 32
             data["transaction"] = f"/count_miserable/horribilis/{idx}"
@@ -1812,7 +1812,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
         project2 = self.create_project()
 
-        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data = self.load_data(timestamp=before_now(minutes=1))
         data["transaction"] = "/count_miserable/horribilis/project2"
         data["user"] = {"email": "project2@example.com"}
         self.store_event(data, project_id=project2.id)
@@ -1996,18 +1996,16 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["count_unique(user)"] == 2
 
     def test_aggregation_alias_comparison(self):
-        data = load_data(
-            "transaction",
+        data = self.load_data(
             timestamp=before_now(minutes=10),
-            start_timestamp=before_now(minutes=10, seconds=5),
+            duration=timedelta(seconds=5),
         )
         data["transaction"] = "/aggregates/1"
         self.store_event(data, project_id=self.project.id)
 
-        data = load_data(
-            "transaction",
+        data = self.load_data(
             timestamp=before_now(minutes=10),
-            start_timestamp=before_now(minutes=10, seconds=3),
+            duration=timedelta(seconds=3),
         )
         data["transaction"] = "/aggregates/2"
         event = self.store_event(data, project_id=self.project.id)
@@ -2026,18 +2024,16 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["p95()"] == 3000
 
     def test_auto_aggregations(self):
-        data = load_data(
-            "transaction",
+        data = self.load_data(
             timestamp=before_now(minutes=10),
-            start_timestamp=before_now(minutes=10, seconds=5),
+            duration=timedelta(seconds=5),
         )
         data["transaction"] = "/aggregates/1"
         self.store_event(data, project_id=self.project.id)
 
-        data = load_data(
-            "transaction",
+        data = self.load_data(
             timestamp=before_now(minutes=10),
-            start_timestamp=before_now(minutes=10, seconds=3),
+            duration=timedelta(seconds=3),
         )
         data["transaction"] = "/aggregates/2"
         event = self.store_event(data, project_id=self.project.id)
@@ -2174,18 +2170,16 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["issue.id"] == event.group_id
 
     def test_percentile_function(self):
-        data = load_data(
-            "transaction",
+        data = self.load_data(
             timestamp=before_now(minutes=10),
-            start_timestamp=before_now(minutes=10, seconds=5),
+            duration=timedelta(seconds=5),
         )
         data["transaction"] = "/aggregates/1"
         event1 = self.store_event(data, project_id=self.project.id)
 
-        data = load_data(
-            "transaction",
+        data = self.load_data(
             timestamp=before_now(minutes=10),
-            start_timestamp=before_now(minutes=10, seconds=3),
+            duration=timedelta(seconds=3),
         )
         data["transaction"] = "/aggregates/2"
         event2 = self.store_event(data, project_id=self.project.id)
@@ -2206,18 +2200,16 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[1]["percentile(transaction.duration, 0.95)"] == 3000
 
     def test_percentile_function_as_condition(self):
-        data = load_data(
-            "transaction",
+        data = self.load_data(
             timestamp=before_now(minutes=10),
-            start_timestamp=before_now(minutes=10, seconds=5),
+            duration=timedelta(seconds=5),
         )
         data["transaction"] = "/aggregates/1"
         event1 = self.store_event(data, project_id=self.project.id)
 
-        data = load_data(
-            "transaction",
+        data = self.load_data(
             timestamp=before_now(minutes=10),
-            start_timestamp=before_now(minutes=10, seconds=3),
+            duration=timedelta(seconds=3),
         )
         data["transaction"] = "/aggregates/2"
         self.store_event(data, project_id=self.project.id)
@@ -2236,18 +2228,16 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["percentile(transaction.duration, 0.95)"] == 5000
 
     def test_epm_function(self):
-        data = load_data(
-            "transaction",
+        data = self.load_data(
             timestamp=before_now(minutes=10),
-            start_timestamp=before_now(minutes=10, seconds=5),
+            duration=timedelta(seconds=5),
         )
         data["transaction"] = "/aggregates/1"
         event1 = self.store_event(data, project_id=self.project.id)
 
-        data = load_data(
-            "transaction",
+        data = self.load_data(
             timestamp=before_now(minutes=10),
-            start_timestamp=before_now(minutes=10, seconds=3),
+            duration=timedelta(seconds=3),
         )
         data["transaction"] = "/aggregates/2"
         event2 = self.store_event(data, project_id=self.project.id)
@@ -2376,7 +2366,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["count()"] == 0
 
     def test_stack_wildcard_condition(self):
-        data = load_data("javascript")
+        data = self.load_data(platform="javascript")
         data["timestamp"] = self.ten_mins_ago
         self.store_event(data=data, project_id=self.project.id)
 
@@ -2387,7 +2377,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["meta"]["fields"]["message"] == "string"
 
     def test_email_wildcard_condition(self):
-        data = load_data("javascript")
+        data = self.load_data(platform="javascript")
         data["timestamp"] = self.ten_mins_ago
         self.store_event(data=data, project_id=self.project.id)
 
@@ -2950,10 +2940,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert 1 == data["count()"]
 
     def test_aggregate_negation(self):
-        data = load_data(
-            "transaction",
+        data = self.load_data(
             timestamp=before_now(minutes=10),
-            start_timestamp=before_now(minutes=10, seconds=5),
+            duration=timedelta(seconds=5),
         )
         self.store_event(data, project_id=self.project.id)
 
@@ -2979,18 +2968,16 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert len(data) == 0
 
     def test_all_aggregates_in_columns(self):
-        data = load_data(
-            "transaction",
+        data = self.load_data(
             timestamp=before_now(minutes=11),
-            start_timestamp=before_now(minutes=11, seconds=5),
+            duration=timedelta(seconds=5),
         )
         data["transaction"] = "/failure_rate/1"
         self.store_event(data, project_id=self.project.id)
 
-        data = load_data(
-            "transaction",
+        data = self.load_data(
             timestamp=before_now(minutes=10),
-            start_timestamp=before_now(minutes=10, seconds=5),
+            duration=timedelta(seconds=5),
         )
         data["transaction"] = "/failure_rate/1"
         data["contexts"]["trace"]["status"] = "unauthenticated"
@@ -3201,18 +3188,16 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["user_misery()"] == 0
 
     def test_all_aggregates_in_query(self):
-        data = load_data(
-            "transaction",
+        data = self.load_data(
             timestamp=before_now(minutes=11),
-            start_timestamp=before_now(minutes=11, seconds=5),
+            duration=timedelta(seconds=5),
         )
         data["transaction"] = "/failure_rate/1"
         self.store_event(data, project_id=self.project.id)
 
-        data = load_data(
-            "transaction",
+        data = self.load_data(
             timestamp=before_now(minutes=10),
-            start_timestamp=before_now(minutes=10, seconds=5),
+            duration=timedelta(seconds=5),
         )
         data["transaction"] = "/failure_rate/2"
         data["contexts"]["trace"]["status"] = "unauthenticated"
@@ -3331,18 +3316,16 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["apdex(400)"] == 0
 
     def test_functions_in_orderby(self):
-        data = load_data(
-            "transaction",
+        data = self.load_data(
             timestamp=before_now(minutes=11),
-            start_timestamp=before_now(minutes=11, seconds=5),
+            duration=timedelta(seconds=5),
         )
         data["transaction"] = "/failure_rate/1"
         self.store_event(data, project_id=self.project.id)
 
-        data = load_data(
-            "transaction",
+        data = self.load_data(
             timestamp=before_now(minutes=10),
-            start_timestamp=before_now(minutes=10, seconds=5),
+            duration=timedelta(seconds=5),
         )
         data["transaction"] = "/failure_rate/2"
         data["contexts"]["trace"]["status"] = "unauthenticated"
@@ -3678,18 +3661,18 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
     def test_in_query_events_stack(self):
         test_js = self.store_event(
-            load_data(
-                "javascript",
+            self.load_data(
+                platform="javascript",
                 timestamp=before_now(minutes=10),
-                start_timestamp=before_now(minutes=10, seconds=5),
+                duration=timedelta(seconds=5),
             ),
             project_id=self.project.id,
         )
         test_java = self.store_event(
-            load_data(
-                "java",
+            self.load_data(
+                platform="java",
                 timestamp=before_now(minutes=10),
-                start_timestamp=before_now(minutes=10, seconds=5),
+                duration=timedelta(seconds=5),
             ),
             project_id=self.project.id,
         )
@@ -3758,8 +3741,8 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert len(data) == 0
 
     def test_context_fields_between_datasets(self):
-        event_data = load_data("android")
-        transaction_data = load_data("transaction")
+        event_data = self.load_data(platform="android")
+        transaction_data = self.load_data()
         event_data["spans"] = transaction_data["spans"]
         event_data["contexts"]["trace"] = transaction_data["contexts"]["trace"]
         event_data["type"] = "transaction"
@@ -3807,8 +3790,8 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 assert results[0][field] == expected, field + str(datum)
 
     def test_http_fields_between_datasets(self):
-        event_data = load_data("android")
-        transaction_data = load_data("transaction")
+        event_data = self.load_data(platform="android")
+        transaction_data = self.load_data()
         event_data["spans"] = transaction_data["spans"]
         event_data["contexts"]["trace"] = transaction_data["contexts"]["trace"]
         event_data["type"] = "transaction"
@@ -4542,7 +4525,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["data"][0]["apdex(300)"] == 0
 
     def test_equation_simple(self):
-        event_data = load_data("transaction", timestamp=before_now(minutes=10))
+        event_data = self.load_data(
+            timestamp=before_now(minutes=10),
+        )
         event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 1500
         self.store_event(data=event_data, project_id=self.project.id)
 
@@ -4631,10 +4616,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
     def test_count_if(self):
         unicode_phrase1 = "\u716e\u6211\u66f4\u591a\u7684\u98df\u7269\uff0c\u6211\u9913\u4e86"
         for i in range(5):
-            data = load_data(
-                "transaction",
+            data = self.load_data(
                 timestamp=before_now(minutes=(10 + i)),
-                start_timestamp=before_now(minutes=(10 + i), milliseconds=100 if i < 3 else 200),
+                duration=timedelta(milliseconds=100 if i < 3 else 200),
             )
             data["tags"] = {
                 "sub_customer.is-Enterprise-42": "yes" if i == 0 else "no",
@@ -4688,10 +4672,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
     def test_count_if_filter(self):
         for i in range(5):
-            data = load_data(
-                "transaction",
+            data = self.load_data(
                 timestamp=before_now(minutes=(10 + i)),
-                start_timestamp=before_now(minutes=(10 + i), milliseconds=100 if i < 3 else 200),
+                duration=timedelta(milliseconds=100 if i < 3 else 200),
             )
             data["tags"] = {"sub_customer.is-Enterprise-42": "yes" if i == 0 else "no"}
             self.store_event(data, project_id=self.project.id)
@@ -5069,7 +5052,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
 
     def test_tag_that_looks_like_aggregate(self):
-        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data = self.load_data(
+            timestamp=before_now(minutes=1),
+        )
         data["tags"] = {"p95": "<5k"}
         self.store_event(data, project_id=self.project.id)
 

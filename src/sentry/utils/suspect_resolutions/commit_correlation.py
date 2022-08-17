@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Sequence, Set
 
-from django.utils import timezone
-
-from sentry.models import CommitFileChange, GroupRelease, ReleaseCommit
+from sentry.models import CommitFileChange, Group, GroupRelease, Release, ReleaseCommit
 
 
 @dataclass
@@ -25,8 +23,13 @@ class ReleaseCommitFileChanges:
 def is_issue_commit_correlated(
     resolved_issue: int, candidate_issue: int, project: int
 ) -> CommitCorrelatedResult:
-    resolved_filechanges = get_files_changed_in_releases(resolved_issue, project)
-    candidate_filechanges = get_files_changed_in_releases(candidate_issue, project)
+    resolved_issue_time = Group.objects.filter(id=resolved_issue).first().resolved_at
+    resolved_filechanges = get_files_changed_in_releases(
+        resolved_issue_time, resolved_issue, project
+    )
+    candidate_filechanges = get_files_changed_in_releases(
+        resolved_issue_time, candidate_issue, project
+    )
 
     if (
         len(resolved_filechanges.files_changed) == 0
@@ -37,17 +40,20 @@ def is_issue_commit_correlated(
     return CommitCorrelatedResult(
         not resolved_filechanges.files_changed.isdisjoint(candidate_filechanges.files_changed),
         resolved_filechanges.release_ids,
-        resolved_filechanges.release_ids,
+        candidate_filechanges.release_ids,
     )
 
 
-def get_files_changed_in_releases(issue_id: int, project_id: int) -> ReleaseCommitFileChanges:
-    releases = GroupRelease.objects.filter(
-        group_id=issue_id,
-        project_id=project_id,
-        last_seen__gte=(timezone.now() - timedelta(hours=5)),
-    ).values_list("release_id", flat=True)
-
+def get_files_changed_in_releases(
+    resolved_issue_time: datetime, issue_id: int, project_id: int
+) -> ReleaseCommitFileChanges:
+    releases = Release.objects.filter(
+        id__in=GroupRelease.objects.filter(
+            group_id=issue_id,
+            project_id=project_id,
+        ).values_list("release_id", flat=True),
+        date_added__gte=(resolved_issue_time - timedelta(hours=5)),
+    )
     if not releases:
         return ReleaseCommitFileChanges([], set())
 

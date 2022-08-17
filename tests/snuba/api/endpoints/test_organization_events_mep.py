@@ -770,6 +770,114 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert field_meta["team_key_transaction"] == "boolean"
         assert field_meta["transaction"] == "string"
 
+    def test_team_key_transaction_not_exists(self):
+        team1 = self.create_team(organization=self.organization, name="Team A")
+        team2 = self.create_team(organization=self.organization, name="Team B")
+
+        key_transactions = [
+            (team1, "foo_transaction", 1),
+            (team2, "baz_transaction", 100),
+        ]
+
+        for team, transaction, value in key_transactions:
+            self.store_transaction_metric(
+                value, tags={"transaction": transaction}, timestamp=self.min_ago
+            )
+            self.create_team_membership(team, user=self.user)
+            self.project.add_team(team)
+            TeamKeyTransaction.objects.create(
+                organization=self.organization,
+                transaction=transaction,
+                project_team=ProjectTeam.objects.get(project=self.project, team=team),
+            )
+
+        # Don't create a metric for this one
+        TeamKeyTransaction.objects.create(
+            organization=self.organization,
+            transaction="not_in_metrics",
+            project_team=ProjectTeam.objects.get(project=self.project, team=team1),
+        )
+
+        query = {
+            "team": "myteams",
+            "project": [self.project.id],
+            # use the order by to ensure the result order
+            "orderby": "p95()",
+            "field": [
+                "team_key_transaction",
+                "transaction",
+                "transaction.status",
+                "project",
+                "epm()",
+                "failure_rate()",
+                "p95()",
+            ],
+            "per_page": 50,
+            "dataset": "metricsEnhanced",
+        }
+
+        # key transactions
+        query["query"] = "has:team_key_transaction"
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        data = response.data["data"]
+        meta = response.data["meta"]
+        field_meta = meta["fields"]
+
+        assert data[0]["team_key_transaction"] == 1
+        assert data[0]["transaction"] == "foo_transaction"
+        assert data[1]["team_key_transaction"] == 1
+        assert data[1]["transaction"] == "baz_transaction"
+
+        assert meta["isMetricsData"]
+        assert field_meta["team_key_transaction"] == "boolean"
+        assert field_meta["transaction"] == "string"
+
+        # key transactions
+        query["query"] = "team_key_transaction:true"
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        data = response.data["data"]
+        meta = response.data["meta"]
+        field_meta = meta["fields"]
+
+        assert data[0]["team_key_transaction"] == 1
+        assert data[0]["transaction"] == "foo_transaction"
+        assert data[1]["team_key_transaction"] == 1
+        assert data[1]["transaction"] == "baz_transaction"
+
+        assert meta["isMetricsData"]
+        assert field_meta["team_key_transaction"] == "boolean"
+        assert field_meta["transaction"] == "string"
+
+        # not key transactions
+        query["query"] = "!has:team_key_transaction"
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 0
+        data = response.data["data"]
+        meta = response.data["meta"]
+        field_meta = meta["fields"]
+
+        assert meta["isMetricsData"]
+        assert field_meta["team_key_transaction"] == "boolean"
+        assert field_meta["transaction"] == "string"
+
+        # not key transactions
+        query["query"] = "team_key_transaction:false"
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 0
+        data = response.data["data"]
+        meta = response.data["meta"]
+        field_meta = meta["fields"]
+
+        assert meta["isMetricsData"]
+        assert field_meta["team_key_transaction"] == "boolean"
+        assert field_meta["transaction"] == "string"
+
     def test_too_many_team_key_transactions(self):
         MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS = 1
         with mock.patch(

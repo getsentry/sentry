@@ -6,6 +6,7 @@ from django.urls import reverse
 from sentry.replays.testutils import assert_expected_response, mock_expected_response, mock_replay
 from sentry.testutils import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.servermode import customer_silo_test
+from sentry.utils.cursors import Cursor
 
 REPLAYS_FEATURES = {"organizations:session-replay": True}
 
@@ -166,14 +167,14 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
             response_data = response.json()
             assert "data" in response_data
-            assert response_data["data"][0]["replayId"] == replay1_id
+            assert response_data["data"][0]["id"] == replay1_id
 
             response = self.client.get(self.url + "?environment=production")
             assert response.status_code == 200
 
             response_data = response.json()
             assert "data" in response_data
-            assert response_data["data"][0]["replayId"] == replay2_id
+            assert response_data["data"][0]["id"] == replay2_id
 
     def test_get_replays_started_at_sorted(self):
         project = self.create_project(teams=[self.team])
@@ -194,14 +195,14 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             # Latest first.
             response = self.client.get(self.url + "?sort=-startedAt")
             response_data = response.json()
-            assert response_data["data"][0]["replayId"] == replay2_id
-            assert response_data["data"][1]["replayId"] == replay1_id
+            assert response_data["data"][0]["id"] == replay2_id
+            assert response_data["data"][1]["id"] == replay1_id
 
             # Earlist first.
             response = self.client.get(self.url + "?sort=startedAt")
             response_data = response.json()
-            assert response_data["data"][0]["replayId"] == replay1_id
-            assert response_data["data"][1]["replayId"] == replay2_id
+            assert response_data["data"][0]["id"] == replay1_id
+            assert response_data["data"][1]["id"] == replay2_id
 
     def test_get_replays_finished_at_sorted(self):
         project = self.create_project(teams=[self.team])
@@ -222,14 +223,14 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             # Latest first.
             response = self.client.get(self.url + "?sort=-finishedAt")
             response_data = response.json()
-            assert response_data["data"][0]["replayId"] == replay2_id
-            assert response_data["data"][1]["replayId"] == replay1_id
+            assert response_data["data"][0]["id"] == replay2_id
+            assert response_data["data"][1]["id"] == replay1_id
 
             # Earlist first.
             response = self.client.get(self.url + "?sort=finishedAt")
             response_data = response.json()
-            assert response_data["data"][0]["replayId"] == replay1_id
-            assert response_data["data"][1]["replayId"] == replay2_id
+            assert response_data["data"][0]["id"] == replay1_id
+            assert response_data["data"][1]["id"] == replay2_id
 
     def test_get_replays_duration_sorted(self):
         """Test replays can be sorted by duration."""
@@ -251,14 +252,14 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             # Smallest duration first.
             response = self.client.get(self.url + "?sort=duration")
             response_data = response.json()
-            assert response_data["data"][0]["replayId"] == replay1_id
-            assert response_data["data"][1]["replayId"] == replay2_id
+            assert response_data["data"][0]["id"] == replay1_id
+            assert response_data["data"][1]["id"] == replay2_id
 
             # Largest duration first.
             response = self.client.get(self.url + "?sort=-duration")
             response_data = response.json()
-            assert response_data["data"][0]["replayId"] == replay2_id
-            assert response_data["data"][1]["replayId"] == replay1_id
+            assert response_data["data"][0]["id"] == replay2_id
+            assert response_data["data"][1]["id"] == replay1_id
 
     def test_get_replays_pagination(self):
         """Test replays can be paginated."""
@@ -278,26 +279,33 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(REPLAYS_FEATURES):
             # First page.
-            response = self.client.get(self.url + "?limit=1")
-            assert response.status_code == 200
-
+            response = self.get_success_response(
+                self.organization.slug,
+                cursor=Cursor(0, 0),
+                per_page=1,
+            )
             response_data = response.json()
             assert "data" in response_data
             assert len(response_data["data"]) == 1
-            assert response_data["data"][0]["replayId"] == replay2_id
+            assert response_data["data"][0]["id"] == replay2_id
 
             # Next page.
-            response = self.client.get(self.url + "?limit=1&offset=1")
-            assert response.status_code == 200
-
+            response = self.get_success_response(
+                self.organization.slug,
+                cursor=Cursor(0, 1),
+                per_page=1,
+            )
             response_data = response.json()
             assert "data" in response_data
             assert len(response_data["data"]) == 1
-            assert response_data["data"][0]["replayId"] == replay1_id
+            assert response_data["data"][0]["id"] == replay1_id
 
             # Beyond pages.
-            response = self.client.get(self.url + "?limit=1&offset=2")
-            assert response.status_code == 200
+            response = self.get_success_response(
+                self.organization.slug,
+                cursor=Cursor(0, 2),
+                per_page=1,
+            )
 
             response_data = response.json()
             assert "data" in response_data

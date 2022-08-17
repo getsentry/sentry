@@ -33,7 +33,10 @@ class GetSendToMemberTest(TestCase):
         assert self.get_send_to_member(self.project, 900001) == {}
 
     def test_send_to_user(self):
-        assert self.get_send_to_member() == {ExternalProviders.EMAIL: {self.user}}
+        assert self.get_send_to_member() == {
+            ExternalProviders.EMAIL: {self.user},
+            ExternalProviders.SLACK: {self.user},
+        }
 
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
@@ -43,7 +46,7 @@ class GetSendToMemberTest(TestCase):
             project=self.project,
         )
 
-        assert self.get_send_to_member() == {}
+        assert self.get_send_to_member() == {ExternalProviders.SLACK: {self.user}}
 
     def test_other_org_user(self):
         org_2 = self.create_organization()
@@ -52,7 +55,10 @@ class GetSendToMemberTest(TestCase):
         team_3 = self.create_team(org_2, members=[user_2])
         project_2 = self.create_project(organization=org_2, teams=[team_2, team_3])
 
-        assert self.get_send_to_member(project_2, user_2.id) == {ExternalProviders.EMAIL: {user_2}}
+        assert self.get_send_to_member(project_2, user_2.id) == {
+            ExternalProviders.EMAIL: {user_2},
+            ExternalProviders.SLACK: {user_2},
+        }
         assert self.get_send_to_member(self.project, user_2.id) == {}
 
     def test_no_project_access(self):
@@ -63,12 +69,31 @@ class GetSendToMemberTest(TestCase):
         self.create_team(org_2, members=[user_3])
         project_2 = self.create_project(organization=org_2, teams=[team_2])
 
-        assert self.get_send_to_member(project_2, user_2.id) == {ExternalProviders.EMAIL: {user_2}}
+        assert self.get_send_to_member(project_2, user_2.id) == {
+            ExternalProviders.EMAIL: {user_2},
+            ExternalProviders.SLACK: {user_2},
+        }
         assert self.get_send_to_member(self.project, user_3.id) == {}
 
 
 @customer_silo_test
 class GetSendToTeamTest(TestCase):
+    def setUp(self):
+        super().setUp()
+        # disable slack
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.NEVER,
+            team=self.team,
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.NEVER,
+            user=self.user,
+        )
+
     def get_send_to_team(
         self, project: Optional[Project] = None, team_id: Optional[int] = None
     ) -> Mapping[ExternalProviders, Iterable[Union["Team", "User"]]]:
@@ -82,7 +107,9 @@ class GetSendToTeamTest(TestCase):
         assert self.get_send_to_team(self.project, 900001) == {}
 
     def test_send_to_team(self):
-        assert self.get_send_to_team() == {ExternalProviders.EMAIL: {self.user}}
+        assert self.get_send_to_team() == {
+            ExternalProviders.EMAIL: {self.user},
+        }
 
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
@@ -101,7 +128,6 @@ class GetSendToTeamTest(TestCase):
             NotificationSettingOptionValues.ALWAYS,
             team=self.team,
         )
-
         assert self.get_send_to_team() == {ExternalProviders.SLACK: {self.team}}
 
         NotificationSetting.objects.update_settings(
@@ -117,7 +143,10 @@ class GetSendToTeamTest(TestCase):
         team_2 = self.create_team(self.organization, members=[user_2])
         project_2 = self.create_project(organization=self.organization, teams=[team_2])
 
-        assert self.get_send_to_team(project_2, team_2.id) == {ExternalProviders.EMAIL: {user_2}}
+        assert self.get_send_to_team(project_2, team_2.id) == {
+            ExternalProviders.EMAIL: {user_2},
+            ExternalProviders.SLACK: {user_2},
+        }
         assert self.get_send_to_team(self.project, team_2.id) == {}
 
     def test_other_org_team(self):
@@ -126,7 +155,10 @@ class GetSendToTeamTest(TestCase):
         team_2 = self.create_team(org_2, members=[user_2])
         project_2 = self.create_project(organization=org_2, teams=[team_2])
 
-        assert self.get_send_to_team(project_2, team_2.id) == {ExternalProviders.EMAIL: {user_2}}
+        assert self.get_send_to_team(project_2, team_2.id) == {
+            ExternalProviders.EMAIL: {user_2},
+            ExternalProviders.SLACK: {user_2},
+        }
         assert self.get_send_to_team(self.project, team_2.id) == {}
 
 
@@ -168,7 +200,10 @@ class GetSentToReleaseMembersTest(TestCase):
         event = self.store_event("empty.lol")
         event.group = self.group
         with self.feature("organizations:active-release-notification-opt-in"):
-            assert self.get_send_to_release_members(event) == {ExternalProviders.EMAIL: {self.user}}
+            assert self.get_send_to_release_members(event) == {
+                ExternalProviders.EMAIL: {self.user},
+                ExternalProviders.SLACK: {self.user},
+            }
             assert spy_get_release_committers.call_count == 1
 
     @mock.patch(
@@ -227,6 +262,14 @@ class GetSendToOwnersTest(TestCase):
             fallthrough=True,
         )
 
+        # turn off slack for teams
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.NEVER,
+            team=self.team2,
+        )
+
     def test_empty(self):
         event = self.store_event("empty.lol")
 
@@ -235,7 +278,10 @@ class GetSendToOwnersTest(TestCase):
     def test_single_user(self):
         event = self.store_event("user.jsx")
 
-        assert self.get_send_to_owners(event) == {ExternalProviders.EMAIL: {self.user}}
+        assert self.get_send_to_owners(event) == {
+            ExternalProviders.EMAIL: {self.user},
+            ExternalProviders.SLACK: {self.user},
+        }
 
         # Make sure that disabling mail alerts works as expected
         NotificationSetting.objects.update_settings(
@@ -246,7 +292,9 @@ class GetSendToOwnersTest(TestCase):
             project=self.project,
         )
 
-        assert self.get_send_to_owners(event) == {}
+        assert self.get_send_to_owners(event) == {
+            ExternalProviders.SLACK: {self.user},
+        }
 
     def test_single_user_no_teams(self):
         event = self.store_event("user.jx")
@@ -256,7 +304,10 @@ class GetSendToOwnersTest(TestCase):
     def test_team_owners(self):
         event = self.store_event("team.py")
 
-        assert self.get_send_to_owners(event) == {ExternalProviders.EMAIL: {self.user, self.user2}}
+        assert self.get_send_to_owners(event) == {
+            ExternalProviders.EMAIL: {self.user, self.user2},
+            ExternalProviders.SLACK: {self.user, self.user2},
+        }
 
         # Make sure that disabling mail alerts works as expected
         NotificationSetting.objects.update_settings(
@@ -266,7 +317,10 @@ class GetSendToOwnersTest(TestCase):
             user=self.user2,
             project=self.project,
         )
-        assert self.get_send_to_owners(event) == {ExternalProviders.EMAIL: {self.user}}
+        assert self.get_send_to_owners(event) == {
+            ExternalProviders.EMAIL: {self.user},
+            ExternalProviders.SLACK: {self.user, self.user2},
+        }
 
     def test_disable_alerts_multiple_scopes(self):
         event = self.store_event("everyone.cbl")
@@ -288,12 +342,18 @@ class GetSendToOwnersTest(TestCase):
             project=self.project,
         )
 
-        assert self.get_send_to_owners(event) == {ExternalProviders.EMAIL: {self.user}}
+        assert self.get_send_to_owners(event) == {
+            ExternalProviders.EMAIL: {self.user},
+            ExternalProviders.SLACK: {self.user},
+        }
 
     def test_fallthrough(self):
         event = self.store_event("no_rule.cpp")
 
-        assert self.get_send_to_owners(event) == {ExternalProviders.EMAIL: {self.user, self.user2}}
+        assert self.get_send_to_owners(event) == {
+            ExternalProviders.EMAIL: {self.user, self.user2},
+            ExternalProviders.SLACK: {self.user, self.user2},
+        }
 
     def test_without_fallthrough(self):
         ProjectOwnership.objects.get(project_id=self.project.id).update(fallthrough=False)

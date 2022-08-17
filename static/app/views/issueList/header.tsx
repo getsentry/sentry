@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import Badge from 'sentry/components/badge';
 import Button from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
@@ -79,20 +78,16 @@ function IssueListHeader({
         <StyledLayoutTitle>{t('Issues')}</StyledLayoutTitle>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        <ButtonBar gap={1}>
-          <Button
-            size="sm"
-            data-test-id="real-time"
-            title={
-              realtimeActive
-                ? t('Pause real-time updates')
-                : t('Enable real-time updates')
-            }
-            icon={realtimeActive ? <IconPause size="xs" /> : <IconPlay size="xs" />}
-            onClick={() => onRealtimeChange(!realtimeActive)}
-            aria-label={t('Toggle real-time updates')}
-          />
-        </ButtonBar>
+        <Button
+          size="sm"
+          data-test-id="real-time"
+          title={
+            realtimeActive ? t('Pause real-time updates') : t('Enable real-time updates')
+          }
+          icon={realtimeActive ? <IconPause size="xs" /> : <IconPlay size="xs" />}
+          onClick={() => onRealtimeChange(!realtimeActive)}
+          aria-label={t('Toggle real-time updates')}
+        />
       </Layout.HeaderActions>
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
       <Layout.HeaderNavTabs underlined>

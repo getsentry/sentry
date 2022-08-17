@@ -175,7 +175,6 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     () => ({
       control: (_, state: any) => ({
         display: 'flex',
-        ...theme.form[size ?? 'md'],
         // @ts-ignore Ignore merge errors as only defining the property once
         // makes code harder to understand.
         ...{
@@ -200,21 +199,23 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         ...(!state.isSearchable && {
           cursor: 'pointer',
         }),
-        ...(isCompact && {
-          padding: `${space(0.5)} ${space(0.5)}`,
-          borderRadius: 0,
-          border: 'none',
-          boxShadow: 'none',
-          cursor: 'initial',
-          minHeight: 'none',
-          ...(isSearchable
-            ? {marginTop: 1}
-            : {
-                height: 0,
-                padding: 0,
-                overflow: 'hidden',
-              }),
-        }),
+        ...(isCompact
+          ? {
+              padding: `${space(0.5)} ${space(0.5)}`,
+              borderRadius: 0,
+              border: 'none',
+              boxShadow: 'none',
+              cursor: 'initial',
+              minHeight: 'none',
+              ...(isSearchable
+                ? {marginTop: 1}
+                : {
+                    height: 0,
+                    padding: 0,
+                    overflow: 'hidden',
+                  }),
+            }
+          : theme.form[size ?? 'md']),
       }),
 
       menu: (provided: React.CSSProperties) => ({
@@ -278,20 +279,25 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       valueContainer: (provided: React.CSSProperties) => ({
         ...provided,
         alignItems: 'center',
-        ...(isCompact && {
-          padding: `${space(0.5)} ${space(1)}`,
-          border: `1px solid ${theme.innerBorder}`,
-          borderRadius: theme.borderRadius,
-          cursor: 'text',
-          background: theme.backgroundSecondary,
-        }),
+        ...(isCompact
+          ? {
+              padding: `${space(0.5)} ${space(1)}`,
+              border: `1px solid ${theme.innerBorder}`,
+              borderRadius: theme.borderRadius,
+              cursor: 'text',
+              background: theme.backgroundSecondary,
+            }
+          : {
+              paddingLeft: theme.formPadding[size ?? 'md'].paddingLeft,
+              paddingRight: space(0.5),
+            }),
       }),
       input: (provided: React.CSSProperties) => ({
         ...provided,
         color: theme.formText,
+        margin: 0,
         ...(isCompact && {
           padding: 0,
-          margin: 0,
         }),
       }),
       singleValue: (provided: React.CSSProperties) => ({
@@ -299,6 +305,11 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         color: theme.formText,
         display: 'flex',
         alignItems: 'center',
+        marginLeft: 0,
+        marginRight: 0,
+        width: `calc(100% - ${theme.formPadding[size ?? 'md'].paddingLeft}px - ${space(
+          0.5
+        )})`,
       }),
       placeholder: (provided: React.CSSProperties) => ({
         ...provided,
@@ -461,6 +472,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       value={mappedValue}
       isMulti={props.multiple || props.multi}
       isDisabled={props.isDisabled || props.disabled}
+      isOptionDisabled={opt => !!opt.disabled}
       showDividers={props.showDividers}
       options={options || (choicesOrOptions as OptionsType<OptionType>)}
       openMenuOnFocus={props.openMenuOnFocus}
