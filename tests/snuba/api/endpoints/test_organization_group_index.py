@@ -1809,17 +1809,29 @@ class GroupListTest(APITestCase, SnubaTestCase):
             key="a" * 40,
             author=author,
         )
+        commit2 = Commit.objects.create(
+            organization_id=self.project.organization_id,
+            repository_id=repo.id,
+            key="b" * 40,
+            author=author,
+        )
+
         ReleaseCommit.objects.create(
             organization_id=self.project.organization_id,
             release=release,
             commit=commit,
             order=1,
         )
+        ReleaseCommit.objects.create(
+            organization_id=self.project.organization_id,
+            release=release,
+            commit=commit2,
+            order=2,
+        )
 
         query = "status:unresolved"
         self.login_as(user=self.user)
 
-        # Test with no owner
         response = self.get_response(sort_by="date", limit=10, query=query, expand="owners")
         assert response.status_code == 200
         assert len(response.data) == 1

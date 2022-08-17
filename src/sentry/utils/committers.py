@@ -24,6 +24,7 @@ from sentry.api.serializers.models.commit import CommitSerializer, get_users_for
 from sentry.api.serializers.models.release import Author
 from sentry.eventstore.models import Event
 from sentry.models import Commit, CommitFileChange, Group, Project, Release, ReleaseCommit
+from sentry.models.groupowner import OwnersSerializedWithCommits, get_release_committers_for_group
 from sentry.utils import metrics
 from sentry.utils.event_frames import find_stack_frames, get_sdk_name, munged_filename_and_frames
 from sentry.utils.hashlib import hash_values
@@ -336,3 +337,20 @@ def dedupe_commits(
     commits: Sequence[MutableMapping[str, Any]]
 ) -> Sequence[MutableMapping[str, Any]]:
     return list({c["id"]: c for c in commits}.values())
+
+
+# Get all serialized committers for the first releases for a group.
+def get_serialized_release_committers_for_group(group: Group) -> List[OwnersSerializedWithCommits]:
+    release_committers = get_release_committers_for_group(group, include_commits=True)
+    serialized_committers: List[AuthorCommitsSerialized] = []
+    for committer in release_committers:
+        serialized_committers.append(
+            {
+                "author": committer["author"],
+                "commits": serialize(
+                    committer["commits"], serializer=CommitSerializer(exclude=["author"])
+                ),
+            }
+        )
+
+    return serialized_committers
