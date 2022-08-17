@@ -794,17 +794,17 @@ export const FIELDS: Record<FieldKey & AggregationKey & MobileVital, FieldDefini
     valueType: FieldValueType.STRING,
   },
   [FieldKey.TRANSACTION_OP]: {
-    desc: t('The trace identification number'),
+    desc: t('Short code identifying the type of operation the span is measuring'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   [FieldKey.TRANSACTION_DURATION]: {
-    desc: t('Span identification number of the parent to the event'),
+    desc: t('Duration, in milliseconds, of the transaction'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.DURATION,
   },
   [FieldKey.TRANSACTION_STATUS]: {
-    desc: t('Span identification number of the root span'),
+    desc: t('Describes the status of the span/transaction'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
