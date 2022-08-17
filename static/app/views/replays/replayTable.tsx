@@ -162,11 +162,11 @@ function ReplayTableRow({
 const StyledPanelTable = styled(PanelTable)<{showProjectColumn: boolean}>`
   ${p =>
     p.showProjectColumn
-      ? `grid-template-columns: minmax(0, 1fr) max-content max-content max-content max-content max-content;`
-      : `grid-template-columns: minmax(0, 1fr) max-content max-content max-content max-content;`}
+      ? `grid-template-columns: minmax(0, 1fr) repeat(5, max-content);`
+      : `grid-template-columns: minmax(0, 1fr) repeat(4, max-content);`}
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: minmax(0, 1fr) max-content max-content max-content max-content;
+    grid-template-columns: minmax(0, 1fr) repeat(4, max-content);
   }
 `;
 
