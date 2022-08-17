@@ -1,3 +1,5 @@
+import styled from '@emotion/styled';
+
 import EditableText from 'sentry/components/editableText';
 import {t} from 'sentry/locale';
 
@@ -15,7 +17,7 @@ function DashboardTitle({dashboard, isEditing, onUpdate}: Props) {
       {!dashboard ? (
         t('Dashboards')
       ) : (
-        <EditableText
+        <StyledEditableText
           isDisabled={!isEditing}
           value={dashboard.title}
           onChange={newTitle => onUpdate({...dashboard, title: newTitle})}
@@ -28,3 +30,9 @@ function DashboardTitle({dashboard, isEditing, onUpdate}: Props) {
 }
 
 export default DashboardTitle;
+
+const StyledEditableText = styled(EditableText)`
+  input {
+    font-size: inherit;
+  }
+`;

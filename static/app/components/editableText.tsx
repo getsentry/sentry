@@ -15,6 +15,7 @@ type Props = {
   value: string;
   'aria-label'?: string;
   autoSelect?: boolean;
+  className?: string;
   errorMessage?: React.ReactNode;
   isDisabled?: boolean;
   maxLength?: number;
@@ -31,6 +32,7 @@ function EditableText({
   maxLength,
   isDisabled = false,
   autoSelect = false,
+  className,
   'aria-label': ariaLabel,
 }: Props) {
   const [isEditing, setIsEditing] = useState(false);
@@ -141,7 +143,7 @@ function EditableText({
   }
 
   return (
-    <Wrapper isDisabled={isDisabled} isEditing={isEditing}>
+    <Wrapper isDisabled={isDisabled} isEditing={isEditing} className={className}>
       {isEditing ? (
         <InputWrapper
           ref={innerWrapperRef}
