@@ -26,7 +26,7 @@ export function useCurrentItemScroller(containerRef: RefObject<HTMLElement> | un
             if (isCurrent && isContainerScrollable() && !isAutoScrollDisabled) {
               let offset: number;
 
-              // If possible scroll to the middle of the screen instead of to the top
+              // If possible scroll to the middle of the container instead of to the top
               if (element.clientHeight < containerEl.clientHeight) {
                 offset =
                   element.offsetTop -
