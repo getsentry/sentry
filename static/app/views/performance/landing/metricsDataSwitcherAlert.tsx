@@ -99,6 +99,22 @@ export function MetricsDataSwitcherAlert(
       </Link>
     );
     if (areMultipleProjectsSelected(props.eventView)) {
+      if ((props.compatibleProjects ?? []).length === 0) {
+        return (
+          <Alert
+            type="warning"
+            showIcon
+            data-test-id="landing-mep-alert-multi-project-all-incompatible"
+          >
+            {tct(
+              `A few projects are incompatible with server side sampling. To enable this feature [updateSDK].`,
+              {
+                updateSDK,
+              }
+            )}
+          </Alert>
+        );
+      }
       return (
         <Alert
           type="warning"
