@@ -1,7 +1,8 @@
 import {useRef} from 'react';
 import {Location} from 'history';
 
-import {BarChart} from 'sentry/components/charts/barChart';
+import {BarChart, BarChartSeries} from 'sentry/components/charts/barChart';
+import {TooltipOption} from 'sentry/components/charts/baseChart';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import {IconWarning} from 'sentry/icons';
@@ -39,7 +40,36 @@ export function SpanCountChart({issue, event, location, organization}: Props) {
   const project = [1];
   const spanOp = event.contexts.performance_issue.op;
 
-  function renderChart(data: HistogramData, _data: HistogramData) {
+  /**
+   * As affected data has larger bins then all data, combines the all data bins the match the affected data bin size.
+   * @param allData echarts histogram data array of all transactions
+   * @param affectedData echarts histrogram data array of affected transactions
+   * @returns echarts histogram data array
+   */
+  function updateBins(allData: HistogramData, affectedData) {
+    const allDataWithNewBins: HistogramData = [];
+    let currentAffectedBinIndex = 0;
+    let currentBinIndex = 0;
+    while (
+      currentAffectedBinIndex < affectedData.length &&
+      currentBinIndex < allData.length
+    ) {
+      const currentBinMax = affectedData[currentAffectedBinIndex].bin;
+      let binCount = 0;
+      while (
+        currentBinIndex < allData.length &&
+        allData[currentBinIndex].bin <= currentBinMax
+      ) {
+        binCount += allData[currentBinIndex].count;
+        currentBinIndex++;
+      }
+      allDataWithNewBins.push({bin: currentBinMax, count: binCount});
+      currentAffectedBinIndex++;
+    }
+    return allDataWithNewBins;
+  }
+
+  function renderChart(affectedData: HistogramData, allData: HistogramData) {
     const xAxis = {
       type: 'category' as const,
       truncate: true,
@@ -47,10 +77,13 @@ export function SpanCountChart({issue, event, location, organization}: Props) {
         interval: 5,
         alignWithLabel: true,
       },
+      axisLine: {
+        onZero: false,
+      },
     };
 
     const colors = [theme.charts.previousPeriod, ...theme.charts.getColorPalette(4)];
-    const tooltip = {
+    const tooltip: TooltipOption = {
       formatter(series) {
         const seriesData = Array.isArray(series) ? series : [series];
         let contents: string[] = [];
@@ -72,22 +105,28 @@ export function SpanCountChart({issue, event, location, organization}: Props) {
       },
     };
 
-    const series = {
-      seriesName: t('Affected Transaction Count'),
-      data: formatHistogramData(data, {type: 'number'}),
-    };
-
-    const _series = {
-      seriesName: t('All Transaction Count'),
-      data: formatHistogramData(_data, {type: 'number'}),
-    };
+    const series: BarChartSeries[] = [
+      {
+        seriesName: t('Affected Transaction Count'),
+        data: formatHistogramData(affectedData, {type: 'number'}),
+        stack: 'value',
+        barMinHeight: 0.5,
+        color: colors[1],
+      },
+      {
+        seriesName: t('All Transaction Count'),
+        data: formatHistogramData(updateBins(allData, affectedData), {type: 'number'}),
+        stack: 'value',
+        color: colors[0],
+      },
+    ];
 
     return (
       <BarChart
         grid={{left: '0', right: '0', top: '0', bottom: '0'}}
         xAxis={xAxis}
-        yAxis={{type: 'value', show: false, axisLabel: {formatter: _ => ''}}}
-        series={[_series, series]}
+        yAxis={{type: 'log', show: false}}
+        series={series}
         tooltip={tooltip}
         colors={colors}
         height={200}

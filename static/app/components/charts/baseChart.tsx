@@ -81,7 +81,7 @@ type Truncateable = {
   truncate?: number | boolean;
 };
 
-interface TooltipOption
+export interface TooltipOption
   extends Omit<TooltipComponentOption, 'valueFormatter'>,
     Truncateable {
   filter?: (value: number, seriesParam: TooltipComponentOption['formatter']) => boolean;
@@ -662,9 +662,9 @@ const ChartContainer = styled('div')<{autoHeightResize: boolean}>`
   }
 `;
 
-const BaseChart = forwardRef<ReactEchartsRef, Props>((props, ref) => (
-  <BaseChartUnwrapped forwardedRef={ref} {...props} />
-));
+const BaseChart = forwardRef<ReactEchartsRef, Props>((props, ref) => {
+  return <BaseChartUnwrapped forwardedRef={ref} {...props} />;
+});
 
 BaseChart.displayName = 'forwardRef(BaseChart)';
 
