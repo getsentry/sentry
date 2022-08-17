@@ -1,4 +1,4 @@
-import {RefObject, useMemo} from 'react';
+import {useMemo} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
@@ -16,9 +16,7 @@ import MemoryChart from 'sentry/views/replays/detail/memoryChart';
 import NetworkList from 'sentry/views/replays/detail/network';
 import Trace from 'sentry/views/replays/detail/trace';
 
-type Props = {
-  parentRef?: RefObject<HTMLDivElement>;
-};
+type Props = {};
 
 function getBreadcrumbsByCategory(breadcrumbs: Crumb[], categories: string[]) {
   return breadcrumbs
@@ -26,7 +24,7 @@ function getBreadcrumbsByCategory(breadcrumbs: Crumb[], categories: string[]) {
     .filter(breadcrumb => categories.includes(breadcrumb.category || ''));
 }
 
-function FocusArea({parentRef}: Props) {
+function FocusArea({}: Props) {
   const {getActiveTab} = useActiveReplayTab();
   const {currentTime, currentHoverTime, replay, setCurrentTime, setCurrentHoverTime} =
     useReplayContext();
@@ -59,7 +57,6 @@ function FocusArea({parentRef}: Props) {
         <Console
           breadcrumbs={consoleMessages ?? []}
           startTimestampMs={replayRecord.startedAt.getTime()}
-          parentRef={parentRef}
         />
       );
     case 'network':

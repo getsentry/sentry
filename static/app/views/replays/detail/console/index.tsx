@@ -1,4 +1,4 @@
-import {Fragment, RefObject, useMemo, useState} from 'react';
+import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -23,19 +23,19 @@ import {filterBreadcrumbs} from 'sentry/views/replays/detail/console/utils';
 interface Props {
   breadcrumbs: Extract<Crumb, BreadcrumbTypeDefault>[];
   startTimestampMs: number;
-  parentRef?: RefObject<HTMLElement>;
 }
 
 const getDistinctLogLevels = (breadcrumbs: Crumb[]) =>
   Array.from(new Set<string>(breadcrumbs.map(breadcrumb => breadcrumb.level)));
 
-function Console({breadcrumbs, parentRef, startTimestampMs = 0}: Props) {
+function Console({breadcrumbs, startTimestampMs = 0}: Props) {
   const {currentHoverTime, currentTime} = useReplayContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [logLevel, setLogLevel] = useState<BreadcrumbLevelType[]>([]);
   const handleSearch = debounce(query => setSearchTerm(query), 150);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  useCurrentItemScroller(parentRef);
+  useCurrentItemScroller(containerRef);
 
   const filteredBreadcrumbs = useMemo(
     () => filterBreadcrumbs(breadcrumbs, searchTerm, logLevel),
@@ -58,7 +58,7 @@ function Console({breadcrumbs, parentRef, startTimestampMs = 0}: Props) {
   });
 
   return (
-    <Fragment>
+    <ConsoleContainer ref={containerRef}>
       <ConsoleFilters>
         <CompactSelect
           triggerProps={{
@@ -98,9 +98,14 @@ function Console({breadcrumbs, parentRef, startTimestampMs = 0}: Props) {
       ) : (
         <StyledEmptyMessage title={t('No results found.')} />
       )}
-    </Fragment>
+    </ConsoleContainer>
   );
 }
+
+const ConsoleContainer = styled('div')`
+  height: 100%;
+  overflow: auto;
+`;
 
 const ConsoleFilters = styled('div')`
   display: grid;

@@ -1,4 +1,4 @@
-import {Fragment, useRef} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -37,7 +37,6 @@ function ReplayLayout({
   showVideo = true,
 }: Props) {
   const {ref: fullscreenRef, toggle: toggleFullscreen} = useFullscreen();
-  const containerRef = useRef<HTMLDivElement>(null);
 
   const timeline = showTimeline ? (
     <ErrorBoundary mini>
@@ -61,8 +60,8 @@ function ReplayLayout({
 
   const content = (
     <ErrorBoundary mini>
-      <FluidPanel title={<FocusTabs />} bodyRef={containerRef}>
-        <FocusArea parentRef={containerRef} />
+      <FluidPanel title={<FocusTabs />}>
+        <FocusArea />
       </FluidPanel>
     </ErrorBoundary>
   );
