@@ -1,13 +1,22 @@
 from __future__ import annotations
 
 import functools
-from datetime import timedelta
+from abc import abstractmethod
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from typing import Any, MutableMapping, Optional, Sequence
 
 from django.conf import settings
+from django.utils import timezone
 
 from sentry import release_health, tsdb
-from sentry.api.serializers.models import GroupSerializer, GroupSerializerSnuba, GroupStatsMixin
-from sentry.models import Environment
+from sentry.api.serializers.models import (
+    BaseGroupSerializerResponse,
+    GroupSerializer,
+    GroupSerializerSnuba,
+)
+from sentry.constants import StatsPeriod
+from sentry.models import Environment, Group
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.groupowner import get_owner_details
 from sentry.tsdb.snuba import SnubaTSDB
@@ -17,6 +26,84 @@ from sentry.utils.hashlib import hash_values
 
 # TODO(gilbert): remove this when we remove the one in group serializer
 snuba_tsdb = SnubaTSDB(**settings.SENTRY_TSDB_OPTIONS)
+
+
+@dataclass
+class GroupStatsQueryArgs:
+    stats_period: Optional[str]
+    stats_period_start: Optional[datetime]
+    stats_period_end: Optional[datetime]
+
+
+class GroupStatsMixin:
+    STATS_PERIOD_CHOICES = {
+        "14d": StatsPeriod(14, timedelta(hours=24)),
+        "24h": StatsPeriod(24, timedelta(hours=1)),
+    }
+
+    CUSTOM_ROLLUP_CHOICES = {
+        "1h": timedelta(hours=1).total_seconds(),
+        "2h": timedelta(hours=2).total_seconds(),
+        "3h": timedelta(hours=3).total_seconds(),
+        "6h": timedelta(hours=6).total_seconds(),
+        "12h": timedelta(hours=12).total_seconds(),
+        "24h": timedelta(hours=24).total_seconds(),
+    }
+
+    CUSTOM_SEGMENTS = 29  # for 30 segments use 1/29th intervals
+    CUSTOM_SEGMENTS_12H = 35  # for 12h 36 segments, otherwise 15-16-17 bars is too few
+    CUSTOM_ROLLUP_6H = timedelta(hours=6).total_seconds()  # rollups should be increments of 6hs
+
+    @abstractmethod
+    def query_tsdb(self, group_ids: Sequence[int], query_params: MutableMapping[str, Any]):
+        pass
+
+    def get_stats(
+        self, item_list: Sequence[Group], user, stats_query_args: GroupStatsQueryArgs, **kwargs
+    ):
+        if stats_query_args and stats_query_args.stats_period:
+            # we need to compute stats at 1d (1h resolution), and 14d or a custom given period
+            group_ids = [g.id for g in item_list]
+
+            if stats_query_args.stats_period == "auto":
+                total_period = (
+                    stats_query_args.stats_period_end - stats_query_args.stats_period_start
+                ).total_seconds()
+                if total_period < timedelta(hours=24).total_seconds():
+                    rollup = total_period / self.CUSTOM_SEGMENTS
+                elif total_period < self.CUSTOM_SEGMENTS * self.CUSTOM_ROLLUP_CHOICES["1h"]:
+                    rollup = self.CUSTOM_ROLLUP_CHOICES["1h"]
+                elif total_period < self.CUSTOM_SEGMENTS * self.CUSTOM_ROLLUP_CHOICES["2h"]:
+                    rollup = self.CUSTOM_ROLLUP_CHOICES["2h"]
+                elif total_period < self.CUSTOM_SEGMENTS * self.CUSTOM_ROLLUP_CHOICES["3h"]:
+                    rollup = self.CUSTOM_ROLLUP_CHOICES["3h"]
+                elif total_period < self.CUSTOM_SEGMENTS * self.CUSTOM_ROLLUP_CHOICES["6h"]:
+                    rollup = self.CUSTOM_ROLLUP_CHOICES["6h"]
+                elif (
+                    total_period < self.CUSTOM_SEGMENTS_12H * self.CUSTOM_ROLLUP_CHOICES["12h"]
+                ):  # 36 segments is ok
+                    rollup = self.CUSTOM_ROLLUP_CHOICES["12h"]
+                elif total_period < self.CUSTOM_SEGMENTS * self.CUSTOM_ROLLUP_CHOICES["24h"]:
+                    rollup = self.CUSTOM_ROLLUP_CHOICES["24h"]
+                else:
+                    delta_day = self.CUSTOM_ROLLUP_CHOICES["24h"]
+                    rollup = round(total_period / (self.CUSTOM_SEGMENTS * delta_day)) * delta_day
+
+                query_params = {
+                    "start": stats_query_args.stats_period_start,
+                    "end": stats_query_args.stats_period_end,
+                    "rollup": int(rollup),
+                }
+            else:
+                segments, interval = self.STATS_PERIOD_CHOICES[stats_query_args.stats_period]
+                now = timezone.now()
+                query_params = {
+                    "start": now - ((segments - 1) * interval),
+                    "end": now,
+                    "rollup": int(interval.total_seconds()),
+                }
+
+            return self.query_tsdb(group_ids, query_params, **kwargs)
 
 
 class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
@@ -54,7 +141,9 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         self.stats_period_end = stats_period_end
         self.matching_event_id = matching_event_id
 
-    def get_attrs(self, item_list, user):
+    def get_attrs(
+        self, item_list: Sequence[Group], user: Any, **kwargs: Any
+    ) -> MutableMapping[Group, MutableMapping[str, Any]]:
         if not self._collapse("base"):
             attrs = super().get_attrs(item_list, user)
         else:
@@ -66,7 +155,13 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
         if self.stats_period and not self._collapse("stats"):
             partial_get_stats = functools.partial(
-                self.get_stats, item_list=item_list, user=user, environment_ids=self.environment_ids
+                self.get_stats,
+                item_list=item_list,
+                user=user,
+                stats_query_args=GroupStatsQueryArgs(
+                    self.stats_period, self.stats_period_start, self.stats_period_end
+                ),
+                environment_ids=self.environment_ids,
             )
             stats = partial_get_stats()
             filtered_stats = (
@@ -135,7 +230,9 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
         return attrs
 
-    def serialize(self, obj, attrs, user):
+    def serialize(
+        self, obj: Group, attrs: MutableMapping[str, Any], user: Any, **kwargs: Any
+    ) -> BaseGroupSerializerResponse:
         if not self._collapse("base"):
             result = super().serialize(obj, attrs, user)
         else:
@@ -180,7 +277,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
         return result
 
-    def _get_seen_stats(self, item_list, user):
+    def _get_seen_stats(self, item_list: Sequence[Group], user):
         if not self._collapse("stats"):
             partial_execute_seen_stats_query = functools.partial(
                 self._execute_seen_stats_query,
@@ -214,7 +311,14 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             return time_range_result
         return None
 
-    def query_tsdb(self, group_ids, query_params, conditions=None, environment_ids=None, **kwargs):
+    def query_tsdb(
+        self,
+        group_ids: Sequence[int],
+        query_params,
+        conditions=None,
+        environment_ids=None,
+        **kwargs,
+    ):
         return snuba_tsdb.get_range(
             model=snuba_tsdb.models.group,
             keys=group_ids,
@@ -268,17 +372,27 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
         self.matching_event_id = matching_event_id
         self.matching_event_environment = matching_event_environment
 
-    def get_attrs(self, item_list, user):
+    def get_attrs(
+        self, item_list: Sequence[Group], user: Any, **kwargs: Any
+    ) -> MutableMapping[Group, MutableMapping[str, Any]]:
         attrs = super().get_attrs(item_list, user)
 
         if self.stats_period:
-            stats = self.get_stats(item_list, user)
+            stats = self.get_stats(
+                item_list,
+                user,
+                GroupStatsQueryArgs(
+                    self.stats_period, self.stats_period_start, self.stats_period_end
+                ),
+            )
             for item in item_list:
                 attrs[item].update({"stats": stats[item.id]})
 
         return attrs
 
-    def serialize(self, obj, attrs, user):
+    def serialize(
+        self, obj: Group, attrs: MutableMapping[str, Any], user: Any, **kwargs: Any
+    ) -> BaseGroupSerializerResponse:
         result = super().serialize(obj, attrs, user)
 
         if self.stats_period:
@@ -292,7 +406,7 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
 
         return result
 
-    def query_tsdb(self, group_ids, query_params, **kwargs):
+    def query_tsdb(self, group_ids: Sequence[int], query_params: MutableMapping[str, Any]):
         try:
             environment = self.environment_func()
         except Environment.DoesNotExist:
@@ -313,8 +427,10 @@ class TagBasedStreamGroupSerializer(StreamGroupSerializer):
         super().__init__(**kwargs)
         self.tags = tags
 
-    def serialize(self, obj, attrs, user):
+    def serialize(
+        self, obj: Group, attrs: MutableMapping[str, Any], user: Any, **kwargs: Any
+    ) -> BaseGroupSerializerResponse:
         result = super().serialize(obj, attrs, user)
-        result["tagLastSeen"] = self.tags[obj.id].last_seen
-        result["tagFirstSeen"] = self.tags[obj.id].first_seen
+        result["tagLastSeen"] = self.tags[obj.id].last_seen  # type: ignore
+        result["tagFirstSeen"] = self.tags[obj.id].first_seen  # type: ignore
         return result

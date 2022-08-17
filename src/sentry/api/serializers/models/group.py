@@ -5,23 +5,12 @@ import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import (
-    Any,
-    Iterable,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Tuple,
-    TypedDict,
-)
+from typing import Any, List, Mapping, MutableMapping, Optional, Sequence, Tuple, TypedDict
 
 import pytz
 import sentry_sdk
 from django.conf import settings
 from django.db.models import Min, prefetch_related_objects
-from django.utils import timezone
 
 from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
@@ -30,7 +19,7 @@ from sentry.api.serializers.models.plugin import is_plugin_deprecated
 from sentry.api.serializers.models.user import UserSerializerResponse
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
-from sentry.constants import LOG_LEVELS, StatsPeriod
+from sentry.constants import LOG_LEVELS
 from sentry.models import (
     ActorTuple,
     ApiToken,
@@ -131,7 +120,7 @@ class BaseGroupResponseOptional(TypedDict, total=False):
     lastSeen: datetime
 
 
-class BaseGroupSerializerResponse(BaseGroupResponseOptional):
+class BaseGroupSerializerResponse(BaseGroupResponseOptional, total=False):
     id: str
     shareId: str
     shortId: str
@@ -172,7 +161,9 @@ class GroupSerializerBase(Serializer, ABC):
         self.collapse = collapse
         self.expand = expand
 
-    def get_attrs(self, item_list: List[Any], user: Any, **kwargs: Any) -> MutableMapping[Any, Any]:
+    def get_attrs(
+        self, item_list: Sequence[Group], user: Any, **kwargs: Any
+    ) -> MutableMapping[Group, MutableMapping[str, Any]]:
         GroupMeta.objects.populate_cache(item_list)
 
         # Note that organization is necessary here for use in `_get_permalink` to avoid
@@ -289,7 +280,7 @@ class GroupSerializerBase(Serializer, ABC):
         return result
 
     def serialize(
-        self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
+        self, obj: Group, attrs: MutableMapping[str, Any], user: Any, **kwargs: Any
     ) -> BaseGroupSerializerResponse:
         status_details, status_label = self._get_status(attrs, obj)
         permalink = self._get_permalink(attrs, obj)
@@ -340,7 +331,7 @@ class GroupSerializerBase(Serializer, ABC):
 
         return group_dict
 
-    def _get_seen_stats(self, item_list, user) -> Mapping[Any, SeenStats]:
+    def _get_seen_stats(self, item_list: Sequence[Group], user) -> Mapping[Group, SeenStats]:
         """
         Returns a dictionary keyed by item that includes:
             - times_seen
@@ -360,11 +351,15 @@ class GroupSerializerBase(Serializer, ABC):
         return {group: agg_stats.get(group, {}) for group in item_list}
 
     @abstractmethod
-    def _seen_stats_performance(self, perf_issue_list, user) -> Mapping[Any, SeenStats]:
+    def _seen_stats_performance(
+        self, perf_issue_list: Sequence[Group], user
+    ) -> Mapping[Group, SeenStats]:
         pass
 
     @abstractmethod
-    def _seen_stats_error(self, error_issue_list, user) -> Mapping[Any, SeenStats]:
+    def _seen_stats_error(
+        self, error_issue_list: Sequence[Group], user
+    ) -> Mapping[Group, SeenStats]:
         pass
 
     def _expand(self, key):
@@ -378,7 +373,7 @@ class GroupSerializerBase(Serializer, ABC):
             return False
         return key in self.collapse
 
-    def _get_status(self, attrs, obj):
+    def _get_status(self, attrs: MutableMapping[str, Any], obj: Group):
         status = obj.status
         status_details = {}
         if attrs["ignore_until"]:
@@ -434,7 +429,7 @@ class GroupSerializerBase(Serializer, ABC):
             status_label = "unresolved"
         return status_details, status_label
 
-    def _get_group_snuba_stats(self, item_list, seen_stats):
+    def _get_group_snuba_stats(self, item_list: Sequence[Group], seen_stats):
         start = self._get_start_from_seen_stats(seen_stats)
         unhandled = {}
 
@@ -502,7 +497,7 @@ class GroupSerializerBase(Serializer, ABC):
 
     @staticmethod
     def _get_subscriptions(
-        groups: Iterable[Group], user: User
+        groups: Sequence[Group], user: User
     ) -> Mapping[int, Tuple[bool, bool, Optional[GroupSubscription]]]:
         """
         Returns a mapping of group IDs to a two-tuple of (is_disabled: bool,
@@ -534,7 +529,9 @@ class GroupSerializerBase(Serializer, ABC):
         )
 
     @staticmethod
-    def _resolve_resolutions(groups, user) -> Tuple[Mapping[int, Sequence[Any]], Mapping[int, Any]]:
+    def _resolve_resolutions(
+        groups: Sequence[Group], user
+    ) -> Tuple[Mapping[int, Sequence[Any]], Mapping[int, Any]]:
         resolved_groups = [i for i in groups if i.status == GroupStatus.RESOLVED]
         if not resolved_groups:
             return {}, {}
@@ -570,7 +567,7 @@ class GroupSerializerBase(Serializer, ABC):
         return _release_resolutions, _commit_resolutions
 
     @staticmethod
-    def _resolve_external_issue_annotations(groups) -> Mapping[int, Sequence[Any]]:
+    def _resolve_external_issue_annotations(groups: Sequence[Group]) -> Mapping[int, Sequence[Any]]:
         from sentry.models import PlatformExternalIssue
 
         # find the external issues for sentry apps and add them in
@@ -584,7 +581,9 @@ class GroupSerializerBase(Serializer, ABC):
         )
 
     @staticmethod
-    def _resolve_integration_annotations(org_id, groups) -> Sequence[Mapping[int, Sequence[Any]]]:
+    def _resolve_integration_annotations(
+        org_id: int, groups: Sequence[Group]
+    ) -> Sequence[Mapping[int, Sequence[Any]]]:
         from sentry.integrations import IntegrationFeatures
 
         integration_annotations = []
@@ -633,7 +632,7 @@ class GroupSerializerBase(Serializer, ABC):
         return annotations_for_group
 
     @staticmethod
-    def _get_permalink(attrs, obj):
+    def _get_permalink(attrs: MutableMapping[str, Any], obj: Group):
         if attrs["authorized"]:
             with sentry_sdk.start_span(op="GroupSerializerBase.serialize.permalink.build"):
                 return obj.get_absolute_url()
@@ -641,7 +640,7 @@ class GroupSerializerBase(Serializer, ABC):
             return None
 
     @staticmethod
-    def _is_authorized(user, organization_id):
+    def _is_authorized(user, organization_id: int):
         # If user is not logged in and member of the organization,
         # do not return the permalink which contains private information i.e. org name.
         request = env.request
@@ -679,7 +678,9 @@ class GroupSerializer(GroupSerializerBase):
         GroupSerializerBase.__init__(self)
         self.environment_func = environment_func if environment_func is not None else lambda: None
 
-    def _seen_stats_error(self, error_issue_list, user) -> Mapping[Any, SeenStats]:
+    def _seen_stats_error(
+        self, error_issue_list: Sequence[Group], user
+    ) -> Mapping[Group, SeenStats]:
         try:
             environment = self.environment_func()
         except Environment.DoesNotExist:
@@ -721,80 +722,22 @@ class GroupSerializer(GroupSerializerBase):
 
         return attrs
 
-    def _seen_stats_performance(self, perf_issue_list, user) -> Mapping[Any, SeenStats]:
-        raise NotImplementedError
+    def _seen_stats_performance(
+        self, perf_issue_list: Sequence[Group], user
+    ) -> Mapping[Group, SeenStats]:
+        # TODO(gilbert): implement this to return real data
+        if perf_issue_list:
+            raise NotImplementedError
 
-
-class GroupStatsMixin:
-    STATS_PERIOD_CHOICES = {
-        "14d": StatsPeriod(14, timedelta(hours=24)),
-        "24h": StatsPeriod(24, timedelta(hours=1)),
-    }
-
-    CUSTOM_ROLLUP_CHOICES = {
-        "1h": timedelta(hours=1).total_seconds(),
-        "2h": timedelta(hours=2).total_seconds(),
-        "3h": timedelta(hours=3).total_seconds(),
-        "6h": timedelta(hours=6).total_seconds(),
-        "12h": timedelta(hours=12).total_seconds(),
-        "24h": timedelta(hours=24).total_seconds(),
-    }
-
-    CUSTOM_SEGMENTS = 29  # for 30 segments use 1/29th intervals
-    CUSTOM_SEGMENTS_12H = 35  # for 12h 36 segments, otherwise 15-16-17 bars is too few
-    CUSTOM_ROLLUP_6H = timedelta(hours=6).total_seconds()  # rollups should be increments of 6hs
-
-    def query_tsdb(self, group_ids, query_params):
-        raise NotImplementedError
-
-    def get_stats(self, item_list, user, **kwargs):
-        if self.stats_period:
-            # we need to compute stats at 1d (1h resolution), and 14d or a custom given period
-            group_ids = [g.id for g in item_list]
-
-            if self.stats_period == "auto":
-                total_period = (self.stats_period_end - self.stats_period_start).total_seconds()
-                if total_period < timedelta(hours=24).total_seconds():
-                    rollup = total_period / self.CUSTOM_SEGMENTS
-                elif total_period < self.CUSTOM_SEGMENTS * self.CUSTOM_ROLLUP_CHOICES["1h"]:
-                    rollup = self.CUSTOM_ROLLUP_CHOICES["1h"]
-                elif total_period < self.CUSTOM_SEGMENTS * self.CUSTOM_ROLLUP_CHOICES["2h"]:
-                    rollup = self.CUSTOM_ROLLUP_CHOICES["2h"]
-                elif total_period < self.CUSTOM_SEGMENTS * self.CUSTOM_ROLLUP_CHOICES["3h"]:
-                    rollup = self.CUSTOM_ROLLUP_CHOICES["3h"]
-                elif total_period < self.CUSTOM_SEGMENTS * self.CUSTOM_ROLLUP_CHOICES["6h"]:
-                    rollup = self.CUSTOM_ROLLUP_CHOICES["6h"]
-                elif (
-                    total_period < self.CUSTOM_SEGMENTS_12H * self.CUSTOM_ROLLUP_CHOICES["12h"]
-                ):  # 36 segments is ok
-                    rollup = self.CUSTOM_ROLLUP_CHOICES["12h"]
-                elif total_period < self.CUSTOM_SEGMENTS * self.CUSTOM_ROLLUP_CHOICES["24h"]:
-                    rollup = self.CUSTOM_ROLLUP_CHOICES["24h"]
-                else:
-                    delta_day = self.CUSTOM_ROLLUP_CHOICES["24h"]
-                    rollup = round(total_period / (self.CUSTOM_SEGMENTS * delta_day)) * delta_day
-
-                query_params = {
-                    "start": self.stats_period_start,
-                    "end": self.stats_period_end,
-                    "rollup": int(rollup),
-                }
-            else:
-                segments, interval = self.STATS_PERIOD_CHOICES[self.stats_period]
-                now = timezone.now()
-                query_params = {
-                    "start": now - ((segments - 1) * interval),
-                    "end": now,
-                    "rollup": int(interval.total_seconds()),
-                }
-
-            return self.query_tsdb(group_ids, query_params, **kwargs)
+        return {}
 
 
 class SharedGroupSerializer(GroupSerializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(
+        self, obj: Group, attrs: MutableMapping[str, Any], user: Any, **kwargs: Any
+    ) -> BaseGroupSerializerResponse:
         result = super().serialize(obj, attrs, user)
-        del result["annotations"]
+        del result["annotations"]  # type:ignore
         return result
 
 
@@ -866,10 +809,12 @@ class GroupSerializerSnuba(GroupSerializerBase):
             else []
         )
 
-    def _seen_stats_performance(self, perf_issue_list, user) -> Mapping[Any, SeenStats]:
+    def _seen_stats_performance(
+        self, perf_issue_list: Sequence[Group], user
+    ) -> Mapping[Group, SeenStats]:
         pass
 
-    def _seen_stats_error(self, error_issue_list, user) -> Mapping[Any, SeenStats]:
+    def _seen_stats_error(self, error_issue_list: Sequence[Group], user) -> Mapping[Any, SeenStats]:
         return self._execute_seen_stats_query(
             item_list=error_issue_list,
             start=self.start,
@@ -879,7 +824,12 @@ class GroupSerializerSnuba(GroupSerializerBase):
         )
 
     def _execute_seen_stats_query(
-        self, item_list, start=None, end=None, conditions=None, environment_ids=None
+        self,
+        item_list: Sequence[Group],
+        start=None,
+        end=None,
+        conditions=None,
+        environment_ids=None,
     ):
         project_ids = list({item.project_id for item in item_list})
         group_ids = [item.id for item in item_list]
