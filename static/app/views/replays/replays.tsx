@@ -3,6 +3,7 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import DetailedError from 'sentry/components/errors/detailedError';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
@@ -44,10 +45,34 @@ function Replays({location}: Props) {
   }, [location]);
 
   const {pathname, query} = location;
-  const {replays, pageLinks, isFetching} = useReplayList({
+  const {replays, pageLinks, isFetching, fetchError} = useReplayList({
     organization,
     eventView,
   });
+
+  if (fetchError && !isFetching) {
+    const reasons = [
+      t('The search parameters you selected are invalid in some way'),
+      t('There is an internal systems error or active issue'),
+    ];
+
+    return (
+      <DetailedError
+        hideSupportLinks
+        heading={t('Sorry, the list of replays could not be found.')}
+        message={
+          <div>
+            <p>{t('This could be due to a handful of reasons:')}</p>
+            <ol className="detailed-error-list">
+              {reasons.map((reason, i) => (
+                <li key={i}>{reason}</li>
+              ))}
+            </ol>
+          </div>
+        }
+      />
+    );
+  }
 
   return (
     <Fragment>
