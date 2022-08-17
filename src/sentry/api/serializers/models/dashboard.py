@@ -182,14 +182,14 @@ class DashboardDetailsSerializer(Serializer):
                     data["filters"][key] = obj.filters[camel_to_snake_case(key)]
 
             if obj.filters.get("release_id"):
-                data["filters"]["releaseObj"] = [
+                data["filters"]["releaseData"] = [
                     serialize(release, user, DashboardReleaseSerializer())
                     for release in Release.objects.filter(
                         id__in=filter(lambda id: id != "latest", obj.filters["release_id"])
                     )
                 ]
                 if "latest" in obj.filters["release_id"]:
-                    data["filters"]["releaseObj"].append({"id": "latest", "version": "latest"})
+                    data["filters"]["releaseData"].append({"id": "latest", "version": "latest"})
 
             start, end = obj.filters.get("start"), obj.filters.get("end")
             if start and end:

@@ -219,7 +219,7 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         )
 
         response = self.do_request("get", self.url(dashboard.id))
-        assert response.data["filters"]["releaseObj"] == [
+        assert response.data["filters"]["releaseData"] == [
             {"id": "1", "version": "v1", "dateCreated": test_release.date_added},
             {
                 "id": "latest",
@@ -1439,7 +1439,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         data = {"filters": {"releaseId": [release.id]}}
         response = self.do_request("put", self.url(dashboard.id), data=data)
         assert response.status_code == 200, response.data
-        assert response.data["filters"]["releaseObj"] == [
+        assert response.data["filters"]["releaseData"] == [
             {
                 "id": "1",
                 "version": "v1",

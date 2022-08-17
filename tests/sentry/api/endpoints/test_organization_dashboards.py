@@ -498,7 +498,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.data["environment"] == ["alpha"]
         assert response.data["period"] == "7d"
         assert response.data["filters"]["release"] == ["v1"]
-        assert response.data["filters"]["releaseObj"] == [
+        assert response.data["filters"]["releaseData"] == [
             {"id": "1", "version": "v1", "dateCreated": release.date_added}
         ]
 
