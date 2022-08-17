@@ -364,25 +364,61 @@ class GroupSerializerBase(Serializer):
             return False
         return key in self.collapse
 
-    @staticmethod
-    def _get_start_from_seen_stats(seen_stats):
-        # Try to figure out what is a reasonable time frame to look into stats,
-        # based on a given "seen stats".  We try to pick a day prior to the earliest last seen,
-        # but it has to be at least 14 days, and not more than 90 days ago.
-        # Fallback to the 30 days ago if we are not able to calculate the value.
-        last_seen = None
-        if seen_stats:
-            for item in seen_stats.values():
-                if last_seen is None or (item["last_seen"] and last_seen > item["last_seen"]):
-                    last_seen = item["last_seen"]
-
-        if last_seen is None:
-            return datetime.now(pytz.utc) - timedelta(days=30)
-
-        return max(
-            min(last_seen - timedelta(days=1), datetime.now(pytz.utc) - timedelta(days=14)),
-            datetime.now(pytz.utc) - timedelta(days=90),
-        )
+    def _get_status(self, attrs, obj):
+        status = obj.status
+        status_details = {}
+        if attrs["ignore_until"]:
+            snooze = attrs["ignore_until"]
+            if snooze.is_valid(group=obj):
+                # counts return the delta remaining when window is not set
+                status_details.update(
+                    {
+                        "ignoreCount": (
+                            snooze.count - (obj.times_seen - snooze.state["times_seen"])
+                            if snooze.count and not snooze.window
+                            else snooze.count
+                        ),
+                        "ignoreUntil": snooze.until,
+                        "ignoreUserCount": (
+                            snooze.user_count - (attrs["user_count"] - snooze.state["users_seen"])
+                            if snooze.user_count
+                            and not snooze.user_window
+                            and not self._collapse("stats")
+                            else snooze.user_count
+                        ),
+                        "ignoreUserWindow": snooze.user_window,
+                        "ignoreWindow": snooze.window,
+                        "actor": attrs["ignore_actor"],
+                    }
+                )
+            else:
+                status = GroupStatus.UNRESOLVED
+        if status == GroupStatus.UNRESOLVED and obj.is_over_resolve_age():
+            status = GroupStatus.RESOLVED
+            status_details["autoResolved"] = True
+        if status == GroupStatus.RESOLVED:
+            status_label = "resolved"
+            if attrs["resolution_type"] == "release":
+                res_type, res_version, _ = attrs["resolution"]
+                if res_type in (GroupResolution.Type.in_next_release, None):
+                    status_details["inNextRelease"] = True
+                elif res_type == GroupResolution.Type.in_release:
+                    status_details["inRelease"] = res_version
+                status_details["actor"] = attrs["resolution_actor"]
+            elif attrs["resolution_type"] == "commit":
+                status_details["inCommit"] = attrs["resolution"]
+        elif status == GroupStatus.IGNORED:
+            status_label = "ignored"
+        elif status in [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]:
+            status_label = "pending_deletion"
+        elif status == GroupStatus.PENDING_MERGE:
+            status_label = "pending_merge"
+        elif status == GroupStatus.REPROCESSING:
+            status_label = "reprocessing"
+            status_details["pendingEvents"], status_details["info"] = get_progress(attrs["id"])
+        else:
+            status_label = "unresolved"
+        return status_details, status_label
 
     def _get_group_snuba_stats(self, item_list, seen_stats):
         start = self._get_start_from_seen_stats(seen_stats)
@@ -429,6 +465,26 @@ class GroupSerializerBase(Serializer):
                 cache.set("group-mechanism-handled:%d" % x["group_id"], x["unhandled"], 60)
 
         return {group_id: {"unhandled": unhandled} for group_id, unhandled in unhandled.items()}
+
+    @staticmethod
+    def _get_start_from_seen_stats(seen_stats):
+        # Try to figure out what is a reasonable time frame to look into stats,
+        # based on a given "seen stats".  We try to pick a day prior to the earliest last seen,
+        # but it has to be at least 14 days, and not more than 90 days ago.
+        # Fallback to the 30 days ago if we are not able to calculate the value.
+        last_seen = None
+        if seen_stats:
+            for item in seen_stats.values():
+                if last_seen is None or (item["last_seen"] and last_seen > item["last_seen"]):
+                    last_seen = item["last_seen"]
+
+        if last_seen is None:
+            return datetime.now(pytz.utc) - timedelta(days=30)
+
+        return max(
+            min(last_seen - timedelta(days=1), datetime.now(pytz.utc) - timedelta(days=14)),
+            datetime.now(pytz.utc) - timedelta(days=90),
+        )
 
     @staticmethod
     def _get_subscriptions(
@@ -562,63 +618,16 @@ class GroupSerializerBase(Serializer):
 
         return annotations_for_group
 
-    def _get_status(self, attrs, obj):
-        status = obj.status
-        status_details = {}
-        if attrs["ignore_until"]:
-            snooze = attrs["ignore_until"]
-            if snooze.is_valid(group=obj):
-                # counts return the delta remaining when window is not set
-                status_details.update(
-                    {
-                        "ignoreCount": (
-                            snooze.count - (obj.times_seen - snooze.state["times_seen"])
-                            if snooze.count and not snooze.window
-                            else snooze.count
-                        ),
-                        "ignoreUntil": snooze.until,
-                        "ignoreUserCount": (
-                            snooze.user_count - (attrs["user_count"] - snooze.state["users_seen"])
-                            if snooze.user_count
-                            and not snooze.user_window
-                            and not self._collapse("stats")
-                            else snooze.user_count
-                        ),
-                        "ignoreUserWindow": snooze.user_window,
-                        "ignoreWindow": snooze.window,
-                        "actor": attrs["ignore_actor"],
-                    }
-                )
-            else:
-                status = GroupStatus.UNRESOLVED
-        if status == GroupStatus.UNRESOLVED and obj.is_over_resolve_age():
-            status = GroupStatus.RESOLVED
-            status_details["autoResolved"] = True
-        if status == GroupStatus.RESOLVED:
-            status_label = "resolved"
-            if attrs["resolution_type"] == "release":
-                res_type, res_version, _ = attrs["resolution"]
-                if res_type in (GroupResolution.Type.in_next_release, None):
-                    status_details["inNextRelease"] = True
-                elif res_type == GroupResolution.Type.in_release:
-                    status_details["inRelease"] = res_version
-                status_details["actor"] = attrs["resolution_actor"]
-            elif attrs["resolution_type"] == "commit":
-                status_details["inCommit"] = attrs["resolution"]
-        elif status == GroupStatus.IGNORED:
-            status_label = "ignored"
-        elif status in [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]:
-            status_label = "pending_deletion"
-        elif status == GroupStatus.PENDING_MERGE:
-            status_label = "pending_merge"
-        elif status == GroupStatus.REPROCESSING:
-            status_label = "reprocessing"
-            status_details["pendingEvents"], status_details["info"] = get_progress(attrs["id"])
+    @staticmethod
+    def _get_permalink(attrs, obj):
+        if attrs["authorized"]:
+            with sentry_sdk.start_span(op="GroupSerializerBase.serialize.permalink.build"):
+                return obj.get_absolute_url()
         else:
-            status_label = "unresolved"
-        return status_details, status_label
+            return None
 
-    def _is_authorized(self, user, organization_id):
+    @staticmethod
+    def _is_authorized(user, organization_id):
         # If user is not logged in and member of the organization,
         # do not return the permalink which contains private information i.e. org name.
         request = env.request
@@ -640,14 +649,8 @@ class GroupSerializerBase(Serializer):
 
         return user.is_authenticated and user.get_orgs().filter(id=organization_id).exists()
 
-    def _get_permalink(self, attrs, obj):
-        if attrs["authorized"]:
-            with sentry_sdk.start_span(op="GroupSerializerBase.serialize.permalink.build"):
-                return obj.get_absolute_url()
-        else:
-            return None
-
-    def _convert_seen_stats(self, stats):
+    @staticmethod
+    def _convert_seen_stats(stats):
         return {
             "count": str(stats["times_seen"]),
             "userCount": stats["user_count"],
