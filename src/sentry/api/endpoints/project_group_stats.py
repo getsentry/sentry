@@ -1,10 +1,10 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import tsdb
 from sentry.api.base import EnvironmentMixin, StatsMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.app import tsdb
 from sentry.models import Environment, Group
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 

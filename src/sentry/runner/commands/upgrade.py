@@ -87,7 +87,7 @@ def upgrade(ctx, verbosity, traceback, noinput, lock, no_repair, with_nodestore)
     "Perform any pending database migrations and upgrades."
 
     if lock:
-        from sentry.app import locks
+        from sentry.locks import locks
         from sentry.utils.locking import UnableToAcquireLock
 
         lock = locks.get("upgrade", duration=0, name="command_upgrade")

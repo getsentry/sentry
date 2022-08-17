@@ -14,7 +14,6 @@ from django.utils.functional import cached_property
 
 from bitfield import BitField
 from sentry import features, roles
-from sentry.app import locks
 from sentry.constants import (
     ALERTS_MEMBER_WRITE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
@@ -23,6 +22,7 @@ from sentry.constants import (
 )
 from sentry.db.models import BaseManager, BoundedPositiveIntegerField, Model, sane_repr
 from sentry.db.models.utils import slugify_instance
+from sentry.locks import locks
 from sentry.roles.manager import Role
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy

@@ -21,8 +21,8 @@ from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Limit, Query
 
+from sentry import tsdb
 from sentry.api.serializers.snuba import zerofill
-from sentry.app import tsdb
 from sentry.cache import default_cache
 from sentry.constants import DataCategory
 from sentry.models import (

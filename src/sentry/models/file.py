@@ -16,7 +16,6 @@ from django.core.files.storage import get_storage_class
 from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 
-from sentry.app import locks
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
@@ -24,6 +23,7 @@ from sentry.db.models import (
     JSONField,
     Model,
 )
+from sentry.locks import locks
 from sentry.tasks.files import delete_file as delete_file_task
 from sentry.tasks.files import delete_unreferenced_blobs
 from sentry.utils import metrics

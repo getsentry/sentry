@@ -9,7 +9,7 @@ from sentry_relay.auth import PublicKey
 from sentry_relay.exceptions import RelayError
 from typing_extensions import TypedDict
 
-from sentry import features, roles
+from sentry import features, quotas, roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models import UserSerializer
 from sentry.api.serializers.models.project import ProjectSerializerResponse
@@ -20,7 +20,6 @@ from sentry.api.serializers.models.role import (
 )
 from sentry.api.serializers.models.team import TeamSerializerResponse
 from sentry.api.utils import generate_organization_url, generate_region_url
-from sentry.app import quotas
 from sentry.auth.access import Access
 from sentry.constants import (
     ACCOUNT_RATE_LIMIT_DEFAULT,

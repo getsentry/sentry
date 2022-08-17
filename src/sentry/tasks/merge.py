@@ -3,8 +3,7 @@ import logging
 from django.db import DataError, IntegrityError, router, transaction
 from django.db.models import F
 
-from sentry import eventstream, similarity
-from sentry.app import tsdb
+from sentry import eventstream, similarity, tsdb
 from sentry.tasks.base import instrumented_task, track_group_async_operation
 
 logger = logging.getLogger("sentry.merge")

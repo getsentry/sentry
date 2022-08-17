@@ -5,8 +5,7 @@ from typing import Any, Mapping, Optional, Tuple
 
 from django.db import transaction
 
-from sentry import eventstore, similarity
-from sentry.app import tsdb
+from sentry import eventstore, similarity, tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.event_manager import generate_culprit
 from sentry.models import (

@@ -9,7 +9,7 @@ import pytz
 from django.core import mail
 from django.utils import timezone
 
-from sentry.app import tsdb
+from sentry import tsdb
 from sentry.cache import default_cache
 from sentry.constants import DataCategory
 from sentry.models import GroupStatus, Project, UserOption

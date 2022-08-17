@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from sentry.app import locks
+from sentry.locks import locks
 from sentry.models import OrganizationOption
 from sentry.plugins.providers import RepositoryProvider
 from sentry.shared_integrations.exceptions import ApiError

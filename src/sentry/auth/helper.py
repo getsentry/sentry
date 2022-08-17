@@ -20,7 +20,6 @@ from django.views import View
 
 from sentry import audit_log, features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
-from sentry.app import locks
 from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.idpmigration import (
@@ -29,6 +28,7 @@ from sentry.auth.idpmigration import (
 )
 from sentry.auth.provider import MigratingIdentityId, Provider
 from sentry.auth.superuser import is_active_superuser
+from sentry.locks import locks
 from sentry.models import (
     AuditLogEntry,
     AuthIdentity,

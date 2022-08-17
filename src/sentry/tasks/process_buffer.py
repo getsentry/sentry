@@ -16,7 +16,7 @@ def process_pending(partition=None):
     Process pending buffers.
     """
     from sentry import buffer
-    from sentry.app import locks
+    from sentry.locks import locks
 
     if partition is None:
         lock_key = "buffer:process_pending"

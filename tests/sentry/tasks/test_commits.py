@@ -2,8 +2,8 @@ from unittest.mock import patch
 
 from django.core import mail
 
-from sentry.app import locks
 from sentry.exceptions import InvalidIdentity, PluginError
+from sentry.locks import locks
 from sentry.models import (
     Commit,
     Deploy,

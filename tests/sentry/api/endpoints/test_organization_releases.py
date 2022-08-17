@@ -12,9 +12,9 @@ from sentry.api.endpoints.organization_releases import (
     ReleaseHeadCommitSerializer,
     ReleaseSerializerWithProjects,
 )
-from sentry.app import locks
 from sentry.auth import access
 from sentry.constants import BAD_RELEASE_CHARS, MAX_COMMIT_LENGTH, MAX_VERSION_LENGTH
+from sentry.locks import locks
 from sentry.models import (
     Activity,
     ApiKey,

@@ -45,7 +45,7 @@ def expired(request, user):
 
 
 def recover(request):
-    from sentry.app import ratelimiter
+    from sentry import ratelimits as ratelimiter
 
     extra = {
         "ip_address": request.META["REMOTE_ADDR"],
@@ -146,7 +146,7 @@ set_password_confirm = update_wrapper(set_password_confirm, recover)
 @login_required
 @require_http_methods(["POST"])
 def start_confirm_email(request):
-    from sentry.app import ratelimiter
+    from sentry import ratelimits as ratelimiter
 
     if ratelimiter.is_limited(
         f"auth:confirm-email:{request.user.id}",

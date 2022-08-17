@@ -3,8 +3,8 @@ from datetime import timedelta
 
 from django.utils import timezone
 
+from sentry import tsdb
 from sentry.api.serializers import Serializer, register
-from sentry.app import tsdb
 from sentry.models import Environment, EnvironmentProject
 
 StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))

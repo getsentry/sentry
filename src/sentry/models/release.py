@@ -16,7 +16,6 @@ from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 from sentry_relay import RelayError, parse_release
 
-from sentry.app import locks
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
 from sentry.db.models import (
     ArrayField,
@@ -29,6 +28,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.exceptions import InvalidSearchQuery
+from sentry.locks import locks
 from sentry.models import (
     Activity,
     BaseManager,
