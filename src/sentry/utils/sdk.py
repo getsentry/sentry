@@ -379,9 +379,6 @@ def configure_sdk():
             RedisIntegration(),
             ThreadingIntegration(propagate_hub=True),
         ],
-        _experiments={
-            "custom_measurements": True,
-        },
         **sdk_options,
     )
 
