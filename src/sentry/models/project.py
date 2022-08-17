@@ -18,7 +18,6 @@ from django.utils.translation import ugettext_lazy as _
 
 from bitfield import BitField
 from sentry import projectoptions
-from sentry.app import locks
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
 from sentry.db.models import (
@@ -29,18 +28,22 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
+from sentry.locks import locks
 from sentry.snuba.models import SnubaQuery
 from sentry.utils import metrics
 from sentry.utils.colors import get_hashed_color
 from sentry.utils.http import absolute_uri
 from sentry.utils.integrationdocs import integration_doc_exists
 from sentry.utils.retries import TimedRetryPolicy
+from sentry.utils.snowflake import SnowflakeIdMixin
 
 if TYPE_CHECKING:
     from sentry.models import User
 
 # TODO(dcramer): pull in enum library
 ProjectStatus = ObjectStatus
+
+SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 
 
 class ProjectManager(BaseManager):
@@ -98,7 +101,7 @@ class ProjectManager(BaseManager):
         return sorted(project_list, key=lambda x: x.name.lower())
 
 
-class Project(Model, PendingDeletionMixin):
+class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
     from sentry.models.projectteam import ProjectTeam
 
     """
@@ -176,7 +179,12 @@ class Project(Model, PendingDeletionMixin):
                     reserved=RESERVED_PROJECT_SLUGS,
                     max_length=50,
                 )
-            super().save(*args, **kwargs)
+
+        if SENTRY_USE_SNOWFLAKE:
+            snowflake_redis_key = "project_snowflake_key"
+            self.save_with_snowflake_id(
+                snowflake_redis_key, lambda: super(Project, self).save(*args, **kwargs)
+            )
         else:
             super().save(*args, **kwargs)
         self.update_rev_for_option()
