@@ -43,7 +43,9 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
             "committers": committers,
         }
 
-        if features.has("organizations:release-committer-assignees", project.organization, actor=request.user):
+        if features.has(
+            "organizations:release-committer-assignees", project.organization, actor=request.user
+        ):
             data["releaseCommitters"] = get_serialized_release_committers_for_group(event.group)
 
         return Response(data)
