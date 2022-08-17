@@ -11,12 +11,14 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
+import {decodeList} from 'sentry/utils/queryString';
 import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 import ReleasesSelectControl from './releasesSelectControl';
-import {DashboardFilters} from './types';
+import {DashboardFilterKeys, DashboardFilters} from './types';
 
 type FiltersBarProps = {
   filters: DashboardFilters;
@@ -28,14 +30,6 @@ type FiltersBarProps = {
   onDashboardFilterChange: (activeFilters: DashboardFilters) => void;
   onSave: () => void;
 };
-
-function getReleaseParams(release: string | string[]) {
-  if (Array.isArray(release)) {
-    return release;
-  }
-
-  return [release];
-}
 
 export default function FiltersBar({
   filters,
@@ -51,9 +45,9 @@ export default function FiltersBar({
   const organization = useOrganization();
 
   const selectedReleases =
-    (location.query?.release
-      ? getReleaseParams(location.query.release)
-      : filters?.release) ?? [];
+    (defined(location.query?.[DashboardFilterKeys.RELEASE])
+      ? decodeList(location.query[DashboardFilterKeys.RELEASE])
+      : filters?.[DashboardFilterKeys.RELEASE]) ?? [];
 
   return (
     <Wrapper>

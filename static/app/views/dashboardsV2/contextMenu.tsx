@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import DropdownMenu from 'sentry/components/dropdownMenu';
+import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 
 const ContextMenu = ({children}) => (
-  <DropdownMenu>
+  <DeprecatedDropdownMenu>
     {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
       const topLevelCx = classNames('dropdown', {
         'anchor-right': true,
@@ -36,7 +36,7 @@ const ContextMenu = ({children}) => (
         </MoreOptions>
       );
     }}
-  </DropdownMenu>
+  </DeprecatedDropdownMenu>
 );
 
 const MoreOptions = styled('span')`

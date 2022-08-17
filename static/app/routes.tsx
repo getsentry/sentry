@@ -1046,12 +1046,12 @@ function buildRoutes() {
 
   const replayRoutes = (
     <Route
-      path="/organizations/:orgId/replays/"
+      path="/organizations/:orgSlug/replays/"
       component={make(() => import('sentry/views/replays'))}
     >
       <IndexRoute component={make(() => import('sentry/views/replays/replays'))} />
       <Route
-        path=":eventSlug/"
+        path=":replaySlug/"
         component={make(() => import('sentry/views/replays/details'))}
       />
     </Route>
@@ -1702,10 +1702,6 @@ function buildRoutes() {
       component={make(() => import('sentry/views/profiling'))}
     >
       <IndexRoute component={make(() => import('sentry/views/profiling/content'))} />
-      <Route
-        path="onboarding/"
-        component={make(() => import('sentry/views/profiling/legacyOnboarding'))}
-      />
       <Route
         path="summary/:projectId/"
         component={make(() => import('sentry/views/profiling/profileSummary'))}

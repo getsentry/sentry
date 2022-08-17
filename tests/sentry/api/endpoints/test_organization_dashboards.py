@@ -489,7 +489,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                 "projects": [project1.id, project2.id],
                 "environment": ["alpha"],
                 "period": "7d",
-                "filters": {"release": ["v1"]},
+                "filters": {"release": ["v1"], "releaseId": ["1"]},
             },
         )
         assert response.status_code == 201
@@ -497,6 +497,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.data["environment"] == ["alpha"]
         assert response.data["period"] == "7d"
         assert response.data["filters"]["release"] == ["v1"]
+        assert response.data["filters"]["releaseId"] == ["1"]
 
     def test_post_with_start_and_end_filter(self):
         start = iso_format(datetime.now() - timedelta(seconds=10))

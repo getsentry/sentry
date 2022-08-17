@@ -1,6 +1,6 @@
 import {LocationRange} from 'pegjs';
 
-import {Token, TokenResult} from './parser';
+import {allOperators, Token, TokenResult} from './parser';
 
 /**
  * Used internally within treeResultLocator to stop recursion once we've
@@ -226,6 +226,17 @@ export const getKeyName = (
   }
 };
 
-export function isWithinToken(node: {location: LocationRange}, position: number) {
+export function isWithinToken(
+  node: {location: LocationRange} | null | undefined,
+  position: number
+) {
+  if (!node) {
+    return false;
+  }
+
   return position >= node.location.start.offset && position <= node.location.end.offset;
+}
+
+export function isOperator(value: string) {
+  return allOperators.some(op => op === value);
 }

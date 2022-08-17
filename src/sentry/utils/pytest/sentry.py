@@ -3,6 +3,7 @@ from __future__ import annotations
 import collections
 import os
 import random
+from datetime import datetime
 from hashlib import md5
 from typing import TypeVar
 from unittest import mock
@@ -148,8 +149,9 @@ def pytest_configure(config):
             "mail.backend": "django.core.mail.backends.locmem.EmailBackend",
             "system.url-prefix": "http://testserver",
             "system.base-hostname": "testserver",
-            "system.organization-base-hostname": "{slug}.{region}.testserver",
+            "system.organization-base-hostname": "{slug}.testserver",
             "system.organization-url-template": "http://{hostname}",
+            "system.region-api-url-template": "http://{region}.testserver",
             "system.region": "us",
             "system.secret-key": "a" * 52,
             "slack.client-id": "slack-client-id",
@@ -179,6 +181,9 @@ def pytest_configure(config):
     )
 
     settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = False
+    settings.SENTRY_USE_BIG_INTS = True
+
+    settings.SENTRY_SNOWFLAKE_EPOCH_START = datetime(1999, 12, 31, 0, 0).timestamp()
 
     # Plugin-related settings
     settings.ASANA_CLIENT_ID = "abc"

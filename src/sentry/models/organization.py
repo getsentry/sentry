@@ -26,9 +26,12 @@ from sentry.db.models.utils import slugify_instance
 from sentry.roles.manager import Role
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
+from sentry.utils.snowflake import SnowflakeIdMixin
 
 if TYPE_CHECKING:
     from sentry.models import User
+
+SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 
 
 class OrganizationStatus(IntEnum):
@@ -36,7 +39,7 @@ class OrganizationStatus(IntEnum):
     PENDING_DELETION = 1
     DELETION_IN_PROGRESS = 2
 
-    # alias
+    # alias for OrganizationStatus.ACTIVE
     VISIBLE = 0
 
     def __str__(self):
@@ -110,7 +113,7 @@ class OrganizationManager(BaseManager):
         return [r.organization for r in results]
 
 
-class Organization(Model):
+class Organization(Model, SnowflakeIdMixin):
     """
     An organization represents a group of individuals which maintain ownership of projects.
     """
@@ -196,7 +199,14 @@ class Organization(Model):
             with TimedRetryPolicy(10)(lock.acquire):
                 slugify_target = slugify_target.replace("_", "-").strip("-")
                 slugify_instance(self, slugify_target, reserved=RESERVED_ORGANIZATION_SLUGS)
-        super().save(*args, **kwargs)
+
+        if SENTRY_USE_SNOWFLAKE:
+            snowflake_redis_key = "organization_snowflake_key"
+            self.save_with_snowflake_id(
+                snowflake_redis_key, lambda: super(Organization, self).save(*args, **kwargs)
+            )
+        else:
+            super().save(*args, **kwargs)
 
     def delete(self, **kwargs):
         from sentry.models import NotificationSetting

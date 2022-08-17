@@ -33,7 +33,7 @@ function Chart(props: Props) {
           color: theme.chartLabel,
           // Use p50() to force time formatting.
           formatter: (value: number) =>
-            axisLabelFormatter(value, 'p50()', undefined, durationUnit),
+            axisLabelFormatter(value, 'duration', undefined, durationUnit),
         },
       }}
       tooltip={{valueFormatter: value => getDuration(value / 1000, 2)}}

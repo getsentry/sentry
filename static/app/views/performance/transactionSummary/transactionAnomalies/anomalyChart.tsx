@@ -10,6 +10,7 @@ import {DateString} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 
 type Props = {
   data: Series[];
@@ -48,13 +49,14 @@ const _AnomalyChart = (props: Props) => {
     height,
     tooltip: {
       trigger: 'axis',
-      valueFormatter: tooltipFormatter,
+      valueFormatter: (value, label) =>
+        tooltipFormatter(value, aggregateOutputType(label)),
     },
     xAxis: undefined,
     yAxis: {
       axisLabel: {
         // Coerces the axis to be count based
-        formatter: (value: number) => axisLabelFormatter(value, 'tpm()'),
+        formatter: (value: number) => axisLabelFormatter(value, 'number'),
       },
     },
   };

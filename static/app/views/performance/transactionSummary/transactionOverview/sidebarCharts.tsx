@@ -23,6 +23,7 @@ import {Organization} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {
   formatAbbreviatedNumber,
@@ -31,12 +32,10 @@ import {
 } from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import AnomaliesQuery from 'sentry/utils/performance/anomalies/anomaliesQuery';
-import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 
-import {getMEPQueryParams} from '../../landing/widgets/utils';
 import {
   anomaliesRouteWithQuery,
   ANOMALY_FLAG,
@@ -250,7 +249,6 @@ function SidebarChartsContainer({
 }: ContainerProps) {
   const api = useApi();
   const theme = useTheme();
-  const mepSetting = useMEPSettingContext();
 
   const colors = theme.charts.getColorPalette(3);
   const statsPeriod = eventView.statsPeriod;
@@ -346,7 +344,8 @@ function SidebarChartsContainer({
     tooltip: {
       trigger: 'axis',
       truncate: 80,
-      valueFormatter: tooltipFormatter,
+      valueFormatter: (value, label) =>
+        tooltipFormatter(value, aggregateOutputType(label)),
       nameFormatter(value: string) {
         return value === 'epm()' ? 'tpm()' : value;
       },
@@ -390,7 +389,6 @@ function SidebarChartsContainer({
       yAxis={['apdex()', 'failure_rate()', 'epm()']}
       partial
       referrer="api.performance.transaction-summary.sidebar-chart"
-      queryExtras={getMEPQueryParams(mepSetting)}
     >
       {({results, errored, loading, reloading}) => {
         const series = results
