@@ -115,6 +115,7 @@ interface ConsoleMessageProps extends MessageFormatterProps {
   hasOccurred: boolean;
   isActive: boolean;
   isLast: boolean;
+  isSelected: boolean;
   startTimestampMs: number;
 }
 function ConsoleMessage({
@@ -122,6 +123,7 @@ function ConsoleMessage({
   isActive = false,
   hasOccurred,
   isLast,
+  isSelected,
   startTimestampMs = 0,
 }: ConsoleMessageProps) {
   const ICONS = {
@@ -154,7 +156,7 @@ function ConsoleMessage({
         hasOccurred={hasOccurred}
         onMouseOver={handleOnMouseOver}
         onMouseOut={handleOnMouseOut}
-        aria-current={hasOccurred}
+        aria-current={isSelected}
       >
         <ErrorBoundary mini>
           <MessageFormatter breadcrumb={breadcrumb} />
