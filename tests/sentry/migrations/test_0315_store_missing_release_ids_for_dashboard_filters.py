@@ -29,12 +29,20 @@ class TestStoreMissingReleaseIDsInDashboardFilters(TestMigrations):
             created_by_id=self.user.id,
             organization_id=self.organization.id,
         )
+        self.dashboard_with_filters_but_not_release = Dashboard.objects.create(
+            title="Dashboard with filters but not release",
+            created_by_id=self.user.id,
+            organization_id=self.organization.id,
+            filters={"all_projects": True},
+        )
 
     def test(self):
         self.dashboard_with_latest.refresh_from_db()
         self.dashboard_without_releases.refresh_from_db()
         self.dashboard_with_no_filters.refresh_from_db()
+        self.dashboard_with_filters_but_not_release.refresh_from_db()
 
         assert self.dashboard_with_latest.filters["release_id"] == [self.test_release.id, "latest"]
         assert self.dashboard_without_releases.filters.get("release_id") is None
         assert self.dashboard_with_no_filters.filters is None
+        assert self.dashboard_with_filters_but_not_release.filters == {"all_projects": True}
