@@ -3734,6 +3734,54 @@ describe('WidgetBuilder', function () {
         await screen.findByText('12.0 KiB');
       });
 
+      it('renders custom performance metric using abyte format size units from events meta', async function () {
+        eventsMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/',
+          method: 'GET',
+          statusCode: 200,
+          body: {
+            meta: {
+              fields: {'p99(measurements.custom.measurement)': 'size'},
+              isMetricsData: true,
+              units: {'p99(measurements.custom.measurement)': 'kilobyte'},
+            },
+            data: [{'p99(measurements.custom.measurement)': 12000}],
+          },
+        });
+
+        renderTestComponent({
+          query: {source: DashboardWidgetSource.DISCOVERV2},
+          dashboard: {
+            ...testDashboard,
+            widgets: [
+              {
+                title: 'Custom Measurement Widget',
+                interval: '1d',
+                id: '1',
+                widgetType: WidgetType.DISCOVER,
+                displayType: DisplayType.TABLE,
+                queries: [
+                  {
+                    conditions: '',
+                    name: '',
+                    fields: ['p99(measurements.custom.measurement)'],
+                    columns: [],
+                    aggregates: ['p99(measurements.custom.measurement)'],
+                    orderby: '-p99(measurements.custom.measurement)',
+                  },
+                ],
+              },
+            ],
+          },
+          params: {
+            widgetIndex: '0',
+          },
+          orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
+        });
+
+        await screen.findByText('12 MB');
+      });
+
       it('displays custom performance metric in column select', async function () {
         renderTestComponent({
           query: {source: DashboardWidgetSource.DISCOVERV2},
