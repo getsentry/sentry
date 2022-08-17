@@ -15,12 +15,17 @@ export function fetchSamplingSdkVersions({
   projectID: Project['id'];
 }): Promise<SamplingSdkVersion[]> {
   const {samplingDistribution} = ServerSideSamplingStore.getState();
+  const {startTimestamp, endTimestamp, project_breakdown} = samplingDistribution;
+
+  if (!startTimestamp || !endTimestamp) {
+    return new Promise(resolve => {
+      resolve([]);
+    });
+  }
 
   const projectIds = [
     projectID,
-    ...(samplingDistribution.project_breakdown?.map(
-      projectBreakdown => projectBreakdown.project_id
-    ) ?? []),
+    ...(project_breakdown?.map(projectBreakdown => projectBreakdown.project_id) ?? []),
   ];
 
   const promise = api.requestPromise(
@@ -28,7 +33,8 @@ export function fetchSamplingSdkVersions({
     {
       query: {
         project: projectIds,
-        statsPeriod: '24h',
+        start: startTimestamp,
+        end: endTimestamp,
       },
     }
   );
@@ -62,12 +68,7 @@ export function fetchSamplingDistribution({
   ServerSideSamplingStore.setFetching(true);
 
   const promise = api.requestPromise(
-    `/projects/${orgSlug}/${projSlug}/dynamic-sampling/distribution/`,
-    {
-      query: {
-        statsPeriod: '24h',
-      },
-    }
+    `/projects/${orgSlug}/${projSlug}/dynamic-sampling/distribution/`
   );
 
   promise
