@@ -192,7 +192,7 @@ const ExampleQuickTracePanel = styled(Panel)`
   gap: ${space(1)};
   background: none;
   padding: ${space(2)};
-  margin: ${space(2)} 0;
+  margin: ${space(2)} 0 0;
 `;
 
 const Header = styled('h3')`
