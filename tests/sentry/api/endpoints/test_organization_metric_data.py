@@ -1278,7 +1278,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 value=1,
                 use_case_id=UseCaseKey.PERFORMANCE,
             )
-
         response = self.get_success_response(
             self.organization.slug,
             field=[
@@ -2603,72 +2602,30 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
 
     def test_failure_rate_transaction(self):
         user_ts = time.time()
-        self._send_buckets(
-            [
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.tx_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.tx_status: perf_indexer_record(
-                            self.organization.id, TransactionStatusTagValue.OK.value
-                        ),
-                    },
-                    "type": "d",
-                    "value": [3.4],
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.tx_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.tx_status: perf_indexer_record(
-                            self.organization.id, TransactionStatusTagValue.CANCELLED.value
-                        ),
-                    },
-                    "type": "d",
-                    "value": [0.3],
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.tx_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.tx_status: perf_indexer_record(
-                            self.organization.id, TransactionStatusTagValue.UNKNOWN.value
-                        ),
-                    },
-                    "type": "d",
-                    "value": [2.3],
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.tx_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.tx_status: perf_indexer_record(
-                            self.organization.id, TransactionStatusTagValue.ABORTED.value
-                        ),
-                    },
-                    "type": "d",
-                    "value": [0.5],
-                    "retention_days": 90,
-                },
-            ],
-            entity="metrics_distributions",
-        )
+
+        for value, tag_value in (
+            (3.4, TransactionStatusTagValue.OK.value),
+            (0.3, TransactionStatusTagValue.CANCELLED.value),
+            (2.3, TransactionStatusTagValue.UNKNOWN.value),
+            (0.5, TransactionStatusTagValue.ABORTED.value),
+        ):
+            self.store_metric(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                type="distribution",
+                name=TransactionMRI.DURATION.value,
+                tags={TransactionTagsKey.TRANSACTION_SATISFACTION.value: tag_value},
+                timestamp=user_ts,
+                value=value,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
+
         response = self.get_success_response(
             self.organization.slug,
             field=["transaction.failure_rate"],
             statsPeriod="1m",
             interval="1m",
+            useCase="performance",
         )
 
         assert len(response.data["groups"]) == 1
@@ -2702,6 +2659,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             field=["transaction.failure_rate"],
             statsPeriod="1m",
             interval="1m",
+            useCase="performance",
         )
 
         assert response.data["groups"] == [
@@ -2734,59 +2692,40 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     def test_apdex_transactions(self):
         # See https://docs.sentry.io/product/performance/metrics/#apdex
         user_ts = time.time()
-        self._send_buckets(
-            [
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.tx_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.tx_satisfaction: perf_indexer_record(
-                            self.organization.id, TransactionSatisfactionTagValue.SATISFIED.value
-                        ),
-                    },
-                    "type": "d",
-                    "value": [3.4],
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.tx_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.tx_satisfaction: perf_indexer_record(
-                            self.organization.id, TransactionSatisfactionTagValue.TOLERATED.value
-                        ),
-                    },
-                    "type": "d",
-                    "value": [0.3],
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.tx_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.tx_satisfaction: perf_indexer_record(
-                            self.organization.id, TransactionSatisfactionTagValue.TOLERATED.value
-                        ),
-                    },
-                    "type": "d",
-                    "value": [2.3],
-                    "retention_days": 90,
-                },
-            ],
-            entity="metrics_distributions",
+
+        self.store_metric(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            type="distribution",
+            name=TransactionMRI.DURATION.value,
+            tags={
+                TransactionTagsKey.TRANSACTION_SATISFACTION.value: TransactionSatisfactionTagValue.SATISFIED.value
+            },
+            timestamp=user_ts,
+            value=3.4,
+            use_case_id=UseCaseKey.PERFORMANCE,
         )
+
+        for subvalue in [0.3, 2.3]:
+            self.store_metric(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                type="distribution",
+                name=TransactionMRI.DURATION.value,
+                tags={
+                    TransactionTagsKey.TRANSACTION_SATISFACTION.value: TransactionSatisfactionTagValue.TOLERATED.value
+                },
+                timestamp=user_ts,
+                value=subvalue,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
 
         response = self.get_success_response(
             self.organization.slug,
             field=["transaction.apdex"],
             statsPeriod="1m",
             interval="1m",
+            useCase="performance",
         )
 
         assert len(response.data["groups"]) == 1
@@ -2794,45 +2733,41 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
 
     def test_miserable_users(self):
         user_ts = time.time()
-        self._send_buckets(
-            [
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.tx_user_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.tx_satisfaction: perf_indexer_record(
-                            self.organization.id, TransactionSatisfactionTagValue.FRUSTRATED.value
-                        ),
-                    },
-                    "type": "s",
-                    "value": [1, 2],
-                    "retention_days": 90,
+
+        for subvalue in [1, 2]:
+            self.store_metric(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                type="set",
+                name=TransactionMRI.USER.value,
+                tags={
+                    TransactionTagsKey.TRANSACTION_SATISFACTION.value: TransactionSatisfactionTagValue.FRUSTRATED.value
                 },
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.tx_user_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.tx_satisfaction: perf_indexer_record(
-                            self.organization.id, TransactionSatisfactionTagValue.SATISFIED.value
-                        ),
-                    },
-                    "type": "s",
-                    "value": [1, 3],  # user 1 had mixed transactions, user 3 only satisfied
-                    "retention_days": 90,
+                timestamp=user_ts,
+                value=subvalue,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
+
+        for subvalue in [1, 3]:
+            self.store_metric(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                type="set",
+                name=TransactionMRI.USER.value,
+                tags={
+                    TransactionTagsKey.TRANSACTION_SATISFACTION.value: TransactionSatisfactionTagValue.SATISFIED.value
                 },
-            ],
-            entity="metrics_sets",
-        )
+                timestamp=user_ts,
+                value=subvalue,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
 
         response = self.get_success_response(
             self.organization.slug,
             field=["transaction.miserable_user"],
             statsPeriod="1m",
             interval="1m",
+            useCase="performance",
         )
 
         assert len(response.data["groups"]) == 1
@@ -2840,45 +2775,40 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
 
     def test_user_misery(self):
         user_ts = time.time()
-        self._send_buckets(
-            [
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.tx_user_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.tx_satisfaction: perf_indexer_record(
-                            self.organization.id, TransactionSatisfactionTagValue.FRUSTRATED.value
-                        ),
-                    },
-                    "type": "s",
-                    "value": [3, 4],
-                    "retention_days": 90,
+        for subvalue in [3, 4]:
+            self.store_metric(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                type="set",
+                name=TransactionMRI.USER.value,
+                tags={
+                    TransactionTagsKey.TRANSACTION_SATISFACTION.value: TransactionSatisfactionTagValue.FRUSTRATED.value
                 },
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.tx_user_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.tx_satisfaction: perf_indexer_record(
-                            self.organization.id, TransactionSatisfactionTagValue.SATISFIED.value
-                        ),
-                    },
-                    "type": "s",
-                    "value": [5, 6],
-                    "retention_days": 90,
+                timestamp=user_ts,
+                value=subvalue,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
+
+        for subvalue in [5, 6]:
+            self.store_metric(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                type="set",
+                name=TransactionMRI.USER.value,
+                tags={
+                    TransactionTagsKey.TRANSACTION_SATISFACTION.value: TransactionSatisfactionTagValue.SATISFIED.value
                 },
-            ],
-            entity="metrics_sets",
-        )
+                timestamp=user_ts,
+                value=subvalue,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
 
         response = self.get_success_response(
             self.organization.slug,
             field=["transaction.user_misery"],
             statsPeriod="1m",
             interval="1m",
+            useCase="performance",
         )
         assert len(response.data["groups"]) == 1
         assert response.data["groups"][0]["totals"] == {
