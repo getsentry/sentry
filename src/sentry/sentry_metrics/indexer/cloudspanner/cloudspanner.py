@@ -1,6 +1,5 @@
 import logging
 from datetime import datetime
-from http import HTTPStatus
 from typing import Any, Mapping, Optional, Sequence, Set
 
 import google.api_core.exceptions

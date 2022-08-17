@@ -1,6 +1,6 @@
 from collections import namedtuple
 from enum import Enum
-from typing import Any, Mapping, MutableMapping, Sequence
+from typing import Any, Mapping, Sequence
 
 from sentry.sentry_metrics.configuration import UseCaseKey
 
