@@ -1,7 +1,6 @@
 import * as Sentry from '@sentry/react';
 import isNil from 'lodash/isNil';
 
-import GroupActions from 'sentry/actions/groupActions';
 import {Client, RequestCallbacks, RequestOptions} from 'sentry/api';
 import GroupStore from 'sentry/stores/groupStore';
 import {Actor, Group, Member, Note, User} from 'sentry/types';
@@ -26,7 +25,7 @@ export function assignToUser(params: AssignToUserParams) {
 
   const id = uniqueId();
 
-  GroupActions.assignTo(id, params.id, {
+  GroupStore.onAssignTo(id, params.id, {
     email: (params.member && params.member.email) || '',
   });
 
@@ -43,10 +42,10 @@ export function assignToUser(params: AssignToUserParams) {
 
   request
     .then(data => {
-      GroupActions.assignToSuccess(id, params.id, data);
+      GroupStore.onAssignToSuccess(id, params.id, data);
     })
     .catch(data => {
-      GroupActions.assignToError(id, params.id, data);
+      GroupStore.onAssignToError(id, params.id, data);
     });
 
   return request;
@@ -59,7 +58,7 @@ export function clearAssignment(groupId: string, assignedBy: AssignedBy) {
 
   const id = uniqueId();
 
-  GroupActions.assignTo(id, groupId, {
+  GroupStore.onAssignTo(id, groupId, {
     email: '',
   });
 
@@ -74,10 +73,10 @@ export function clearAssignment(groupId: string, assignedBy: AssignedBy) {
 
   request
     .then(data => {
-      GroupActions.assignToSuccess(id, groupId, data);
+      GroupStore.onAssignToSuccess(id, groupId, data);
     })
     .catch(data => {
-      GroupActions.assignToError(id, groupId, data);
+      GroupStore.onAssignToError(id, groupId, data);
     });
 
   return request;
@@ -98,9 +97,9 @@ export function assignToActor({id, actor, assignedBy}: AssignToActorParams) {
   const endpoint = `/issues/${id}/`;
 
   const guid = uniqueId();
-  let actorId;
+  let actorId = '';
 
-  GroupActions.assignTo(guid, id, {email: ''});
+  GroupStore.onAssignTo(guid, id, {email: ''});
 
   switch (actor.type) {
     case 'user':
@@ -124,10 +123,10 @@ export function assignToActor({id, actor, assignedBy}: AssignToActorParams) {
       data: {assignedTo: actorId, assignedBy},
     })
     .then(data => {
-      GroupActions.assignToSuccess(guid, id, data);
+      GroupStore.onAssignToSuccess(guid, id, data);
     })
     .catch(data => {
-      GroupActions.assignToError(guid, id, data);
+      GroupStore.onAssignToSuccess(guid, id, data);
     });
 }
 
@@ -180,9 +179,9 @@ export function updateNote(
 }
 
 type ParamsType = {
-  environment?: string | Array<string> | null;
-  itemIds?: Array<number> | Array<string>;
-  project?: Array<number> | null;
+  environment?: string | string[] | null;
+  itemIds?: string[];
+  project?: number[] | null;
   query?: string;
 };
 
@@ -283,7 +282,7 @@ export function bulkDelete(
   const query: QueryArgs = paramsToQueryArgs(params);
   const id = uniqueId();
 
-  GroupActions.delete(id, itemIds);
+  GroupStore.onDelete(id, itemIds);
 
   return wrapRequest(
     api,
@@ -292,10 +291,10 @@ export function bulkDelete(
       query,
       method: 'DELETE',
       success: response => {
-        GroupActions.deleteSuccess(id, itemIds, response);
+        GroupStore.onDeleteSuccess(id, itemIds, response);
       },
       error: error => {
-        GroupActions.deleteError(id, itemIds, error);
+        GroupStore.onDeleteError(id, itemIds, error);
       },
     },
     options
@@ -318,7 +317,7 @@ export function bulkUpdate(
   const query: QueryArgs = paramsToQueryArgs(params);
   const id = uniqueId();
 
-  GroupActions.update(id, itemIds, data);
+  GroupStore.onUpdate(id, itemIds, data);
 
   return wrapRequest(
     api,
@@ -328,10 +327,10 @@ export function bulkUpdate(
       method: 'PUT',
       data,
       success: response => {
-        GroupActions.updateSuccess(id, itemIds, response);
+        GroupStore.onUpdateSuccess(id, itemIds, response);
       },
-      error: error => {
-        GroupActions.updateError(id, itemIds, error, failSilently);
+      error: () => {
+        GroupStore.onUpdateError(id, itemIds, !!failSilently);
       },
     },
     options
@@ -351,7 +350,7 @@ export function mergeGroups(
   const query: QueryArgs = paramsToQueryArgs(params);
   const id = uniqueId();
 
-  GroupActions.merge(id, itemIds);
+  GroupStore.onMerge(id, itemIds);
 
   return wrapRequest(
     api,
@@ -361,10 +360,10 @@ export function mergeGroups(
       method: 'PUT',
       data: {merge: 1},
       success: response => {
-        GroupActions.mergeSuccess(id, itemIds, response);
+        GroupStore.onMergeSuccess(id, itemIds, response);
       },
       error: error => {
-        GroupActions.mergeError(id, itemIds, error);
+        GroupStore.onMergeError(id, itemIds, error);
       },
     },
     options

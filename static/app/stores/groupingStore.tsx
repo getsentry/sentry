@@ -518,7 +518,7 @@ const storeConfig: GroupingStoreDefinition = {
         {
           orgId,
           projectId: projectId || params.projectId,
-          itemIds: [...ids, groupId] as Array<number>,
+          itemIds: [...ids, groupId],
           query,
         },
         {
