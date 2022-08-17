@@ -1061,6 +1061,7 @@ function WidgetBuilder({
                     )}
                     <BuildSteps symbol="colored-numeric">
                       <VisualizationStep
+                        location={location}
                         widget={currentWidget}
                         dashboardFilters={dashboard.filters}
                         organization={organization}
