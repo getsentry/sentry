@@ -1896,3 +1896,14 @@ function buildRoutes() {
 // We load routes both when initlaizing the SDK (for routing integrations) and
 // when the app renders Main. Memoize to avoid rebuilding the route tree.
 export const routes = memoize(buildRoutes);
+
+function buildCustomerDomainRoutes() {
+  return (
+    <Route>
+      <Redirect from="/organizations/:orgId/" to="/issues/" />
+      <Redirect from="/organizations/:orgId/issues/" to="/issues/" />
+    </Route>
+  );
+}
+
+export const customerDomainRoutes = memoize(buildCustomerDomainRoutes);
