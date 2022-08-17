@@ -31,6 +31,10 @@ DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV = getattr(
     settings, "DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV", False
 )
 
+DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = getattr(
+    settings, "DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL", False
+)
+
 
 class AuthIndexEndpoint(Endpoint):
     """
@@ -91,7 +95,7 @@ class AuthIndexEndpoint(Endpoint):
             return authenticated
         return False
 
-    def _validate_superuser(self, validator, request):
+    def _validate_superuser(self, validator, request, verify_authenticator):
         """
         For a superuser, they need to be validated before we can grant an active superuser session.
         If the user has a password or u2f device, authenticate the password/challenge that was sent is valid.
@@ -105,7 +109,10 @@ class AuthIndexEndpoint(Endpoint):
         # TODO Look at AuthVerifyValidator
         validator.is_valid()
 
-        verify_authenticator = False
+        if not DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV and verify_authenticator:
+            authenticated = self._verify_user_via_inputs(validator, request)
+        else:
+            authenticated = True
 
         if Superuser.org_id:
             if (
@@ -114,17 +121,6 @@ class AuthIndexEndpoint(Endpoint):
             ):
                 request.session[PREFILLED_SU_MODAL_KEY] = request.data
                 self._reauthenticate_with_sso(request, Superuser.org_id)
-
-            superuser_org = Organization.objects.get(id=Superuser.org_id)
-
-            verify_authenticator = features.has(
-                "organizations:u2f-superuser-form", superuser_org, actor=request.user
-            )
-
-        if not DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV and verify_authenticator:
-            authenticated = self._verify_user_via_inputs(validator, request)
-        else:
-            authenticated = True
 
         return authenticated
 
@@ -202,14 +198,24 @@ class AuthIndexEndpoint(Endpoint):
 
             authenticated = self._verify_user_via_inputs(validator, request)
         else:
+            verify_authenticator = False
+
             if not DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV and not is_self_hosted():
-                if not Authenticator.objects.filter(
-                    user_id=request.user.id, type=U2fInterface.type
-                ).exists():
-                    return Response(
-                        {"detail": {"code": "no_u2f"}}, status=status.HTTP_403_FORBIDDEN
+                if Superuser.org_id:
+                    superuser_org = Organization.objects.get(id=Superuser.org_id)
+
+                    verify_authenticator = features.has(
+                        "organizations:u2f-superuser-form", superuser_org, actor=request.user
                     )
-            authenticated = self._validate_superuser(validator, request)
+
+                if verify_authenticator or not DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL:
+                    if not Authenticator.objects.filter(
+                        user_id=request.user.id, type=U2fInterface.type
+                    ).exists():
+                        return Response(
+                            {"detail": {"code": "no_u2f"}}, status=status.HTTP_403_FORBIDDEN
+                        )
+            authenticated = self._validate_superuser(validator, request, verify_authenticator)
 
         if not authenticated:
             return Response({"detail": {"code": "ignore"}}, status=status.HTTP_403_FORBIDDEN)
