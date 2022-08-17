@@ -579,9 +579,11 @@ class Group(Model):
 
     @property
     def get_issue_type(self):
-        raise NotImplementedError
+        # TODO(gilbert): remove this after when type is available
+        return "error"
 
     def get_issue_category(self):
+        # TODO(gilbert): change this impl when category is available and mappable
         if not self.get_issue_type:
             return None
 

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import functools
 import itertools
 import logging
 from abc import ABC, abstractmethod
@@ -24,7 +23,7 @@ from django.conf import settings
 from django.db.models import Min, prefetch_related_objects
 from django.utils import timezone
 
-from sentry import release_health, tagstore, tsdb
+from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
@@ -54,8 +53,6 @@ from sentry.models import (
     SentryAppInstallationToken,
     User,
 )
-from sentry.models.groupinbox import get_inbox_details
-from sentry.models.groupowner import get_owner_details
 from sentry.notifications.helpers import (
     collect_groups_by_project,
     get_groups_for_query,
@@ -69,9 +66,7 @@ from sentry.search.events.constants import RELEASE_STAGE_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tsdb.snuba import SnubaTSDB
-from sentry.utils import metrics
 from sentry.utils.cache import cache
-from sentry.utils.hashlib import hash_values
 from sentry.utils.json import JSONData
 from sentry.utils.safe import safe_execute
 from sentry.utils.snuba import Dataset, aliased_query, raw_query
@@ -159,6 +154,13 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     subscriptionDetails: Optional[GroupSubscriptionResponseOptional]
     hasSeen: bool
     annotations: Sequence[str]
+
+
+class SeenStats(TypedDict):
+    times_seen: int
+    first_seen: datetime
+    last_seen: datetime
+    user_count: int
 
 
 class GroupSerializerBase(Serializer, ABC):
@@ -338,8 +340,7 @@ class GroupSerializerBase(Serializer, ABC):
 
         return group_dict
 
-    @abstractmethod
-    def _get_seen_stats(self, item_list, user):
+    def _get_seen_stats(self, item_list, user) -> Mapping[Any, SeenStats]:
         """
         Returns a dictionary keyed by item that includes:
             - times_seen
@@ -347,6 +348,23 @@ class GroupSerializerBase(Serializer, ABC):
             - last_seen
             - user_count
         """
+        # partition the item_list by type
+        error_issues = [group for group in item_list if "error" == group.get_issue_category()]
+        perf_issues = [group for group in item_list if "performance" == group.get_issue_category()]
+
+        # bulk query for the seen_stats by type
+        error_stats = self._seen_stats_error(error_issues, user) or {}
+        perf_stats = (self._seen_stats_performance(perf_issues, user) if perf_issues else {}) or {}
+        agg_stats = {**error_stats, **perf_stats}
+        # combine results back
+        return {group: agg_stats.get(group, {}) for group in item_list}
+
+    @abstractmethod
+    def _seen_stats_performance(self, perf_issue_list, user) -> Mapping[Any, SeenStats]:
+        pass
+
+    @abstractmethod
+    def _seen_stats_error(self, error_issue_list, user) -> Mapping[Any, SeenStats]:
         pass
 
     def _expand(self, key):
@@ -661,7 +679,7 @@ class GroupSerializer(GroupSerializerBase):
         GroupSerializerBase.__init__(self)
         self.environment_func = environment_func if environment_func is not None else lambda: None
 
-    def _get_seen_stats(self, item_list, user):
+    def _seen_stats_error(self, error_issue_list, user) -> Mapping[Any, SeenStats]:
         try:
             environment = self.environment_func()
         except Environment.DoesNotExist:
@@ -670,8 +688,8 @@ class GroupSerializer(GroupSerializerBase):
             last_seen = {}
             times_seen = {}
         else:
-            project_id = item_list[0].project_id
-            item_ids = [g.id for g in item_list]
+            project_id = error_issue_list[0].project_id
+            item_ids = [g.id for g in error_issue_list]
             user_counts = tagstore.get_groups_user_counts(
                 [project_id], item_ids, environment_ids=environment and [environment.id]
             )
@@ -687,13 +705,13 @@ class GroupSerializer(GroupSerializerBase):
                     last_seen[item_id] = value.last_seen
                     times_seen[item_id] = value.times_seen
             else:
-                for item in item_list:
+                for item in error_issue_list:
                     first_seen[item.id] = item.first_seen
                     last_seen[item.id] = item.last_seen
                     times_seen[item.id] = item.times_seen
 
         attrs = {}
-        for item in item_list:
+        for item in error_issue_list:
             attrs[item] = {
                 "times_seen": times_seen.get(item.id, 0),
                 "first_seen": first_seen.get(item.id),  # TODO: missing?
@@ -702,6 +720,9 @@ class GroupSerializer(GroupSerializerBase):
             }
 
         return attrs
+
+    def _seen_stats_performance(self, perf_issue_list, user) -> Mapping[Any, SeenStats]:
+        raise NotImplementedError
 
 
 class GroupStatsMixin:
@@ -768,79 +789,6 @@ class GroupStatsMixin:
                 }
 
             return self.query_tsdb(group_ids, query_params, **kwargs)
-
-
-class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
-    def __init__(
-        self,
-        environment_func=None,
-        stats_period=None,
-        stats_period_start=None,
-        stats_period_end=None,
-        matching_event_id=None,
-        matching_event_environment=None,
-    ):
-        super().__init__(environment_func)
-
-        if stats_period is not None:
-            assert stats_period in self.STATS_PERIOD_CHOICES or stats_period == "auto"
-
-        self.stats_period = stats_period
-        self.stats_period_start = stats_period_start
-        self.stats_period_end = stats_period_end
-        self.matching_event_id = matching_event_id
-        self.matching_event_environment = matching_event_environment
-
-    def query_tsdb(self, group_ids, query_params, **kwargs):
-        try:
-            environment = self.environment_func()
-        except Environment.DoesNotExist:
-            stats = {key: tsdb.make_series(0, **query_params) for key in group_ids}
-        else:
-            stats = tsdb.get_range(
-                model=tsdb.models.group,
-                keys=group_ids,
-                environment_ids=environment and [environment.id],
-                **query_params,
-            )
-
-        return stats
-
-    def get_attrs(self, item_list, user):
-        attrs = super().get_attrs(item_list, user)
-
-        if self.stats_period:
-            stats = self.get_stats(item_list, user)
-            for item in item_list:
-                attrs[item].update({"stats": stats[item.id]})
-
-        return attrs
-
-    def serialize(self, obj, attrs, user):
-        result = super().serialize(obj, attrs, user)
-
-        if self.stats_period:
-            result["stats"] = {self.stats_period: attrs["stats"]}
-
-        if self.matching_event_id:
-            result["matchingEventId"] = self.matching_event_id
-
-        if self.matching_event_environment:
-            result["matchingEventEnvironment"] = self.matching_event_environment
-
-        return result
-
-
-class TagBasedStreamGroupSerializer(StreamGroupSerializer):
-    def __init__(self, tags, **kwargs):
-        super().__init__(**kwargs)
-        self.tags = tags
-
-    def serialize(self, obj, attrs, user):
-        result = super().serialize(obj, attrs, user)
-        result["tagLastSeen"] = self.tags[obj.id].last_seen
-        result["tagFirstSeen"] = self.tags[obj.id].first_seen
-        return result
 
 
 class SharedGroupSerializer(GroupSerializer):
@@ -918,6 +866,18 @@ class GroupSerializerSnuba(GroupSerializerBase):
             else []
         )
 
+    def _seen_stats_performance(self, perf_issue_list, user) -> Mapping[Any, SeenStats]:
+        pass
+
+    def _seen_stats_error(self, error_issue_list, user) -> Mapping[Any, SeenStats]:
+        return self._execute_seen_stats_query(
+            item_list=error_issue_list,
+            start=self.start,
+            end=self.end,
+            conditions=self.conditions,
+            environment_ids=self.environment_ids,
+        )
+
     def _execute_seen_stats_query(
         self, item_list, start=None, end=None, conditions=None, environment_ids=None
     ):
@@ -978,240 +938,3 @@ class GroupSerializerSnuba(GroupSerializerBase):
             }
             for item in item_list
         }
-
-    def _get_seen_stats(self, item_list, user):
-        return self._execute_seen_stats_query(
-            item_list=item_list,
-            start=self.start,
-            end=self.end,
-            conditions=self.conditions,
-            environment_ids=self.environment_ids,
-        )
-
-
-class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
-    def __init__(
-        self,
-        environment_ids=None,
-        stats_period=None,
-        stats_period_start=None,
-        stats_period_end=None,
-        matching_event_id=None,
-        start=None,
-        end=None,
-        search_filters=None,
-        collapse=None,
-        expand=None,
-        organization_id=None,
-    ):
-        super().__init__(
-            environment_ids,
-            start,
-            end,
-            search_filters,
-            collapse=collapse,
-            expand=expand,
-            organization_id=organization_id,
-        )
-
-        if stats_period is not None:
-            assert stats_period in self.STATS_PERIOD_CHOICES or (
-                stats_period == "auto" and stats_period_start and stats_period_end
-            )
-
-        self.stats_period = stats_period
-        self.stats_period_start = stats_period_start
-        self.stats_period_end = stats_period_end
-        self.matching_event_id = matching_event_id
-
-    def _get_seen_stats(self, item_list, user):
-        if not self._collapse("stats"):
-            partial_execute_seen_stats_query = functools.partial(
-                self._execute_seen_stats_query,
-                item_list=item_list,
-                environment_ids=self.environment_ids,
-                start=self.start,
-                end=self.end,
-            )
-            time_range_result = partial_execute_seen_stats_query()
-            filtered_result = (
-                partial_execute_seen_stats_query(conditions=self.conditions)
-                if self.conditions and not self._collapse("filtered")
-                else None
-            )
-            if not self._collapse("lifetime"):
-                lifetime_result = (
-                    partial_execute_seen_stats_query(start=None, end=None)
-                    if self.start or self.end
-                    else time_range_result
-                )
-            else:
-                lifetime_result = None
-
-            for item in item_list:
-                time_range_result[item].update(
-                    {
-                        "filtered": filtered_result.get(item) if filtered_result else None,
-                        "lifetime": lifetime_result.get(item) if lifetime_result else None,
-                    }
-                )
-            return time_range_result
-        return None
-
-    def query_tsdb(self, group_ids, query_params, conditions=None, environment_ids=None, **kwargs):
-        return snuba_tsdb.get_range(
-            model=snuba_tsdb.models.group,
-            keys=group_ids,
-            environment_ids=environment_ids,
-            conditions=conditions,
-            **query_params,
-        )
-
-    def get_attrs(self, item_list, user):
-        if not self._collapse("base"):
-            attrs = super().get_attrs(item_list, user)
-        else:
-            seen_stats = self._get_seen_stats(item_list, user)
-            if seen_stats:
-                attrs = {item: seen_stats.get(item, {}) for item in item_list}
-            else:
-                attrs = {item: {} for item in item_list}
-
-        if self.stats_period and not self._collapse("stats"):
-            partial_get_stats = functools.partial(
-                self.get_stats, item_list=item_list, user=user, environment_ids=self.environment_ids
-            )
-            stats = partial_get_stats()
-            filtered_stats = (
-                partial_get_stats(conditions=self.conditions)
-                if self.conditions and not self._collapse("filtered")
-                else None
-            )
-            for item in item_list:
-                if filtered_stats:
-                    attrs[item].update({"filtered_stats": filtered_stats[item.id]})
-                attrs[item].update({"stats": stats[item.id]})
-
-            if self._expand("sessions"):
-                uniq_project_ids = list({item.project_id for item in item_list})
-                cache_keys = {pid: self._build_session_cache_key(pid) for pid in uniq_project_ids}
-                cache_data = cache.get_many(cache_keys.values())
-                missed_items = []
-                for item in item_list:
-                    num_sessions = cache_data.get(cache_keys[item.project_id])
-                    if num_sessions is None:
-                        found = "miss"
-                        missed_items.append(item)
-                    else:
-                        found = "hit"
-                        attrs[item].update(
-                            {
-                                "sessionCount": num_sessions,
-                            }
-                        )
-                    metrics.incr(f"group.get_session_counts.{found}")
-
-                if missed_items:
-                    project_ids = list({item.project_id for item in missed_items})
-                    project_sessions = release_health.get_num_sessions_per_project(
-                        project_ids,
-                        self.start,
-                        self.end,
-                        self.environment_ids,
-                    )
-
-                    results = {}
-                    for project_id, count in project_sessions:
-                        cache_key = self._build_session_cache_key(project_id)
-                        results[project_id] = count
-                        cache.set(cache_key, count, 3600)
-
-                    for item in missed_items:
-                        if item.project_id in results.keys():
-                            attrs[item].update(
-                                {
-                                    "sessionCount": results[item.project_id],
-                                }
-                            )
-                        else:
-                            attrs[item].update({"sessionCount": None})
-
-        if self._expand("inbox"):
-            inbox_stats = get_inbox_details(item_list)
-            for item in item_list:
-                attrs[item].update({"inbox": inbox_stats.get(item.id)})
-
-        if self._expand("owners"):
-            owner_details = get_owner_details(item_list)
-            for item in item_list:
-                attrs[item].update({"owners": owner_details.get(item.id)})
-
-        return attrs
-
-    def serialize(self, obj, attrs, user):
-        if not self._collapse("base"):
-            result = super().serialize(obj, attrs, user)
-        else:
-            result = {
-                "id": str(obj.id),
-            }
-            if "times_seen" in attrs:
-                result.update(self._convert_seen_stats(attrs))
-
-        if self.matching_event_id:
-            result["matchingEventId"] = self.matching_event_id
-
-        if not self._collapse("stats"):
-            if self.stats_period:
-                result["stats"] = {self.stats_period: attrs["stats"]}
-
-            if not self._collapse("lifetime"):
-                result["lifetime"] = self._convert_seen_stats(attrs["lifetime"])
-                if self.stats_period:
-                    result["lifetime"].update(
-                        {"stats": None}
-                    )  # Not needed in current implementation
-
-            if not self._collapse("filtered"):
-                if self.conditions:
-                    result["filtered"] = self._convert_seen_stats(attrs["filtered"])
-                    if self.stats_period:
-                        result["filtered"].update(
-                            {"stats": {self.stats_period: attrs["filtered_stats"]}}
-                        )
-                else:
-                    result["filtered"] = None
-
-            if self._expand("sessions"):
-                result["sessionCount"] = attrs["sessionCount"]
-
-        if self._expand("inbox"):
-            result["inbox"] = attrs["inbox"]
-
-        if self._expand("owners"):
-            result["owners"] = attrs["owners"]
-
-        return result
-
-    def _build_session_cache_key(self, project_id):
-        start_key = end_key = env_key = ""
-        if self.start:
-            start_key = self.start.replace(second=0, microsecond=0, tzinfo=None)
-
-        if self.end:
-            end_key = self.end.replace(second=0, microsecond=0, tzinfo=None)
-
-        if self.end and self.start and self.end - self.start >= timedelta(minutes=60):
-            # Cache to the hour for longer time range queries, and to the minute if the query if for a time period under 1 hour
-            end_key = end_key.replace(minute=0)
-            start_key = start_key.replace(minute=0)
-
-        if self.environment_ids:
-            self.environment_ids.sort()
-            env_key = "-".join(str(eid) for eid in self.environment_ids)
-
-        start_key = start_key.strftime("%m/%d/%Y, %H:%M:%S") if start_key != "" else ""
-        end_key = end_key.strftime("%m/%d/%Y, %H:%M:%S") if end_key != "" else ""
-        key_hash = hash_values([project_id, start_key, end_key, env_key])
-        session_cache_key = f"w-s:{key_hash}"
-        return session_cache_key
