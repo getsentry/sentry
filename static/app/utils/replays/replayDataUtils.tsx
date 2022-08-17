@@ -20,15 +20,8 @@ import type {
 export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
   return {
     ...apiResponse,
-    // TODO(replays): replayId is temporary
-    id: apiResponse.id || apiResponse.replayId,
-    startedAt: new Date(apiResponse.startedAt),
-    finishedAt: new Date(apiResponse.finishedAt),
-    user: {
-      ...apiResponse.user,
-      // TODO(replays): ipAddress is temporary
-      ip_address: apiResponse.user.ip_address || apiResponse.user.ipAddress,
-    },
+    ...(apiResponse.startedAt ? {startedAt: new Date(apiResponse.startedAt)} : {}),
+    ...(apiResponse.finishedAt ? {finishedAt: new Date(apiResponse.finishedAt)} : {}),
   };
 }
 
