@@ -2,16 +2,15 @@ from datetime import datetime, timedelta
 
 from django.urls import reverse
 
-from sentry.models import (
-    Dashboard,
-    DashboardTombstone,
+from sentry.models.dashboard import Dashboard, DashboardTombstone
+from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
     DashboardWidgetTypes,
-    Project,
-    Release,
 )
+from sentry.models.project import Project
+from sentry.models.release import Release
 from sentry.testutils import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import iso_format
 
