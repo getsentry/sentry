@@ -475,7 +475,7 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
     last = message_batch[-1]
     outer_message = Message(last.partition, last.offset, message_batch, last.timestamp)
 
-    indexer = STORAGE_TO_INDEXER[IndexerStorage.MOCK]
+    indexer = STORAGE_TO_INDEXER[IndexerStorage.MOCK]()
     # Insert a None-value into the mock-indexer to simulate a rate-limit.
     indexer.indexer._strings[1]["rate_limited_test"] = None
 
