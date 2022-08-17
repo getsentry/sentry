@@ -358,7 +358,7 @@ class GroupType(Enum):
     PERFORMANCE_N_PLUS_ONE = 1000
     PERFORMANCE_SLOW_SPAN = 1001
 
-class IssueCategory(Enum):
+class GroupCategory(Enum):
     ERROR = 1
     PERFORMANCE = 2
 
@@ -666,9 +666,9 @@ class Group(Model):
 
     def get_type_category_mapping(self):
         return {
-            GroupType.ERROR: IssueCategory.ERROR,
-            GroupType.PERFORMANCE_N_PLUS_ONE: IssueCategory.PERFORMANCE,
-            GroupType.PERFORMANCE_SLOW_SPAN: IssueCategory.PERFORMANCE,
+            GroupType.ERROR: GroupCategory.ERROR,
+            GroupType.PERFORMANCE_N_PLUS_ONE: GroupCategory.PERFORMANCE,
+            GroupType.PERFORMANCE_SLOW_SPAN: GroupCategory.PERFORMANCE,
         }
 
     def get_category_type_mapping(self):
