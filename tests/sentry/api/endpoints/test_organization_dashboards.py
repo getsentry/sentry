@@ -479,8 +479,8 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
     def test_post_dashboard_with_filters(self):
         project1 = self.create_project(name="foo", organization=self.organization)
-        release = self.create_release(project=project1, version="v1")
         project2 = self.create_project(name="bar", organization=self.organization)
+        release = self.create_release(project=project1, version="v1")
 
         response = self.do_request(
             "post",
@@ -494,12 +494,12 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             },
         )
         assert response.status_code == 201
-        assert response.data["projects"] == [project2.id, project1.id]
+        assert sorted(response.data["projects"]) == [project1.id, project2.id]
         assert response.data["environment"] == ["alpha"]
         assert response.data["period"] == "7d"
         assert response.data["filters"]["release"] == ["v1"]
         assert response.data["filters"]["releaseData"] == [
-            {"id": "1", "version": "v1", "dateCreated": release.date_added}
+            {"id": f"{release.id}", "version": "v1", "dateCreated": release.date_added}
         ]
 
     def test_post_with_start_and_end_filter(self):
