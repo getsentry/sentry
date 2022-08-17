@@ -44,26 +44,3 @@ class OrganizationMemberListTest(APITestCase):
             OrganizationMemberWithProjectsSerializer(project_ids=projects_ids),
         )
         assert response.data == expected
-
-    def test_simple_pagination(self):
-        projects_ids = [self.project_1.id, self.project_2.id]
-        response = self.get_success_response(self.org.slug, project=projects_ids, cursor="1:1:0")
-        expected = serialize(
-            list(
-                self.org.member_set.filter(user__in=[self.owner_user, self.user_2]).order_by(
-                    "user__email"
-                )
-            )[1:],
-            self.user_2,
-            OrganizationMemberWithProjectsSerializer(project_ids=projects_ids),
-        )
-        assert response.data == expected
-
-        projects_ids = [self.project_2.id]
-        response = self.get_success_response(self.org.slug, project=projects_ids, cursor="1:1:0")
-        expected = serialize(
-            list(self.org.member_set.filter(user__in=[self.user_2]).order_by("user__email"))[1:],
-            self.user_2,
-            OrganizationMemberWithProjectsSerializer(project_ids=projects_ids),
-        )
-        assert response.data == expected

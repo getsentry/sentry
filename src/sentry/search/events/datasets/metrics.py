@@ -69,11 +69,6 @@ class MetricsDatasetConfig(DatasetConfig):
         self.builder.metric_ids.add(metric_id)
         return metric_id
 
-    def resolve_tag_value(self, value: str) -> Union[str, int]:
-        if self.builder.is_performance and self.builder.tag_values_are_strings:
-            return value
-        return self.resolve_value(value)
-
     def resolve_value(self, value: str) -> int:
         if self.builder.dry_run:
             return -1
@@ -911,9 +906,17 @@ class MetricsDatasetConfig(DatasetConfig):
                 return None
 
         if isinstance(value, list):
-            value = [self.builder.resolve_tag_value(v) for v in value]
+            resolved_value = []
+            for item in value:
+                resolved_item = self.builder.resolve_tag_value(item)
+                if resolved_item is None:
+                    raise IncompatibleMetricsQuery(f"Transaction value {item} in filter not found")
+                resolved_value.append(resolved_item)
         else:
-            value = self.builder.resolve_tag_value(value)
+            resolved_value = self.builder.resolve_tag_value(value)
+            if resolved_value is None:
+                raise IncompatibleMetricsQuery(f"Transaction value {value} in filter not found")
+        value = resolved_value
 
         return Condition(Column(f"tags[{self.resolve_value('transaction')}]"), Op(operator), value)
 

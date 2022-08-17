@@ -5,7 +5,7 @@ from typing import Any, Mapping, Optional, Set
 from django.conf import settings
 from django.db.models import Q
 
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
     KeyCollection,
@@ -77,7 +77,11 @@ class PGStringIndexerV2(StringIndexer):
         if db_write_keys.size == 0:
             return db_read_key_results
 
-        with writes_limiter.check_write_limits(use_case_id, db_write_keys) as writes_limiter_state:
+        ratelimiter_namespace = get_ingest_config(use_case_id).writes_limiter_namespace
+
+        with writes_limiter.check_write_limits(
+            use_case_id, ratelimiter_namespace, db_write_keys
+        ) as writes_limiter_state:
             # After the DB has successfully committed writes, we exit this
             # context manager and consume quotas. If the DB crashes we
             # shouldn't consume quota.
@@ -138,17 +142,19 @@ class PGStringIndexerV2(StringIndexer):
 
         return id
 
-    def reverse_resolve(self, use_case_id: UseCaseKey, id: int) -> Optional[str]:
+    def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
         """Lookup the stored string for a given integer ID.
 
         Returns None if the entry cannot be found.
         """
         table = self._table(use_case_id)
         try:
-            string: str = table.objects.get_from_cache(id=id, use_replica=True).string
+            obj = table.objects.get_from_cache(id=id, use_replica=True)
         except table.DoesNotExist:
             return None
 
+        assert obj.organization_id == org_id
+        string: str = obj.string
         return string
 
     def _table(self, use_case_id: UseCaseKey) -> IndexerTable:

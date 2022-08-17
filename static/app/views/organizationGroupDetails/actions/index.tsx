@@ -14,7 +14,6 @@ import {
   openModal,
   openReprocessEventModal,
 } from 'sentry/actionCreators/modal';
-import GroupActions from 'sentry/actions/groupActions';
 import {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
@@ -28,14 +27,15 @@ import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
 import Tooltip from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
 import {
   Group,
+  GroupStatusResolution,
   Organization,
   Project,
   ResolutionStatus,
   SavedQueryVersions,
-  UpdateResolutionStatus,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {analytics} from 'sentry/utils/analytics';
@@ -160,7 +160,7 @@ class Actions extends Component<Props, State> {
       | {isBookmarked: boolean}
       | {isSubscribed: boolean}
       | {inbox: boolean}
-      | UpdateResolutionStatus
+      | GroupStatusResolution
   ) => {
     const {group, project, organization, api} = this.props;
 
@@ -179,8 +179,8 @@ class Actions extends Component<Props, State> {
       }
     );
 
-    if ((data as UpdateResolutionStatus).status) {
-      this.trackIssueAction((data as UpdateResolutionStatus).status);
+    if ((data as GroupStatusResolution).status) {
+      this.trackIssueAction((data as GroupStatusResolution).status);
     }
     if ((data as {inbox: boolean}).inbox !== undefined) {
       this.trackIssueAction('mark_reviewed');
@@ -254,17 +254,17 @@ class Actions extends Component<Props, State> {
     const id = uniqueId();
     addLoadingMessage(t('Discarding event\u2026'));
 
-    GroupActions.discard(id, group.id);
+    GroupStore.onDiscard(id, group.id);
 
     api.request(`/issues/${group.id}/`, {
       method: 'PUT',
       data: {discard: true},
       success: response => {
-        GroupActions.discardSuccess(id, group.id, response);
+        GroupStore.onDiscardSuccess(id, group.id, response);
         browserHistory.push(`/${organization.slug}/${project.slug}/`);
       },
       error: error => {
-        GroupActions.discardError(id, group.id, error);
+        GroupStore.onDiscardError(id, group.id, error);
       },
       complete: clearIndicators,
     });

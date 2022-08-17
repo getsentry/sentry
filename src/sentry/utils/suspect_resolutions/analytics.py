@@ -16,6 +16,8 @@ class SuspectResolutionEvaluation(analytics.Event):
         analytics.Attribute("is_commit_correlated"),
         analytics.Attribute("resolved_issue_release_ids"),
         analytics.Attribute("candidate_issue_release_ids"),
+        analytics.Attribute("resolved_issue_total_events"),
+        analytics.Attribute("candidate_issue_total_events"),
     )
 
 

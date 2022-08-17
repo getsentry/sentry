@@ -138,6 +138,7 @@ default_manager.add("organizations:required-email-verification", OrganizationFea
 default_manager.add("organizations:rule-page", OrganizationFeature)
 default_manager.add("organizations:sentry-functions", OrganizationFeature, False)
 default_manager.add("organizations:session-replay", OrganizationFeature, True)
+default_manager.add("organizations:session-replay-ui", OrganizationFeature, True)
 default_manager.add("organizations:session-replay-sdk", OrganizationFeature, True)
 default_manager.add("organizations:set-grouping-config", OrganizationFeature)
 default_manager.add("organizations:slack-overage-notifications", OrganizationFeature, True)
@@ -209,7 +210,6 @@ default_manager.add("projects:suspect-resolutions", ProjectFeature, True)
 
 # Project plugin features
 default_manager.add("projects:plugins", ProjectPluginFeature)
-default_manager.add("users:notification-slack-automatic", UserFeature)
 
 # Workflow 2.0 Project features
 default_manager.add("projects:auto-associate-commits-to-release", ProjectFeature)

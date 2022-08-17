@@ -1,4 +1,3 @@
-import pytest
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 
@@ -16,7 +15,7 @@ uniform_rule_with_recommended_sampling_values = {
         "op": "and",
         "inner": [],
     },
-    "sampleRate": 1,
+    "sampleRate": 0.1,
 }
 
 uniform_rule_with_custom_sampling_values = {
@@ -72,19 +71,20 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
-    @pytest.mark.skip(reason="Flaky")
     def test_add_uniform_rule_with_recommended_sampling_values(self):
         with self.feature(FEATURE_NAME):
             self.wait_until_page_loaded()
 
             # Open uniform rate modal
-            self.browser.element('[aria-label="Start Setup"]').click()
+            self.browser.click_when_visible('[aria-label="Start Setup"]')
+
+            self.browser.wait_until('[id="recommended-client-sampling"]')
 
             # Click on the recommended sampling values option
-            self.browser.element('[id="sampling-recommended"]').click()
+            self.browser.click_when_visible('[id="sampling-recommended"]')
 
             # Click on done button
-            self.browser.element('[aria-label="Done"]').click()
+            self.browser.click_when_visible('[aria-label="Done"]')
 
             # Wait the success message to show up
             self.browser.wait_until('[data-test-id="toast-success"]')
@@ -103,13 +103,14 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                 == serializer.validated_data["rules"][0]
             )
 
-    @pytest.mark.skip(reason="Flaking pretty consistently")
     def test_add_uniform_rule_with_custom_sampling_values(self):
         with self.feature(FEATURE_NAME):
             self.wait_until_page_loaded()
 
             # Open uniform rate modal
-            self.browser.element('[aria-label="Start Setup"]').click()
+            self.browser.click_when_visible('[aria-label="Start Setup"]')
+
+            self.browser.wait_until('[id="recommended-client-sampling"]')
 
             # Enter a custom value for client side sampling
             self.browser.element('[id="recommended-client-sampling"]').clear()
@@ -120,10 +121,10 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             self.browser.element('[id="recommended-server-sampling"]').send_keys(50, Keys.ENTER)
 
             # Click on next button
-            self.browser.element('[aria-label="Next"]').click()
+            self.browser.click_when_visible('[aria-label="Next"]')
 
             # Click on done button
-            self.browser.element('[aria-label="Done"]').click()
+            self.browser.click_when_visible('[aria-label="Done"]')
 
             # Wait the success message to show up
             self.browser.wait_until('[data-test-id="toast-success"]')

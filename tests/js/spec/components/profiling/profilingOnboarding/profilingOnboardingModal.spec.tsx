@@ -9,7 +9,10 @@ const MockRenderModalProps: ModalRenderProps = {
   Body: ({children}) => <div>{children}</div>,
   Header: ({children}) => <div>{children}</div>,
   Footer: ({children}) => <div>{children}</div>,
-} as ModalRenderProps;
+  CloseButton: ({children}) => <div>{children}</div>,
+  closeModal: jest.fn(),
+  onDismiss: jest.fn(),
+} as unknown as ModalRenderProps;
 
 function selectProject(project: Project) {
   if (!project.name) {
