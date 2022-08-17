@@ -19,7 +19,6 @@ import {
   resetSavedSearches,
 } from 'sentry/actionCreators/savedSearches';
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
-import GroupActions from 'sentry/actions/groupActions';
 import {Client} from 'sentry/api';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -411,7 +410,7 @@ class IssueListOverview extends Component<Props, State> {
         if (!data) {
           return;
         }
-        GroupActions.populateStats(groups, data);
+        GroupStore.onPopulateStats(groups, data);
       },
       error: err => {
         this.setState({
