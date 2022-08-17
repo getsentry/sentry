@@ -149,4 +149,50 @@ describe('VisualizationStep', function () {
 
     await screen.findByText(/we've automatically adjusted your results/i);
   });
+
+  it('uses release from URL params when querying', async function () {
+    const {eventsv2Mock} = mockRequests(organization.slug);
+    render(
+      <WidgetBuilder
+        route={{}}
+        router={router}
+        routes={router.routes}
+        routeParams={router.params}
+        location={{
+          ...router.location,
+          query: {
+            ...router.location.query,
+            release: ['v1'],
+          },
+        }}
+        dashboard={{
+          id: 'new',
+          title: 'Dashboard',
+          createdBy: undefined,
+          dateCreated: '2020-01-01T00:00:00.000Z',
+          widgets: [],
+          projects: [],
+          filters: {},
+        }}
+        onSave={jest.fn()}
+        params={{
+          orgId: organization.slug,
+          dashboardId: 'new',
+        }}
+      />,
+      {
+        context: routerContext,
+        organization,
+      }
+    );
+
+    await waitFor(() =>
+      expect(eventsv2Mock).toHaveBeenCalledWith(
+        '/organizations/org-slug/eventsv2/',
+        expect.objectContaining({
+          query: expect.objectContaining({query: ' release:v1 '}),
+        })
+      )
+    );
+  });
 });
