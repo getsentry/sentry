@@ -162,11 +162,14 @@ def provision_middleware():
     SENTRY_SELF_HOSTED=False,
 )
 class End2EndTest(APITestCase):
+    def setUp(self):
+        super().setUp()
+        self.middleware = provision_middleware()
+
     def test_with_middleware_no_customer_domain(self):
         self.create_organization(name="albertos-apples")
 
-        middleware = provision_middleware()
-        with override_settings(MIDDLEWARE=tuple(middleware)):
+        with override_settings(MIDDLEWARE=tuple(self.middleware)):
             # Induce activeorg session value of a non-existent org
             assert "activeorg" not in self.client.session
             response = self.client.post(
@@ -210,8 +213,7 @@ class End2EndTest(APITestCase):
     def test_with_middleware_and_customer_domain(self):
         self.create_organization(name="albertos-apples")
 
-        middleware = provision_middleware()
-        with override_settings(MIDDLEWARE=tuple(middleware)):
+        with override_settings(MIDDLEWARE=tuple(self.middleware)):
             # Induce activeorg session value of a non-existent org
             assert "activeorg" not in self.client.session
             response = self.client.post(
@@ -281,8 +283,7 @@ class End2EndTest(APITestCase):
         non_staff_user = self.create_user(is_staff=False)
         self.login_as(user=non_staff_user)
 
-        middleware = provision_middleware()
-        with override_settings(MIDDLEWARE=tuple(middleware)):
+        with override_settings(MIDDLEWARE=tuple(self.middleware)):
             # GET request
             response = self.client.get(
                 reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"}),
@@ -324,8 +325,7 @@ class End2EndTest(APITestCase):
         is_staff_user = self.create_user(is_staff=True)
         self.login_as(user=is_staff_user)
 
-        middleware = provision_middleware()
-        with override_settings(MIDDLEWARE=tuple(middleware)):
+        with override_settings(MIDDLEWARE=tuple(self.middleware)):
             response = self.client.get(
                 reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"}),
                 HTTP_HOST="albertos-apples.testserver",
