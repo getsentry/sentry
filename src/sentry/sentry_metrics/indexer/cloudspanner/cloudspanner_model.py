@@ -32,7 +32,10 @@ DATABASE_PARAMETERS: Mapping[UseCaseKey, Mapping[str, str]] = {
         "table_name": "perfstringindexer",
         "unique_organization_string_index_name": "unique_organization_string_index",
     },
-    UseCaseKey.RELEASE_HEALTH: {},
+    UseCaseKey.RELEASE_HEALTH: {
+        "table_name": "perfstringindexer",
+        "unique_organization_string_index_name": "unique_organization_string_index",
+    },
 }
 
 
