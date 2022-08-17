@@ -104,7 +104,7 @@ def apply_decorators(
                 src_code = f.read()
             new_code = re.sub(
                 rf"\nclass\s+{class_name}\(",
-                f"\n@{decorator_name}\nclass {class_name}(",
+                rf"\n@{decorator_name}\g<0>",
                 src_code,
             )
             new_code = insert_import(new_code, import_stmt)
