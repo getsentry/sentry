@@ -379,9 +379,6 @@ def configure_sdk():
             RedisIntegration(),
             ThreadingIntegration(propagate_hub=True),
         ],
-        _experiments={
-            "custom_measurements": True,
-        },
         **sdk_options,
     )
 
@@ -430,12 +427,3 @@ def bind_organization_context(organization):
                     "internal-error.organization-context",
                     extra={"organization_id": organization.id},
                 )
-
-
-def set_measurement(measurement_name, value, unit=None):
-    try:
-        transaction = sentry_sdk.Hub.current.scope.transaction
-        if transaction is not None:
-            transaction.set_measurement(measurement_name, value, unit)
-    except Exception:
-        pass
