@@ -9,6 +9,7 @@ from rest_framework.authentication import SessionAuthentication
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.authentication import QuietBasicAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import SsoRequired
@@ -101,14 +102,10 @@ class AuthIndexEndpoint(Endpoint):
         SSO and if they do not, we redirect them back to the SSO login.
 
         """
-
         # TODO Look at AuthVerifyValidator
         validator.is_valid()
 
-        if not DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV:
-            authenticated = self._verify_user_via_inputs(validator, request)
-        else:
-            authenticated = True
+        verify_authenticator = False
 
         if Superuser.org_id:
             if (
@@ -117,6 +114,17 @@ class AuthIndexEndpoint(Endpoint):
             ):
                 request.session[PREFILLED_SU_MODAL_KEY] = request.data
                 self._reauthenticate_with_sso(request, Superuser.org_id)
+
+            superuser_org = Organization.objects.get(id=Superuser.org_id)
+
+            verify_authenticator = features.has(
+                "organizations:u2f-superuser-form", superuser_org, actor=request.user
+            )
+
+        if not DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV and verify_authenticator:
+            authenticated = self._verify_user_via_inputs(validator, request)
+        else:
+            authenticated = True
 
         return authenticated
 

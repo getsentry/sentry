@@ -1161,6 +1161,8 @@ SENTRY_FEATURES = {
     "organizations:release-comparison-performance": False,
     # Enable team insights page
     "organizations:team-insights": True,
+    # Enable u2f verification on superuser form
+    "organizations:u2f-superuser-form": False,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": False,
     # Enable sending Active release notifications without creating an explicit rule in DB
