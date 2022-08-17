@@ -192,7 +192,6 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
         request.data.update(
             {"name": request.data["displayName"], "slug": slugify(request.data["displayName"])}
         ),
-
         return super().post(request, organization)
 
 
@@ -431,7 +430,6 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         """
         Delete a team with a SCIM Group DELETE Request.
         """
-
         return super().delete(request, team)
 
     def put(self, request: Request, organization, team) -> Response:
