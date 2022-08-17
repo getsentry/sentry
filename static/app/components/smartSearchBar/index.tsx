@@ -24,6 +24,7 @@ import {
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import {
   getKeyName,
+  isOperator,
   isWithinToken,
   treeResultLocator,
 } from 'sentry/components/searchSyntax/utils';
@@ -40,27 +41,35 @@ import {Organization, SavedSearchType, Tag, User} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
+import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import getDynamicComponent from 'sentry/utils/getDynamicComponent';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import {ActionButton} from './actions';
+import SearchBarDatePicker from './searchBarDatePicker';
 import SearchDropdown from './searchDropdown';
 import SearchHotkeysListener from './searchHotkeysListener';
-import {ItemType, SearchGroup, SearchItem, Shortcut, ShortcutType} from './types';
+import {
+  AutocompleteGroup,
+  ItemType,
+  SearchGroup,
+  SearchItem,
+  Shortcut,
+  ShortcutType,
+} from './types';
 import {
   addSpace,
   createSearchGroups,
   filterKeysFromQuery,
   generateOperatorEntryMap,
+  getDateTagAutocompleteGroups,
   getSearchGroupWithItemMarkedActive,
   getTagItemsFromKeys,
   getValidOps,
   removeSpace,
   shortcuts,
 } from './utils';
-
-const DROPDOWN_BLUR_DURATION = 200;
 
 /**
  * The max width in pixels of the search bar at which the buttons will
@@ -75,8 +84,6 @@ const ACTION_OVERFLOW_STEPS = 75;
 
 const makeQueryState = (query: string) => ({
   query,
-  // Anytime the query changes and it is not "" the dropdown should show
-  showDropdown: true,
   parsedQuery: parseSearch(query),
 });
 
@@ -132,13 +139,6 @@ type ActionBarItem = {
   key: string;
 };
 
-type AutocompleteGroup = {
-  recentSearchItems: SearchItem[] | undefined;
-  searchItems: SearchItem[];
-  tagName: string;
-  type: ItemType;
-};
-
 type Props = WithRouterProps & {
   api: Client;
   organization: Organization;
@@ -192,13 +192,20 @@ type Props = WithRouterProps & {
    */
   members?: User[];
   /**
-   * Called when the search is blurred
+   * Called when the search input is blurred.
+   * Note that the input may be blurred when the user selects an autocomplete
+   * value - if you don't want that, onClose may be a better option.
    */
   onBlur?: (value: string) => void;
   /**
    * Called when the search input changes
    */
   onChange?: (value: string, e: React.ChangeEvent) => void;
+  /**
+   * Called when the user has closed the search dropdown.
+   * Occurs on escape, tab, or clicking outside the component.
+   */
+  onClose?: (value: string) => void;
   /**
    * Get a list of recent searches for the current query
    */
@@ -274,7 +281,6 @@ type State = {
    */
   query: string;
   searchGroups: SearchGroup[];
-
   /**
    * The current search term (or 'key') that that we will be showing
    * autocompletion for.
@@ -350,18 +356,13 @@ class SmartSearchBar extends Component<Props, State> {
 
   componentWillUnmount() {
     this.inputResizeObserver?.disconnect();
-    window.clearTimeout(this.blurTimeout);
+    document.removeEventListener('pointerup', this.onBackgroundPointerUp);
   }
 
   get initialQuery() {
     const {query, defaultQuery} = this.props;
     return query !== null ? addSpace(query) : defaultQuery ?? '';
   }
-
-  /**
-   * Tracks the dropdown blur
-   */
-  blurTimeout: number | undefined = undefined;
 
   /**
    * Ref to the search element itself
@@ -377,6 +378,17 @@ class SmartSearchBar extends Component<Props, State> {
    * Used to determine when actions should be moved to the action overflow menu
    */
   inputResizeObserver: ResizeObserver | null = null;
+
+  /**
+   * Only closes the dropdown when pointer events occur outside of this component
+   */
+  onBackgroundPointerUp = (e: PointerEvent) => {
+    if (this.containerRef.current?.contains(e.target as Node)) {
+      return;
+    }
+
+    this.close();
+  };
 
   /**
    * Updates the numActionsVisible count as the search bar is resized
@@ -407,24 +419,26 @@ class SmartSearchBar extends Component<Props, State> {
       return;
     }
     this.searchInput.current.blur();
+    this.close();
   }
 
   async doSearch() {
     this.blur();
 
+    const query = removeSpace(this.state.query);
+    const {organization, savedSearchType, searchSource} = this.props;
+
     if (!this.hasValidSearch) {
+      trackAdvancedAnalyticsEvent('search.search_with_invalid', {
+        organization,
+        query,
+        search_type: savedSearchType === 0 ? 'issues' : 'events',
+        search_source: searchSource,
+      });
       return;
     }
 
-    const query = removeSpace(this.state.query);
-    const {
-      onSearch,
-      onSavedRecentSearch,
-      api,
-      organization,
-      savedSearchType,
-      searchSource,
-    } = this.props;
+    const {onSearch, onSavedRecentSearch, api} = this.props;
     trackAdvancedAnalyticsEvent('search.searched', {
       organization,
       query,
@@ -568,6 +582,29 @@ class SmartSearchBar extends Component<Props, State> {
     }
   };
 
+  logShortcutEvent = (shortcutType: ShortcutType, shortcutMethod: 'click' | 'hotkey') => {
+    const {searchSource, savedSearchType, organization} = this.props;
+    const {query} = this.state;
+    trackAdvancedAnalyticsEvent('search.shortcut_used', {
+      organization,
+      search_type: savedSearchType === 0 ? 'issues' : 'events',
+      search_source: searchSource,
+      shortcut_method: shortcutMethod,
+      shortcut_type: shortcutType,
+      query,
+    });
+  };
+
+  runShortcutOnClick = (shortcut: Shortcut) => {
+    this.runShortcut(shortcut);
+    this.logShortcutEvent(shortcut.shortcutType, 'click');
+  };
+
+  runShortcutOnHotkeyPress = (shortcut: Shortcut) => {
+    this.runShortcut(shortcut);
+    this.logShortcutEvent(shortcut.shortcutType, 'hotkey');
+  };
+
   runShortcut = (shortcut: Shortcut) => {
     const token = this.cursorToken;
     const filterTokens = this.filterTokens;
@@ -603,24 +640,32 @@ class SmartSearchBar extends Component<Props, State> {
     this.doSearch();
   };
 
-  clearSearch = () =>
-    this.setState(makeQueryState(''), () =>
-      callIfFunction(this.props.onSearch, this.state.query)
-    );
+  clearSearch = () => {
+    this.setState(makeQueryState(''), () => {
+      this.close();
+      callIfFunction(this.props.onSearch, this.state.query);
+    });
+  };
 
-  onQueryFocus = () => this.setState({inputHasFocus: true, showDropdown: true});
+  close = () => {
+    this.setState({showDropdown: false});
+    callIfFunction(this.props.onClose, this.state.query);
+    document.removeEventListener('pointerup', this.onBackgroundPointerUp);
+  };
+
+  open = () => {
+    this.setState({showDropdown: true});
+    document.addEventListener('pointerup', this.onBackgroundPointerUp);
+  };
+
+  onQueryFocus = () => {
+    this.open();
+    this.setState({inputHasFocus: true});
+  };
 
   onQueryBlur = (e: React.FocusEvent<HTMLTextAreaElement>) => {
-    // wait before closing dropdown in case blur was a result of clicking a
-    // menu option
-    const blurHandler = () => {
-      this.blurTimeout = undefined;
-      this.setState({inputHasFocus: false, showDropdown: false});
-      callIfFunction(this.props.onBlur, e.target.value);
-    };
-
-    window.clearTimeout(this.blurTimeout);
-    this.blurTimeout = window.setTimeout(blurHandler, DROPDOWN_BLUR_DURATION);
+    this.setState({inputHasFocus: false});
+    callIfFunction(this.props.onBlur, e.target.value);
   };
 
   onQueryChange = (evt: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -659,7 +704,10 @@ class SmartSearchBar extends Component<Props, State> {
     callIfFunction(this.props.onChange, mergedText, evt);
   };
 
-  onInputClick = () => this.updateAutoCompleteItems();
+  onInputClick = () => {
+    this.open();
+    this.updateAutoCompleteItems();
+  };
 
   /**
    * Handle keyboard navigation
@@ -672,6 +720,10 @@ class SmartSearchBar extends Component<Props, State> {
 
     const hasSearchGroups = this.state.searchGroups.length > 0;
     const isSelectingDropdownItems = this.state.activeSearchItem !== -1;
+
+    if (!this.state.showDropdown && key !== 'Escape') {
+      this.open();
+    }
 
     if ((key === 'ArrowDown' || key === 'ArrowUp') && hasSearchGroups) {
       evt.preventDefault();
@@ -719,6 +771,12 @@ class SmartSearchBar extends Component<Props, State> {
           this.onAutoComplete(item.value ?? '', item);
         }
       }
+      return;
+    }
+
+    // If not selecting an item, allow tab to exit search and close the dropdown
+    if (key === 'Tab' && !isSelectingDropdownItems) {
+      this.close();
       return;
     }
 
@@ -789,9 +847,9 @@ class SmartSearchBar extends Component<Props, State> {
 
     this.setState({
       activeSearchItem: -1,
-      showDropdown: false,
       searchGroups,
     });
+    this.close();
   };
 
   /**
@@ -834,16 +892,77 @@ class SmartSearchBar extends Component<Props, State> {
   }
 
   /**
+   * Get the active filter
+   */
+  get cursorFilter() {
+    const matchedTokens = [Token.Filter] as const;
+    return this.findTokensAtCursor(matchedTokens);
+  }
+
+  get cursorValueIsoDate(): TokenResult<Token.ValueIso8601Date> | null {
+    const matchedTokens = [Token.ValueIso8601Date] as const;
+    return this.findTokensAtCursor(matchedTokens);
+  }
+
+  get cursorValueRelativeDate() {
+    const matchedTokens = [Token.ValueRelativeDate] as const;
+    return this.findTokensAtCursor(matchedTokens);
+  }
+
+  get currentFieldDefinition() {
+    if (!this.cursorToken || this.cursorToken.type !== Token.Filter) {
+      return null;
+    }
+
+    const tagName = getKeyName(this.cursorToken.key, {aggregateWithArgs: true});
+
+    return getFieldDefinition(tagName);
+  }
+
+  /**
+   * Determines when the date picker should be shown instead of normal dropdown options.
+   * This should return true when the cursor is within a date tag value and the user has
+   * typed in an operator (or already has a date value).
+   */
+  get shouldShowDatePicker() {
+    if (
+      !this.state.showDropdown ||
+      !this.cursorToken ||
+      this.currentFieldDefinition?.valueType !== FieldValueType.DATE ||
+      this.cursorValueRelativeDate ||
+      !(
+        this.cursorToken.type === Token.Filter &&
+        isWithinToken(this.cursorToken.value, this.cursorPosition)
+      )
+    ) {
+      return false;
+    }
+
+    const textValue = this.cursorFilter?.value?.text ?? '';
+
+    if (
+      // Cursor is in a valid ISO date value
+      this.cursorValueIsoDate ||
+      // Cursor is in a value that has an operator
+      this.cursorFilter?.operator ||
+      // Cursor is in raw text value that matches one of the non-empty operators
+      (textValue && isOperator(textValue))
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  get shouldShowAutocomplete() {
+    return this.state.showDropdown && !this.shouldShowDatePicker;
+  }
+
+  /**
    * Get the current cursor position within the input
    */
   get cursorPosition() {
     if (!this.searchInput.current) {
-      return -1;
-    }
-
-    // No cursor position when the input loses focus. This is important for
-    // updating the search highlighters active state
-    if (!this.state.inputHasFocus) {
       return -1;
     }
 
@@ -953,7 +1072,7 @@ class SmartSearchBar extends Component<Props, State> {
    * with data when ready
    */
   getTagValues = debounce(
-    async (tag: Tag, query: string) => {
+    async (tag: Tag, query: string): Promise<SearchItem[]> => {
       // Strip double quotes if there are any
       query = query.replace(/"/g, '').trim();
 
@@ -1143,7 +1262,13 @@ class SmartSearchBar extends Component<Props, State> {
     tagName: string,
     query: string
   ): Promise<AutocompleteGroup | null> => {
-    const {prepareQuery, excludeEnvironment} = this.props;
+    const {
+      prepareQuery,
+      excludeEnvironment,
+      organization,
+      savedSearchType,
+      searchSource,
+    } = this.props;
     const supportedTags = this.props.supportedTags ?? {};
 
     const preparedQuery =
@@ -1165,6 +1290,13 @@ class SmartSearchBar extends Component<Props, State> {
     const tag = supportedTags[tagName];
 
     if (!tag) {
+      trackAdvancedAnalyticsEvent('search.invalid_field', {
+        organization,
+        search_type: savedSearchType === 0 ? 'issues' : 'events',
+        search_source: searchSource,
+        attempted_field_name: tagName,
+      });
+
       return {
         searchItems: [
           {
@@ -1259,12 +1391,23 @@ class SmartSearchBar extends Component<Props, State> {
           searchText = '';
         }
 
+        const fieldDefinition = getFieldDefinition(tagName);
+        const isDate = fieldDefinition?.valueType === FieldValueType.DATE;
+
+        if (isDate) {
+          const groups = getDateTagAutocompleteGroups(tagName);
+
+          this.updateAutoCompleteStateMultiHeader(groups);
+
+          return;
+        }
+
         const valueGroup = await this.generateValueAutocompleteGroup(tagName, searchText);
         const autocompleteGroups = valueGroup ? [valueGroup] : [];
         // show operator group if at beginning of value
         if (cursor === node.location.start.offset) {
           const opGroup = generateOpAutocompleteGroup(getValidOps(cursorToken), tagName);
-          if (valueGroup?.type !== ItemType.INVALID_TAG) {
+          if (valueGroup?.type !== ItemType.INVALID_TAG && !isDate) {
             autocompleteGroups.unshift(opGroup);
           }
         }
@@ -1317,9 +1460,6 @@ class SmartSearchBar extends Component<Props, State> {
   };
 
   updateAutoCompleteItems = () => {
-    window.clearTimeout(this.blurTimeout);
-    this.blurTimeout = undefined;
-
     this.updateAutoCompleteFromAst();
   };
 
@@ -1469,7 +1609,8 @@ class SmartSearchBar extends Component<Props, State> {
           if (valueToken.text === '[]') {
             clauseStart += 1;
             clauseEnd -= 2;
-          } else {
+            // For ISO date values, we want to keep the cursor within the token
+          } else if (item.type !== ItemType.TAG_VALUE_ISO_DATE) {
             replaceToken += ' ';
           }
         }
@@ -1490,7 +1631,15 @@ class SmartSearchBar extends Component<Props, State> {
     if (clauseStart !== null && clauseEnd !== null) {
       const beforeClause = query.substring(0, clauseStart);
       const endClause = query.substring(clauseEnd);
-      const newQuery = `${beforeClause}${replaceToken}${endClause}`;
+      // Adds a space between the replaceToken and endClause when necessary
+      const replaceTokenEndClauseJoiner =
+        !endClause ||
+        endClause.startsWith(' ') ||
+        replaceToken.endsWith(' ') ||
+        replaceToken.endsWith(':')
+          ? ''
+          : ' ';
+      const newQuery = `${beforeClause}${replaceToken}${replaceTokenEndClauseJoiner}${endClause}`;
       this.updateQuery(newQuery, beforeClause.length + replaceToken.length);
     }
   };
@@ -1513,6 +1662,23 @@ class SmartSearchBar extends Component<Props, State> {
     }
 
     this.onAutoCompleteFromAst(replaceText, item);
+  };
+
+  onAutoCompleteIsoDate = (isoDate: string) => {
+    const dateItem = {type: ItemType.TAG_VALUE_ISO_DATE};
+
+    if (
+      this.cursorFilter?.filter === FilterType.Date ||
+      this.cursorFilter?.filter === FilterType.SpecificDate
+    ) {
+      this.onAutoCompleteFromAst(`${this.cursorFilter.operator}${isoDate}`, dateItem);
+    } else if (this.cursorFilter?.filter === FilterType.Text) {
+      const valueText = this.cursorFilter.value.text;
+
+      if (valueText && isOperator(valueText)) {
+        this.onAutoCompleteFromAst(`${valueText}${isoDate}`, dateItem);
+      }
+    }
   };
 
   get showSearchDropdown(): boolean {
@@ -1602,7 +1768,7 @@ class SmartSearchBar extends Component<Props, State> {
       >
         <SearchHotkeysListener
           visibleShortcuts={visibleShortcuts}
-          runShortcut={this.runShortcut}
+          runShortcut={this.runShortcutOnHotkeyPress}
         />
         <SearchLabel htmlFor="smart-search-input" aria-label={t('Search events')}>
           <IconSearch />
@@ -1614,7 +1780,7 @@ class SmartSearchBar extends Component<Props, State> {
             {parsedQuery !== null ? (
               <HighlightQuery
                 parsedQuery={parsedQuery}
-                cursorPosition={cursor === -1 ? undefined : cursor}
+                cursorPosition={this.state.showDropdown ? cursor : -1}
               />
             ) : (
               query
@@ -1649,15 +1815,24 @@ class SmartSearchBar extends Component<Props, State> {
           )}
         </ActionsBar>
 
-        {this.state.showDropdown && (
+        {this.shouldShowDatePicker && (
+          <SearchBarDatePicker
+            date={this.cursorValueIsoDate?.value}
+            dateString={this.cursorValueIsoDate?.text}
+            handleSelectDateTime={value => {
+              this.onAutoCompleteIsoDate(value);
+            }}
+          />
+        )}
+
+        {this.shouldShowAutocomplete && (
           <SearchDropdown
-            css={{display: inputHasFocus ? 'block' : 'none'}}
             className={dropdownClassName}
             items={searchGroups}
             onClick={this.onAutoComplete}
             loading={loading}
             searchSubstring={searchTerm}
-            runShortcut={this.runShortcut}
+            runShortcut={this.runShortcutOnClick}
             visibleShortcuts={visibleShortcuts}
             maxMenuHeight={maxMenuHeight}
           />

@@ -5,7 +5,7 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
 
-import {GetActorPropsFn} from 'sentry/components/dropdownMenu';
+import {GetActorPropsFn} from 'sentry/components/deprecatedDropdownMenu';
 import MenuItem from 'sentry/components/menuItem';
 import Radio from 'sentry/components/radio';
 import {t} from 'sentry/locale';

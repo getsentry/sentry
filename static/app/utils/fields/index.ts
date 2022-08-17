@@ -107,6 +107,7 @@ export enum FieldValueType {
   PERCENTAGE = 'percentage',
   STRING = 'string',
   NEVER = 'never',
+  SIZE = 'size',
 }
 
 export enum WebVital {
@@ -131,6 +132,14 @@ export enum MobileVital {
   StallTotalTime = 'measurements.stall_total_time',
   StallLongestTime = 'measurements.stall_longest_time',
   StallPercentage = 'measurements.stall_percentage',
+}
+
+export enum SpanOpBreakdown {
+  SpansBrowser = 'spans.browser',
+  SpansDb = 'spans.db',
+  SpansHttp = 'spans.http',
+  SpansResource = 'spans.resource',
+  SpansUi = 'spans.ui',
 }
 
 export enum AggregationKey {
@@ -380,9 +389,38 @@ export const MEASUREMENT_FIELDS: Record<string, FieldDefinition> = {
   },
 };
 
+export const SPAN_OP_FIELDS = {
+  [SpanOpBreakdown.SpansBrowser]: {
+    desc: t('Cumulative time based on the browser operation'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [SpanOpBreakdown.SpansDb]: {
+    desc: t('Cumulative time based on the database operation'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [SpanOpBreakdown.SpansHttp]: {
+    desc: t('Cumulative time based on the http operation'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [SpanOpBreakdown.SpansResource]: {
+    desc: t('Cumulative time based on the resource operation'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [SpanOpBreakdown.SpansUi]: {
+    desc: t('Cumulative time based on the ui operation'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+};
+
 export const FIELDS: Record<FieldKey & AggregationKey & MobileVital, FieldDefinition> = {
   ...AGGREGATION_FIELDS,
   ...MEASUREMENT_FIELDS,
+  ...SPAN_OP_FIELDS,
   [FieldKey.AGE]: {
     desc: t('The age of the issue in relative time'),
     kind: FieldKind.FIELD,
@@ -721,12 +759,12 @@ export const FIELDS: Record<FieldKey & AggregationKey & MobileVital, FieldDefini
     valueType: FieldValueType.DATE,
   },
   [FieldKey.TIMESTAMP_TO_HOUR]: {
-    desc: t('Rounded down to the nearest day'),
+    desc: t('Rounded down to the nearest hour'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.DATE,
   },
   [FieldKey.TIMESTAMP_TO_DAY]: {
-    desc: t('Rounded down to the nearest hour'),
+    desc: t('Rounded down to the nearest day'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.DATE,
   },
@@ -746,7 +784,7 @@ export const FIELDS: Record<FieldKey & AggregationKey & MobileVital, FieldDefini
     valueType: FieldValueType.STRING,
   },
   [FieldKey.TRACE_SPAN]: {
-    desc: t('Span identification number of the root span t('),
+    desc: t('Span identification number of the root span'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -946,6 +984,13 @@ export const DISCOVER_FIELDS = [
   FieldKey.PROJECT,
   FieldKey.ISSUE,
   FieldKey.USER_DISPLAY,
+
+  // Span Op fields
+  SpanOpBreakdown.SpansBrowser,
+  SpanOpBreakdown.SpansDb,
+  SpanOpBreakdown.SpansHttp,
+  SpanOpBreakdown.SpansResource,
+  SpanOpBreakdown.SpansUi,
 ];
 
 export const getFieldDefinition = (key: string): FieldDefinition | null => {

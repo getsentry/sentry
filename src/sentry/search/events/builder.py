@@ -657,7 +657,9 @@ class QueryBuilder:
             return snql_function.snql_aggregate(arguments, alias)
         return None
 
-    def resolve_division(self, dividend: SelectType, divisor: SelectType, alias: str) -> SelectType:
+    def resolve_division(
+        self, dividend: SelectType, divisor: SelectType, alias: str, fallback: Optional[Any] = None
+    ) -> SelectType:
         return Function(
             "if",
             [
@@ -672,7 +674,7 @@ class QueryBuilder:
                         divisor,
                     ],
                 ),
-                None,
+                fallback,
             ],
             alias,
         )
@@ -1607,6 +1609,9 @@ class MetricsQueryBuilder(QueryBuilder):
         self.allow_metric_aggregates = allow_metric_aggregates
         self._indexer_cache: Dict[str, Optional[int]] = {}
         self._custom_measurement_cache: Optional[List[MetricMeta]] = None
+        self.tag_values_are_strings = options.get(
+            "sentry-metrics.performance.tags-values-are-strings"
+        )
         # Don't do any of the actions that would impact performance in anyway
         # Skips all indexer checks, and won't interact with clickhouse
         self.dry_run = dry_run
@@ -1685,9 +1690,7 @@ class MetricsQueryBuilder(QueryBuilder):
         tag_id = self.resolve_metric_index(col)
         if tag_id is None:
             raise InvalidSearchQuery(f"Unknown field: {col}")
-        if self.is_performance and options.get(
-            "sentry-metrics.performance.tags-values-are-strings"
-        ):
+        if self.is_performance and self.tag_values_are_strings:
             return f"tags_raw[{tag_id}]"
         else:
             return f"tags[{tag_id}]"
@@ -1869,22 +1872,17 @@ class MetricsQueryBuilder(QueryBuilder):
                 use_case_id = UseCaseKey.PERFORMANCE
             else:
                 use_case_id = UseCaseKey.RELEASE_HEALTH
-            result = indexer.resolve(self.organization_id, value, use_case_id=use_case_id)  # type: ignore
+            result = indexer.resolve(use_case_id, self.organization_id, value)  # type: ignore
             self._indexer_cache[value] = result
 
         return self._indexer_cache[value]
 
-    def _resolve_tag_value(self, value: str) -> Union[int, str]:
-        if self.is_performance and options.get(
-            "sentry-metrics.performance.tags-values-are-strings"
-        ):
+    def resolve_tag_value(self, value: str) -> Optional[Union[int, str]]:
+        if self.is_performance and self.tag_values_are_strings:
             return value
         if self.dry_run:
             return -1
-        result = self.resolve_metric_index(value)
-        if result is None:
-            raise IncompatibleMetricsQuery("Tag value was not found")
-        return result
+        return self.resolve_metric_index(value)
 
     def _default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         if search_filter.value.is_wildcard():
@@ -1903,9 +1901,18 @@ class MetricsQueryBuilder(QueryBuilder):
         is_tag = isinstance(lhs, Column) and lhs.subscriptable == "tags"
         if is_tag:
             if isinstance(value, list):
-                value = [self._resolve_tag_value(v) for v in value]
+                resolved_value = []
+                for item in value:
+                    resolved_item = self.resolve_tag_value(item)
+                    if resolved_item is None:
+                        raise IncompatibleMetricsQuery(f"{name} value {item} in filter not found")
+                    resolved_value.append(resolved_item)
+                value = resolved_value
             else:
-                value = self._resolve_tag_value(value)
+                resolved_item = self.resolve_tag_value(value)
+                if resolved_item is None:
+                    raise IncompatibleMetricsQuery(f"{name} value {value} in filter not found")
+                value = resolved_item
 
         # timestamp{,.to_{hour,day}} need a datetime string
         # last_seen needs an integer
@@ -2099,7 +2106,9 @@ class MetricsQueryBuilder(QueryBuilder):
         """Check that the orderby doesn't include any direct tags, this shouldn't raise an error for project since we
         transform it"""
         for orderby in self.orderby:
-            if isinstance(orderby.exp, Column) and orderby.exp.subscriptable == "tags":
+            if (isinstance(orderby.exp, Column) and orderby.exp.subscriptable == "tags") or (
+                isinstance(orderby.exp, Function) and orderby.exp.alias in ["transaction", "title"]
+            ):
                 raise IncompatibleMetricsQuery("Can't orderby tags")
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:

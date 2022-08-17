@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
@@ -18,7 +17,7 @@ type Props = {
 
 function DomMutations({replay}: Props) {
   const {isLoading, actions} = useExtractedCrumbHtml({replay});
-  const startTimestampMs = replay.getReplay().started_at.getTime();
+  const startTimestampMs = replay.getReplay().startedAt.getTime();
 
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);

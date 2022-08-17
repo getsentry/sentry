@@ -437,11 +437,12 @@ def test_process_messages_invalid_messages(
     assert error_text in caplog.text
 
 
-def test_process_messages_rate_limited(caplog) -> None:
+def test_process_messages_rate_limited(caplog, settings) -> None:
     """
     Test handling of `None`-values coming from the indexer service, which
     happens when postgres writes are being rate-limited.
     """
+    settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     rate_limited_payload = deepcopy(distribution_payload)
     rate_limited_payload["tags"]["custom_tag"] = "rate_limited_test"
 
@@ -475,7 +476,7 @@ def test_process_messages_rate_limited(caplog) -> None:
     from sentry.sentry_metrics.indexer import backend
 
     # Insert a None-value into the mock-indexer to simulate a rate-limit.
-    backend._strings[1]["rate_limited_test"] = None
+    backend.indexer._strings[1]["rate_limited_test"] = None
 
     with caplog.at_level(logging.ERROR):
         new_batch = process_messages(

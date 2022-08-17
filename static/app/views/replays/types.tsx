@@ -5,46 +5,107 @@ import type {RawCrumb} from 'sentry/types/breadcrumbs';
 // Keep this in sync with the backend blueprint
 // "ReplayRecord" is distinct from the common: "replay = new ReplayReader()"
 export type ReplayRecord = {
-  count_errors: number;
-  count_segments: number;
-  count_urls: number;
-  dist: null | string;
-  duration: number;
-  environment: null | string;
-  finished_at: Date; // API will send a string, needs to be hydrated
-  longest_transaction: number;
-  platform: string;
-  project_id: string;
-  project_slug: string;
-  release: null | string;
-  replay_id: string;
-  sdk_name: string;
-  sdk_version: string;
-  started_at: Date; // API will send a string, needs to be hydrated
-  tags: Record<string, string>;
-  title: string;
-  trace_ids: string[];
-  urls: string[];
-  user: {
-    email: null | string;
-    id: null | string;
-    ip: null | string;
+  browser: {
+    name: null | string;
+    version: null | string;
+  };
+  /**
+   * The number of errors associated with the replay.
+   */
+  countErrors: number;
+  /**
+   * The number of segments that make up the replay.
+   */
+  countSegments: number;
+  /**
+   * The number of urls visited in the replay.
+   */
+  countUrls: number;
+  device: {
+    brand: null | string;
+    family: null | string;
+    model: null | string;
     name: null | string;
   };
+  dist: null | string;
+  /**
+   * Difference of `updated-at` and `created-at` in seconds.
+   */
+  duration: number; // Seconds
+  environment: null | string;
+  errorIds: string[];
+  /**
+   * The **latest** timestamp received as determined by the SDK.
+   */
+  finishedAt: Date;
+  /**
+   * The ID of the Replay instance
+   */
+  id: string;
+  /**
+   * The longest transaction associated with the replay measured in milliseconds.
+   */
+  longestTransaction: number;
+  os: {
+    name: null | string;
+    version: null | string;
+  };
+  platform: string;
+  projectId: string;
+  release: null | string;
+  sdk: {
+    name: string;
+    version: string;
+  };
+  /**
+   * The **earliest** timestamp received as determined by the SDK.
+   */
+  startedAt: Date;
+  tags: Record<string, string>;
+  title: string;
+  traceIds: string[];
+  urls: string[];
+  user: {
+    email: string;
+    id: string;
+    ip_address: string;
+    name: string;
+    username: string;
+  };
+  userAgent: string;
 };
 
-export type ReplayDiscoveryListItem = {
-  eventID: string;
-  id: string;
-  project: string;
-  timestamp: string;
-  url: string;
-  'user.display': string;
-  'user.email': string;
-  'user.id': string;
-  'user.ip_address': string;
-  'user.name': string;
-  'user.username': string;
+export type ReplayListLocationQuery = {
+  end?: string;
+  environment?: string[];
+  field?: string[];
+  limit?: string;
+  offset?: string;
+  project?: string[];
+  query?: string;
+  sort?: string;
+  start?: string;
+  statsPeriod?: string;
+  utc?: 'true' | 'false';
+};
+
+export type ReplayListRecord = Pick<
+  ReplayRecord,
+  | 'countErrors'
+  | 'duration'
+  | 'finishedAt'
+  | 'id'
+  | 'projectId'
+  | 'startedAt'
+  | 'urls'
+  | 'user'
+>;
+
+export type ReplaySegment = {
+  dateAdded: string;
+  projectId: string;
+  replayId: string;
+  segmentId: number;
 };
 
 /**
@@ -92,15 +153,3 @@ export interface ReplayError {
   ['project.name']: string;
   timestamp: string;
 }
-
-/**
- * Replay custom discover query
- */
-export type ReplayDurationAndErrors = {
-  count_if_event_type_equals_error: number;
-  'equation[0]': number;
-  id: string;
-  max_timestamp: string;
-  min_timestamp: string;
-  replayId: string;
-};

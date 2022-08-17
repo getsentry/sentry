@@ -303,7 +303,7 @@ class ContextPickerModal extends Component<Props> {
         options: memberProjects.map(p => ({
           value: p.slug,
           label: t(`${p.slug}`),
-          isDisabled: false,
+          disabled: false,
         })),
       },
       {
@@ -311,7 +311,7 @@ class ContextPickerModal extends Component<Props> {
         options: nonMemberProjects.map(p => ({
           value: p.slug,
           label: t(`${p.slug}`),
-          isDisabled: isSuperuser ? false : true,
+          disabled: isSuperuser ? false : true,
         })),
       },
     ];
@@ -365,7 +365,7 @@ class ContextPickerModal extends Component<Props> {
               <span>{config.domainName}</span>
             </StyledIntegrationItem>
           ),
-          isDisabled: isSuperuser ? false : true,
+          disabled: isSuperuser ? false : true,
         })),
       },
     ];

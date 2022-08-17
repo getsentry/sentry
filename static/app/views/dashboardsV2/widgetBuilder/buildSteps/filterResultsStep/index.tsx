@@ -1,29 +1,37 @@
-import {useCallback, useEffect, useRef} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
-import Input from 'sentry/components/forms/controls/input';
 import Field from 'sentry/components/forms/field';
+import Input from 'sentry/components/input';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
+import {decodeList} from 'sentry/utils/queryString';
 import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
 import {getDatasetConfig} from 'sentry/views/dashboardsV2/datasetConfig/base';
 import ReleasesSelectControl from 'sentry/views/dashboardsV2/releasesSelectControl';
-import {DashboardFilters, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {
+  DashboardFilterKeys,
+  DashboardFilters,
+  WidgetQuery,
+  WidgetType,
+} from 'sentry/views/dashboardsV2/types';
 
 import {BuildStep} from '../buildStep';
 
 interface Props {
   canAddSearchConditions: boolean;
   hideLegendAlias: boolean;
+  location: Location;
   onAddSearchConditions: () => void;
   onQueryChange: (queryIndex: number, newQuery: WidgetQuery) => void;
   onQueryRemove: (queryIndex: number) => void;
@@ -39,6 +47,7 @@ interface Props {
 export function FilterResultsStep({
   canAddSearchConditions,
   dashboardFilters,
+  location,
   queries,
   onQueryRemove,
   onAddSearchConditions,
@@ -49,28 +58,9 @@ export function FilterResultsStep({
   widgetType,
   selection,
 }: Props) {
-  const blurTimeoutRef = useRef<number | undefined>(undefined);
-
-  useEffect(() => {
-    return () => {
-      window.clearTimeout(blurTimeoutRef.current);
-    };
-  }, []);
-
   const handleSearch = useCallback(
     (queryIndex: number) => {
       return (field: string) => {
-        // SearchBar will call handlers for both onSearch and onBlur
-        // when selecting a value from the autocomplete dropdown. This can
-        // cause state issues for the search bar in our use case. To prevent
-        // this, we set a timer in our onSearch handler to block our onBlur
-        // handler from firing if it is within 200ms, ie from clicking an
-        // autocomplete value.
-        window.clearTimeout(blurTimeoutRef.current);
-        blurTimeoutRef.current = window.setTimeout(() => {
-          blurTimeoutRef.current = undefined;
-        }, 200);
-
         const newQuery: WidgetQuery = {
           ...queries[queryIndex],
           conditions: field,
@@ -82,16 +72,14 @@ export function FilterResultsStep({
     [onQueryChange, queries]
   );
 
-  const handleBlur = useCallback(
+  const handleClose = useCallback(
     (queryIndex: number) => {
       return (field: string) => {
-        if (!blurTimeoutRef.current) {
-          const newQuery: WidgetQuery = {
-            ...queries[queryIndex],
-            conditions: field,
-          };
-          onQueryChange(queryIndex, newQuery);
-        }
+        const newQuery: WidgetQuery = {
+          ...queries[queryIndex],
+          conditions: field,
+        };
+        onQueryChange(queryIndex, newQuery);
       };
     },
     [onQueryChange, queries]
@@ -119,7 +107,11 @@ export function FilterResultsStep({
         <FilterButtons>
           <ReleasesProvider organization={organization} selection={selection}>
             <StyledReleasesSelectControl
-              selectedReleases={dashboardFilters?.release ?? []}
+              selectedReleases={
+                (DashboardFilterKeys.RELEASE in location.query
+                  ? decodeList(location.query[DashboardFilterKeys.RELEASE])
+                  : dashboardFilters?.[DashboardFilterKeys.RELEASE]) ?? []
+              }
               isDisabled
               className="widget-release-select"
             />
@@ -140,7 +132,7 @@ export function FilterResultsStep({
                 <datasetConfig.SearchBar
                   organization={organization}
                   pageFilters={selection}
-                  onBlur={handleBlur(queryIndex)}
+                  onClose={handleClose(queryIndex)}
                   onSearch={handleSearch(queryIndex)}
                   widgetQuery={query}
                 />

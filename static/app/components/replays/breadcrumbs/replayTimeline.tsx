@@ -32,12 +32,12 @@ function ReplayTimeline({}: Props) {
   }
 
   const durationMs = replay.getDurationMs();
-  const startTimestampMs = replay.getReplay().started_at.getTime();
+  const startTimestampMs = replay.getReplay().startedAt.getTime();
   const crumbs = replay.getRawCrumbs() || [];
   const spans = replay.getRawSpans() || [];
   const userCrumbs = crumbs.filter(crumb => USER_ACTIONS.includes(crumb.type));
 
-  const networkSpans = spans.filter(replay.isNotMemorySpan);
+  const networkSpans = spans.filter(replay.isNetworkSpan);
 
   return (
     <Panel>

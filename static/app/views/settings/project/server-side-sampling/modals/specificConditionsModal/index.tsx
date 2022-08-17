@@ -314,7 +314,6 @@ export function SpecificConditionsModal({
                   </TriggerLabel>
                 }
                 placeholder={t('Filter conditions')}
-                isOptionDisabled={opt => opt.disabled}
                 isDisabled={isUniformRule(rule)}
                 options={predefinedConditionsOptions}
                 value={conditions.map(({category}) => category)}

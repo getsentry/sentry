@@ -149,12 +149,12 @@ describe('ContextPickerModal', function () {
           {
             value: project.slug,
             label: project.slug,
-            isDisabled: false,
+            disabled: false,
           },
           {
             value: project2.slug,
             label: project2.slug,
-            isDisabled: false,
+            disabled: false,
           },
         ],
       },
@@ -164,7 +164,7 @@ describe('ContextPickerModal', function () {
           {
             value: project4.slug,
             label: project4.slug,
-            isDisabled: true,
+            disabled: true,
           },
         ],
       },
@@ -225,12 +225,12 @@ describe('ContextPickerModal', function () {
           {
             value: project2.slug,
             label: project2.slug,
-            isDisabled: false,
+            disabled: false,
           },
           {
             value: 'project3',
             label: 'project3',
-            isDisabled: false,
+            disabled: false,
           },
         ],
       },

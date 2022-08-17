@@ -124,7 +124,7 @@ describe('Dashboards > Dashboard', () => {
         handleUpdateWidgetList={() => undefined}
         handleAddCustomWidget={() => undefined}
         router={initialData.router}
-        location={initialData.location}
+        location={initialData.router.location}
         widgetLimitReached={false}
         isEditing={false}
       />,
@@ -146,7 +146,7 @@ describe('Dashboards > Dashboard', () => {
         handleUpdateWidgetList={() => undefined}
         handleAddCustomWidget={mockHandleAddCustomWidget}
         router={initialData.router}
-        location={initialData.location}
+        location={initialData.router.location}
         newWidget={newWidget}
         widgetLimitReached={false}
         onSetNewWidget={mockCallbackToUnsetNewWidget}
@@ -172,7 +172,7 @@ describe('Dashboards > Dashboard', () => {
         handleUpdateWidgetList={() => undefined}
         handleAddCustomWidget={mockHandleAddCustomWidget}
         router={initialData.router}
-        location={initialData.location}
+        location={initialData.router.location}
         widgetLimitReached={false}
         onSetNewWidget={mockCallbackToUnsetNewWidget}
       />,
@@ -200,7 +200,7 @@ describe('Dashboards > Dashboard', () => {
         handleUpdateWidgetList={() => undefined}
         handleAddCustomWidget={mockHandleAddCustomWidget}
         router={initialData.router}
-        location={initialData.location}
+        location={initialData.router.location}
         widgetLimitReached={false}
         onSetNewWidget={mockCallbackToUnsetNewWidget}
       />,
@@ -230,7 +230,7 @@ describe('Dashboards > Dashboard', () => {
           handleUpdateWidgetList={() => undefined}
           handleAddCustomWidget={() => undefined}
           router={initialData.router}
-          location={initialData.location}
+          location={initialData.router.location}
           widgetLimitReached={false}
         />
       );
@@ -266,7 +266,7 @@ describe('Dashboards > Dashboard', () => {
       dashboard,
       mockedOrg = initialData.organization,
       mockedRouter = initialData.router,
-      mockedLocation = initialData.location
+      mockedLocation = initialData.router.location
     ) => {
       const getDashboardComponent = () => (
         <Dashboard

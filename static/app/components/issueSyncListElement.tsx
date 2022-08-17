@@ -86,7 +86,7 @@ class IssueSyncListElement extends Component<Props> {
       return this.props.externalIssueKey;
     }
 
-    return `Link ${this.getPrettyName()} Issue`;
+    return `${this.getPrettyName()} Issue`;
   }
 
   render() {
@@ -141,21 +141,14 @@ export const IssueSyncListElementContainer = styled('div')`
 
 export const IntegrationLink = styled('a')<{disabled?: boolean}>`
   text-decoration: none;
-  padding-bottom: ${space(0.25)};
   margin-left: ${space(1)};
   color: ${p => p.theme.textColor};
-  border-bottom: 1px solid ${p => p.theme.textColor};
   cursor: pointer;
   line-height: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 
-  &,
-  &:hover {
-    border-bottom: 1px solid
-      ${({disabled, theme}) => (disabled ? theme.disabled : theme.blue300)};
-  }
   &:hover {
     color: ${({disabled, theme}) => (disabled ? theme.disabled : theme.blue300)};
   }

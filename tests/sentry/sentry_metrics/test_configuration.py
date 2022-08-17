@@ -1,14 +1,13 @@
-import pytest
-
-from sentry.sentry_metrics.configuration import UseCaseKey
-
-
-def test_use_case_id_from_str():
-    assert UseCaseKey.from_str("performance") == UseCaseKey.PERFORMANCE
-    assert UseCaseKey.from_str("release-health") == UseCaseKey.RELEASE_HEALTH
-    assert UseCaseKey.from_str("releaseHealth") == UseCaseKey.RELEASE_HEALTH
+from sentry.sentry_metrics.configuration import (
+    _METRICS_INGEST_CONFIG_BY_USE_CASE,
+    UseCaseKey,
+    get_ingest_config,
+)
 
 
-def test_use_case_id_from_str_raise_exc():
-    with pytest.raises(ValueError):
-        UseCaseKey.from_str("")
+def test_unique_namespaces() -> None:
+    get_ingest_config(UseCaseKey.RELEASE_HEALTH)
+    namespaces = [
+        config.writes_limiter_namespace for config in _METRICS_INGEST_CONFIG_BY_USE_CASE.values()
+    ]
+    assert len(namespaces) == len(set(namespaces))
