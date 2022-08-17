@@ -1,4 +1,4 @@
-import {memo, useEffect, useState} from 'react';
+import {Fragment, memo, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
@@ -56,6 +56,13 @@ import EventTagsAndScreenshot from './eventTagsAndScreenshot';
 
 const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =
   /^(([\w\$]\.[\w\$]{1,2})|([\w\$]{2}\.[\w\$]\.[\w\$]))(\.|$)/g;
+function isDataMinified(str: string | null) {
+  if (!str) {
+    return false;
+  }
+
+  return !![...str.matchAll(MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH)].length;
+}
 
 type ProGuardErrors = Array<Error>;
 
@@ -101,13 +108,7 @@ const EventEntries = memo(
     const hasEventAttachmentsFeature = orgFeatures.includes('event-attachments');
     const replayId = event?.tags?.find(({key}) => key === 'replayId')?.value;
 
-    useEffect(() => {
-      checkProGuardError();
-      recordIssueError();
-      fetchAttachments();
-    }, []);
-
-    function recordIssueError() {
+    const recordIssueError = () => {
       if (!event || !event.errors || !(event.errors.length > 0)) {
         return;
       }
@@ -126,9 +127,11 @@ const EventEntries = memo(
         error_message: uniq(errorMessages),
         ...(platform && {platform}),
       });
-    }
+    };
 
-    async function fetchProguardMappingFiles(query: string): Promise<Array<DebugFile>> {
+    const fetchProguardMappingFiles = async (
+      query: string
+    ): Promise<Array<DebugFile>> => {
       try {
         const proguardMappingFiles = await api.requestPromise(
           `/projects/${orgSlug}/${projectSlug}/files/dsyms/`,
@@ -146,20 +149,12 @@ const EventEntries = memo(
         // do nothing, the UI will not display extra error details
         return [];
       }
-    }
+    };
 
-    function isDataMinified(str: string | null) {
-      if (!str) {
-        return false;
-      }
-
-      return !![...str.matchAll(MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH)].length;
-    }
-
-    function hasThreadOrExceptionMinifiedFrameData(
+    const hasThreadOrExceptionMinifiedFrameData = (
       definedEvent: Event,
       bestThread?: Thread
-    ) {
+    ) => {
       if (!bestThread) {
         const exceptionValues: Array<ExceptionValue> =
           definedEvent.entries?.find(e => e.type === EntryType.EXCEPTION)?.data?.values ??
@@ -179,9 +174,9 @@ const EventEntries = memo(
             )
           )
         : bestThread?.stacktrace?.frames?.find(frame => isDataMinified(frame.module)));
-    }
+    };
 
-    async function checkProGuardError() {
+    const checkProGuardError = async () => {
       if (!event || event.platform !== 'java') {
         setIsLoading(false);
         return;
@@ -271,9 +266,9 @@ const EventEntries = memo(
 
       setProGuardErrors(newProGuardErrors);
       setIsLoading(false);
-    }
+    };
 
-    async function fetchAttachments() {
+    const fetchAttachments = async () => {
       if (!event || isShare || !hasEventAttachmentsFeature) {
         return;
       }
@@ -287,38 +282,9 @@ const EventEntries = memo(
         Sentry.captureException(error);
         addErrorMessage('An error occurred while fetching attachments');
       }
-    }
+    };
 
-    function renderEntries(definedEvent: Event) {
-      const entries = definedEvent.entries;
-
-      if (!Array.isArray(entries)) {
-        return null;
-      }
-
-      return (entries as Array<Entry>).map((entry, entryIdx) => (
-        <ErrorBoundary
-          key={`entry-${entryIdx}`}
-          customComponent={
-            <EventDataSection type={entry.type} title={entry.type}>
-              <p>{t('There was an error rendering this data.')}</p>
-            </EventDataSection>
-          }
-        >
-          <EventEntry
-            projectSlug={projectSlug}
-            group={group}
-            organization={organization}
-            event={definedEvent}
-            entry={entry}
-            route={route}
-            router={router}
-          />
-        </ErrorBoundary>
-      ));
-    }
-
-    async function handleDeleteAttachment(attachmentId: IssueAttachment['id']) {
+    const handleDeleteAttachment = async (attachmentId: IssueAttachment['id']) => {
       if (!event) {
         return;
       }
@@ -336,7 +302,13 @@ const EventEntries = memo(
         Sentry.captureException(error);
         addErrorMessage('An error occurred while deleting the attachment');
       }
-    }
+    };
+
+    useEffect(() => {
+      checkProGuardError();
+      recordIssueError();
+      fetchAttachments();
+    }, []);
 
     if (!event) {
       return (
@@ -404,7 +376,14 @@ const EventEntries = memo(
               </StyledEventDataSection>
             )
           ))}
-        {renderEntries(event)}
+        <Entries
+          definedEvent={event}
+          projectSlug={projectSlug}
+          group={group}
+          organization={organization}
+          route={route}
+          router={router}
+        />
         {hasContext && <EventContexts group={group} event={event} />}
         {event && !objectIsEmpty(event.context) && <EventExtraData event={event} />}
         {event && !objectIsEmpty(event.packages) && <EventPackageData event={event} />}
@@ -445,6 +424,49 @@ const EventEntries = memo(
     );
   }
 );
+
+function Entries({
+  definedEvent,
+  projectSlug,
+  group,
+  organization,
+  route,
+  router,
+}: {
+  definedEvent: Event;
+  projectSlug: string;
+} & Pick<Props, 'group' | 'organization' | 'route' | 'router'>) {
+  const entries = definedEvent.entries;
+
+  if (!Array.isArray(entries)) {
+    return null;
+  }
+
+  return (
+    <Fragment>
+      {(entries as Array<Entry>).map((entry, entryIdx) => (
+        <ErrorBoundary
+          key={`entry-${entryIdx}`}
+          customComponent={
+            <EventDataSection type={entry.type} title={entry.type}>
+              <p>{t('There was an error rendering this data.')}</p>
+            </EventDataSection>
+          }
+        >
+          <EventEntry
+            projectSlug={projectSlug}
+            group={group}
+            organization={organization}
+            event={definedEvent}
+            entry={entry}
+            route={route}
+            router={router}
+          />
+        </ErrorBoundary>
+      ))}
+    </Fragment>
+  );
+}
 
 type MiniReplayViewProps = {
   event: Event;
