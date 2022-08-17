@@ -3,16 +3,7 @@ from __future__ import annotations
 from typing import Any, Mapping, MutableMapping, Optional, Sequence, TypedDict
 from urllib.parse import quote, urlencode
 
-from sentry import features
-from sentry.models import (
-    GroupOwner,
-    GroupOwnerType,
-    Release,
-    ReleaseActivity,
-    ReleaseCommit,
-    Team,
-    User,
-)
+from sentry.models import GroupOwner, GroupOwnerType, Release, ReleaseCommit, Team, User
 from sentry.notifications.notifications.rules import AlertRuleNotification, logger
 from sentry.notifications.types import ActionTargetType, NotificationSettingTypes
 from sentry.notifications.utils import (
@@ -24,8 +15,7 @@ from sentry.notifications.utils import (
 )
 from sentry.notifications.utils.participants import get_owners
 from sentry.plugins.base import Notification
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.types.releaseactivity import ReleaseActivityType
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 
@@ -89,18 +79,6 @@ class ActiveReleaseIssueNotification(AlertRuleNotification):
 
         shared_context = self.get_context()
         for provider, participants in participants_by_provider.items():
-            if (
-                features.has("organizations:active-release-monitor-alpha", self.organization)
-                and self.last_release
-            ):
-                ReleaseActivity.objects.create(
-                    type=ReleaseActivityType.ISSUE.value,
-                    data={
-                        "provider": EXTERNAL_PROVIDERS[provider],
-                        "group_id": self.group.id,
-                    },
-                    release=self.last_release,
-                )
             notify(provider, self, participants, shared_context)
 
     def get_context(self) -> MutableMapping[str, Any]:

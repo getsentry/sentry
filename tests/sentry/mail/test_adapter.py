@@ -28,7 +28,6 @@ from sentry.models import (
     ProjectOption,
     ProjectOwnership,
     Release,
-    ReleaseActivity,
     Repository,
     Rule,
     User,
@@ -51,8 +50,7 @@ from sentry.rules import EventState
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.types.activity import ActivityType
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.types.releaseactivity import ReleaseActivityType
+from sentry.types.integrations import ExternalProviders
 from sentry.types.rules import RuleFuture
 from sentry.utils.email import MessageBuilder, get_email_addresses
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
@@ -162,12 +160,6 @@ class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
                 team_ids=[new_team.id],
             )
         ]
-
-        activity = list(ReleaseActivity.objects.filter(release_id=newRelease.id))
-        assert len(activity) == 1
-        assert activity[0].type == ReleaseActivityType.ISSUE.value
-        assert activity[0].data["provider"] == EXTERNAL_PROVIDERS[ExternalProviders.EMAIL]
-        assert activity[0].data["group_id"]
 
 
 class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):

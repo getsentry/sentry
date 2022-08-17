@@ -4,7 +4,7 @@ from django.db.models import F
 from django.db.models.signals import post_save, pre_save
 from django.utils import timezone
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.models import (
     Activity,
     Commit,
@@ -17,7 +17,6 @@ from sentry.models import (
     Project,
     PullRequest,
     Release,
-    ReleaseActivity,
     ReleaseProject,
     Repository,
     UserOption,
@@ -32,7 +31,6 @@ from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import buffer_incr_complete, issue_resolved
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 from sentry.types.activity import ActivityType
-from sentry.types.releaseactivity import ReleaseActivityType
 
 
 def validate_release_empty_version(instance: Release, **kwargs):
@@ -233,16 +231,6 @@ def resolved_in_pull_request(instance, created, **kwargs):
                 )
 
 
-def save_release_activity(instance: Release, created: bool, **kwargs):
-    if created:
-        if features.has("organizations:active-release-monitor-alpha", instance.organization):
-            ReleaseActivity.objects.create(
-                type=ReleaseActivityType.CREATED.value,
-                release=instance,
-                date_added=instance.date_added,
-            )
-
-
 pre_save.connect(
     validate_release_empty_version,
     sender=Release,
@@ -252,10 +240,6 @@ pre_save.connect(
 
 post_save.connect(
     resolve_group_resolutions, sender=Release, dispatch_uid="resolve_group_resolutions", weak=False
-)
-
-post_save.connect(
-    save_release_activity, sender=Release, dispatch_uid="save_release_activity", weak=False
 )
 
 post_save.connect(resolved_in_commit, sender=Commit, dispatch_uid="resolved_in_commit", weak=False)
