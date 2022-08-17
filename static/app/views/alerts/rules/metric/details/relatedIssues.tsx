@@ -29,7 +29,7 @@ interface Props {
 }
 
 function RelatedIssues({rule, organization, projects, query, timePeriod}: Props) {
-  function renderErrorMessage({detail}: {detail: string}, retry: () => void) {
+  function renderErrorMessage({detail}: {detail: string}, retry?: () => void) {
     if (
       detail === RELATED_ISSUES_BOOLEAN_QUERY_ERROR &&
       !isSessionAggregate(rule.aggregate)
@@ -88,7 +88,6 @@ function RelatedIssues({rule, organization, projects, query, timePeriod}: Props)
 
       <TableWrapper>
         <GroupList
-          orgId={organization.slug}
           endpointPath={path}
           queryParams={queryParams}
           query={`start=${start}&end=${end}&groupStatsPeriod=auto`}

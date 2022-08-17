@@ -111,7 +111,6 @@ class RelatedIssues extends Component<Props> {
 
         <TableWrapper>
           <GroupList
-            orgId={organization.slug}
             endpointPath={path}
             queryParams={queryParams}
             query=""

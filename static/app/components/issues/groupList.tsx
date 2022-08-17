@@ -1,12 +1,9 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 // eslint-disable-next-line no-restricted-imports
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
-import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
+import {browserHistory} from 'react-router';
 import * as qs from 'query-string';
 
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
-import {Client} from 'sentry/api';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -19,31 +16,24 @@ import StreamGroup, {
 } from 'sentry/components/stream/group';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {Group} from 'sentry/types';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
-import withApi from 'sentry/utils/withApi';
+import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
 
 import GroupListHeader from './groupListHeader';
 
-const defaultProps = {
-  canSelectGroups: true,
-  withChart: true,
-  withPagination: true,
-  useFilteredStats: true,
-  useTintRow: true,
-  narrowGroups: false,
-};
-
-type Props = WithRouterProps & {
-  api: Client;
+type Props = {
   endpointPath: string;
-  orgId: string;
   query: string;
+  canSelectGroups?: boolean;
   customStatsPeriod?: TimePeriodType;
+  narrowGroups?: boolean;
   onFetchSuccess?: (
-    groupListState: State,
+    groupListState: {groups: Group[]; pageLinks: string | null},
     onCursor: (
       cursor: string,
       path: string,
@@ -53,259 +43,255 @@ type Props = WithRouterProps & {
   ) => void;
   queryFilterDescription?: string;
   queryParams?: Record<string, number | string | string[] | undefined | null>;
-  renderEmptyMessage?: () => React.ReactNode;
-  renderErrorMessage?: ({detail: string}, retry: () => void) => React.ReactNode;
-} & Partial<typeof defaultProps>;
-
-type State = {
-  error: boolean;
-  errorData: {detail: string} | null;
-  groups: Group[];
-  loading: boolean;
-  pageLinks: string | null;
-  memberList?: ReturnType<typeof indexMembersByProject>;
+  renderEmptyMessage?: () => React.ReactElement;
+  renderErrorMessage?: ({detail: string}, retry?: () => void) => React.ReactElement;
+  useFilteredStats?: boolean;
+  useTintRow?: boolean;
+  withChart?: boolean;
+  withPagination?: boolean;
 };
 
-class GroupList extends Component<Props, State> {
-  static defaultProps = defaultProps;
+/** todo: memoize if necessary */
+function GroupList({
+  canSelectGroups = true,
+  withChart = true,
+  withPagination = true,
+  useFilteredStats = true,
+  useTintRow = true,
+  narrowGroups = false,
+  query,
+  queryParams,
+  endpointPath,
+  renderErrorMessage,
+  renderEmptyMessage,
+  customStatsPeriod,
+  queryFilterDescription,
+}: Props) {
+  const groups = useLegacyStore(GroupStore);
+  useResetGroupStoreOnUnmount();
+  const {isLoading, hasError, pageLinks, error, retry} = useFetchGroups({
+    query,
+    queryParams,
+    endpointPath,
+  });
+  const memberList = useFetchMemberList();
 
-  state: State = {
-    loading: true,
-    error: false,
-    errorData: null,
-    groups: [],
-    pageLinks: null,
-  };
-
-  componentDidMount() {
-    this.fetchData();
-  }
-
-  shouldComponentUpdate(nextProps: Props, nextState: State) {
+  if (hasError) {
     return (
-      !isEqual(this.state, nextState) ||
-      nextProps.endpointPath !== this.props.endpointPath ||
-      nextProps.query !== this.props.query ||
-      !isEqual(nextProps.queryParams, this.props.queryParams)
+      <GroupListError
+        renderErrorMessage={renderErrorMessage}
+        errorData={error}
+        retry={retry}
+      />
     );
   }
 
-  componentDidUpdate(prevProps: Props) {
-    const ignoredQueryParams = ['end'];
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
 
-    if (
-      prevProps.orgId !== this.props.orgId ||
-      prevProps.endpointPath !== this.props.endpointPath ||
-      prevProps.query !== this.props.query ||
-      !isEqual(
-        omit(prevProps.queryParams, ignoredQueryParams),
-        omit(this.props.queryParams, ignoredQueryParams)
-      )
-    ) {
-      this.fetchData();
+  if (!groups.length) {
+    if (typeof renderEmptyMessage === 'function') {
+      return renderEmptyMessage();
     }
+    return (
+      <Panel>
+        <PanelBody>
+          <EmptyStateWarning>
+            <p>{t("There don't seem to be any events fitting the query.")}</p>
+          </EmptyStateWarning>
+        </PanelBody>
+      </Panel>
+    );
   }
 
-  componentWillUnmount() {
-    GroupStore.reset();
-    callIfFunction(this.listener);
+  const statsPeriod =
+    queryParams?.groupStatsPeriod === 'auto'
+      ? queryParams?.groupStatsPeriod
+      : DEFAULT_STREAM_GROUP_STATS_PERIOD;
+
+  return (
+    <Fragment>
+      <Panel>
+        <GroupListHeader withChart={!!withChart} narrowGroups={narrowGroups} />
+        <PanelBody>
+          {groups.map(({id, project}) => {
+            const members = memberList?.hasOwnProperty(project.slug)
+              ? memberList[project.slug]
+              : undefined;
+
+            return (
+              <StreamGroup
+                key={id}
+                id={id}
+                canSelect={canSelectGroups}
+                withChart={withChart}
+                memberList={members}
+                useFilteredStats={useFilteredStats}
+                useTintRow={useTintRow}
+                customStatsPeriod={customStatsPeriod}
+                statsPeriod={statsPeriod}
+                queryFilterDescription={queryFilterDescription}
+                narrowGroups={narrowGroups}
+              />
+            );
+          })}
+        </PanelBody>
+      </Panel>
+      {withPagination && (
+        <Pagination pageLinks={pageLinks} onCursor={handleCursorChange} />
+      )}
+    </Fragment>
+  );
+}
+
+function GroupListError({
+  renderErrorMessage,
+  errorData,
+  retry,
+}: Pick<Props, 'renderErrorMessage'> & {
+  errorData?: {detail: string};
+  retry?: () => void;
+}) {
+  if (typeof renderErrorMessage === 'function' && errorData) {
+    return renderErrorMessage(errorData, retry);
   }
 
-  listener = GroupStore.listen(() => this.onGroupChange(), undefined);
+  return <LoadingError onRetry={retry} />;
+}
 
-  fetchData = async () => {
-    GroupStore.loadInitialData([]);
-    const {api, orgId, queryParams} = this.props;
+function useResetGroupStoreOnUnmount() {
+  useEffect(() => {
+    return () => {
+      GroupStore.reset();
+    };
+  }, []);
+}
+
+function useFetchMemberList() {
+  const api = useApi();
+  const organization = useOrganization();
+  const [membersList, setMemberList] = useState<ReturnType<
+    typeof indexMembersByProject
+  > | null>(null);
+
+  useEffect(() => {
     api.clear();
-
-    this.setState({loading: true, error: false, errorData: null});
-
-    fetchOrgMembers(api, orgId).then(members => {
-      this.setState({memberList: indexMembersByProject(members)});
+    fetchOrgMembers(api, organization.slug).then(members => {
+      setMemberList(indexMembersByProject(members));
     });
+  }, [api, organization.slug]);
 
-    const endpoint = this.getGroupListEndpoint();
+  return membersList;
+}
 
-    const parsedQuery = parseSearch((queryParams ?? this.getQueryParams()).query);
-    const hasLogicBoolean = parsedQuery
-      ? treeResultLocator<boolean>({
-          tree: parsedQuery,
-          noResultValue: false,
-          visitorTest: ({token, returnResult}) => {
-            return token.type === Token.LogicBoolean ? returnResult(true) : null;
-          },
-        })
-      : false;
+function useFetchGroups({
+  queryParams,
+  query,
+  endpointPath,
+  onFetchSuccess,
+}: Pick<Props, 'queryParams' | 'query' | 'endpointPath' | 'onFetchSuccess'>) {
+  const {id: orgId} = useOrganization();
+  const location = useLocation();
+  const api = useApi();
+  const [requestState, setRequestState] = useState<{
+    hasError: boolean;
+    isLoading: boolean;
+    error?: {detail: string};
+    pageLinks?: string | null;
+  }>({
+    isLoading: false,
+    hasError: false,
+  });
 
-    // Check if the alert rule query has AND or OR
-    // logic queries haven't been implemented for issue search yet
-    if (hasLogicBoolean) {
-      this.setState({
-        error: true,
-        errorData: {detail: RELATED_ISSUES_BOOLEAN_QUERY_ERROR},
-        loading: false,
+  const queryHasLogicBoolean = useMemo(() => {
+    const parsedQuery = parseSearch(query);
+
+    if (!parsedQuery) {
+      return false;
+    }
+
+    return treeResultLocator<boolean>({
+      tree: parsedQuery,
+      noResultValue: false,
+      visitorTest: ({token, returnResult}) => {
+        return token.type === Token.LogicBoolean ? returnResult(true) : null;
+      },
+    });
+  }, [query]);
+
+  const path = endpointPath ?? `/organizations/${orgId}/issues/`;
+
+  const requestEndpoint = `${path}?${qs.stringify(
+    queryParams ?? {
+      ...location.query,
+      query,
+      sort: 'new',
+      limit: 50,
+    }
+  )}`;
+
+  const fetchGroups = useCallback(async () => {
+    api.clear();
+    setRequestState({isLoading: true, hasError: false});
+    GroupStore.loadInitialData([]);
+
+    if (queryHasLogicBoolean) {
+      setRequestState({
+        isLoading: false,
+        hasError: true,
+        error: {detail: RELATED_ISSUES_BOOLEAN_QUERY_ERROR},
       });
-      return;
     }
 
     try {
-      const [data, , jqXHR] = await api.requestPromise(endpoint, {
+      const [data, _, response] = await api.requestPromise(requestEndpoint, {
         includeAllArgs: true,
       });
 
+      const pageLinks = response?.getResponseHeader?.('Link') ?? null;
+
       GroupStore.add(data);
-
-      this.setState(
-        {
-          error: false,
-          errorData: null,
-          loading: false,
-          pageLinks: jqXHR?.getResponseHeader('Link') ?? null,
-        },
-        () => {
-          this.props.onFetchSuccess?.(this.state, this.handleCursorChange);
-        }
-      );
+      setRequestState({isLoading: false, hasError: false, pageLinks});
+      onFetchSuccess?.({groups: data, pageLinks}, handleCursorChange);
     } catch (error) {
-      this.setState({error: true, errorData: error.responseJSON, loading: false});
+      setRequestState({isLoading: false, hasError: true, error: error?.responseJSON});
     }
+  }, [api, onFetchSuccess, queryHasLogicBoolean, requestEndpoint]);
+
+  useEffect(() => {
+    fetchGroups();
+  }, [fetchGroups]);
+
+  return {
+    ...requestState,
+    retry: fetchGroups,
   };
-
-  getGroupListEndpoint() {
-    const {orgId, endpointPath, queryParams} = this.props;
-    const path = endpointPath ?? `/organizations/${orgId}/issues/`;
-    const queryParameters = queryParams ?? this.getQueryParams();
-
-    return `${path}?${qs.stringify(queryParameters)}`;
-  }
-
-  getQueryParams() {
-    const {location, query} = this.props;
-
-    const queryParams = location.query;
-    queryParams.limit = 50;
-    queryParams.sort = 'new';
-    queryParams.query = query;
-
-    return queryParams;
-  }
-
-  handleCursorChange(
-    cursor: string | undefined,
-    path: string,
-    query: Record<string, any>,
-    pageDiff: number
-  ) {
-    const queryPageInt = parseInt(query.page, 10);
-    let nextPage: number | undefined = isNaN(queryPageInt)
-      ? pageDiff
-      : queryPageInt + pageDiff;
-
-    // unset cursor and page when we navigate back to the first page
-    // also reset cursor if somehow the previous button is enabled on
-    // first page and user attempts to go backwards
-    if (nextPage <= 0) {
-      cursor = undefined;
-      nextPage = undefined;
-    }
-
-    browserHistory.push({
-      pathname: path,
-      query: {...query, cursor, page: nextPage},
-    });
-  }
-
-  onGroupChange() {
-    const groups = GroupStore.getAllItems() as Group[];
-    if (!isEqual(groups, this.state.groups)) {
-      this.setState({groups});
-    }
-  }
-
-  render() {
-    const {
-      canSelectGroups,
-      withChart,
-      renderEmptyMessage,
-      renderErrorMessage,
-      withPagination,
-      useFilteredStats,
-      useTintRow,
-      customStatsPeriod,
-      queryParams,
-      queryFilterDescription,
-      narrowGroups,
-    } = this.props;
-    const {loading, error, errorData, groups, memberList, pageLinks} = this.state;
-
-    if (loading) {
-      return <LoadingIndicator />;
-    }
-
-    if (error) {
-      if (typeof renderErrorMessage === 'function' && errorData) {
-        return renderErrorMessage(errorData, this.fetchData);
-      }
-
-      return <LoadingError onRetry={this.fetchData} />;
-    }
-
-    if (groups.length === 0) {
-      if (typeof renderEmptyMessage === 'function') {
-        return renderEmptyMessage();
-      }
-      return (
-        <Panel>
-          <PanelBody>
-            <EmptyStateWarning>
-              <p>{t("There don't seem to be any events fitting the query.")}</p>
-            </EmptyStateWarning>
-          </PanelBody>
-        </Panel>
-      );
-    }
-
-    const statsPeriod =
-      queryParams?.groupStatsPeriod === 'auto'
-        ? queryParams?.groupStatsPeriod
-        : DEFAULT_STREAM_GROUP_STATS_PERIOD;
-
-    return (
-      <Fragment>
-        <Panel>
-          <GroupListHeader withChart={!!withChart} narrowGroups={narrowGroups} />
-          <PanelBody>
-            {groups.map(({id, project}) => {
-              const members = memberList?.hasOwnProperty(project.slug)
-                ? memberList[project.slug]
-                : undefined;
-
-              return (
-                <StreamGroup
-                  key={id}
-                  id={id}
-                  canSelect={canSelectGroups}
-                  withChart={withChart}
-                  memberList={members}
-                  useFilteredStats={useFilteredStats}
-                  useTintRow={useTintRow}
-                  customStatsPeriod={customStatsPeriod}
-                  statsPeriod={statsPeriod}
-                  queryFilterDescription={queryFilterDescription}
-                  narrowGroups={narrowGroups}
-                />
-              );
-            })}
-          </PanelBody>
-        </Panel>
-        {withPagination && (
-          <Pagination pageLinks={pageLinks} onCursor={this.handleCursorChange} />
-        )}
-      </Fragment>
-    );
-  }
 }
 
-export {GroupList};
+function handleCursorChange(
+  cursor: string | undefined,
+  path: string,
+  query: Record<string, any>,
+  pageDiff: number
+) {
+  const queryPageInt = parseInt(query.page, 10);
+  let nextPage: number | undefined = isNaN(queryPageInt)
+    ? pageDiff
+    : queryPageInt + pageDiff;
 
-export default withApi(withRouter(GroupList));
+  // unset cursor and page when we navigate back to the first page
+  // also reset cursor if somehow the previous button is enabled on
+  // first page and user attempts to go backwards
+  if (nextPage <= 0) {
+    cursor = undefined;
+    nextPage = undefined;
+  }
+
+  browserHistory.push({
+    pathname: path,
+    query: {...query, cursor, page: nextPage},
+  });
+}
+
+export default GroupList;
