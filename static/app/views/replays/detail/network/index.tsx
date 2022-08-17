@@ -144,7 +144,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
           {network.data.statusCode ? (
             <StatusContainer>{network.data.statusCode}</StatusContainer>
           ) : (
-            <EmptyText>({t('Missing status code')})</EmptyText>
+            <EmptyText>({t('Missing status')})</EmptyText>
           )}
         </Item>
         <Item color="gray400" {...columnHandlers}>
