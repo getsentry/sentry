@@ -327,48 +327,56 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         * Renaming a team:
         ```json
         {
-            "op": "replace",
-            "value": {
-                "id": 23,
-                "displayName": "newName"
+            "Operations": {
+                "op": "replace",
+                "value": {
+                    "id": 23,
+                    "displayName": "newName"
+                }
             }
         }
         ```
         * Adding a member to a team:
         ```json
         {
-            "op": "add",
-            "path": "members",
-            "value": [
-                {
-                    "value": 23,
-                    "display": "testexample@example.com"
-                }
-            ]
+            "Operations": {
+                "op": "add",
+                "path": "members",
+                "value": [
+                    {
+                        "value": 23,
+                        "display": "testexample@example.com"
+                    }
+                ]
+            }
         }
         ```
         * Removing a member from a team:
         ```json
         {
-            "op": "remove",
-            "path": "members[value eq \"23\"]"
+            "Operations": {
+                "op": "remove",
+                "path": "members[value eq \"23\"]"
+            }
         }
         ```
         * Replacing an entire member set of a team:
         ```json
         {
-            "op": "replace",
-            "path": "members",
-            "value": [
-                {
-                    "value": 23,
-                    "display": "testexample2@sentry.io"
-                },
-                {
-                    "value": 24,
-                    "display": "testexample3@sentry.io"
-                }
-            ]
+            "Operations": {
+                "op": "replace",
+                "path": "members",
+                "value": [
+                    {
+                        "value": 23,
+                        "display": "testexample2@sentry.io"
+                    },
+                    {
+                        "value": 24,
+                        "display": "testexample3@sentry.io"
+                    }
+                ]
+            }
         }
         ```
         """
