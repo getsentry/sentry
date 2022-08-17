@@ -13,7 +13,7 @@ def store_missing_release_ids_for_dashboard_filters(apps, schema_editor):
     for dashboard in RangeQuerySetWrapperWithProgressBar(Dashboard.objects.all()):
         if (
             dashboard.filters
-            and dashboard.filters["release"]
+            and dashboard.filters.get("release")
             and not dashboard.filters.get("release_id")
         ):
             release_ids = list(
