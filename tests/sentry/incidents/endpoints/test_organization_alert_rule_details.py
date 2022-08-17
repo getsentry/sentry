@@ -520,6 +520,13 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
         assert not AlertRule.objects_with_snapshots.filter(name=self.alert_rule.name).exists()
         assert not AlertRule.objects_with_snapshots.filter(id=self.alert_rule.id).exists()
 
+    def test_no_feature(self):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        self.get_success_response(self.organization.slug, self.alert_rule.id, status_code=204)
+
     def test_snapshot_and_create_new_with_same_name(self):
         with self.tasks():
             self.create_member(
