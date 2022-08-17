@@ -10,6 +10,7 @@ import ThemeAndStyleProvider from 'sentry/components/themeAndStyleProvider';
 import U2fContainer from 'sentry/components/u2f/u2fContainer';
 import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import {Authenticator} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
@@ -55,17 +56,18 @@ class SuperuserAccessForm extends Component<Props, State> {
   handleSubmit = async data => {
     const {api} = this.props;
     const {superuserAccessCategory, superuserReason, authenticators} = this.state;
+    const disableU2FForSUForm = ConfigStore.get('disableU2FForSUForm');
 
     const suAccessCategory = superuserAccessCategory || data.superuserAccessCategory;
 
     const suReason = superuserReason || data.superuserReason;
 
-    if (!authenticators.length) {
+    if (!authenticators.length && !disableU2FForSUForm) {
       this.handleError('No Authenticator');
       return;
     }
 
-    if (this.state.showAccessForms) {
+    if (this.state.showAccessForms && !disableU2FForSUForm) {
       this.setState({
         showAccessForms: false,
         superuserAccessCategory: suAccessCategory,

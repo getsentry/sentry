@@ -72,17 +72,18 @@ class SudoModal extends Component<Props, State> {
   handleSubmit = async data => {
     const {api, isSuperuser} = this.props;
     const {superuserAccessCategory, superuserReason, authenticators} = this.state;
+    const disableU2FForSUForm = ConfigStore.get('disableU2FForSUForm');
 
     const suAccessCategory = superuserAccessCategory || data.superuserAccessCategory;
 
     const suReason = superuserReason || data.superuserReason;
 
-    if (!authenticators.length) {
+    if (!authenticators.length && !disableU2FForSUForm) {
       this.handleError('No Authenticator');
       return;
     }
 
-    if (this.state.showAccessForms && isSuperuser) {
+    if (this.state.showAccessForms && isSuperuser && !disableU2FForSUForm) {
       this.setState({
         showAccessForms: false,
         superuserAccessCategory: suAccessCategory,
