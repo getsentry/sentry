@@ -3,8 +3,10 @@ from datetime import datetime
 from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class OrganizationReleasesTest(AcceptanceTestCase):
     release_date = datetime(2020, 5, 18, 15, 13, 58, 132928, tzinfo=timezone.utc)
 

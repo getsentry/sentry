@@ -5,11 +5,13 @@ from django.urls import reverse
 from sentry.testutils import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.servermode import customer_silo_test
 from sentry.utils.samples import load_data
 
 # TODO(dcramer): These tests rely too much on implicit fixtures
 
 
+@customer_silo_test
 class EventCommittersTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)

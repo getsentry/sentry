@@ -5,11 +5,13 @@ import pytz
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.servermode import customer_silo_test
 
 event_time = before_now(days=3).replace(tzinfo=pytz.utc)
 current_time = datetime.utcnow().replace(tzinfo=pytz.utc)
 
 
+@customer_silo_test
 class ProjectTagsSettingsTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

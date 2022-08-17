@@ -5,9 +5,16 @@ from django.db import connections, transaction
 from django.db.models.signals import post_migrate
 
 from sentry import options
-from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import (
+    BoundedBigIntegerField,
+    FlexibleForeignKey,
+    Model,
+    customer_silo_model,
+    sane_repr,
+)
 
 
+@customer_silo_model
 class Counter(Model):
     __include_in_export__ = True
 

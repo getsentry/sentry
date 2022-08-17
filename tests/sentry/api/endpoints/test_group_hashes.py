@@ -6,8 +6,10 @@ from sentry.models import GroupHash
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class GroupHashesTest(APITestCase, SnubaTestCase):
     def test_only_return_latest_event(self):
         self.login_as(user=self.user)

@@ -4,6 +4,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import ProjectTransactionThresholdOverridePermission
 from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBase
 from sentry.api.serializers import serialize
@@ -53,6 +54,7 @@ class ProjectTransactionThresholdOverrideSerializer(serializers.Serializer):
         return data
 
 
+@customer_silo_endpoint
 class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsV2EndpointBase):
     permission_classes = (ProjectTransactionThresholdOverridePermission,)
 

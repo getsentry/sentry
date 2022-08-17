@@ -2,8 +2,10 @@ from django.urls import reverse
 
 from sentry.models import EventUser
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class ProjectUsersTest(APITestCase):
     def setUp(self):
         super().setUp()

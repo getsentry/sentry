@@ -1,10 +1,12 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.rules import rules
 
 
+@customer_silo_endpoint
 class ProjectAgnosticRuleConditionsEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization) -> Response:
         """

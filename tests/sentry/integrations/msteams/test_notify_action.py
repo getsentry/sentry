@@ -6,9 +6,11 @@ import responses
 from sentry.integrations.msteams import MsTeamsNotifyServiceAction
 from sentry.models import Integration
 from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.servermode import customer_silo_test
 from sentry.utils import json
 
 
+@customer_silo_test
 class MsTeamsNotifyActionTest(RuleTestCase):
     rule_cls = MsTeamsNotifyServiceAction
 

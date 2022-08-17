@@ -4,7 +4,13 @@ from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
 from sentry.constants import ENVIRONMENT_NAME_MAX_LENGTH, ENVIRONMENT_NAME_PATTERN
-from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import (
+    BoundedBigIntegerField,
+    FlexibleForeignKey,
+    Model,
+    customer_silo_model,
+    sane_repr,
+)
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
@@ -12,6 +18,7 @@ from sentry.utils.hashlib import md5_text
 OK_NAME_PATTERN = re.compile(ENVIRONMENT_NAME_PATTERN)
 
 
+@customer_silo_model
 class EnvironmentProject(Model):
     __include_in_export__ = False
 
@@ -25,6 +32,7 @@ class EnvironmentProject(Model):
         unique_together = (("project", "environment"),)
 
 
+@customer_silo_model
 class Environment(Model):
     __include_in_export__ = False
 

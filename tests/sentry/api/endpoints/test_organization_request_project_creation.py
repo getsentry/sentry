@@ -1,9 +1,11 @@
 from unittest import mock
 
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 from sentry.utils.http import absolute_uri
 
 
+@customer_silo_test
 class OrganizationIntegrationRequestTest(APITestCase):
     endpoint = "sentry-api-0-organization-request-project-creation"
     method = "post"

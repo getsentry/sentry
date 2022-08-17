@@ -1,8 +1,10 @@
 from django.urls import reverse
 
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class ProjectMemberIndexTest(APITestCase):
     def test_simple(self):
         user_1 = self.create_user("foo@localhost", username="foo")

@@ -31,6 +31,7 @@ from sentry.search.snuba.executors import InvalidQueryForExecutor
 from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.faux import Any
+from sentry.testutils.servermode import customer_silo_test
 from sentry.utils.snuba import SENTRY_SNUBA_MAP, Dataset, SnubaError
 
 
@@ -38,6 +39,7 @@ def date_to_query_format(date):
     return date.strftime("%Y-%m-%dT%H:%M:%S")
 
 
+@customer_silo_test
 class EventsSnubaSearchTest(TestCase, SnubaTestCase):
     @property
     def backend(self):
@@ -1976,6 +1978,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             test_query(f"{key}:{val}")
 
 
+@customer_silo_test
 class CdcEventsSnubaSearchTest(TestCase, SnubaTestCase):
     @property
     def backend(self):

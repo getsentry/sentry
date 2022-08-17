@@ -2,9 +2,17 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, JSONField, Model, sane_repr
+from sentry.db.models import (
+    BoundedBigIntegerField,
+    FlexibleForeignKey,
+    JSONField,
+    Model,
+    customer_silo_model,
+    sane_repr,
+)
 
 
+@customer_silo_model
 class PromptsActivity(Model):
     """Records user interaction with various feature prompts in product"""
 

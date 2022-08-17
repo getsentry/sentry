@@ -4,8 +4,10 @@ from django.utils import timezone
 
 from sentry.models import GroupAssignee, GroupEnvironment, GroupStatus
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class TeamGroupsOldTest(APITestCase):
     endpoint = "sentry-api-0-team-oldest-issues"
 

@@ -7,8 +7,10 @@ from exam import fixture
 from sentry.models import RelayUsage
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class OrganizationRelayHistoryTest(APITestCase):
     endpoint = "sentry-api-0-organization-relay-usage"
 

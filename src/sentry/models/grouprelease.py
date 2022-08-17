@@ -3,12 +3,19 @@ from datetime import timedelta
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
-from sentry.db.models import BoundedBigIntegerField, BoundedPositiveIntegerField, Model, sane_repr
+from sentry.db.models import (
+    BoundedBigIntegerField,
+    BoundedPositiveIntegerField,
+    Model,
+    customer_silo_model,
+    sane_repr,
+)
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
 
+@customer_silo_model
 class GroupRelease(Model):
     __include_in_export__ = False
 

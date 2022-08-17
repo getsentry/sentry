@@ -4,6 +4,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 
 from sentry import analytics
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.models import Organization, User
@@ -35,6 +36,7 @@ def get_request_builder_args(user: User, organization: Organization, platforms: 
     }
 
 
+@customer_silo_endpoint
 class OrganizationOnboardingContinuationEmail(OrganizationEndpoint):
     private = True
     # let anyone in the org use this endpoint

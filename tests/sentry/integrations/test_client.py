@@ -8,6 +8,7 @@ from sentry.identity.oauth2 import OAuth2Provider
 from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
 from sentry.models import Identity, IdentityProvider
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import control_silo_test
 
 
 class ApiClientTest(TestCase):
@@ -162,6 +163,7 @@ class OAuth2ApiClient(ApiClient, OAuth2RefreshMixin):
         self.identity = identity
 
 
+@control_silo_test
 class OAuth2ApiClientTest(TestCase):
     def setUp(self):
         self.user = self.create_user()

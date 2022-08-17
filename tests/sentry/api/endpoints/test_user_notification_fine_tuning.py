@@ -1,9 +1,11 @@
 from sentry.models import NotificationSetting, UserEmail, UserOption
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import control_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
+@control_silo_test
 class UserNotificationFineTuningTestBase(APITestCase):
     endpoint = "sentry-api-0-user-notifications-fine-tuning"
 
@@ -20,6 +22,7 @@ class UserNotificationFineTuningTestBase(APITestCase):
         self.get_error_response("me", "invalid", status_code=404)
 
 
+@control_silo_test
 class UserNotificationFineTuningGetTest(UserNotificationFineTuningTestBase):
     def test_returns_correct_defaults(self):
         NotificationSetting.objects.update_settings(
@@ -52,6 +55,7 @@ class UserNotificationFineTuningGetTest(UserNotificationFineTuningTestBase):
         assert response.data.get(self.organization.id) == "0"
 
 
+@control_silo_test
 class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
     method = "put"
 

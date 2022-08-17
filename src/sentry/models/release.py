@@ -25,6 +25,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
+    customer_silo_model,
     sane_repr,
 )
 from sentry.exceptions import InvalidSearchQuery
@@ -66,6 +67,7 @@ class ReleaseCommitError(Exception):
     pass
 
 
+@customer_silo_model
 class ReleaseProject(Model):
     __include_in_export__ = False
 
@@ -416,6 +418,7 @@ class ReleaseModelManager(BaseManager):
         return release_version or None
 
 
+@customer_silo_model
 class Release(Model):
     """
     A release is generally created when a new version is pushed into a

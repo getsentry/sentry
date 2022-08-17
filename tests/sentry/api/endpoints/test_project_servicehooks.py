@@ -1,7 +1,9 @@
 from sentry.models import ServiceHook, ServiceHookProject
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class ListProjectServiceHooksTest(APITestCase):
     def test_simple(self):
         project = self.create_project()
@@ -17,6 +19,7 @@ class ListProjectServiceHooksTest(APITestCase):
         assert response.data[0]["id"] == hook.guid
 
 
+@customer_silo_test
 class CreateProjectServiceHookTest(APITestCase):
     def setUp(self):
         super().setUp()

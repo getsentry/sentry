@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.helpers.processing_issues import get_processing_issues
 from sentry.api.serializers import serialize
@@ -10,6 +11,7 @@ from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
 
+@customer_silo_endpoint
 class ProjectProcessingIssuesDiscardEndpoint(ProjectEndpoint):
     def delete(self, request: Request, project) -> Response:
         """
@@ -19,6 +21,7 @@ class ProjectProcessingIssuesDiscardEndpoint(ProjectEndpoint):
         return Response(status=200)
 
 
+@customer_silo_endpoint
 class ProjectProcessingIssuesFixEndpoint(ProjectEndpoint):
     def get(self, request: Request, project) -> Response:
         token = None
@@ -64,6 +67,7 @@ class ProjectProcessingIssuesFixEndpoint(ProjectEndpoint):
         return resp
 
 
+@customer_silo_endpoint
 class ProjectProcessingIssuesEndpoint(ProjectEndpoint):
     def get(self, request: Request, project) -> Response:
         """

@@ -3,8 +3,10 @@ from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
 from sentry.testutils import SCIMTestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class SCIMTeamDetailsDocs(APIDocsTestCase, SCIMTestCase):
     def setUp(self):
         super().setUp()

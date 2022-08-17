@@ -5,8 +5,10 @@ from sentry.data_export.processors.issues_by_tag import IssuesByTagProcessor
 from sentry.models import EventUser, Group, Project
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class IssuesByTagProcessorTest(TestCase, SnubaTestCase):
     generic_header_fields = ["value", "times_seen", "last_seen", "first_seen"]
     user_header_fields = [

@@ -19,6 +19,7 @@ def generate_token():
     return uuid4().hex + uuid4().hex
 
 
+# @control_silo_model
 class ApiToken(Model, HasApiScopes):
     __include_in_export__ = True
 

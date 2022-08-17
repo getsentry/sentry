@@ -5,7 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk.api import capture_exception
 
-from sentry.api.base import StatsMixin
+from sentry.api.base import StatsMixin, customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import ProjectKey
@@ -19,6 +19,7 @@ from sentry.utils.dates import parse_timestamp
 from sentry.utils.outcomes import Outcome
 
 
+@customer_silo_endpoint
 class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
     enforce_rate_limit = True
     rate_limits = {

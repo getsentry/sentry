@@ -8,9 +8,11 @@ from freezegun import freeze_time
 
 from sentry.api.endpoints.organization_transaction_anomaly_detection import get_time_params
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
 @freeze_time("2022-02-21")
+@customer_silo_test
 class OrganizationTransactionAnomalyDetectionEndpoint(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-transaction-anomaly-detection"
 

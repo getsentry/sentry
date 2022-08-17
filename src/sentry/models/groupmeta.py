@@ -4,7 +4,7 @@ from celery.signals import task_postrun
 from django.core.signals import request_finished
 from django.db import models
 
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, customer_silo_model, sane_repr
 from sentry.db.models.manager import BaseManager
 from sentry.exceptions import CacheNotPopulated
 
@@ -82,6 +82,7 @@ class GroupMetaManager(BaseManager):
         self.__cache[instance.id][key] = value
 
 
+@customer_silo_model
 class GroupMeta(Model):
     """
     Arbitrary key/value store for Groups.

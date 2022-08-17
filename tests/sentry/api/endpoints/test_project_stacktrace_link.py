@@ -4,6 +4,7 @@ from unittest import mock
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
 def serialized_provider() -> Mapping[str, Any]:
@@ -33,6 +34,7 @@ def serialized_integration(integration: Integration) -> Mapping[str, Any]:
     }
 
 
+@customer_silo_test
 class ProjectStacktraceLinkTest(APITestCase):
     endpoint = "sentry-api-0-project-stacktrace-link"
 

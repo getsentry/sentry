@@ -2,6 +2,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features, integrations
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -10,6 +11,7 @@ from sentry.integrations import IntegrationFeatures
 from sentry.models import Integration
 
 
+@customer_silo_endpoint
 class GroupIntegrationsEndpoint(GroupEndpoint):
     def get(self, request: Request, group) -> Response:
         has_issue_basic = features.has(

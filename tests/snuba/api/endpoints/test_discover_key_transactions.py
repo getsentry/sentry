@@ -4,6 +4,7 @@ from sentry.discover.models import MAX_TEAM_KEY_TRANSACTIONS, TeamKeyTransaction
 from sentry.models import ProjectTeam
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
+from sentry.testutils.servermode import customer_silo_test
 from sentry.utils.samples import load_data
 
 
@@ -19,6 +20,7 @@ class TeamKeyTransactionTestBase(APITestCase, SnubaTestCase):
         self.features = ["organizations:performance-view"]
 
 
+@customer_silo_test
 class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
     def setUp(self):
         super().setUp()
@@ -661,6 +663,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         assert response.status_code == 204, response.content
 
 
+@customer_silo_test
 class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
     def setUp(self):
         super().setUp()

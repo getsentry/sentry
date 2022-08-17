@@ -8,8 +8,10 @@ from sentry.models import (
     OrganizationIntegration,
 )
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class IssueSyncIntegration(TestCase):
     def test_status_sync_inbound_resolve(self):
         group = self.group
@@ -96,6 +98,7 @@ class IssueSyncIntegration(TestCase):
             assert Group.objects.get(id=group.id).status == GroupStatus.UNRESOLVED
 
 
+@customer_silo_test
 class IssueDefaultTest(TestCase):
     def setUp(self):
         self.group.status = GroupStatus.RESOLVED

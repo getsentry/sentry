@@ -11,11 +11,13 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     JSONField,
     Model,
+    customer_silo_model,
     sane_repr,
 )
 from sentry.signals import pending_delete
 
 
+@customer_silo_model
 class Repository(Model, PendingDeletionMixin):
     __include_in_export__ = True
 

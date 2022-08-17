@@ -8,6 +8,7 @@ from freezegun import freeze_time
 
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature
+from sentry.testutils.servermode import customer_silo_test
 
 
 def mocked_discover_query():
@@ -190,6 +191,7 @@ def mocked_discover_query():
     }
 
 
+@customer_silo_test
 class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
     @property
     def endpoint(self):

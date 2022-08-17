@@ -2,8 +2,10 @@ from django.urls import reverse
 
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class ProjectTransactionThresholdTest(APITestCase):
     feature_name = "organizations:performance-view"
 

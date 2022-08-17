@@ -3,6 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import File
@@ -11,6 +12,7 @@ from sentry.replays.serializers import ReplayRecordingSegmentSerializer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
+@customer_silo_endpoint
 class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
     private = True
 

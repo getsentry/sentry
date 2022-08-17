@@ -2,6 +2,7 @@ from exam import fixture
 
 from sentry.incidents.models import IncidentActivity, IncidentActivityType
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
 class BaseIncidentCommentDetailsTest(APITestCase):
@@ -61,6 +62,7 @@ class BaseIncidentCommentDetailsTest(APITestCase):
             )
 
 
+@customer_silo_test
 class OrganizationIncidentCommentUpdateEndpointTest(BaseIncidentCommentDetailsTest):
     method = "put"
 
@@ -108,6 +110,7 @@ class OrganizationIncidentCommentUpdateEndpointTest(BaseIncidentCommentDetailsTe
         assert activity.comment == edited_comment
 
 
+@customer_silo_test
 class OrganizationIncidentCommentDeleteEndpointTest(BaseIncidentCommentDetailsTest):
     method = "delete"
 

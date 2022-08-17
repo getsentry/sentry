@@ -2,11 +2,13 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.constants import MIGRATED_CONDITIONS, SENTRY_APP_ACTIONS, TICKET_ACTIONS
 from sentry.rules import rules
 
 
+@customer_silo_endpoint
 class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
     def get(self, request: Request, project) -> Response:
         """

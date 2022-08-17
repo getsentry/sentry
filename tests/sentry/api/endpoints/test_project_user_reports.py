@@ -6,8 +6,10 @@ from django.utils import timezone
 from sentry.models import EventUser, GroupStatus, UserReport
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class ProjectUserReportListTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -154,6 +156,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
         assert response.data == []
 
 
+@customer_silo_test
 class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

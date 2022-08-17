@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from sentry_sdk import Hub, set_tag, start_span, start_transaction
 
 from sentry.api.authentication import RelayAuthentication
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, customer_silo_endpoint
 from sentry.api.permissions import RelayPermission
 from sentry.models import Organization, OrganizationOption, Project, ProjectKey, ProjectKeyStatus
 from sentry.relay import config, projectconfig_cache
@@ -25,6 +25,7 @@ def _sample_apm():
     return random.random() < getattr(settings, "SENTRY_RELAY_ENDPOINT_APM_SAMPLING", 0)
 
 
+@customer_silo_endpoint
 class RelayProjectConfigsEndpoint(Endpoint):
     authentication_classes = (RelayAuthentication,)
     permission_classes = (RelayPermission,)

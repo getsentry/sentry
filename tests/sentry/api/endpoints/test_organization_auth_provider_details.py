@@ -1,8 +1,10 @@
 from django.urls import reverse
 
 from sentry.testutils import PermissionTestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class OrganizationAuthProviderPermissionTest(PermissionTestCase):
     def setUp(self):
         super().setUp()

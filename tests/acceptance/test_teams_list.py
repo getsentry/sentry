@@ -1,8 +1,10 @@
 from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class TeamsListTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()

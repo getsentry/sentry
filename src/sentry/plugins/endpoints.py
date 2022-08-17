@@ -1,3 +1,5 @@
+from sentry.api.base import customer_silo_endpoint
+
 __all__ = ["PluginProjectEndpoint", "PluginGroupEndpoint"]
 
 from rest_framework.request import Request
@@ -31,6 +33,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 
+@customer_silo_endpoint
 class PluginGroupEndpoint(GroupEndpoint):
     plugin = None
     view = None

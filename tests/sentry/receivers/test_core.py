@@ -5,8 +5,10 @@ from django.test.utils import override_settings
 from sentry.models import Organization, Project, ProjectKey, Team, User
 from sentry.receivers.core import DEFAULT_SENTRY_PROJECT_ID, create_default_projects
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class CreateDefaultProjectsTest(TestCase):
     @override_settings(SENTRY_PROJECT=1)
     def test_simple(self):

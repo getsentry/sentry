@@ -4,6 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import ProjectOwnership
@@ -111,6 +112,7 @@ class ProjectOwnershipSerializer(serializers.Serializer):
         return changed
 
 
+@customer_silo_endpoint
 class ProjectOwnershipEndpoint(ProjectEndpoint):
     def get_ownership(self, project):
         try:

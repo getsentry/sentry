@@ -1,7 +1,9 @@
 from sentry.rules.conditions.regression_event import RegressionEventCondition
 from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class RegressionEventConditionTest(RuleTestCase):
     rule_cls = RegressionEventCondition
 

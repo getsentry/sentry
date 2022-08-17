@@ -3,7 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.authentication import DSNAuthentication
-from sentry.api.base import EnvironmentMixin
+from sentry.api.base import EnvironmentMixin, customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.helpers.user_reports import user_reports_filter_to_unresolved
 from sentry.api.paginator import DateTimePaginator
@@ -18,6 +18,7 @@ class UserReportSerializer(serializers.ModelSerializer):
         fields = ("name", "email", "comments", "event_id")
 
 
+@customer_silo_endpoint
 class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
     authentication_classes = ProjectEndpoint.authentication_classes + (DSNAuthentication,)
 

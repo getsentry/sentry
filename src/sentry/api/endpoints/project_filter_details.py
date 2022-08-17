@@ -2,11 +2,13 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.ingest import inbound_filters
 
 
+@customer_silo_endpoint
 class ProjectFilterDetailsEndpoint(ProjectEndpoint):
     def put(self, request: Request, project, filter_id) -> Response:
         """

@@ -21,6 +21,7 @@ from sentry.snuba.metrics.naming_layer.mapping import get_public_name_from_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
 from sentry.testutils import APITestCase
 from sentry.testutils.cases import OrganizationMetricMetaIntegrationTestCase
+from sentry.testutils.servermode import customer_silo_test
 
 MOCKED_DERIVED_METRICS = copy.deepcopy(DERIVED_METRICS)
 MOCKED_DERIVED_METRICS.update(
@@ -54,6 +55,7 @@ perf_indexer_record = partial(indexer_record, UseCaseKey.PERFORMANCE)
 rh_indexer_record = partial(indexer_record, UseCaseKey.RELEASE_HEALTH)
 
 
+@customer_silo_test
 class OrganizationMetricsPermissionTest(APITestCase):
 
     endpoints = (
@@ -90,6 +92,7 @@ class OrganizationMetricsPermissionTest(APITestCase):
             assert response.status_code == 404
 
 
+@customer_silo_test
 class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationTestCase):
 
     endpoint = "sentry-api-0-organization-metrics-index"

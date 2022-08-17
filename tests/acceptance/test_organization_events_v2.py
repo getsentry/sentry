@@ -11,6 +11,7 @@ from selenium.webdriver.common.keys import Keys
 from sentry.discover.models import DiscoverSavedQuery
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format, timestamp_format
+from sentry.testutils.servermode import customer_silo_test
 from sentry.utils.samples import load_data
 
 FEATURE_NAMES = [
@@ -145,6 +146,7 @@ def generate_transaction(trace=None, span=None):
     return event_data
 
 
+@customer_silo_test
 class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

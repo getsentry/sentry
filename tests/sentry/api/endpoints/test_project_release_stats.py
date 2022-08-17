@@ -4,8 +4,10 @@ from django.urls import reverse
 
 from sentry.models import Release
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class ProjectReleaseStatsTest(APITestCase):
     def test_simple(self):
         """Minimal test to ensure code coverage of the endpoint"""

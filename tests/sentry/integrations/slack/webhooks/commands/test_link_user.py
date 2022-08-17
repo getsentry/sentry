@@ -7,10 +7,12 @@ from sentry.integrations.slack.views.unlink_identity import (
 )
 from sentry.integrations.slack.webhooks.base import NOT_LINKED_MESSAGE
 from sentry.testutils.helpers import get_response_text
+from sentry.testutils.servermode import control_silo_test
 from sentry.utils import json
 from tests.sentry.integrations.slack.webhooks.commands import SlackCommandsTest
 
 
+@control_silo_test
 class SlackCommandsLinkUserTest(SlackCommandsTest):
     @responses.activate
     def test_link_user_identity(self):
@@ -35,6 +37,7 @@ class SlackCommandsLinkUserTest(SlackCommandsTest):
         assert "You are already linked as" in get_response_text(data)
 
 
+@control_silo_test
 class SlackCommandsUnlinkUserTest(SlackCommandsTest):
     @responses.activate
     def test_unlink_user_identity(self):

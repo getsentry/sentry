@@ -3,11 +3,18 @@ from datetime import timedelta
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import (
+    BoundedBigIntegerField,
+    FlexibleForeignKey,
+    Model,
+    customer_silo_model,
+    sane_repr,
+)
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 
 
+@customer_silo_model
 class ReleaseEnvironment(Model):
     __include_in_export__ = False
 

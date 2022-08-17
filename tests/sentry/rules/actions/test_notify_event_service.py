@@ -5,8 +5,10 @@ from django.utils import timezone
 from sentry.rules.actions.notify_event_service import NotifyEventServiceAction
 from sentry.tasks.sentry_apps import notify_sentry_app
 from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class NotifyEventServiceActionTest(RuleTestCase):
     rule_cls = NotifyEventServiceAction
 

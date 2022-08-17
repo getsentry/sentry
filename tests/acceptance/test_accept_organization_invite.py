@@ -2,8 +2,10 @@ from django.db.models import F
 
 from sentry.models import AuthProvider, Organization
 from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class AcceptOrganizationInviteTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()

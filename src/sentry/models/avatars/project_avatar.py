@@ -1,10 +1,11 @@
 from django.db import models
 
-from sentry.db.models import FlexibleForeignKey
+from sentry.db.models import FlexibleForeignKey, customer_silo_model
 
 from . import AvatarBase
 
 
+@customer_silo_model
 class ProjectAvatar(AvatarBase):
     """
     A ProjectAvatar associates a Project with their avatar photo File

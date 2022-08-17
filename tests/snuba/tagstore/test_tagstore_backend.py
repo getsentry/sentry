@@ -20,6 +20,7 @@ from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.tagstore.types import TagValue
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format
+from sentry.testutils.servermode import customer_silo_test
 
 exception = {
     "values": [
@@ -776,6 +777,7 @@ class BaseSemverTest:
         ]
 
 
+@customer_silo_test
 class GetTagValuePaginatorForProjectsSemverTest(BaseSemverTest, TestCase, SnubaTestCase):
     KEY = SEMVER_ALIAS
 
@@ -874,6 +876,7 @@ class GetTagValuePaginatorForProjectsSemverTest(BaseSemverTest, TestCase, SnubaT
         )
 
 
+@customer_silo_test
 class GetTagValuePaginatorForProjectsSemverPackageTest(BaseSemverTest, TestCase, SnubaTestCase):
     KEY = SEMVER_PACKAGE_ALIAS
 
@@ -901,6 +904,7 @@ class GetTagValuePaginatorForProjectsSemverPackageTest(BaseSemverTest, TestCase,
         self.run_test("", ["test2"], env_2)
 
 
+@customer_silo_test
 class GetTagValuePaginatorForProjectsReleaseStageTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -954,6 +958,7 @@ class GetTagValuePaginatorForProjectsReleaseStageTest(TestCase, SnubaTestCase):
         self.run_test(ReleaseStages.ADOPTED, [], project=project_2, environment=self.environment)
 
 
+@customer_silo_test
 class GetTagValuePaginatorForProjectsSemverBuildTest(BaseSemverTest, TestCase, SnubaTestCase):
     KEY = SEMVER_BUILD_ALIAS
 

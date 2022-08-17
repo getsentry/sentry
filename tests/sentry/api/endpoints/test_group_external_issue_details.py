@@ -1,7 +1,9 @@
 from sentry.models import PlatformExternalIssue
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class GroupExternalIssueDetailsEndpointTest(APITestCase):
     def setUp(self):
         self.login_as(user=self.user)

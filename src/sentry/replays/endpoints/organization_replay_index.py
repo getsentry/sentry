@@ -2,6 +2,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models.organization import Organization
@@ -9,6 +10,7 @@ from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replays_collection
 
 
+@customer_silo_endpoint
 class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
     private = True
 

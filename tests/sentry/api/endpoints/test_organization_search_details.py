@@ -2,8 +2,10 @@ from exam import fixture
 
 from sentry.models import SavedSearch
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class DeleteOrganizationSearchTest(APITestCase):
     endpoint = "sentry-api-0-organization-search-details"
     method = "delete"

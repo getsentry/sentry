@@ -1,9 +1,11 @@
 from sentry.api.serializers import serialize
 from sentry.models import Activity, Commit, GroupStatus, PullRequest
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import customer_silo_test
 from sentry.types.activity import ActivityType
 
 
+@customer_silo_test
 class GroupActivityTestCase(TestCase):
     def test_pr_activity(self):
         self.org = self.create_organization(name="Rowdy Tiger")

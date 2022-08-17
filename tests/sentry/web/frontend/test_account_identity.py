@@ -6,8 +6,10 @@ from sentry import identity
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.models import Identity, IdentityProvider, IdentityStatus
 from sentry.testutils.cases import TestCase
+from sentry.testutils.servermode import control_silo_test
 
 
+@control_silo_test
 class AccountIdentityTest(TestCase):
     @before
     def setup_dummy_identity_provider(self):

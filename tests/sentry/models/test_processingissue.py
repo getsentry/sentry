@@ -1,7 +1,9 @@
 from sentry.models import EventError, EventProcessingIssue, ProcessingIssue, RawEvent
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class ProcessingIssueTest(TestCase):
     def test_simple(self):
         team = self.create_team()

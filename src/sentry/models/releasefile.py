@@ -52,6 +52,7 @@ class PublicReleaseFileManager(models.Manager):
         return super().get_queryset().select_related("file").filter(file__type="release.file")
 
 
+# @customer_silo_model  TODO: Incompatible manager?
 class ReleaseFile(Model):
     r"""
     A ReleaseFile is an association between a Release and a File.

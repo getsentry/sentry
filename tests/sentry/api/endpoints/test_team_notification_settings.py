@@ -3,6 +3,7 @@ from rest_framework import status
 from sentry.models import NotificationSetting
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
@@ -14,6 +15,7 @@ class TeamNotificationSettingsTestBase(APITestCase):
         self.login_as(self.user)
 
 
+@customer_silo_test
 class TeamNotificationSettingsGetTest(TeamNotificationSettingsTestBase):
     def test_simple(self):
         _ = self.project  # HACK to force creation.
@@ -54,6 +56,7 @@ class TeamNotificationSettingsGetTest(TeamNotificationSettingsTestBase):
         )
 
 
+@customer_silo_test
 class TeamNotificationSettingsTest(TeamNotificationSettingsTestBase):
     method = "put"
 

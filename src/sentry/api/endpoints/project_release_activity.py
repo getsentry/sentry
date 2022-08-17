@@ -3,13 +3,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.base import ReleaseAnalyticsMixin
+from sentry.api.base import ReleaseAnalyticsMixin, customer_silo_endpoint
 from sentry.api.bases import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.models.releaseactivity import ReleaseActivity
 
 
+@customer_silo_endpoint
 class ProjectReleaseActivityEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
     private = True
     permission_classes = (ProjectReleasePermission,)

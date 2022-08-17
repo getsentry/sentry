@@ -4,6 +4,7 @@ from sentry.integrations.aws_lambda.integration import AwsLambdaIntegration
 from sentry.models import Integration, ProjectKey
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.faux import Mock
+from sentry.testutils.servermode import customer_silo_test
 
 cloudformation_arn = (
     "arn:aws:cloudformation:us-east-2:599817902985:stack/"
@@ -38,6 +39,7 @@ class AbstractServerlessTest(APITestCase):
         return ProjectKey.get_default(project=self.project).get_dsn(public=True)
 
 
+@customer_silo_test
 class OrganizationIntegrationServerlessFunctionsGetTest(AbstractServerlessTest):
     method = "get"
 
@@ -160,6 +162,7 @@ class OrganizationIntegrationServerlessFunctionsGetTest(AbstractServerlessTest):
         ]
 
 
+@customer_silo_test
 class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest):
     method = "post"
 

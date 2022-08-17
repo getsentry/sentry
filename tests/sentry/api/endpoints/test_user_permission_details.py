@@ -1,5 +1,6 @@
 from sentry.models import UserPermission
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import control_silo_test
 
 
 class UserDetailsTest(APITestCase):
@@ -31,6 +32,7 @@ class PermissionTestMixin:
         assert resp.status_code == 403
 
 
+@control_silo_test
 class UserPermissionDetailsGetTest(UserDetailsTest, PermissionTestMixin):
     def test_with_permission(self):
         UserPermission.objects.create(user=self.user, permission="broadcasts.admin")
@@ -42,6 +44,7 @@ class UserPermissionDetailsGetTest(UserDetailsTest, PermissionTestMixin):
         assert resp.status_code == 404
 
 
+@control_silo_test
 class UserPermissionDetailsPostTest(UserDetailsTest, PermissionTestMixin):
     method = "POST"
 
@@ -57,6 +60,7 @@ class UserPermissionDetailsPostTest(UserDetailsTest, PermissionTestMixin):
         assert UserPermission.objects.filter(user=self.user, permission="broadcasts.admin").exists()
 
 
+@control_silo_test
 class UserPermissionDetailsDeleteTest(UserDetailsTest, PermissionTestMixin):
     method = "DELETE"
 

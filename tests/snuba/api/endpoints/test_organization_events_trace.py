@@ -6,6 +6,7 @@ from django.urls import NoReverseMatch, reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.servermode import customer_silo_test
 from sentry.utils.samples import load_data
 
 
@@ -197,6 +198,7 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
         )
 
 
+@customer_silo_test
 class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBase):
     url_name = "sentry-api-0-organization-events-trace-light"
 
@@ -617,6 +619,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         assertions(response)
 
 
+@customer_silo_test
 class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
     url_name = "sentry-api-0-organization-events-trace"
 
@@ -1144,6 +1147,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 assert len(gen1["children"]) == 0
 
 
+@customer_silo_test
 class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBase):
     url_name = "sentry-api-0-organization-events-trace-meta"
 

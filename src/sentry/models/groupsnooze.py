@@ -10,12 +10,14 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
+    customer_silo_model,
     sane_repr,
 )
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 
 
+@customer_silo_model
 class GroupSnooze(Model):
     """
     A snooze marks an issue as ignored until a condition is hit.

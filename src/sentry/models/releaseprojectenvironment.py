@@ -4,7 +4,13 @@ from enum import Enum
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import (
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    Model,
+    customer_silo_model,
+    sane_repr,
+)
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 
@@ -15,6 +21,7 @@ class ReleaseStages(str, Enum):
     REPLACED = "replaced"
 
 
+@customer_silo_model
 class ReleaseProjectEnvironment(Model):
     __include_in_export__ = False
 

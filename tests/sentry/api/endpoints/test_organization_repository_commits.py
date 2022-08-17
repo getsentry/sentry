@@ -2,8 +2,10 @@ from django.urls import reverse
 
 from sentry.models import Commit, Repository
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class OrganizationRepositoryCommitsTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)

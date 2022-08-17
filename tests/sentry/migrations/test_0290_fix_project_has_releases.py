@@ -1,6 +1,8 @@
 from sentry.testutils.cases import TestMigrations
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class BackfillProjectHasReleaseTest(TestMigrations):
     migrate_from = "0289_dashboardwidgetquery_convert_orderby_to_field"
     migrate_to = "0290_fix_project_has_releases"

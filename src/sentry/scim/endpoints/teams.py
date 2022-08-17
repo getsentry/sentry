@@ -11,6 +11,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.endpoints.organization_teams import OrganizationTeamsEndpoint
 from sentry.api.endpoints.team_details import TeamDetailsEndpoint, TeamSerializer
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -71,6 +72,7 @@ def _team_expand(excluded_attributes):
     return None if "members" in excluded_attributes else ["members"]
 
 
+@customer_silo_endpoint
 class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
     permission_classes = (OrganizationSCIMTeamPermission,)
     public = {"GET", "POST"}
@@ -195,6 +197,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
         return super().post(request, organization)
 
 
+@customer_silo_endpoint
 class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
     permission_classes = (OrganizationSCIMTeamPermission,)
     public = {"GET", "PATCH"}

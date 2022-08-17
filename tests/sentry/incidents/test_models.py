@@ -25,8 +25,10 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class FetchForOrganizationTest(TestCase):
     def test_empty(self):
         incidents = Incident.objects.fetch_for_organization(self.organization, [self.project])
@@ -387,6 +389,7 @@ class IncidentCurrentEndDateTest(unittest.TestCase):
         assert incident.current_end_date == timezone.now() - timedelta(minutes=10)
 
 
+@customer_silo_test
 class AlertRuleFetchForOrganizationTest(TestCase):
     def test_empty(self):
         alert_rule = AlertRule.objects.fetch_for_organization(self.organization)

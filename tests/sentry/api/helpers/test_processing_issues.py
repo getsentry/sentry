@@ -9,8 +9,10 @@ from sentry.models import (
     ReprocessingReport,
 )
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class GetProcessingIssuesTest(TestCase):
     @fixture
     def user(self):

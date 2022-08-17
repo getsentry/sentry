@@ -1,6 +1,8 @@
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class UserOrganizationsTest(APITestCase):
     endpoint = "sentry-api-0-user-organizations"
 

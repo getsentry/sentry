@@ -3,10 +3,11 @@ from django.db.models import Q
 from django.urls import reverse
 
 from sentry import roles
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, customer_silo_model, sane_repr
 from sentry.utils.http import absolute_uri
 
 
+@customer_silo_model
 class OrganizationAccessRequest(Model):
     __include_in_export__ = True
 

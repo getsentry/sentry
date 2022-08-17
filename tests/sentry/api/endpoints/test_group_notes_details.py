@@ -5,8 +5,10 @@ from exam import fixture
 
 from sentry.models import Activity, ExternalIssue, Group, GroupLink, Integration
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class GroupNotesDetailsTest(APITestCase):
     def setUp(self):
         super().setUp()

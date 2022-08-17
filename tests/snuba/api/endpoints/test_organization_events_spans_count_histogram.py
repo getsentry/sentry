@@ -5,9 +5,11 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.servermode import customer_silo_test
 from sentry.utils.samples import load_data
 
 
+@customer_silo_test
 class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
     FEATURES = ["organizations:performance-extraneous-spans-poc"]
     URL = "sentry-api-0-organization-events-spans-count-histogram"

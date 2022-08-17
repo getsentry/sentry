@@ -40,6 +40,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
+    customer_silo_model,
     sane_repr,
 )
 from sentry.models.file import File, clear_cached_files
@@ -133,6 +134,7 @@ class ProjectDebugFileManager(BaseManager):  # type: ignore
         return rv
 
 
+@customer_silo_model
 class ProjectDebugFile(Model):  # type: ignore
     __include_in_export__ = False
 

@@ -4,8 +4,10 @@ from django.utils import timezone
 
 from sentry.models import UserIP
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import control_silo_test
 
 
+@control_silo_test
 class UserEmailsTest(APITestCase):
     endpoint = "sentry-api-0-user-ips"
 

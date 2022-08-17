@@ -1,7 +1,9 @@
 from sentry.models import ExternalActor
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class ExternalTeamDetailsTest(APITestCase):
     endpoint = "sentry-api-0-external-team-details"
     method = "put"

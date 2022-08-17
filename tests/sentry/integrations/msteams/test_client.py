@@ -6,8 +6,10 @@ import responses
 from sentry.integrations.msteams.client import MsTeamsClient
 from sentry.models import Integration
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class MsTeamsClientTest(TestCase):
     def setUp(self):
         self.expires_at = 1594768808

@@ -4,9 +4,11 @@ from django.urls import reverse
 
 from sentry.models import File, TeamAvatar
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import customer_silo_test
 from sentry.web.frontend.generic import FOREVER_CACHE
 
 
+@customer_silo_test
 class TeamAvatarTest(TestCase):
     def test_headers(self):
         team = self.create_team()

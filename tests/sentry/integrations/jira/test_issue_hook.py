@@ -10,12 +10,14 @@ from sentry.integrations.jira.views import UNABLE_TO_VERIFY_INSTALLATION
 from sentry.integrations.utils import AtlassianConnectValidationError
 from sentry.models import ExternalIssue, Group, GroupLink, Integration
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 from sentry.utils.http import absolute_uri
 
 REFRESH_REQUIRED = b"This page has expired, please refresh to view the Sentry issue"
 CLICK_TO_FINISH = b"Click to Finish Installation"
 
 
+@customer_silo_test
 class JiraIssueHookTest(APITestCase):
     def setUp(self):
         super().setUp()

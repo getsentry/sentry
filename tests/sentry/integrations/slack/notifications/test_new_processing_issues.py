@@ -6,10 +6,12 @@ from sentry.models import Activity
 from sentry.notifications.notifications.activity import NewProcessingIssuesActivityNotification
 from sentry.testutils.cases import SlackActivityNotificationTest
 from sentry.testutils.helpers.slack import get_attachment, send_notification
+from sentry.testutils.servermode import customer_silo_test
 from sentry.types.activity import ActivityType
 from sentry.web.frontend.debug.debug_new_processing_issues_email import get_issues_data
 
 
+@customer_silo_test
 class SlackNewProcessingIssuesNotificationTest(SlackActivityNotificationTest):
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)

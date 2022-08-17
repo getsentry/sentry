@@ -3,8 +3,10 @@ from datetime import datetime, timedelta
 from sentry.ingest.userreport import save_userreport
 from sentry.models import GroupStatus, UserReport
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-user-feedback"
     method = "get"

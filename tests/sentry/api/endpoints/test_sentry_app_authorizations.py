@@ -6,8 +6,10 @@ from django.utils import timezone
 from sentry.mediators import GrantTypes
 from sentry.models import ApiApplication, ApiToken
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import control_silo_test
 
 
+@control_silo_test
 class TestSentryAppAuthorizations(APITestCase):
     endpoint = "sentry-api-0-sentry-app-authorizations"
     method = "post"

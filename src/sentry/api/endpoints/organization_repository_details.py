@@ -4,6 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.empty_integer import EmptyIntegerField
@@ -25,6 +26,7 @@ class RepositorySerializer(serializers.Serializer):
     integrationId = EmptyIntegerField(required=False, allow_null=True)
 
 
+@customer_silo_endpoint
 class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationIntegrationsPermission,)
 

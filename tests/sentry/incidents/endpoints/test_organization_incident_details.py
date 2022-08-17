@@ -7,6 +7,7 @@ from exam import fixture
 from sentry.api.serializers import serialize
 from sentry.incidents.models import Incident, IncidentActivity, IncidentStatus
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
 class BaseIncidentDetailsTest:
@@ -41,6 +42,7 @@ class BaseIncidentDetailsTest:
         assert resp.status_code == 404
 
 
+@customer_silo_test
 class OrganizationIncidentDetailsTest(BaseIncidentDetailsTest, APITestCase):
     @mock.patch("django.utils.timezone.now")
     def test_simple(self, mock_now):
@@ -64,6 +66,7 @@ class OrganizationIncidentDetailsTest(BaseIncidentDetailsTest, APITestCase):
         assert [item["id"] for item in resp.data["seenBy"]] == [item["id"] for item in seen_by]
 
 
+@customer_silo_test
 class OrganizationIncidentUpdateStatusTest(BaseIncidentDetailsTest, APITestCase):
     method = "put"
 

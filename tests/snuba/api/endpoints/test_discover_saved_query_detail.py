@@ -3,6 +3,7 @@ from django.urls import NoReverseMatch, reverse
 
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
 class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
@@ -240,6 +241,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.status_code == 403, response.content
 
 
+@customer_silo_test
 class OrganizationDiscoverQueryVisitTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

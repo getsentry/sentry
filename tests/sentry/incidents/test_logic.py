@@ -72,6 +72,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.testutils import BaseIncidentsTest, SnubaTestCase, TestCase
 from sentry.testutils.cases import BaseMetricsTestCase
+from sentry.testutils.servermode import customer_silo_test
 from sentry.utils import json
 
 pytestmark = [pytest.mark.sentry_metrics, pytest.mark.broken_under_tags_values_as_strings]
@@ -992,6 +993,7 @@ class DisbaleAlertRuleTest(TestCase, BaseIncidentsTest):
                 assert subscription.status == QuerySubscription.Status.DISABLED.value
 
 
+@customer_silo_test
 class TestGetExcludedProjectsForAlertRule(TestCase):
     def test(self):
         excluded = [self.create_project(fire_project_created=True)]

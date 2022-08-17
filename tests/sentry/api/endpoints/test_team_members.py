@@ -1,7 +1,9 @@
 from sentry.models import InviteStatus
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class TeamMembersTest(APITestCase):
     endpoint = "sentry-api-0-team-members"
 

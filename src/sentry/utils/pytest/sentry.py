@@ -198,6 +198,9 @@ def pytest_configure(config):
     # This is so tests can assume this feature is off by default
     settings.SENTRY_FEATURES["organizations:performance-view"] = False
 
+    # Temporary -- for dev branch only. TODO: Revert when new CI jobs are added.
+    settings.SERVER_COMPONENT_MODE_SPLICE_TESTS = True
+
     # django mail uses socket.getfqdn which doesn't play nice if our
     # networking isn't stable
     patcher = mock.patch("socket.getfqdn", return_value="localhost")

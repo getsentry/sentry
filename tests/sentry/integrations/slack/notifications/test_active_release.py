@@ -9,9 +9,11 @@ from sentry.notifications.types import NotificationSettingOptionValues, Notifica
 from sentry.rules.processor import RuleProcessor
 from sentry.testutils.cases import SlackActivityNotificationTest
 from sentry.testutils.helpers.slack import get_attachment, send_notification
+from sentry.testutils.servermode import customer_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
+@customer_silo_test
 class SlackIssueAlertNotificationTest(SlackActivityNotificationTest):
     def setUp(self):
         super().setUp()

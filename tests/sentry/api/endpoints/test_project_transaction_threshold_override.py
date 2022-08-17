@@ -8,9 +8,11 @@ from sentry.models.transaction_threshold import (
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.servermode import customer_silo_test
 from sentry.utils.samples import load_data
 
 
+@customer_silo_test
 class ProjectTransactionThresholdOverrideTest(APITestCase):
     feature_name = "organizations:performance-view"
 

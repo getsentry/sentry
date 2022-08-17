@@ -11,9 +11,11 @@ from sentry.models import (
     OrganizationIntegration,
 )
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import customer_silo_test
 from sentry.utils.signing import unsign
 
 
+@customer_silo_test
 class MsTeamsIntegrationUnlinkIdentityTest(TestCase):
     def setUp(self):
         super(TestCase, self).setUp()

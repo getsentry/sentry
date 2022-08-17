@@ -1,9 +1,10 @@
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import BoundedBigIntegerField, Model, sane_repr
+from sentry.db.models import BoundedBigIntegerField, Model, customer_silo_model, sane_repr
 
 
+@customer_silo_model
 class GroupCommitResolution(Model):
     """
     When a Group is referenced via a commit, its association is stored here.

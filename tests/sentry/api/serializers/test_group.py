@@ -19,9 +19,11 @@ from sentry.models import (
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import customer_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
+@customer_silo_test
 class GroupSerializerTest(TestCase):
     def test_project(self):
         user = self.create_user()
@@ -355,6 +357,7 @@ class GroupSerializerTest(TestCase):
         }
 
 
+@customer_silo_test
 class StreamGroupSerializerTestCase(TestCase):
     def test_environment(self):
         group = self.group

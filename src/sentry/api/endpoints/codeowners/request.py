@@ -6,6 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import roles
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.project_request_change import ProjectRequestChangeEndpoint
 from sentry.models import OrganizationMember, Project, User
 from sentry.utils.email import MessageBuilder
@@ -34,6 +35,7 @@ def get_codeowners_request_builder_args(
     }
 
 
+@customer_silo_endpoint
 class ProjectCodeOwnersRequestEndpoint(ProjectRequestChangeEndpoint):  # type: ignore
     def post(self, request: Request, project: Project) -> Response:
         """

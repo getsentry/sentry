@@ -2,6 +2,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.notification_setting import NotificationSettingsSerializer
@@ -9,6 +10,7 @@ from sentry.api.validators.notifications import validate, validate_type_option
 from sentry.models import NotificationSetting, Team
 
 
+@customer_silo_endpoint
 class TeamNotificationSettingsDetailsEndpoint(TeamEndpoint):
     """
     This Notification Settings endpoint is the generic way to interact with the

@@ -6,6 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.endpoints.organization_dashboards import OrganizationDashboardsPermission
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -38,6 +39,7 @@ class OrganizationDashboardBase(OrganizationEndpoint):
         return Dashboard.objects.get(id=dashboard_id, organization_id=organization.id)
 
 
+@customer_silo_endpoint
 class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
     def get(self, request: Request, organization, dashboard) -> Response:
         """
@@ -135,6 +137,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         return self.respond(serialize(serializer.instance, request.user), status=200)
 
 
+@customer_silo_endpoint
 class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
     def post(self, request: Request, organization, dashboard) -> Response:
         """

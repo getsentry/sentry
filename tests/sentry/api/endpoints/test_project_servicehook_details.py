@@ -1,7 +1,9 @@
 from sentry.models import ServiceHook
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class ProjectServiceHookDetailsTest(APITestCase):
     def test_simple(self):
         project = self.create_project()
@@ -15,6 +17,7 @@ class ProjectServiceHookDetailsTest(APITestCase):
         assert response.data["id"] == hook.guid
 
 
+@customer_silo_test
 class UpdateProjectServiceHookTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -36,6 +39,7 @@ class UpdateProjectServiceHookTest(APITestCase):
         assert hook.events == ["event.alert", "event.created"]
 
 
+@customer_silo_test
 class DeleteProjectServiceHookTest(APITestCase):
     def setUp(self):
         super().setUp()

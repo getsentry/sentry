@@ -490,6 +490,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         qs_cls = manager_instance._queryset_class
         assert issubclass(qs_cls, BaseQuerySet)
         queryset_overrides = {
+            "__module__": qs_cls.__module__,
             "bulk_create": limit.create_override(qs_cls.bulk_create),
             "bulk_update": limit.create_override(qs_cls.bulk_update),
             "create": limit.create_override(qs_cls.create),

@@ -2,12 +2,14 @@ from django.http import Http404
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.api.serializers import serialize
 from sentry.incidents.models import AlertRule
 from sentry.integrations.slack.utils import RedisRuleStatus
 
 
+@customer_silo_endpoint
 class ProjectAlertRuleTaskDetailsEndpoint(ProjectEndpoint):
     permission_classes = [ProjectSettingPermission]
 

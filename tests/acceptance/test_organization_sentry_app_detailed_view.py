@@ -3,8 +3,10 @@ from fixtures.page_objects.organization_integration_settings import (
 )
 from sentry.models import SentryAppInstallation
 from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class OrganizationSentryAppDetailedView(AcceptanceTestCase):
     def setUp(self):
         super().setUp()

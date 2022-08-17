@@ -2,6 +2,7 @@ from django.http import Http404
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import ProjectWithTeamSerializer
@@ -19,6 +20,7 @@ class ProjectTeamsPermission(ProjectPermission):
     }
 
 
+@customer_silo_endpoint
 class ProjectTeamDetailsEndpoint(ProjectEndpoint):
     permission_classes = (ProjectTeamsPermission,)
 

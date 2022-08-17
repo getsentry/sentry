@@ -5,7 +5,7 @@ from drf_spectacular.utils import OpenApiExample, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import EnvironmentMixin
+from sentry.api.base import EnvironmentMixin, customer_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -23,6 +23,7 @@ ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '
 
 
 @extend_schema(tags=["Organizations"])
+@customer_silo_endpoint
 class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
     public = {"GET"}
 
@@ -182,6 +183,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
             )
 
 
+@customer_silo_endpoint
 class OrganizationProjectsCountEndpoint(OrganizationEndpoint, EnvironmentMixin):
     def get(self, request: Request, organization) -> Response:
         queryset = Project.objects.filter(organization=organization)

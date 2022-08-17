@@ -8,6 +8,7 @@ from exam import fixture
 from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Login, OAuth2Provider
 from sentry.models import AuthProvider
 from sentry.testutils import AuthProviderTestCase
+from sentry.testutils.servermode import control_silo_test
 from sentry.utils import json
 
 
@@ -42,6 +43,7 @@ class DummyOAuth2Provider(OAuth2Provider):
 MockResponse = namedtuple("MockResponse", ["headers", "content"])
 
 
+@control_silo_test
 class AuthOAuth2Test(AuthProviderTestCase):
     provider = DummyOAuth2Provider
     provider_name = "oauth2_dummy"

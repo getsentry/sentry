@@ -4,12 +4,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ProjectKeySerializer
 from sentry.models import ProjectKey, ProjectKeyStatus
 
 
+@customer_silo_endpoint
 class ProjectKeysEndpoint(ProjectEndpoint):
     def get(self, request: Request, project) -> Response:
         """

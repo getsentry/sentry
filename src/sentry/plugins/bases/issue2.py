@@ -5,6 +5,7 @@ from django.utils.html import format_html
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.serializers.models.plugin import PluginSerializer
 
 # api compat
@@ -22,6 +23,7 @@ from social_auth.models import UserSocialAuth
 
 
 # TODO(dcramer): remove this in favor of GroupEndpoint
+@customer_silo_endpoint
 class IssueGroupActionEndpoint(PluginGroupEndpoint):
     view_method_name = None
     plugin = None

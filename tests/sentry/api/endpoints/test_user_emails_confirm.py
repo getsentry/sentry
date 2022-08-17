@@ -2,8 +2,10 @@ from unittest import mock
 
 from sentry.models import UserEmail
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import control_silo_test
 
 
+@control_silo_test
 class UserEmailsConfirmTest(APITestCase):
     endpoint = "sentry-api-0-user-emails-confirm"
     method = "post"

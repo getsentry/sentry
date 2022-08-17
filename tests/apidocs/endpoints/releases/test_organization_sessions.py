@@ -3,8 +3,10 @@ from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
 from sentry.testutils import SnubaTestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class OrganizationSessionsDocsTest(APIDocsTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

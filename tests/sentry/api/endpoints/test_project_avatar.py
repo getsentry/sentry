@@ -4,8 +4,10 @@ from django.urls import reverse
 
 from sentry.models import ProjectAvatar
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class ProjectAvatarTest(APITestCase):
     def test_get(self):
         project = self.project  # force creation

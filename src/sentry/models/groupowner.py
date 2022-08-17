@@ -5,7 +5,7 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model
+from sentry.db.models import FlexibleForeignKey, Model, customer_silo_model
 
 
 class GroupOwnerType(Enum):
@@ -19,6 +19,7 @@ GROUP_OWNER_TYPE = {
 }
 
 
+@customer_silo_model
 class GroupOwner(Model):
     """
     Tracks the "owners" or "suggested assignees" of a group.

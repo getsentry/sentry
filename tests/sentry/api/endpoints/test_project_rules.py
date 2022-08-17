@@ -11,6 +11,7 @@ from rest_framework import status
 from sentry.models import Environment, Rule, RuleActivity, RuleActivityType, RuleStatus
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import install_slack
+from sentry.testutils.servermode import customer_silo_test
 from sentry.utils import json
 
 
@@ -35,6 +36,7 @@ class ProjectRuleBaseTestCase(APITestCase):
         self.login_as(user=self.user)
 
 
+@customer_silo_test
 class ProjectRuleListTest(ProjectRuleBaseTestCase):
     def test_simple(self):
         response = self.get_success_response(
@@ -45,6 +47,7 @@ class ProjectRuleListTest(ProjectRuleBaseTestCase):
         assert len(response.data) == Rule.objects.filter(project=self.project).count()
 
 
+@customer_silo_test
 class CreateProjectRuleTest(ProjectRuleBaseTestCase):
     method = "post"
 

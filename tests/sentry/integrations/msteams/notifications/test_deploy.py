@@ -5,6 +5,7 @@ from django.utils import timezone
 from sentry.models import Activity, Deploy
 from sentry.notifications.notifications.activity import ReleaseActivityNotification
 from sentry.testutils.cases import MSTeamsActivityNotificationTest
+from sentry.testutils.servermode import customer_silo_test
 from sentry.types.activity import ActivityType
 
 
@@ -13,6 +14,7 @@ from sentry.types.activity import ActivityType
     Mock(return_value="some_conversation_id"),
 )
 @patch("sentry.integrations.msteams.MsTeamsAbstractClient.send_card")
+@customer_silo_test
 class MSTeamsDeployNotificationTest(MSTeamsActivityNotificationTest):
     def test_deploy(self, mock_send_card: MagicMock):
         """

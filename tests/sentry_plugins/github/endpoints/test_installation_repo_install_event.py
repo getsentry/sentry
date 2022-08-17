@@ -2,9 +2,11 @@ from uuid import uuid4
 
 from sentry.models import Integration, Repository
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 from sentry_plugins.github.testutils import INSTALLATION_REPO_EVENT
 
 
+@customer_silo_test
 class InstallationRepoInstallEventWebhookTest(APITestCase):
     def test_simple(self):
         project = self.project  # force creation

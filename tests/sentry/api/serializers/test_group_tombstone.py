@@ -1,8 +1,10 @@
 from sentry.api.serializers import serialize
 from sentry.models import GroupHash, GroupTombstone
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class GroupTombstoneSerializerTest(TestCase):
     def test_simple(self):
         self.user = self.create_user("foo@example.com")

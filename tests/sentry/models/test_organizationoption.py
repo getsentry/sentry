@@ -1,7 +1,9 @@
 from sentry.models import OrganizationOption
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class OrganizationOptionManagerTest(TestCase):
     def test_set_value(self):
         OrganizationOption.objects.set_value(self.organization, "foo", "bar")

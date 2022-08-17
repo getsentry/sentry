@@ -26,9 +26,11 @@ from sentry.models import (
 )
 from sentry.plugins.base import plugins
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.servermode import customer_silo_test
 from sentry.types.activity import ActivityType
 
 
+@customer_silo_test
 class GroupDetailsTest(APITestCase, SnubaTestCase):
     def test_with_numerical_id(self):
         self.login_as(user=self.user)
@@ -228,6 +230,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             assert response.status_code == 429
 
 
+@customer_silo_test
 class GroupUpdateTest(APITestCase):
     def test_resolve(self):
         self.login_as(user=self.user)
@@ -526,6 +529,7 @@ class GroupUpdateTest(APITestCase):
             assert response.status_code == 429
 
 
+@customer_silo_test
 class GroupDeleteTest(APITestCase):
     def test_delete(self):
         self.login_as(user=self.user)

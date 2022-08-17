@@ -4,6 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.snuba import discover
 
@@ -30,6 +31,7 @@ class SpansCountHistogramSerializer(serializers.Serializer):
         return spanOp
 
 
+@customer_silo_endpoint
 class OrganizationEventsSpansCountHistogramEndpoint(OrganizationEventsV2EndpointBase):
     private = True
 

@@ -4,8 +4,10 @@ from django.utils import timezone
 from sentry import tsdb
 from sentry.models import EventUser
 from sentry.testutils import APITestCase
+from sentry.testutils.servermode import customer_silo_test
 
 
+@customer_silo_test
 class ProjectUserDetailsTest(APITestCase):
     def setUp(self):
         super().setUp()

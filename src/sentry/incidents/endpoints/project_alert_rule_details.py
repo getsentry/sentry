@@ -2,6 +2,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import AlertRuleSerializer
 from sentry.incidents.endpoints.bases import ProjectAlertRuleEndpoint
@@ -16,6 +17,7 @@ from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.tasks.integrations.slack import find_channel_id_for_alert_rule
 
 
+@customer_silo_endpoint
 class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
     def get(self, request: Request, project, alert_rule) -> Response:
         """

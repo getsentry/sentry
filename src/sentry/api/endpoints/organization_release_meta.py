@@ -3,12 +3,14 @@ from collections import defaultdict
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers.models.release import expose_version_info
 from sentry.models import CommitFileChange, ProjectPlatform, Release, ReleaseCommit, ReleaseProject
 
 
+@customer_silo_endpoint
 class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
     def get(self, request: Request, organization, version) -> Response:
         """

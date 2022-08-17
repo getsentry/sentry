@@ -7,6 +7,7 @@ from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.utils.geo import geo_by_addr
 
 
+# @control_silo_model
 class UserIP(Model):
     __include_in_export__ = True
 

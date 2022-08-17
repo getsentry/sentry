@@ -8,6 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import (
@@ -27,6 +28,7 @@ from sentry.utils.cursors import Cursor, StringCursor
 from .utils import parse_team_params
 
 
+@customer_silo_endpoint
 class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization) -> Response:
         """
@@ -148,6 +150,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         return response
 
 
+@customer_silo_endpoint
 class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationAlertRulePermission,)
 

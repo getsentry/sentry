@@ -1,7 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import EnvironmentMixin
+from sentry.api.base import EnvironmentMixin, customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.helpers.releases import get_group_ids_resolved_in_release
 from sentry.api.serializers import serialize
@@ -9,6 +9,7 @@ from sentry.api.serializers.models.group import GroupSerializer
 from sentry.models import Group
 
 
+@customer_silo_endpoint
 class ProjectIssuesResolvedInReleaseEndpoint(ProjectEndpoint, EnvironmentMixin):
     permission_classes = (ProjectPermission,)
 

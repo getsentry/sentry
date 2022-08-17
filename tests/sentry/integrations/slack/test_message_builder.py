@@ -18,6 +18,7 @@ from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricA
 from sentry.models import Group, Team, User
 from sentry.notifications.notifications.active_release import ActiveReleaseIssueNotification
 from sentry.testutils import TestCase
+from sentry.testutils.servermode import customer_silo_test
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
 
@@ -83,6 +84,7 @@ def build_test_message(
     }
 
 
+@customer_silo_test
 class BuildGroupAttachmentTest(TestCase):
     def test_build_group_attachment(self):
         group = self.create_group(project=self.project)
