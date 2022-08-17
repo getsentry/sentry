@@ -1,4 +1,4 @@
-import {Fragment, memo, useEffect, useState} from 'react';
+import {Fragment, memo, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
@@ -108,7 +108,7 @@ const EventEntries = memo(
     const hasEventAttachmentsFeature = orgFeatures.includes('event-attachments');
     const replayId = event?.tags?.find(({key}) => key === 'replayId')?.value;
 
-    const recordIssueError = () => {
+    const recordIssueError = useCallback(() => {
       if (!event || !event.errors || !(event.errors.length > 0)) {
         return;
       }
@@ -127,56 +127,60 @@ const EventEntries = memo(
         error_message: uniq(errorMessages),
         ...(platform && {platform}),
       });
-    };
+    }, [event, organization, project.platform]);
 
-    const fetchProguardMappingFiles = async (
-      query: string
-    ): Promise<Array<DebugFile>> => {
-      try {
-        const proguardMappingFiles = await api.requestPromise(
-          `/projects/${orgSlug}/${projectSlug}/files/dsyms/`,
-          {
-            method: 'GET',
-            query: {
-              query,
-              file_formats: 'proguard',
-            },
-          }
-        );
-        return proguardMappingFiles;
-      } catch (error) {
-        Sentry.captureException(error);
-        // do nothing, the UI will not display extra error details
-        return [];
-      }
-    };
+    const fetchProguardMappingFiles = useCallback(
+      async (query: string): Promise<Array<DebugFile>> => {
+        try {
+          const proguardMappingFiles = await api.requestPromise(
+            `/projects/${orgSlug}/${projectSlug}/files/dsyms/`,
+            {
+              method: 'GET',
+              query: {
+                query,
+                file_formats: 'proguard',
+              },
+            }
+          );
+          return proguardMappingFiles;
+        } catch (error) {
+          Sentry.captureException(error);
+          // do nothing, the UI will not display extra error details
+          return [];
+        }
+      },
+      [api, orgSlug, projectSlug]
+    );
 
-    const hasThreadOrExceptionMinifiedFrameData = (
-      definedEvent: Event,
-      bestThread?: Thread
-    ) => {
-      if (!bestThread) {
-        const exceptionValues: Array<ExceptionValue> =
-          definedEvent.entries?.find(e => e.type === EntryType.EXCEPTION)?.data?.values ??
-          [];
+    const hasThreadOrExceptionMinifiedFrameData = useCallback(
+      (definedEvent: Event, bestThread?: Thread) => {
+        if (!bestThread) {
+          const exceptionValues: Array<ExceptionValue> =
+            definedEvent.entries?.find(e => e.type === EntryType.EXCEPTION)?.data
+              ?.values ?? [];
 
-        return !!exceptionValues.find(exceptionValue =>
-          exceptionValue.stacktrace?.frames?.find(frame => isDataMinified(frame.module))
-        );
-      }
+          return !!exceptionValues.find(exceptionValue =>
+            exceptionValue.stacktrace?.frames?.find(frame => isDataMinified(frame.module))
+          );
+        }
 
-      const threadExceptionValues = getThreadException(definedEvent, bestThread)?.values;
+        const threadExceptionValues = getThreadException(
+          definedEvent,
+          bestThread
+        )?.values;
 
-      return !!(threadExceptionValues
-        ? threadExceptionValues.find(threadExceptionValue =>
-            threadExceptionValue.stacktrace?.frames?.find(frame =>
-              isDataMinified(frame.module)
+        return !!(threadExceptionValues
+          ? threadExceptionValues.find(threadExceptionValue =>
+              threadExceptionValue.stacktrace?.frames?.find(frame =>
+                isDataMinified(frame.module)
+              )
             )
-          )
-        : bestThread?.stacktrace?.frames?.find(frame => isDataMinified(frame.module)));
-    };
+          : bestThread?.stacktrace?.frames?.find(frame => isDataMinified(frame.module)));
+      },
+      []
+    );
 
-    const checkProGuardError = async () => {
+    const checkProGuardError = useCallback(async () => {
       if (!event || event.platform !== 'java') {
         setIsLoading(false);
         return;
@@ -266,9 +270,14 @@ const EventEntries = memo(
 
       setProGuardErrors(newProGuardErrors);
       setIsLoading(false);
-    };
+    }, [
+      event,
+      fetchProguardMappingFiles,
+      hasThreadOrExceptionMinifiedFrameData,
+      isShare,
+    ]);
 
-    const fetchAttachments = async () => {
+    const fetchAttachments = useCallback(async () => {
       if (!event || isShare || !hasEventAttachmentsFeature) {
         return;
       }
@@ -282,33 +291,38 @@ const EventEntries = memo(
         Sentry.captureException(error);
         addErrorMessage('An error occurred while fetching attachments');
       }
-    };
+    }, [api, event, hasEventAttachmentsFeature, isShare, orgSlug, projectSlug]);
 
-    const handleDeleteAttachment = async (attachmentId: IssueAttachment['id']) => {
-      if (!event) {
-        return;
-      }
+    const handleDeleteAttachment = useCallback(
+      async (attachmentId: IssueAttachment['id']) => {
+        if (!event) {
+          return;
+        }
 
-      try {
-        await api.requestPromise(
-          `/projects/${orgSlug}/${projectSlug}/events/${event.id}/attachments/${attachmentId}/`,
-          {
-            method: 'DELETE',
-          }
-        );
+        try {
+          await api.requestPromise(
+            `/projects/${orgSlug}/${projectSlug}/events/${event.id}/attachments/${attachmentId}/`,
+            {
+              method: 'DELETE',
+            }
+          );
 
-        setAttachments(attachments.filter(attachment => attachment.id !== attachmentId));
-      } catch (error) {
-        Sentry.captureException(error);
-        addErrorMessage('An error occurred while deleting the attachment');
-      }
-    };
+          setAttachments(
+            attachments.filter(attachment => attachment.id !== attachmentId)
+          );
+        } catch (error) {
+          Sentry.captureException(error);
+          addErrorMessage('An error occurred while deleting the attachment');
+        }
+      },
+      [api, attachments, event, orgSlug, projectSlug]
+    );
 
     useEffect(() => {
       checkProGuardError();
       recordIssueError();
       fetchAttachments();
-    }, []);
+    }, [checkProGuardError, fetchAttachments, recordIssueError]);
 
     if (!event) {
       return (
