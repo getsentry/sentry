@@ -38,6 +38,7 @@ class OrganizationAlertRuleEndpoint(OrganizationEndpoint):
         args, kwargs = super().convert_args(request, *args, **kwargs)
         organization = kwargs["organization"]
 
+        # Allow orgs that have downgraded plans to delete metric alerts
         if request.method != "DELETE" and not features.has(
             "organizations:incidents", organization, actor=request.user
         ):
