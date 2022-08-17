@@ -363,12 +363,11 @@ class RawCloudSpannerIndexer(StringIndexer):
         if db_write_keys.size == 0:
             return db_read_key_results
 
-        ratelimiter_namespace = get_ingest_config(
-            use_case_id).writes_limiter_namespace
+        ratelimiter_namespace = get_ingest_config(use_case_id).writes_limiter_namespace
 
-        with writes_limiter.check_write_limits(use_case_id,
-                                               ratelimiter_namespace,
-                                               db_write_keys) as writes_limiter_state:
+        with writes_limiter.check_write_limits(
+            use_case_id, ratelimiter_namespace, db_write_keys
+        ) as writes_limiter_state:
             # After the DB has successfully committed writes, we exit this
             # context manager and consume quotas. If the DB crashes we
             # shouldn't consume quota.
