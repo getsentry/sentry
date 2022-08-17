@@ -103,6 +103,7 @@ class AuthIndexEndpoint(Endpoint):
         """
 
         # TODO Look at AuthVerifyValidator
+
         validator.is_valid()
 
         if not DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV:
