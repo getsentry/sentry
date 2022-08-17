@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import urlencode, urlparse
 
 import urllib3
@@ -94,3 +94,34 @@ def proxy_replays_service(
             response[h] = replays_response.headers[h]
 
     return response
+
+
+VALID_FIELD_SET = {
+    "id",
+    "title",
+    "projectId",
+    "errorIds",
+    "traceIds",
+    "urls",
+    "startedAt",
+    "finishedAt",
+    "duration",
+    "countErrors",
+    "countSegments",
+    "countUrls",
+    "longestTransaction",
+    "platform",
+    "environment",
+    "release",
+    "dist",
+    "user",
+    "os",
+    "browser",
+    "device",
+    "sdk",
+    "tags",
+}
+
+
+def prune_invalid_fields(fields: List[str]) -> List[str]:
+    return [field for field in fields if field in VALID_FIELD_SET]

@@ -6,6 +6,7 @@ from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replays_collection
+from sentry.replays.utils import prune_invalid_fields
 
 
 class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
@@ -36,7 +37,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
 
         response = process_raw_response(
             snuba_response,
-            fields=request.query_params.getlist("field"),
+            fields=prune_invalid_fields(request.query_params.getlist("field")),
         )
 
         return Response({"data": response}, status=200)
