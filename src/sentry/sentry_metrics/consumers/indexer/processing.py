@@ -15,6 +15,7 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 STORAGE_TO_INDEXER = {
+    # TODO(add cloudspanner options)
     IndexerStorage.CLOUDSPANNER: lambda: CloudSpannerIndexer(**settings.CLOUDSPANNER_OPTIONS),
     IndexerStorage.POSTGRES: PostgresIndexer(),
     IndexerStorage.MOCK: MockIndexer(),
