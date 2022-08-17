@@ -19,15 +19,31 @@ export function addMetricsDataMock(settings?: {
 
   MockApiClient.addMockResponse({
     method: 'GET',
-    url: `/organizations/org-slug/events-metrics-compatibility/`,
+    url: `/organizations/org-slug/metrics-compatibility/`,
     body: {
       compatible_projects: [],
       dynamic_sampling_projects,
+    },
+  });
+
+  MockApiClient.addMockResponse({
+    method: 'GET',
+    url: `/organizations/org-slug/metrics-compatibility-sums/`,
+    body: {
       sum: {
         metrics: metricsCount,
         metrics_unparam: unparamCount,
         metrics_null: nullCount,
       },
+    },
+  });
+
+  MockApiClient.addMockResponse({
+    method: 'GET',
+    url: `/organizations/org-slug/events/`,
+    body: {
+      data: [{}],
+      meta: {},
     },
   });
 }
@@ -68,7 +84,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
   beforeEach(function () {
     // @ts-ignore no-console
     // eslint-disable-next-line no-console
-    console.error = jest.fn();
+    jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',

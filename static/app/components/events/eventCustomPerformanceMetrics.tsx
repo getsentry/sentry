@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
+import FeatureBadge from 'sentry/components/featureBadge';
 import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -21,6 +22,10 @@ type Props = {
   organization: Organization;
 };
 
+function isNotMarkMeasurement(field: string) {
+  return !field.startsWith('mark.');
+}
+
 export default function EventCustomPerformanceMetrics({
   event,
   location,
@@ -28,6 +33,7 @@ export default function EventCustomPerformanceMetrics({
 }: Props) {
   const measurementNames = Object.keys(event.measurements ?? {})
     .filter(name => isCustomMeasurement(`measurements.${name}`))
+    .filter(isNotMarkMeasurement)
     .sort();
 
   if (measurementNames.length === 0) {
@@ -37,6 +43,7 @@ export default function EventCustomPerformanceMetrics({
   return (
     <Container>
       <SectionHeading>{t('Custom Performance Metrics')}</SectionHeading>
+      <FeatureBadge type="beta" />
       <Measurements>
         {measurementNames.map(name => {
           return (

@@ -59,10 +59,31 @@ class AuthLoginTest(TestCase):
         self.client.get(self.path)
 
         resp = self.client.post(
-            self.path, {"username": self.user.username, "password": "admin", "op": "login"}
+            self.path,
+            {"username": self.user.username, "password": "admin", "op": "login"},
+            follow=True,
         )
-        assert resp.url == "/auth/login/"
-        assert resp.status_code == 302
+        assert resp.status_code == 200
+        assert resp.redirect_chain == [
+            (reverse("sentry-login"), 302),
+            ("/organizations/new/", 302),
+        ]
+
+    def test_login_valid_credentials_with_org(self):
+        org = self.create_organization(owner=self.user)
+        # load it once for test cookie
+        self.client.get(self.path)
+
+        resp = self.client.post(
+            self.path,
+            {"username": self.user.username, "password": "admin", "op": "login"},
+            follow=True,
+        )
+        assert resp.status_code == 200
+        assert resp.redirect_chain == [
+            (reverse("sentry-login"), 302),
+            (f"/organizations/{org.slug}/issues/", 302),
+        ]
 
     def test_login_valid_credentials_2fa_redirect(self):
         user = self.create_user("bar@example.com")

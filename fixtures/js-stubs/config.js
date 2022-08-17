@@ -43,8 +43,11 @@ export function Config(params = {}) {
     apmSampling: 1,
     dsn_requests: '',
     demoMode: false,
-    sentryUrl: 'https://sentry.io',
-    organizationUrl: 'https://foobar.us.sentry.io',
+    links: {
+      sentryUrl: 'https://sentry.io',
+      organizationUrl: 'https://foobar.sentry.io',
+      regionUrl: 'https://us.sentry.io',
+    },
     ...params,
   };
 }

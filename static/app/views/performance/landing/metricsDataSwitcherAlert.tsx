@@ -10,12 +10,15 @@ import Link from 'sentry/components/links/link';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {t, tct} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
-import {NewQuery, Organization, Project} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
+import {MetricDataSwitcherOutcome} from 'sentry/utils/performance/contexts/metricsCardinality';
 
-import {areMultipleProjectsSelected, getSelectedProjectPlatformsArray} from '../utils';
-
-import {MetricDataSwitcherOutcome} from './metricsDataSwitcher';
+import {
+  areMultipleProjectsSelected,
+  createUnnamedTransactionsDiscoverTarget,
+  getSelectedProjectPlatformsArray,
+} from '../utils';
 
 interface MetricEnhancedDataAlertProps extends MetricDataSwitcherOutcome {
   eventView: EventView;
@@ -48,30 +51,6 @@ const UNSUPPORTED_TRANSACTION_NAME_DOCS = [
   'javascript.nextjs',
   'native.minidumps',
 ];
-
-function createUnnamedTransactionsDiscoverTarget(props: MetricEnhancedDataAlertProps) {
-  const fields = [
-    'transaction',
-    'project',
-    'transaction.source',
-    'tpm()',
-    'p50()',
-    'p95()',
-  ];
-
-  const query: NewQuery = {
-    id: undefined,
-    name: t('Performance - Unnamed Transactions '),
-    query:
-      'event.type:transaction (transaction.source:"url" OR transaction.source:"unknown")',
-    projects: [],
-    fields,
-    version: 2,
-  };
-
-  const discoverEventView = EventView.fromNewQueryWithLocation(query, props.location);
-  return discoverEventView.getResultsViewUrlTarget(props.organization.slug);
-}
 
 export function MetricsDataSwitcherAlert(
   props: MetricEnhancedDataAlertProps
@@ -116,7 +95,7 @@ export function MetricsDataSwitcherAlert(
   if (props.shouldWarnIncompatibleSDK) {
     const updateSDK = (
       <Link to="" onClick={handleReviewUpdatesClick}>
-        {t('update your SDK version.')}
+        {t('update your SDK version')}
       </Link>
     );
     if (areMultipleProjectsSelected(props.eventView)) {
@@ -148,7 +127,7 @@ export function MetricsDataSwitcherAlert(
         data-test-id="landing-mep-alert-single-project-incompatible"
       >
         {tct(
-          `Your project has an outdated SDK which is incompatible with server side sampling. To enable this feature [updateSDK]`,
+          `Your project has an outdated SDK which is incompatible with server side sampling. To enable this feature [updateSDK].`,
           {
             updateSDK,
           }
@@ -163,7 +142,7 @@ export function MetricsDataSwitcherAlert(
       return (
         <Alert type="warning" showIcon data-test-id="landing-mep-alert-unnamed-discover">
           {tct(
-            `You have some unnamed transactions which are incompatible with server side sampling. You can [discover]`,
+            `You have some unparameterized transactions which are incompatible with server side sampling. You can [discover]`,
             {
               discover,
             }
@@ -179,7 +158,7 @@ export function MetricsDataSwitcherAlert(
         data-test-id="landing-mep-alert-unnamed-discover-or-set"
       >
         {tct(
-          `You have some unnamed transactions which are incompatible with server side sampling. You can either [setNames] or [discover]`,
+          `You have some unparameterized transactions which are incompatible with server side sampling. You can either [setNames] or [discover]`,
           {
             setNames: (
               <ExternalLink href={docsLink}>{t('set names manually')}</ExternalLink>

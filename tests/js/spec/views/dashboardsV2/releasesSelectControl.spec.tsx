@@ -2,21 +2,31 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {ReleasesContext} from 'sentry/utils/releases/releasesProvider';
 import ReleasesSelectControl from 'sentry/views/dashboardsV2/releasesSelectControl';
+import {DashboardFilters} from 'sentry/views/dashboardsV2/types';
 
-function renderReleasesSelect(onSearch?: (searchTerm: string) => void) {
+function renderReleasesSelect({
+  onSearch,
+  handleChangeFilter,
+}: {
+  handleChangeFilter?: (activeFilters: DashboardFilters) => void;
+  onSearch?: (searchTerm: string) => void;
+}) {
   render(
     <ReleasesContext.Provider
       value={{
         releases: [
           TestStubs.Release({
+            id: '1',
             shortVersion: 'sentry-android-shop@1.2.0',
             version: 'sentry-android-shop@1.2.0',
           }),
           TestStubs.Release({
+            id: '2',
             shortVersion: 'sentry-android-shop@1.3.0',
             version: 'sentry-android-shop@1.3.0',
           }),
           TestStubs.Release({
+            id: '3',
             shortVersion: 'sentry-android-shop@1.4.0',
             version: 'sentry-android-shop@1.4.0',
           }),
@@ -25,18 +35,22 @@ function renderReleasesSelect(onSearch?: (searchTerm: string) => void) {
         onSearch: onSearch ?? jest.fn(),
       }}
     >
-      <ReleasesSelectControl selectedReleases={[]} />
+      <ReleasesSelectControl
+        selectedReleases={[]}
+        handleChangeFilter={handleChangeFilter}
+      />
     </ReleasesContext.Provider>
   );
 }
 
 describe('Dashboards > ReleasesSelectControl', function () {
   it('updates menu title with selection', function () {
-    renderReleasesSelect();
+    renderReleasesSelect({});
 
     expect(screen.getByText('All Releases')).toBeInTheDocument();
 
     userEvent.click(screen.getByText('All Releases'));
+    expect(screen.getByText('Latest Release(s)')).toBeInTheDocument();
     userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
 
     userEvent.click(document.body);
@@ -46,7 +60,7 @@ describe('Dashboards > ReleasesSelectControl', function () {
   });
 
   it('updates menu title with multiple selections', function () {
-    renderReleasesSelect();
+    renderReleasesSelect({});
 
     expect(screen.getByText('All Releases')).toBeInTheDocument();
 
@@ -62,7 +76,7 @@ describe('Dashboards > ReleasesSelectControl', function () {
 
   it('calls onSearch when filtering by releases', async function () {
     const mockOnSearch = jest.fn();
-    renderReleasesSelect(mockOnSearch);
+    renderReleasesSelect({onSearch: mockOnSearch});
 
     expect(screen.getByText('All Releases')).toBeInTheDocument();
 
@@ -74,7 +88,7 @@ describe('Dashboards > ReleasesSelectControl', function () {
 
   it('resets search on close', async function () {
     const mockOnSearch = jest.fn();
-    renderReleasesSelect(mockOnSearch);
+    renderReleasesSelect({onSearch: mockOnSearch});
 
     expect(screen.getByText('All Releases')).toBeInTheDocument();
 
@@ -85,5 +99,23 @@ describe('Dashboards > ReleasesSelectControl', function () {
 
     userEvent.click(document.body);
     await waitFor(() => expect(mockOnSearch).toBeCalledWith(''));
+  });
+
+  it('triggers handleChangeFilter with the release versions and IDs', function () {
+    const mockHandleChangeFilter = jest.fn();
+    renderReleasesSelect({handleChangeFilter: mockHandleChangeFilter});
+    expect(screen.getByText('All Releases')).toBeInTheDocument();
+
+    userEvent.click(screen.getByText('All Releases'));
+    userEvent.click(screen.getByText('Latest Release(s)'));
+    userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
+    userEvent.click(screen.getByText('sentry-android-shop@1.4.0'));
+
+    userEvent.click(document.body);
+
+    expect(mockHandleChangeFilter).toHaveBeenCalledWith({
+      release: ['latest', 'sentry-android-shop@1.2.0', 'sentry-android-shop@1.4.0'],
+      releaseId: ['1', '3', 'latest'],
+    });
   });
 });

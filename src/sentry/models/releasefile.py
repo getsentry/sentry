@@ -63,7 +63,7 @@ class ReleaseFile(Model):
 
     organization_id = BoundedBigIntegerField()
     # DEPRECATED
-    project_id = BoundedPositiveIntegerField(null=True)
+    project_id = BoundedBigIntegerField(null=True)
     release_id = BoundedBigIntegerField()
     file = FlexibleForeignKey("sentry.File")
     ident = models.CharField(max_length=40)

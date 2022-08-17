@@ -15,6 +15,27 @@ from sentry.utils.dates import parse_stats_period
 SDK_NAME_FILTER_THRESHOLD = 0.1
 SDK_VERSION_FILTER_THRESHOLD = 0.05
 
+# Some SDKs do not support sampling yet,
+# we show prompts that they should update to the latest version.
+# Allowlist of supported SDKs and only prompt to update those.
+ALLOWED_SDK_NAMES = frozenset(
+    (
+        "sentry.javascript.browser",  # JavaScript Browser
+        "sentry.javascript.react",  # React
+        "sentry.javascript.angular",  # Angular
+        "sentry.javascript.ember",  # Ember
+        "sentry.javascript.vue",  # Vue.js
+        "sentry.javascript.nextjs",  # Next.js
+        "sentry.javascript.remix",  # RemixJS
+        "sentry.javascript.node",  # Node, Express, koa
+        "sentry.javascript.serverless",  # AWS Lambda Node
+        "sentry.python",  # python, django, flask, FastAPI, Starlette, Bottle, Celery, pyramid, rq
+        "sentry.python.serverless",  # AWS Lambda
+        "sentry.cocoa",  # iOS
+        "sentry.java.android",  # Android
+    )
+)
+
 
 class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
     private = True
@@ -166,6 +187,7 @@ class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
                     "latestSDKVersion": sdk_version,
                     "isSendingSampleRate": bool(row[f"equation|{avg_sample_rate_equation}"]),
                     "isSendingSource": bool(row[f"equation|{avg_transaction_source_equation}"]),
+                    "isSupportedPlatform": (sdk_name in ALLOWED_SDK_NAMES),
                 }
 
         # Essentially for each project, we fetch all the SDK versions from the previously

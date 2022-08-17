@@ -171,6 +171,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
         />
         <ListItem margin="none">
           <ExportProfileButton
+            variant="xs"
             eventId={params.eventId}
             orgId={params.orgId}
             projectId={params.projectId}
@@ -300,7 +301,7 @@ const FrameTabs = styled('ul')`
   padding: 0 ${space(1)};
   margin: 0;
   border-top: 1px solid ${prop => prop.theme.border};
-  background-color: ${props => props.theme.surface400};
+  background-color: ${props => props.theme.surface100};
   user-select: none;
   grid-area: tabs;
 `;

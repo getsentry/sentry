@@ -15,7 +15,7 @@ import EventAttachments from 'sentry/components/events/eventAttachments';
 import EventCause from 'sentry/components/events/eventCause';
 import EventCauseEmpty from 'sentry/components/events/eventCauseEmpty';
 import EventDataSection from 'sentry/components/events/eventDataSection';
-import EventExtraData from 'sentry/components/events/eventExtraData/eventExtraData';
+import EventExtraData from 'sentry/components/events/eventExtraData';
 import {EventSdk} from 'sentry/components/events/eventSdk';
 import {EventTags} from 'sentry/components/events/eventTags';
 import EventGroupingInfo from 'sentry/components/events/groupingInfo';
@@ -24,7 +24,6 @@ import RRWebIntegration from 'sentry/components/events/rrwebIntegration';
 import EventSdkUpdates from 'sentry/components/events/sdkUpdates';
 import {DataSection} from 'sentry/components/events/styles';
 import EventUserFeedback from 'sentry/components/events/userFeedback';
-import LazyLoad from 'sentry/components/lazyLoad';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -52,6 +51,7 @@ import {projectProcessingIssuesMessages} from 'sentry/views/settings/project/pro
 import findBestThread from './interfaces/threads/threadSelector/findBestThread';
 import getThreadException from './interfaces/threads/threadSelector/getThreadException';
 import EventEntry from './eventEntry';
+import EventReplay from './eventReplay';
 import EventTagsAndScreenshot from './eventTagsAndScreenshot';
 
 const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =
@@ -432,30 +432,59 @@ const EventEntries = memo(
             showGroupingConfig={orgFeatures.includes('set-grouping-config')}
           />
         )}
-        {!isShare && !replayId && hasEventAttachmentsFeature && (
-          <RRWebIntegration
+        {!isShare && (
+          <MiniReplayView
             event={event}
-            orgId={orgSlug}
-            projectId={projectSlug}
-            renderer={children => (
-              <StyledReplayEventDataSection type="context-replay" title={t('Replay')}>
-                {children}
-              </StyledReplayEventDataSection>
-            )}
-          />
-        )}
-        {!isShare && replayId && orgFeatures.includes('session-replay') && (
-          <LazyLoad
-            component={() => import('./eventReplay')}
-            replayId={replayId}
+            orgFeatures={orgFeatures}
             orgSlug={orgSlug}
             projectSlug={projectSlug}
+            replayId={replayId}
           />
         )}
       </div>
     );
   }
 );
+
+type MiniReplayViewProps = {
+  event: Event;
+  orgFeatures: string[];
+  orgSlug: string;
+  projectSlug: string;
+  replayId: undefined | string;
+};
+
+function MiniReplayView({
+  event,
+  orgFeatures,
+  orgSlug,
+  projectSlug,
+  replayId,
+}: MiniReplayViewProps) {
+  const hasEventAttachmentsFeature = orgFeatures.includes('event-attachments');
+  const hasSessionReplayFeature = orgFeatures.includes('session-replay-ui');
+
+  if (replayId && hasSessionReplayFeature) {
+    return (
+      <EventReplay replayId={replayId} orgSlug={orgSlug} projectSlug={projectSlug} />
+    );
+  }
+  if (hasEventAttachmentsFeature) {
+    return (
+      <RRWebIntegration
+        event={event}
+        orgId={orgSlug}
+        projectId={projectSlug}
+        renderer={children => (
+          <StyledReplayEventDataSection type="context-replay" title={t('Replay')}>
+            {children}
+          </StyledReplayEventDataSection>
+        )}
+      />
+    );
+  }
+  return null;
+}
 
 const StyledEventDataSection = styled(EventDataSection)`
   /* Hiding the top border because of the event section appears at this breakpoint */

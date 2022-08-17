@@ -34,6 +34,7 @@ export type Project = {
   groupingAutoUpdate: boolean;
   groupingConfig: string;
   hasAccess: boolean;
+  hasProfiles: boolean;
   hasSessions: boolean;
   id: string;
   isBookmarked: boolean;
@@ -41,8 +42,8 @@ export type Project = {
   isMember: boolean;
   organization: Organization;
   plugins: Plugin[];
-
   processingIssues: number;
+
   relayPiiConfig: string;
   subjectTemplate: string;
   teams: Team[];
@@ -109,7 +110,9 @@ export type Environment = {
   // urlRoutingName: string;
 };
 
-export type TeamWithProjects = Team & {projects: Project[]};
+export interface TeamWithProjects extends Team {
+  projects: Project[];
+}
 
 export type PlatformIntegration = {
   id: PlatformKey;

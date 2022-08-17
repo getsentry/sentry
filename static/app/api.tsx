@@ -1,7 +1,6 @@
 import {browserHistory} from 'react-router';
 import * as Sentry from '@sentry/react';
 import Cookies from 'js-cookie';
-import isUndefined from 'lodash/isUndefined';
 import * as qs from 'query-string';
 
 import {openSudo, redirectToProject} from 'sentry/actionCreators/modal';
@@ -282,12 +281,8 @@ export class Client {
         return;
       }
 
-      if (isUndefined(func)) {
-        return;
-      }
-
       // Call success callback
-      return func.apply(req, args); // eslint-disable-line
+      return func?.apply(req, args); // eslint-disable-line
     };
   }
 
@@ -349,7 +344,7 @@ export class Client {
 
     let data = options.data;
 
-    if (!isUndefined(data) && method !== 'GET') {
+    if (data !== undefined && method !== 'GET') {
       data = JSON.stringify(data);
     }
 
@@ -382,7 +377,7 @@ export class Client {
         start: startMarker,
         data: {status: resp?.status},
       });
-      if (!isUndefined(options.success)) {
+      if (options.success !== undefined) {
         this.wrapCallback<[any, string, ResponseMeta]>(id, options.success)(
           responseData,
           textStatus,

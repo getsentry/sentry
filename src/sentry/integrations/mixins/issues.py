@@ -379,3 +379,9 @@ class IssueSyncMixin(IssueBasicMixin):
                 "data": data,
             }
         )
+
+    def migrate_issues(self):
+        """
+        Migrate the corresponding plugin's issues to the integration and disable the plugins.
+        """
+        pass

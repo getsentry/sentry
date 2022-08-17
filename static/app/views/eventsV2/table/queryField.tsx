@@ -3,8 +3,8 @@ import {components, SingleValueProps} from 'react-select';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import Input, {InputProps} from 'sentry/components/forms/controls/input';
 import SelectControl, {ControlProps} from 'sentry/components/forms/selectControl';
+import Input, {InputProps} from 'sentry/components/input';
 import Tag from 'sentry/components/tag';
 import Tooltip from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
@@ -745,7 +745,7 @@ const Container = styled('div')<{
   flex-grow: 1;
 `;
 
-interface BufferedInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+interface BufferedInputProps extends InputProps {
   onUpdate: (value: string) => void;
   value: string;
 }
@@ -812,7 +812,7 @@ class BufferedInput extends Component<BufferedInputProps, InputState> {
 }
 
 // Set a min-width to allow shrinkage in grid.
-const StyledInput = styled(Input)<InputProps>`
+const StyledInput = styled(Input)`
   /* Match the height of the select boxes */
   height: 41px;
   min-width: 50px;

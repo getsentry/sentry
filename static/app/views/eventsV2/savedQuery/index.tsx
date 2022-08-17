@@ -15,8 +15,8 @@ import Banner from 'sentry/components/banner';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
-import InputControl from 'sentry/components/forms/controls/input';
 import {Hovercard} from 'sentry/components/hovercard';
+import InputControl from 'sentry/components/input';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconDelete, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -358,7 +358,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
   }
 
   renderButtonAddToDashboard() {
-    const {organization, eventView, savedQuery, yAxis, router} = this.props;
+    const {organization, eventView, savedQuery, yAxis, router, location} = this.props;
     return (
       <Button
         key="add-dashboard-widget-from-discover"
@@ -366,6 +366,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
         onClick={() =>
           handleAddQueryToDashboard({
             organization,
+            location,
             eventView,
             query: savedQuery,
             yAxis,

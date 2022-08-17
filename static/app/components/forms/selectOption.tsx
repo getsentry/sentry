@@ -49,7 +49,7 @@ function SelectOption(props: Props) {
           as="div"
           value={value}
           label={label}
-          isDisabled={isDisabled}
+          disabled={isDisabled}
           isFocused={isFocused}
           showDivider={showDividers}
           priority={itemPriority}
