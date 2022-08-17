@@ -445,11 +445,12 @@ function WidgetViewerModal(props: Props) {
     });
   }
 
-  const renderDiscoverTable = ({
+  function DiscoverTable({
     tableResults,
     loading,
     pageLinks,
-  }: GenericWidgetQueriesChildrenProps) => {
+  }: GenericWidgetQueriesChildrenProps) {
+    const {isMetricsData} = useDashboardsMEPContext();
     const links = parseLinkHeader(pageLinks ?? null);
     const isFirstPage = links.previous?.results === false;
     return (
@@ -472,6 +473,7 @@ function WidgetViewerModal(props: Props) {
                   setChartUnmodified(false);
                 }
               },
+              isMetricsData,
             }) as (column: GridColumnOrder, columnIndex: number) => React.ReactNode,
             renderBodyCell: renderGridBodyCell({
               ...props,
@@ -508,7 +510,7 @@ function WidgetViewerModal(props: Props) {
         )}
       </Fragment>
     );
-  };
+  }
 
   const renderIssuesTable = ({
     tableResults,
@@ -748,11 +750,13 @@ function WidgetViewerModal(props: Props) {
       case WidgetType.DISCOVER:
       default:
         if (tableData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
-          return renderDiscoverTable({
-            tableResults: tableData,
-            loading: false,
-            pageLinks: defaultPageLinks,
-          });
+          return (
+            <DiscoverTable
+              tableResults={tableData}
+              loading={false}
+              pageLinks={defaultPageLinks}
+            />
+          );
         }
         return (
           <WidgetQueries
@@ -767,7 +771,13 @@ function WidgetViewerModal(props: Props) {
             }
             cursor={cursor}
           >
-            {renderDiscoverTable}
+            {({tableResults, loading, pageLinks}) => (
+              <DiscoverTable
+                tableResults={tableResults}
+                loading={loading}
+                pageLinks={pageLinks}
+              />
+            )}
           </WidgetQueries>
         );
     }

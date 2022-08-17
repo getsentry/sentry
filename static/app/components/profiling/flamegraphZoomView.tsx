@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
@@ -734,55 +734,53 @@ function FlamegraphZoomView({
   const contextMenu = useContextMenu({container: flamegraphCanvasRef});
 
   return (
-    <Fragment>
-      <CanvasContainer>
-        <Canvas
-          ref={canvas => setFlamegraphCanvasRef(canvas)}
-          onMouseDown={onCanvasMouseDown}
-          onMouseUp={onCanvasMouseUp}
-          onMouseMove={onCanvasMouseMove}
-          onMouseLeave={onCanvasMouseLeave}
-          onContextMenu={contextMenu.handleContextMenu}
-          style={{cursor: lastInteraction === 'pan' ? 'grab' : 'default'}}
-        />
-        <Canvas
-          ref={canvas => setFlamegraphOverlayCanvasRef(canvas)}
-          style={{
-            pointerEvents: 'none',
-          }}
-        />
-        <FlamegraphOptionsContextMenu contextMenu={contextMenu} />
-        {flamegraphCanvas &&
-        flamegraphRenderer &&
-        flamegraphView &&
-        configSpaceCursor &&
-        hoveredNode?.frame?.name ? (
-          <BoundTooltip
-            bounds={canvasBounds}
-            cursor={configSpaceCursor}
-            flamegraphCanvas={flamegraphCanvas}
-            flamegraphView={flamegraphView}
-          >
-            <HoveredFrameMainInfo>
-              <FrameColorIndicator
-                backgroundColor={formatColorForFrame(hoveredNode, flamegraphRenderer)}
-              />
-              {flamegraphRenderer.flamegraph.formatter(hoveredNode.node.totalWeight)}{' '}
-              {formatWeightToProfileDuration(
-                hoveredNode.node,
-                flamegraphRenderer.flamegraph
-              )}{' '}
-              {hoveredNode.frame.name}
-            </HoveredFrameMainInfo>
-            <HoveredFrameTimelineInfo>
-              {flamegraphRenderer.flamegraph.timelineFormatter(hoveredNode.start)}{' '}
-              {' \u2014 '}
-              {flamegraphRenderer.flamegraph.timelineFormatter(hoveredNode.end)}
-            </HoveredFrameTimelineInfo>
-          </BoundTooltip>
-        ) : null}
-      </CanvasContainer>
-    </Fragment>
+    <CanvasContainer>
+      <Canvas
+        ref={canvas => setFlamegraphCanvasRef(canvas)}
+        onMouseDown={onCanvasMouseDown}
+        onMouseUp={onCanvasMouseUp}
+        onMouseMove={onCanvasMouseMove}
+        onMouseLeave={onCanvasMouseLeave}
+        onContextMenu={contextMenu.handleContextMenu}
+        style={{cursor: lastInteraction === 'pan' ? 'grab' : 'default'}}
+      />
+      <Canvas
+        ref={canvas => setFlamegraphOverlayCanvasRef(canvas)}
+        style={{
+          pointerEvents: 'none',
+        }}
+      />
+      <FlamegraphOptionsContextMenu contextMenu={contextMenu} />
+      {flamegraphCanvas &&
+      flamegraphRenderer &&
+      flamegraphView &&
+      configSpaceCursor &&
+      hoveredNode?.frame?.name ? (
+        <BoundTooltip
+          bounds={canvasBounds}
+          cursor={configSpaceCursor}
+          flamegraphCanvas={flamegraphCanvas}
+          flamegraphView={flamegraphView}
+        >
+          <HoveredFrameMainInfo>
+            <FrameColorIndicator
+              backgroundColor={formatColorForFrame(hoveredNode, flamegraphRenderer)}
+            />
+            {flamegraphRenderer.flamegraph.formatter(hoveredNode.node.totalWeight)}{' '}
+            {formatWeightToProfileDuration(
+              hoveredNode.node,
+              flamegraphRenderer.flamegraph
+            )}{' '}
+            {hoveredNode.frame.name}
+          </HoveredFrameMainInfo>
+          <HoveredFrameTimelineInfo>
+            {flamegraphRenderer.flamegraph.timelineFormatter(hoveredNode.start)}{' '}
+            {' \u2014 '}
+            {flamegraphRenderer.flamegraph.timelineFormatter(hoveredNode.end)}
+          </HoveredFrameTimelineInfo>
+        </BoundTooltip>
+      ) : null}
+    </CanvasContainer>
   );
 }
 
