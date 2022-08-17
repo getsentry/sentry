@@ -3,7 +3,7 @@ from __future__ import annotations
 import functools
 import itertools
 import logging
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import (
@@ -161,7 +161,7 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     annotations: Sequence[str]
 
 
-class GroupSerializerBase(Serializer):
+class GroupSerializerBase(Serializer, ABC):
     def __init__(
         self,
         collapse=None,
