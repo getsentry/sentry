@@ -7,7 +7,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from io import BytesIO
-from typing import Optional
+from typing import Optional, Sequence, TypedDict
 
 import sentry_sdk
 from django.conf import settings
@@ -96,7 +96,10 @@ from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.outcomes import Outcome, track_outcome
-from sentry.utils.performance_issues.performance_detection import detect_performance_problems
+from sentry.utils.performance_issues.performance_detection import (
+    PerformanceProblem,
+    detect_performance_problems,
+)
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 
 logger = logging.getLogger("sentry.events")
@@ -943,7 +946,6 @@ def _tsdb_record_all_metrics(jobs):
         incrs = []
         frequencies = []
         records = []
-
         incrs.append((tsdb.models.project, job["project_id"]))
         event = job["event"]
         release = job["release"]
@@ -995,6 +997,8 @@ def _nodestore_save_many(jobs):
         # Write the event to Nodestore
         subkeys = {}
 
+        # TODO: Check with ingest about whether this should happen for transactions that create perf
+        # issues
         if job["groups"]:
             event = job["event"]
             unprocessed = event_processing_store.get(
@@ -1935,6 +1939,106 @@ def _detect_performance_problems(jobs, projects):
         job["performance_problems"] = detect_performance_problems(job["data"])
 
 
+class Performance_Job(TypedDict, total=False):
+    performance_problems: Sequence[PerformanceProblem]
+
+
+@metrics.wraps("save_event.save_aggregate_performance")
+def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
+
+    # TODO: batch operations (like rate limiting) so we don't repeat for each job
+    MAX_GROUPS = (
+        10  # safety check in case we are passed too many. constant will live somewhere else tbd
+    )
+    for idx, job in enumerate(jobs):
+        job["groups"] = []
+
+        # General system-wide option
+        rate = options.get("performance.issues.all.problem-creation")
+
+        # More granular, per-project option
+        per_project_rate = projects[idx].get_option("sentry:performance_issue_creation_rate")
+        if (
+            rate
+            and rate > random.random()
+            and per_project_rate
+            and per_project_rate > random.random()
+        ):
+
+            kwargs = _create_kwargs(job)
+
+            performance_problems = job["performance_problems"]
+            all_group_hashes = [problem["fingerprint"] for problem in performance_problems]
+            group_hashes = all_group_hashes[:MAX_GROUPS]
+
+            event = job["event"]
+            project = event.project
+
+            existing_grouphashes = GroupHash.objects.filter(
+                project=project, hash__in=group_hashes
+            ).select_related("group")
+
+            new_grouphashes = set(group_hashes) - {hash.hash for hash in existing_grouphashes}
+
+            if new_grouphashes:
+                for new_grouphash in new_grouphashes:
+
+                    # GROUP DOES NOT EXIST
+                    with sentry_sdk.start_span(
+                        op="event_manager.create_group_transaction"
+                    ) as span, metrics.timer(
+                        "event_manager.create_group_transaction"
+                    ) as metric_tags, transaction.atomic():
+                        span.set_tag("create_group_transaction.outcome", "no_group")
+                        metric_tags["create_group_transaction.outcome"] = "no_group"
+
+                        # TODO: RATE LIMITER
+                        # ops team will give us a redis cluster, but told us to use the current one for now
+                        # below adapted from postgres_v2.py
+                        # from sentry.sentry_metrics.configuration import UseCaseKey
+                        # from sentry.sentry_metrics.indexer.base import KeyCollection
+                        # from sentry.sentry_metrics.indexer.ratelimiters import writes_limiter
+                        # with writes_limiter.check_write_limits(UseCaseKey("performance"), KeyCollection({job.organization.id: {job.organization.name}})) as writes_limiter_state:
+                        #     pass
+
+                        group = _create_group(project, event, **kwargs)
+                        GroupHash.objects.create(project, new_grouphash, group)
+
+                        is_new = True
+                        is_regression = False
+
+                        span.set_tag("create_group_transaction.outcome", "new_group")
+                        metric_tags["create_group_transaction.outcome"] = "new_group"
+
+                        metrics.incr(
+                            "group.created",
+                            skip_internal=True,
+                            tags={"platform": job["platform"] or "unknown"},
+                        )
+
+                        job["groups"].append(
+                            GroupInfo(group=group, is_new=is_new, is_regression=is_regression)
+                        )
+
+            if existing_grouphashes:
+
+                # GROUP EXISTS
+                for existing_grouphash in existing_grouphashes:
+                    group = existing_grouphash.group
+
+                    is_new = False
+
+                    is_regression = _process_existing_aggregate(
+                        group=group, event=job["event"], data=kwargs, release=job["release"]
+                    )
+
+                    job["groups"].append(
+                        GroupInfo(group=group, is_new=is_new, is_regression=is_regression)
+                    )
+
+            job["event"].group_ids = [groupInfo.group.id for groupInfo in job["groups"]]
+
+
 @metrics.wraps("event_manager.save_transaction_events")
 def save_transaction_events(jobs, projects):
     with metrics.timer("event_manager.save_transactions.collect_organization_ids"):
@@ -1954,17 +2058,6 @@ def save_transaction_events(jobs, projects):
             except KeyError:
                 continue
 
-    with metrics.timer("event_manager.save_transactions.prepare_jobs"):
-        for job in jobs:
-            job["project_id"] = job["data"]["project"]
-            job["raw"] = False
-            job["group"] = None
-            # XXX: Temporary hack so that `groups` is always present
-            job["groups"] = []
-            job["is_new"] = False
-            job["is_regression"] = False
-            job["is_new_group_environment"] = False
-
     _pull_out_data(jobs, projects)
     _get_or_create_release_many(jobs, projects)
     _get_event_user_many(jobs, projects)
@@ -1972,9 +2065,12 @@ def save_transaction_events(jobs, projects):
     _derive_interface_tags_many(jobs)
     _calculate_span_grouping(jobs, projects)
     _detect_performance_problems(jobs, projects)
+    _save_aggregate_performance(jobs, projects)
     _materialize_metadata_many(jobs)
     _get_or_create_environment_many(jobs, projects)
+    _get_or_create_group_environment_many(jobs, projects)
     _get_or_create_release_associated_models(jobs, projects)
+    _get_or_create_group_release_many(jobs, projects)
     _tsdb_record_all_metrics(jobs)
     _materialize_event_metrics(jobs)
     _nodestore_save_many(jobs)
