@@ -1,10 +1,8 @@
 import {createStore, StoreDefinition} from 'reflux';
 
-import PluginActions from 'sentry/actions/pluginActions';
 import {Plugin} from 'sentry/types';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-interface PluginStoreDefinition extends StoreDefinition {
+interface InternalDefinition {
   plugins: Map<string, Plugin> | null;
   state: {
     error: Error | null;
@@ -13,6 +11,16 @@ interface PluginStoreDefinition extends StoreDefinition {
     plugins: Plugin[];
   };
   updating: Map<string, Plugin>;
+}
+
+interface PluginStoreDefinition extends StoreDefinition, InternalDefinition {
+  onFetchAll: (options?: {resetLoading?: boolean}) => void;
+  onFetchAllError: (err) => void;
+  onFetchAllSuccess: (data: Plugin[], links: {pageLinks?: string}) => void;
+
+  onUpdate: (id: string, updateObj: Partial<Plugin>) => void;
+  onUpdateError: (id: string, _updateObj: Partial<Plugin>, err) => void;
+  onUpdateSuccess: (id: string, _updateObj: Partial<Plugin>) => void;
 }
 
 const defaultState = {
@@ -26,7 +34,6 @@ const storeConfig: PluginStoreDefinition = {
   plugins: null,
   state: {...defaultState},
   updating: new Map(),
-  unsubscribeListeners: [],
 
   reset() {
     // reset our state
@@ -51,29 +58,13 @@ const storeConfig: PluginStoreDefinition = {
 
   init() {
     this.reset();
-    this.unsubscribeListeners.push(
-      this.listenTo(PluginActions.fetchAll, this.onFetchAll)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(PluginActions.fetchAllSuccess, this.onFetchAllSuccess)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(PluginActions.fetchAllError, this.onFetchAllError)
-    );
-    this.unsubscribeListeners.push(this.listenTo(PluginActions.update, this.onUpdate));
-    this.unsubscribeListeners.push(
-      this.listenTo(PluginActions.updateSuccess, this.onUpdateSuccess)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(PluginActions.updateError, this.onUpdateError)
-    );
   },
 
   triggerState() {
     this.trigger(this.getState());
   },
 
-  onFetchAll({resetLoading}: {resetLoading?: boolean} = {}) {
+  onFetchAll({resetLoading} = {}) {
     if (resetLoading) {
       this.state.loading = true;
       this.state.error = null;
@@ -83,7 +74,7 @@ const storeConfig: PluginStoreDefinition = {
     this.triggerState();
   },
 
-  onFetchAllSuccess(data: Plugin[], {pageLinks}: {pageLinks?: string}) {
+  onFetchAllSuccess(data, {pageLinks}) {
     this.plugins = new Map(data.map(plugin => [plugin.id, plugin]));
     this.state.pageLinks = pageLinks || null;
     this.state.loading = false;
@@ -133,5 +124,5 @@ const storeConfig: PluginStoreDefinition = {
   },
 };
 
-const PluginStore = createStore(makeSafeRefluxStore(storeConfig));
+const PluginStore = createStore(storeConfig);
 export default PluginStore;
