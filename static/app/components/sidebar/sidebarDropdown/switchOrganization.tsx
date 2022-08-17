@@ -11,6 +11,7 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import {OrganizationSummary} from 'sentry/types';
+import shouldUseLegacyRoute from 'sentry/utils/shouldUseLegacyRoute';
 import useOrganization from 'sentry/utils/useOrganization';
 import withOrganizations from 'sentry/utils/withOrganizations';
 
@@ -60,16 +61,11 @@ function SwitchOrganization({organizations, canCreateOrganization}: Props) {
                   const {slug, links} = organization;
                   const {organizationUrl} = links;
 
-                  const shouldUseLegacyRoute =
-                    !organizationUrl ||
-                    !organization.features.includes('customer-domains') ||
-                    slug === 'alberto';
-
                   const menuItemProps: Partial<
                     React.ComponentProps<typeof SidebarMenuItem>
                   > = {};
 
-                  if (shouldUseLegacyRoute) {
+                  if (shouldUseLegacyRoute(organization)) {
                     if (currentOrganization.features.includes('customer-domains')) {
                       // If the current org is a customer domain, then we need to change the hostname in addition to
                       // updating the path.
