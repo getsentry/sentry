@@ -7,6 +7,7 @@ from sentry.models import Authenticator, AuthProvider
 from sentry.models.authidentity import AuthIdentity
 from sentry.testutils import APITestCase
 from sentry.testutils.cases import AuthProviderTestCase
+from sentry.testutils.helpers import with_feature
 
 
 class AuthDetailsEndpointTest(APITestCase):
@@ -120,6 +121,7 @@ class AuthVerifyEndpointTest(APITestCase):
 class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, AuthVerifyEndpointTest, APITestCase):
     path = "/api/0/auth/"
 
+    @with_feature("organizations:u2f-superuser-form")
     @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
     @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
     def test_superuser_sso_user_no_password_saas_product(self, validate_response, is_available):
@@ -156,6 +158,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, AuthVerifyEndpointTe
                     assert response.status_code == 200
                     assert COOKIE_NAME in response.cookies
 
+    @with_feature("organizations:u2f-superuser-form")
     def test_superuser_sso_user_no_u2f_saas_product(self):
         from sentry.auth.superuser import Superuser
 
@@ -184,6 +187,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, AuthVerifyEndpointTe
                     )
                     assert response.status_code == 403
 
+    @with_feature("organizations:u2f-superuser-form")
     @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
     @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
     def test_superuser_sso_user_has_password_saas_product(self, validate_response, is_available):
@@ -220,6 +224,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, AuthVerifyEndpointTe
                     assert response.status_code == 200
                     assert COOKIE_NAME in response.cookies
 
+    @with_feature("organizations:u2f-superuser-form")
     @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
     @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
     def test_superuser_no_sso_user_has_password_saas_product(self, validate_response, is_available):
@@ -249,6 +254,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, AuthVerifyEndpointTe
                 )
                 assert response.status_code == 401
 
+    @with_feature("organizations:u2f-superuser-form")
     def test_superuser_no_sso_user_has_password_self_hosted(self):
         from sentry.auth.superuser import Superuser
 
@@ -268,6 +274,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, AuthVerifyEndpointTe
                 )
                 assert response.status_code == 200
 
+    @with_feature("organizations:u2f-superuser-form")
     def test_superuser_no_sso_self_hosted_no_password_or_u2f(self):
         from sentry.auth.superuser import Superuser
 
@@ -286,6 +293,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, AuthVerifyEndpointTe
                 )
                 assert response.status_code == 403
 
+    @with_feature("organizations:u2f-superuser-form")
     def test_superuser_no_sso_user_has_password_su_form_off_saas(self):
         from sentry.auth.superuser import Superuser
 
@@ -308,6 +316,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, AuthVerifyEndpointTe
                     )
                     assert response.status_code == 200
 
+    @with_feature("organizations:u2f-superuser-form")
     def test_superuser_no_sso_su_form_off_no_password_or_u2f_saas(self):
         from sentry.auth.superuser import Superuser
 
@@ -328,6 +337,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, AuthVerifyEndpointTe
                 )
                 assert response.status_code == 403
 
+    @with_feature("organizations:u2f-superuser-form")
     def test_superuser_no_sso_user_has_password_su_form_on_self_hosted(self):
         from sentry.auth.superuser import Superuser
 
@@ -352,6 +362,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, AuthVerifyEndpointTe
                     )
                     assert response.status_code == 200
 
+    @with_feature("organizations:u2f-superuser-form")
     def test_superuser_no_sso_su_form_on_no_password_or_u2f_self_hosted(self):
         from sentry.auth.superuser import Superuser
 
@@ -374,6 +385,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, AuthVerifyEndpointTe
                 )
                 assert response.status_code == 403
 
+    @with_feature("organizations:u2f-superuser-form")
     def test_superuser_no_sso_with_referrer(self):
         from sentry.auth.superuser import Superuser
 
@@ -396,6 +408,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, AuthVerifyEndpointTe
             assert response.status_code == 401
             assert self.client.session["_next"] == "http://testserver/bar"
 
+    @with_feature("organizations:u2f-superuser-form")
     def test_superuser_no_sso_with_bad_referrer(self):
         from sentry.auth.superuser import Superuser
 

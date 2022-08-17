@@ -109,7 +109,7 @@ class AuthIndexEndpoint(Endpoint):
         # TODO Look at AuthVerifyValidator
         validator.is_valid()
 
-        if not DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV and verify_authenticator:
+        if not DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV and verify_authenticator or is_self_hosted():
             authenticated = self._verify_user_via_inputs(validator, request)
         else:
             authenticated = True
