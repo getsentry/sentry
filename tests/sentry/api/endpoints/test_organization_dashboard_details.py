@@ -206,7 +206,11 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
 
     def test_release_data_is_returned_when_dashboard_has_release_ids(self):
         test_release = Release.objects.create(organization_id=self.organization.id, version="v1")
-        filters = {"environment": ["alpha"], "period": "24hr", "release_id": [f"{test_release.id}"]}
+        filters = {
+            "environment": ["alpha"],
+            "period": "24hr",
+            "release_id": [f"{test_release.id}", "latest"],
+        }
         dashboard = Dashboard.objects.create(
             title="Dashboard With Filters",
             created_by=self.user,
@@ -216,7 +220,11 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
 
         response = self.do_request("get", self.url(dashboard.id))
         assert response.data["filters"]["releaseObj"] == [
-            {"id": "1", "version": "v1", "dateCreated": test_release.date_added}
+            {"id": "1", "version": "v1", "dateCreated": test_release.date_added},
+            {
+                "id": "latest",
+                "version": "latest",
+            },
         ]
 
 
