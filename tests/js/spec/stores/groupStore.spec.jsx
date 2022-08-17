@@ -104,6 +104,17 @@ describe('GroupStore', function () {
     });
   });
 
+  describe('getAllItems()', function () {
+    it('Merges pending changes into items', function () {
+      GroupStore.items = [];
+      GroupStore.add([{id: 1}, {id: 2}]);
+
+      GroupStore.onUpdate(1337, [1], {someChange: true});
+
+      expect(GroupStore.getAllItems()).toEqual([{id: 1, someChange: true}, {id: 2}]);
+    });
+  });
+
   describe('update methods', function () {
     beforeAll(function () {
       jest.spyOn(GroupStore, 'trigger');
