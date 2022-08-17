@@ -18,7 +18,6 @@ from django.utils.translation import ugettext_lazy as _
 
 from bitfield import BitField
 from sentry import projectoptions
-from sentry.app import locks
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
 from sentry.db.models import (
@@ -29,6 +28,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
+from sentry.locks import locks
 from sentry.snuba.models import SnubaQuery
 from sentry.utils import metrics
 from sentry.utils.colors import get_hashed_color
