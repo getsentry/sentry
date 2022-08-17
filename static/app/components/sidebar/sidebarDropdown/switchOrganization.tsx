@@ -25,6 +25,10 @@ function OrganizationMenuItem({organization}: {organization: OrganizationSummary
 
   const route = useResolveRoute(organization, `/organizations/${slug}/`);
 
+  if (!route) {
+    return null;
+  }
+
   if (shouldUseLegacyRoute(organization)) {
     if (currentOrganization.features.includes('customer-domains')) {
       menuItemProps.href = route;
