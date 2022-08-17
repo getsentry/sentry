@@ -12,11 +12,11 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconCheckmark, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
+  GroupStatusResolution,
   Organization,
   Release,
   ResolutionStatus,
   ResolutionStatusDetails,
-  UpdateResolutionStatus,
 } from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {formatVersion} from 'sentry/utils/formatters';
@@ -30,7 +30,7 @@ const defaultProps = {
 
 type Props = {
   hasRelease: boolean;
-  onUpdate: (data: UpdateResolutionStatus) => void;
+  onUpdate: (data: GroupStatusResolution) => void;
   orgSlug: string;
   organization: Organization;
   confirmMessage?: React.ReactNode;
@@ -114,7 +114,9 @@ class ResolveActions extends Component<Props> {
           icon={<IconCheckmark size="xs" />}
           aria-label={t('Unresolve')}
           disabled={isAutoResolved}
-          onClick={() => onUpdate({status: ResolutionStatus.UNRESOLVED})}
+          onClick={() =>
+            onUpdate({status: ResolutionStatus.UNRESOLVED, statusDetails: {}})
+          }
         />
       </Tooltip>
     );
@@ -256,7 +258,7 @@ class ResolveActions extends Component<Props> {
     const onResolve = () =>
       openConfirmModal({
         bypass: !shouldConfirm,
-        onConfirm: () => onUpdate({status: ResolutionStatus.RESOLVED}),
+        onConfirm: () => onUpdate({status: ResolutionStatus.RESOLVED, statusDetails: {}}),
         message: confirmMessage,
         confirmText: confirmLabel,
       });

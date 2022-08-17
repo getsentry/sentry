@@ -32,7 +32,7 @@ describe('IgnoreActions', function () {
       expect(button).toHaveTextContent('');
 
       userEvent.click(button);
-      expect(spy).toHaveBeenCalledWith({status: 'unresolved'});
+      expect(spy).toHaveBeenCalledWith({status: 'unresolved', statusDetails: {}});
     });
   });
 
@@ -42,7 +42,7 @@ describe('IgnoreActions', function () {
       const button = screen.getByRole('button', {name: 'Ignore'});
       userEvent.click(button);
       expect(spy).toHaveBeenCalledTimes(1);
-      expect(spy).toHaveBeenCalledWith({status: 'ignored'});
+      expect(spy).toHaveBeenCalledWith({status: 'ignored', statusDetails: {}});
     });
   });
 

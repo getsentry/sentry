@@ -80,7 +80,7 @@ describe('ResolveActions', function () {
       expect(button).toHaveTextContent('');
 
       userEvent.click(button);
-      expect(spy).toHaveBeenCalledWith({status: 'unresolved'});
+      expect(spy).toHaveBeenCalledWith({status: 'unresolved', statusDetails: {}});
     });
   });
 
@@ -115,7 +115,7 @@ describe('ResolveActions', function () {
       );
       userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
       expect(spy).toHaveBeenCalledTimes(1);
-      expect(spy).toHaveBeenCalledWith({status: 'resolved'});
+      expect(spy).toHaveBeenCalledWith({status: 'resolved', statusDetails: {}});
     });
   });
 

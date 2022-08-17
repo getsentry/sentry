@@ -12,10 +12,10 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconChevron, IconMute} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {
+  GroupStatusResolution,
   ResolutionStatus,
   ResolutionStatusDetails,
   SelectValue,
-  UpdateResolutionStatus,
 } from 'sentry/types';
 
 const IGNORE_DURATIONS = [30, 120, 360, 60 * 24, 60 * 24 * 7];
@@ -27,7 +27,7 @@ const IGNORE_WINDOWS: SelectValue<number>[] = [
 ];
 
 type Props = {
-  onUpdate: (params: UpdateResolutionStatus) => void;
+  onUpdate: (params: GroupStatusResolution) => void;
   confirmLabel?: string;
   confirmMessage?: React.ReactNode;
   disabled?: boolean;
@@ -43,7 +43,7 @@ const IgnoreActions = ({
   confirmLabel = t('Ignore'),
   isIgnored = false,
 }: Props) => {
-  const onIgnore = (statusDetails?: ResolutionStatusDetails) => {
+  const onIgnore = (statusDetails: ResolutionStatusDetails | undefined = {}) => {
     openConfirmModal({
       bypass: !shouldConfirm,
       onConfirm: () =>
@@ -66,7 +66,9 @@ const IgnoreActions = ({
         <Button
           priority="primary"
           size="xs"
-          onClick={() => onUpdate({status: ResolutionStatus.UNRESOLVED})}
+          onClick={() =>
+            onUpdate({status: ResolutionStatus.UNRESOLVED, statusDetails: {}})
+          }
           aria-label={t('Unignore')}
           icon={<IconMute size="xs" />}
         />
