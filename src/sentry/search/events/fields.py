@@ -120,11 +120,13 @@ def project_threshold_config_expression(organization_id, project_ids):
     )
 
     num_project_thresholds = project_threshold_configs.count()
+    sdk_transaction = sentry_sdk.Hub.current.scope.transaction
     sentry_sdk.set_tag("project_threshold.count", num_project_thresholds)
     sentry_sdk.set_tag(
         "project_threshold.count.grouped",
         format_grouped_length(num_project_thresholds, [10, 100, 250, 500]),
     )
+    sdk_transaction.set_measurement("project_threshold.count", num_project_thresholds)
 
     num_transaction_thresholds = transaction_threshold_configs.count()
     sentry_sdk.set_tag("txn_threshold.count", num_transaction_thresholds)
@@ -132,6 +134,7 @@ def project_threshold_config_expression(organization_id, project_ids):
         "txn_threshold.count.grouped",
         format_grouped_length(num_transaction_thresholds, [10, 100, 250, 500]),
     )
+    sdk_transaction.set_measurement("txn_threshold.count", num_transaction_thresholds)
 
     if num_project_thresholds + num_transaction_thresholds == 0:
         return ["tuple", [f"'{DEFAULT_PROJECT_THRESHOLD_METRIC}'", DEFAULT_PROJECT_THRESHOLD]]
@@ -265,12 +268,14 @@ def team_key_transaction_expression(organization_id, team_ids, project_ids):
 
     count = len(team_key_transactions)
 
+    sdk_transaction = sentry_sdk.Hub.current.scope.transaction
     # NOTE: this raw count is not 100% accurate because if it exceeds
     # `MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS`, it will not be reflected
     sentry_sdk.set_tag("team_key_txns.count", count)
     sentry_sdk.set_tag(
         "team_key_txns.count.grouped", format_grouped_length(count, [10, 100, 250, 500])
     )
+    sdk_transaction.set_measurement("team_key_txns.count", count)
 
     # There are no team key transactions marked, so hard code false into the query.
     if count == 0:

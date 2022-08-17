@@ -326,6 +326,8 @@ class OrganizationEndpoint(Endpoint):
         len_projects = len(projects)
         sentry_sdk.set_tag("query.num_projects", len_projects)
         sentry_sdk.set_tag("query.num_projects.grouped", format_grouped_length(len_projects))
+        transaction = sentry_sdk.Hub.current.scope.transaction
+        transaction.set_measurement("query.num_projects", len_projects)
 
         params = {
             "start": start,

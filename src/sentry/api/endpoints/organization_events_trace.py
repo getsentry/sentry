@@ -310,14 +310,16 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
     def record_analytics(
         transactions: Sequence[SnubaTransaction], trace_id: str, user_id: int, org_id: int
     ) -> None:
-        with sentry_sdk.start_span(op="recording.analytics"):
+        with sentry_sdk.start_span(op="recording.analytics") as span:
             len_transactions = len(transactions)
 
+            sdk_transaction = span.containing_transaction
             sentry_sdk.set_tag("trace_view.trace", trace_id)
             sentry_sdk.set_tag("trace_view.transactions", len_transactions)
             sentry_sdk.set_tag(
                 "trace_view.transactions.grouped", format_grouped_length(len_transactions)
             )
+            sdk_transaction.set_measurement("trace_view.transactions", len_transactions)
             projects: Set[int] = set()
             for transaction in transactions:
                 projects.add(transaction["project.id"])
@@ -325,6 +327,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
             len_projects = len(projects)
             sentry_sdk.set_tag("trace_view.projects", len_projects)
             sentry_sdk.set_tag("trace_view.projects.grouped", format_grouped_length(len_projects))
+            sdk_transaction.set_measurement("trace_view.projects", len_projects)
 
     def get(self, request: HttpRequest, organization: Organization, trace_id: str) -> HttpResponse:
         if not self.has_feature(organization, request):

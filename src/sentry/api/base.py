@@ -353,6 +353,7 @@ class Endpoint(APIView):
                 description=type(self).__name__,
             ) as span:
                 span.set_data("Limit", per_page)
+                span.containing_transaction.set_measurement("query.per_page", per_page)
                 sentry_sdk.set_tag("query.per_page", per_page)
                 sentry_sdk.set_tag(
                     "query.per_page.grouped", format_grouped_length(per_page, [1, 10, 50, 100])
