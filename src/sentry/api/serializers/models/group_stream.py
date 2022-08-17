@@ -4,7 +4,7 @@ import functools
 from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, MutableMapping, Optional, Sequence
+from typing import Any, Mapping, MutableMapping, Optional, Sequence
 
 from django.conf import settings
 from django.utils import timezone
@@ -15,6 +15,7 @@ from sentry.api.serializers.models import (
     GroupSerializer,
     GroupSerializerSnuba,
 )
+from sentry.api.serializers.models.group import SeenStats
 from sentry.constants import StatsPeriod
 from sentry.models import Environment, Group
 from sentry.models.groupinbox import get_inbox_details
@@ -277,39 +278,45 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
         return result
 
-    def _get_seen_stats(self, item_list: Sequence[Group], user):
-        if not self._collapse("stats"):
-            partial_execute_seen_stats_query = functools.partial(
-                self._execute_seen_stats_query,
-                item_list=item_list,
-                environment_ids=self.environment_ids,
-                start=self.start,
-                end=self.end,
-            )
-            time_range_result = partial_execute_seen_stats_query()
-            filtered_result = (
-                partial_execute_seen_stats_query(conditions=self.conditions)
-                if self.conditions and not self._collapse("filtered")
-                else None
-            )
-            if not self._collapse("lifetime"):
-                lifetime_result = (
-                    partial_execute_seen_stats_query(start=None, end=None)
-                    if self.start or self.end
-                    else time_range_result
-                )
-            else:
-                lifetime_result = None
+    def _seen_stats_performance(
+        self, perf_issue_list: Sequence[Group], user
+    ) -> Mapping[Group, SeenStats]:
+        return super()._seen_stats_performance(perf_issue_list, user)
 
-            for item in item_list:
-                time_range_result[item].update(
-                    {
-                        "filtered": filtered_result.get(item) if filtered_result else None,
-                        "lifetime": lifetime_result.get(item) if lifetime_result else None,
-                    }
-                )
-            return time_range_result
-        return None
+    def _seen_stats_error(self, error_issue_list: Sequence[Group], user) -> Mapping[Any, SeenStats]:
+        if self._collapse("stats"):
+            return {}
+
+        partial_execute_seen_stats_query = functools.partial(
+            self._execute_seen_stats_query,
+            item_list=error_issue_list,
+            start=self.start,
+            end=self.end,
+            environment_ids=self.environment_ids,
+        )
+        time_range_result = partial_execute_seen_stats_query()
+        filtered_result = (
+            partial_execute_seen_stats_query(conditions=self.conditions)
+            if self.conditions and not self._collapse("filtered")
+            else None
+        )
+        if not self._collapse("lifetime"):
+            lifetime_result = (
+                partial_execute_seen_stats_query(start=None, end=None)
+                if self.start or self.end
+                else time_range_result
+            )
+        else:
+            lifetime_result = None
+
+        for item in error_issue_list:
+            time_range_result[item].update(
+                {
+                    "filtered": filtered_result.get(item) if filtered_result else None,
+                    "lifetime": lifetime_result.get(item) if lifetime_result else None,
+                }
+            )
+        return time_range_result
 
     def query_tsdb(
         self,

@@ -830,7 +830,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         end=None,
         conditions=None,
         environment_ids=None,
-    ):
+    ) -> Mapping[Group, SeenStats]:
         project_ids = list({item.project_id for item in item_list})
         group_ids = [item.id for item in item_list]
         aggregations = [
