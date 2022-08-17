@@ -54,6 +54,7 @@ class CloudSpannerRowAlreadyExists(Exception):
     """
     Exception raised when we insert a row that already exists.
     """
+
     pass
 
 
@@ -61,6 +62,7 @@ class IDGenerationError(Exception):
     """
     Exception raised when the same id is generated consecutively.
     """
+
     pass
 
 
@@ -219,8 +221,10 @@ class RawCloudSpannerIndexer(StringIndexer):
 
         try:
             self.database.run_in_transaction(insert_uow, rows_to_insert)
-        except (google.api_core.exceptions.AlreadyExists,
-                google.api_core.exceptions.InvalidArgument):
+        except (
+            google.api_core.exceptions.AlreadyExists,
+            google.api_core.exceptions.InvalidArgument,
+        ):
             raise CloudSpannerRowAlreadyExists
         else:
             metrics.incr(
