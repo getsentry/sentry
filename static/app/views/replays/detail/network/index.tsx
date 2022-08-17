@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import FileSize from 'sentry/components/fileSize';
 import {PanelTable, PanelTableHeader} from 'sentry/components/panels';
-import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs, showPlayerTime} from 'sentry/components/replays/utils';
 import Tooltip from 'sentry/components/tooltip';
@@ -95,7 +94,11 @@ function NetworkList({replayRecord, networkSpans}: Props) {
   };
 
   const columns = [
-    <SortItem key="status">{t('Status')}</SortItem>,
+    <SortItem key="status">
+      <UnstyledButton onClick={() => handleSort('status', row => row.data.statusCode)}>
+        {t('Status')} {sortArrow('status')}
+      </UnstyledButton>
+    </SortItem>,
     <SortItem key="path">
       <UnstyledButton onClick={() => handleSort('description')}>
         {t('Path')} {sortArrow('description')}
@@ -138,7 +141,11 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     return (
       <Fragment key={index}>
         <Item center {...columnHandlers}>
-          <StatusPlaceHolder height="20px" />
+          {network.data.statusCode ? (
+            <StatusContainer>{network.data.statusCode}</StatusContainer>
+          ) : (
+            <EmptyText>({t('Missing status code')})</EmptyText>
+          )}
         </Item>
         <Item color="gray400" {...columnHandlers}>
           {network.description ? (
@@ -248,10 +255,17 @@ const StyledPanelTable = styled(PanelTable)<{columns: number}>`
   }
 `;
 
-const StatusPlaceHolder = styled(Placeholder)`
+const StatusContainer = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: 17px;
   max-width: 40px;
+  padding: ${space(0.25)} ${space(1)};
+  background-color: ${p => p.theme.backgroundSecondary};
+  color: ${p => p.theme.textColor};
+  font-size: ${p => p.theme.fontSizeSmall};
+  line-height: 1.3;
+  display: flex;
+  align-items: center;
 `;
 
 const Text = styled('p')`
