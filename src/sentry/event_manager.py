@@ -1897,6 +1897,101 @@ def _calculate_span_grouping(jobs, projects):
             sentry_sdk.capture_exception()
 
 
+@metrics.wraps("save_event.get_or_create_performance_group")
+def _get_or_create_performance_group(jobs, projects):
+    # TODO: batch operations (like rate limiting) so we don't repeat for each job
+    for job in jobs:
+        # FEATURE FLAG RANDOMIZER
+        # check options to see if we should be creating performance issues for this org
+        rate = options.get("incidents-performance.rollout-rate")
+        if (rate and rate > random.random()) or True:
+
+            # TODO: get fingerprint
+            existing_grouphash = job.get("fingerprint")
+            project = job["event"].project
+
+            # use fingerprint to check if group exists
+            if existing_grouphash is None:
+
+                # GROUP DOES NOT EXIST
+                with sentry_sdk.start_span(
+                    op="event_manager.create_group_transaction"
+                ) as span, metrics.timer(
+                    "event_manager.create_group_transaction"
+                ) as metric_tags, transaction.atomic():
+                    span.set_tag("create_group_transaction.outcome", "no_group")
+                    metric_tags["create_group_transaction.outcome"] = "no_group"
+
+                    try:
+                        short_id = project.next_short_id()
+                    except OperationalError:
+                        metrics.incr(
+                            "next_short_id.timeout",
+                            tags={"platform": "unknown"},
+                        )
+                        sentry_sdk.capture_message("short_id.timeout")
+                        raise HashDiscarded("Timeout when getting next_short_id")
+
+                    # TODO: RATE LIMITER
+                    # from sentry.sentry_metrics.configuration import UseCaseKey
+                    # from sentry.sentry_metrics.indexer.base import KeyCollection
+                    # from sentry.sentry_metrics.indexer.ratelimiters import writes_limiter
+                    # with writes_limiter.check_write_limits(UseCaseKey("performance"), KeyCollection({job.organization.id: {job.organization.name}})) as writes_limiter_state:
+                    #     pass
+
+                    group = Group.objects.create(
+                        project=project,
+                        short_id=short_id,
+                        first_release_id=None,
+                    )
+
+                    is_new = True
+                    is_regression = False
+
+                    span.set_tag("create_group_transaction.outcome", "new_group")
+                    metric_tags["create_group_transaction.outcome"] = "new_group"
+
+                    metrics.incr(
+                        "group.created",
+                        skip_internal=True,
+                        tags={"platform": "unknown"},
+                    )
+
+                    job["group"] = group
+                    job["event"].group = job["group"]
+                    job["is_new"] = is_new
+                    job["is_regression"] = is_regression
+                    continue
+
+            # GROUP EXISTS
+            existing_grouphash = GroupHash.objects.get(project=project, hash=None)
+
+            group = Group.objects.filter(id=existing_grouphash.group_id)
+
+            is_new = False
+            kwargs = {
+                "platform": job["platform"],
+                "message": job["event"].search_message,
+                "culprit": job["culprit"],
+                "logger": job["logger_name"],
+                "level": LOG_LEVELS_MAP.get(job["level"]),
+                "last_seen": job["event"].datetime,
+                "first_seen": job["event"].datetime,
+                "active_at": job["event"].datetime,
+            }
+
+            is_regression = _process_existing_aggregate(
+                group=group, event=job["event"], data=kwargs, release=None
+            )
+
+            # TODO: make groups array
+            # return group IDs we've associated with the transaction
+            job["group"] = group
+            job["event"].group = job["group"]
+            job["is_new"] = is_new
+            job["is_regression"] = is_regression
+
+
 @metrics.wraps("event_manager.save_transaction_events")
 def save_transaction_events(jobs, projects):
     with metrics.timer("event_manager.save_transactions.collect_organization_ids"):
@@ -1920,12 +2015,16 @@ def save_transaction_events(jobs, projects):
         for job in jobs:
             job["project_id"] = job["data"]["project"]
             job["raw"] = False
-            job["group"] = None
-            job["is_new"] = False
-            job["is_regression"] = False
+            # job["group"] = None <- these are now set in _get_or_create_performance_group
+            # job["is_new"] = False
+            # job["is_regression"] = False
             job["is_new_group_environment"] = False
 
     _pull_out_data(jobs, projects)
+
+    # NEW CODEPATH HERE
+    _get_or_create_performance_group(jobs, projects)
+
     _get_or_create_release_many(jobs, projects)
     _get_event_user_many(jobs, projects)
     _derive_plugin_tags_many(jobs, projects)
