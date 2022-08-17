@@ -831,6 +831,10 @@ class QueryBuilder:
 
     @property
     def custom_measurement_map(self) -> List[MetricMeta]:
+        # Both projects & org are required, but might be missing for the search parser
+        if "project_id" not in self.params or self.organization_id is None:
+            return []
+
         if self._custom_measurement_cache is None:
             from sentry.snuba.metrics.datasource import get_custom_measurements
 
