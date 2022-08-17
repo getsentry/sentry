@@ -1,5 +1,5 @@
 import isArray from 'lodash/isArray';
-import {createStore, StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
 import {Indicator} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
@@ -13,6 +13,8 @@ import {
   GroupStats,
 } from 'sentry/types';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+
+import {CommonStoreDefinition} from './types';
 
 function showAlert(msg: string, type: Indicator['type']) {
   IndicatorStore.addMessage(msg, type, {duration: 4000});
@@ -40,7 +42,7 @@ interface InternalDefinition {
   updateActivity: (groupId: string, id: string, data: Partial<Activity>) => void;
 }
 
-interface GroupStoreDefinition extends StoreDefinition, InternalDefinition {
+interface GroupStoreDefinition extends CommonStoreDefinition<Item[]>, InternalDefinition {
   add: (items: Item[]) => void;
   addStatus: (id: string, status: string) => void;
   clearStatus: (id: string, status: string) => void;
@@ -272,6 +274,10 @@ const storeConfig: GroupStoreDefinition = {
             ...pendingById[item.id].reduce((a, change) => ({...a, ...change.data}), {}),
           }
     );
+  },
+
+  getState() {
+    return this.getAllItems();
   },
 
   onAssignTo(_changeId, itemId, _data) {
