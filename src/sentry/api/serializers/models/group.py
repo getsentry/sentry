@@ -105,10 +105,6 @@ class GroupStatusDetailsResponseOptional(TypedDict, total=False):
     info: JSONData
 
 
-class GroupStatusDetailsResponse(GroupStatusDetailsResponseOptional):
-    pass
-
-
 class GroupProjectResponse(TypedDict):
     id: str
     name: str
