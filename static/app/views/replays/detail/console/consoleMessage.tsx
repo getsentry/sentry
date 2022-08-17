@@ -114,8 +114,8 @@ export function MessageFormatter({breadcrumb}: MessageFormatterProps) {
 interface ConsoleMessageProps extends MessageFormatterProps {
   hasOccurred: boolean;
   isActive: boolean;
+  isCurrent: boolean;
   isLast: boolean;
-  isSelected: boolean;
   startTimestampMs: number;
 }
 function ConsoleMessage({
@@ -123,7 +123,7 @@ function ConsoleMessage({
   isActive = false,
   hasOccurred,
   isLast,
-  isSelected,
+  isCurrent,
   startTimestampMs = 0,
 }: ConsoleMessageProps) {
   const ICONS = {
@@ -156,7 +156,7 @@ function ConsoleMessage({
         hasOccurred={hasOccurred}
         onMouseOver={handleOnMouseOver}
         onMouseOut={handleOnMouseOut}
-        aria-current={isSelected}
+        aria-current={isCurrent}
       >
         <ErrorBoundary mini>
           <MessageFormatter breadcrumb={breadcrumb} />
