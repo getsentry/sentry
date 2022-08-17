@@ -31,7 +31,7 @@ from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
 from sentry.utils.http import absolute_uri, is_valid_origin, origin_from_request
 from sentry.utils.numbers import format_grouped_length
-from sentry.utils.sdk import capture_exception, set_measurement
+from sentry.utils.sdk import capture_exception
 
 from .authentication import ApiKeyAuthentication, TokenAuthentication
 from .paginator import BadPaginationError, Paginator
@@ -353,7 +353,6 @@ class Endpoint(APIView):
                 description=type(self).__name__,
             ) as span:
                 span.set_data("Limit", per_page)
-                set_measurement("query.per_page", per_page)
                 sentry_sdk.set_tag("query.per_page", per_page)
                 sentry_sdk.set_tag(
                     "query.per_page.grouped", format_grouped_length(per_page, [1, 10, 50, 100])
