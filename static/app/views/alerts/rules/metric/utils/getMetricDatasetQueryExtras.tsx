@@ -25,7 +25,7 @@ export function getMetricDatasetQueryExtras({
 
   const queryExtras: Record<string, string> =
     hasMetricDataset && !disableMetricDataset
-      ? {dataset: getMEPAlertsDataset(dataset, !!newAlertOrQuery)}
+      ? {dataset: getMEPAlertsDataset(dataset, newAlertOrQuery)}
       : {};
 
   return queryExtras;
