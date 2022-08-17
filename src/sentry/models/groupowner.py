@@ -1,6 +1,6 @@
 from collections import defaultdict
 from enum import Enum
-from typing import Any, List, TypedDict
+from typing import Any, List, Optional, TypedDict
 
 from django.conf import settings
 from django.db import models
@@ -10,6 +10,7 @@ from sentry import features
 from sentry.db.models import FlexibleForeignKey, Model
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.group import Group
+from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 
 
@@ -27,12 +28,13 @@ GROUP_OWNER_TYPE = {
 class OwnersSerialized(TypedDict):
     type: GroupOwnerType
     owner: str
-    dateAdded: models.DateTimeField
+    date_added: models.DateTimeField
 
 
 class OwnersSerializedWithCommits(TypedDict):
     type: GroupOwnerType
     author: CommitAuthor
+    release: Optional[Release]
     commits: List[ReleaseCommit]
 
 
@@ -80,7 +82,7 @@ class GroupOwner(Model):
         return ActorTuple.from_actor_identifier(self.owner_id())
 
 
-def get_owner_details(group_list: List[Group]) -> List[OwnersSerialized]:
+def get_owner_details(group_list: List[Group], user: Any) -> List[OwnersSerialized]:
     group_ids = [g.id for g in group_list]
     group_owners = GroupOwner.objects.filter(group__in=group_ids)
     owner_details = defaultdict(list)
@@ -94,7 +96,7 @@ def get_owner_details(group_list: List[Group]) -> List[OwnersSerialized]:
         )
 
     org = group_list[0].project.organization if len(group_list) > 0 else None
-    if org and features.has("organizations:release-committer-assignees", org):
+    if org and features.has("organizations:release-committer-assignees", org, user):
         for g in group_list:
             # TODO(snigdha): optimize this to bulk grab committer data for all groups
             release_committers_owners = get_release_committers_for_group(g)
@@ -145,6 +147,7 @@ def get_release_committers_for_group(group: Group, include_commits: bool = False
         return [
             OwnersSerializedWithCommits(
                 type="releaseCommit",
+                release=group.first_release,
                 author=rc_data["author"],
                 commits=rc_data["commits"],
             )

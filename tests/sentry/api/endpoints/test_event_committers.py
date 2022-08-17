@@ -184,9 +184,13 @@ class EventCommittersTest(APITestCase):
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert len(response.data["committers"]) == 0
+
         releaseCommitters = response.data["releaseCommitters"]
         assert len(releaseCommitters) == 1
         assert releaseCommitters[0]["author"]["id"] == str(user2.id)
+
         commits = releaseCommitters[0]["commits"]
         assert len(commits) == 1
         assert commits[0]["id"] == "a" * 40
+
+        assert releaseCommitters[0]["release"]["id"] == release.id

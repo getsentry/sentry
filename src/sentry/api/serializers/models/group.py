@@ -1095,7 +1095,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 attrs[item].update({"inbox": inbox_stats.get(item.id)})
 
         if self._expand("owners"):
-            owner_details = get_owner_details(item_list)
+            owner_details = get_owner_details(item_list, user)
             for item in item_list:
                 attrs[item].update({"owners": owner_details.get(item.id)})
 
