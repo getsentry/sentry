@@ -353,7 +353,7 @@ class GroupManager(BaseManager):
         }
 
 
-class GroupCategory(Enum):
+class GroupType(Enum):
     ERROR = 1
     PERFORMANCE_N_PLUS_ONE = 1000
     PERFORMANCE_SLOW_SPAN = 1001
@@ -406,11 +406,11 @@ class Group(Model):
     data = GzippedDictField(blank=True, null=True)
     short_id = BoundedBigIntegerField(null=True)
     type = BoundedPositiveIntegerField(
-        default=GroupCategory.ERROR.value,
+        default=GroupType.ERROR.value,
         choices=(
-            (GroupCategory.ERROR.value, _("Error")),
-            (GroupCategory.PERFORMANCE_N_PLUS_ONE.value, _("N Plus One")),
-            (GroupCategory.PERFORMANCE_SLOW_SPAN.value, _("Slow Span")),
+            (GroupType.ERROR.value, _("Error")),
+            (GroupType.PERFORMANCE_N_PLUS_ONE.value, _("N Plus One")),
+            (GroupType.PERFORMANCE_SLOW_SPAN.value, _("Slow Span")),
         ),
     )
 
