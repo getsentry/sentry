@@ -50,6 +50,7 @@ function ReplayTable({isFetching, replays, showProjectColumn, sort}: Props) {
     <StyledPanelTable
       isLoading={isFetching}
       isEmpty={replays?.length === 0}
+      showProjectColumn={showProjectColumn}
       headers={[
         t('Session'),
         showProjectColumn && minWidthIsSmall ? t('Project') : null,
@@ -95,7 +96,7 @@ function ReplayTable({isFetching, replays, showProjectColumn, sort}: Props) {
         </SortLink>,
         t('Errors'),
         t('Interest'),
-      ]}
+      ].filter(Boolean)}
     >
       {replays?.map(replay => (
         <ReplayTableRow
@@ -158,8 +159,11 @@ function ReplayTableRow({
   );
 }
 
-const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: minmax(0, 1fr) max-content max-content max-content max-content max-content;
+const StyledPanelTable = styled(PanelTable)<{showProjectColumn: boolean}>`
+  ${p =>
+    p.showProjectColumn
+      ? `grid-template-columns: minmax(0, 1fr) max-content max-content max-content max-content max-content;`
+      : `grid-template-columns: minmax(0, 1fr) max-content max-content max-content max-content;`}
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: minmax(0, 1fr) max-content max-content max-content max-content;
