@@ -14,6 +14,7 @@ import {PageContent} from 'sentry/styles/organization';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
+import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {decodeScalar} from 'sentry/utils/queryString';
 
@@ -62,6 +63,7 @@ function PageLayout(props: Props) {
   const projectId = decodeScalar(location.query.project);
   const transactionName = getTransactionName(location);
   const [error, setError] = useState<string | undefined>();
+  const metricsCardinality = useMetricsCardinalityContext();
   const [transactionThreshold, setTransactionThreshold] = useState<number | undefined>();
   const [transactionThresholdMetric, setTransactionThresholdMetric] = useState<
     TransactionThresholdMetric | undefined
@@ -108,6 +110,7 @@ function PageLayout(props: Props) {
                     setTransactionThreshold(threshold);
                     setTransactionThresholdMetric(metric);
                   }}
+                  metricsCardinality={metricsCardinality}
                 />
                 <Layout.Body>
                   {defined(error) && (

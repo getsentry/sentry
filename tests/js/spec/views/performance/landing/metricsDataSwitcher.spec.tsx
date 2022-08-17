@@ -19,10 +19,17 @@ export function addMetricsDataMock(settings?: {
 
   MockApiClient.addMockResponse({
     method: 'GET',
-    url: `/organizations/org-slug/events-metrics-compatibility/`,
+    url: `/organizations/org-slug/metrics-compatibility/`,
     body: {
       compatible_projects: [],
       dynamic_sampling_projects,
+    },
+  });
+
+  MockApiClient.addMockResponse({
+    method: 'GET',
+    url: `/organizations/org-slug/metrics-compatibility-sums/`,
+    body: {
       sum: {
         metrics: metricsCount,
         metrics_unparam: unparamCount,

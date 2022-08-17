@@ -12,14 +12,13 @@ import {t, tct} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {Organization, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
+import {MetricDataSwitcherOutcome} from 'sentry/utils/performance/contexts/metricsCardinality';
 
 import {
   areMultipleProjectsSelected,
   createUnnamedTransactionsDiscoverTarget,
   getSelectedProjectPlatformsArray,
 } from '../utils';
-
-import {MetricDataSwitcherOutcome} from './metricsDataSwitcher';
 
 interface MetricEnhancedDataAlertProps extends MetricDataSwitcherOutcome {
   eventView: EventView;
