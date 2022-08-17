@@ -36,7 +36,17 @@ describe('SwitchOrganization', function () {
     expect(screen.getByRole('list')).toBeInTheDocument();
 
     expect(screen.getByText('Organization 1')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'org slug Organization 1'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/'
+    );
+
     expect(screen.getByText('Organization 2')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'org2 Organization 2'})).toHaveAttribute(
+      'href',
+      '/organizations/org2/'
+    );
+
     jest.useRealTimers();
   });
 
@@ -74,6 +84,43 @@ describe('SwitchOrganization', function () {
     const org2Link = screen.getByRole('link', {name: 'org2 Organization 2'});
     expect(org2Link).toBeInTheDocument();
     expect(org2Link).toHaveAttribute('href', 'http://org2.sentry.io');
+    jest.useRealTimers();
+  });
+
+  it('does not use organizationUrl when customer domain is disabled', function () {
+    jest.useFakeTimers();
+    render(
+      mountWithOrg(
+        <SwitchOrganization
+          canCreateOrganization={false}
+          organizations={[
+            TestStubs.Organization({name: 'Organization 1', slug: 'org1'}),
+            TestStubs.Organization({
+              name: 'Organization 2',
+              slug: 'org2',
+              links: {
+                organizationUrl: 'http://org2.sentry.io',
+                regionUrl: 'http://eu.sentry.io',
+              },
+              features: [],
+            }),
+          ]}
+        />
+      )
+    );
+
+    userEvent.hover(screen.getByTestId('sidebar-switch-org'));
+    act(() => void jest.advanceTimersByTime(500));
+
+    expect(screen.getByRole('list')).toBeInTheDocument();
+
+    const org1Link = screen.getByRole('link', {name: 'org1 Organization 1'});
+    expect(org1Link).toBeInTheDocument();
+    expect(org1Link).toHaveAttribute('href', '/organizations/org1/');
+
+    const org2Link = screen.getByRole('link', {name: 'org2 Organization 2'});
+    expect(org2Link).toBeInTheDocument();
+    expect(org2Link).toHaveAttribute('href', '/organizations/org2/');
     jest.useRealTimers();
   });
 
@@ -115,6 +162,53 @@ describe('SwitchOrganization', function () {
     const org2Link = screen.getByRole('link', {name: 'org2 Organization 2'});
     expect(org2Link).toBeInTheDocument();
     expect(org2Link).toHaveAttribute('href', 'http://org2.sentry.io');
+    jest.useRealTimers();
+  });
+
+  it('does not use sentryUrl when current org does not have customer domain feature', function () {
+    jest.useFakeTimers();
+    const org2 = TestStubs.Organization({
+      name: 'Organization 2',
+      slug: 'org2',
+      links: {
+        organizationUrl: 'http://org2.sentry.io',
+        regionUrl: 'http://eu.sentry.io',
+      },
+      features: [],
+    });
+    render(
+      mountWithOrg(
+        <SwitchOrganization
+          canCreateOrganization={false}
+          organizations={[
+            TestStubs.Organization({name: 'Organization 1', slug: 'org1'}),
+            TestStubs.Organization({
+              name: 'Organization 3',
+              slug: 'org3',
+              links: {
+                organizationUrl: 'http://org3.sentry.io',
+                regionUrl: 'http://eu.sentry.io',
+              },
+              features: ['customer-domains'],
+            }),
+          ]}
+        />,
+        org2
+      )
+    );
+
+    userEvent.hover(screen.getByTestId('sidebar-switch-org'));
+    act(() => void jest.advanceTimersByTime(500));
+
+    expect(screen.getByRole('list')).toBeInTheDocument();
+
+    const org1Link = screen.getByRole('link', {name: 'org1 Organization 1'});
+    expect(org1Link).toBeInTheDocument();
+    expect(org1Link).toHaveAttribute('href', '/organizations/org1/');
+
+    const org3Link = screen.getByRole('link', {name: 'org3 Organization 3'});
+    expect(org3Link).toBeInTheDocument();
+    expect(org3Link).toHaveAttribute('href', 'http://org3.sentry.io');
     jest.useRealTimers();
   });
 
