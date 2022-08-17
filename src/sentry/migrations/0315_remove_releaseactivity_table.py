@@ -16,12 +16,12 @@ class Migration(CheckedMigration):
     # - Adding indexes to large tables. Since this can take a long time, we'd generally prefer to
     #   have ops run this and not block the deploy. Note that while adding an index is a schema
     #   change, it's completely safe to run the operation after the code has deployed.
-    is_dangerous = True
+    is_dangerous = False
 
     # This flag is used to decide whether to run this migration in a transaction or not. Generally
     # we don't want to run in a transaction here, since for long running operations like data
     # back-fills this results in us locking an increasing number of rows until we finally commit.
-    atomic = False
+    atomic = True
 
     dependencies = [
         ("sentry", "0314_bit_int_for_org_and_project_id"),
