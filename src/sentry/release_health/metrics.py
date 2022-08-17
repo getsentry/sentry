@@ -221,7 +221,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         for row in count_data:
             project_data = data.setdefault(row["project_id"], {})
-            tag_value = reverse_resolve(USE_CASE_ID, row[session_status])
+            tag_value = reverse_resolve(USE_CASE_ID, org_id, row[session_status])
             project_data[tag_value] = row["value"]
 
         return data
@@ -644,7 +644,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         ) -> Callable[[Mapping[str, Union[int, str]]], ProjectOrRelease]:
             def f(row: Mapping[str, Union[int, str]]) -> ProjectOrRelease:
                 if include_releases:
-                    return row["project_id"], reverse_resolve(USE_CASE_ID, row.get(release_column_name))  # type: ignore
+                    return row["project_id"], reverse_resolve(USE_CASE_ID, org_id, row.get(release_column_name))  # type: ignore
                 else:
                     return row["project_id"]  # type: ignore
 
@@ -706,7 +706,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         )
 
         def extract_row_info(row: Mapping[str, Union[OrganizationId, str]]) -> ReleaseName:
-            return reverse_resolve(USE_CASE_ID, row.get(release_column_name))  # type: ignore
+            return reverse_resolve(USE_CASE_ID, organization_id, row.get(release_column_name))  # type: ignore
 
         return {extract_row_info(row) for row in result["data"]}
 
@@ -763,7 +763,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             # See https://github.com/getsentry/snuba/blob/8680523617e06979427bfa18c6b4b4e8bf86130f/snuba/datasets/entities/metrics.py#L184 for quantiles
             key = (
                 row["project_id"],
-                reverse_resolve(USE_CASE_ID, row[release_column_name]),
+                reverse_resolve(USE_CASE_ID, org_id, row[release_column_name]),
             )
             rv_durations[key] = {
                 "duration_p50": row["percentiles"][0],
@@ -811,7 +811,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             ),
             referrer="release_health.metrics.get_errored_sessions_for_overview",
         )["data"]:
-            key = row["project_id"], reverse_resolve(USE_CASE_ID, row[release_column_name])
+            key = row["project_id"], reverse_resolve(USE_CASE_ID, org_id, row[release_column_name])
             rv_errored_sessions[key] = row["value"]
 
         return rv_errored_sessions
@@ -866,8 +866,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         )["data"]:
             key = (
                 row["project_id"],
-                reverse_resolve(USE_CASE_ID, row[release_column_name]),
-                reverse_resolve(USE_CASE_ID, row[session_status_column_name]),
+                reverse_resolve(USE_CASE_ID, org_id, row[release_column_name]),
+                reverse_resolve(USE_CASE_ID, org_id, row[session_status_column_name]),
             )
             rv_sessions[key] = row["value"]
 
@@ -928,7 +928,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             ),
             referrer="release_health.metrics.get_users_and_crashed_users_for_overview",
         )["data"]:
-            release = reverse_resolve(USE_CASE_ID, row[release_column_name])
+            release = reverse_resolve(USE_CASE_ID, org_id, row[release_column_name])
             for subkey in ("crashed_users", "all_users"):
                 key = (
                     row["project_id"],
@@ -1013,7 +1013,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 (parse_snuba_datetime(row["bucketed_time"]) - stats_start).total_seconds()
                 / stats_rollup
             )
-            key = row["project_id"], reverse_resolve(USE_CASE_ID, row[release_column_name])
+            key = row["project_id"], reverse_resolve(USE_CASE_ID, org_id, row[release_column_name])
             timeseries = rv[key]
             if time_bucket < len(timeseries):
                 timeseries[time_bucket][1] = row["value"]
@@ -1396,7 +1396,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         )
 
         def extract_row_info(row: Mapping[str, Union[OrganizationId, str]]) -> ProjectRelease:
-            return row.get("project_id"), reverse_resolve(USE_CASE_ID, row.get(release_column_name))  # type: ignore
+            return row.get("project_id"), reverse_resolve(USE_CASE_ID, org_id, row.get(release_column_name))  # type: ignore
 
         return [extract_row_info(row) for row in result["data"]]
 
@@ -1460,7 +1460,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         for row in rows:
             result[
                 row["project_id"],
-                reverse_resolve(USE_CASE_ID, row[release_column_name]),
+                reverse_resolve(USE_CASE_ID, org_id, row[release_column_name]),
             ] = row["oldest"]
 
         return result
@@ -1641,7 +1641,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         for row in session_series_data:
             dt = parse_snuba_datetime(row["bucketed_time"])
             target = series[dt]
-            status = reverse_resolve(USE_CASE_ID, row[session_status_key])
+            status = reverse_resolve(USE_CASE_ID, org_id, row[session_status_key])
             value = int(row["value"])
             if status == "init":
                 target["sessions"] = value
@@ -2252,6 +2252,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         )
 
         def extract_row_info(row: Mapping[str, Union[OrganizationId, str]]) -> ProjectRelease:
-            return row.get("project_id"), reverse_resolve(USE_CASE_ID, row.get(release_column_name))  # type: ignore
+            return row.get("project_id"), reverse_resolve(USE_CASE_ID, org_id, row.get(release_column_name))  # type: ignore
 
         return [extract_row_info(row) for row in rows["data"]]
