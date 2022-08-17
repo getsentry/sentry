@@ -586,16 +586,16 @@ def report_metrics_for_detectors(
     has_issues = issue_count > 0
 
     if has_issues:
-        sdk_span.containing_transaction.set_tag("_pi_all_issue_count", len(issue_count))
+        sdk_span.containing_transaction.set_tag("_pi_all_issue_count", issue_count)
         metrics.incr(
             "performance.performance_issue.aggregate",
-            len(issue_count),
+            issue_count,
         )
         if event_id:
             sdk_span.containing_transaction.set_tag("_pi_transaction", event_id)
 
-    detected_tags["is_main_project"] = event.project_id in [1]
-    detected_tags["project_id_bucket"] = event.project_id % 10
+    detected_tags["is_main_project"] = event.get("project_id", None) in [1]
+    detected_tags["project_id_bucket"] = event.get("project_id", None) % 10
 
     metrics.incr(
         "performance.performance_issue.detected",
