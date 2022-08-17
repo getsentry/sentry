@@ -1,7 +1,7 @@
 from sentry import analytics
 
 
-class ActiveReleaseNotificationSent(analytics.Event):
+class ActiveReleaseNotificationDryRun(analytics.Event):
     type = "active_release_notification.dry_run"
 
     attributes = (
@@ -13,4 +13,4 @@ class ActiveReleaseNotificationSent(analytics.Event):
     )
 
 
-analytics.register(ActiveReleaseNotificationSent)
+analytics.register(ActiveReleaseNotificationDryRun)
