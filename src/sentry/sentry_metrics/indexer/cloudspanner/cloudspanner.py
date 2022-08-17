@@ -410,7 +410,7 @@ class RawCloudSpannerIndexer(StringIndexer):
         else:
             return int(self.__codec.decode(results_list[0][0]))
 
-    def reverse_resolve(self, use_case_id: UseCaseKey, id: int) -> Optional[str]:
+    def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
         """Resolve an integer ID to a string"""
         with self.database.snapshot() as snapshot:
             results = snapshot.read(

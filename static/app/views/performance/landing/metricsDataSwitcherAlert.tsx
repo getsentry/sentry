@@ -12,14 +12,13 @@ import {t, tct} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {Organization, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
+import {MetricDataSwitcherOutcome} from 'sentry/utils/performance/contexts/metricsCardinality';
 
 import {
   areMultipleProjectsSelected,
   createUnnamedTransactionsDiscoverTarget,
   getSelectedProjectPlatformsArray,
 } from '../utils';
-
-import {MetricDataSwitcherOutcome} from './metricsDataSwitcher';
 
 interface MetricEnhancedDataAlertProps extends MetricDataSwitcherOutcome {
   eventView: EventView;
@@ -100,6 +99,22 @@ export function MetricsDataSwitcherAlert(
       </Link>
     );
     if (areMultipleProjectsSelected(props.eventView)) {
+      if ((props.compatibleProjects ?? []).length === 0) {
+        return (
+          <Alert
+            type="warning"
+            showIcon
+            data-test-id="landing-mep-alert-multi-project-all-incompatible"
+          >
+            {tct(
+              `A few projects are incompatible with server side sampling. To enable this feature [updateSDK].`,
+              {
+                updateSDK,
+              }
+            )}
+          </Alert>
+        );
+      }
       return (
         <Alert
           type="warning"

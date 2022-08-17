@@ -1,7 +1,7 @@
 import isArray from 'lodash/isArray';
-import isUndefined from 'lodash/isUndefined';
 import {createStore, StoreDefinition} from 'reflux';
 
+import {Indicator} from 'sentry/actionCreators/indicator';
 import GroupActions from 'sentry/actions/groupActions';
 import {t} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
@@ -15,7 +15,7 @@ import {
 } from 'sentry/types';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-function showAlert(msg, type) {
+function showAlert(msg: string, type: Indicator['type']) {
   IndicatorStore.addMessage(msg, type, {duration: 4000});
 }
 
@@ -163,28 +163,25 @@ const storeConfig: GroupStoreDefinition = {
   },
 
   addStatus(id, status) {
-    if (isUndefined(this.statuses[id])) {
+    if (this.statuses[id] === undefined) {
       this.statuses[id] = {};
     }
     this.statuses[id][status] = true;
   },
 
   clearStatus(id, status) {
-    if (isUndefined(this.statuses[id])) {
+    if (this.statuses[id] === undefined) {
       return;
     }
     this.statuses[id][status] = false;
   },
 
   hasStatus(id, status) {
-    if (isUndefined(this.statuses[id])) {
-      return false;
-    }
-    return this.statuses[id][status] || false;
+    return this.statuses[id]?.[status] || false;
   },
 
-  indexOfActivity(group_id, id) {
-    const group = this.get(group_id);
+  indexOfActivity(groupId, id) {
+    const group = this.get(groupId);
     if (!group) {
       return -1;
     }
@@ -216,13 +213,13 @@ const storeConfig: GroupStoreDefinition = {
     this.trigger(new Set([id]));
   },
 
-  updateActivity(group_id, id, data) {
-    const group = this.get(group_id);
+  updateActivity(groupId, id, data) {
+    const group = this.get(groupId);
     if (!group) {
       return;
     }
 
-    const index = this.indexOfActivity(group_id, id);
+    const index = this.indexOfActivity(groupId, id);
     if (index === -1) {
       return;
     }
@@ -234,8 +231,8 @@ const storeConfig: GroupStoreDefinition = {
     this.trigger(new Set([group.id]));
   },
 
-  removeActivity(group_id, id) {
-    const group = this.get(group_id);
+  removeActivity(groupId, id) {
+    const group = this.get(groupId);
     if (!group) {
       return -1;
     }
@@ -256,33 +253,7 @@ const storeConfig: GroupStoreDefinition = {
   },
 
   get(id) {
-    // TODO(ts) This needs to be constrained further. It was left as any
-    // because the PendingChanges signatures and this were not aligned.
-    const pendingForId: any[] = [];
-    this.pendingChanges.forEach(change => {
-      if (change.id === id) {
-        pendingForId.push(change);
-      }
-    });
-
-    for (let i = 0; i < this.items.length; i++) {
-      if (this.items[i].id === id) {
-        let rItem = this.items[i];
-        if (pendingForId.length) {
-          // copy the object so dirty state doesnt mutate original
-          rItem = {...rItem};
-
-          for (let c = 0; c < pendingForId.length; c++) {
-            rItem = {
-              ...rItem,
-              ...pendingForId[c].params,
-            };
-          }
-        }
-        return rItem;
-      }
-    }
-    return undefined;
+    return this.getAllItems().find(item => item.id === id);
   },
 
   getAllItemIds() {
@@ -293,7 +264,7 @@ const storeConfig: GroupStoreDefinition = {
     // regroup pending changes by their itemID
     const pendingById = {};
     this.pendingChanges.forEach(change => {
-      if (isUndefined(pendingById[change.id])) {
+      if (pendingById[change.id] === undefined) {
         pendingById[change.id] = [];
       }
       pendingById[change.id].push(change);
@@ -301,7 +272,7 @@ const storeConfig: GroupStoreDefinition = {
 
     return this.items.map(item => {
       let rItem = item;
-      if (!isUndefined(pendingById[item.id])) {
+      if (pendingById[item.id] !== undefined) {
         // copy the object so dirty state doesnt mutate original
         rItem = {...rItem};
         pendingById[item.id].forEach(change => {
@@ -442,10 +413,7 @@ const storeConfig: GroupStoreDefinition = {
    * If itemIds is undefined, returns all ids in the store
    */
   _itemIdsOrAll(itemIds) {
-    if (isUndefined(itemIds)) {
-      itemIds = this.items.map(item => item.id);
-    }
-    return itemIds;
+    return itemIds === undefined ? this.getAllItemIds() : itemIds;
   },
 
   onUpdate(changeId, itemIds, data) {

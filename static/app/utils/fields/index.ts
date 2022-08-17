@@ -759,12 +759,12 @@ export const FIELDS: Record<FieldKey & AggregationKey & MobileVital, FieldDefini
     valueType: FieldValueType.DATE,
   },
   [FieldKey.TIMESTAMP_TO_HOUR]: {
-    desc: t('Rounded down to the nearest day'),
+    desc: t('Rounded down to the nearest hour'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.DATE,
   },
   [FieldKey.TIMESTAMP_TO_DAY]: {
-    desc: t('Rounded down to the nearest hour'),
+    desc: t('Rounded down to the nearest day'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.DATE,
   },
@@ -784,7 +784,7 @@ export const FIELDS: Record<FieldKey & AggregationKey & MobileVital, FieldDefini
     valueType: FieldValueType.STRING,
   },
   [FieldKey.TRACE_SPAN]: {
-    desc: t('Span identification number of the root span t('),
+    desc: t('Span identification number of the root span'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
