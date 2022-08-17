@@ -425,19 +425,20 @@ class SmartSearchBar extends Component<Props, State> {
   async doSearch() {
     this.blur();
 
+    const query = removeSpace(this.state.query);
+    const {organization, savedSearchType, searchSource} = this.props;
+
     if (!this.hasValidSearch) {
+      trackAdvancedAnalyticsEvent('search.search_with_invalid', {
+        organization,
+        query,
+        search_type: savedSearchType === 0 ? 'issues' : 'events',
+        search_source: searchSource,
+      });
       return;
     }
 
-    const query = removeSpace(this.state.query);
-    const {
-      onSearch,
-      onSavedRecentSearch,
-      api,
-      organization,
-      savedSearchType,
-      searchSource,
-    } = this.props;
+    const {onSearch, onSavedRecentSearch, api} = this.props;
     trackAdvancedAnalyticsEvent('search.searched', {
       organization,
       query,
@@ -579,6 +580,29 @@ class SmartSearchBar extends Component<Props, State> {
         }
       }
     }
+  };
+
+  logShortcutEvent = (shortcutType: ShortcutType, shortcutMethod: 'click' | 'hotkey') => {
+    const {searchSource, savedSearchType, organization} = this.props;
+    const {query} = this.state;
+    trackAdvancedAnalyticsEvent('search.shortcut_used', {
+      organization,
+      search_type: savedSearchType === 0 ? 'issues' : 'events',
+      search_source: searchSource,
+      shortcut_method: shortcutMethod,
+      shortcut_type: shortcutType,
+      query,
+    });
+  };
+
+  runShortcutOnClick = (shortcut: Shortcut) => {
+    this.runShortcut(shortcut);
+    this.logShortcutEvent(shortcut.shortcutType, 'click');
+  };
+
+  runShortcutOnHotkeyPress = (shortcut: Shortcut) => {
+    this.runShortcut(shortcut);
+    this.logShortcutEvent(shortcut.shortcutType, 'hotkey');
   };
 
   runShortcut = (shortcut: Shortcut) => {
@@ -1238,7 +1262,13 @@ class SmartSearchBar extends Component<Props, State> {
     tagName: string,
     query: string
   ): Promise<AutocompleteGroup | null> => {
-    const {prepareQuery, excludeEnvironment} = this.props;
+    const {
+      prepareQuery,
+      excludeEnvironment,
+      organization,
+      savedSearchType,
+      searchSource,
+    } = this.props;
     const supportedTags = this.props.supportedTags ?? {};
 
     const preparedQuery =
@@ -1260,6 +1290,13 @@ class SmartSearchBar extends Component<Props, State> {
     const tag = supportedTags[tagName];
 
     if (!tag) {
+      trackAdvancedAnalyticsEvent('search.invalid_field', {
+        organization,
+        search_type: savedSearchType === 0 ? 'issues' : 'events',
+        search_source: searchSource,
+        attempted_field_name: tagName,
+      });
+
       return {
         searchItems: [
           {
@@ -1731,7 +1768,7 @@ class SmartSearchBar extends Component<Props, State> {
       >
         <SearchHotkeysListener
           visibleShortcuts={visibleShortcuts}
-          runShortcut={this.runShortcut}
+          runShortcut={this.runShortcutOnHotkeyPress}
         />
         <SearchLabel htmlFor="smart-search-input" aria-label={t('Search events')}>
           <IconSearch />
@@ -1795,7 +1832,7 @@ class SmartSearchBar extends Component<Props, State> {
             onClick={this.onAutoComplete}
             loading={loading}
             searchSubstring={searchTerm}
-            runShortcut={this.runShortcut}
+            runShortcut={this.runShortcutOnClick}
             visibleShortcuts={visibleShortcuts}
             maxMenuHeight={maxMenuHeight}
           />

@@ -1,6 +1,8 @@
 from datetime import timedelta
 from typing import Sequence
 
+from django.utils import timezone
+
 from sentry import features
 from sentry.models import Activity, Group, GroupStatus
 from sentry.signals import issue_resolved
@@ -15,7 +17,19 @@ def record_suspect_resolutions(
     organization_id, project, group, user, resolution_type, **kwargs
 ) -> None:
     if features.has("projects:suspect-resolutions", project):
-        get_suspect_resolutions.delay(group.id)
+        if (
+            resolution_type == "in_next_release"
+            or resolution_type == "in_release"
+            or resolution_type == "with_commit"
+            or resolution_type == "in_commit"
+        ):
+            get_suspect_resolutions.delay(
+                group.id,
+                eta=timezone.now() + timedelta(hours=1),
+                expires=timezone.now() + timedelta(hours=1, minutes=30),
+            )
+        else:
+            get_suspect_resolutions.delay(group.id)
 
 
 @instrumented_task(name="sentry.tasks.get_suspect_resolutions", queue="get_suspect_resolutions")
@@ -66,6 +80,8 @@ def get_suspect_resolutions(resolved_issue_id: int) -> Sequence[int]:
             is_commit_correlated=commit_correlation.is_correlated,
             resolved_issue_release_ids=commit_correlation.resolved_issue_release_ids,
             candidate_issue_release_ids=commit_correlation.candidate_issue_release_ids,
+            resolved_issue_total_events=metric_correlation_result.resolved_issue_total_events,
+            candidate_issue_total_events=metric_correlation_result.candidate_issue_total_events,
         )
 
     return correlated_issue_ids

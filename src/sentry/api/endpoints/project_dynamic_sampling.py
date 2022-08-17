@@ -61,7 +61,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             selected_columns=[
                 "count()",
             ],
-            query=f"{query} event.type:transaction !has:trace.parent_span_id",
+            query=f"{query} event.type:transaction !has:trace.parent_span",
             params={
                 "start": start_time,
                 "end": end_time,
@@ -145,7 +145,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                 "project_id": [project.id],
                 "organization_id": project.organization,
             },
-            query=f"{query} event.type:transaction !has:trace.parent_span_id",
+            query=f"{query} event.type:transaction !has:trace.parent_span",
             selected_columns=[
                 "id",
                 "trace",

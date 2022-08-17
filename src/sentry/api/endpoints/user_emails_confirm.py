@@ -50,7 +50,7 @@ class UserEmailsConfirmEndpoint(UserEndpoint):
         :auth required:
         """
 
-        from sentry.app import ratelimiter
+        from sentry import ratelimits as ratelimiter
 
         if ratelimiter.is_limited(
             f"auth:confirm-email:{user.id}",
