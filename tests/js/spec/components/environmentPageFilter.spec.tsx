@@ -56,8 +56,8 @@ describe('EnvironmentPageFilter', function () {
     });
 
     // Open the environment dropdown
-    expect(screen.getByText('All Env')).toBeInTheDocument();
-    userEvent.click(screen.getByText('All Env'));
+    expect(screen.getByText('All Envs')).toBeInTheDocument();
+    userEvent.click(screen.getByText('All Envs'));
 
     // Click the first environment's checkbox
     const envOptions = screen.getAllByTestId('checkbox-fancy');
@@ -85,8 +85,8 @@ describe('EnvironmentPageFilter', function () {
     );
 
     // Open the environment dropdown
-    expect(screen.getByText('All Env')).toBeInTheDocument();
-    userEvent.click(screen.getByText('All Env'));
+    expect(screen.getByText('All Envs')).toBeInTheDocument();
+    userEvent.click(screen.getByText('All Envs'));
 
     // Click the pin button
     const pinButton = screen.getByRole('button', {name: 'Lock filter'});
@@ -111,8 +111,8 @@ describe('EnvironmentPageFilter', function () {
     });
 
     // Open the environment dropdown
-    expect(screen.getByText('All Env')).toBeInTheDocument();
-    userEvent.click(screen.getByText('All Env'));
+    expect(screen.getByText('All Envs')).toBeInTheDocument();
+    userEvent.click(screen.getByText('All Envs'));
 
     // Click the first environment directly
     userEvent.click(screen.getByText('prod'));

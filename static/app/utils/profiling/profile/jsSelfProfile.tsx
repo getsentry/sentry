@@ -95,6 +95,8 @@ export class JSSelfProfile extends Profile {
   }
 
   appendSample(stack: Frame[], weight: number): void {
+    this.trackSampleStats(weight);
+
     let node = this.appendOrderTree;
     const framesInStack: CallTreeNode[] = [];
 

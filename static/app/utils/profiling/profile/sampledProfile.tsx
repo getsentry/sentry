@@ -49,6 +49,9 @@ export class SampledProfile extends Profile {
   }
 
   appendSampleWithWeight(stack: Frame[], weight: number): void {
+    // Keep track of discarded samples and ones that may have negative weights
+    this.trackSampleStats(weight);
+
     // Ignore samples with 0 weight
     if (weight === 0) {
       return;

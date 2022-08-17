@@ -745,7 +745,7 @@ const Container = styled('div')<{
   flex-grow: 1;
 `;
 
-interface BufferedInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+interface BufferedInputProps extends InputProps {
   onUpdate: (value: string) => void;
   value: string;
 }
@@ -812,7 +812,7 @@ class BufferedInput extends Component<BufferedInputProps, InputState> {
 }
 
 // Set a min-width to allow shrinkage in grid.
-const StyledInput = styled(Input)<InputProps>`
+const StyledInput = styled(Input)`
   /* Match the height of the select boxes */
   height: 41px;
   min-width: 50px;

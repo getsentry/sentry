@@ -37,8 +37,11 @@ import {
 } from 'sentry/utils/discover/fields';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
+import {decodeList} from 'sentry/utils/queryString';
 import {
   DashboardDetails,
+  DashboardFilterKeys,
+  DashboardFilters,
   DisplayType,
   Widget,
   WidgetQuery,
@@ -452,7 +455,7 @@ export function hasUnsavedFilterChanges(
     environment: new Set(currentFilters.environment),
   };
 
-  if (location.query?.release) {
+  if (defined(location.query?.release)) {
     // Release is only included in the comparison if it exists in the query
     // params, otherwise the dashboard should be using its saved state
     savedFilters.release = new Set(initialDashboard.filters?.release);
@@ -516,4 +519,14 @@ export function getCurrentPageFilters(
     end: defined(end) ? normalizeDateTimeString(end as string) : undefined,
     utc: defined(utc) ? utc === 'true' : undefined,
   };
+}
+
+export function getDashboardFiltersFromURL(location: Location): DashboardFilters | null {
+  const dashboardFilters: DashboardFilters = {};
+  Object.values(DashboardFilterKeys).forEach(key => {
+    if (defined(location.query?.[key])) {
+      dashboardFilters[key] = decodeList(location.query?.[key]);
+    }
+  });
+  return !isEmpty(dashboardFilters) ? dashboardFilters : null;
 }

@@ -1,6 +1,7 @@
 from exam import fixture
 from rest_framework import status
 
+from sentry.auth import access
 from sentry.models import (
     Organization,
     OrganizationAccessRequest,
@@ -441,6 +442,33 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         assert not OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.owner_on_team
         ).exists()
+
+    def test_access_revoked_after_leaving_team(self):
+        user = self.create_user()
+        organization = self.create_organization(flags=0)
+        team = self.create_team(organization=organization)
+        project = self.create_project(organization=organization, teams=[team])
+        member = self.create_member(organization=organization, user=user, teams=[team])
+
+        ax = access.from_user(user, organization)
+
+        # user a member of the team that is a part of the project should have the following access and scopes
+        assert ax.has_team_access(team)
+        assert ax.has_project_access(project)
+        assert ax.has_project_membership(project)
+
+        self.login_as(user)
+        self.get_success_response(
+            organization.slug, member.id, team.slug, status_code=status.HTTP_200_OK
+        )
+
+        assert OrganizationMember.objects.filter(id=member.id).exists()
+        assert not OrganizationMemberTeam.objects.filter(organizationmember=member.id).exists()
+
+        ax_after_leaving = access.from_user(user, organization)
+        assert not ax_after_leaving.has_team_access(team)
+        assert not ax_after_leaving.has_project_access(project)
+        assert not ax_after_leaving.has_project_membership(project)
 
 
 class ReadOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):

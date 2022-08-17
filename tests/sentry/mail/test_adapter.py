@@ -305,6 +305,13 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         event = event_manager.save(self.project.id)
         group = event.group
 
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.NEVER,
+            user=self.user,
+        )
+
         with self.tasks():
             AlertRuleNotification(Notification(event=event), ActionTargetType.ISSUE_OWNERS).send()
 
@@ -329,11 +336,20 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         deleted
         """
         # Initial Creation
+        self.organization = self.create_organization()
+        self.team = self.create_team(organization=self.organization)
         user = self.create_user(email="foo@bar.dodo", is_active=True)
         self.create_member(user=user, organization=self.organization, teams=[self.team])
 
         UserOption.objects.create(
             user=user, key="mail:email", value="foo@bar.dodo", project=self.project
+        )
+        # disable slack
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.NEVER,
+            user=user,
         )
 
         # New secondary email is created
@@ -378,6 +394,14 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         event_type = get_event_type(event_data)
         event_data["type"] = event_type.key
         event_data["metadata"] = event_type.get_metadata(event_data)
+
+        # disable slack
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.NEVER,
+            user=self.user,
+        )
 
         event = event_manager.save(self.project.id)
         with self.tasks():
@@ -613,6 +637,7 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
             ),
             fallthrough=True,
         )
+
         with self.feature("organizations:notification-all-recipients"):
             event_all_users = self.store_event(
                 data=make_event_data("foo.cbl"), project_id=project.id
@@ -659,6 +684,14 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
             self.create_member(user=u, organization=organization, teams=[team2])
             for u in [user3, user4, user5]
         ]
+        for u in [user, user2, user3, user4, user5]:
+            # disable slack
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.SLACK,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.NEVER,
+                user=u,
+            )
 
         with self.feature("organizations:notification-all-recipients"):
             self.create_assert_delete_projectownership(
@@ -712,6 +745,14 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
             self.create_member(user=u, organization=organization, teams=[team2])
             for u in [user3, user4, user5]
         ]
+
+        for u in [user, user2, user3, user4, user5]:
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.SLACK,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.NEVER,
+                user=u,
+            )
 
         with self.feature("organizations:notification-all-recipients"):
             self.create_assert_delete_projectownership(
@@ -852,9 +893,16 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
         user_username_star = self.create_user(
             email="user_username_star@example.com", is_active=True
         )
+        users = [user, user_star, user_username, user_username_star]
+        [self.create_member(user=u, organization=organization, teams=[team]) for u in users]
         [
-            self.create_member(user=u, organization=organization, teams=[team])
-            for u in [user, user_star, user_username, user_username_star]
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.SLACK,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.NEVER,
+                user=u,
+            )
+            for u in users
         ]
 
         """
