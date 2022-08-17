@@ -19,11 +19,13 @@ def fix(data):
 
 
 def override_actor_id(user):
-    uuid_regex = re.compile(
-        r".*[0-9a-fA-F]{6}\-[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{7}"
+    scim_prefix = "scim-internal-integration-"
+    scim_regex = re.compile(
+        scim_prefix
+        + r"[0-9a-fA-F]{6}\-[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{7}"
     )
-    uuid_match = re.match(uuid_regex, user.get_display_name())
-    return uuid_match
+    scim_match = re.match(scim_regex, user.get_display_name())
+    return scim_match
 
 
 @register(AuditLogEntry)

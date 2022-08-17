@@ -14,6 +14,21 @@ from sentry.db.models import (
 MAX_ACTOR_LABEL_LENGTH = 64
 
 
+def is_scim_token_actor(actor):
+    scim_prefix = "scim-internal-integration-"
+    scim_regex = re.compile(
+        scim_prefix
+        + r"([0-9a-fA-F]{6})\-[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{7}"
+    )
+    scim_match = re.match(scim_regex, actor.get_display_name())
+    return scim_match
+
+
+def format_scim_token_actor_name(scim_match):
+    uuid_prefix = scim_match.groups()[0]
+    return "SCIM Internal Integration (" + uuid_prefix + ")"
+
+
 class AuditLogEntry(Model):
     __include_in_export__ = False
 
@@ -63,18 +78,9 @@ class AuditLogEntry(Model):
     def get_actor_name(self):
         if self.actor:
             # fix display name if needed
-            uuid_regex = re.compile(
-                r"(.*)([0-9a-fA-F]{6})\-[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{7}"
-            )
-            uuid_match = re.match(uuid_regex, self.actor.get_display_name())
-
-            if uuid_match:
-                uuid_prefix = uuid_match.groups()[1]
-                integration_name = (uuid_match.groups()[0]).replace("-", " ")
-                integration_name = integration_name.title()
-                integration_name = integration_name.replace("Scim", "SCIM")
-
-                return integration_name + " (" + uuid_prefix + ")"
+            scim_match = is_scim_token_actor(self.actor)
+            if scim_match:
+                return format_scim_token_actor_name(scim_match)
 
             return self.actor.get_display_name()
         elif self.actor_key:
