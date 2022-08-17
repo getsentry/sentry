@@ -52,10 +52,11 @@ describe('MultiPlatformPicker', function () {
       ...baseProps,
       platforms: ['java'],
       removePlatform: jest.fn(),
+      noAutoFilter: true,
     };
 
     render(<MultiPlatformPicker {...props} />);
-    userEvent.click(screen.getByTestId('icon-close'));
+    userEvent.click(screen.getByRole('button', {name: 'Clear'}));
     expect(props.removePlatform).toHaveBeenCalledWith('java');
   });
 
