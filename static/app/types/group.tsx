@@ -400,12 +400,7 @@ export type ResolutionStatusDetails = {
   inRelease?: string;
 };
 
-export type UpdateResolutionStatus = {
-  status: ResolutionStatus;
-  statusDetails?: ResolutionStatusDetails;
-};
-
-type BaseGroupStatusResolution = {
+export type GroupStatusResolution = {
   status: ResolutionStatus;
   statusDetails: ResolutionStatusDetails;
 };
@@ -455,7 +450,7 @@ export type BaseGroup = {
 } & GroupRelease;
 
 export type GroupReprocessing = BaseGroup & GroupStats & BaseGroupStatusReprocessing;
-export type GroupResolution = BaseGroup & GroupStats & BaseGroupStatusResolution;
+export type GroupResolution = BaseGroup & GroupStats & GroupStatusResolution;
 export type Group = GroupResolution | GroupReprocessing;
 export type GroupCollapseRelease = Omit<Group, keyof GroupRelease> &
   Partial<GroupRelease>;

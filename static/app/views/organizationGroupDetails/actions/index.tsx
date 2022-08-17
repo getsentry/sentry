@@ -31,11 +31,11 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
   Group,
+  GroupStatusResolution,
   Organization,
   Project,
   ResolutionStatus,
   SavedQueryVersions,
-  UpdateResolutionStatus,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {analytics} from 'sentry/utils/analytics';
@@ -160,7 +160,7 @@ class Actions extends Component<Props, State> {
       | {isBookmarked: boolean}
       | {isSubscribed: boolean}
       | {inbox: boolean}
-      | UpdateResolutionStatus
+      | GroupStatusResolution
   ) => {
     const {group, project, organization, api} = this.props;
 
@@ -179,8 +179,8 @@ class Actions extends Component<Props, State> {
       }
     );
 
-    if ((data as UpdateResolutionStatus).status) {
-      this.trackIssueAction((data as UpdateResolutionStatus).status);
+    if ((data as GroupStatusResolution).status) {
+      this.trackIssueAction((data as GroupStatusResolution).status);
     }
     if ((data as {inbox: boolean}).inbox !== undefined) {
       this.trackIssueAction('mark_reviewed');
