@@ -50,7 +50,7 @@ def is_issue_error_rate_correlated(
     y = {csr.id: [events for _, events in data[csr.id]] for csr in candidate_suspect_resolutions}
 
     resolved_issue_total_events = sum(x)
-    candidate_issue_total_events = sum(y)
+    candidate_issue_total_events = {csr: sum(events) for csr, events in y.items()}
 
     coefficients = {csr_id: calculate_pearson_correlation_coefficient(x, y[csr_id]) for csr_id in y}
 
@@ -59,7 +59,7 @@ def is_issue_error_rate_correlated(
             candidate_suspect_resolution_id=csr_id,
             is_correlated=coefficient > 0.4,
             coefficient=coefficient,
-            candidate_issue_total_events=candidate_issue_total_events,
+            candidate_issue_total_events=candidate_issue_total_events[csr_id],
             resolved_issue_total_events=resolved_issue_total_events,
         )
         for (csr_id, coefficient) in coefficients.items()
