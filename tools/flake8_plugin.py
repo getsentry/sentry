@@ -22,7 +22,7 @@ S005_msg = "S005 Do not import models from sentry.models but the actual module"
 
 
 class SentryVisitor(ast.NodeVisitor):
-    def __init__(self, filename) -> None:
+    def __init__(self, filename: str) -> None:
         self.errors: list[tuple[int, int, str]] = []
         self.filename = filename
 
