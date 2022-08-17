@@ -410,7 +410,7 @@ class ProjectDynamicSamplingTest(APITestCase):
                 selected_columns=[
                     "count()",
                 ],
-                query=f"{query} event.type:transaction !has:trace.parent_span_id",
+                query=f"{query} event.type:transaction !has:trace.parent_span",
                 params={
                     "start": start_time,
                     "end": end_time,
@@ -459,7 +459,7 @@ class ProjectDynamicSamplingTest(APITestCase):
                 "random_number() AS rand_num",
                 "modulo(rand_num, 10) as modulo_num",
             ],
-            query=f"{query} event.type:transaction !has:trace.parent_span_id",
+            query=f"{query} event.type:transaction !has:trace.parent_span",
             params={
                 "start": start_time,
                 "end": end_time,
