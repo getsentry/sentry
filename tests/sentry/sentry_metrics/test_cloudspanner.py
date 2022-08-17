@@ -19,7 +19,8 @@ from sentry.sentry_metrics.indexer.id_generator import get_id
 
 @pytest.fixture(scope="module")
 def testing_indexer():
-    indexer = RawCloudSpannerIndexer(instance_id="", database_id="")
+    indexer = RawCloudSpannerIndexer(instance_id="",
+                                     database_id="")
 
     indexer.validate()
     return indexer
@@ -55,8 +56,7 @@ def get_random_string(length: int) -> str:
     return "".join(random.choice(string.ascii_letters) for _ in range(length))
 
 
-@pytest.mark.django_db
-@pytest.mark.skip(reason="TODO: Implement it correctly")
+#@pytest.mark.skip(reason="TODO: Implement it correctly")
 def test_spanner_indexer_implementation_basic(testing_indexer):
     """
     Test the basic implementation of the CloudSpannerIndexer by performing a
@@ -96,7 +96,6 @@ def test_spanner_indexer_implementation_basic(testing_indexer):
     assert indexer_reverse_resolved_string == record["string"]
 
 
-@pytest.mark.django_db
 @pytest.mark.skip(reason="TODO: Implement it correctly")
 def test_spanner_indexer_implementation_bulk_insert_twice_gives_same_result(testing_indexer):
     """
@@ -205,7 +204,6 @@ def test_spanner_indexer_insert_batch_conflict_triggers_individual_transactions(
     assert mock.call_count == 1, "Insert with collisions should be called"
 
 
-@pytest.mark.django_db
 @pytest.mark.skip(reason="TODO: Implement it correctly")
 def test_spanner_indexer_individual_insert(testing_indexer):
     """

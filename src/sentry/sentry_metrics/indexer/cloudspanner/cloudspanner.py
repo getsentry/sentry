@@ -335,7 +335,7 @@ class RawCloudSpannerIndexer(StringIndexer):
                             )
                             for row in result_list
                         ],
-                        fetch_type=FetchType.FIRST_SEEN,
+                        fetch_type=FetchType.DB_READ,
                     )
 
     def bulk_record(
