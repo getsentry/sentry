@@ -167,9 +167,11 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):  # type
                 self._process_chunk(cast(RecordingSegmentChunkMessage, message_dict), message)
             if message_dict["type"] == "replay_recording":
                 self._process_recording(cast(RecordingSegmentMessage, message_dict), message)
-        except Exception as e:
+        except Exception:
             # avoid crash looping on bad messsages for now
-            logger.exception(e)
+            logger.exception(
+                "Failed to process replay recording message", extra={"offset": message.offset}
+            )
 
     def join(self, timeout: Optional[float] = None) -> None:
         wait([f for _, f in self.__futures], timeout=timeout, return_when=ALL_COMPLETED)
@@ -190,7 +192,11 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):  # type
             message, result = self.__futures.popleft()
 
             if result.exception() is not None:
-                logger.exception(result.exception())
+                logger.error(
+                    "replay recording error in async future",
+                    exc_info=result.exception(),
+                    extra={"offset": message.offset},
+                )
             # overwrite any existing message as we assume the deque is in order
             # committing offset x means all offsets up to and including x are processed
             committable[message.partition] = message
