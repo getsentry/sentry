@@ -1,6 +1,6 @@
 import {PureComponent} from 'react';
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 // eslint-disable-next-line no-restricted-imports
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import color from 'color';
 import type {LineSeriesOption} from 'echarts';
