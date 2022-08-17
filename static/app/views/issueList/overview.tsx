@@ -52,7 +52,6 @@ import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReact
 import parseApiError from 'sentry/utils/parseApiError';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import StreamManager from 'sentry/utils/streamManager';
 import withApi from 'sentry/utils/withApi';
 import withIssueTags from 'sentry/utils/withIssueTags';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -278,7 +277,6 @@ class IssueListOverview extends Component<Props, State> {
   private _lastRequest: any;
   private _lastStatsRequest: any;
   private _lastFetchCountsRequest: any;
-  private _streamManager = new StreamManager(GroupStore);
 
   getQuery(): string {
     const {savedSearch, location} = this.props;
@@ -516,7 +514,6 @@ class IssueListOverview extends Component<Props, State> {
     if (hasIssueListRemovalAction && !this.state.realtimeActive) {
       if (!this.state.actionTaken && !this.state.undo) {
         GroupStore.loadInitialData([]);
-        this._streamManager.reset();
 
         this.setState({
           issuesLoading: true,
@@ -528,7 +525,6 @@ class IssueListOverview extends Component<Props, State> {
     } else {
       if (!this.state.reviewedIds.length || !isForReviewQuery(query)) {
         GroupStore.loadInitialData([]);
-        this._streamManager.reset();
 
         this.setState({
           issuesLoading: true,
@@ -607,10 +603,7 @@ class IssueListOverview extends Component<Props, State> {
           return;
         }
 
-        if (this.state.undo) {
-          GroupStore.loadInitialData(data);
-        }
-        this._streamManager.push(data);
+        GroupStore.loadInitialData(data);
 
         // TODO(Kelly): update once issue-list-removal-action feature is stable
         if (!hasIssueListRemovalAction) {
@@ -733,7 +726,7 @@ class IssueListOverview extends Component<Props, State> {
   onRealtimePoll = (data: any, _links: any) => {
     // Note: We do not update state with cursors from polling,
     // `CursorPoller` updates itself with new cursors
-    this._streamManager.unshift(data);
+    GroupStore.addToFront(data, {limit: 100});
   };
 
   listener = GroupStore.listen(() => this.onGroupChange(), undefined);
@@ -752,7 +745,7 @@ class IssueListOverview extends Component<Props, State> {
       !this.state.realtimeActive &&
       actionTakenGroupData.length > 0
     ) {
-      const filteredItems = this._streamManager.getAllItems().filter(item => {
+      const filteredItems = GroupStore.getAllItems().filter(item => {
         return actionTakenGroupData.findIndex(data => data.id === item.id) !== -1;
       });
 
@@ -795,7 +788,7 @@ class IssueListOverview extends Component<Props, State> {
       }
     }
 
-    const groupIds = this._streamManager.getAllItems().map(item => item.id) ?? [];
+    const groupIds = GroupStore.getAllItems().map(item => item.id) ?? [];
     if (!isEqual(groupIds, this.state.groupIds)) {
       this.setState({groupIds});
     }

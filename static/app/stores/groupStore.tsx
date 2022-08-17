@@ -1,4 +1,3 @@
-import isArray from 'lodash/isArray';
 import {createStore} from 'reflux';
 
 import {Indicator} from 'sentry/actionCreators/indicator';
@@ -45,6 +44,7 @@ interface InternalDefinition {
 interface GroupStoreDefinition extends CommonStoreDefinition<Item[]>, InternalDefinition {
   add: (items: Item[]) => void;
   addStatus: (id: string, status: string) => void;
+  addToFront: (items: Item[], options?: {limit?: number}) => void;
   clearStatus: (id: string, status: string) => void;
 
   get: (id: string) => Item | undefined;
@@ -114,22 +114,13 @@ const storeConfig: GroupStoreDefinition = {
     this.trigger(itemIds);
   },
 
-  add(items) {
-    if (!isArray(items)) {
-      items = [items];
-    }
+  mergeItems(items: Item[]) {
+    const itemsById = items.reduce((acc, item) => ({...acc, [item.id]: item}), {});
 
-    const itemsById: Record<string, Item> = {};
-    const itemIds = new Set<string>();
-    items.forEach(item => {
-      itemsById[item.id] = item;
-      itemIds.add(item.id);
-    });
-
-    // See if any existing items are updated by this new set of items
-    this.items.forEach((item, idx) => {
+    // Merge these items into the store and return a mapping of any that aren't already in the store
+    this.items.forEach((item, itemIndex) => {
       if (itemsById[item.id]) {
-        this.items[idx] = {
+        this.items[itemIndex] = {
           ...item,
           ...itemsById[item.id],
         };
@@ -137,11 +128,43 @@ const storeConfig: GroupStoreDefinition = {
       }
     });
 
-    // New items
-    const newItems = items.filter(item => itemsById.hasOwnProperty(item.id));
-    this.items = this.items.concat(newItems);
+    return items.filter(item => itemsById.hasOwnProperty(item.id));
+  },
 
-    this.trigger(itemIds);
+  trimItemsToLimit(limit: number) {
+    if (limit > this.items.length) {
+      return;
+    }
+
+    this.items = this.items.slice(0, limit);
+  },
+
+  /**
+   * Adds the provided items to the end of the list.
+   * If any items already exist, they will merged into the existing item index.
+   */
+  add(items) {
+    const newItems = this.mergeItems(items);
+
+    this.items = [...this.items, ...newItems];
+
+    this.trigger(this.getAllItemIds());
+  },
+
+  /**
+   * Adds the provided items to the front of the list.
+   * If any items already exist, they will be moved to the front in the order provided.
+   */
+  addToFront(items, {limit} = {}) {
+    const itemMap = items.reduce((acc, item) => ({...acc, [item.id]: item}), {});
+
+    this.items = [...items, ...this.items.filter(item => !itemMap[item.id])];
+
+    if (limit) {
+      this.trimItemsToLimit(limit);
+    }
+
+    this.trigger(this.getAllItemIds());
   },
 
   /**
