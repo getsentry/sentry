@@ -2,7 +2,6 @@ import isArray from 'lodash/isArray';
 import {createStore, StoreDefinition} from 'reflux';
 
 import {Indicator} from 'sentry/actionCreators/indicator';
-import GroupActions from 'sentry/actions/groupActions';
 import {t} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import {
@@ -28,6 +27,8 @@ type Change = {
 
 type Item = BaseGroup | Group | GroupCollapseRelease;
 
+type ItemIds = string[] | undefined;
+
 interface InternalDefinition {
   addActivity: (groupId: string, data: Activity, index?: number) => void;
   indexOfActivity: (groupId: string, id: string) => number;
@@ -43,46 +44,47 @@ interface GroupStoreDefinition extends StoreDefinition, InternalDefinition {
   add: (items: Item[]) => void;
   addStatus: (id: string, status: string) => void;
   clearStatus: (id: string, status: string) => void;
+
   get: (id: string) => Item | undefined;
   getAllItemIds: () => string[];
   getAllItems: () => Item[];
+
   hasStatus: (id: string, status: string) => boolean;
   init: () => void;
+
+  itemIdsOrAll(itemIds: ItemIds): string[];
+
   loadInitialData: (items: Item[]) => void;
+
   onAssignTo: (changeId: string, itemId: string, data: any) => void;
   onAssignToError: (changeId: string, itemId: string, error: Error) => void;
   onAssignToSuccess: (changeId: string, itemId: string, response: any) => void;
-  onDelete: (changeId: string, itemIds: string[]) => void;
-  onDeleteError: (changeId: string, itemIds: string[], error: Error) => void;
-  onDeleteSuccess: (changeId: string, itemIds: string[], response: any) => void;
+
+  onDelete: (changeId: string, itemIds: ItemIds) => void;
+  onDeleteError: (changeId: string, itemIds: ItemIds, error: Error) => void;
+  onDeleteSuccess: (changeId: string, itemIds: ItemIds, response: any) => void;
+
   onDiscard: (changeId: string, itemId: string) => void;
   onDiscardError: (changeId: string, itemId: string, response: any) => void;
   onDiscardSuccess: (changeId: string, itemId: string, response: any) => void;
-  onMerge: (changeId: string, itemIds: string[]) => void;
-  onMergeError: (changeId: string, itemIds: string[], response: any) => void;
-  onMergeSuccess: (changeId: string, itemIds: string[], response: any) => void;
-  onPopulateReleases: (itemId: string, releaseData: GroupRelease) => void;
-  onPopulateStats: (itemIds: string[], response: GroupStats[]) => void;
-  onUpdate: (changeId: string, itemIds: string[], data: any) => void;
-  onUpdateError: (
-    changeId: string,
-    itemIds: string[],
-    error: Error,
-    silent: boolean
-  ) => void;
-  onUpdateSuccess: (
-    changeId: string,
-    itemIds: string[],
-    response: Partial<Group>
-  ) => void;
 
-  remove: (itemIds: string[]) => void;
+  onMerge: (changeId: string, itemIds: ItemIds) => void;
+  onMergeError: (changeId: string, itemIds: ItemIds, response: any) => void;
+  onMergeSuccess: (changeId: string, itemIds: ItemIds, response: any) => void;
+
+  onPopulateReleases: (itemId: string, releaseData: GroupRelease) => void;
+  onPopulateStats: (itemIds: ItemIds, response: GroupStats[]) => void;
+
+  onUpdate: (changeId: string, itemIds: ItemIds, data: any) => void;
+  onUpdateError: (changeId: string, itemIds: ItemIds, silent: boolean) => void;
+  onUpdateSuccess: (changeId: string, itemIds: ItemIds, response: Partial<Group>) => void;
+
+  remove: (itemIds: ItemIds) => void;
 
   reset: () => void;
 }
 
 const storeConfig: GroupStoreDefinition = {
-  listenables: [GroupActions],
   pendingChanges: new Map(),
   items: [],
   statuses: {},
@@ -140,8 +142,15 @@ const storeConfig: GroupStoreDefinition = {
     this.trigger(itemIds);
   },
 
+  /**
+   * If itemIds is undefined, returns all ids in the store
+   */
+  itemIdsOrAll(itemIds: ItemIds) {
+    return itemIds === undefined ? this.getAllItemIds() : itemIds;
+  },
+
   remove(itemIds) {
-    this.items = this.items.filter(item => !itemIds.includes(item.id));
+    this.items = this.items.filter(item => !itemIds?.includes(item.id));
 
     this.trigger(new Set(itemIds));
   },
@@ -287,11 +296,9 @@ const storeConfig: GroupStoreDefinition = {
   },
 
   onDelete(_changeId, itemIds) {
-    itemIds = this._itemIdsOrAll(itemIds);
-    itemIds.forEach(itemId => {
-      this.addStatus(itemId, 'delete');
-    });
-    this.trigger(new Set(itemIds));
+    const ids = this.itemIdsOrAll(itemIds);
+    ids.forEach(itemId => this.addStatus(itemId, 'delete'));
+    this.trigger(new Set(ids));
   },
 
   onDeleteError(_changeId, itemIds, _response) {
@@ -301,29 +308,27 @@ const storeConfig: GroupStoreDefinition = {
       return;
     }
 
-    itemIds.forEach(itemId => {
-      this.clearStatus(itemId, 'delete');
-    });
+    itemIds.forEach(itemId => this.clearStatus(itemId, 'delete'));
     this.trigger(new Set(itemIds));
   },
 
   onDeleteSuccess(_changeId, itemIds, _response) {
-    itemIds = this._itemIdsOrAll(itemIds);
+    const ids = this.itemIdsOrAll(itemIds);
 
-    if (itemIds.length > 1) {
-      showAlert(t(`Deleted ${itemIds.length} Issues`), 'success');
+    if (ids.length > 1) {
+      showAlert(t(`Deleted ${ids.length} Issues`), 'success');
     } else {
-      const shortId = itemIds.map(item => GroupStore.get(item)?.shortId).join('');
+      const shortId = ids.map(item => GroupStore.get(item)?.shortId).join('');
       showAlert(t(`Deleted ${shortId}`), 'success');
     }
 
-    const itemIdSet = new Set(itemIds);
-    itemIds.forEach(itemId => {
+    const itemIdSet = new Set(ids);
+    ids.forEach(itemId => {
       delete this.statuses[itemId];
       this.clearStatus(itemId, 'delete');
     });
     this.items = this.items.filter(item => !itemIdSet.has(item.id));
-    this.trigger(new Set(itemIds));
+    this.trigger(new Set(ids));
   },
 
   onDiscard(_changeId, itemId) {
@@ -346,35 +351,29 @@ const storeConfig: GroupStoreDefinition = {
   },
 
   onMerge(_changeId, itemIds) {
-    itemIds = this._itemIdsOrAll(itemIds);
+    const ids = this.itemIdsOrAll(itemIds);
 
-    itemIds.forEach(itemId => {
-      this.addStatus(itemId, 'merge');
-    });
+    ids.forEach(itemId => this.addStatus(itemId, 'merge'));
     // XXX(billy): Not sure if this is a bug or not but do we need to publish all itemIds?
     // Seems like we only need to publish parent id
-    this.trigger(new Set(itemIds));
+    this.trigger(new Set(ids));
   },
 
   onMergeError(_changeId, itemIds, _response) {
-    itemIds = this._itemIdsOrAll(itemIds);
+    const ids = this.itemIdsOrAll(itemIds);
 
-    itemIds.forEach(itemId => {
-      this.clearStatus(itemId, 'merge');
-    });
+    ids.forEach(itemId => this.clearStatus(itemId, 'merge'));
     showAlert(t('Unable to merge events. Please try again.'), 'error');
-    this.trigger(new Set(itemIds));
+    this.trigger(new Set(ids));
   },
 
-  onMergeSuccess(_changeId, mergedIds, response) {
-    mergedIds = this._itemIdsOrAll(mergedIds); // everything on page
+  onMergeSuccess(_changeId, itemIds, response) {
+    const ids = this.itemIdsOrAll(itemIds); // everything on page
 
-    mergedIds.forEach(itemId => {
-      this.clearStatus(itemId, 'merge');
-    });
+    ids.forEach(itemId => this.clearStatus(itemId, 'merge'));
 
     // Remove all but parent id (items were merged into this one)
-    const mergedIdSet = new Set(mergedIds);
+    const mergedIdSet = new Set(ids);
 
     // Looks like the `PUT /api/0/projects/:orgId/:projectId/issues/` endpoint
     // actually returns a 204, so there is no `response` body
@@ -384,45 +383,42 @@ const storeConfig: GroupStoreDefinition = {
         (response && response.merge && item.id === response.merge.parent)
     );
 
-    showAlert(t(`Merged ${mergedIds.length} Issues`), 'success');
-    this.trigger(new Set(mergedIds));
-  },
+    if (ids.length > 0) {
+      showAlert(t(`Merged ${ids.length} Issues`), 'success');
+    }
 
-  /**
-   * If itemIds is undefined, returns all ids in the store
-   */
-  _itemIdsOrAll(itemIds) {
-    return itemIds === undefined ? this.getAllItemIds() : itemIds;
+    this.trigger(new Set(ids));
   },
 
   onUpdate(changeId, itemIds, data) {
-    itemIds = this._itemIdsOrAll(itemIds);
+    const ids = this.itemIdsOrAll(itemIds);
 
-    itemIds.forEach(itemId => {
+    ids.forEach(itemId => {
       this.addStatus(itemId, 'update');
       this.pendingChanges.set(changeId, {itemId, data});
     });
-    this.trigger(new Set(itemIds));
+
+    this.trigger(new Set(ids));
   },
 
-  onUpdateError(changeId, itemIds, _error, failSilently) {
-    itemIds = this._itemIdsOrAll(itemIds);
+  onUpdateError(changeId, itemIds, failSilently) {
+    const ids = this.itemIdsOrAll(itemIds);
 
     this.pendingChanges.delete(changeId);
-    itemIds.forEach(itemId => {
-      this.clearStatus(itemId, 'update');
-    });
+    ids.forEach(itemId => this.clearStatus(itemId, 'update'));
+
     if (!failSilently) {
       showAlert(t('Unable to update events. Please try again.'), 'error');
     }
-    this.trigger(new Set(itemIds));
+
+    this.trigger(new Set(ids));
   },
 
   onUpdateSuccess(changeId, itemIds, response) {
-    itemIds = this._itemIdsOrAll(itemIds);
+    const ids = this.itemIdsOrAll(itemIds);
 
     this.items.forEach((item, idx) => {
-      if (itemIds.indexOf(item.id) !== -1) {
+      if (ids.includes(item.id)) {
         this.items[idx] = {
           ...item,
           ...response,
@@ -431,28 +427,28 @@ const storeConfig: GroupStoreDefinition = {
       }
     });
     this.pendingChanges.delete(changeId);
-    this.trigger(new Set(itemIds));
+    this.trigger(new Set(ids));
   },
 
-  onPopulateStats(itemIds: string[], response: GroupStats[]) {
+  onPopulateStats(itemIds, response) {
     // Organize stats by id
-    const groupStatsMap = response.reduce((map, stats) => {
-      map[stats.id] = stats;
-      return map;
-    }, {});
+    const groupStatsMap = response.reduce<Record<string, GroupStats>>(
+      (map, stats) => ({...map, [stats.id]: stats}),
+      {}
+    );
 
     this.items.forEach((item, idx) => {
-      if (itemIds.includes(item.id)) {
+      if (itemIds?.includes(item.id)) {
         this.items[idx] = {
           ...item,
           ...groupStatsMap[item.id],
         };
       }
     });
-    this.trigger(new Set(this.items.map(item => item.id)));
+    this.trigger(new Set(itemIds));
   },
 
-  onPopulateReleases(itemId: string, releaseData: GroupRelease) {
+  onPopulateReleases(itemId, releaseData) {
     this.items.forEach((item, idx) => {
       if (item.id === itemId) {
         this.items[idx] = {
