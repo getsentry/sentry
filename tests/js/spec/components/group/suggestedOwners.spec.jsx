@@ -197,5 +197,8 @@ describe('SuggestedOwners', function () {
       organization,
     });
     userEvent.hover(await screen.findByTestId('suggested-assignee'));
+
+    expect(await screen.findByText('Suspect Release')).toBeInTheDocument();
+    expect(screen.getByText('last committed')).toBeInTheDocument();
   });
 });
