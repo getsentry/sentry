@@ -17,6 +17,7 @@
     "noImplicitAny": false,
     "noImplicitReturns": true,
     "noImplicitUseStrict": true,
+    "noUncheckedIndexedAccess": true,
     "noImplicitThis": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
