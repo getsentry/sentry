@@ -118,4 +118,25 @@ describe('Dashboards > ReleasesSelectControl', function () {
       releaseId: ['1', '3', 'latest'],
     });
   });
+
+  it('includes Latest Release(s) even if no matching releases', function () {
+    render(
+      <ReleasesContext.Provider
+        value={{
+          releases: [],
+          loading: false,
+          onSearch: jest.fn(),
+        }}
+      >
+        <ReleasesSelectControl selectedReleases={[]} handleChangeFilter={jest.fn()} />
+      </ReleasesContext.Provider>
+    );
+
+    expect(screen.getByText('All Releases')).toBeInTheDocument();
+
+    userEvent.click(screen.getByText('All Releases'));
+    userEvent.type(screen.getByText('Search\u2026'), 'latest');
+
+    screen.getByText('Latest Release(s)');
+  });
 });
