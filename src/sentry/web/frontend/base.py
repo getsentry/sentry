@@ -69,10 +69,9 @@ class OrganizationMixin:
 
         if is_implicit:
             organization_slug = request.session.get("activeorg")
-            if request.subdomain is not None:
+            if request.subdomain is not None and request.subdomain != organization_slug:
                 # Customer domain is being used, set the subdomain as the requesting org slug.
-                if request.subdomain != organization_slug:
-                    organization_slug = request.subdomain
+                organization_slug = request.subdomain
 
         if organization_slug is not None:
             if is_active_superuser(request):
