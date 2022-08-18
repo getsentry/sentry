@@ -636,7 +636,7 @@ class SnubaResultConverter:
         tags = tuple(
             (key, data[key])
             for key in sorted(data.keys())
-            if (key.startswith("tags[") or key in FIELD_ALIAS_MAPPINGS.values())
+            if (key.startswith(("tags[", "tags_raw[")) or key in FIELD_ALIAS_MAPPINGS.values())
         )
 
         tag_data = groups.setdefault(tags, {})
