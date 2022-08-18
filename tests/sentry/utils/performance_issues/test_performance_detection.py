@@ -191,20 +191,22 @@ class PerformanceDetectionTest(unittest.TestCase):
 
     def test_calls_n_plus_one_spans_calls(self):
         # ├── GET list.json
-        # │   ├── GET 1.json
-        # │   ├──  GET 2.json
-        # │   ├──   GET 3.json
-        # │   ├──    GET 4.json
-        # │   └──      GET 5.json
+        # │   ├── GET /events.json?q=1
+        # │   ├──  GET /events.json?q=2
+        # │   ├──   GET /events.json?q=3
 
         n_plus_one_event = create_event(
             [
                 create_span("http.client", 250, "GET /list.json"),
-                modify_span_start(create_span("http.client", 180, "GET /1.json"), 101),
-                modify_span_start(create_span("http.client", 178, "GET /2.json"), 105),
-                modify_span_start(create_span("http.client", 163, "GET /3.json"), 109),
-                modify_span_start(create_span("http.client", 152, "GET /4.json"), 113),
-                modify_span_start(create_span("http.client", 191, "GET /5.json"), 116),
+                modify_span_start(
+                    create_span("http.client", 180, "GET /events.json?q=1", "c0c0c0c0"), 101
+                ),
+                modify_span_start(
+                    create_span("http.client", 178, "GET /events.json?q=2", "c0c0c0c0"), 105
+                ),
+                modify_span_start(
+                    create_span("http.client", 163, "GET /events.json?q=3", "c0c0c0c0"), 109
+                ),
             ]
         )
 
