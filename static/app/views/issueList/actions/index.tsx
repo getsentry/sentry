@@ -384,6 +384,4 @@ const SelectAllLink = styled('a')`
   margin-left: ${space(1)};
 `;
 
-export {IssueListActions};
-
 export default withApi(IssueListActions);

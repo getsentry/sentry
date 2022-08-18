@@ -9,7 +9,7 @@ import {triggerPress} from 'sentry-test/utils';
 
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
-import {IssueListActions} from 'sentry/views/issueList/actions';
+import IssueListActions from 'sentry/views/issueList/actions';
 
 describe('IssueListActions', function () {
   let actions;
