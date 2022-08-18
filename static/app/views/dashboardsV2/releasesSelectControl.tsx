@@ -72,17 +72,15 @@ function ReleasesSelectControl({
         {
           value: '_releases',
           label: t('Sorted by date created'),
-          options: releases.length
-            ? [
-                ...ALIASED_RELEASES,
-                ...releases.map(release => {
-                  return {
-                    label: release.shortVersion ?? release.version,
-                    value: release.version,
-                  };
-                }),
-              ]
-            : [],
+          options: [
+            ...ALIASED_RELEASES,
+            ...releases.map(release => {
+              return {
+                label: release.shortVersion ?? release.version,
+                value: release.version,
+              };
+            }),
+          ],
         },
       ]}
       onChange={opts => setActiveReleases(opts.map(opt => opt.value))}
