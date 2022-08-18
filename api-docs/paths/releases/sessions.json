@@ -79,7 +79,7 @@
         }
       },
       {
-        "name": "statsPeriod",
+        "name": "timeframe",
         "in": "query",
         "description": "This defines the range of the time series, relative to now.\n\nThe range is given in a `\"<number><unit>\"` format.\n\nFor example `1d` for a one day range. Possible units are `m` for minutes, `h` for hours, `d` for days and `w` for weeks.\n\nIt defaults to `90d`.",
         "required": false,
@@ -88,19 +88,19 @@
       {
         "name": "interval",
         "in": "query",
-        "description": "This is the resolution of the time series, given in the same format as `statsPeriod`.\n\nThe default resolution is `1h` and the minimum resolution is currently restricted to `1h` as well.\n\nIntervals larger than `1d` are not supported, and the interval has to cleanly divide one day.",
+        "description": "This is the resolution of the time series, given in the same format as `timeframe`.\n\nThe default resolution is `1h` and the minimum resolution is currently restricted to `1h` as well.\n\nIntervals larger than `1d` are not supported, and the interval has to cleanly divide one day.",
         "required": false,
         "schema": {"type": "string"}
       },
       {
-        "name": "statsPeriodStart",
+        "name": "timeframeStart",
         "in": "query",
         "description": "This defines the start of the time series range, in the same format as the `interval`, relative to now.",
         "required": false,
         "schema": {"type": "string"}
       },
       {
-        "name": "statsPeriodEnd",
+        "name": "timeframeEnd",
         "in": "query",
         "description": "This defines the end of the time series range, in the same format as the `interval`, relative to now.",
         "required": false,

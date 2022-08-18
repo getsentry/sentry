@@ -8,7 +8,7 @@ from sentry.models import Group, GroupStatus, OrganizationMemberTeam, Project, P
 
 from .organizationmember import OrganizationMemberEndpoint
 
-ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
+ERR_INVALID_TIMEFRAME = "Invalid timeframe. Valid choices are '', '24h', and '14d'"
 
 
 class OrganizationIssuesEndpoint(OrganizationMemberEndpoint, EnvironmentMixin):
@@ -20,9 +20,9 @@ class OrganizationIssuesEndpoint(OrganizationMemberEndpoint, EnvironmentMixin):
         """
         Return a list of issues assigned to the given member.
         """
-        stats_period = request.GET.get("statsPeriod")
+        stats_period = request.GET.get("statsPeriod", request.GET.get("timeframe"))
         if stats_period not in (None, "", "24h", "14d"):
-            return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
+            return Response({"detail": ERR_INVALID_TIMEFRAME}, status=400)
         elif stats_period is None:
             # default
             stats_period = "24h"

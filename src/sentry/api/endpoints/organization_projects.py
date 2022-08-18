@@ -19,7 +19,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models import Project, ProjectStatus, Team
 from sentry.search.utils import tokenize_query
 
-ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
+ERR_INVALID_TIMEFRAME = "Invalid timeframe. Valid choices are '', '24h', '14d', and '30d'"
 
 
 @extend_schema(tags=["Organizations"])
@@ -82,11 +82,11 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         """
         Return a list of projects bound to a organization.
         """
-        stats_period = request.GET.get("statsPeriod")
+        stats_period = request.GET.get("statsPeriod", request.GET.get("timeframe"))
         collapse = request.GET.getlist("collapse", [])
         if stats_period not in (None, "", "1h", "24h", "7d", "14d", "30d"):
             return Response(
-                {"error": {"params": {"stats_period": {"message": ERR_INVALID_STATS_PERIOD}}}},
+                {"error": {"params": {"timeframe": {"message": ERR_INVALID_TIMEFRAME}}}},
                 status=400,
             )
         elif not stats_period:

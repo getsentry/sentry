@@ -33,18 +33,18 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
     # TODO: refactor endpoint and use this to validate query parameters.
     # TODO: define fields for date parameters for use elsewhere
     # time params
-    statsPeriod = serializers.CharField(
+    timeframe = serializers.CharField(
         help_text=(
             "This defines the range of the time series, relative to now. "
             "The range is given in a `<number><unit>` format. "
             "For example `1d` for a one day range. Possible units are `m` for minutes, `h` for hours, `d` for days and `w` for weeks."
-            "You must either provide a `statsPeriod`, or a `start` and `end`."
+            "You must either provide a `timeframe`, or a `start` and `end`."
         ),
         required=False,
     )
     interval = serializers.CharField(
         help_text=(
-            "This is the resolution of the time series, given in the same format as `statsPeriod`. "
+            "This is the resolution of the time series, given in the same format as `timeframe`. "
             "The default resolution is `1h` and the minimum resolution is currently restricted to `1h` as well. "
             "Intervals larger than `1d` are not supported, and the interval has to cleanly divide one day."
         ),
@@ -52,13 +52,13 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
     )
     start = serializers.DateTimeField(
         help_text="This defines the start of the time series range as an explicit datetime, either in UTC ISO8601 or epoch seconds."
-        "Use along with `end` instead of `statsPeriod`.",
+        "Use along with `end` instead of `timeframe`.",
         required=False,
     )
     end = serializers.DateTimeField(
         help_text=(
             "This defines the inclusive end of the time series range as an explicit datetime, either in UTC ISO8601 or epoch seconds."
-            "Use along with `start` instead of `statsPeriod`."
+            "Use along with `start` instead of `timeframe`."
         ),
         required=False,
     )

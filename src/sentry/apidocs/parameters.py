@@ -18,8 +18,8 @@ class GLOBAL_PARAMS:
         type=str,
         location="path",
     )
-    STATS_PERIOD = OpenApiParameter(
-        name="statsPeriod",
+    TIMEFRAME = OpenApiParameter(
+        name="timeframe",
         location="query",
         required=False,
         type=str,

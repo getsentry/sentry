@@ -113,7 +113,8 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):  # type: ignore
 
     def quantize_date_params(self, request: Request, params: Dict[str, Any]) -> Dict[str, Any]:
         # We only need to perform this rounding on relative date periods
-        if "statsPeriod" not in request.GET:
+        # support old statsPeriod and new timeframe param
+        if not ([i for i in ["statsPeriod", "timeframe"] if i in request.GET]):
             return params
         results = params.copy()
         duration = (params["end"] - params["start"]).total_seconds()

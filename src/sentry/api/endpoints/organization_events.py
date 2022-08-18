@@ -201,7 +201,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             GLOBAL_PARAMS.ORG_SLUG,
             GLOBAL_PARAMS.PROJECT,
             GLOBAL_PARAMS.START,
-            GLOBAL_PARAMS.STATS_PERIOD,
+            GLOBAL_PARAMS.TIMEFRAME,
             VISIBILITY_PARAMS.FIELD,
             VISIBILITY_PARAMS.PER_PAGE,
             VISIBILITY_PARAMS.QUERY,
