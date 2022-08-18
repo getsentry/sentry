@@ -18,6 +18,8 @@ export function fetchSamplingSdkVersions({
   const {startTimestamp, endTimestamp, project_breakdown} = samplingDistribution;
 
   if (!startTimestamp || !endTimestamp) {
+    ServerSideSamplingStore.setFetching(false);
+    ServerSideSamplingStore.loadSamplingSdkVersionsSuccess([]);
     return new Promise(resolve => {
       resolve([]);
     });
