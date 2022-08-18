@@ -604,7 +604,10 @@ class IssueListOverview extends Component<Props, State> {
           return;
         }
 
-        GroupStore.loadInitialData(data);
+        if (this.state.undo) {
+          GroupStore.loadInitialData(data);
+        }
+        GroupStore.add(data);
 
         // TODO(Kelly): update once issue-list-removal-action feature is stable
         if (!hasIssueListRemovalAction) {
