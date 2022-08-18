@@ -19,7 +19,7 @@ from snuba_sdk import Column, Condition, Function, Op, Query, Request
 from snuba_sdk.conditions import ConditionGroup
 
 from sentry.api.utils import InvalidParams
-from sentry.models import Organization, Project
+from sentry.models import Project
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import (
@@ -63,7 +63,7 @@ logger = logging.getLogger(__name__)
 
 def _get_metrics_for_entity(
     entity_key: EntityKey,
-    projects: Sequence[Project],
+    project_ids: Sequence[int],
     org_id: int,
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
@@ -74,7 +74,7 @@ def _get_metrics_for_entity(
         groupby=[Column("metric_id")],
         where=[],
         referrer="snuba.metrics.get_metrics_names_for_entity",
-        projects=projects,
+        project_ids=project_ids,
         org_id=org_id,
         start=start,
         end=end,
@@ -140,16 +140,17 @@ def get_metrics(projects: Sequence[Project], use_case_id: UseCaseKey) -> Sequenc
 
     for metric_type in ("counter", "set", "distribution"):
         metric_ids_in_entities.setdefault(metric_type, set())
+        org_id = projects[0].organization_id
         for row in _get_metrics_for_entity(
             entity_key=METRIC_TYPE_TO_ENTITY[metric_type],
-            projects=projects,
-            org_id=projects[0].organization_id,
+            project_ids=[project.id for project in projects],
+            org_id=org_id,
         ):
             try:
                 metrics_meta.append(
                     MetricMeta(
                         name=get_public_name_from_mri(
-                            reverse_resolve(use_case_id, row["metric_id"])
+                            reverse_resolve(use_case_id, org_id, row["metric_id"])
                         ),
                         type=metric_type,
                         operations=AVAILABLE_OPERATIONS[METRIC_TYPE_TO_ENTITY[metric_type].value],
@@ -191,24 +192,24 @@ def get_metrics(projects: Sequence[Project], use_case_id: UseCaseKey) -> Sequenc
 
 
 def get_custom_measurements(
-    projects: Sequence[Project],
-    organization: Optional[Organization] = None,
+    project_ids: Sequence[int],
+    organization_id: int,
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
     use_case_id: UseCaseKey = UseCaseKey.PERFORMANCE,
 ) -> Sequence[MetricMeta]:
-    assert projects
+    assert project_ids
 
     metrics_meta = []
     for metric_type in CUSTOM_MEASUREMENT_DATASETS:
         for row in _get_metrics_for_entity(
             entity_key=METRIC_TYPE_TO_ENTITY[metric_type],
-            projects=projects,
-            org_id=projects[0].organization_id if organization is None else organization.id,
+            project_ids=project_ids,
+            org_id=organization_id,
             start=start,
             end=end,
         ):
-            mri = reverse_resolve(use_case_id, row["metric_id"])
+            mri = reverse_resolve(use_case_id, organization_id, row["metric_id"])
             parsed_mri = parse_mri(mri)
             if parsed_mri is not None and is_custom_measurement(parsed_mri):
                 metrics_meta.append(
@@ -245,7 +246,7 @@ def _get_metrics_filter_ids(
     while metric_mris_deque:
         mri = metric_mris_deque.popleft()
         if mri not in all_derived_metrics:
-            metric_ids.add(indexer.resolve(org_id, mri, use_case_id))
+            metric_ids.add(indexer.resolve(use_case_id, org_id, mri))
         else:
             derived_metric_obj = all_derived_metrics[mri]
             try:
@@ -305,6 +306,7 @@ def _fetch_tags_or_values_per_ids(
     metric_names, then the type (i.e. mapping to the entity) is also returned
     """
     assert len({p.organization_id for p in projects}) == 1
+    org_id = projects[0].organization_id
 
     metric_mris = None
     if metric_names is not None:
@@ -343,8 +345,8 @@ def _fetch_tags_or_values_per_ids(
             where=where,
             groupby=[Column("metric_id"), Column(column)],
             referrer=referrer,
-            projects=projects,
-            org_id=projects[0].organization_id,
+            project_ids=[p.id for p in projects],
+            org_id=org_id,
         )
 
         for row in rows:
@@ -397,8 +399,8 @@ def _fetch_tags_or_values_per_ids(
         tag_id = column.split("[")[1].split("]")[0]
         tags_or_values = [
             {
-                "key": reverse_resolve(use_case_id, int(tag_id)),
-                "value": reverse_resolve_tag_value(use_case_id, value_id),
+                "key": reverse_resolve(use_case_id, org_id, int(tag_id)),
+                "value": reverse_resolve_tag_value(use_case_id, org_id, value_id),
             }
             for value_id in tag_or_value_ids
         ]
@@ -407,7 +409,7 @@ def _fetch_tags_or_values_per_ids(
         tags_or_values = [
             {"key": reversed_tag}
             for tag_id in tag_or_value_ids
-            if (reversed_tag := reverse_resolve(use_case_id, tag_id)) not in UNALLOWED_TAGS
+            if (reversed_tag := reverse_resolve(use_case_id, org_id, tag_id)) not in UNALLOWED_TAGS
         ]
         tags_or_values.sort(key=itemgetter("key"))
 
@@ -797,9 +799,11 @@ def get_series(
 
                 results[entity][key] = {"data": snuba_result_data}
 
+    org_id = projects[0].organization_id
+
     assert projects
     converter = SnubaResultConverter(
-        projects[0].organization_id,
+        org_id,
         metrics_query,
         fields_in_entities,
         intervals,
@@ -823,7 +827,7 @@ def get_series(
         "end": metrics_query.end,
         "intervals": intervals,
         "groups": result_groups,
-        "meta": translate_meta_results(meta, metrics_query_fields, use_case_id)
+        "meta": translate_meta_results(meta, metrics_query_fields, use_case_id, org_id)
         if include_meta
         else [],
     }

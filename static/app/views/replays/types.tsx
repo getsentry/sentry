@@ -2,18 +2,110 @@ import type {eventWithTime} from 'rrweb/typings/types';
 
 import type {RawCrumb} from 'sentry/types/breadcrumbs';
 
-export type Replay = {
-  eventID: string;
+// Keep this in sync with the backend blueprint
+// "ReplayRecord" is distinct from the common: "replay = new ReplayReader()"
+export type ReplayRecord = {
+  browser: {
+    name: null | string;
+    version: null | string;
+  };
+  /**
+   * The number of errors associated with the replay.
+   */
+  countErrors: number;
+  /**
+   * The number of segments that make up the replay.
+   */
+  countSegments: number;
+  /**
+   * The number of urls visited in the replay.
+   */
+  countUrls: number;
+  device: {
+    brand: null | string;
+    family: null | string;
+    model: null | string;
+    name: null | string;
+  };
+  dist: null | string;
+  /**
+   * Difference of `updated-at` and `created-at` in seconds.
+   */
+  duration: number; // Seconds
+  environment: null | string;
+  errorIds: string[];
+  /**
+   * The **latest** timestamp received as determined by the SDK.
+   */
+  finishedAt: Date;
+  /**
+   * The ID of the Replay instance
+   */
   id: string;
-  project: string;
-  timestamp: string;
-  url: string;
-  'user.display': string;
-  'user.email': string;
-  'user.id': string;
-  'user.ip_address': string;
-  'user.name': string;
-  'user.username': string;
+  /**
+   * The longest transaction associated with the replay measured in milliseconds.
+   */
+  longestTransaction: number;
+  os: {
+    name: null | string;
+    version: null | string;
+  };
+  platform: string;
+  projectId: string;
+  release: null | string;
+  sdk: {
+    name: string;
+    version: string;
+  };
+  /**
+   * The **earliest** timestamp received as determined by the SDK.
+   */
+  startedAt: Date;
+  tags: Record<string, string>;
+  title: string;
+  traceIds: string[];
+  urls: string[];
+  user: {
+    email: string;
+    id: string;
+    ip_address: string;
+    name: string;
+    username: string;
+  };
+  userAgent: string;
+};
+
+export type ReplayListLocationQuery = {
+  end?: string;
+  environment?: string[];
+  field?: string[];
+  limit?: string;
+  offset?: string;
+  project?: string[];
+  query?: string;
+  sort?: string;
+  start?: string;
+  statsPeriod?: string;
+  utc?: 'true' | 'false';
+};
+
+export type ReplayListRecord = Pick<
+  ReplayRecord,
+  | 'countErrors'
+  | 'duration'
+  | 'finishedAt'
+  | 'id'
+  | 'projectId'
+  | 'startedAt'
+  | 'urls'
+  | 'user'
+>;
+
+export type ReplaySegment = {
+  dateAdded: string;
+  projectId: string;
+  replayId: string;
+  segmentId: number;
 };
 
 /**

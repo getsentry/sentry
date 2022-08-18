@@ -1,4 +1,3 @@
-import pytest
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 
@@ -6,7 +5,7 @@ from sentry.api.endpoints.project_details import DynamicSamplingSerializer
 from sentry.models import ProjectOption
 from sentry.testutils import AcceptanceTestCase
 
-FEATURE_NAME = "organizations:server-side-sampling"
+FEATURE_NAME = ["organizations:server-side-sampling", "organizations:server-side-sampling-ui"]
 
 uniform_rule_with_recommended_sampling_values = {
     "id": 1,
@@ -16,7 +15,7 @@ uniform_rule_with_recommended_sampling_values = {
         "op": "and",
         "inner": [],
     },
-    "sampleRate": 1,
+    "sampleRate": 0.1,
 }
 
 uniform_rule_with_custom_sampling_values = {
@@ -44,12 +43,6 @@ specific_rule_with_all_current_trace_conditions = {
                 "options": {"ignoreCase": True},
             },
             {"op": "glob", "name": "trace.release", "value": ["frontend@22*"]},
-            {
-                "op": "eq",
-                "name": "trace.user.segment",
-                "value": ["paid", "common"],
-                "options": {"ignoreCase": True},
-            },
         ],
     },
     "sampleRate": 0.3,
@@ -78,19 +71,20 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
-    @pytest.mark.skip(reason="Flaky")
     def test_add_uniform_rule_with_recommended_sampling_values(self):
         with self.feature(FEATURE_NAME):
             self.wait_until_page_loaded()
 
             # Open uniform rate modal
-            self.browser.element('[aria-label="Start Setup"]').click()
+            self.browser.click_when_visible('[aria-label="Start Setup"]')
+
+            self.browser.wait_until('[id="recommended-client-sampling"]')
 
             # Click on the recommended sampling values option
-            self.browser.element('[id="sampling-recommended"]').click()
+            self.browser.click_when_visible('[id="sampling-recommended"]')
 
             # Click on done button
-            self.browser.element('[aria-label="Done"]').click()
+            self.browser.click_when_visible('[aria-label="Done"]')
 
             # Wait the success message to show up
             self.browser.wait_until('[data-test-id="toast-success"]')
@@ -109,13 +103,14 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                 == serializer.validated_data["rules"][0]
             )
 
-    @pytest.mark.skip(reason="Flaking pretty consistently")
     def test_add_uniform_rule_with_custom_sampling_values(self):
         with self.feature(FEATURE_NAME):
             self.wait_until_page_loaded()
 
             # Open uniform rate modal
-            self.browser.element('[aria-label="Start Setup"]').click()
+            self.browser.click_when_visible('[aria-label="Start Setup"]')
+
+            self.browser.wait_until('[id="recommended-client-sampling"]')
 
             # Enter a custom value for client side sampling
             self.browser.element('[id="recommended-client-sampling"]').clear()
@@ -126,10 +121,10 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             self.browser.element('[id="recommended-server-sampling"]').send_keys(50, Keys.ENTER)
 
             # Click on next button
-            self.browser.element('[aria-label="Next"]').click()
+            self.browser.click_when_visible('[aria-label="Next"]')
 
             # Click on done button
-            self.browser.element('[aria-label="Done"]').click()
+            self.browser.click_when_visible('[aria-label="Done"]')
 
             # Wait the success message to show up
             self.browser.wait_until('[data-test-id="toast-success"]')
@@ -237,23 +232,24 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             # Add Release
             self.browser.element('[data-test-id="trace.release"]').click()
 
-            # Add User Segment
-            self.browser.element('[data-test-id="trace.user.segment"]').click()
-
             # Fill in Environment
+            self.browser.element('[aria-label="Search or add an environment"]').send_keys("prod")
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.element('[aria-label="Search or add an environment"]').send_keys(
-                "prod", Keys.ENTER, "production", Keys.ENTER
+                Keys.ENTER
+            )
+            self.browser.element('[aria-label="Search or add an environment"]').send_keys(
+                "production"
+            )
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
+            self.browser.element('[aria-label="Search or add an environment"]').send_keys(
+                Keys.ENTER
             )
 
             # Fill in Release
-            self.browser.element('[aria-label="Search or add a release"]').send_keys(
-                "frontend@22*", Keys.ENTER
-            )
-
-            # Fill in User Segment
-            self.browser.element('[placeholder="ex. paid, common (Multiline)"]').send_keys(
-                "paid\ncommon"
-            )
+            self.browser.element('[aria-label="Search or add a release"]').send_keys("frontend@22*")
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
+            self.browser.element('[aria-label="Search or add a release"]').send_keys(Keys.ENTER)
 
             # Fill in sample rate
             self.browser.element('[placeholder="%"]').send_keys("30")

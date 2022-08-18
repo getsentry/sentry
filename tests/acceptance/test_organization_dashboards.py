@@ -1,3 +1,4 @@
+import pytest
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -120,11 +121,11 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
 
-            self.browser.element('[aria-haspopup="true"]').click()
+            self.browser.element('[aria-label="Widget actions"]').click()
             self.browser.element('[data-test-id="duplicate-widget"]').click()
             self.page.wait_until_loaded()
 
-            self.browser.element('[aria-haspopup="true"]').click()
+            self.browser.element('[aria-label="Widget actions"]').click()
             self.browser.element('[data-test-id="duplicate-widget"]').click()
             self.page.wait_until_loaded()
 
@@ -134,7 +135,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
 
-            self.browser.element('[aria-haspopup="true"]').click()
+            self.browser.element('[aria-label="Widget actions"]').click()
             self.browser.element('[data-test-id="delete-widget"]').click()
             self.browser.element('[data-test-id="confirm-button"]').click()
 
@@ -287,7 +288,8 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             button = self.browser.element(EDIT_WIDGET_BUTTON)
             button.click()
             title_input = self.browser.element(WIDGET_TITLE_FIELD)
-            title_input.send_keys(Keys.END, "UPDATED!!")
+            title_input.clear()
+            title_input.send_keys(Keys.END, "Existing WidgetUPDATED!!")
             button = self.browser.element('[data-test-id="add-widget"]')
             button.click()
 
@@ -304,7 +306,8 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             button = self.browser.element(f".react-grid-item:nth-of-type(2) {EDIT_WIDGET_BUTTON}")
             button.click()
             title_input = self.browser.element(WIDGET_TITLE_FIELD)
-            title_input.send_keys(Keys.END, "UPDATED!!")
+            title_input.clear()
+            title_input.send_keys(Keys.END, "New WidgetUPDATED!!")
             button = self.browser.element('[data-test-id="add-widget"]')
             button.click()
 
@@ -505,11 +508,11 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
 
-            self.browser.element('[aria-haspopup="true"]').click()
+            self.browser.element('[aria-label="Widget actions"]').click()
             self.browser.element('[data-test-id="duplicate-widget"]').click()
             self.page.wait_until_loaded()
 
-            self.browser.element('[aria-haspopup="true"]').click()
+            self.browser.element('[aria-label="Widget actions"]').click()
             self.browser.element('[data-test-id="duplicate-widget"]').click()
             self.page.wait_until_loaded()
 
@@ -540,7 +543,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
 
-            self.browser.element('[aria-haspopup="true"]').click()
+            self.browser.element('[aria-label="Widget actions"]').click()
             self.browser.element('[data-test-id="delete-widget"]').click()
             self.browser.element('[data-test-id="confirm-button"]').click()
 
@@ -678,7 +681,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
         ):
             self.page.visit_dashboard_detail()
 
-            dropdown_trigger = self.browser.element('[aria-haspopup="true"]')
+            dropdown_trigger = self.browser.element('[aria-label="Widget actions"]')
             dropdown_trigger.click()
 
             delete_widget_menu_item = self.browser.element('[data-test-id="delete-widget"]')
@@ -732,7 +735,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.visit_dashboard_detail()
 
             # Open edit modal for first widget
-            dropdown_trigger = self.browser.element('[aria-haspopup="true"]')
+            dropdown_trigger = self.browser.element('[aria-label="Widget actions"]')
             dropdown_trigger.click()
             edit_widget_menu_item = self.browser.element('[data-test-id="edit-widget"]')
             edit_widget_menu_item.click()
@@ -761,6 +764,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
                 "dashboards - change from big number to area chart increases widget to min height"
             )
 
+    @pytest.mark.skip(reason="flaky behaviour due to loading spinner")
     def test_changing_number_widget_larger_than_min_height_for_area_chart_keeps_height(
         self,
     ):
@@ -782,7 +786,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.visit_dashboard_detail()
 
             # Open edit modal for first widget
-            dropdown_trigger = self.browser.element('[aria-haspopup="true"]')
+            dropdown_trigger = self.browser.element('[aria-label="Widget actions"]')
             dropdown_trigger.click()
             edit_widget_menu_item = self.browser.element('[data-test-id="edit-widget"]')
             edit_widget_menu_item.click()
@@ -795,6 +799,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
 
             self.page.wait_until_loaded()
 
+            # This snapshot is flaky due to the loading spinner
             self.browser.snapshot(
                 "dashboards - change from big number to other chart of more than 2 rows keeps height"
             )
@@ -832,7 +837,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.visit_dashboard_detail()
 
             # Open edit modal for first widget
-            dropdown_trigger = self.browser.element('[aria-haspopup="true"]')
+            dropdown_trigger = self.browser.element('[aria-label="Widget actions"]')
             dropdown_trigger.click()
             edit_widget_menu_item = self.browser.element('[data-test-id="edit-widget"]')
             edit_widget_menu_item.click()

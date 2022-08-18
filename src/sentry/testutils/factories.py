@@ -81,6 +81,7 @@ from sentry.models import (
     RepositoryProjectPathConfig,
     Rule,
     SentryAppInstallation,
+    SentryFunction,
     Team,
     User,
     UserEmail,
@@ -90,7 +91,7 @@ from sentry.models import (
 from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
 from sentry.models.releasefile import update_artifact_index
 from sentry.signals import project_created
-from sentry.snuba.models import QueryDatasets
+from sentry.snuba.dataset import Dataset
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json, loremipsum
@@ -1044,7 +1045,7 @@ class Factories:
         excluded_projects=None,
         date_added=None,
         query_type=None,
-        dataset=QueryDatasets.EVENTS,
+        dataset=Dataset.Events,
         threshold_type=AlertRuleThresholdType.ABOVE,
         resolve_threshold=None,
         user=None,
@@ -1158,6 +1159,15 @@ class Factories:
         return integration
 
     @staticmethod
+    def create_integration(
+        organization: Organization, external_id: str, **kwargs: Any
+    ) -> Integration:
+        integration = Integration.objects.create(external_id=external_id, **kwargs)
+        integration.add_organization(organization)
+
+        return integration
+
+    @staticmethod
     def create_identity_provider(integration: Integration, **kwargs: Any) -> IdentityProvider:
         return IdentityProvider.objects.create(
             type=integration.provider,
@@ -1214,4 +1224,14 @@ class Factories:
             type=ActivityType.NOTE.value,
             user=user,
             data=data,
+        )
+
+    @staticmethod
+    def create_sentry_function(name, code, **kwargs):
+        return SentryFunction.objects.create(
+            name=name,
+            code=code,
+            slug=slugify(name),
+            external_id=slugify(name) + "-" + uuid4().hex,
+            **kwargs,
         )

@@ -1,18 +1,11 @@
 # This file is used to declaratively define the sentry repository labels.
 #
-# XXX: A note on renaming labels, from the documentation of the sync action:
+# XXX: A note on renaming labels
 #
-# > If a label color or description changes, the same label is updated with the
-# > new color or description.
-# >
-# > If a label name changes, the previous label is deleted by default. Also all
-# > existing labels which not listed in manifest will be deleted by default. All
-# > issues and PRs that were previously labeled with this label are now
-# > unlabeled.
+# You MUST use a `alias: [ ... ]` list for the label to specify the old name of
+# the label, so that it can correctly rename the label.
 #
-# If you want to RENAME a label, without all issues and PRs being unlabeled you
-# MUST rename the label in the UI AND merge a PR renaming the label here
-# simultaneously.
+# Read more here: https://github.com/Financial-Times/github-label-sync#label-config-file
 
 # Getsentry workflow control
 - name: trigger-getsentry-external
@@ -108,7 +101,7 @@
   description: ''
 - name: 'Component: Developer Environment'
   color: '584774'
-  description: This covers issues related to setting up a developer's environment to be able to contribute to Sentr
+  description: This covers issues related to setting up a developer's environment
 - name: 'Component: Documentation'
   color: '584774'
   description: ''
@@ -231,6 +224,9 @@
 - name: 'Team: Support'
   color: '8D5494'
   description: ''
+- name: 'Team: Telemetry Experience'
+  color: '8D5494'
+  description: telemetry-experience
 - name: 'Team: Visibility'
   color: '8D5494'
   description: ''
@@ -275,11 +271,11 @@
 - name: 'Impact: Medium'
   color: 'FFB287'
   description: ''
-- name: 'Impact: Migration'
-  color: 'C83852'
-  description: ''
 - name: 'Impact: Small'
   color: '452650'
+  description: ''
+- name: 'Impact: Migration'
+  color: 'C83852'
   description: ''
 
 # Platforms
@@ -316,20 +312,25 @@
   color: '584774'
   description: ''
 
-# Legacy tags
+# Generic useful label
 - name: WIP
-  color: 'F6F6F8'
-  description: ''
-- name: 'Package: browser'
-  color: '6780AD'
-  description: ''
-- name: Design Review
   color: 'F6F6F8'
   description: ''
 - name: Do Not Merge
   color: 'C83852'
   description: Don't merge
 - name: Easy Task
+  color: 'F6F6F8'
+  description: ''
+- name: Security
+  color: 'C83852'
+  description: ''
+
+# Legacy labels
+- name: 'Package: browser'
+  color: '6780AD'
+  description: ''
+- name: Design Review
   color: 'F6F6F8'
   description: ''
 - name: enhancement
@@ -340,15 +341,6 @@
   description: ''
 - name: invalid
   color: 'F6F6F8'
-  description: ''
-- name: javascript
-  color: 'F6F6F8'
-  description: Pull requests that update Javascript code
-- name: python
-  color: 'F6F6F8'
-  description: Pull requests that update Python code
-- name: Security
-  color: 'C83852'
   description: ''
 - name: wcgw
   color: 'F6F6F8'

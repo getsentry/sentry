@@ -221,13 +221,14 @@ function Sidebar({location, organization}: Props) {
   );
 
   const replays = hasOrganization && (
-    <Feature features={['session-replay']} organization={organization}>
+    <Feature features={['session-replay-ui']} organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconPlay size="md" />}
         label={t('Replays')}
         to={`/organizations/${organization.slug}/replays/`}
         id="replays"
+        isAlpha
       />
     </Feature>
   );

@@ -1,9 +1,14 @@
+import {OrgRoleList, TeamRoleList} from './roleList';
+
 export function Organization(params = {}) {
   return {
     id: '3',
     slug: 'org-slug',
-    organizationUrl: 'https://org-slug.us.sentry.io',
     name: 'Organization Name',
+    links: {
+      organizationUrl: 'https://org-slug.sentry.io',
+      regionUrl: 'https://us.sentry.io',
+    },
     access: [
       'org:read',
       'org:write',
@@ -30,5 +35,8 @@ export function Organization(params = {}) {
     teams: [],
     projects: [],
     ...params,
+
+    orgRoleList: OrgRoleList(),
+    teamRoleList: TeamRoleList(),
   };
 }

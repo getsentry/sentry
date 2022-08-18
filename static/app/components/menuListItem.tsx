@@ -2,9 +2,10 @@ import {forwardRef as reactForwardRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
+import Tooltip, {InternalTooltipProps} from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {Theme} from 'sentry/utils/theme';
+import {FormSize, Theme} from 'sentry/utils/theme';
 
 /**
  * Menu item priority. Determines the text and background color.
@@ -17,6 +18,11 @@ export type MenuListItemProps = {
    * have appropriate aria-labels.
    */
   details?: React.ReactNode;
+  /**
+   * Whether the item is disabled (if true, the item will be grayed out and
+   * non-interactive).
+   */
+  disabled?: boolean;
   /**
    * Item label. Should preferably be a string. If not, make sure that
    * there are appropriate aria-labels.
@@ -40,6 +46,20 @@ export type MenuListItemProps = {
    * Whether to show a line divider below this item
    */
   showDivider?: boolean;
+  /**
+   * Determines the item's font sizes and internal paddings.
+   */
+  size?: FormSize;
+  /**
+   * Optional tooltip that appears when the use hovers over the item. This is
+   * not very visible - if possible, add additional text via the `details`
+   * prop instead.
+   */
+  tooltip?: React.ReactNode;
+  /**
+   * Additional props to be passed into <Tooltip />.
+   */
+  tooltipOptions?: Omit<InternalTooltipProps, 'children' | 'title' | 'className'>;
   /*
    * Items to be added to the right of the label.
    */
@@ -56,7 +76,6 @@ type OtherProps = {
   as?: React.ElementType;
   detailsProps?: object;
   innerWrapProps?: object;
-  isDisabled?: boolean;
   isFocused?: boolean;
   labelProps?: object;
 };
@@ -71,56 +90,67 @@ function BaseMenuListItem({
   details,
   as = 'li',
   priority = 'default',
+  size,
+  disabled = false,
   showDivider = false,
   leadingItems = false,
   leadingItemsSpanFullHeight = false,
   trailingItems = false,
   trailingItemsSpanFullHeight = false,
   isFocused = false,
-  isDisabled = false,
   innerWrapProps = {},
   labelProps = {},
   detailsProps = {},
+  tooltip,
+  tooltipOptions = {delay: 500},
   forwardRef,
   ...props
 }: Props) {
   return (
     <MenuItemWrap as={as} ref={forwardRef} {...props}>
-      <InnerWrap
-        isDisabled={isDisabled}
-        isFocused={isFocused}
-        priority={priority}
-        {...innerWrapProps}
-      >
-        {leadingItems && (
-          <LeadingItems
-            isDisabled={isDisabled}
-            spanFullHeight={leadingItemsSpanFullHeight}
-          >
-            {leadingItems}
-          </LeadingItems>
-        )}
-        <ContentWrap isFocused={isFocused} showDivider={defined(details) || showDivider}>
-          <LabelWrap>
-            <Label aria-hidden="true" {...labelProps}>
-              {label}
-            </Label>
-            {details && (
-              <Details isDisabled={isDisabled} priority={priority} {...detailsProps}>
-                {details}
-              </Details>
-            )}
-          </LabelWrap>
-          {trailingItems && (
-            <TrailingItems
-              isDisabled={isDisabled}
-              spanFullHeight={trailingItemsSpanFullHeight}
+      <Tooltip skipWrapper title={tooltip} {...tooltipOptions}>
+        <InnerWrap
+          isFocused={isFocused}
+          disabled={disabled}
+          priority={priority}
+          size={size}
+          {...innerWrapProps}
+        >
+          {leadingItems && (
+            <LeadingItems
+              disabled={disabled}
+              spanFullHeight={leadingItemsSpanFullHeight}
+              size={size}
             >
-              {trailingItems}
-            </TrailingItems>
+              {leadingItems}
+            </LeadingItems>
           )}
-        </ContentWrap>
-      </InnerWrap>
+          <ContentWrap
+            isFocused={isFocused}
+            showDivider={defined(details) || showDivider}
+            size={size}
+          >
+            <LabelWrap>
+              <Label aria-hidden="true" {...labelProps}>
+                {label}
+              </Label>
+              {details && (
+                <Details disabled={disabled} priority={priority} {...detailsProps}>
+                  {details}
+                </Details>
+              )}
+            </LabelWrap>
+            {trailingItems && (
+              <TrailingItems
+                disabled={disabled}
+                spanFullHeight={trailingItemsSpanFullHeight}
+              >
+                {trailingItems}
+              </TrailingItems>
+            )}
+          </ContentWrap>
+        </InnerWrap>
+      </Tooltip>
     </MenuItemWrap>
   );
 }
@@ -149,13 +179,13 @@ const MenuItemWrap = styled('li')`
 function getTextColor({
   theme,
   priority,
-  isDisabled,
+  disabled,
 }: {
-  isDisabled: boolean;
+  disabled: boolean;
   priority: Priority;
   theme: Theme;
 }) {
-  if (isDisabled) {
+  if (disabled) {
     return theme.subText;
   }
   switch (priority) {
@@ -185,11 +215,12 @@ export const InnerWrap = styled('div', {
   shouldForwardProp: prop =>
     typeof prop === 'string' &&
     isPropValid(prop) &&
-    !['isDisabled', 'isFocused', 'priority'].includes(prop),
+    !['disabled', 'isFocused', 'priority'].includes(prop),
 })<{
-  isDisabled: boolean;
+  disabled: boolean;
   isFocused: boolean;
   priority: Priority;
+  size: Props['size'];
 }>`
   display: flex;
   position: relative;
@@ -197,11 +228,13 @@ export const InnerWrap = styled('div', {
   border-radius: ${p => p.theme.borderRadius};
   box-sizing: border-box;
 
+  font-size: ${p => p.theme.form[p.size ?? 'md'].fontSize};
+
   &,
   &:hover {
     color: ${getTextColor};
   }
-  ${p => p.isDisabled && `cursor: initial;`}
+  ${p => p.disabled && `cursor: initial;`}
 
   ${p =>
     p.isFocused &&
@@ -232,14 +265,34 @@ export const InnerWrap = styled('div', {
     `}
 `;
 
-const ContentWrap = styled('div')<{isFocused: boolean; showDivider: boolean}>`
+/**
+ * Returns the appropriate vertical padding based on the size prop. To be used
+ * as top/bottom padding/margin in ContentWrap and LeadingItems.
+ */
+const getVerticalPadding = (size: Props['size']) => {
+  switch (size) {
+    case 'xs':
+      return space(0.5);
+    case 'sm':
+      return space(0.75);
+    case 'md':
+    default:
+      return space(1);
+  }
+};
+
+const ContentWrap = styled('div')<{
+  isFocused: boolean;
+  showDivider: boolean;
+  size: Props['size'];
+}>`
   position: relative;
   width: 100%;
   min-width: 0;
   display: flex;
   gap: ${space(1)};
   justify-content: space-between;
-  padding: ${space(1)} 0;
+  padding: ${p => getVerticalPadding(p.size)} 0;
 
   ${p =>
     p.showDivider &&
@@ -257,15 +310,19 @@ const ContentWrap = styled('div')<{isFocused: boolean; showDivider: boolean}>`
     `}
 `;
 
-const LeadingItems = styled('div')<{isDisabled: boolean; spanFullHeight: boolean}>`
+const LeadingItems = styled('div')<{
+  disabled: boolean;
+  size: Props['size'];
+  spanFullHeight: boolean;
+}>`
   display: flex;
   align-items: center;
   height: 1.4em;
   gap: ${space(1)};
-  margin-top: ${space(1)};
+  margin-top: ${p => getVerticalPadding(p.size)};
   margin-right: ${space(1)};
 
-  ${p => p.isDisabled && `opacity: 0.5;`}
+  ${p => p.disabled && `opacity: 0.5;`}
   ${p => p.spanFullHeight && `height: 100%;`}
 `;
 
@@ -283,7 +340,7 @@ const Label = styled('p')`
   ${p => p.theme.overflowEllipsis}
 `;
 
-const Details = styled('p')<{isDisabled: boolean; priority: Priority}>`
+const Details = styled('p')<{disabled: boolean; priority: Priority}>`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
   line-height: 1.2;
@@ -293,13 +350,13 @@ const Details = styled('p')<{isDisabled: boolean; priority: Priority}>`
   ${p => p.priority !== 'default' && `color: ${getTextColor(p)};`}
 `;
 
-const TrailingItems = styled('div')<{isDisabled: boolean; spanFullHeight: boolean}>`
+const TrailingItems = styled('div')<{disabled: boolean; spanFullHeight: boolean}>`
   display: flex;
   align-items: center;
   height: 1.4em;
   gap: ${space(1)};
   margin-right: ${space(0.5)};
 
-  ${p => p.isDisabled && `opacity: 0.5;`}
+  ${p => p.disabled && `opacity: 0.5;`}
   ${p => p.spanFullHeight && `height: 100%;`}
 `;

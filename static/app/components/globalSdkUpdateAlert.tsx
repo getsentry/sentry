@@ -65,7 +65,7 @@ function InnerGlobalSdkUpdateAlert(
     return () => {
       isUnmounted = true;
     };
-  }, []);
+  }, [api, organization]);
 
   if (!showUpdateAlert || !props.sdkUpdates?.length) {
     return null;

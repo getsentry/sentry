@@ -10,6 +10,9 @@ import {
   UseResizableDrawerOptions,
 } from 'sentry/utils/profiling/hooks/useResizableDrawer';
 
+// 664px is approximately the width where we start to scroll inside
+// 30px is the min height to where the drawer can still be resized
+const MIN_FRAMESTACK_DIMENSIONS: [number, number] = [664, 30];
 interface ProfilingFlamechartLayoutProps {
   flamechart: React.ReactElement;
   frameStack: React.ReactElement;
@@ -29,16 +32,12 @@ export function ProfilingFlamechartLayout(props: ProfilingFlamechartLayoutProps)
         flamegraphTheme.SIZES.BAR_HEIGHT,
     ];
 
-    // 664 is approximately the width where we start to scroll inside
-    // 30 is the min height to where the drawer can still be resized
-    const min: [number, number] = [664, 30];
-
     const onResize = (newDimensions: [number, number]) => {
       if (!frameStackRef.current) {
         return;
       }
 
-      if (layout === 'table_left' || layout === 'table_right') {
+      if (layout === 'table left' || layout === 'table right') {
         frameStackRef.current.style.width = `${newDimensions[0]}px`;
         frameStackRef.current.style.height = `100%`;
       } else {
@@ -51,12 +50,12 @@ export function ProfilingFlamechartLayout(props: ProfilingFlamechartLayoutProps)
       initialDimensions,
       onResize,
       direction:
-        layout === 'table_left'
+        layout === 'table left'
           ? 'horizontal-ltr'
-          : layout === 'table_right'
+          : layout === 'table right'
           ? 'horizontal-rtl'
           : 'vertical',
-      min,
+      min: MIN_FRAMESTACK_DIMENSIONS,
     };
   }, [
     flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
@@ -92,33 +91,33 @@ const ProfilingFlamechartGrid = styled('div')<{
   display: grid;
   width: 100%;
   grid-template-rows: ${({layout}) =>
-    layout === 'table_bottom'
+    layout === 'table bottom'
       ? 'auto 1fr'
-      : layout === 'table_right'
+      : layout === 'table right'
       ? '100px auto'
       : '100px auto'};
   grid-template-columns: ${({layout}) =>
-    layout === 'table_bottom'
+    layout === 'table bottom'
       ? '100%'
-      : layout === 'table_left'
+      : layout === 'table left'
       ? `min-content auto`
       : `auto min-content`};
 
   /* false positive for grid layout */
   /* stylelint-disable */
   grid-template-areas: ${({layout}) =>
-    layout === 'table_bottom'
+    layout === 'table bottom'
       ? `
         'minimap'
         'flamegraph'
         'frame-stack'
         `
-      : layout === 'table_right'
+      : layout === 'table right'
       ? `
         'minimap    frame-stack'
         'flamegraph frame-stack'
       `
-      : layout === 'table_left'
+      : layout === 'table left'
       ? `
         'frame-stack minimap'
         'frame-stack flamegraph'
@@ -139,12 +138,14 @@ const ZoomViewContainer = styled('div')`
   flex-direction: column;
   flex: 1 1 100%;
   grid-area: flamegraph;
+  position: relative;
 `;
 
 const FrameStackContainer = styled('div')<{layout: FlamegraphPreferences['layout']}>`
   grid-area: frame-stack;
   position: relative;
   overflow: auto;
+  min-width: ${MIN_FRAMESTACK_DIMENSIONS[0]}px;
 
   > div {
     position: absolute;

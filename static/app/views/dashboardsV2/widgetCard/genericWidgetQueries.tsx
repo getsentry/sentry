@@ -38,6 +38,7 @@ export type OnDataFetchedProps = {
   pageLinks?: string;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
+  timeseriesResultsType?: string;
   totalIssuesCount?: string;
 };
 
@@ -47,6 +48,7 @@ export type GenericWidgetQueriesChildrenProps = {
   pageLinks?: string;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
+  timeseriesResultsType?: string;
   totalCount?: string;
 };
 
@@ -75,6 +77,7 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     timeseriesResults,
     totalIssuesCount,
     pageLinks,
+    timeseriesResultsType,
   }: OnDataFetchedProps) => void;
 };
 
@@ -86,6 +89,7 @@ type State<SeriesResponse> = {
   rawResults?: SeriesResponse[];
   tableResults?: GenericWidgetQueriesChildrenProps['tableResults'];
   timeseriesResults?: GenericWidgetQueriesChildrenProps['timeseriesResults'];
+  timeseriesResultsType?: string;
 };
 
 class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
@@ -100,6 +104,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     rawResults: undefined,
     tableResults: undefined,
     pageLinks: undefined,
+    timeseriesResultsType: undefined,
   };
 
   componentDidMount() {
@@ -312,9 +317,11 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
         );
       })
     );
+    const rawResultsClone = cloneDeep(this.state.rawResults) ?? [];
     const transformedTimeseriesResults: Series[] = [];
     responses.forEach(([data], requestIndex) => {
       afterFetchSeriesData?.(data);
+      rawResultsClone[requestIndex] = data;
       const transformedResult = config.transformSeries!(
         data,
         widget.queries[requestIndex],
@@ -332,9 +339,23 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       });
     });
 
+    // Get series result type
+    // Only used by custom measurements in errorsAndTransactions at the moment
+    const timeseriesResultsType = config.getSeriesResultType?.(
+      responses[0][0],
+      widget.queries[0]
+    );
+
     if (this._isMounted && this.state.queryFetchID === queryFetchID) {
-      onDataFetched?.({timeseriesResults: transformedTimeseriesResults});
-      this.setState({timeseriesResults: transformedTimeseriesResults});
+      onDataFetched?.({
+        timeseriesResults: transformedTimeseriesResults,
+        timeseriesResultsType,
+      });
+      this.setState({
+        timeseriesResults: transformedTimeseriesResults,
+        rawResults: rawResultsClone,
+        timeseriesResultsType,
+      });
     }
   }
 
@@ -376,10 +397,23 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
   render() {
     const {children} = this.props;
-    const {loading, tableResults, timeseriesResults, errorMessage, pageLinks} =
-      this.state;
+    const {
+      loading,
+      tableResults,
+      timeseriesResults,
+      errorMessage,
+      pageLinks,
+      timeseriesResultsType,
+    } = this.state;
 
-    return children({loading, tableResults, timeseriesResults, errorMessage, pageLinks});
+    return children({
+      loading,
+      tableResults,
+      timeseriesResults,
+      errorMessage,
+      pageLinks,
+      timeseriesResultsType,
+    });
   }
 }
 

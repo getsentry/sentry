@@ -11,7 +11,7 @@ import {
 
 export interface initializeDataSettings {
   features?: string[];
-  project?: Project;
+  project?: any; // TODO(k-fish): Fix this project type.
   projects?: Project[];
   query?: {};
   selectedProject?: number | string;

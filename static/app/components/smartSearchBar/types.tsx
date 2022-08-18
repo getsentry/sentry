@@ -1,4 +1,4 @@
-import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
+import {FieldKind} from 'sentry/utils/fields';
 
 import {Token, TokenResult} from '../searchSyntax/parser';
 
@@ -6,6 +6,7 @@ export enum ItemType {
   DEFAULT = 'default',
   TAG_KEY = 'tag-key',
   TAG_VALUE = 'tag-value',
+  TAG_VALUE_ISO_DATE = 'tag-value-iso-date',
   TAG_OPERATOR = 'tag-operator',
   FIRST_RELEASE = 'first-release',
   INVALID_TAG = 'invalid-tag',
@@ -33,10 +34,11 @@ export type SearchItem = {
    * Child search items, we only support 1 level of nesting though.
    */
   children?: SearchItem[];
+  deprecated?: boolean;
   desc?: string;
   documentation?: React.ReactNode;
   ignoreMaxSearchItems?: boolean;
-  kind?: FieldValueKind;
+  kind?: FieldKind;
   title?: string;
   type?: ItemType;
   /**
@@ -71,4 +73,11 @@ export type Shortcut = {
     actual: string[] | string;
     display?: string[] | string;
   };
+};
+
+export type AutocompleteGroup = {
+  recentSearchItems: SearchItem[] | undefined;
+  searchItems: SearchItem[];
+  tagName: string;
+  type: ItemType;
 };

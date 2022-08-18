@@ -23,7 +23,7 @@ const defaultOrgFeatures = [
   'new-widget-builder-experience-design',
   'dashboards-edit',
   'global-views',
-  'dashboard-custom-measurement-widgets',
+  'dashboards-mep',
 ];
 
 // Mocking worldMapChart to avoid act warnings
@@ -239,6 +239,13 @@ describe('WidgetBuilder', function () {
       method: 'GET',
       body: {},
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/is/values/',
+      method: 'GET',
+      body: [],
+    });
+
     TagStore.reset();
   });
 
@@ -499,7 +506,7 @@ describe('WidgetBuilder', function () {
               start: null,
               end: null,
               statsPeriod: '24h',
-              utc: false,
+              utc: null,
               project: [],
               environment: [],
             },
@@ -542,7 +549,7 @@ describe('WidgetBuilder', function () {
               start: null,
               end: null,
               statsPeriod: '24h',
-              utc: false,
+              utc: null,
               project: [],
               environment: [],
             },
@@ -2072,7 +2079,7 @@ describe('WidgetBuilder', function () {
                 start: null,
                 end: null,
                 statsPeriod: '24h',
-                utc: false,
+                utc: null,
                 project: [],
                 environment: [],
               },
@@ -2104,7 +2111,7 @@ describe('WidgetBuilder', function () {
                 start: null,
                 end: null,
                 statsPeriod: '24h',
-                utc: false,
+                utc: null,
                 project: [],
                 environment: [],
               },
@@ -2571,6 +2578,7 @@ describe('WidgetBuilder', function () {
       });
 
       it('does not allow sort on tags except release', async function () {
+        jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
         renderTestComponent({
           orgFeatures: releaseHealthFeatureFlags,
         });
@@ -2605,6 +2613,7 @@ describe('WidgetBuilder', function () {
       });
 
       it('makes the appropriate sessions call', async function () {
+        jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
         renderTestComponent({
           orgFeatures: releaseHealthFeatureFlags,
         });
@@ -2636,6 +2645,7 @@ describe('WidgetBuilder', function () {
       });
 
       it('calls the session endpoint with the right limit', async function () {
+        jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
         renderTestComponent({
           orgFeatures: releaseHealthFeatureFlags,
         });
@@ -2673,6 +2683,7 @@ describe('WidgetBuilder', function () {
       });
 
       it('calls sessions api when session.status is selected as a groupby', async function () {
+        jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
         renderTestComponent({
           orgFeatures: releaseHealthFeatureFlags,
         });
@@ -2736,6 +2747,7 @@ describe('WidgetBuilder', function () {
       });
 
       it('sets widgetType to release', async function () {
+        jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
         renderTestComponent({
           orgFeatures: releaseHealthFeatureFlags,
         });
@@ -2835,6 +2847,7 @@ describe('WidgetBuilder', function () {
       });
 
       it('adds a function when the only column chosen in a table is a tag', async function () {
+        jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
         renderTestComponent({
           orgFeatures: releaseHealthFeatureFlags,
         });
@@ -3431,7 +3444,7 @@ describe('WidgetBuilder', function () {
                 start: null,
                 end: null,
                 statsPeriod: '24h',
-                utc: false,
+                utc: null,
                 project: [],
                 environment: [],
               },
@@ -3623,6 +3636,181 @@ describe('WidgetBuilder', function () {
         expect(
           screen.queryByText('measurements.custom.measurement')
         ).not.toBeInTheDocument();
+      });
+
+      it('renders custom performance metric using duration units from events meta', async function () {
+        eventsMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/',
+          method: 'GET',
+          statusCode: 200,
+          body: {
+            meta: {
+              fields: {'p99(measurements.custom.measurement)': 'duration'},
+              isMetricsData: true,
+              units: {'p99(measurements.custom.measurement)': 'hour'},
+            },
+            data: [{'p99(measurements.custom.measurement)': 12}],
+          },
+        });
+
+        renderTestComponent({
+          query: {source: DashboardWidgetSource.DISCOVERV2},
+          dashboard: {
+            ...testDashboard,
+            widgets: [
+              {
+                title: 'Custom Measurement Widget',
+                interval: '1d',
+                id: '1',
+                widgetType: WidgetType.DISCOVER,
+                displayType: DisplayType.TABLE,
+                queries: [
+                  {
+                    conditions: '',
+                    name: '',
+                    fields: ['p99(measurements.custom.measurement)'],
+                    columns: [],
+                    aggregates: ['p99(measurements.custom.measurement)'],
+                    orderby: '-p99(measurements.custom.measurement)',
+                  },
+                ],
+              },
+            ],
+          },
+          params: {
+            widgetIndex: '0',
+          },
+          orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
+        });
+
+        await screen.findByText('12.00hr');
+      });
+
+      it('renders custom performance metric using size units from events meta', async function () {
+        eventsMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/',
+          method: 'GET',
+          statusCode: 200,
+          body: {
+            meta: {
+              fields: {'p99(measurements.custom.measurement)': 'size'},
+              isMetricsData: true,
+              units: {'p99(measurements.custom.measurement)': 'kibibyte'},
+            },
+            data: [{'p99(measurements.custom.measurement)': 12}],
+          },
+        });
+
+        renderTestComponent({
+          query: {source: DashboardWidgetSource.DISCOVERV2},
+          dashboard: {
+            ...testDashboard,
+            widgets: [
+              {
+                title: 'Custom Measurement Widget',
+                interval: '1d',
+                id: '1',
+                widgetType: WidgetType.DISCOVER,
+                displayType: DisplayType.TABLE,
+                queries: [
+                  {
+                    conditions: '',
+                    name: '',
+                    fields: ['p99(measurements.custom.measurement)'],
+                    columns: [],
+                    aggregates: ['p99(measurements.custom.measurement)'],
+                    orderby: '-p99(measurements.custom.measurement)',
+                  },
+                ],
+              },
+            ],
+          },
+          params: {
+            widgetIndex: '0',
+          },
+          orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
+        });
+
+        await screen.findByText('12.0 KiB');
+      });
+
+      it('displays custom performance metric in column select', async function () {
+        renderTestComponent({
+          query: {source: DashboardWidgetSource.DISCOVERV2},
+          dashboard: {
+            ...testDashboard,
+            widgets: [
+              {
+                title: 'Custom Measurement Widget',
+                interval: '1d',
+                id: '1',
+                widgetType: WidgetType.DISCOVER,
+                displayType: DisplayType.TABLE,
+                queries: [
+                  {
+                    conditions: '',
+                    name: '',
+                    fields: ['p99(measurements.custom.measurement)'],
+                    columns: [],
+                    aggregates: ['p99(measurements.custom.measurement)'],
+                    orderby: '-p99(measurements.custom.measurement)',
+                  },
+                ],
+              },
+            ],
+          },
+          params: {
+            widgetIndex: '0',
+          },
+          orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
+        });
+        await screen.findByText('measurements.custom.measurement');
+      });
+
+      it('does not default to sorting by transaction when columns change', async function () {
+        renderTestComponent({
+          query: {source: DashboardWidgetSource.DISCOVERV2},
+          dashboard: {
+            ...testDashboard,
+            widgets: [
+              {
+                title: 'Custom Measurement Widget',
+                interval: '1d',
+                id: '1',
+                widgetType: WidgetType.DISCOVER,
+                displayType: DisplayType.TABLE,
+                queries: [
+                  {
+                    conditions: '',
+                    name: '',
+                    fields: [
+                      'p99(measurements.custom.measurement)',
+                      'transaction',
+                      'count()',
+                    ],
+                    columns: ['transaction'],
+                    aggregates: ['p99(measurements.custom.measurement)', 'count()'],
+                    orderby: '-p99(measurements.custom.measurement)',
+                  },
+                ],
+              },
+            ],
+          },
+          params: {
+            widgetIndex: '0',
+          },
+          orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
+        });
+        expect(
+          await screen.findByText('p99(measurements.custom.measurement)')
+        ).toBeInTheDocument();
+        // Delete p99(measurements.custom.measurement) column
+        userEvent.click(screen.getAllByLabelText('Remove column')[0]);
+        expect(
+          screen.queryByText('p99(measurements.custom.measurement)')
+        ).not.toBeInTheDocument();
+        expect(screen.getAllByText('transaction').length).toEqual(1);
+        expect(screen.getAllByText('count()').length).toEqual(2);
       });
     });
   });

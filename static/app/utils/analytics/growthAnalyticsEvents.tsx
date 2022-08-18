@@ -50,6 +50,7 @@ type VitalsAlert = {
   can_see_all_projects: boolean;
   industry_diff: number;
   sentry_diff: number;
+  user_vital_count: number;
   user_vital_value: number;
   vital: string;
   vitals_type: 'mobile' | 'web';
@@ -57,6 +58,16 @@ type VitalsAlert = {
 
 // define the event key to payload mappings
 export type GrowthEventParameters = {
+  'assistant.guide_cued': {
+    guide: string;
+  };
+  'assistant.guide_dismissed': {
+    guide: string;
+    step: number;
+  };
+  'assistant.guide_finished': {
+    guide: string;
+  };
   'growth.clicked_enter_sandbox': {
     scenario: string;
     source?: string;
@@ -94,6 +105,15 @@ export type GrowthEventParameters = {
   'growth.onboarding_take_to_error': {};
   'growth.onboarding_view_full_docs': {};
   'growth.onboarding_view_sample_event': SampleEventParam;
+  'growth.onboarding_wizard_clicked_more_details': {
+    platform?: string;
+    project_id?: string;
+  };
+  'growth.onboarding_wizard_interacted': {
+    wizard_instructions: boolean;
+    platform?: string;
+    project_id?: string;
+  };
   'growth.platformpicker_category': PlatformCategory;
   'growth.platformpicker_search': PlatformSearchParam;
   'growth.sample_error_onboarding_link_clicked': {
@@ -143,6 +163,8 @@ export type GrowthEventParameters = {
 type GrowthAnalyticsKey = keyof GrowthEventParameters;
 
 export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
+  'assistant.guide_finished': 'Assistant Guide Finished',
+  'assistant.guide_dismissed': 'Assistant Guide Dismissed',
   'growth.clicked_mobile_prompt_setup_project':
     'Growth: Clicked Mobile Prompt Setup Project',
   'growth.clicked_mobile_prompt_ask_teammate':
@@ -203,4 +225,8 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'vitals_alert.dismissed': 'Vitals Alert: Dismissed',
   'vitals_alert.clicked_docs': 'Vitals Alert: Clicked Docs',
   'vitals_alert.displayed': 'Vitals Alert: Displayed',
+  'growth.onboarding_wizard_clicked_more_details':
+    'Onboarding Wizard: Clicked More Details',
+  'growth.onboarding_wizard_interacted': 'Onboarding Wizard: Interacted',
+  'assistant.guide_cued': 'Assistant Guide Cued',
 };

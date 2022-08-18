@@ -14,6 +14,7 @@ import {PageContent} from 'sentry/styles/organization';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
+import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {decodeScalar} from 'sentry/utils/queryString';
 
@@ -62,13 +63,11 @@ function PageLayout(props: Props) {
   const projectId = decodeScalar(location.query.project);
   const transactionName = getTransactionName(location);
   const [error, setError] = useState<string | undefined>();
+  const metricsCardinality = useMetricsCardinalityContext();
   const [transactionThreshold, setTransactionThreshold] = useState<number | undefined>();
   const [transactionThresholdMetric, setTransactionThresholdMetric] = useState<
     TransactionThresholdMetric | undefined
   >();
-
-  const [incompatibleAlertNotice, setIncompatibleAlertNotice] =
-    useState<React.ReactNode>(null);
 
   if (!defined(projectId) || !defined(transactionName)) {
     redirectToPerformanceHomepage(organization, location);
@@ -76,11 +75,6 @@ function PageLayout(props: Props) {
   }
 
   const project = projects.find(p => p.id === projectId);
-
-  const handleIncompatibleQuery = (incompatibleAlertNoticeFn, _errors) => {
-    const notice = incompatibleAlertNoticeFn(() => setIncompatibleAlertNotice(null));
-    setIncompatibleAlertNotice(notice);
-  };
 
   const eventView = generateEventView({location, transactionName});
 
@@ -112,20 +106,17 @@ function PageLayout(props: Props) {
                   transactionName={transactionName}
                   currentTab={tab}
                   hasWebVitals={tab === Tab.WebVitals ? 'yes' : 'maybe'}
-                  handleIncompatibleQuery={handleIncompatibleQuery}
                   onChangeThreshold={(threshold, metric) => {
                     setTransactionThreshold(threshold);
                     setTransactionThresholdMetric(metric);
                   }}
+                  metricsCardinality={metricsCardinality}
                 />
                 <Layout.Body>
                   {defined(error) && (
                     <StyledAlert type="error" showIcon>
                       {error}
                     </StyledAlert>
-                  )}
-                  {incompatibleAlertNotice && (
-                    <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
                   )}
                   <ChildComponent
                     location={location}

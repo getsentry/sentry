@@ -18,13 +18,12 @@ import EventAnnotation from 'sentry/components/events/eventAnnotation';
 import EventMessage from 'sentry/components/events/eventMessage';
 import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
 import UnhandledInboxTag from 'sentry/components/group/inboxBadges/unhandledTag';
-import IdBadge from 'sentry/components/idBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
+import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import SeenByList from 'sentry/components/seenByList';
 import ShortId from 'sentry/components/shortId';
 import Tooltip from 'sentry/components/tooltip';
@@ -151,7 +150,6 @@ class GroupHeader extends Component<Props, State> {
     const hasGroupingTreeUI = organizationFeatures.has('grouping-tree-ui');
     const hasSimilarView = projectFeatures.has('similarity-view');
     const hasEventAttachments = organizationFeatures.has('event-attachments');
-    const hasIssueIdBreadcrumbs = organizationFeatures.has('issue-id-breadcrumbs');
 
     let className = 'group-detail';
 
@@ -164,7 +162,6 @@ class GroupHeader extends Component<Props, State> {
     }
 
     const {memberList} = this.state;
-    const orgId = organization.slug;
     const message = getMessage(group);
 
     const searchTermWithoutQuery = omit(location.query, 'query');
@@ -203,23 +200,18 @@ class GroupHeader extends Component<Props, State> {
         <div className={className}>
           <StyledBreadcrumbs
             crumbs={[
-              {label: 'Issues', to: `/organizations/${orgId}/issues/${location.search}`},
               {
-                label: hasIssueIdBreadcrumbs ? shortIdBreadCrumb : t('Issue Details'),
+                label: 'Issues',
+                to: `/organizations/${organization.slug}/issues/${location.search}`,
+              },
+              {
+                label: shortIdBreadCrumb,
               },
             ]}
           />
           <div className="row">
             <div className="col-sm-7">
               <TitleWrapper>
-                {!hasIssueIdBreadcrumbs && (
-                  <StyledIdBadge
-                    project={project}
-                    avatarSize={24}
-                    hideName
-                    avatarProps={{hasTooltip: true, tooltip: project.slug}}
-                  />
-                )}
                 <h3>
                   <EventOrGroupTitle hasGuideAnchor data={group} />
                 </h3>
@@ -240,7 +232,7 @@ class GroupHeader extends Component<Props, State> {
                         <EventAnnotationWithSpace>
                           <Link
                             to={{
-                              pathname: `/organizations/${orgId}/issues/`,
+                              pathname: `/organizations/${organization.slug}/issues/`,
                               query: {query: 'logger:' + group.logger},
                             }}
                           >
@@ -254,111 +246,41 @@ class GroupHeader extends Component<Props, State> {
               </StyledTagAndMessageWrapper>
             </div>
 
-            {hasIssueIdBreadcrumbs ? (
-              <StatsWrapper>
-                <div className="count align-right m-l-1">
-                  <h6 className="nav-header">{t('Events')}</h6>
-                  {disableActions ? (
+            <StatsWrapper>
+              <div className="count align-right m-l-1">
+                <h6 className="nav-header">{t('Events')}</h6>
+                {disableActions ? (
+                  <Count className="count" value={group.count} />
+                ) : (
+                  <Link to={eventRouteToObject}>
                     <Count className="count" value={group.count} />
-                  ) : (
-                    <Link to={eventRouteToObject}>
-                      <Count className="count" value={group.count} />
-                    </Link>
-                  )}
-                </div>
-                <div className="count align-right m-l-1">
-                  <h6 className="nav-header">{t('Users')}</h6>
-                  {userCount !== 0 ? (
-                    disableActions ? (
-                      <Count className="count" value={userCount} />
-                    ) : (
-                      <Link to={`${baseUrl}tags/user/${location.search}`}>
-                        <Count className="count" value={userCount} />
-                      </Link>
-                    )
-                  ) : (
-                    <span>0</span>
-                  )}
-                </div>
-                <div className="assigned-to m-l-1">
-                  <h6 className="nav-header">{t('Assignee')}</h6>
-                  <AssigneeSelector
-                    id={group.id}
-                    memberList={memberList}
-                    disabled={disableActions}
-                    onAssign={this.trackAssign}
-                  />
-                </div>
-              </StatsWrapper>
-            ) : (
-              <div className="col-sm-5 stats">
-                <div className="flex flex-justify-right">
-                  {group.shortId && (
-                    <GuideAnchor target="issue_number" position="bottom">
-                      <div className="short-id-box count align-right">
-                        <h6 className="nav-header">
-                          <Tooltip
-                            className="help-link"
-                            showUnderline
-                            title={t(
-                              'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
-                            )}
-                            position="bottom"
-                          >
-                            <ExternalLink href="https://docs.sentry.io/product/integrations/source-code-mgmt/github/#resolve-via-commit-or-pull-request">
-                              {t('Issue #')}
-                            </ExternalLink>
-                          </Tooltip>
-                        </h6>
-                        <ShortId
-                          shortId={group.shortId}
-                          avatar={
-                            <StyledProjectBadge
-                              project={project}
-                              avatarSize={20}
-                              hideName
-                            />
-                          }
-                        />
-                      </div>
-                    </GuideAnchor>
-                  )}
-                  <div className="count align-right m-l-1">
-                    <h6 className="nav-header">{t('Events')}</h6>
-                    {disableActions ? (
-                      <Count className="count" value={group.count} />
-                    ) : (
-                      <Link to={eventRouteToObject}>
-                        <Count className="count" value={group.count} />
-                      </Link>
-                    )}
-                  </div>
-                  <div className="count align-right m-l-1">
-                    <h6 className="nav-header">{t('Users')}</h6>
-                    {userCount !== 0 ? (
-                      disableActions ? (
-                        <Count className="count" value={userCount} />
-                      ) : (
-                        <Link to={`${baseUrl}tags/user/${location.search}`}>
-                          <Count className="count" value={userCount} />
-                        </Link>
-                      )
-                    ) : (
-                      <span>0</span>
-                    )}
-                  </div>
-                  <div className="assigned-to m-l-1">
-                    <h6 className="nav-header">{t('Assignee')}</h6>
-                    <AssigneeSelector
-                      id={group.id}
-                      memberList={memberList}
-                      disabled={disableActions}
-                      onAssign={this.trackAssign}
-                    />
-                  </div>
-                </div>
+                  </Link>
+                )}
               </div>
-            )}
+              <div className="count align-right m-l-1">
+                <h6 className="nav-header">{t('Users')}</h6>
+                {userCount !== 0 ? (
+                  disableActions ? (
+                    <Count className="count" value={userCount} />
+                  ) : (
+                    <Link to={`${baseUrl}tags/user/${location.search}`}>
+                      <Count className="count" value={userCount} />
+                    </Link>
+                  )
+                ) : (
+                  <span>0</span>
+                )}
+              </div>
+              <div className="assigned-to m-l-1">
+                <h6 className="nav-header">{t('Assignee')}</h6>
+                <AssigneeSelector
+                  id={group.id}
+                  memberList={memberList}
+                  disabled={disableActions}
+                  onAssign={this.trackAssign}
+                />
+              </div>
+            </StatsWrapper>
           </div>
           <SeenByList
             seenBy={group.seenBy}
@@ -445,12 +367,13 @@ class GroupHeader extends Component<Props, State> {
                 {t('Similar Issues')}
               </ListLink>
             )}
-            <Feature features={['session-replay']} organization={organization}>
+            <Feature features={['session-replay-ui']} organization={organization}>
               <ListLink
                 to={`${baseUrl}replays/${location.search}`}
                 isActive={() => currentTab === Tab.REPLAYS}
               >
                 {t('Replays')} <Badge text={replaysCount ?? ''} />
+                <ReplaysFeatureBadge noTooltip />
               </ListLink>
             </Feature>
           </NavTabs>
@@ -474,10 +397,6 @@ const StyledBreadcrumbs = styled(Breadcrumbs)`
 const IssueBreadcrumbWrapper = styled('div')`
   display: flex;
   align-items: center;
-`;
-
-const StyledIdBadge = styled(IdBadge)`
-  margin-right: ${space(1)};
 `;
 
 const StyledTooltip = styled(Tooltip)`

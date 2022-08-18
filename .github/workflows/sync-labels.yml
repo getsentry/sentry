@@ -10,13 +10,13 @@ on:
       - .github/labels.yml
 jobs:
   sync:
-    name: syncs reposiory labels
+    name: syncs repository labels
     runs-on: ubuntu-latest
     permissions:
       issues: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b  # v3
       - uses: ./.github/actions/setup-volta
 
       - name: Install github-label-sync
@@ -32,7 +32,7 @@ jobs:
             2>&1 | tee sync-report.txt
 
       - name: Read sync output into variable
-        uses: actions/github-script@v4
+        uses: actions/github-script@deb7ae927cc19ae3a8b57293dd5cd2f16171e1e2  # v4
         if: github.event_name == 'pull_request'
         id: github-label-sync
         with:

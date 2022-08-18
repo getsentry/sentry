@@ -13,7 +13,7 @@ export type FineTuneField = {
 // TODO: clean up unused fields
 export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
   alerts: {
-    title: 'Issue Alert Notifications',
+    title: t('Issue Alert Notifications'),
     description: t(
       'Notifications from Alert Rules that your team has setup. You’ll always receive notifications from Alerts configured to be sent directly to you.'
     ),
@@ -27,7 +27,7 @@ export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
     defaultFieldName: 'subscribeByDefault',
   },
   workflow: {
-    title: 'Workflow Notifications',
+    title: t('Workflow Notifications'),
     description: t(
       'Control workflow notifications, e.g. changes in issue assignment, resolution status, and comments.'
     ),
@@ -40,6 +40,17 @@ export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
     ],
     defaultValue: '-1',
     defaultFieldName: 'workflowNotifications',
+  },
+  activeRelease: {
+    title: t('Release Issues'),
+    description: t('Notifications sent for issues likely caused by your code changes.'),
+    type: 'select',
+    defaultValue: '0',
+    options: [
+      {value: '1', label: t('On')},
+      {value: '0', label: t('Off')},
+    ],
+    defaultFieldName: 'activeReleaseNotifications',
   },
   deploy: {
     title: t('Deploy Notifications'),

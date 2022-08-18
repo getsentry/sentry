@@ -107,7 +107,7 @@ def run_metrics_query(
     select: List[Column],
     where: List[Condition],
     groupby: List[Column],
-    projects: Sequence[Project],
+    project_ids: Sequence[int],
     org_id: int,
     referrer: str,
     start: Optional[datetime] = None,
@@ -129,7 +129,7 @@ def run_metrics_query(
         groupby=groupby,
         where=[
             Condition(Column("org_id"), Op.EQ, org_id),
-            Condition(Column("project_id"), Op.IN, [p.id for p in projects]),
+            Condition(Column("project_id"), Op.IN, project_ids),
             Condition(Column(TS_COL_QUERY), Op.GTE, start),
             Condition(Column(TS_COL_QUERY), Op.LT, end),
         ]
@@ -165,7 +165,7 @@ def _get_entity_of_metric_mri(
 
     assert projects
     org_id = org_id_from_projects(projects)
-    metric_id = indexer.resolve(org_id, metric_mri, use_case_id)
+    metric_id = indexer.resolve(use_case_id, org_id, metric_mri)
 
     if metric_id is None:
         raise InvalidParams
@@ -178,7 +178,7 @@ def _get_entity_of_metric_mri(
             where=[Condition(Column("metric_id"), Op.EQ, metric_id)],
             groupby=[Column("metric_id")],
             referrer="snuba.metrics.meta.get_entity_of_metric",
-            projects=projects,
+            project_ids=[p.id for p in projects],
             org_id=org_id,
         )
         if data:

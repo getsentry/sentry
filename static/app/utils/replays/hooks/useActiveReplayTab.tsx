@@ -1,23 +1,21 @@
 import {useCallback} from 'react';
 
-import {t} from 'sentry/locale';
 import useUrlParams from 'sentry/utils/replays/hooks/useUrlParams';
 
-export const ReplayTabs = {
-  console: t('Console'),
-  network: t('Network'),
-  trace: t('Trace'),
-  issues: t('Issues'),
-  memory: t('Memory'),
-};
-
-type TabKey = keyof typeof ReplayTabs;
-
-export function isReplayTab(tab: string): tab is TabKey {
-  return tab in ReplayTabs;
+export enum TabKey {
+  console = 'console',
+  dom = 'dom',
+  network = 'network',
+  trace = 'trace',
+  issues = 'issues',
+  memory = 'memory',
 }
 
-const DEFAULT_TAB = 'console';
+function isReplayTab(tab: string): tab is TabKey {
+  return tab in TabKey;
+}
+
+const DEFAULT_TAB = TabKey.console;
 
 function useActiveReplayTab() {
   const {getParamValue, setParamValue} = useUrlParams('t_main', DEFAULT_TAB);
@@ -29,8 +27,11 @@ function useActiveReplayTab() {
       () => (isReplayTab(paramValue || '') ? (paramValue as TabKey) : DEFAULT_TAB),
       [paramValue]
     ),
-    setActiveTab: (value: string) =>
-      isReplayTab(value) ? setParamValue(value) : setParamValue(DEFAULT_TAB),
+    setActiveTab: useCallback(
+      (value: string) =>
+        isReplayTab(value) ? setParamValue(value) : setParamValue(DEFAULT_TAB),
+      [setParamValue]
+    ),
   };
 }
 

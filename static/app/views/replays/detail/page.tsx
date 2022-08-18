@@ -4,39 +4,51 @@ import styled from '@emotion/styled';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import * as Layout from 'sentry/components/layouts/thirds';
 import DetailsPageBreadcrumbs from 'sentry/components/replays/header/detailsPageBreadcrumbs';
+import {CrumbWalker} from 'sentry/components/replays/walker/urlWalker';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import space from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
-import type {EventTransaction} from 'sentry/types/event';
-import getUrlPathname from 'sentry/utils/getUrlPathname';
-
-import EventMetaData from './eventMetaData';
+import EventMetaData, {
+  HeaderPlaceholder,
+} from 'sentry/views/replays/detail/eventMetaData';
+import ChooseLayout from 'sentry/views/replays/detail/layout/chooseLayout';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
   children: ReactNode;
-  orgId: string;
+  orgSlug: string;
   crumbs?: Crumb[];
-  duration?: number;
-  event?: EventTransaction;
+  durationMs?: number;
+  replayRecord?: ReplayRecord;
 };
 
-function Page({children, crumbs, duration, event, orgId}: Props) {
-  const title = event ? `${event.id} - Replays - ${orgId}` : `Replays - ${orgId}`;
-
-  const urlTag = event?.tags?.find(({key}) => key === 'url');
-  const pathname = getUrlPathname(urlTag?.value ?? '') ?? '';
+function Page({children, crumbs, durationMs, orgSlug, replayRecord}: Props) {
+  const title = replayRecord
+    ? `${replayRecord.id} - Replays - ${orgSlug}`
+    : `Replays - ${orgSlug}`;
 
   const header = (
     <Header>
       <HeaderContent>
-        <DetailsPageBreadcrumbs orgId={orgId} event={event} />
+        <DetailsPageBreadcrumbs orgSlug={orgSlug} replayRecord={replayRecord} />
       </HeaderContent>
       <ButtonActionsWrapper>
-        <FeatureFeedback featureName="replay" buttonProps={{size: 'sm'}} />
+        <FeatureFeedback featureName="replay" buttonProps={{size: 'xs'}} />
+        <ChooseLayout />
       </ButtonActionsWrapper>
-      <SubHeading>{pathname}</SubHeading>
+
+      {replayRecord && crumbs ? (
+        <CrumbWalker replayRecord={replayRecord} crumbs={crumbs} />
+      ) : (
+        <HeaderPlaceholder />
+      )}
+
       <MetaDataColumn>
-        <EventMetaData crumbs={crumbs} duration={duration} event={event} />
+        <EventMetaData
+          crumbs={crumbs}
+          durationMs={durationMs}
+          replayRecord={replayRecord}
+        />
       </MetaDataColumn>
     </Header>
   );
@@ -53,7 +65,7 @@ function Page({children, crumbs, duration, event, orgId}: Props) {
 
 const Header = styled(Layout.Header)`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding-bottom: ${space(1.5)};
+    padding: ${space(2)} ${space(2)} ${space(1.5)} ${space(2)};
   }
 `;
 
@@ -66,14 +78,7 @@ const ButtonActionsWrapper = styled(Layout.HeaderActions)`
   display: grid;
   grid-template-columns: repeat(2, max-content);
   justify-content: flex-end;
-`;
-
-const SubHeading = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  line-height: ${p => p.theme.text.lineHeightBody};
-  color: ${p => p.theme.subText};
-  align-self: end;
-  ${p => p.theme.overflowEllipsis};
+  gap: ${space(1)};
 `;
 
 const MetaDataColumn = styled(Layout.HeaderActions)`

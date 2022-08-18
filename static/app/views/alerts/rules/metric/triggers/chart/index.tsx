@@ -1,6 +1,8 @@
 import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import capitalize from 'lodash/capitalize';
+import isEqual from 'lodash/isEqual';
 import maxBy from 'lodash/maxBy';
 import minBy from 'lodash/minBy';
 
@@ -20,7 +22,12 @@ import LoadingMask from 'sentry/components/loadingMask';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {
+  EventsStats,
+  MultiSeriesEventsStats,
+  Organization,
+  Project,
+} from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
 import {
   getCrashFreeRateSeries,
@@ -42,6 +49,7 @@ import {
   TimeWindow,
   Trigger,
 } from '../../types';
+import {getMetricDatasetQueryExtras} from '../../utils/getMetricDatasetQueryExtras';
 
 import ThresholdsChart from './thresholdsChart';
 
@@ -49,8 +57,11 @@ type Props = {
   aggregate: MetricRule['aggregate'];
   api: Client;
   comparisonType: AlertRuleComparisonType;
-
+  dataset: MetricRule['dataset'];
   environment: string | null;
+  handleMEPAlertDataset: (data: EventsStats | MultiSeriesEventsStats | null) => void;
+  location: Location;
+  newAlertOrQuery: boolean;
   organization: Organization;
   projects: Project[];
   query: MetricRule['query'];
@@ -147,11 +158,11 @@ class TriggersChart extends PureComponent<Props, State> {
     const {statsPeriod} = this.state;
     if (
       !isSessionAggregate(aggregate) &&
-      (prevProps.projects !== projects ||
+      (!isEqual(prevProps.projects, projects) ||
         prevProps.environment !== environment ||
         prevProps.query !== query ||
-        prevProps.timeWindow !== timeWindow ||
-        prevState.statsPeriod !== statsPeriod)
+        !isEqual(prevProps.timeWindow, timeWindow) ||
+        !isEqual(prevState.statsPeriod, statsPeriod))
     ) {
       this.fetchTotalCount();
     }
@@ -252,7 +263,7 @@ class TriggersChart extends PureComponent<Props, State> {
           />
         )}
         <ChartControls>
-          <InlineContainer>
+          <InlineContainer data-test-id="alert-total-events">
             <SectionHeading>
               {isSessionAggregate(aggregate)
                 ? SESSION_AGGREGATE_TO_HEADING[aggregate]
@@ -286,7 +297,11 @@ class TriggersChart extends PureComponent<Props, State> {
       projects,
       timeWindow,
       query,
+      location,
       aggregate,
+      dataset,
+      newAlertOrQuery,
+      handleMEPAlertDataset,
       environment,
       comparisonDelta,
       triggers,
@@ -297,6 +312,13 @@ class TriggersChart extends PureComponent<Props, State> {
     const renderComparisonStats = Boolean(
       organization.features.includes('change-alerts') && comparisonDelta
     );
+
+    const queryExtras = getMetricDatasetQueryExtras({
+      organization,
+      location,
+      dataset,
+      newAlertOrQuery,
+    });
 
     return isSessionAggregate(aggregate) ? (
       <SessionsRequest
@@ -350,6 +372,8 @@ class TriggersChart extends PureComponent<Props, State> {
         includePrevious={false}
         currentSeriesNames={[aggregate]}
         partial={false}
+        queryExtras={queryExtras}
+        dataLoadedCallback={handleMEPAlertDataset}
       >
         {({loading, reloading, timeseriesData, comparisonTimeseriesData}) => {
           let comparisonMarkLines: LineChartSeries[] = [];

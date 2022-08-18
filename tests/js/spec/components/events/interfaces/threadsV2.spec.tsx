@@ -195,7 +195,6 @@ describe('ThreadsV2', function () {
       };
 
       const props: React.ComponentProps<typeof ThreadsV2> = {
-        type: EntryType.THREADS,
         data: event.entries[1].data as React.ComponentProps<typeof ThreadsV2>['data'],
         event,
         groupingCurrentLevel: 0,
@@ -213,11 +212,11 @@ describe('ThreadsV2', function () {
 
         // Actions
         expect(
-          screen.getByRole('checkbox', {name: 'Full stack trace'})
+          screen.getByRole('button', {name: 'Full Stack Trace'})
         ).toBeInTheDocument();
-        expect(
-          screen.getByRole('checkbox', {name: 'Full stack trace'})
-        ).not.toBeChecked();
+        expect(screen.getByRole('button', {name: 'Full Stack Trace'})).not.toHaveClass(
+          'active'
+        );
         expect(screen.getByRole('button', {name: 'Options'})).toBeInTheDocument();
 
         // Stack Trace
@@ -237,13 +236,15 @@ describe('ThreadsV2', function () {
 
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
-        expect(
-          screen.getByRole('checkbox', {name: 'Full stack trace'})
-        ).not.toBeChecked();
+        expect(screen.getByRole('button', {name: 'Full Stack Trace'})).not.toHaveClass(
+          'active'
+        );
 
-        userEvent.click(screen.getByRole('checkbox', {name: 'Full stack trace'}));
+        userEvent.click(screen.getByRole('button', {name: 'Full Stack Trace'}));
 
-        expect(screen.getByRole('checkbox', {name: 'Full stack trace'})).toBeChecked();
+        expect(screen.getByRole('button', {name: 'Full Stack Trace'})).toHaveClass(
+          'active'
+        );
 
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(4);
       });
@@ -257,24 +258,17 @@ describe('ThreadsV2', function () {
           )
         ).toBeInTheDocument();
 
-        userEvent.click(screen.getByRole('button', {name: 'Options'}));
-
         // Sort by options
-        expect(screen.getByText('Recent first')).toBeInTheDocument();
-        expect(screen.getByText('Recent last')).toBeInTheDocument();
+        expect(screen.getByText('Newest')).toBeInTheDocument();
+        expect(screen.queryByText('Oldest')).not.toBeInTheDocument();
 
-        // Recent first is checked by default
-        expect(
-          within(screen.getByTestId('recent-first')).getByTestId('icon-check-mark')
-        ).toBeInTheDocument();
-
-        // Click on recent last
-        userEvent.click(screen.getByText('Recent last'));
+        // Switch to recent last
+        userEvent.click(screen.getByText('Newest'));
+        userEvent.click(screen.getByText('Oldest'));
 
         // Recent last is checked
-        expect(
-          within(screen.getByTestId('recent-last')).getByTestId('icon-check-mark')
-        ).toBeInTheDocument();
+        expect(screen.getByText('Oldest')).toBeInTheDocument();
+        expect(screen.queryByText('Newest')).not.toBeInTheDocument();
 
         // Last frame is the first on the list
         expect(
@@ -284,7 +278,8 @@ describe('ThreadsV2', function () {
         ).toBeInTheDocument();
 
         // Click on recent first
-        userEvent.click(screen.getByText('Recent first'));
+        userEvent.click(screen.getByText('Oldest'));
+        userEvent.click(screen.getByText('Newest'));
 
         // First frame is the first on the list
         expect(
@@ -302,7 +297,7 @@ describe('ThreadsV2', function () {
         expect(await screen.findByText('Display')).toBeInTheDocument();
 
         Object.entries(displayOptions).forEach(([key, value]) => {
-          if (key === 'minified') {
+          if (key === 'minified' || key === 'raw-stack-trace') {
             expect(screen.getByText(value)).toBeInTheDocument();
             return;
           }
@@ -744,6 +739,13 @@ describe('ThreadsV2', function () {
                   image_size: 49152,
                   image_vmaddr: '0x100000000',
                   type: 'macho',
+                  candidates: [],
+                  features: {
+                    has_debug_info: false,
+                    has_sources: false,
+                    has_symbols: false,
+                    has_unwind_info: false,
+                  },
                 },
                 {
                   code_file: '/System/Library/Frameworks/UIKit.framework/UIKit',
@@ -752,6 +754,13 @@ describe('ThreadsV2', function () {
                   image_size: 14315520,
                   image_vmaddr: '0x187769000',
                   type: 'macho',
+                  candidates: [],
+                  features: {
+                    has_debug_info: false,
+                    has_sources: false,
+                    has_symbols: false,
+                    has_unwind_info: false,
+                  },
                 },
                 {
                   code_file:
@@ -761,6 +770,13 @@ describe('ThreadsV2', function () {
                   image_size: 163840,
                   image_vmaddr: '0x0',
                   type: 'macho',
+                  candidates: [],
+                  features: {
+                    has_debug_info: false,
+                    has_sources: false,
+                    has_symbols: false,
+                    has_unwind_info: false,
+                  },
                 },
                 {
                   code_file:
@@ -770,6 +786,13 @@ describe('ThreadsV2', function () {
                   image_size: 163840,
                   image_vmaddr: '0x0',
                   type: 'macho',
+                  candidates: [],
+                  features: {
+                    has_debug_info: false,
+                    has_sources: false,
+                    has_symbols: false,
+                    has_unwind_info: false,
+                  },
                 },
               ],
             },
@@ -832,7 +855,6 @@ describe('ThreadsV2', function () {
       };
 
       const props: React.ComponentProps<typeof ThreadsV2> = {
-        type: EntryType.THREADS,
         data: event.entries[1].data as React.ComponentProps<typeof ThreadsV2>['data'],
         event,
         groupingCurrentLevel: 0,
@@ -847,11 +869,11 @@ describe('ThreadsV2', function () {
 
         // Actions
         expect(
-          screen.getByRole('checkbox', {name: 'Full stack trace'})
+          screen.getByRole('button', {name: 'Full Stack Trace'})
         ).toBeInTheDocument();
-        expect(
-          screen.getByRole('checkbox', {name: 'Full stack trace'})
-        ).not.toBeChecked();
+        expect(screen.getByRole('button', {name: 'Full Stack Trace'})).not.toHaveClass(
+          'active'
+        );
         expect(screen.getByRole('button', {name: 'Options'})).toBeInTheDocument();
 
         // Stack Trace
@@ -873,13 +895,15 @@ describe('ThreadsV2', function () {
 
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
-        expect(
-          screen.getByRole('checkbox', {name: 'Full stack trace'})
-        ).not.toBeChecked();
+        expect(screen.getByRole('button', {name: 'Full Stack Trace'})).not.toHaveClass(
+          'active'
+        );
 
-        userEvent.click(screen.getByRole('checkbox', {name: 'Full stack trace'}));
+        userEvent.click(screen.getByRole('button', {name: 'Full Stack Trace'}));
 
-        expect(screen.getByRole('checkbox', {name: 'Full stack trace'})).toBeChecked();
+        expect(screen.getByRole('button', {name: 'Full Stack Trace'})).toHaveClass(
+          'active'
+        );
 
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(4);
       });
@@ -893,11 +917,11 @@ describe('ThreadsV2', function () {
           )
         ).toBeInTheDocument();
 
-        userEvent.click(screen.getByRole('button', {name: 'Options'}));
+        userEvent.click(screen.getByRole('button', {name: 'Newest'}));
 
         // Sort by options
-        expect(screen.getByText('Recent first')).toBeInTheDocument();
-        expect(screen.getByText('Recent last')).toBeInTheDocument();
+        expect(screen.getAllByText('Newest')).toHaveLength(2);
+        expect(screen.getByText('Oldest')).toBeInTheDocument();
 
         // Recent first is checked by default
         expect(
@@ -905,20 +929,20 @@ describe('ThreadsV2', function () {
         ).toBeInTheDocument();
 
         // Click on recent last
-        userEvent.click(screen.getByText('Recent last'));
+        userEvent.click(screen.getByText('Oldest'));
 
-        // Recent last is checked
-        expect(
-          within(screen.getByTestId('recent-last')).getByTestId('icon-check-mark')
-        ).toBeInTheDocument();
+        // Recent last is enabled
+        expect(screen.queryByText('Newest')).not.toBeInTheDocument();
+        expect(screen.getByText('Oldest')).toBeInTheDocument();
 
         // Last frame is the first on the list
         expect(
           within(screen.getAllByTestId('stack-trace-frame')[0]).getByText('UIKit')
         ).toBeInTheDocument();
 
-        // Click on recent first
-        userEvent.click(screen.getByText('Recent first'));
+        // Switch back to recent first
+        userEvent.click(screen.getByRole('button', {name: 'Oldest'}));
+        userEvent.click(screen.getByText('Newest'));
 
         // First frame is the first on the list
         expect(
@@ -993,7 +1017,7 @@ describe('ThreadsV2', function () {
 
         // Full stack trace toggler is not displayed
         expect(
-          screen.queryByRole('checkbox', {name: 'Full stack trace'})
+          screen.queryByRole('button', {name: 'Full Stack Trace'})
         ).not.toBeInTheDocument();
 
         // Raw content is displayed

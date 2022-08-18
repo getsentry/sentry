@@ -36,6 +36,7 @@ from sentry.models import (
 from sentry.net.http import connection_from_url
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
+from sentry.snuba.referrer import validate_referrer
 from sentry.utils import json, metrics
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
 
@@ -522,6 +523,7 @@ def _prepare_query_params(query_params):
         Dataset.Discover,
         Dataset.Sessions,
         Dataset.Transactions,
+        Dataset.Replays,
     ]:
         (organization_id, params_to_update) = get_query_params_to_update_for_projects(
             query_params, with_org=query_params.dataset == Dataset.Sessions
@@ -735,6 +737,7 @@ def _apply_cache_and_build_results(
     use_cache: Optional[bool] = False,
 ) -> ResultSet:
     headers = {}
+    validate_referrer(referrer)
     if referrer:
         headers["referer"] = referrer
 

@@ -22,16 +22,29 @@ class FetchType(Enum):
     HARDCODED = "h"
     DB_READ = "d"
     FIRST_SEEN = "f"
+    RATE_LIMITED = "r"
+
+
+@dataclass(frozen=True)
+class FetchTypeExt:
+    is_global: bool
 
 
 KR = TypeVar("KR", bound="KeyResult")
 
 
 @dataclass(frozen=True)
+class Metadata:
+    id: Optional[int]
+    fetch_type: FetchType
+    fetch_type_ext: Optional[FetchTypeExt] = None
+
+
+@dataclass(frozen=True)
 class KeyResult:
     org_id: int
     string: str
-    id: int
+    id: Optional[int]
 
     @classmethod
     def from_string(cls: Type[KR], key: str, id: int) -> KR:
@@ -84,23 +97,35 @@ class KeyCollection:
 
 class KeyResults:
     def __init__(self) -> None:
-        self.results: MutableMapping[int, MutableMapping[str, int]] = defaultdict(dict)
-        self.meta: MutableMapping[str, Tuple[int, FetchType]] = dict()
+        self.results: MutableMapping[int, MutableMapping[str, Optional[int]]] = defaultdict(dict)
+        self.meta: MutableMapping[int, MutableMapping[str, Metadata]] = defaultdict(dict)
 
-    def add_key_result(self, key_result: KeyResult, fetch_type: Optional[FetchType] = None) -> None:
+    def add_key_result(
+        self,
+        key_result: KeyResult,
+        fetch_type: Optional[FetchType] = None,
+        fetch_type_ext: Optional[FetchTypeExt] = None,
+    ) -> None:
         self.results[key_result.org_id].update({key_result.string: key_result.id})
         if fetch_type:
-            self.meta[key_result.string] = (key_result.id, fetch_type)
+            self.meta[key_result.org_id][key_result.string] = Metadata(
+                id=key_result.id, fetch_type=fetch_type, fetch_type_ext=fetch_type_ext
+            )
 
     def add_key_results(
-        self, key_results: Sequence[KeyResult], fetch_type: Optional[FetchType] = None
+        self,
+        key_results: Sequence[KeyResult],
+        fetch_type: Optional[FetchType] = None,
+        fetch_type_ext: Optional[FetchTypeExt] = None,
     ) -> None:
         for key_result in key_results:
             self.results[key_result.org_id].update({key_result.string: key_result.id})
             if fetch_type:
-                self.meta[key_result.string] = (key_result.id, fetch_type)
+                self.meta[key_result.org_id][key_result.string] = Metadata(
+                    id=key_result.id, fetch_type=fetch_type, fetch_type_ext=fetch_type_ext
+                )
 
-    def get_mapped_results(self) -> Mapping[int, Mapping[str, int]]:
+    def get_mapped_results(self) -> Mapping[int, Mapping[str, Optional[int]]]:
         """
         Only return results that have org_ids with string/int mappings.
         """
@@ -136,11 +161,14 @@ class KeyResults:
         for org_id, result_dict in self.results.items():
             for string, id in result_dict.items():
                 key = f"{org_id}:{string}"
-                cache_key_results[key] = id
+                if id is not None:
+                    cache_key_results[key] = id
 
         return cache_key_results
 
-    def get_fetch_metadata(self) -> Mapping[str, Tuple[int, FetchType]]:
+    def get_fetch_metadata(
+        self,
+    ) -> Mapping[int, Mapping[str, Metadata]]:
         return self.meta
 
     def merge(self, other: "KeyResults") -> "KeyResults":
@@ -149,13 +177,16 @@ class KeyResults:
         for org_id, strings in [*other.results.items(), *self.results.items()]:
             new_results.results[org_id].update(strings)
 
-        new_results.meta.update(self.meta)
-        new_results.meta.update(other.meta)
+        for org_id, org_meta in self.meta.items():
+            new_results.meta[org_id].update(org_meta)
+
+        for org_id, org_meta in other.meta.items():
+            new_results.meta[org_id].update(org_meta)
 
         return new_results
 
     # For brevity, allow callers to address the mapping directly
-    def __getitem__(self, org_id: int) -> Mapping[str, int]:
+    def __getitem__(self, org_id: int) -> Mapping[str, Optional[int]]:
         return self.results[org_id]
 
 
@@ -172,9 +203,41 @@ class StringIndexer(Service):
     def bulk_record(
         self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
     ) -> KeyResults:
+        """
+        Takes in a mapping with org_ids to sets of strings.
+
+        Ultimately returns a mapping of those org_ids to a
+        string -> id mapping, for each string in the set.
+
+        There are three steps to getting the ids for strings:
+            0. ids from static strings (StaticStringIndexer)
+            1. ids from cache (CachingIndexer)
+            2. ids from existing db records (postgres/spanner)
+            3. ids that have been rate limited (postgres/spanner)
+            4. ids from newly created db records (postgres/spanner)
+
+        Each step will start off with a KeyCollection and KeyResults:
+            keys = KeyCollection(mapping)
+            key_results = KeyResults()
+
+        Then the work to get the ids (either from cache, db, etc)
+            .... # work to add results to KeyResults()
+
+        Those results will be added to `mapped_results` which can
+        be retrieved
+            key_results.get_mapped_results()
+
+        Remaining unmapped keys get turned into a new
+        KeyCollection for the next step:
+            new_keys = key_results.get_unmapped_keys(mapping)
+
+        When the last step is reached or a step resolves all the remaining
+        unmapped keys the key_results objects are merged and returned:
+            e.g. return cache_key_results.merge(db_read_key_results)
+        """
         raise NotImplementedError()
 
-    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> int:
+    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
         """Store a string and return the integer ID generated for it
 
         With every call to this method, the lifetime of the entry will be
@@ -182,11 +245,7 @@ class StringIndexer(Service):
         """
         raise NotImplementedError()
 
-    # TODO: @andriisoldatenko
-    # move use_case_id to 1st parameter and remove default value
-    def resolve(
-        self, org_id: int, string: str, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
-    ) -> Optional[int]:
+    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
         """Lookup the integer ID for a string.
 
         Does not affect the lifetime of the entry.
@@ -198,11 +257,7 @@ class StringIndexer(Service):
         """
         raise NotImplementedError()
 
-    # TODO: @andriisoldatenko
-    # move use_case_id to 1st parameter and remove default value
-    def reverse_resolve(
-        self, id: int, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
-    ) -> Optional[str]:
+    def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
         """Lookup the stored string for a given integer ID.
 
         Callers should not rely on the default use_case_id -- it exists only

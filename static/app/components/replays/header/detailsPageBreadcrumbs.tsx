@@ -2,35 +2,34 @@ import {ComponentProps, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import FeatureBadge from 'sentry/components/featureBadge';
 import Placeholder from 'sentry/components/placeholder';
+import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import {t} from 'sentry/locale';
-import {Event} from 'sentry/types/event';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
-  orgId: string;
-  event?: Event;
+  orgSlug: string;
+  replayRecord: ReplayRecord | undefined;
 };
 
-function DetailsPageBreadcrumbs({orgId, event}: Props) {
+function DetailsPageBreadcrumbs({orgSlug, replayRecord}: Props) {
   const labelTitle =
-    event?.user?.name ||
-    event?.user?.email ||
-    event?.user?.username ||
-    event?.user?.ip_address ||
-    event?.user?.id;
+    replayRecord?.user.name ||
+    replayRecord?.user.email ||
+    replayRecord?.user.ip_address ||
+    replayRecord?.user.id;
 
   return (
     <Breadcrumbs
       crumbs={[
         {
-          to: `/organizations/${orgId}/replays/`,
+          to: `/organizations/${orgSlug}/replays/`,
           label: t('Replays'),
         },
         {
           label: labelTitle ? (
             <Fragment>
-              {labelTitle} <FeatureBadge type="alpha" />
+              {labelTitle} <ReplaysFeatureBadge />
             </Fragment>
           ) : (
             <HeaderPlaceholder width="500px" height="24px" />

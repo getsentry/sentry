@@ -16,7 +16,7 @@ import {defined} from 'sentry/utils';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {getShortEventId} from 'sentry/utils/events';
 import {
-  generateProfileDetailsRoute,
+  generateProfileFlamechartRoute,
   generateProfileSummaryRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
 import {renderTableHead} from 'sentry/utils/profiling/tableRenderer';
@@ -49,7 +49,7 @@ function ProfilesTable(props: ProfilesTableProps) {
         columnOrder={(props.columnOrder ?? DEFAULT_COLUMN_ORDER).map(key => COLUMNS[key])}
         columnSortBy={[]}
         grid={{
-          renderHeadCell: renderTableHead(RIGHT_ALIGNED_COLUMNS),
+          renderHeadCell: renderTableHead({rightAlignedColumns: RIGHT_ALIGNED_COLUMNS}),
           renderBodyCell: renderProfilesTableCell,
         }}
         location={location}
@@ -113,7 +113,7 @@ function ProfilesTableCell({column, dataRow}: ProfilesTableCellProps) {
         return <Container>{getShortEventId(dataRow.id)}</Container>;
       }
 
-      const flamegraphTarget = generateProfileDetailsRoute({
+      const flamegraphTarget = generateProfileFlamechartRoute({
         orgSlug: organization.slug,
         projectSlug: project.slug,
         profileId: dataRow.id,

@@ -28,7 +28,7 @@ jobs:
 
     steps:
       - name: Checkout sentry
-        uses: actions/checkout@v2
+        uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
 
       - name: Set up
         id: info
@@ -40,7 +40,9 @@ jobs:
       # NOTE: This can sometimes take up to 10 minutes
       - name: Install Docker
         run: |
-          HOMEBREW_NO_AUTO_UPDATE=1 brew install -v --cask docker
+          # d4m 4.11+ never starts: https://github.com/docker/for-mac/issues/6450
+          curl -o /tmp/docker.rb https://raw.githubusercontent.com/Homebrew/homebrew-cask/fe866ec0765de141599745f03e215452db7f511b/Casks/docker.rb
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install -v --HEAD -s /tmp/docker.rb
           sudo /Applications/Docker.app/Contents/MacOS/Docker --unattended --install-privileged-components
           open -a /Applications/Docker.app --args --unattended --accept-license
 
@@ -52,7 +54,7 @@ jobs:
 
       # This handles Python's cache
       - name: Setup Python & cache
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@c4e89fac7e8767b327bbad6cb4d859eda999cf08  # v4
         with:
           python-version: 3.8.13
           cache: 'pip'
@@ -77,7 +79,7 @@ jobs:
 
     steps:
       - name: Checkout sentry
-        uses: actions/checkout@v2
+        uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
 
       - name: Install pyenv
         run: |
@@ -99,8 +101,8 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b  # v3
+      - uses: actions/setup-python@c4e89fac7e8767b327bbad6cb4d859eda999cf08  # v4
         with:
           python-version: 3.8.13
           cache: pip

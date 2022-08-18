@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from time import sleep, time
-from typing import Any, List, Mapping, MutableMapping, Optional, cast
+from typing import Any, List, Mapping, MutableMapping, Optional
 
 import sentry_sdk
 from django.conf import settings
@@ -15,6 +15,7 @@ from sentry.constants import DataCategory
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.models import Organization, Project, ProjectDebugFile
 from sentry.profiles.device import classify_device
+from sentry.signals import first_profile_received
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.symbolication import RetrySymbolication
 from sentry.utils import json, kafka_config, metrics
@@ -50,17 +51,26 @@ def process_profile(
     organization = Organization.objects.get_from_cache(id=project.organization_id)
 
     _normalize(profile=profile, organization=organization)
-    _initialize_publisher()
-    _insert_eventstream_profile(profile=profile)
-    if _should_extract_call_trees(profile):
-        _insert_eventstream_call_tree(profile)
 
-    _track_outcome(profile=profile, project=project, key_id=key_id)
+    if not _insert_vroom_profile(profile=profile):
+        _track_outcome(
+            profile=profile,
+            project=project,
+            outcome=Outcome.INVALID,
+            key_id=key_id,
+            reason="failed-vroom-insertion",
+        )
+        return
+
+    _initialize_publisher()
+    _insert_eventstream_call_tree(profile=profile)
+    _insert_eventstream_profile(profile=profile)
+
+    _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED, key_id=key_id)
 
 
 SHOULD_SYMBOLICATE = frozenset(["cocoa", "rust"])
 SHOULD_DEOBFUSCATE = frozenset(["android"])
-SHOULD_EXTRACT_CALL_TREES = frozenset(["cocoa", "android"])
 
 
 def _should_symbolicate(profile: Profile) -> bool:
@@ -71,11 +81,6 @@ def _should_symbolicate(profile: Profile) -> bool:
 def _should_deobfuscate(profile: Profile) -> bool:
     platform: str = profile["platform"]
     return platform in SHOULD_DEOBFUSCATE
-
-
-def _should_extract_call_trees(profile: Profile) -> bool:
-    platform: str = profile["platform"]
-    return platform in SHOULD_EXTRACT_CALL_TREES
 
 
 @metrics.wraps("process_profile.normalize")
@@ -233,13 +238,22 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
 
 
 @metrics.wraps("process_profile.track_outcome")
-def _track_outcome(profile: Profile, project: Project, key_id: Optional[int]) -> None:
+def _track_outcome(
+    profile: Profile,
+    project: Project,
+    outcome: Outcome,
+    key_id: Optional[int],
+    reason: Optional[str] = None,
+) -> None:
+    if not project.flags.has_profiles:
+        first_profile_received.send_robust(project=project, sender=Project)
+
     track_outcome(
         org_id=project.organization_id,
         project_id=project.id,
         key_id=key_id,
-        outcome=Outcome.ACCEPTED,
-        reason=None,
+        outcome=outcome,
+        reason=reason,
         timestamp=datetime.utcnow().replace(tzinfo=UTC),
         event_id=profile["transaction_id"],
         category=DataCategory.PROFILE,
@@ -308,22 +322,38 @@ def _get_event_instance(profile: Profile) -> Any:
         "os_name": profile["device_os_name"],
         "os_version": profile["device_os_version"],
         "retention_days": profile["retention_days"],
-        "call_trees": _get_call_trees(profile),
+        "call_trees": profile["call_trees"],
     }
 
 
-def _get_call_trees(profile: Profile) -> CallTrees:
-    profile = dict(profile)
+@metrics.wraps("process_profile.insert_vroom_profile")
+def _insert_vroom_profile(profile: Profile) -> bool:
+    original_timestamp = profile["received"]
 
-    profile["received"] = (
-        datetime.utcfromtimestamp(profile["received"]).replace(tzinfo=timezone.utc).isoformat()
-    )
+    try:
+        profile["received"] = (
+            datetime.utcfromtimestamp(profile["received"]).replace(tzinfo=timezone.utc).isoformat()
+        )
+        response = get_from_profiling_service(method="POST", path="/profile", json_data=profile)
 
-    response = get_from_profiling_service(method="POST", path="/call_tree", json_data=profile)
-
-    # something went wrong, return empty call trees
-    if response.status != 200:
-        metrics.incr("profiling.get_call_tree", tags={"platform": profile["platform"]})
-        return {}
-
-    return cast(CallTrees, json.loads(response.data)["call_trees"])
+        if response.status == 204:
+            profile["call_trees"] = {}
+        elif response.status == 200:
+            profile["call_trees"] = json.loads(response.data)["call_trees"]
+        else:
+            metrics.incr(
+                "profiling.insert_vroom_profile.error",
+                tags={"platform": profile["platform"], "reason": "bad status"},
+            )
+            return False
+        return True
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        metrics.incr(
+            "profiling.insert_vroom_profile.error",
+            tags={"platform": profile["platform"], "reason": "encountered error"},
+        )
+        return False
+    finally:
+        profile["received"] = original_timestamp
+        profile["profile"] = ""

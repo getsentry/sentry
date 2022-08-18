@@ -9,6 +9,7 @@ import EventView, {
   isAPIPayloadSimilar,
   LocationQuery,
 } from 'sentry/utils/discover/eventView';
+import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -61,6 +62,11 @@ type BaseDiscoverQueryProps = {
    */
   cursor?: string;
   /**
+   * Appends a raw string to query to be able to sidestep the tokenizer.
+   * @deprecated
+   */
+  forceAppendRawQueryString?: string;
+  /**
    * Record limit to get.
    */
   limit?: number;
@@ -69,6 +75,10 @@ type BaseDiscoverQueryProps = {
    * passed, but cursor will be ignored.
    */
   noPagination?: boolean;
+  /**
+   * A container for query batching data and functions.
+   */
+  queryBatching?: QueryBatching;
   /**
    * Extra query parameters to be added.
    */
@@ -173,7 +183,10 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
     const {cursor, limit, noPagination, referrer} = props;
     const payload = this.props.getRequestPayload
       ? this.props.getRequestPayload(props)
-      : props.eventView.getEventsAPIPayload(props.location);
+      : props.eventView.getEventsAPIPayload(
+          props.location,
+          props.forceAppendRawQueryString
+        );
 
     if (cursor) {
       payload.cursor = cursor;
@@ -232,8 +245,17 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
   };
 
   fetchData = async () => {
-    const {api, beforeFetch, afterFetch, didFetch, eventView, orgSlug, route, setError} =
-      this.props;
+    const {
+      api,
+      queryBatching,
+      beforeFetch,
+      afterFetch,
+      didFetch,
+      eventView,
+      orgSlug,
+      route,
+      setError,
+    } = this.props;
 
     if (!eventView.isValid()) {
       return;
@@ -253,7 +275,13 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
     api.clear();
 
     try {
-      const [data, , resp] = await doDiscoverQuery<T>(api, url, apiPayload);
+      const [data, , resp] = await doDiscoverQuery<T>(
+        api,
+        url,
+        apiPayload,
+        queryBatching
+      );
+
       if (this.state.tableFetchID !== tableFetchID) {
         // invariant: a different request was initiated after this request
         return;
@@ -323,8 +351,16 @@ export type DiscoverQueryRequestParams = Partial<EventQuery & LocationQuery>;
 export function doDiscoverQuery<T>(
   api: Client,
   url: string,
-  params: DiscoverQueryRequestParams
+  params: DiscoverQueryRequestParams,
+  queryBatching?: QueryBatching
 ): Promise<[T, string | undefined, ResponseMeta<T> | undefined]> {
+  if (queryBatching?.batchRequest) {
+    return queryBatching.batchRequest(api, url, {
+      query: params,
+      includeAllArgs: true,
+    });
+  }
+
   return api.requestPromise(url, {
     method: 'GET',
     includeAllArgs: true,

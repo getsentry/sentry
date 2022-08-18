@@ -1,10 +1,12 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import {SmartSearchBar} from 'sentry/components/smartSearchBar';
 import {ShortcutType} from 'sentry/components/smartSearchBar/types';
 import {shortcuts} from 'sentry/components/smartSearchBar/utils';
 import TagStore from 'sentry/stores/tagStore';
+import {FieldKey} from 'sentry/utils/fields';
 
 describe('SmartSearchBar', function () {
   let location, options, organization, supportedTags;
@@ -23,7 +25,7 @@ describe('SmartSearchBar', function () {
     TagStore.reset();
     TagStore.loadTagsSuccess(TestStubs.Tags());
     tagValuesMock.mockClear();
-    supportedTags = TagStore.getAllTags();
+    supportedTags = TagStore.getStateTags();
     supportedTags.firstRelease = {
       key: 'firstRelease',
       name: 'firstRelease',
@@ -857,6 +859,230 @@ describe('SmartSearchBar', function () {
     });
   });
 
+  describe('cursorSearchTerm', function () {
+    it('selects the correct free text word', async function () {
+      jest.useRealTimers();
+
+      const props = {
+        query: '',
+        organization,
+        location,
+        supportedTags,
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+      const textarea = smartSearchBar.find('textarea');
+
+      textarea.simulate('focus');
+      mockCursorPosition(searchBar, 6);
+      textarea.simulate('change', {target: {value: 'typ testest    err'}});
+      await tick();
+
+      // Expect the correct search term to be selected
+      const cursorSearchTerm = searchBar.cursorSearchTerm;
+      expect(cursorSearchTerm.searchTerm).toEqual('testest');
+      expect(cursorSearchTerm.start).toBe(4);
+      expect(cursorSearchTerm.end).toBe(11);
+    });
+
+    it('selects the correct free text word (last word)', async function () {
+      jest.useRealTimers();
+
+      const props = {
+        query: '',
+        organization,
+        location,
+        supportedTags,
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+      const textarea = smartSearchBar.find('textarea');
+
+      textarea.simulate('focus');
+      mockCursorPosition(searchBar, 15);
+      textarea.simulate('change', {target: {value: 'typ testest    err'}});
+      await tick();
+
+      // Expect the correct search term to be selected
+      const cursorSearchTerm = searchBar.cursorSearchTerm;
+      expect(cursorSearchTerm.searchTerm).toEqual('err');
+      expect(cursorSearchTerm.start).toBe(15);
+      expect(cursorSearchTerm.end).toBe(18);
+    });
+
+    it('selects the correct free text word (first word)', async function () {
+      jest.useRealTimers();
+
+      const props = {
+        query: '',
+        organization,
+        location,
+        supportedTags,
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+      const textarea = smartSearchBar.find('textarea');
+
+      textarea.simulate('focus');
+      mockCursorPosition(searchBar, 1);
+      textarea.simulate('change', {target: {value: 'typ testest    err'}});
+      await tick();
+
+      // Expect the correct search term to be selected
+      const cursorSearchTerm = searchBar.cursorSearchTerm;
+      expect(cursorSearchTerm.searchTerm).toEqual('typ');
+      expect(cursorSearchTerm.start).toBe(0);
+      expect(cursorSearchTerm.end).toBe(3);
+    });
+
+    it('search term location correctly selects key of filter token', async function () {
+      jest.useRealTimers();
+
+      const props = {
+        query: '',
+        organization,
+        location,
+        supportedTags,
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+      const textarea = smartSearchBar.find('textarea');
+
+      textarea.simulate('focus');
+      mockCursorPosition(searchBar, 6);
+      textarea.simulate('change', {target: {value: 'typ device:123'}});
+      await tick();
+
+      // Expect the correct search term to be selected
+      const cursorSearchTerm = searchBar.cursorSearchTerm;
+      expect(cursorSearchTerm.searchTerm).toEqual('device');
+      expect(cursorSearchTerm.start).toBe(4);
+      expect(cursorSearchTerm.end).toBe(10);
+    });
+
+    it('search term location correctly selects value of filter token', async function () {
+      jest.useRealTimers();
+
+      const props = {
+        query: '',
+        organization,
+        location,
+        supportedTags,
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+      const textarea = smartSearchBar.find('textarea');
+
+      textarea.simulate('focus');
+      mockCursorPosition(searchBar, 11);
+      textarea.simulate('change', {target: {value: 'typ device:123'}});
+      await tick();
+
+      // Expect the correct search term to be selected
+      const cursorSearchTerm = searchBar.cursorSearchTerm;
+      expect(cursorSearchTerm.searchTerm).toEqual('123');
+      expect(cursorSearchTerm.start).toBe(11);
+      expect(cursorSearchTerm.end).toBe(14);
+    });
+  });
+
+  describe('getTagKeys()', function () {
+    it('filters both keys and descriptions', async function () {
+      jest.useRealTimers();
+
+      const props = {
+        query: 'event',
+        organization,
+        location,
+        supportedTags: {
+          [FieldKey.DEVICE_CHARGING]: {
+            key: FieldKey.DEVICE_CHARGING,
+          },
+          [FieldKey.EVENT_TYPE]: {
+            key: FieldKey.EVENT_TYPE,
+          },
+          [FieldKey.DEVICE_ARCH]: {
+            key: FieldKey.DEVICE_ARCH,
+          },
+        },
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+
+      mockCursorPosition(searchBar, 3);
+      searchBar.updateAutoCompleteItems();
+
+      await tick();
+
+      expect(searchBar.state.flatSearchItems).toHaveLength(2);
+      expect(searchBar.state.flatSearchItems[0].title).toBe(FieldKey.EVENT_TYPE);
+      expect(searchBar.state.flatSearchItems[1].title).toBe(FieldKey.DEVICE_CHARGING);
+    });
+
+    it('filters only keys', async function () {
+      jest.useRealTimers();
+
+      const props = {
+        query: 'device',
+        organization,
+        location,
+        supportedTags: {
+          [FieldKey.DEVICE_CHARGING]: {
+            key: FieldKey.DEVICE_CHARGING,
+          },
+          [FieldKey.EVENT_TYPE]: {
+            key: FieldKey.EVENT_TYPE,
+          },
+          [FieldKey.DEVICE_ARCH]: {
+            key: FieldKey.DEVICE_ARCH,
+          },
+        },
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+
+      mockCursorPosition(searchBar, 2);
+      searchBar.updateAutoCompleteItems();
+
+      await tick();
+
+      expect(searchBar.state.flatSearchItems).toHaveLength(2);
+      expect(searchBar.state.flatSearchItems[0].title).toBe(FieldKey.DEVICE_ARCH);
+      expect(searchBar.state.flatSearchItems[1].title).toBe(FieldKey.DEVICE_CHARGING);
+    });
+
+    it('filters only descriptions', async function () {
+      jest.useRealTimers();
+
+      const props = {
+        query: 'time',
+        organization,
+        location,
+        supportedTags: {
+          [FieldKey.DEVICE_CHARGING]: {
+            key: FieldKey.DEVICE_CHARGING,
+          },
+          [FieldKey.EVENT_TYPE]: {
+            key: FieldKey.EVENT_TYPE,
+          },
+          [FieldKey.DEVICE_ARCH]: {
+            key: FieldKey.DEVICE_ARCH,
+          },
+        },
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+
+      mockCursorPosition(searchBar, 4);
+      searchBar.updateAutoCompleteItems();
+
+      await tick();
+
+      expect(searchBar.state.flatSearchItems).toHaveLength(1);
+      expect(searchBar.state.flatSearchItems[0].title).toBe(FieldKey.DEVICE_CHARGING);
+    });
+  });
+
   describe('onAutoComplete()', function () {
     it('completes terms from the list', function () {
       const props = {
@@ -866,6 +1092,7 @@ describe('SmartSearchBar', function () {
         supportedTags,
       };
       const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      mockCursorPosition(searchBar, 'event.type:error '.length);
       searchBar.onAutoComplete('myTag:', {type: 'tag'});
       expect(searchBar.state.query).toEqual('event.type:error myTag:');
     });
@@ -916,7 +1143,8 @@ describe('SmartSearchBar', function () {
       );
     });
 
-    it('keeps the negation operator is present', function () {
+    it('keeps the negation operator present', async function () {
+      jest.useRealTimers();
       const props = {
         query: '',
         organization,
@@ -927,8 +1155,15 @@ describe('SmartSearchBar', function () {
       const searchBar = smartSearchBar.instance();
       const textarea = smartSearchBar.find('textarea');
       // start typing part of the tag prefixed by the negation operator!
+      textarea.simulate('focus');
       textarea.simulate('change', {target: {value: 'event.type:error !ti'}});
       mockCursorPosition(searchBar, 20);
+      await tick();
+      // Expect the correct search term to be selected
+      const cursorSearchTerm = searchBar.cursorSearchTerm;
+      expect(cursorSearchTerm.searchTerm).toEqual('ti');
+      expect(cursorSearchTerm.start).toBe(18);
+      expect(cursorSearchTerm.end).toBe(20);
       // use autocompletion to do the rest
       searchBar.onAutoComplete('title:', {});
       expect(searchBar.state.query).toEqual('event.type:error !title:');
@@ -1138,6 +1373,33 @@ describe('SmartSearchBar', function () {
         );
       }
     });
+
+    it('replaces the correct word', async function () {
+      const props = {
+        query: '',
+        organization,
+        location,
+        supportedTags,
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+      const textarea = smartSearchBar.find('textarea');
+
+      textarea.simulate('focus');
+      mockCursorPosition(searchBar, 4);
+      textarea.simulate('change', {target: {value: 'typ ti err'}});
+
+      await tick();
+
+      // Expect the correct search term to be selected
+      const cursorSearchTerm = searchBar.cursorSearchTerm;
+      expect(cursorSearchTerm.searchTerm).toEqual('ti');
+      expect(cursorSearchTerm.start).toBe(4);
+      expect(cursorSearchTerm.end).toBe(6);
+      // use autocompletion to do the rest
+      searchBar.onAutoComplete('title:', {});
+      expect(searchBar.state.query).toEqual('typ title: err');
+    });
   });
 
   describe('Invalid field state', () => {
@@ -1182,6 +1444,188 @@ describe('SmartSearchBar', function () {
       await tick();
 
       expect(searchBar.text()).not.toContain("isn't supported here");
+    });
+  });
+
+  describe('date fields', () => {
+    const props = {
+      query: '',
+      organization,
+      location,
+      supportedTags,
+    };
+
+    it('displays date picker dropdown when appropriate', () => {
+      render(<SmartSearchBar {...props} />);
+
+      const textbox = screen.getByRole('textbox');
+      userEvent.click(textbox);
+      expect(screen.queryByTestId('search-bar-date-picker')).not.toBeInTheDocument();
+
+      // Just lastSeen: will display relative and absolute options, not the datepicker
+      userEvent.type(textbox, 'lastSeen:');
+      expect(screen.queryByTestId('search-bar-date-picker')).not.toBeInTheDocument();
+      expect(screen.getByText('Last hour')).toBeInTheDocument();
+      expect(screen.getByText('After a custom datetime')).toBeInTheDocument();
+
+      // lastSeen:> should open the date picker
+      userEvent.type(textbox, '>');
+      expect(screen.getByTestId('search-bar-date-picker')).toBeInTheDocument();
+
+      // Continues to display with date typed out
+      userEvent.type(textbox, '2022-01-01');
+      expect(screen.getByTestId('search-bar-date-picker')).toBeInTheDocument();
+
+      // Goes away when on next term
+      userEvent.type(textbox, ' ');
+      expect(screen.queryByTestId('search-bar-date-picker')).not.toBeInTheDocument();
+
+      // Pops back up when cursor is back in date token
+      userEvent.keyboard('{arrowleft}');
+      expect(screen.getByTestId('search-bar-date-picker')).toBeInTheDocument();
+
+      // Moving cursor inside the `lastSeen` token hides the date picker
+      textbox.setSelectionRange(1, 1);
+      userEvent.click(textbox);
+      expect(screen.queryByTestId('search-bar-date-picker')).not.toBeInTheDocument();
+    });
+
+    it('can select a suggested relative time value', () => {
+      render(<SmartSearchBar {...props} />);
+
+      userEvent.type(screen.getByRole('textbox'), 'lastSeen:');
+
+      userEvent.click(screen.getByText('Last hour'));
+
+      expect(screen.getByRole('textbox')).toHaveValue('lastSeen:-1h ');
+    });
+
+    it('can select a specific date/time', async () => {
+      render(<SmartSearchBar {...props} />);
+
+      userEvent.type(screen.getByRole('textbox'), 'lastSeen:');
+
+      userEvent.click(screen.getByText('After a custom datetime'));
+
+      // Should have added '>' to query and show a date picker
+      expect(screen.getByRole('textbox')).toHaveValue('lastSeen:>');
+      expect(screen.getByTestId('search-bar-date-picker')).toBeInTheDocument();
+
+      // For whatever reason, need this line to get the lazily-loaded datepicker
+      // to show up in this test. Without it, the datepicker never shows up
+      // no matter how long the timeout is set to.
+      await tick();
+
+      // Select a day on the calendar
+      const dateInput = await screen.findByTestId('date-picker');
+      fireEvent.change(dateInput, {target: {value: '2022-01-02'}});
+
+      expect(screen.getByRole('textbox')).toHaveValue(
+        // -05:00 because our tests run in EST
+        'lastSeen:>2022-01-02T00:00:00-05:00'
+      );
+
+      const timeInput = screen.getByLabelText('Time');
+
+      // Simulate changing time input one bit at a time
+      userEvent.click(timeInput);
+      fireEvent.change(timeInput, {target: {value: '01:00:00'}});
+      fireEvent.change(timeInput, {target: {value: '01:02:00'}});
+      fireEvent.change(timeInput, {target: {value: '01:02:03'}});
+      // Time input should have retained focus this whole time
+      expect(timeInput).toHaveFocus();
+      fireEvent.blur(timeInput);
+
+      expect(screen.getByRole('textbox')).toHaveValue(
+        'lastSeen:>2022-01-02T01:02:03-05:00'
+      );
+
+      // Toggle UTC on, which should remove the timezone (-05:00) from the query
+      userEvent.click(screen.getByLabelText('Use UTC'));
+      expect(screen.getByRole('textbox')).toHaveValue('lastSeen:>2022-01-02T01:02:03');
+    });
+
+    it('can change an existing datetime', async () => {
+      render(<SmartSearchBar {...props} />);
+
+      const textbox = screen.getByRole('textbox');
+      fireEvent.change(textbox, {
+        target: {value: 'lastSeen:2022-01-02 firstSeen:2022-01-01'},
+      });
+
+      // Move cursor to the lastSeen date
+      userEvent.click(textbox);
+      textbox.setSelectionRange(10, 10);
+      fireEvent.focus(textbox);
+
+      await tick();
+      const dateInput = await screen.findByTestId('date-picker');
+
+      expect(dateInput).toHaveValue('2022-01-02');
+      expect(screen.getByLabelText('Time')).toHaveValue('00:00:00');
+      expect(screen.getByLabelText('Use UTC')).toBeChecked();
+
+      fireEvent.change(dateInput, {target: {value: '2022-01-03'}});
+
+      expect(textbox).toHaveValue('lastSeen:2022-01-03T00:00:00 firstSeen:2022-01-01');
+
+      // Cursor should be at end of the value we just replaced
+      expect(textbox.selectionStart).toBe('lastSeen:2022-01-03T00:00:00'.length);
+    });
+
+    it('populates the date picker correctly for date without time', async () => {
+      render(<SmartSearchBar {...props} query="lastSeen:2022-01-01" />);
+
+      const textbox = screen.getByRole('textbox');
+      // Move cursor to the timestamp
+      userEvent.click(textbox);
+      textbox.setSelectionRange(10, 10);
+      fireEvent.focus(textbox);
+
+      userEvent.click(screen.getByRole('textbox'));
+
+      await tick();
+      const dateInput = await screen.findByTestId('date-picker');
+
+      expect(dateInput).toHaveValue('2022-01-01');
+      // No time provided, so time input should be the default value
+      expect(screen.getByLabelText('Time')).toHaveValue('00:00:00');
+      // UTC is checked because there is no timezone
+      expect(screen.getByLabelText('Use UTC')).toBeChecked();
+    });
+
+    it('populates the date picker correctly for date with time and no timezone', async () => {
+      render(<SmartSearchBar {...props} query="lastSeen:2022-01-01T09:45:12" />);
+
+      const textbox = screen.getByRole('textbox');
+      // Move cursor to the timestamp
+      userEvent.click(textbox);
+      textbox.setSelectionRange(10, 10);
+      fireEvent.focus(textbox);
+
+      await tick();
+      const dateInput = await screen.findByTestId('date-picker');
+
+      expect(dateInput).toHaveValue('2022-01-01');
+      expect(screen.getByLabelText('Time')).toHaveValue('09:45:12');
+      expect(screen.getByLabelText('Use UTC')).toBeChecked();
+    });
+
+    it('populates the date picker correctly for date with time and timezone', async () => {
+      render(<SmartSearchBar {...props} query="lastSeen:2022-01-01T09:45:12-05:00" />);
+
+      const textbox = screen.getByRole('textbox');
+      // Move cursor to the timestamp
+      userEvent.click(textbox);
+      textbox.setSelectionRange(10, 10);
+      fireEvent.focus(textbox);
+
+      await tick();
+      const dateInput = await screen.findByTestId('date-picker');
+
+      expect(dateInput).toHaveValue('2022-01-01');
+      expect(screen.getByLabelText('Time')).toHaveValue('09:45:12');
+      expect(screen.getByLabelText('Use UTC')).not.toBeChecked();
     });
   });
 });

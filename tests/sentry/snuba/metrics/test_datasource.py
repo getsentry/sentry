@@ -70,7 +70,7 @@ class DataSourceTestCase(TestCase, BaseMetricsTestCase):
             [self.project],
             query.to_metrics_query(),
             include_meta=True,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseKey.PERFORMANCE,
         )
         assert data["meta"] == sorted(
             [
@@ -126,8 +126,8 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
             timestamp=self.day_ago + timedelta(hours=1, minutes=0),
         )
         result = get_custom_measurements(
-            projects=[self.project],
-            organization=self.organization,
+            project_ids=[self.project.id],
+            organization_id=self.organization.id,
             start=self.day_ago,
             use_case_id=UseCaseKey.PERFORMANCE,
         )
@@ -149,7 +149,7 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
                 ],
                 "unit": "millisecond",
                 "metric_id": indexer.resolve(
-                    self.organization.id, something_custom_metric, UseCaseKey.PERFORMANCE
+                    UseCaseKey.PERFORMANCE, self.organization.id, something_custom_metric
                 ),
             }
         ]
@@ -173,8 +173,8 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
             timestamp=self.day_ago - timedelta(days=1, minutes=0),
         )
         result = get_custom_measurements(
-            projects=[self.project],
-            organization=self.organization,
+            project_ids=[self.project.id],
+            organization_id=self.organization.id,
             start=self.day_ago,
             use_case_id=UseCaseKey.PERFORMANCE,
         )
@@ -197,7 +197,7 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
                 ],
                 "unit": "millisecond",
                 "metric_id": indexer.resolve(
-                    self.organization.id, something_custom_metric, UseCaseKey.PERFORMANCE
+                    UseCaseKey.PERFORMANCE, self.organization.id, something_custom_metric
                 ),
             }
         ]
@@ -216,6 +216,6 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
         # mock mri failing to parse the metric
         mock.return_value = None
         result = get_custom_measurements(
-            projects=[self.project], organization=self.organization, start=self.day_ago
+            project_ids=[self.project.id], organization_id=self.organization.id, start=self.day_ago
         )
         assert result == []

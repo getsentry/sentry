@@ -54,8 +54,8 @@ describe('SentryAppExternalIssueActions', () => {
     });
 
     it('renders a link to open the modal', () => {
-      expect(wrapper.find('IntegrationLink a').text()).toEqual(
-        `Link ${component.sentryApp.name} Issue`
+      expect(wrapper.find('StyledIntegrationLink a').text()).toEqual(
+        `${component.sentryApp.name} Issue`
       );
     });
 
@@ -64,7 +64,7 @@ describe('SentryAppExternalIssueActions', () => {
     });
 
     it('opens the modal', async () => {
-      wrapper.find('IntegrationLink a').simulate('click');
+      wrapper.find('StyledIntegrationLink a').simulate('click');
 
       await tick();
       wrapper.update();
@@ -73,7 +73,7 @@ describe('SentryAppExternalIssueActions', () => {
     });
 
     it('renders the Create Issue form fields, based on schema', async () => {
-      wrapper.find('IntegrationLink a').simulate('click');
+      wrapper.find('StyledIntegrationLink a').simulate('click');
       await tick();
       wrapper.update();
 
@@ -89,7 +89,7 @@ describe('SentryAppExternalIssueActions', () => {
     });
 
     it('renders the Link Issue form fields, based on schema', async () => {
-      wrapper.find('IntegrationLink a').simulate('click');
+      wrapper.find('StyledIntegrationLink a').simulate('click');
       await tick();
       wrapper.update();
 
@@ -111,7 +111,7 @@ describe('SentryAppExternalIssueActions', () => {
         body: externalIssue,
       });
 
-      wrapper.find('IntegrationLink a').simulate('click');
+      wrapper.find('StyledIntegrationLink a').simulate('click');
 
       await tick();
       wrapper.update();
@@ -141,7 +141,7 @@ describe('SentryAppExternalIssueActions', () => {
         body: externalIssue,
       });
 
-      wrapper.find('IntegrationLink a').simulate('click');
+      wrapper.find('StyledIntegrationLink a').simulate('click');
       await tick();
       wrapper.update();
 
@@ -179,11 +179,13 @@ describe('SentryAppExternalIssueActions', () => {
     });
 
     it('renders a link to the external issue', () => {
-      expect(wrapper.find('IntegrationLink a').text()).toEqual(externalIssue.displayName);
+      expect(wrapper.find('StyledIntegrationLink a').text()).toEqual(
+        externalIssue.displayName
+      );
     });
 
     it('links to the issue', () => {
-      expect(wrapper.find('IntegrationLink').first().prop('href')).toEqual(
+      expect(wrapper.find('StyledIntegrationLink').first().prop('href')).toEqual(
         externalIssue.webUrl
       );
     });

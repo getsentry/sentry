@@ -24,9 +24,15 @@ import {IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {EChartDataZoomHandler, EChartEventHandler} from 'sentry/types/echarts';
-import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {
+  axisLabelFormatter,
+  axisLabelFormatterUsingAggregateOutputType,
+  tooltipFormatter,
+} from 'sentry/utils/discover/charts';
 import {getFieldFormatter} from 'sentry/utils/discover/fieldRenderers';
 import {
+  aggregateOutputType,
+  AggregationOutputType,
   getAggregateArg,
   getEquation,
   getMeasurementSlug,
@@ -82,6 +88,7 @@ type WidgetCardChartProps = Pick<
   }>;
   onZoom?: AugmentedEChartDataZoomHandler;
   showSlider?: boolean;
+  timeseriesResultsType?: string;
   windowWidth?: number;
 };
 
@@ -193,7 +200,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
     }
 
     const {containerHeight} = this.state;
-    const {organization, widget, isMobile, expandNumbers} = this.props;
+    const {location, organization, widget, isMobile, expandNumbers} = this.props;
     const isAlias =
       !organization.features.includes('discover-frontend-use-events-endpoint') &&
       widget.widgetType !== WidgetType.RELEASE;
@@ -217,8 +224,10 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       const dataRow = result.data[0];
       const fieldRenderer = getFieldFormatter(field, tableMeta, isAlias);
 
+      const unit = tableMeta.units?.[field];
       const rendered = fieldRenderer(
-        shouldExpandInteger ? {[field]: dataRow[field].toLocaleString()} : dataRow
+        shouldExpandInteger ? {[field]: dataRow[field].toLocaleString()} : dataRow,
+        {location, organization, unit}
       );
 
       const isModalWidget = !!!(widget.id || widget.tempId);
@@ -288,6 +297,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       showSlider,
       noPadding,
       chartZoomOptions,
+      timeseriesResultsType,
     } = this.props;
 
     if (widget.displayType === 'table') {
@@ -399,12 +409,18 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       },
       tooltip: {
         trigger: 'axis',
-        valueFormatter: tooltipFormatter,
+        valueFormatter: (value: number, seriesName: string) =>
+          timeseriesResultsType
+            ? tooltipFormatter(value, timeseriesResultsType as AggregationOutputType)
+            : tooltipFormatter(value, aggregateOutputType(seriesName)),
       },
       yAxis: {
         axisLabel: {
           color: theme.chartLabel,
-          formatter: (value: number) => axisLabelFormatter(value, axisLabel),
+          formatter: (value: number) =>
+            timeseriesResultsType
+              ? axisLabelFormatterUsingAggregateOutputType(value, timeseriesResultsType)
+              : axisLabelFormatter(value, aggregateOutputType(axisLabel)),
         },
       },
     };

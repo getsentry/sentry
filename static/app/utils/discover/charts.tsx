@@ -2,8 +2,8 @@ import {LegendComponentOption} from 'echarts';
 
 import {t} from 'sentry/locale';
 import {Series} from 'sentry/types/echarts';
-import {defined} from 'sentry/utils';
-import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {defined, formatBytesBase2} from 'sentry/utils';
+import {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
   DAY,
   formatAbbreviatedNumber,
@@ -19,11 +19,27 @@ import {
  * Formatter for chart tooltips that handle a variety of discover and metrics result values.
  * If the result is metric values, the value can be of type number or null
  */
-export function tooltipFormatter(value: number | null, seriesName: string = ''): string {
+export function tooltipFormatter(
+  value: number | null,
+  outputType: AggregationOutputType = 'number'
+): string {
   if (!defined(value)) {
     return '\u2014';
   }
-  switch (aggregateOutputType(seriesName)) {
+  return tooltipFormatterUsingAggregateOutputType(value, outputType);
+}
+
+/**
+ * Formatter for chart tooltips that takes the aggregate output type directly
+ */
+export function tooltipFormatterUsingAggregateOutputType(
+  value: number | null,
+  type: string
+): string {
+  if (!defined(value)) {
+    return '\u2014';
+  }
+  switch (type) {
     case 'integer':
     case 'number':
       return value.toLocaleString();
@@ -31,6 +47,8 @@ export function tooltipFormatter(value: number | null, seriesName: string = ''):
       return formatPercentage(value, 2);
     case 'duration':
       return getDuration(value / 1000, 2, true);
+    case 'size':
+      return formatBytesBase2(value);
     default:
       return value.toString();
   }
@@ -42,11 +60,28 @@ export function tooltipFormatter(value: number | null, seriesName: string = ''):
  */
 export function axisLabelFormatter(
   value: number,
-  seriesName: string,
+  outputType: AggregationOutputType,
   abbreviation: boolean = false,
   durationUnit?: number
 ): string {
-  switch (aggregateOutputType(seriesName)) {
+  return axisLabelFormatterUsingAggregateOutputType(
+    value,
+    outputType,
+    abbreviation,
+    durationUnit
+  );
+}
+
+/**
+ * Formatter for chart axis labels that takes the aggregate output type directly
+ */
+export function axisLabelFormatterUsingAggregateOutputType(
+  value: number,
+  type: string,
+  abbreviation: boolean = false,
+  durationUnit?: number
+): string {
+  switch (type) {
     case 'integer':
     case 'number':
       return abbreviation ? formatAbbreviatedNumber(value) : value.toLocaleString();
@@ -54,6 +89,8 @@ export function axisLabelFormatter(
       return formatPercentage(value, 0);
     case 'duration':
       return axisDuration(value, durationUnit);
+    case 'size':
+      return formatBytesBase2(value, 0);
     default:
       return value.toString();
   }
@@ -111,14 +148,16 @@ export function findRangeOfMultiSeries(series: Series[], legend?: LegendComponen
   if (series[0]?.data) {
     let minSeries = series[0];
     let maxSeries;
-    series.forEach(({seriesName}, idx) => {
-      if (legend?.selected?.[seriesName] !== false) {
+    series.forEach(({seriesName, data}, idx) => {
+      if (legend?.selected?.[seriesName] !== false && data.length) {
         minSeries = series[idx];
         maxSeries ??= series[idx];
       }
     });
     if (maxSeries?.data) {
-      const max = Math.max(...maxSeries.data.map(({value}) => value));
+      const max = Math.max(
+        ...maxSeries.data.map(({value}) => value).filter(value => !!value)
+      );
       const min = Math.min(
         ...minSeries.data.map(({value}) => value).filter(value => !!value)
       );

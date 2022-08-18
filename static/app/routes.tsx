@@ -464,7 +464,7 @@ function buildRoutes() {
       </Route>
       <Route
         path="server-side-sampling/"
-        name={t('Server-side Sampling')}
+        name={t('Server-Side Sampling')}
         component={make(
           () => import('sentry/views/settings/project/server-side-sampling')
         )}
@@ -819,6 +819,16 @@ function buildRoutes() {
                 )
             )}
           />
+          <Route
+            path=":functionSlug/"
+            name={t('Edit Sentry Function')}
+            component={make(
+              () =>
+                import(
+                  'sentry/views/settings/organizationDeveloperSettings/sentryFunctionDetails'
+                )
+            )}
+          />
         </Route>
       </Route>
     </Route>
@@ -1036,12 +1046,12 @@ function buildRoutes() {
 
   const replayRoutes = (
     <Route
-      path="/organizations/:orgId/replays/"
+      path="/organizations/:orgSlug/replays/"
       component={make(() => import('sentry/views/replays'))}
     >
       <IndexRoute component={make(() => import('sentry/views/replays/replays'))} />
       <Route
-        path=":eventSlug/"
+        path=":replaySlug/"
         component={make(() => import('sentry/views/replays/details'))}
       />
     </Route>
@@ -1056,10 +1066,6 @@ function buildRoutes() {
       >
         <IndexRoute
           component={make(() => import('sentry/views/releases/detail/overview'))}
-        />
-        <Route
-          path="activity/"
-          component={make(() => import('sentry/views/releases/detail/activity'))}
         />
         <Route
           path="commits/"
@@ -1154,6 +1160,12 @@ function buildRoutes() {
           component={make(
             () =>
               import('sentry/views/performance/transactionSummary/transactionOverview')
+          )}
+        />
+        <Route
+          path="replays/"
+          component={make(
+            () => import('sentry/views/performance/transactionSummary/transactionReplays')
           )}
         />
         <Route
@@ -1687,10 +1699,6 @@ function buildRoutes() {
     >
       <IndexRoute component={make(() => import('sentry/views/profiling/content'))} />
       <Route
-        path="onboarding/"
-        component={make(() => import('sentry/views/profiling/onboarding'))}
-      />
-      <Route
         path="summary/:projectId/"
         component={make(() => import('sentry/views/profiling/profileSummary'))}
       />
@@ -1703,8 +1711,8 @@ function buildRoutes() {
           component={make(() => import('sentry/views/profiling/profileDetails'))}
         />
         <Route
-          path="flamegraph/"
-          component={make(() => import('sentry/views/profiling/profileFlamegraph'))}
+          path="flamechart/"
+          component={make(() => import('sentry/views/profiling/profileFlamechart'))}
         />
       </Route>
     </Route>

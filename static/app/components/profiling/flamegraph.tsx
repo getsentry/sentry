@@ -5,7 +5,6 @@ import {
   useEffect,
   useLayoutEffect,
   useMemo,
-  useRef,
   useState,
 } from 'react';
 import {mat3, vec2} from 'gl-matrix';
@@ -42,6 +41,7 @@ import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRen
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 
+import {FlamegraphWarnings} from './FlamegraphWarnings';
 import {ProfilingFlamechartLayout} from './profilingFlamechartLayout';
 
 function getTransactionConfigSpace(profiles: Profile[]): Rect {
@@ -57,7 +57,7 @@ interface FlamegraphProps {
 }
 
 function Flamegraph(props: FlamegraphProps): ReactElement {
-  const canvasBounds = useRef<Rect>(Rect.Empty());
+  const [canvasBounds, setCanvasBounds] = useState<Rect>(Rect.Empty());
   const devicePixelRatio = useDevicePixelRatio();
 
   const flamegraphTheme = useFlamegraphTheme();
@@ -216,7 +216,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       [flamegraphCanvasRef, flamegraphOverlayCanvasRef],
       () => {
         const bounds = flamegraphCanvasRef.getBoundingClientRect();
-        canvasBounds.current = new Rect(bounds.x, bounds.y, bounds.width, bounds.height);
+        setCanvasBounds(new Rect(bounds.x, bounds.y, bounds.width, bounds.height));
 
         flamegraphCanvas.initPhysicalSpace();
         flamegraphView.resizeConfigSpace(flamegraphCanvas);
@@ -327,9 +327,10 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         }
         flamechart={
           <ProfileDragDropImport onImport={props.onImport}>
+            <FlamegraphWarnings flamegraph={flamegraph} />
             <FlamegraphZoomView
               flamegraphRenderer={flamegraphRenderer}
-              canvasBounds={canvasBounds.current}
+              canvasBounds={canvasBounds}
               canvasPoolManager={canvasPoolManager}
               flamegraph={flamegraph}
               flamegraphCanvas={flamegraphCanvas}

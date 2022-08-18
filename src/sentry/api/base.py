@@ -4,16 +4,15 @@ import functools
 import logging
 import time
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Optional
+from typing import Any, Callable, Iterable, Mapping, Optional, Type
 
 import sentry_sdk
 from django.conf import settings
 from django.http import HttpResponse
 from django.utils.http import urlquote
 from django.views.decorators.csrf import csrf_exempt
-from drf_spectacular.drainage import get_view_method_names, isolate_view_method
-from drf_spectacular.utils import extend_schema, extend_schema_view
 from pytz import utc
+from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -25,19 +24,26 @@ from sentry.apidocs.hooks import HTTP_METHODS_SET
 from sentry.auth import access
 from sentry.models import Environment
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
+from sentry.servermode import ModeLimited, ServerComponentMode
 from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
 from sentry.utils.http import absolute_uri, is_valid_origin, origin_from_request
 from sentry.utils.numbers import format_grouped_length
-from sentry.utils.sdk import capture_exception
+from sentry.utils.sdk import capture_exception, set_measurement
 
 from .authentication import ApiKeyAuthentication, TokenAuthentication
 from .paginator import BadPaginationError, Paginator
 from .permissions import NoPermission
 
-__all__ = ["Endpoint", "EnvironmentMixin", "StatsMixin"]
+__all__ = [
+    "Endpoint",
+    "EnvironmentMixin",
+    "StatsMixin",
+    "control_silo_endpoint",
+    "customer_silo_endpoint",
+]
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
@@ -347,6 +353,7 @@ class Endpoint(APIView):
                 description=type(self).__name__,
             ) as span:
                 span.set_data("Limit", per_page)
+                set_measurement("query.per_page", per_page)
                 sentry_sdk.set_tag("query.per_page", per_page)
                 sentry_sdk.set_tag(
                     "query.per_page.grouped", format_grouped_length(per_page, [1, 10, 50, 100])
@@ -473,34 +480,64 @@ class ReleaseAnalyticsMixin:
         )
 
 
-def create_region_endpoint_class(endpoint_class):
-    """
-    Create a new class that extends endpoint_class with the same name, but prefixed with Region.
-    For example, if the endpoint_class's name is "OrganizationEventsEndpoint", then the extended class will be
-    "RegionOrganizationEventsEndpoint".
+def resolve_region(request: Request):
+    subdomain = getattr(request, "subdomain", None)
+    if subdomain is None:
+        return None
+    if subdomain in {"us", "eu"}:
+        return subdomain
+    return None
 
-    In addition, we decorate the extended class with the extend_schema_view decorator such that the operation_id for
-    any and all methods that are decorated with the extend_schema decorator are suffixed with "(region aware)".
-    For example, if a method's operation_id value is "Query Discover Events in Table Format", then the operation_id of
-    the extended class's method will be "Query Discover Events in Table Format (region aware)".
-    """
-    region_endpoint_class = type(f"Region{endpoint_class.__name__}", (endpoint_class,), {})
-    schema = {}
-    for method_name in get_view_method_names(endpoint_class):
-        method = isolate_view_method(endpoint_class, method_name)
-        if not (method and hasattr(method, "kwargs") and "schema" in method.kwargs):
-            continue
-        extended_schema = method.kwargs["schema"]()
-        # NOTE: this is a hack to be able to retrieve the operation_id values
-        extended_schema.view = type(
-            "View",
-            (),
-            {"request": None, "kwargs": {}, "determine_version": lambda self: (None, None)},
+
+class ApiAvailableOn(ModeLimited):
+    def modify_endpoint_class(self, decorated_class: Type[Endpoint]) -> type:
+        dispatch_override = self.create_override(decorated_class.dispatch)
+        return type(
+            decorated_class.__name__,
+            (decorated_class,),
+            {
+                "dispatch": dispatch_override,
+                "__mode_limit": self,  # For internal tooling only
+            },
         )
-        schema[method_name] = extend_schema(
-            operation_id=f"{extended_schema.get_operation_id()} (region aware)",
-            # Exclude this endpoint that is specific for a region silo from the schema.
-            # In the future, we may include them once we can publicly allow users to consume these APIs.
-            exclude=True,
-        )
-    return extend_schema_view(**schema)(region_endpoint_class)
+
+    def modify_endpoint_method(self, decorated_method: Callable[..., Any]) -> Callable[..., Any]:
+        return self.create_override(decorated_method)
+
+    class ApiAvailabilityError(Exception):
+        pass
+
+    def handle_when_unavailable(
+        self,
+        original_method: Callable[..., Any],
+        current_mode: ServerComponentMode,
+        available_modes: Iterable[ServerComponentMode],
+    ) -> Callable[..., Any]:
+        def handle(obj: Any, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
+            mode_str = ", ".join(str(m) for m in available_modes)
+            message = (
+                f"Received {request.method} request at {request.path!r} to server in "
+                f"{current_mode} mode. This endpoint is available only in: {mode_str}"
+            )
+            if settings.FAIL_ON_UNAVAILABLE_API_CALL:
+                raise self.ApiAvailabilityError(message)
+            else:
+                logger.warning(message)
+                return HttpResponse(status=status.HTTP_404_NOT_FOUND)
+
+        return handle
+
+    def __call__(self, decorated_obj: Any) -> Any:
+        if isinstance(decorated_obj, type):
+            if not issubclass(decorated_obj, Endpoint):
+                raise ValueError("`@ApiAvailableOn` can decorate only Endpoint subclasses")
+            return self.modify_endpoint_class(decorated_obj)
+
+        if callable(decorated_obj):
+            return self.modify_endpoint_method(decorated_obj)
+
+        raise TypeError("`@ApiAvailableOn` must decorate a class or method")
+
+
+control_silo_endpoint = ApiAvailableOn(ServerComponentMode.CONTROL)
+customer_silo_endpoint = ApiAvailableOn(ServerComponentMode.CUSTOMER)

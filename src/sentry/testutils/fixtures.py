@@ -11,6 +11,7 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
 )
+from sentry.models.user import User
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
@@ -375,15 +376,25 @@ class Fixtures:
         self,
         organization: "Organization",
         external_id: str = "TXXXXXXX1",
+        user: User = None,
+        identity_external_id: str = "UXXXXXXX1",
         **kwargs: Any,
     ):
+        if user is None:
+            user = organization.get_default_owner()
+
         integration = Factories.create_slack_integration(
             organization=organization, external_id=external_id, **kwargs
         )
         idp = Factories.create_identity_provider(integration=integration)
-        Factories.create_identity(organization.get_default_owner(), idp, "UXXXXXXX1")
+        Factories.create_identity(user, idp, identity_external_id)
 
         return integration
+
+    def create_integration(
+        self, organization: Organization, external_id: str, **kwargs: Any
+    ) -> Integration:
+        return Factories.create_integration(organization, external_id, **kwargs)
 
     def create_identity(self, *args, **kwargs):
         return Factories.create_identity(*args, **kwargs)
@@ -398,6 +409,9 @@ class Fixtures:
 
     def create_comment(self, *args, **kwargs):
         return Factories.create_comment(*args, **kwargs)
+
+    def create_sentry_function(self, *args, **kwargs):
+        return Factories.create_sentry_function(*args, **kwargs)
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):

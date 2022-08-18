@@ -1,4 +1,3 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Panel} from 'sentry/components/panels';
@@ -14,7 +13,6 @@ import {TimelineScrubber} from 'sentry/components/replays/player/scrubber';
 import ScrubberMouseTracking from 'sentry/components/replays/player/scrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {Resizeable} from 'sentry/components/replays/resizeable';
-import TimelinePosition from 'sentry/components/replays/timelinePosition';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 
 type Props = {};
@@ -27,19 +25,19 @@ const USER_ACTIONS = [
 ];
 
 function ReplayTimeline({}: Props) {
-  const theme = useTheme();
-  const {currentHoverTime, currentTime, duration = 0, replay} = useReplayContext();
+  const {replay} = useReplayContext();
 
   if (!replay) {
     return <Placeholder height="48px" bottomGutter={2} />;
   }
 
-  const {startTimestamp} = replay.getEvent();
+  const durationMs = replay.getDurationMs();
+  const startTimestampMs = replay.getReplay().startedAt.getTime();
   const crumbs = replay.getRawCrumbs() || [];
   const spans = replay.getRawSpans() || [];
   const userCrumbs = crumbs.filter(crumb => USER_ACTIONS.includes(crumb.type));
 
-  const networkSpans = spans.filter(replay.isNotMemorySpan);
+  const networkSpans = spans.filter(replay.isNetworkSpan);
 
   return (
     <Panel>
@@ -47,29 +45,21 @@ function ReplayTimeline({}: Props) {
         <Resizeable>
           {({width}) => (
             <Stacked>
-              <MinorGridlines duration={duration} width={width} />
-              <MajorGridlines duration={duration} width={width} />
+              <MinorGridlines durationMs={durationMs} width={width} />
+              <MajorGridlines durationMs={durationMs} width={width} />
               <TimelineScrubber />
               <UnderTimestamp paddingTop="36px">
                 <ReplayTimelineSpans
-                  duration={duration}
+                  durationMs={durationMs}
                   spans={networkSpans}
-                  startTimestamp={startTimestamp}
+                  startTimestampMs={startTimestampMs}
                 />
               </UnderTimestamp>
-              <TimelinePosition currentTime={currentTime} duration={duration} />
-              {currentHoverTime ? (
-                <TimelinePosition
-                  color={theme.purple300}
-                  currentTime={currentHoverTime}
-                  duration={duration}
-                />
-              ) : null}
               <UnderTimestamp paddingTop="0">
                 <ReplayTimelineEvents
                   crumbs={userCrumbs}
-                  duration={duration}
-                  startTimestamp={startTimestamp}
+                  durationMs={durationMs}
+                  startTimestampMs={startTimestampMs}
                   width={width}
                 />
               </UnderTimestamp>

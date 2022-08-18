@@ -3,10 +3,9 @@ import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
 import {Panel as _Panel} from 'sentry/components/panels';
+import BufferingOverlay from 'sentry/components/replays/player/bufferingOverlay';
+import FastForwardBadge from 'sentry/components/replays/player/fastForwardBadge';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-
-import BufferingOverlay from './player/bufferingOverlay';
-import FastForwardBadge from './player/fastForwardBadge';
 
 interface Props {
   className?: string;
@@ -80,14 +79,13 @@ function BasePlayerRoot({className}: Props) {
 // Center the viewEl inside the windowEl.
 // This is useful when the window is inside a container that has large fixed
 // dimensions, like when in fullscreen mode.
-// If the container has a dimensions that can grow/shrink then it could be
+// If the container has a dimensions that can grow/shrink then it is
 // important to also set `overflow: hidden` on the container, so that the
 // SizingWindow can calculate size as things shrink.
 const SizingWindow = styled('div')`
   width: 100%;
-  height: 100%;
-
   display: flex;
+  flex-grow: 1;
   justify-content: center;
   align-items: center;
   position: relative;

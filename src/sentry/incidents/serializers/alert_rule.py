@@ -32,7 +32,7 @@ from sentry.snuba.entity_subscription import (
     get_entity_key_from_query_builder,
     get_entity_subscription,
 )
-from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery, SnubaQueryEventType
+from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import build_query_builder
 
 from . import (
@@ -151,10 +151,10 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
     def validate_dataset(self, dataset):
         try:
-            return QueryDatasets(dataset)
+            return Dataset(dataset)
         except ValueError:
             raise serializers.ValidationError(
-                "Invalid dataset, valid values are %s" % [item.value for item in QueryDatasets]
+                "Invalid dataset, valid values are %s" % [item.value for item in Dataset]
             )
 
     def validate_event_types(self, event_types):
@@ -229,7 +229,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         return data
 
     def _validate_query(self, data):
-        dataset = data.setdefault("dataset", QueryDatasets.EVENTS)
+        dataset = data.setdefault("dataset", Dataset.Events)
         query_type = data.setdefault("query_type", query_datasets_to_type[dataset])
 
         valid_datasets = QUERY_TYPE_VALID_DATASETS[query_type]
@@ -245,7 +245,12 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 self.context["organization"],
                 actor=self.context.get("user", None),
             )
-            and dataset == QueryDatasets.PERFORMANCE_METRICS
+            and not features.has(
+                "organizations:mep-rollout-flag",
+                self.context["organization"],
+                actor=self.context.get("user", None),
+            )
+            and dataset == Dataset.PerformanceMetrics
             and query_type == SnubaQuery.Type.PERFORMANCE
         ):
             raise serializers.ValidationError(
@@ -445,7 +450,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                         "user": self.context["user"],
                         "use_async_lookup": self.context.get("use_async_lookup"),
                         "input_channel_id": self.context.get("input_channel_id"),
-                        "validate_channel_id": self.context.get("validate_channel_id"),
+                        "validate_channel_id": self.context.get("validate_channel_id", True),
                     },
                     instance=trigger_instance,
                     data=trigger_data,

@@ -6,6 +6,7 @@ import TriggersChart from 'sentry/views/alerts/rules/metric/triggers/chart';
 import {
   AlertRuleComparisonType,
   AlertRuleThresholdType,
+  Dataset,
 } from 'sentry/views/alerts/rules/metric/types';
 
 describe('Incident Rules Create', () => {
@@ -22,21 +23,25 @@ describe('Incident Rules Create', () => {
   const api = new Client();
 
   it('renders a metric', async () => {
-    const {organization, project} = initializeOrg();
+    const {organization, project, router} = initializeOrg();
 
     render(
       <TriggersChart
         api={api}
+        location={router.location}
         organization={organization}
         projects={[project]}
         query="event.type:error"
         timeWindow={1}
         aggregate="count()"
+        dataset={Dataset.ERRORS}
         triggers={[]}
         environment={null}
         comparisonType={AlertRuleComparisonType.COUNT}
         resolveThreshold={null}
         thresholdType={AlertRuleThresholdType.BELOW}
+        newAlertOrQuery
+        handleMEPAlertDataset={() => {}}
       />
     );
 

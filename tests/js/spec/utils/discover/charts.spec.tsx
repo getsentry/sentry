@@ -3,11 +3,14 @@ import {LegendComponentOption} from 'echarts';
 import {Series} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
+  axisLabelFormatterUsingAggregateOutputType,
   categorizeDuration,
   findRangeOfMultiSeries,
   getDurationUnit,
   tooltipFormatter,
+  tooltipFormatterUsingAggregateOutputType,
 } from 'sentry/utils/discover/charts';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {HOUR, MINUTE, SECOND} from 'sentry/utils/formatters';
 
 describe('tooltipFormatter()', () => {
@@ -23,7 +26,28 @@ describe('tooltipFormatter()', () => {
       ['p50()', 86400000, '1.00d'],
     ];
     for (const scenario of cases) {
-      expect(tooltipFormatter(scenario[1], scenario[0])).toEqual(scenario[2]);
+      expect(tooltipFormatter(scenario[1], aggregateOutputType(scenario[0]))).toEqual(
+        scenario[2]
+      );
+    }
+  });
+});
+
+describe('tooltipFormatterUsingAggregateOutputType()', () => {
+  it('formats values', () => {
+    const cases: [string, number, string][] = [
+      // function, input, expected
+      ['number', 0.1, '0.1'],
+      ['integer', 0.125, '0.125'],
+      ['percentage', 0.6612, '66.12%'],
+      ['duration', 321, '321.00ms'],
+      ['size', 416 * 1024, '416.0 KiB'],
+      ['', 444, '444'],
+    ];
+    for (const scenario of cases) {
+      expect(tooltipFormatterUsingAggregateOutputType(scenario[1], scenario[0])).toEqual(
+        scenario[2]
+      );
     }
   });
 });
@@ -44,14 +68,16 @@ describe('axisLabelFormatter()', () => {
       ['p50()', 86400000, '1d'],
     ];
     for (const scenario of cases) {
-      expect(axisLabelFormatter(scenario[1], scenario[0])).toEqual(scenario[2]);
+      expect(axisLabelFormatter(scenario[1], aggregateOutputType(scenario[0]))).toEqual(
+        scenario[2]
+      );
     }
   });
 
   describe('When a duration unit is passed', () => {
     const getAxisLabels = (axisValues: number[], durationUnit: number) => {
       return axisValues.map(value =>
-        axisLabelFormatter(value, 'p50()', undefined, durationUnit)
+        axisLabelFormatter(value, 'duration', undefined, durationUnit)
       );
     };
 
@@ -74,6 +100,25 @@ describe('axisLabelFormatter()', () => {
       const labels = getAxisLabels(axisValues, durationUnit);
       expect(labels.length).toBe(labels.filter(label => label.endsWith('hr')).length);
     });
+  });
+});
+
+describe('axisLabelFormatterUsingAggregateOutputType()', () => {
+  it('formats values', () => {
+    const cases: [string, number, string][] = [
+      // type, input, expected
+      ['number', 0.1, '0.1'],
+      ['integer', 0.125, '0.125'],
+      ['percentage', 0.6612, '66%'],
+      ['duration', 321, '321ms'],
+      ['size', 416 * 1024, '416 KiB'],
+      ['', 444, '444'],
+    ];
+    for (const scenario of cases) {
+      expect(
+        axisLabelFormatterUsingAggregateOutputType(scenario[1], scenario[0])
+      ).toEqual(scenario[2]);
+    }
   });
 });
 
@@ -107,6 +152,28 @@ describe('findRangeOfMultiSeries()', () => {
 
   it('should find min and max when no items selected in legend', () => {
     expect(findRangeOfMultiSeries(series)).toStrictEqual({max: 2300, min: 50});
+  });
+
+  it('should find min and max when series has no data', () => {
+    const noDataSeries: Series[] = [
+      {
+        seriesName: 'p100()',
+        data: [
+          {name: 1, value: 2300},
+          {name: 2, value: 1900},
+          {name: 3, value: 1950},
+        ],
+      },
+      {
+        seriesName: 'p95()',
+        data: [],
+      },
+      {
+        seriesName: 'p50()',
+        data: [],
+      },
+    ];
+    expect(findRangeOfMultiSeries(noDataSeries)).toStrictEqual({max: 2300, min: 1900});
   });
 
   it('should not find range if no items selected', () => {
@@ -185,5 +252,11 @@ describe('getDurationUnit()', () => {
     const numOfDigits = ((4.0001 * HOUR) / durationUnit).toFixed(0).length;
     expect(numOfDigits).toBeLessThan(6);
     expect(durationUnit).not.toBe(MILLISECOND);
+  });
+
+  it('Should return ms if all values are 0', () => {
+    const series = generateSeries([0, 0, 0]);
+    const durationUnit = getDurationUnit(series);
+    expect(durationUnit).toBe(MILLISECOND);
   });
 });

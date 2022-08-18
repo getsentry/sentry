@@ -35,6 +35,7 @@ type Props = WithRouterProps & {
     pageLinks?: string;
     tableResults?: TableDataWithTitle[];
     timeseriesResults?: Series[];
+    timeseriesResultsType?: string;
     totalIssuesCount?: string;
   }) => void;
   onLegendSelectChanged?: EChartEventHandler<{
@@ -156,7 +157,13 @@ export function WidgetCardChartContainer({
       onDataFetched={onDataFetched}
       dashboardFilters={dashboardFilters}
     >
-      {({tableResults, timeseriesResults, errorMessage, loading}) => {
+      {({
+        tableResults,
+        timeseriesResults,
+        errorMessage,
+        loading,
+        timeseriesResultsType,
+      }) => {
         return (
           <Fragment>
             {typeof renderErrorMessage === 'function'
@@ -181,6 +188,7 @@ export function WidgetCardChartContainer({
               showSlider={showSlider}
               noPadding={noPadding}
               chartZoomOptions={chartZoomOptions}
+              timeseriesResultsType={timeseriesResultsType}
             />
           </Fragment>
         );

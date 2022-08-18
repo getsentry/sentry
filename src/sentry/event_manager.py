@@ -2,6 +2,7 @@ import copy
 import ipaddress
 import logging
 import random
+import re
 import time
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -9,6 +10,7 @@ from io import BytesIO
 import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError, OperationalError, connection, transaction
 from django.db.models import Func
 from django.utils.encoding import force_text
@@ -76,10 +78,13 @@ from sentry.models import (
     get_crashreport_key,
 )
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.plugins.base import plugins
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
 from sentry.reprocessing2 import is_reprocessed_event, save_unprocessed_event
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.signals import first_event_received, first_transaction_received, issue_unresolved
+from sentry.tasks.commits import fetch_commits
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.types.activity import ActivityType
@@ -688,6 +693,53 @@ def _pull_out_data(jobs, projects):
         )
 
 
+def _is_commit_sha(version: str):
+    return re.match(r"[0-9a-f]{40}", version) is not None
+
+
+def _associate_commits_with_release(release: Release, project: Project):
+    previous_release = release.get_previous_release(project)
+    possible_repos = (
+        RepositoryProjectPathConfig.objects.select_related(
+            "repository", "organization_integration", "organization_integration__integration"
+        )
+        .filter(project=project, repository__provider="integrations:github")
+        .all()
+    )
+    if possible_repos:
+        # If it does exist, kick off a task to look if the commit exists in the repository
+        target_repo = None
+        for repo_proj_path_model in possible_repos:
+            integration_installation = (
+                repo_proj_path_model.organization_integration.integration.get_installation(
+                    organization_id=project.organization.id
+                )
+            )
+            repo_client = integration_installation.get_client()
+            try:
+                repo_client.get_commit(
+                    repo=repo_proj_path_model.repository.name, sha=release.version
+                )
+                target_repo = repo_proj_path_model.repository
+                break
+            except ApiError as exc:
+                if exc.code != 404:
+                    raise
+
+        if target_repo is not None:
+            # If it does exist, fetch the commits for that repo
+            fetch_commits.apply_async(
+                kwargs={
+                    "release_id": release.id,
+                    "user_id": None,
+                    "refs": [{"repository": target_repo.name, "commit": release.version}],
+                    "prev_release_id": previous_release.id
+                    if previous_release is not None
+                    else None,
+                }
+            )
+
+
 @metrics.wraps("save_event.get_or_create_release_many")
 def _get_or_create_release_many(jobs, projects):
     jobs_with_releases = {}
@@ -705,26 +757,42 @@ def _get_or_create_release_many(jobs, projects):
             release_date_added[release_key] = new_datetime
 
     for (project_id, version), jobs_to_update in jobs_with_releases.items():
-        release = Release.get_or_create(
-            project=projects[project_id],
-            version=version,
-            date_added=release_date_added[(project_id, version)],
-        )
+        try:
+            release = Release.get_or_create(
+                project=projects[project_id],
+                version=version,
+                date_added=release_date_added[(project_id, version)],
+            )
+        except ValidationError:
+            release = None
+            logger.exception(
+                "Failed creating Release due to ValidationError",
+                extra={
+                    "project": projects[project_id],
+                    "version": version,
+                },
+            )
 
-        for job in jobs_to_update:
-            # Don't allow a conflicting 'release' tag
-            data = job["data"]
-            pop_tag(data, "release")
-            set_tag(data, "sentry:release", release.version)
+        if release:
+            if features.has(
+                "projects:auto-associate-commits-to-release", projects[project_id]
+            ) and _is_commit_sha(release.version):
+                safe_execute(_associate_commits_with_release, release, projects[project_id])
 
-            job["release"] = release
+            for job in jobs_to_update:
+                # Don't allow a conflicting 'release' tag
+                data = job["data"]
+                pop_tag(data, "release")
+                set_tag(data, "sentry:release", release.version)
 
-            if job["dist"]:
-                job["dist"] = job["release"].add_dist(job["dist"], job["event"].datetime)
+                job["release"] = release
 
-                # don't allow a conflicting 'dist' tag
-                pop_tag(job["data"], "dist")
-                set_tag(job["data"], "sentry:dist", job["dist"].name)
+                if job["dist"]:
+                    job["dist"] = job["release"].add_dist(job["dist"], job["event"].datetime)
+
+                    # don't allow a conflicting 'dist' tag
+                    pop_tag(job["data"], "dist")
+                    set_tag(job["data"], "sentry:dist", job["dist"].name)
 
 
 @metrics.wraps("save_event.get_event_user_many")

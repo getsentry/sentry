@@ -37,13 +37,14 @@ from sentry.models import Integration, PagerDutyService, Project, SentryApp
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import resolve_field
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
     EntitySubscription,
     get_entity_key_from_query_builder,
     get_entity_subscription_from_snuba_query,
 )
-from sentry.snuba.models import QueryDatasets, SnubaQuery
+from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
     bulk_delete_snuba_subscriptions,
@@ -419,14 +420,14 @@ DEFAULT_ALERT_RULE_RESOLUTION = 1
 DEFAULT_CMP_ALERT_RULE_RESOLUTION = 2
 
 
-# Temporary mapping of `QueryDatasets` to `AlertRule.Type`. In the future, `Performance` will be
+# Temporary mapping of `Dataset` to `AlertRule.Type`. In the future, `Performance` will be
 # able to be run on `METRICS` as well.
 query_datasets_to_type = {
-    QueryDatasets.EVENTS: SnubaQuery.Type.ERROR,
-    QueryDatasets.TRANSACTIONS: SnubaQuery.Type.PERFORMANCE,
-    QueryDatasets.PERFORMANCE_METRICS: SnubaQuery.Type.PERFORMANCE,
-    QueryDatasets.SESSIONS: SnubaQuery.Type.CRASH_RATE,
-    QueryDatasets.METRICS: SnubaQuery.Type.CRASH_RATE,
+    Dataset.Events: SnubaQuery.Type.ERROR,
+    Dataset.Transactions: SnubaQuery.Type.PERFORMANCE,
+    Dataset.PerformanceMetrics: SnubaQuery.Type.PERFORMANCE,
+    Dataset.Sessions: SnubaQuery.Type.CRASH_RATE,
+    Dataset.Metrics: SnubaQuery.Type.CRASH_RATE,
 }
 
 
@@ -445,7 +446,7 @@ def create_alert_rule(
     include_all_projects=False,
     excluded_projects=None,
     query_type: SnubaQuery.Type = SnubaQuery.Type.ERROR,
-    dataset=QueryDatasets.EVENTS,
+    dataset=Dataset.Events,
     user=None,
     event_types=None,
     comparison_delta: Optional[int] = None,
@@ -486,10 +487,10 @@ def create_alert_rule(
         # Since comparison alerts make twice as many queries, run the queries less frequently.
         resolution = DEFAULT_CMP_ALERT_RULE_RESOLUTION
         comparison_delta = int(timedelta(minutes=comparison_delta).total_seconds())
-    if dataset == QueryDatasets.SESSIONS and features.has(
+    if dataset == Dataset.Sessions and features.has(
         "organizations:alert-crash-free-metrics", organization, actor=user
     ):
-        dataset = QueryDatasets.METRICS
+        dataset = Dataset.Metrics
     with transaction.atomic():
         snuba_query = create_snuba_query(
             query_type,
@@ -652,10 +653,10 @@ def update_alert_rule(
     if include_all_projects is not None:
         updated_fields["include_all_projects"] = include_all_projects
     if dataset is not None:
-        if dataset == QueryDatasets.SESSIONS and features.has(
+        if dataset == Dataset.Sessions and features.has(
             "organizations:alert-crash-free-metrics", alert_rule.organization, actor=user
         ):
-            dataset = QueryDatasets.METRICS
+            dataset = Dataset.Metrics
 
         if dataset.value != alert_rule.snuba_query.dataset:
             updated_query_fields["dataset"] = dataset
@@ -689,7 +690,7 @@ def update_alert_rule(
         if updated_query_fields or environment != alert_rule.snuba_query.environment:
             snuba_query = alert_rule.snuba_query
             updated_query_fields.setdefault("query_type", SnubaQuery.Type(snuba_query.type))
-            updated_query_fields.setdefault("dataset", QueryDatasets(snuba_query.dataset))
+            updated_query_fields.setdefault("dataset", Dataset(snuba_query.dataset))
             updated_query_fields.setdefault("query", snuba_query.query)
             updated_query_fields.setdefault("aggregate", snuba_query.aggregate)
             updated_query_fields.setdefault(
@@ -1382,6 +1383,7 @@ def translate_aggregate_field(aggregate, reverse=False):
 
 # TODO(Ecosystem): Convert to using get_filtered_actions
 def get_slack_actions_with_async_lookups(organization, user, data):
+    """Return Slack trigger actions that require async lookup"""
     try:
         from sentry.incidents.serializers import AlertRuleTriggerActionSerializer
 
@@ -1398,6 +1400,8 @@ def get_slack_actions_with_async_lookups(organization, user, data):
                     },
                     data=action,
                 )
+                # If a channel does not have a channel ID we should use an async look up to find it
+                # The calling function will receive a list of channels in need of this look up and schedule it
                 if a_s.is_valid():
                     if (
                         a_s.validated_data["type"].value == AlertRuleTriggerAction.Type.SLACK.value

@@ -698,6 +698,84 @@ class DiscoverDatasetConfig(DatasetConfig):
                     private=True,
                 ),
                 SnQLFunction(
+                    "spans_count_histogram",
+                    required_args=[
+                        SnQLStringArg("spans_op", True, True),
+                        # the bucket_size and start_offset should already be adjusted
+                        # using the multiplier before it is passed here
+                        NumberRange("bucket_size", 0, None),
+                        NumberRange("start_offset", 0, None),
+                        NumberRange("multiplier", 1, None),
+                    ],
+                    snql_column=lambda args, alias: Function(
+                        "plus",
+                        [
+                            Function(
+                                "multiply",
+                                [
+                                    Function(
+                                        "floor",
+                                        [
+                                            Function(
+                                                "divide",
+                                                [
+                                                    Function(
+                                                        "minus",
+                                                        [
+                                                            Function(
+                                                                "multiply",
+                                                                [
+                                                                    Function(
+                                                                        "length",
+                                                                        [
+                                                                            Function(
+                                                                                "arrayFilter",
+                                                                                [
+                                                                                    Lambda(
+                                                                                        [
+                                                                                            "x",
+                                                                                        ],
+                                                                                        Function(
+                                                                                            "equals",
+                                                                                            [
+                                                                                                Identifier(
+                                                                                                    "x"
+                                                                                                ),
+                                                                                                args[
+                                                                                                    "spans_op"
+                                                                                                ],
+                                                                                            ],
+                                                                                        ),
+                                                                                    ),
+                                                                                    Column(
+                                                                                        "spans.op"
+                                                                                    ),
+                                                                                ],
+                                                                            )
+                                                                        ],
+                                                                    ),
+                                                                    args["multiplier"],
+                                                                ],
+                                                            ),
+                                                            args["start_offset"],
+                                                        ],
+                                                    ),
+                                                    args["bucket_size"],
+                                                ],
+                                            ),
+                                        ],
+                                    ),
+                                    args["bucket_size"],
+                                ],
+                            ),
+                            args["start_offset"],
+                        ],
+                        alias,
+                    ),
+                    default_result_type="number",
+                    private=False,
+                ),
+                SnQLFunction(
                     "spans_histogram",
                     required_args=[
                         SnQLStringArg("spans_op", True, True),
@@ -799,6 +877,43 @@ class DiscoverDatasetConfig(DatasetConfig):
                     ),
                     default_result_type="number",
                     private=True,
+                ),
+                SnQLFunction(
+                    "fn_span_count",
+                    required_args=[
+                        SnQLStringArg("spans_op", True, True),
+                        SnQLStringArg("fn"),
+                    ],
+                    snql_column=lambda args, alias: Function(
+                        args["fn"],
+                        [
+                            Function(
+                                "length",
+                                [
+                                    Function(
+                                        "arrayFilter",
+                                        [
+                                            Lambda(
+                                                [
+                                                    "x",
+                                                ],
+                                                Function(
+                                                    "equals",
+                                                    [
+                                                        Identifier("x"),
+                                                        args["spans_op"],
+                                                    ],
+                                                ),
+                                            ),
+                                            Column("spans.op"),
+                                        ],
+                                    )
+                                ],
+                                "span_count",
+                            )
+                        ],
+                        alias,
+                    ),
                 ),
                 SnQLFunction(
                     "fn_span_exclusive_time",
@@ -1112,17 +1227,48 @@ class DiscoverDatasetConfig(DatasetConfig):
     # Functions
     def _resolve_apdex_function(self, args: Mapping[str, str], alias: str) -> SelectType:
         if args["satisfaction"]:
-            function_args = [self.builder.column("transaction.duration"), int(args["satisfaction"])]
+            column = self.builder.column("transaction.duration")
+            satisfaction = int(args["satisfaction"])
         else:
-            function_args = [
-                self._project_threshold_multi_if_function(),
+            column = self._project_threshold_multi_if_function()
+            satisfaction = Function(
+                "tupleElement",
+                [self.builder.resolve_field_alias("project_threshold_config"), 2],
+            )
+        count_satisfaction = Function(  # countIf(column<satisfaction)
+            "countIf", [Function("lessOrEquals", [column, satisfaction])]
+        )
+        count_tolerable = Function(  # countIf(satisfaction<column<=satisfacitonx4)
+            "countIf",
+            [
                 Function(
-                    "tupleElement",
-                    [self.builder.resolve_field_alias("project_threshold_config"), 2],
-                ),
-            ]
+                    "and",
+                    [
+                        Function("greater", [column, satisfaction]),
+                        Function("lessOrEquals", [column, Function("multiply", [satisfaction, 4])]),
+                    ],
+                )
+            ],
+        )
+        count_tolerable_div_2 = Function("divide", [count_tolerable, 2])
+        count_total = Function(  # Only count if the column exists (doing >=0 covers that)
+            "countIf", [Function("greaterOrEquals", [column, 0])]
+        )
 
-        return Function("apdex", function_args, alias)
+        return self.builder.resolve_division(  # (satisfied + tolerable/2)/(total)
+            Function(
+                "plus",
+                [
+                    count_satisfaction,
+                    count_tolerable_div_2,
+                ],
+            ),
+            count_total,
+            alias,
+            # TODO(zerofill): This behaviour is incorrect if we remove zerofilling
+            # But need to do something reasonable here since we'll get a null row otherwise
+            fallback=0,
+        )
 
     def _resolve_web_vital_function(
         self, args: Mapping[str, str | Column], alias: str
@@ -1207,11 +1353,13 @@ class DiscoverDatasetConfig(DatasetConfig):
         return Function("uniqIf", [col, Function("greater", [lhs, rhs])], alias)
 
     def _resolve_user_misery_function(self, args: Mapping[str, str], alias: str) -> SelectType:
-        if args["satisfaction"]:
+        if satisfaction := args["satisfaction"]:
+            column = self.builder.column("transaction.duration")
             count_miserable_agg = self.builder.resolve_function(
-                f"count_miserable(user,{args['satisfaction']})"
+                f"count_miserable(user,{satisfaction})"
             )
         else:
+            column = self._project_threshold_multi_if_function()
             count_miserable_agg = self.builder.resolve_function("count_miserable(user)")
 
         return Function(
@@ -1231,7 +1379,17 @@ class DiscoverDatasetConfig(DatasetConfig):
                             "plus",
                             [
                                 Function(
-                                    "nullIf", [Function("uniq", [self.builder.column("user")]), 0]
+                                    "nullIf",
+                                    [
+                                        Function(  # Only count if the column exists (doing >=0 covers that)
+                                            "uniqIf",
+                                            [
+                                                self.builder.column("user"),
+                                                Function("greater", [column, 0]),
+                                            ],
+                                        ),
+                                        0,
+                                    ],
                                 ),
                                 args["parameter_sum"],
                             ],

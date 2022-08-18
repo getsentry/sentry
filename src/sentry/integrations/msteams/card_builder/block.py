@@ -1,20 +1,21 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import Any, Sequence, Tuple, cast
 
-# Prevent circular imports for the time being, till functionality is
-# moved out of card_builder/__init__.py where types are defined.
-if TYPE_CHECKING:
-    from sentry.integrations.msteams.card_builder import (
-        Action,
-        ColumnBlock,
-        ColumnSetBlock,
-        ImageBlock,
-        ItemBlock,
-        TextBlock,
-    )
-
+from sentry.integrations.msteams.card_builder import (
+    Action,
+    ActionSet,
+    Block,
+    ColumnBlock,
+    ColumnSetBlock,
+    ContainerBlock,
+    ImageBlock,
+    InputChoiceSetBlock,
+    ItemBlock,
+    TextBlock,
+)
+from sentry.integrations.msteams.card_builder.utils import escape_markdown_special_chars
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 
@@ -66,10 +67,10 @@ REQUIRED_ACTION_PARAM = {
 }
 
 
-def create_text_block(text: str, **kwargs: str | bool) -> TextBlock:
+def create_text_block(text: str | None, **kwargs: str | bool) -> TextBlock:
     return {
         "type": "TextBlock",
-        "text": text,
+        "text": escape_markdown_special_chars(text) if text else "",
         "wrap": True,
         **kwargs,
     }
@@ -77,7 +78,7 @@ def create_text_block(text: str, **kwargs: str | bool) -> TextBlock:
 
 def create_logo_block(**kwargs: str) -> ImageBlock:
     # Default size if no size is given
-    if "height" not in kwargs:
+    if "height" not in kwargs and "size" not in kwargs:
         kwargs["size"] = ImageSize.MEDIUM
 
     return create_image_block(get_asset_url("sentry", SENTRY_ICON_URL), **kwargs)
@@ -108,9 +109,7 @@ def ensure_column_block(item: ItemBlock | ColumnBlock) -> ColumnBlock:
     if isinstance(item, dict) and "Column" == item.get("type", ""):
         return item
 
-    item: ItemBlock = item
-
-    return create_column_block(item)
+    return create_column_block(cast(ItemBlock, item))
 
 
 def create_column_set_block(*columns: ItemBlock | ColumnBlock) -> ColumnSetBlock:
@@ -128,3 +127,49 @@ def create_action_block(action_type: ActionType, title: str, **kwargs: Any) -> A
         "title": title,
         param: kwargs[param],
     }
+
+
+def create_action_set_block(*actions: Action) -> ActionSet:
+    return {"type": "ActionSet", "actions": list(actions)}
+
+
+def create_container_block(*items: Block) -> ContainerBlock:
+    return {"type": "Container", "items": list(items)}
+
+
+def create_input_choice_set_block(
+    id: str, choices: Sequence[Tuple[str, Any]], default_choice: Any
+) -> InputChoiceSetBlock:
+    default_choice_arg = {"value": default_choice} if default_choice else {}
+
+    return {
+        "type": "Input.ChoiceSet",
+        "id": id,
+        "choices": [{"title": title, "value": value} for title, value in choices],
+        **default_choice_arg,
+    }
+
+
+# Utilities to build footer in notification cards.
+
+
+def create_footer_logo_block() -> ImageBlock:
+    return create_logo_block(height="20px")
+
+
+def create_footer_text_block(footer_text: str) -> TextBlock:
+    return create_text_block(
+        footer_text,
+        size=TextSize.SMALL,
+        weight=TextWeight.LIGHTER,
+        wrap=False,
+    )
+
+
+def create_footer_column_block(footer_text_block: TextBlock) -> ColumnBlock:
+    return create_column_block(
+        footer_text_block,
+        isSubtle=True,
+        spacing="none",
+        verticalContentAlignment=VerticalContentAlignment.CENTER,
+    )

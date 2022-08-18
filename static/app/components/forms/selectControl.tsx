@@ -18,6 +18,7 @@ import {IconChevron, IconClose} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Choices, SelectValue} from 'sentry/types';
 import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
+import {FormSize} from 'sentry/utils/theme';
 
 import Option from './selectOption';
 
@@ -121,6 +122,7 @@ export type ControlProps<OptionType = GeneralSelectValue> = Omit<
    * Show line dividers between options
    */
   showDividers?: boolean;
+  size?: FormSize;
   /**
    * Unlike react-select which expects an OptionType as its value
    * we accept the option.value and resolve the option object.
@@ -151,7 +153,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   props: WrappedControlProps<OptionType>
 ) {
   const theme = useTheme();
-  const {isCompact, isSearchable, maxMenuWidth, menuHeight} = props;
+  const {size, isCompact, isSearchable, maxMenuWidth, menuHeight} = props;
 
   // TODO(epurkhiser): The loading indicator should probably also be our loading
   // indicator.
@@ -172,8 +174,6 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   const defaultStyles = useMemo<StylesConfig>(
     () => ({
       control: (_, state: any) => ({
-        height: '100%',
-        lineHeight: theme.text.lineHeightBody,
         display: 'flex',
         // @ts-ignore Ignore merge errors as only defining the property once
         // makes code harder to understand.
@@ -186,7 +186,6 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         borderRadius: theme.borderRadius,
         transition: 'border 0.1s, box-shadow 0.1s',
         alignItems: 'center',
-        minHeight: '40px',
         ...(state.isFocused && {
           borderColor: theme.focusBorder,
           boxShadow: `${theme.focusBorder} 0 0 0 1px`,
@@ -200,26 +199,27 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         ...(!state.isSearchable && {
           cursor: 'pointer',
         }),
-        ...(isCompact && {
-          padding: `${space(0.5)} ${space(0.5)}`,
-          borderRadius: 0,
-          border: 'none',
-          boxShadow: 'none',
-          cursor: 'initial',
-          minHeight: 'none',
-          ...(isSearchable
-            ? {marginTop: 1}
-            : {
-                height: 0,
-                padding: 0,
-                overflow: 'hidden',
-              }),
-        }),
+        ...(isCompact
+          ? {
+              padding: `${space(0.5)} ${space(0.5)}`,
+              borderRadius: 0,
+              border: 'none',
+              boxShadow: 'none',
+              cursor: 'initial',
+              minHeight: 'none',
+              ...(isSearchable
+                ? {marginTop: 1}
+                : {
+                    height: 0,
+                    padding: 0,
+                    overflow: 'hidden',
+                  }),
+            }
+          : theme.form[size ?? 'md']),
       }),
 
       menu: (provided: React.CSSProperties) => ({
         ...provided,
-        fontSize: theme.fontSizeMedium,
         zIndex: theme.zIndex.dropdown,
         background: theme.backgroundElevated,
         border: `1px solid ${theme.border}`,
@@ -279,21 +279,25 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       valueContainer: (provided: React.CSSProperties) => ({
         ...provided,
         alignItems: 'center',
-        ...(isCompact && {
-          fontSize: theme.fontSizeMedium,
-          padding: `${space(0.5)} ${space(1)}`,
-          border: `1px solid ${theme.innerBorder}`,
-          borderRadius: theme.borderRadius,
-          cursor: 'text',
-          background: theme.backgroundSecondary,
-        }),
+        ...(isCompact
+          ? {
+              padding: `${space(0.5)} ${space(1)}`,
+              border: `1px solid ${theme.innerBorder}`,
+              borderRadius: theme.borderRadius,
+              cursor: 'text',
+              background: theme.backgroundSecondary,
+            }
+          : {
+              paddingLeft: theme.formPadding[size ?? 'md'].paddingLeft,
+              paddingRight: space(0.5),
+            }),
       }),
       input: (provided: React.CSSProperties) => ({
         ...provided,
         color: theme.formText,
+        margin: 0,
         ...(isCompact && {
           padding: 0,
-          margin: 0,
         }),
       }),
       singleValue: (provided: React.CSSProperties) => ({
@@ -301,6 +305,11 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         color: theme.formText,
         display: 'flex',
         alignItems: 'center',
+        marginLeft: 0,
+        marginRight: 0,
+        width: `calc(100% - ${theme.formPadding[size ?? 'md'].paddingLeft}px - ${space(
+          0.5
+        )})`,
       }),
       placeholder: (provided: React.CSSProperties) => ({
         ...provided,
@@ -365,7 +374,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         },
       }),
     }),
-    [theme, maxMenuWidth, menuHeight, indicatorStyles, isSearchable, isCompact]
+    [theme, size, maxMenuWidth, menuHeight, indicatorStyles, isSearchable, isCompact]
   );
 
   const getFieldLabelStyle = (label?: string) => ({
@@ -463,6 +472,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       value={mappedValue}
       isMulti={props.multiple || props.multi}
       isDisabled={props.isDisabled || props.disabled}
+      isOptionDisabled={opt => !!opt.disabled}
       showDividers={props.showDividers}
       options={options || (choicesOrOptions as OptionsType<OptionType>)}
       openMenuOnFocus={props.openMenuOnFocus}

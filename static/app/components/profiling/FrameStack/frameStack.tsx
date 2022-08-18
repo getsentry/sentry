@@ -2,6 +2,7 @@ import {memo, MouseEventHandler, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
+import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButton';
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -12,6 +13,7 @@ import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegrap
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
+import {useParams} from 'sentry/utils/useParams';
 
 import {FrameStackTable} from './frameStackTable';
 
@@ -25,6 +27,7 @@ interface FrameStackProps {
 }
 
 const FrameStack = memo(function FrameStack(props: FrameStackProps) {
+  const params = useParams();
   const [flamegraphPreferences, dispatchFlamegraphPreferences] =
     useFlamegraphPreferences();
 
@@ -80,21 +83,21 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
   }, []);
 
   const onTableLeftClick = useCallback(() => {
-    dispatchFlamegraphPreferences({type: 'set layout', payload: 'table_left'});
+    dispatchFlamegraphPreferences({type: 'set layout', payload: 'table left'});
   }, [dispatchFlamegraphPreferences]);
 
   const onTableBottomClick = useCallback(() => {
-    dispatchFlamegraphPreferences({type: 'set layout', payload: 'table_bottom'});
+    dispatchFlamegraphPreferences({type: 'set layout', payload: 'table bottom'});
   }, [dispatchFlamegraphPreferences]);
 
   const onTableRightClick = useCallback(() => {
-    dispatchFlamegraphPreferences({type: 'set layout', payload: 'table_right'});
+    dispatchFlamegraphPreferences({type: 'set layout', payload: 'table right'});
   }, [dispatchFlamegraphPreferences]);
 
   return (
     <FrameDrawer layout={flamegraphPreferences.layout}>
       <FrameTabs>
-        <li className={tab === 'bottom up' ? 'active' : undefined}>
+        <ListItem className={tab === 'bottom up' ? 'active' : undefined}>
           <Button
             data-title={t('Bottom Up')}
             priority="link"
@@ -103,8 +106,8 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
           >
             {t('Bottom Up')}
           </Button>
-        </li>
-        <li className={tab === 'call order' ? 'active' : undefined}>
+        </ListItem>
+        <ListItem margin="none" className={tab === 'call order' ? 'active' : undefined}>
           <Button
             data-title={t('Call Order')}
             priority="link"
@@ -113,9 +116,9 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
           >
             {t('Call Order')}
           </Button>
-        </li>
+        </ListItem>
         <Separator />
-        <li className={treeType === 'all' ? 'active' : undefined}>
+        <ListItem className={treeType === 'all' ? 'active' : undefined}>
           <Button
             data-title={t('All Frames')}
             priority="link"
@@ -124,8 +127,8 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
           >
             {t('All Frames')}
           </Button>
-        </li>
-        <li className={treeType === 'application' ? 'active' : undefined}>
+        </ListItem>
+        <ListItem className={treeType === 'application' ? 'active' : undefined}>
           <Button
             data-title={t('Application Frames')}
             priority="link"
@@ -134,8 +137,8 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
           >
             {t('Application Frames')}
           </Button>
-        </li>
-        <li className={treeType === 'system' ? 'active' : undefined}>
+        </ListItem>
+        <ListItem margin="none" className={treeType === 'system' ? 'active' : undefined}>
           <Button
             data-title={t('System Frames')}
             priority="link"
@@ -144,9 +147,9 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
           >
             {t('System Frames')}
           </Button>
-        </li>
+        </ListItem>
         <Separator />
-        <li>
+        <ListItem>
           <FrameDrawerLabel>
             <input
               type="checkbox"
@@ -155,21 +158,35 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
             />
             {t('Collapse recursion')}
           </FrameDrawerLabel>
-        </li>
-        <li
+        </ListItem>
+        <ListItem
           style={{
             flex: '1 1 100%',
             cursor:
-              flamegraphPreferences.layout === 'table_bottom' ? 'ns-resize' : undefined,
+              flamegraphPreferences.layout === 'table bottom' ? 'ns-resize' : undefined,
           }}
           onMouseDown={
-            flamegraphPreferences.layout === 'table_bottom' ? props.onResize : undefined
+            flamegraphPreferences.layout === 'table bottom' ? props.onResize : undefined
           }
         />
-        <li>
+        <ListItem margin="none">
+          <ExportProfileButton
+            variant="xs"
+            eventId={params.eventId}
+            orgId={params.orgId}
+            projectId={params.projectId}
+            disabled={
+              params.eventId === undefined ||
+              params.orgId === undefined ||
+              params.projectId === undefined
+            }
+          />
+        </ListItem>
+        <Separator />
+        <ListItem>
           <LayoutSelectionContainer>
             <StyledButton
-              active={flamegraphPreferences.layout === 'table_left'}
+              active={flamegraphPreferences.layout === 'table left'}
               onClick={onTableLeftClick}
               size="xs"
               title={t('Table left')}
@@ -177,7 +194,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
               <IconPanel size="xs" direction="right" />
             </StyledButton>
             <StyledButton
-              active={flamegraphPreferences.layout === 'table_bottom'}
+              active={flamegraphPreferences.layout === 'table bottom'}
               onClick={onTableBottomClick}
               size="xs"
               title={t('Table bottom')}
@@ -185,7 +202,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
               <IconPanel size="xs" direction="down" />
             </StyledButton>
             <StyledButton
-              active={flamegraphPreferences.layout === 'table_right'}
+              active={flamegraphPreferences.layout === 'table right'}
               onClick={onTableRightClick}
               size="xs"
               title={t('Table right')}
@@ -193,7 +210,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
               <IconPanel size="xs" direction="left" />
             </StyledButton>
           </LayoutSelectionContainer>
-        </li>
+        </ListItem>
       </FrameTabs>
       <FrameStackTable
         {...props}
@@ -202,8 +219,8 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
         tree={maybeFilteredOrInvertedTree ?? []}
         canvasPoolManager={props.canvasPoolManager}
       />
-      {flamegraphPreferences.layout === 'table_left' ||
-      flamegraphPreferences.layout === 'table_right' ? (
+      {flamegraphPreferences.layout === 'table left' ||
+      flamegraphPreferences.layout === 'table right' ? (
         <ResizableVerticalDrawer>
           {/* The border should be 1px, but we want the actual handler to be wider
           to improve the user experience and not have users have to click on the exact pixel */}
@@ -250,17 +267,17 @@ const FrameDrawer = styled('div')<{layout: FlamegraphPreferences['layout']}>`
   display: grid;
   grid-template-rows: auto 1fr;
   grid-template-columns: ${({layout}) =>
-    layout === 'table_left' ? '1fr auto' : layout === 'table_right' ? 'auto 1fr' : '1fr'};
+    layout === 'table left' ? '1fr auto' : layout === 'table right' ? 'auto 1fr' : '1fr'};
   /* false positive for grid layout */
   /* stylelint-disable */
   grid-template-areas: ${({layout}) =>
-    layout === 'table_bottom'
+    layout === 'table bottom'
       ? `
     'tabs'
     'table'
     'drawer'
     `
-      : layout === 'table_left'
+      : layout === 'table left'
       ? `
       'tabs drawer'
       'table drawer'
@@ -273,7 +290,7 @@ const FrameDrawer = styled('div')<{layout: FlamegraphPreferences['layout']}>`
 const Separator = styled('li')`
   width: 1px;
   height: 66%;
-  margin: 0 ${space(0.5)};
+  margin: 0 ${space(1)};
   background: ${p => p.theme.border};
   transform: translateY(29%);
 `;
@@ -284,43 +301,43 @@ const FrameTabs = styled('ul')`
   padding: 0 ${space(1)};
   margin: 0;
   border-top: 1px solid ${prop => prop.theme.border};
-  background-color: ${props => props.theme.surface400};
+  background-color: ${props => props.theme.surface100};
   user-select: none;
   grid-area: tabs;
+`;
 
-  > li {
-    font-size: ${p => p.theme.fontSizeSmall};
-    margin-right: ${space(1)};
+const ListItem = styled('li')<{margin?: 'none'}>`
+  font-size: ${p => p.theme.fontSizeSmall};
+  margin-right: ${p => (p.margin === 'none' ? 0 : space(1))};
 
-    button {
-      border: none;
-      border-top: 2px solid transparent;
-      border-bottom: 2px solid transparent;
-      border-radius: 0;
-      margin: 0;
-      padding: ${space(0.5)} 0;
-      color: ${p => p.theme.textColor};
+  button {
+    border: none;
+    border-top: 2px solid transparent;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    margin: 0;
+    padding: ${space(0.5)} 0;
+    color: ${p => p.theme.textColor};
 
-      &::after {
-        display: block;
-        content: attr(data-title);
-        font-weight: bold;
-        height: 1px;
-        color: transparent;
-        overflow: hidden;
-        visibility: hidden;
-        white-space: nowrap;
-      }
-
-      &:hover {
-        color: ${p => p.theme.textColor};
-      }
-    }
-
-    &.active button {
+    &::after {
+      display: block;
+      content: attr(data-title);
       font-weight: bold;
-      border-bottom: 2px solid ${prop => prop.theme.active};
+      height: 1px;
+      color: transparent;
+      overflow: hidden;
+      visibility: hidden;
+      white-space: nowrap;
     }
+
+    &:hover {
+      color: ${p => p.theme.textColor};
+    }
+  }
+
+  &.active button {
+    font-weight: bold;
+    border-bottom: 2px solid ${prop => prop.theme.active};
   }
 `;
 

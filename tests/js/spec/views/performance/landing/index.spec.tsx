@@ -4,12 +4,14 @@ import {initializeData} from 'sentry-test/performance/initializePerformanceData'
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import TeamStore from 'sentry/stores/teamStore';
-import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
 import {PerformanceLanding} from 'sentry/views/performance/landing';
 import {REACT_NATIVE_COLUMN_TITLES} from 'sentry/views/performance/landing/data';
 import {LandingDisplayField} from 'sentry/views/performance/landing/utils';
+
+import {addMetricsDataMock} from './metricsDataSwitcher.spec';
 
 const WrappedComponent = ({data, withStaticFilters = false}) => {
   const eventView = generatePerformanceEventView(data.router.location, data.projects, {
@@ -18,8 +20,12 @@ const WrappedComponent = ({data, withStaticFilters = false}) => {
 
   return (
     <OrganizationContext.Provider value={data.organization}>
-      <MEPSettingProvider>
+      <MetricsCardinalityProvider
+        location={data.router.location}
+        organization={data.organization}
+      >
         <PerformanceLanding
+          router={data.router}
           organization={data.organization}
           location={data.router.location}
           eventView={eventView}
@@ -31,7 +37,7 @@ const WrappedComponent = ({data, withStaticFilters = false}) => {
           setError={() => {}}
           withStaticFilters={withStaticFilters}
         />
-      </MEPSettingProvider>
+      </MetricsCardinalityProvider>
     </OrganizationContext.Provider>
   );
 };
@@ -45,7 +51,7 @@ describe('Performance > Landing > Index', function () {
   beforeEach(function () {
     // @ts-ignore no-console
     // eslint-disable-next-line no-console
-    console.error = jest.fn();
+    jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
@@ -98,6 +104,14 @@ describe('Performance > Landing > Index', function () {
         ],
       },
     });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events/`,
+      body: {
+        data: [{}],
+        meta: {},
+      },
+    });
   });
 
   afterEach(function () {
@@ -121,7 +135,7 @@ describe('Performance > Landing > Index', function () {
     expect(screen.getByTestId('performance-landing-v3')).toBeInTheDocument();
   });
 
-  it('renders frontend pageload view', function () {
+  it('renders frontend pageload view', async function () {
     const data = initializeData({
       query: {landingDisplay: LandingDisplayField.FRONTEND_PAGELOAD},
     });
@@ -278,11 +292,13 @@ describe('Performance > Landing > Index', function () {
 
   describe('with transaction search feature', function () {
     it('renders the search bar', async function () {
+      addMetricsDataMock();
+
       const data = initializeData({
-        features: [
-          'performance-transaction-name-only-search',
-          'organizations:performance-transaction-name-only-search',
-        ],
+        features: ['performance-transaction-name-only-search'],
+        query: {
+          field: 'test',
+        },
       });
 
       wrapper = render(

@@ -277,7 +277,12 @@ function WidgetBuilder({
     });
 
     if (objectIsEmpty(tags)) {
-      loadOrganizationTags(api, organization.slug, selection);
+      loadOrganizationTags(api, organization.slug, {
+        ...selection,
+        // Pin the request to 14d to avoid timeouts, see DD-967 for
+        // more information
+        datetime: {period: '14d', start: null, end: null, utc: null},
+      });
     }
 
     if (isEditing && isValidWidgetIndex) {
@@ -625,29 +630,47 @@ function WidgetBuilder({
       return {...newState, errors: undefined};
     });
   }
+  function getHandleColumnFieldChange(isMetricsData?: boolean) {
+    function handleColumnFieldChange(newFields: QueryFieldValue[]) {
+      const fieldStrings = newFields.map(generateFieldAsString);
+      const splitFields = getColumnsAndAggregatesAsStrings(newFields);
+      const newState = cloneDeep(state);
+      let newQuery = cloneDeep(newState.queries[0]);
 
-  function handleColumnFieldChange(newFields: QueryFieldValue[]) {
-    const fieldStrings = newFields.map(generateFieldAsString);
-    const splitFields = getColumnsAndAggregatesAsStrings(newFields);
-    const newState = cloneDeep(state);
-    let newQuery = cloneDeep(newState.queries[0]);
+      newQuery.fields = fieldStrings;
+      newQuery.aggregates = splitFields.aggregates;
+      newQuery.columns = splitFields.columns;
+      newQuery.fieldAliases = splitFields.fieldAliases;
 
-    newQuery.fields = fieldStrings;
-    newQuery.aggregates = splitFields.aggregates;
-    newQuery.columns = splitFields.columns;
-    newQuery.fieldAliases = splitFields.fieldAliases;
+      if (datasetConfig.handleColumnFieldChangeOverride) {
+        newQuery = datasetConfig.handleColumnFieldChangeOverride(newQuery);
+      }
 
-    if (datasetConfig.handleColumnFieldChangeOverride) {
-      newQuery = datasetConfig.handleColumnFieldChangeOverride(newQuery);
+      if (datasetConfig.handleOrderByReset) {
+        // If widget is metric backed, don't default to sorting by transaction unless its the only column
+        // Sorting by transaction is not supported in metrics
+        if (
+          isMetricsData &&
+          fieldStrings.some(
+            fieldString => !['transaction', 'title'].includes(fieldString)
+          )
+        ) {
+          newQuery = datasetConfig.handleOrderByReset(
+            newQuery,
+            fieldStrings.filter(
+              fieldString => !['transaction', 'title'].includes(fieldString)
+            )
+          );
+        } else {
+          newQuery = datasetConfig.handleOrderByReset(newQuery, fieldStrings);
+        }
+      }
+
+      set(newState, 'queries', [newQuery]);
+      set(newState, 'userHasModified', true);
+      setState(newState);
     }
-
-    if (datasetConfig.handleOrderByReset) {
-      newQuery = datasetConfig.handleOrderByReset(newQuery, fieldStrings);
-    }
-
-    set(newState, 'queries', [newQuery]);
-    set(newState, 'userHasModified', true);
-    setState(newState);
+    return handleColumnFieldChange;
   }
 
   function handleYAxisChange(newFields: QueryFieldValue[]) {
@@ -1029,7 +1052,7 @@ function WidgetBuilder({
     <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
       <PageFiltersContainer
         defaultSelection={{
-          datetime: {start: null, end: null, utc: false, period: DEFAULT_STATS_PERIOD},
+          datetime: {start: null, end: null, utc: null, period: DEFAULT_STATS_PERIOD},
         }}
       >
         <CustomMeasurementsProvider organization={organization} selection={selection}>
@@ -1056,6 +1079,7 @@ function WidgetBuilder({
                     )}
                     <BuildSteps symbol="colored-numeric">
                       <VisualizationStep
+                        location={location}
                         widget={currentWidget}
                         dashboardFilters={dashboard.filters}
                         organization={organization}
@@ -1074,18 +1098,24 @@ function WidgetBuilder({
                         hasReleaseHealthFeature={hasReleaseHealthFeature}
                       />
                       {isTabularChart && (
-                        <ColumnsStep
-                          dataSet={state.dataSet}
-                          queries={state.queries}
-                          displayType={state.displayType}
-                          widgetType={widgetType}
-                          queryErrors={state.errors?.queries}
-                          onQueryChange={handleQueryChange}
-                          handleColumnFieldChange={handleColumnFieldChange}
-                          explodedFields={explodedFields}
-                          tags={tags}
-                          organization={organization}
-                        />
+                        <DashboardsMEPConsumer>
+                          {({isMetricsData}) => (
+                            <ColumnsStep
+                              dataSet={state.dataSet}
+                              queries={state.queries}
+                              displayType={state.displayType}
+                              widgetType={widgetType}
+                              queryErrors={state.errors?.queries}
+                              onQueryChange={handleQueryChange}
+                              handleColumnFieldChange={getHandleColumnFieldChange(
+                                isMetricsData
+                              )}
+                              explodedFields={explodedFields}
+                              tags={tags}
+                              organization={organization}
+                            />
+                          )}
+                        </DashboardsMEPConsumer>
                       )}
                       {![DisplayType.TABLE].includes(state.displayType) && (
                         <YAxisStep
@@ -1113,6 +1143,7 @@ function WidgetBuilder({
                         selection={pageFilters}
                         widgetType={widgetType}
                         dashboardFilters={dashboard.filters}
+                        location={location}
                       />
                       {widgetBuilderNewDesign && isTimeseriesChart && (
                         <GroupByStep

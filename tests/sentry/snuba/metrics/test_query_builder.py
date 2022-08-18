@@ -58,6 +58,8 @@ from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.metrics.query import MetricField
 from sentry.snuba.metrics.query_builder import QueryDefinition
+from sentry.testutils import TestCase
+from sentry.testutils.helpers.datetime import before_now
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -930,7 +932,7 @@ def test_translate_meta_results():
         {"name": "metric_id", "type": "UInt64"},
     ]
     assert translate_meta_results(
-        meta, {"p50(transaction.measurements.lcp)"}, UseCaseKey.PERFORMANCE
+        meta, {"p50(transaction.measurements.lcp)"}, UseCaseKey.PERFORMANCE, 1
     ) == sorted(
         [
             {"name": "p50(transaction.measurements.lcp)", "type": "Array(Float64)"},
@@ -952,7 +954,7 @@ def test_translate_meta_results_with_duplicates():
         {"name": "project_id", "type": "UInt64"},
     ]
     assert translate_meta_results(
-        meta, {"p50(transaction.measurements.lcp)"}, UseCaseKey.RELEASE_HEALTH
+        meta, {"p50(transaction.measurements.lcp)"}, UseCaseKey.RELEASE_HEALTH, 1
     ) == sorted(
         [
             {"name": "p50(transaction.measurements.lcp)", "type": "Array(Float64)"},
@@ -961,3 +963,28 @@ def test_translate_meta_results_with_duplicates():
         ],
         key=lambda elem: elem["name"],
     )
+
+
+class QueryDefinitionTestCase(TestCase):
+    def test_valid_latest_release_alias_filter(self):
+        self.create_release(version="foo", project=self.project, date_added=before_now(days=4))
+        self.create_release(
+            version="bar", project=self.project, date_added=before_now(days=2)
+        )  # latest release
+
+        query_params = MultiValueDict(
+            {
+                "query": ["release:latest"],
+                "field": [
+                    "sum(sentry.sessions.session)",
+                ],
+            }
+        )
+        query = QueryDefinition([self.project], query_params)
+        assert query.parsed_query == [
+            Condition(
+                Column(name="release"),
+                Op.IN,
+                rhs=["bar"],
+            )
+        ]

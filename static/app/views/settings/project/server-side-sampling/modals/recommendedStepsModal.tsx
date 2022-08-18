@@ -26,9 +26,11 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {formatPercentage} from 'sentry/utils/formatters';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
+import {SamplingProjectIncompatibleAlert} from '../samplingProjectIncompatibleAlert';
 import {isValidSampleRate, SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
 import {projectStatsToSampleRates} from '../utils/projectStatsToSampleRates';
 import useProjectStats from '../utils/useProjectStats';
+import {useRecommendedSdkUpgrades} from '../utils/useRecommendedSdkUpgrades';
 
 import {FooterActions, Stepper} from './uniformRateModal';
 
@@ -63,6 +65,10 @@ export function RecommendedStepsModal({
   recommendedSampleRate,
   onSetRules,
 }: RecommendedStepsModalProps) {
+  const {isProjectIncompatible} = useRecommendedSdkUpgrades({
+    orgSlug: organization.slug,
+    projectId,
+  });
   const [saving, setSaving] = useState(false);
   const {projectStats} = useProjectStats({
     orgSlug: organization.slug,
@@ -70,6 +76,7 @@ export function RecommendedStepsModal({
     interval: '1h',
     statsPeriod: '48h',
     disable: !!clientSampleRate,
+    groupBy: 'outcome',
   });
   const {maxSafeSampleRate} = projectStatsToSampleRates(projectStats);
   const suggestedClientSampleRate = clientSampleRate ?? maxSafeSampleRate;
@@ -141,7 +148,7 @@ export function RecommendedStepsModal({
               <h5>{t('Update the following SDK versions')}</h5>
               <TextBlock>
                 {t(
-                  'To ensure you are properly monitoring the performance of all your other services, we require you update to the latest version of the following SDK(s):'
+                  'To activate server-side sampling rules, it’s a requirement to update the following project SDK(s):'
                 )}
               </TextBlock>
               <UpgradeSDKfromProjects>
@@ -171,7 +178,7 @@ export function RecommendedStepsModal({
             <h5>{t('Increase your client-side transaction sample rate')}</h5>
             <TextBlock>
               {t(
-                'Once you’ve updated the above SDK(s), you can increase the client-side transaction sample rate in your application. This helps to ensure you are sending enough transactions to accurately monitor overall performance and ensure all transactions you have deemed important in your server-side sample rules are available. Below is the suggested rate we’ve calculated based on your organization’s usage and quota.'
+                'Here’s your optimal client(SDK) sample rate based on your organization’s usage and quota. To make this change, find the tracesSampleRate option in your SDK Config, modify it’s value to what’s suggested below and re-deploy.'
               )}
             </TextBlock>
             <div>
@@ -182,6 +189,10 @@ export function RecommendedStepsModal({
                   <span className="token function">init</span>
                   <span className="token punctuation">(</span>
                   <span className="token punctuation">{'{'}</span>
+                  <span className="token comment">
+                    {' // '}
+                    {t('JavaScript Example')}
+                  </span>
                   <br />
                   <span className="token punctuation">{'  ...'}</span>
                   <br />
@@ -204,6 +215,11 @@ export function RecommendedStepsModal({
                 </code>
               </pre>
             </div>
+            <SamplingProjectIncompatibleAlert
+              organization={organization}
+              projectId={projectId}
+              isProjectIncompatible={isProjectIncompatible}
+            />
           </ListItem>
         </List>
       </Body>
@@ -223,7 +239,7 @@ export function RecommendedStepsModal({
             <Button
               priority="primary"
               onClick={handleDone}
-              disabled={onSubmit ? saving || !isValid : false} // do not disable the button if there's on onSubmit handler (modal was opened from the sdk alert)
+              disabled={onSubmit ? saving || !isValid || isProjectIncompatible : false} // do not disable the button if there's on onSubmit handler (modal was opened from the sdk alert)
               title={
                 onSubmit
                   ? !isValid
