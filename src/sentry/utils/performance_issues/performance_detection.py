@@ -97,7 +97,7 @@ def get_default_detection_settings():
             {
                 "count": 5,
                 "start_time_threshold": 5.0,  # ms
-                "allowed_span_ops": ["http.client", "http.server"],
+                "allowed_span_ops": ["http.client"],
             }
         ],
     }
