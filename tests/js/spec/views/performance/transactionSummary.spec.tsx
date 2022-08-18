@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -51,7 +52,13 @@ function initializeData({
 }
 
 const TestComponent = ({...props}: React.ComponentProps<typeof TransactionSummary>) => {
-  return <TransactionSummary {...props} />;
+  const client = new QueryClient();
+
+  return (
+    <QueryClientProvider client={client}>
+      <TransactionSummary {...props} />
+    </QueryClientProvider>
+  );
 };
 
 describe('Performance > TransactionSummary', function () {

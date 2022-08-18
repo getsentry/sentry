@@ -1,4 +1,5 @@
 import {Component, useContext} from 'react';
+import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 
 import {EventQuery} from 'sentry/actionCreators/events';
@@ -12,6 +13,8 @@ import EventView, {
 import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {OrganizationContext} from 'sentry/views/organizationContext';
+
+import useApi from '../useApi';
 
 export class QueryError {
   message: string;
@@ -127,7 +130,7 @@ type ComponentProps<T, P> = {
   /**
    * Allows components to modify the payload before it is set.
    */
-  getRequestPayload?: (props: Props<T, P>) => any;
+  getRequestPayload?: (props: Omit<Props<T, P>, 'api'>) => any;
   /**
    * An external hook to parse errors in case there are differences for a specific api.
    */
@@ -179,36 +182,9 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
     }
   }
 
-  getPayload(props: Props<T, P>) {
-    const {cursor, limit, noPagination, referrer} = props;
-    const payload = this.props.getRequestPayload
-      ? this.props.getRequestPayload(props)
-      : props.eventView.getEventsAPIPayload(
-          props.location,
-          props.forceAppendRawQueryString
-        );
-
-    if (cursor) {
-      payload.cursor = cursor;
-    }
-    if (limit) {
-      payload.per_page = limit;
-    }
-    if (noPagination) {
-      payload.noPagination = noPagination;
-    }
-    if (referrer) {
-      payload.referrer = referrer;
-    }
-
-    Object.assign(payload, props.queryExtras ?? {});
-
-    return payload;
-  }
-
   _shouldRefetchData = (prevProps: Props<T, P>): boolean => {
-    const thisAPIPayload = this.getPayload(this.props);
-    const otherAPIPayload = this.getPayload(prevProps);
+    const thisAPIPayload = getPayload(this.props);
+    const otherAPIPayload = getPayload(prevProps);
 
     return (
       !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload) ||
@@ -263,7 +239,7 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
 
     const url = `/organizations/${orgSlug}/${route}/`;
     const tableFetchID = Symbol(`tableFetchID`);
-    const apiPayload: Partial<EventQuery & LocationQuery> = this.getPayload(this.props);
+    const apiPayload: Partial<EventQuery & LocationQuery> = getPayload(this.props);
 
     this.setState({isLoading: true, tableFetchID});
 
@@ -368,6 +344,51 @@ export function doDiscoverQuery<T>(
       // marking params as any so as to not cause typescript errors
       ...(params as any),
     },
+  });
+}
+
+function getPayload<T, P>(props: Omit<Props<T, P>, 'api'>) {
+  const {
+    cursor,
+    limit,
+    noPagination,
+    referrer,
+    getRequestPayload,
+    eventView,
+    location,
+    forceAppendRawQueryString,
+  } = props;
+  const payload = getRequestPayload
+    ? getRequestPayload(props)
+    : eventView.getEventsAPIPayload(location, forceAppendRawQueryString);
+
+  if (cursor) {
+    payload.cursor = cursor;
+  }
+  if (limit) {
+    payload.per_page = limit;
+  }
+  if (noPagination) {
+    payload.noPagination = noPagination;
+  }
+  if (referrer) {
+    payload.referrer = referrer;
+  }
+
+  Object.assign(payload, props.queryExtras ?? {});
+
+  return payload;
+}
+
+export function useGenericDiscoverQuery<T, P>(props: Omit<Props<T, P>, 'api'>) {
+  const api = useApi();
+  const {orgSlug, route} = props;
+  const url = `/organizations/${orgSlug}/${route}/`;
+  const apiPayload = getPayload<T, P>(props);
+
+  return useQuery<T, QueryError>([route, apiPayload], async () => {
+    const [resp] = await doDiscoverQuery<T>(api, url, apiPayload, props.queryBatching);
+    return resp;
   });
 }
 
