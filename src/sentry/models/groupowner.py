@@ -96,7 +96,7 @@ def get_owner_details(group_list: List[Group], user: Any) -> List[OwnersSerializ
         )
 
     org = group_list[0].project.organization if len(group_list) > 0 else None
-    if org and features.has("organizations:release-committer-assignees", org, user):
+    if org and features.has("organizations:release-committer-assignees", org, actor=user):
         for g in group_list:
             # TODO(snigdha): optimize this to bulk grab committer data for all groups
             release_committers_owners = get_release_committers_for_group(g)
