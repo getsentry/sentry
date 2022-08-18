@@ -15,6 +15,7 @@ TRACKED_IMPORT_TIME = 0.0
 
 observations = set()
 import_order = []
+import_time_stack = [0.0]
 
 
 def resolve_full_name(base, name, level):
@@ -93,8 +94,8 @@ def emit_ascii_tree(filename):
             f.write(f"  - {name}: {count}\n")
 
         f.write("\nImport time:\n")
-        f.write(f"  Global: {GLOBAL_IMPORT_TIME:.2f} secs\n")
-        f.write(f"  In-Sentry: {TRACKED_IMPORT_TIME:.2f} secs\n")
+        f.write(f"  Global: {GLOBAL_IMPORT_TIME} secs\n")
+        f.write(f"  In-Sentry: {TRACKED_IMPORT_TIME} secs\n")
 
 
 def track_import(from_name, to_name, fromlist):
@@ -131,13 +132,17 @@ def checking_import(name, globals=None, locals=None, fromlist=(), level=0):
 
     to_name = resolve_full_name(package, name, level)
     now = time.time()
+    import_time_stack.append(0.0)
     try:
         return real_import(name, globals, locals, fromlist, level)
     finally:
-        this_import_time = time.time() - now
-        GLOBAL_IMPORT_TIME += this_import_time
-        if track_import(from_name, to_name, fromlist):
-            TRACKED_IMPORT_TIME += this_import_time
+        is_tracked = track_import(from_name, to_name, fromlist)
+        total_time = time.time() - now
+        children_time = import_time_stack.pop()
+        import_time_stack[-1] += total_time
+        GLOBAL_IMPORT_TIME += total_time - children_time
+        if is_tracked:
+            TRACKED_IMPORT_TIME += total_time - children_time
 
 
 def write_files():
