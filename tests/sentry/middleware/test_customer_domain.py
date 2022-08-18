@@ -1,5 +1,3 @@
-from urllib.parse import urlparse
-
 from django.conf import settings
 from django.conf.urls import url
 from django.test import RequestFactory, override_settings
@@ -261,19 +259,15 @@ class End2EndTest(APITestCase):
             # Redirect response for subdomain and path mismatch
             response = self.client.get(
                 reverse("org-events-endpoint", kwargs={"organization_slug": "some-org"}),
-                HTTP_HOST="does-not-exist.testserver",
-            )
-            assert response.status_code == 302
-            assert (
-                response["Location"] == "http://albertos-apples.testserver/api/0/albertos-apples/"
-            )
-
-            parsed = urlparse(response["Location"])
-            response = self.client.get(
-                parsed.path,
-                HTTP_HOST=parsed.netloc,
+                # This should preferably be HTTP_HOST.
+                # Using SERVER_NAME until https://code.djangoproject.com/ticket/32106 is fixed.
+                SERVER_NAME="does-not-exist.testserver",
+                follow=True,
             )
             assert response.status_code == 200
+            assert response.redirect_chain == [
+                ("http://albertos-apples.testserver/api/0/albertos-apples/", 302)
+            ]
             assert response.data == {
                 "organization_slug": "albertos-apples",
                 "subdomain": "albertos-apples",
