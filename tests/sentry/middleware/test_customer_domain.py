@@ -1,5 +1,3 @@
-from urllib.parse import urlparse
-
 from django.conf import settings
 from django.conf.urls import url
 from django.test import RequestFactory, override_settings
