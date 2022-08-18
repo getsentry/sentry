@@ -17,9 +17,10 @@ def store_missing_release_ids_for_dashboard_filters(apps, schema_editor):
             and not dashboard.filters.get("release_id")
         ):
             release_ids = list(
-                Release.objects.filter(version__in=dashboard.filters["release"]).values_list(
-                    "id", flat=True
-                )
+                Release.objects.filter(
+                    version__in=dashboard.filters["release"],
+                    organization_id=dashboard.organization_id,
+                ).values_list("id", flat=True)
             )
             if "latest" in dashboard.filters["release"]:
                 release_ids.append("latest")
