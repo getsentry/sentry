@@ -271,18 +271,18 @@ export class Client {
       }
 
       if (!req?.alive) {
-        return;
+        return undefined;
       }
 
       // Check if API response is a 302 -- means project slug was renamed and user
       // needs to be redirected
       // @ts-expect-error
       if (hasProjectBeenRenamed(...args)) {
-        return;
+        return undefined;
       }
 
       // Call success callback
-      return func?.apply(req, args); // eslint-disable-line
+      return func?.apply(req, args);
     };
   }
 

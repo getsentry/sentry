@@ -5,6 +5,7 @@ from django.urls import reverse
 
 from sentry.replays.testutils import assert_expected_response, mock_expected_response, mock_replay
 from sentry.testutils import APITestCase, ReplaysSnubaTestCase
+from sentry.utils.cursors import Cursor
 
 REPLAYS_FEATURES = {"organizations:session-replay": True}
 
@@ -276,26 +277,33 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(REPLAYS_FEATURES):
             # First page.
-            response = self.client.get(self.url + "?limit=1")
-            assert response.status_code == 200
-
+            response = self.get_success_response(
+                self.organization.slug,
+                cursor=Cursor(0, 0),
+                per_page=1,
+            )
             response_data = response.json()
             assert "data" in response_data
             assert len(response_data["data"]) == 1
             assert response_data["data"][0]["id"] == replay2_id
 
             # Next page.
-            response = self.client.get(self.url + "?limit=1&offset=1")
-            assert response.status_code == 200
-
+            response = self.get_success_response(
+                self.organization.slug,
+                cursor=Cursor(0, 1),
+                per_page=1,
+            )
             response_data = response.json()
             assert "data" in response_data
             assert len(response_data["data"]) == 1
             assert response_data["data"][0]["id"] == replay1_id
 
             # Beyond pages.
-            response = self.client.get(self.url + "?limit=1&offset=2")
-            assert response.status_code == 200
+            response = self.get_success_response(
+                self.organization.slug,
+                cursor=Cursor(0, 2),
+                per_page=1,
+            )
 
             response_data = response.json()
             assert "data" in response_data

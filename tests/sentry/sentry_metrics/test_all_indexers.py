@@ -152,7 +152,7 @@ def test_resolve_and_reverse_resolve(indexer, indexer_cache):
     # test resolve and reverse_resolve
     id = indexer.resolve(use_case_id=use_case_id, org_id=org1_id, string="hello")
     assert id is not None
-    assert indexer.reverse_resolve(use_case_id=use_case_id, id=id) == "hello"
+    assert indexer.reverse_resolve(use_case_id=use_case_id, org_id=org1_id, id=id) == "hello"
 
     # test record on a string that already exists
     indexer.record(use_case_id=use_case_id, org_id=org1_id, string="hello")
@@ -160,7 +160,7 @@ def test_resolve_and_reverse_resolve(indexer, indexer_cache):
 
     # test invalid values
     assert indexer.resolve(use_case_id=use_case_id, org_id=org1_id, string="beep") is None
-    assert indexer.reverse_resolve(use_case_id=use_case_id, id=1234) is None
+    assert indexer.reverse_resolve(use_case_id=use_case_id, org_id=org1_id, id=1234) is None
 
 
 def test_already_created_plus_written_results(indexer, indexer_cache) -> None:

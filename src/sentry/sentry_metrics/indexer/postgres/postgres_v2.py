@@ -142,17 +142,19 @@ class PGStringIndexerV2(StringIndexer):
 
         return id
 
-    def reverse_resolve(self, use_case_id: UseCaseKey, id: int) -> Optional[str]:
+    def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
         """Lookup the stored string for a given integer ID.
 
         Returns None if the entry cannot be found.
         """
         table = self._table(use_case_id)
         try:
-            string: str = table.objects.get_from_cache(id=id, use_replica=True).string
+            obj = table.objects.get_from_cache(id=id, use_replica=True)
         except table.DoesNotExist:
             return None
 
+        assert obj.organization_id == org_id
+        string: str = obj.string
         return string
 
     def _table(self, use_case_id: UseCaseKey) -> IndexerTable:
