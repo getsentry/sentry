@@ -17,6 +17,7 @@ import useReplayList, {
   DEFAULT_SORT,
   REPLAY_LIST_FIELDS,
 } from 'sentry/utils/replays/hooks/useReplayList';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import ReplaysFilters from 'sentry/views/replays/filters';
@@ -31,6 +32,9 @@ function Replays({location}: Props) {
   const minWidthIsSmall = useMedia(`(min-width: ${theme.breakpoints.small})`);
 
   const eventView = useMemo(() => {
+    const query = decodeScalar(location.query.query, '');
+    const conditions = new MutableSearch(query);
+
     return EventView.fromNewQueryWithLocation(
       {
         id: '',
@@ -38,6 +42,7 @@ function Replays({location}: Props) {
         version: 2,
         fields: REPLAY_LIST_FIELDS,
         projects: [],
+        query: conditions.formatString(),
         orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
       },
       location
