@@ -302,6 +302,16 @@ def _insert_eventstream_call_tree(profile: Profile) -> None:
     except Exception as e:
         sentry_sdk.capture_exception(e)
         return
+    finally:
+        # Assumes that the call tree is inserted into the
+        # event stream before the profile is inserted into
+        # the event stream.
+        #
+        # After inserting the call tree, we no longer need
+        # it, but if we don't delete it here, it will be
+        # inserted in the profile payload making it larger
+        # and slower.
+        del profile["call_trees"]
 
     processed_profiles_publisher.publish(
         "profiles-call-tree",
