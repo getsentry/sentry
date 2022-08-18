@@ -3,7 +3,7 @@ from hashlib import md5
 
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.app import ratelimiter
+from sentry import ratelimits as ratelimiter
 from sentry.utils.decorators import classproperty
 from sentry.utils.otp import TOTP
 from sentry.utils.sms import phone_number_as_e164, send_sms, sms_available

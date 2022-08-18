@@ -1,99 +1,83 @@
-import {Fragment, useEffect, useState} from 'react';
-import {browserHistory} from 'react-router';
+import {Fragment, useMemo} from 'react';
+import {browserHistory, RouteComponentProps} from 'react-router';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Link from 'sentry/components/links/link';
+import DetailedError from 'sentry/components/errors/detailedError';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
-import {PanelTable} from 'sentry/components/panels';
 import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
-import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent, PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {NewQuery} from 'sentry/types';
-import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import {getQueryParamAsString} from 'sentry/utils/replays/getQueryParamAsString';
-import theme from 'sentry/utils/theme';
-import {useLocation} from 'sentry/utils/useLocation';
+import {decodeScalar} from 'sentry/utils/queryString';
+import useReplayList, {
+  DEFAULT_SORT,
+  REPLAY_LIST_FIELDS,
+} from 'sentry/utils/replays/hooks/useReplayList';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import ReplaysFilters from 'sentry/views/replays/filters';
 import ReplayTable from 'sentry/views/replays/replayTable';
-import {ReplayDiscoveryListItem} from 'sentry/views/replays/types';
+import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
-const columns = [t('Session'), t('Project')];
+type Props = RouteComponentProps<{orgId: string}, {}, any, ReplayListLocationQuery>;
 
-function Replays() {
-  const location = useLocation();
+function Replays({location}: Props) {
   const organization = useOrganization();
-  const {selection} = usePageFilters();
-  const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints.small})`);
+  const theme = useTheme();
+  const minWidthIsSmall = useMedia(`(min-width: ${theme.breakpoints.small})`);
 
-  const [searchQuery, setSearchQuery] = useState<string>(
-    getQueryParamAsString(location.query.query)
-  );
+  const eventView = useMemo(() => {
+    const query = decodeScalar(location.query.query, '');
+    const conditions = new MutableSearch(query);
 
-  useEffect(() => {
-    setSearchQuery(getQueryParamAsString(location.query.query));
-  }, [location.query.query]);
-
-  const getEventView = () => {
-    const {query} = location;
-    const eventQueryParams: NewQuery = {
-      id: '',
-      name: '',
-      version: 2,
-      fields: [
-        // 'id' is always returned, don't need to list it here.
-        'eventID',
-        'project',
-        'timestamp',
-        'url',
-        'user.display',
-        'user.email',
-        'user.id',
-        'user.ip_address',
-        'user.name',
-        'user.username',
-      ],
-      orderby: getQueryParamAsString(query.sort) || '-timestamp',
-      environment: selection.environments,
-      projects: selection.projects,
-      query: `title:sentry-replay ${searchQuery}`,
-    };
-
-    if (selection.datetime.period) {
-      eventQueryParams.range = selection.datetime.period;
-    }
-    return EventView.fromNewQueryWithLocation(eventQueryParams, location);
-  };
-
-  const handleSearchQuery = (query: string) => {
-    browserHistory.push({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        cursor: undefined,
-        query: String(query).trim() || undefined,
+    return EventView.fromNewQueryWithLocation(
+      {
+        id: '',
+        name: '',
+        version: 2,
+        fields: REPLAY_LIST_FIELDS,
+        projects: [],
+        query: conditions.formatString(),
+        orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
       },
-    });
-  };
+      location
+    );
+  }, [location]);
 
-  const {query} = location;
-  const {cursor: _cursor, page: _page, ...currentQuery} = query;
+  const {pathname, query} = location;
+  const {replays, pageLinks, isFetching, fetchError} = useReplayList({
+    organization,
+    eventView,
+  });
 
-  const sort: {
-    field: string;
-  } = {
-    field: getQueryParamAsString(query.sort) || '-timestamp',
-  };
+  if (fetchError && !isFetching) {
+    const reasons = [
+      t('The search parameters you selected are invalid in some way'),
+      t('There is an internal systems error or active issue'),
+    ];
 
-  const arrowDirection = sort.field.startsWith('-') ? 'down' : 'up';
-  const sortArrow = <IconArrow color="gray300" size="xs" direction={arrowDirection} />;
+    return (
+      <DetailedError
+        hideSupportLinks
+        heading={t('Sorry, the list of replays could not be found.')}
+        message={
+          <div>
+            <p>{t('This could be due to a handful of reasons:')}</p>
+            <ol className="detailed-error-list">
+              {reasons.map((reason, i) => (
+                <li key={i}>{reason}</li>
+              ))}
+            </ol>
+          </div>
+        }
+      />
+    );
+  }
 
   return (
     <Fragment>
@@ -106,67 +90,35 @@ function Replays() {
       </StyledPageHeader>
       <PageFiltersContainer>
         <StyledPageContent>
-          <DiscoverQuery
-            eventView={getEventView()}
-            location={location}
-            orgSlug={organization.slug}
-            limit={15}
-          >
-            {data => {
-              return (
-                <Fragment>
-                  <ReplaysFilters
-                    query={searchQuery}
-                    organization={organization}
-                    handleSearchQuery={handleSearchQuery}
-                  />
-                  <StyledPanelTable
-                    isLoading={data.isLoading}
-                    isEmpty={data.tableData?.data.length === 0}
-                    headers={[
-                      ...(!isScreenLarge
-                        ? columns.filter(col => col === t('Session'))
-                        : columns),
-                      <SortLink
-                        key="timestamp"
-                        role="columnheader"
-                        aria-sort={
-                          !sort.field.endsWith('timestamp')
-                            ? 'none'
-                            : sort.field === '-timestamp'
-                            ? 'descending'
-                            : 'ascending'
-                        }
-                        to={{
-                          pathname: location.pathname,
-                          query: {
-                            ...currentQuery,
-                            // sort by timestamp should start by ascending on first click
-                            sort:
-                              sort.field === '-timestamp' ? 'timestamp' : '-timestamp',
-                          },
-                        }}
-                      >
-                        {t('Timestamp')} {sort.field.endsWith('timestamp') && sortArrow}
-                      </SortLink>,
-                      t('Duration'),
-                      t('Errors'),
-                      t('Interest'),
-                    ]}
-                  >
-                    {data.tableData ? (
-                      <ReplayTable
-                        idKey="id"
-                        showProjectColumn
-                        replayList={data.tableData.data as ReplayDiscoveryListItem[]}
-                      />
-                    ) : null}
-                  </StyledPanelTable>
-                  <Pagination pageLinks={data.pageLinks} />
-                </Fragment>
-              );
+          <ReplaysFilters
+            query={query.query || ''}
+            organization={organization}
+            handleSearchQuery={searchQuery => {
+              browserHistory.push({
+                pathname,
+                query: {
+                  ...query,
+                  cursor: undefined,
+                  query: searchQuery.trim(),
+                },
+              });
             }}
-          </DiscoverQuery>
+          />
+          <ReplayTable
+            isFetching={isFetching}
+            replays={replays}
+            showProjectColumn={minWidthIsSmall}
+            sort={eventView.sorts[0]}
+          />
+          <Pagination
+            pageLinks={pageLinks}
+            onCursor={(cursor, path, searchQuery) => {
+              browserHistory.push({
+                pathname: path,
+                query: {...searchQuery, cursor},
+              });
+            }}
+          />
         </StyledPageContent>
       </PageFiltersContainer>
     </Fragment>
@@ -184,31 +136,11 @@ const StyledPageContent = styled(PageContent)`
   background-color: ${p => p.theme.background};
 `;
 
-const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: minmax(0, 1fr) max-content max-content max-content max-content max-content;
-
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: minmax(0, 1fr) max-content max-content max-content max-content;
-  }
-`;
-
 const HeaderTitle = styled(PageHeading)`
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex: 1;
-`;
-
-const SortLink = styled(Link)`
-  color: inherit;
-
-  :hover {
-    color: inherit;
-  }
-
-  svg {
-    vertical-align: top;
-  }
 `;
 
 export default Replays;

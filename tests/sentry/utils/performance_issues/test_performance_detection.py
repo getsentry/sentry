@@ -24,9 +24,9 @@ def modify_span_start(obj, start):
     return obj
 
 
-def create_span(op, duration=100.0, desc="SELECT count() FROM table WHERE id = %s"):
+def create_span(op, duration=100.0, desc="SELECT count() FROM table WHERE id = %s", hash=""):
     return modify_span_duration(
-        SpanBuilder().with_op(op).with_description(desc).build(),
+        SpanBuilder().with_op(op).with_description(desc).with_hash(hash).build(),
         duration,
     )
 
@@ -76,6 +76,44 @@ class PerformanceDetectionTest(unittest.TestCase):
                 ),
                 call(
                     "_pi_duplicates",
+                    "bbbbbbbbbbbbbbbb",
+                ),
+            ]
+        )
+
+    def test_calls_detect_duplicate_hash(self):
+        no_duplicate_event = create_event(
+            [create_span("http", 100.0, "http://example.com/slow?q=1", "")] * 4
+            + [create_span("http", 100.0, "http://example.com/slow?q=2", "")]
+        )
+        duplicate_event = create_event(
+            [create_span("http", 100.0, "http://example.com/slow?q=1", "abcdef")] * 4
+            + [create_span("http", 100.0, "http://example.com/slow?q=2", "abcdef")]
+        )
+
+        sdk_span_mock = Mock()
+
+        _detect_performance_issue(no_duplicate_event, sdk_span_mock)
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
+
+        _detect_performance_issue(duplicate_event, sdk_span_mock)
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 4
+        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
+            [
+                call(
+                    "_pi_all_issue_count",
+                    1,
+                ),
+                call(
+                    "_pi_transaction",
+                    "aaaaaaaaaaaaaaaa",
+                ),
+                call(
+                    "_pi_dupes_hash_fp",
+                    "abcdef",
+                ),
+                call(
+                    "_pi_dupes_hash",
                     "bbbbbbbbbbbbbbbb",
                 ),
             ]
@@ -151,65 +189,59 @@ class PerformanceDetectionTest(unittest.TestCase):
         _detect_performance_issue(db_span_event, sdk_span_mock)
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 3
 
+    def test_calls_n_plus_one_spans_calls(self):
+        # ├── GET list.json
+        # │   ├── GET /events.json?q=1
+        # │   ├──  GET /events.json?q=2
+        # │   ├──   GET /events.json?q=3
+
+        n_plus_one_event = create_event(
+            [
+                create_span("http.client", 250, "GET /list.json"),
+                modify_span_start(
+                    create_span("http.client", 180, "GET /events.json?q=1", "c0c0c0c0"), 101
+                ),
+                modify_span_start(
+                    create_span("http.client", 178, "GET /events.json?q=2", "c0c0c0c0"), 105
+                ),
+                modify_span_start(
+                    create_span("http.client", 163, "GET /events.json?q=3", "c0c0c0c0"), 109
+                ),
+            ]
+        )
+
+        sdk_span_mock = Mock()
+
+        _detect_performance_issue(n_plus_one_event, sdk_span_mock)
+
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 3
+        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
+            [
+                call(
+                    "_pi_all_issue_count",
+                    1,
+                ),
+                call(
+                    "_pi_transaction",
+                    "aaaaaaaaaaaaaaaa",
+                ),
+                call(
+                    "_pi_n_plus_one",
+                    "bbbbbbbbbbbbbbbb",
+                ),
+            ]
+        )
+
     def test_calls_detect_sequential(self):
-        no_sequential_event = {
-            "event_id": "a" * 16,
-            "spans": [
-                modify_span_duration(
-                    SpanBuilder()
-                    .with_op("db")
-                    .with_description("SELECT count() FROM table WHERE id = %s")
-                    .build(),
-                    999.0,
-                )
-            ]
-            * 4,
-        }
-        sequential_event = {
-            "event_id": "a" * 16,
-            "spans": [
-                modify_span_duration(
-                    SpanBuilder()
-                    .with_op("db")
-                    .with_description("SELECT count() FROM table WHERE id = %s")
-                    .build(),
-                    999.0,
-                ),
-            ]
-            * 2
+        no_sequential_event = create_event([create_span("db", 999.0)] * 4)
+        sequential_event = create_event(
+            [create_span("db", 999.0)] * 2
             + [
-                modify_span_start(
-                    modify_span_duration(
-                        SpanBuilder()
-                        .with_op("db")
-                        .with_description("SELECT count() FROM table WHERE id = %s")
-                        .build(),
-                        999.0,
-                    ),
-                    1000.0,
-                ),
-                modify_span_start(
-                    modify_span_duration(
-                        SpanBuilder()
-                        .with_op("db")
-                        .with_description("SELECT count() FROM table WHERE id = %s")
-                        .build(),
-                        999.0,
-                    ),
-                    2000.0,
-                ),
-                modify_span_start(
-                    modify_span_duration(
-                        SpanBuilder()
-                        .with_op("db")
-                        .with_description("SELECT count() FROM table WHERE id = %s")
-                        .build(),
-                        999.0,
-                    ),
-                    3000.0,
-                ),
-            ],
-        }
+                modify_span_start(create_span("db", 999.0), 1000.0),
+                modify_span_start(create_span("db", 999.0), 2000.0),
+                modify_span_start(create_span("db", 999.0), 3000.0),
+            ]
+        )
 
         sdk_span_mock = Mock()
 
@@ -240,37 +272,15 @@ class PerformanceDetectionTest(unittest.TestCase):
         )
 
     def test_calls_detect_long_task(self):
-        tolerable_long_task_spans_event = {
-            "event_id": "a" * 16,
-            "spans": [
-                modify_span_duration(
-                    SpanBuilder().with_op("ui.long-task").with_description("Long Task").build(),
-                    50.0,
-                )
-            ]
-            * 3,
-        }
-
-        long_task_span_event = {
-            "event_id": "a" * 16,
-            "spans": [
-                modify_span_duration(
-                    SpanBuilder().with_op("ui.long-task").with_description("Long Task").build(),
-                    550.0,
-                )
-            ],
-        }
-
-        multiple_long_task_span_event = {
-            "event_id": "c" * 16,
-            "spans": [
-                modify_span_duration(
-                    SpanBuilder().with_op("ui.long-task").with_description("Long Task").build(),
-                    50.0,
-                )
-            ]
-            * 11,
-        }
+        tolerable_long_task_spans_event = create_event(
+            [create_span("ui.long-task", 50.0, "Long Task")] * 3, "a" * 16
+        )
+        long_task_span_event = create_event(
+            [create_span("ui.long-task", 550.0, "Long Task")], "a" * 16
+        )
+        multiple_long_task_span_event = create_event(
+            [create_span("ui.long-task", 50.0, "Long Task")] * 11, "c" * 16
+        )
 
         sdk_span_mock = Mock()
 
@@ -312,6 +322,89 @@ class PerformanceDetectionTest(unittest.TestCase):
                 ),
                 call(
                     "_pi_long_task",
+                    "bbbbbbbbbbbbbbbb",
+                ),
+            ]
+        )
+
+    def test_calls_detect_render_blocking_asset(self):
+        render_blocking_asset_event = {
+            "event_id": "a" * 16,
+            "measurements": {
+                "fcp": {
+                    "value": 2500.0,
+                    "unit": "millisecond",
+                }
+            },
+            "spans": [
+                create_span("resource.script", duration=1000.0),
+            ],
+        }
+        non_render_blocking_asset_event = {
+            "event_id": "a" * 16,
+            "measurements": {
+                "fcp": {
+                    "value": 2500.0,
+                    "unit": "millisecond",
+                }
+            },
+            "spans": [
+                modify_span_start(
+                    create_span("resource.script", duration=1000.0),
+                    2000.0,
+                ),
+            ],
+        }
+        no_fcp_event = {
+            "event_id": "a" * 16,
+            "measurements": {
+                "fcp": {
+                    "value": None,
+                    "unit": "millisecond",
+                }
+            },
+            "spans": [
+                create_span("resource.script", duration=1000.0),
+            ],
+        }
+        short_render_blocking_asset_event = {
+            "event_id": "a" * 16,
+            "measurements": {
+                "fcp": {
+                    "value": 2500.0,
+                    "unit": "millisecond",
+                }
+            },
+            "spans": [
+                create_span("resource.script", duration=200.0),
+            ],
+        }
+
+        sdk_span_mock = Mock()
+
+        _detect_performance_issue(non_render_blocking_asset_event, sdk_span_mock)
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
+
+        _detect_performance_issue(short_render_blocking_asset_event, sdk_span_mock)
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
+
+        _detect_performance_issue(no_fcp_event, sdk_span_mock)
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
+
+        _detect_performance_issue(render_blocking_asset_event, sdk_span_mock)
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 3
+        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
+            [
+                call(
+                    "_pi_all_issue_count",
+                    1,
+                ),
+                call(
+                    "_pi_transaction",
+                    "aaaaaaaaaaaaaaaa",
+                ),
+                call(
+                    "_pi_render_blocking_assets",
                     "bbbbbbbbbbbbbbbb",
                 ),
             ]

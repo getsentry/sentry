@@ -7,7 +7,7 @@ import {Guide, GuidesContent, GuidesServerData} from 'sentry/components/assistan
 import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
   cleanupActiveRefluxSubscriptions,
   makeSafeRefluxStore,
@@ -196,14 +196,10 @@ const storeConfig: GuideStoreDefinition = {
       return;
     }
 
-    const data = {
+    trackAdvancedAnalyticsEvent('assistant.guide_cued', {
+      organization: this.state.orgId,
       guide,
-      eventKey: 'assistant.guide_cued',
-      eventName: 'Assistant Guide Cued',
-      organization_id: this.state.orgId,
-      user_id: parseInt(user.id, 10),
-    };
-    trackAnalyticsEvent(data);
+    });
   },
 
   updatePrevGuide(nextGuide) {

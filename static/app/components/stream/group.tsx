@@ -7,7 +7,7 @@ import type {LocationDescriptor} from 'history';
 import AssigneeSelector from 'sentry/components/assigneeSelector';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Count from 'sentry/components/count';
-import DropdownMenu from 'sentry/components/dropdownMenu';
+import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import Link from 'sentry/components/links/link';
@@ -219,6 +219,7 @@ class StreamGroup extends Component<Props, State> {
 
     if (evt.shiftKey) {
       SelectedGroupStore.shiftToggleItems(this.state.data.id);
+      window.getSelection()?.removeAllRanges();
     } else {
       SelectedGroupStore.toggleSelect(this.state.data.id);
     }
@@ -409,7 +410,7 @@ class StreamGroup extends Component<Props, State> {
               {!defined(primaryCount) ? (
                 <Placeholder height="18px" />
               ) : (
-                <DropdownMenu isNestedDropdown>
+                <DeprecatedDropdownMenu isNestedDropdown>
                   {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
                     const topLevelCx = classNames('dropdown', {
                       'anchor-middle': true,
@@ -468,14 +469,14 @@ class StreamGroup extends Component<Props, State> {
                       </GuideAnchor>
                     );
                   }}
-                </DropdownMenu>
+                </DeprecatedDropdownMenu>
               )}
             </EventUserWrapper>
             <EventUserWrapper>
               {!defined(primaryUserCount) ? (
                 <Placeholder height="18px" />
               ) : (
-                <DropdownMenu isNestedDropdown>
+                <DeprecatedDropdownMenu isNestedDropdown>
                   {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
                     const topLevelCx = classNames('dropdown', {
                       'anchor-middle': true,
@@ -532,7 +533,7 @@ class StreamGroup extends Component<Props, State> {
                       </span>
                     );
                   }}
-                </DropdownMenu>
+                </DeprecatedDropdownMenu>
               )}
             </EventUserWrapper>
             <AssigneeWrapper className="hidden-xs hidden-sm">

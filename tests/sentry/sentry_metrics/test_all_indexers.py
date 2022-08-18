@@ -14,7 +14,7 @@ from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.base import FetchType, FetchTypeExt, Metadata
 from sentry.sentry_metrics.indexer.cache import CachingIndexer, StringIndexerCache
 from sentry.sentry_metrics.indexer.mock import RawSimpleIndexer
-from sentry.sentry_metrics.indexer.postgres_v2 import PGStringIndexerV2
+from sentry.sentry_metrics.indexer.postgres.postgres_v2 import PGStringIndexerV2
 from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS, StaticStringIndexer
 from sentry.testutils.helpers.options import override_options
 
@@ -38,7 +38,6 @@ def indexer(indexer_cls):
 @pytest.fixture
 def indexer_cache():
     indexer_cache = StringIndexerCache(
-        version=1,
         cache_name="default",
         partition_key="test",
     )
@@ -153,7 +152,7 @@ def test_resolve_and_reverse_resolve(indexer, indexer_cache):
     # test resolve and reverse_resolve
     id = indexer.resolve(use_case_id=use_case_id, org_id=org1_id, string="hello")
     assert id is not None
-    assert indexer.reverse_resolve(use_case_id=use_case_id, id=id) == "hello"
+    assert indexer.reverse_resolve(use_case_id=use_case_id, org_id=org1_id, id=id) == "hello"
 
     # test record on a string that already exists
     indexer.record(use_case_id=use_case_id, org_id=org1_id, string="hello")
@@ -161,7 +160,7 @@ def test_resolve_and_reverse_resolve(indexer, indexer_cache):
 
     # test invalid values
     assert indexer.resolve(use_case_id=use_case_id, org_id=org1_id, string="beep") is None
-    assert indexer.reverse_resolve(use_case_id=use_case_id, id=1234) is None
+    assert indexer.reverse_resolve(use_case_id=use_case_id, org_id=org1_id, id=1234) is None
 
 
 def test_already_created_plus_written_results(indexer, indexer_cache) -> None:

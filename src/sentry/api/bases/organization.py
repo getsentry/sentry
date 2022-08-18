@@ -27,7 +27,7 @@ from sentry.models import (
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
 from sentry.utils.numbers import format_grouped_length
-from sentry.utils.sdk import bind_organization_context
+from sentry.utils.sdk import bind_organization_context, set_measurement
 
 
 class NoProjects(Exception):
@@ -326,6 +326,7 @@ class OrganizationEndpoint(Endpoint):
         len_projects = len(projects)
         sentry_sdk.set_tag("query.num_projects", len_projects)
         sentry_sdk.set_tag("query.num_projects.grouped", format_grouped_length(len_projects))
+        set_measurement("query.num_projects", len_projects)
 
         params = {
             "start": start,
@@ -379,7 +380,9 @@ class OrganizationEndpoint(Endpoint):
 class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationReleasePermission,)
 
-    def get_projects(self, request: Request, organization, project_ids=None):
+    def get_projects(
+        self, request: Request, organization, project_ids=None, include_all_accessible=True
+    ):
         """
         Get all projects the current user or API token has access to. More
         detail in the parent class's method of the same name.
@@ -401,7 +404,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             request,
             organization,
             force_global_perms=has_valid_api_key,
-            include_all_accessible=True,
+            include_all_accessible=include_all_accessible,
             project_ids=project_ids,
         )
 

@@ -3766,6 +3766,52 @@ describe('WidgetBuilder', function () {
         });
         await screen.findByText('measurements.custom.measurement');
       });
+
+      it('does not default to sorting by transaction when columns change', async function () {
+        renderTestComponent({
+          query: {source: DashboardWidgetSource.DISCOVERV2},
+          dashboard: {
+            ...testDashboard,
+            widgets: [
+              {
+                title: 'Custom Measurement Widget',
+                interval: '1d',
+                id: '1',
+                widgetType: WidgetType.DISCOVER,
+                displayType: DisplayType.TABLE,
+                queries: [
+                  {
+                    conditions: '',
+                    name: '',
+                    fields: [
+                      'p99(measurements.custom.measurement)',
+                      'transaction',
+                      'count()',
+                    ],
+                    columns: ['transaction'],
+                    aggregates: ['p99(measurements.custom.measurement)', 'count()'],
+                    orderby: '-p99(measurements.custom.measurement)',
+                  },
+                ],
+              },
+            ],
+          },
+          params: {
+            widgetIndex: '0',
+          },
+          orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
+        });
+        expect(
+          await screen.findByText('p99(measurements.custom.measurement)')
+        ).toBeInTheDocument();
+        // Delete p99(measurements.custom.measurement) column
+        userEvent.click(screen.getAllByLabelText('Remove column')[0]);
+        expect(
+          screen.queryByText('p99(measurements.custom.measurement)')
+        ).not.toBeInTheDocument();
+        expect(screen.getAllByText('transaction').length).toEqual(1);
+        expect(screen.getAllByText('count()').length).toEqual(2);
+      });
     });
   });
 });
