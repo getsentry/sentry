@@ -191,7 +191,7 @@ default_manager.add("organizations:sso-saml2", OrganizationFeature)
 default_manager.add("organizations:team-insights", OrganizationFeature)
 
 # Project scoped features
-default_manager.add("projects:active-release-monitor-default-on", ProjectFeature)
+default_manager.add("organizations:active-release-notifications-enable", ProjectFeature)
 default_manager.add("projects:alert-filters", ProjectFeature)
 default_manager.add("projects:custom-inbound-filters", ProjectFeature)
 default_manager.add("projects:data-forwarding", ProjectFeature)
