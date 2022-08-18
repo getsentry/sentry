@@ -33,12 +33,10 @@ function DomMutations({replay}: Props) {
           onMouseEnter={() => handleMouseEnter(mutation.crumb)}
           onMouseLeave={() => handleMouseLeave(mutation.crumb)}
         >
-          <Step>
-            <StepConnector />
-            <IconWrapper color={mutation.crumb.color}>
-              <BreadcrumbIcon type={mutation.crumb.type} />
-            </IconWrapper>
-          </Step>
+          <StepConnector />
+          <IconWrapper color={mutation.crumb.color}>
+            <BreadcrumbIcon type={mutation.crumb.type} />
+          </IconWrapper>
           <MutationContent>
             <MutationDetailsContainer>
               <div>
@@ -79,6 +77,7 @@ const MutationListItem = styled('li')`
   display: flex;
   flex-grow: 1;
   padding: ${space(2)};
+  position: relative;
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};
   }
@@ -89,10 +88,6 @@ const MutationContent = styled('div')`
   width: 100%;
   margin-left: ${space(1.5)};
   margin-right: ${space(1.5)};
-`;
-
-const Step = styled('div')`
-  position: relative;
 `;
 
 const MutationDetailsContainer = styled('div')`
@@ -155,7 +150,7 @@ const StepConnector = styled('div')`
   position: absolute;
   height: 100%;
   top: 28px;
-  left: 12px;
+  left: 27px;
   border-right: 1px ${p => p.theme.border} dashed;
 `;
 
