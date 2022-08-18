@@ -417,13 +417,20 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       yAxis: {
         axisLabel: {
           color: theme.chartLabel,
-          formatter: (value: number) =>
-            timeseriesResultsTypes
-              ? axisLabelFormatterUsingAggregateOutputType(
-                  value,
-                  timeseriesResultsTypes[axisLabel]
-                )
-              : axisLabelFormatter(value, aggregateOutputType(axisLabel)),
+          formatter: (value: number) => {
+            if (timeseriesResultsTypes) {
+              const outputType = Object.values(timeseriesResultsTypes).reduce(
+                (previousType, currentType, index) => {
+                  if (index > 0 && currentType !== previousType) {
+                    return 'number';
+                  }
+                  return currentType;
+                }
+              );
+              return axisLabelFormatterUsingAggregateOutputType(value, outputType);
+            }
+            return axisLabelFormatter(value, aggregateOutputType(axisLabel));
+          },
         },
       },
     };
