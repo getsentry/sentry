@@ -46,9 +46,9 @@ function TagsTableRow({tag, query, generateUrl, meta}: Props) {
         ) : keyMetaData?.err?.length ? (
           <ValueContainer>{renderTagValue()}</ValueContainer>
         ) : tagInQuery ? (
-          <Tooltip title={t('This tag is in the current filter conditions')}>
+          <StyledTooltip title={t('This tag is in the current filter conditions')}>
             <ValueContainer>{renderTagValue()}</ValueContainer>
-          </Tooltip>
+          </StyledTooltip>
         ) : (
           <StyledTooltip title={renderTagValue()}>
             <Link to={target || ''}>{renderTagValue()}</Link>
