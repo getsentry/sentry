@@ -1,5 +1,6 @@
 import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import capitalize from 'lodash/capitalize';
 import isEqual from 'lodash/isEqual';
 import maxBy from 'lodash/maxBy';
@@ -36,10 +37,7 @@ import withApi from 'sentry/utils/withApi';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {isSessionAggregate, SESSION_AGGREGATE_TO_FIELD} from 'sentry/views/alerts/utils';
 import {getComparisonMarkLines} from 'sentry/views/alerts/utils/getComparisonMarkLines';
-import {
-  AlertWizardAlertNames,
-  getMEPAlertsDataset,
-} from 'sentry/views/alerts/wizard/options';
+import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
 import {
@@ -51,6 +49,7 @@ import {
   TimeWindow,
   Trigger,
 } from '../../types';
+import {getMetricDatasetQueryExtras} from '../../utils/getMetricDatasetQueryExtras';
 
 import ThresholdsChart from './thresholdsChart';
 
@@ -61,6 +60,7 @@ type Props = {
   dataset: MetricRule['dataset'];
   environment: string | null;
   handleMEPAlertDataset: (data: EventsStats | MultiSeriesEventsStats | null) => void;
+  location: Location;
   newAlertOrQuery: boolean;
   organization: Organization;
   projects: Project[];
@@ -297,6 +297,7 @@ class TriggersChart extends PureComponent<Props, State> {
       projects,
       timeWindow,
       query,
+      location,
       aggregate,
       dataset,
       newAlertOrQuery,
@@ -312,14 +313,12 @@ class TriggersChart extends PureComponent<Props, State> {
       organization.features.includes('change-alerts') && comparisonDelta
     );
 
-    const hasMetricDataset =
-      organization.features.includes('metrics-performance-alerts') ||
-      organization.features.includes('mep-rollout-flag');
-    const queryExtras = {
-      ...(hasMetricDataset
-        ? {dataset: getMEPAlertsDataset(dataset, newAlertOrQuery)}
-        : {}),
-    };
+    const queryExtras = getMetricDatasetQueryExtras({
+      organization,
+      location,
+      dataset,
+      newAlertOrQuery,
+    });
 
     return isSessionAggregate(aggregate) ? (
       <SessionsRequest

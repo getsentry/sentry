@@ -34,9 +34,15 @@ export type CreateAlertFromViewButtonProps = ButtonProps & {
   alertType?: AlertType;
   className?: string;
   /**
+   * Passed in value to override any metrics decision and switch back to transactions dataset.
+   * We currently do a few checks on metrics data on performance pages and this passes the decision onward to alerts.
+   */
+  disableMetricDataset?: boolean;
+  /**
    * Called when the user is redirected to the alert builder
    */
   onClick?: () => void;
+
   referrer?: string;
 };
 
@@ -51,6 +57,7 @@ function CreateAlertFromViewButton({
   referrer,
   onClick,
   alertType,
+  disableMetricDataset,
   ...buttonProps
 }: CreateAlertFromViewButtonProps) {
   const project = projects.find(p => p.id === `${eventView.project[0]}`);
@@ -71,6 +78,7 @@ function CreateAlertFromViewButton({
     query: {
       ...queryParams,
       createFromDiscover: true,
+      disableMetricDataset,
       referrer,
       ...alertTemplate,
       project: project?.slug,

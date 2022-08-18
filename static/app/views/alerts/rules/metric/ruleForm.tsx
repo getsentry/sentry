@@ -779,6 +779,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       router,
       disableProjectSelector,
       eventView,
+      location,
     } = this.props;
     const {
       name,
@@ -804,6 +805,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       organization,
       projects: [project],
       triggers,
+      location,
       query: this.chartQuery,
       aggregate,
       dataset,

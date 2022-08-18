@@ -52,10 +52,7 @@ import {
   TimePeriod,
 } from 'sentry/views/alerts/rules/metric/types';
 import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
-import {
-  AlertWizardAlertNames,
-  getMEPAlertsDataset,
-} from 'sentry/views/alerts/wizard/options';
+import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
 import {Incident} from '../../../types';
@@ -65,6 +62,7 @@ import {
   isSessionAggregate,
   SESSION_AGGREGATE_TO_FIELD,
 } from '../../../utils';
+import {getMetricDatasetQueryExtras} from '../utils/getMetricDatasetQueryExtras';
 import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
 
 import {TimePeriodType} from './constants';
@@ -464,7 +462,8 @@ class MetricChart extends PureComponent<Props, State> {
   }
 
   render() {
-    const {api, rule, organization, timePeriod, project, interval, query} = this.props;
+    const {api, rule, organization, timePeriod, project, interval, query, location} =
+      this.props;
     const {aggregate, timeWindow, environment, dataset} = rule;
 
     // Fix for 7 days * 1m interval being over the max number of results from events api
@@ -493,12 +492,12 @@ class MetricChart extends PureComponent<Props, State> {
       moment.utc(timePeriod.end).add(timeWindow, 'minutes')
     );
 
-    const hasMetricDataset =
-      organization.features.includes('metrics-performance-alerts') ||
-      organization.features.includes('mep-rollout-flag');
-    const queryExtras: Record<string, string> = hasMetricDataset
-      ? {dataset: getMEPAlertsDataset(dataset, false)}
-      : {};
+    const queryExtras = getMetricDatasetQueryExtras({
+      organization,
+      location,
+      dataset,
+      newAlertOrQuery: false,
+    });
 
     return isCrashFreeAlert(dataset) ? (
       <SessionsRequest

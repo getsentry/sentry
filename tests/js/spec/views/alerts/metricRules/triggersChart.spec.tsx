@@ -23,11 +23,12 @@ describe('Incident Rules Create', () => {
   const api = new Client();
 
   it('renders a metric', async () => {
-    const {organization, project} = initializeOrg();
+    const {organization, project, router} = initializeOrg();
 
     render(
       <TriggersChart
         api={api}
+        location={router.location}
         organization={organization}
         projects={[project]}
         query="event.type:error"
