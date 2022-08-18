@@ -24,6 +24,7 @@ from sentry.db.models import BaseManager, BoundedPositiveIntegerField, Model, sa
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
 from sentry.roles.manager import Role
+from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin
@@ -205,6 +206,7 @@ class Organization(Model, SnowflakeIdMixin):
             self.save_with_snowflake_id(
                 snowflake_redis_key, lambda: super(Organization, self).save(*args, **kwargs)
             )
+            metrics.incr("organization_with_snowflake_id_created", sample_rate=1)
         else:
             super().save(*args, **kwargs)
 

@@ -185,6 +185,7 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
             self.save_with_snowflake_id(
                 snowflake_redis_key, lambda: super(Project, self).save(*args, **kwargs)
             )
+            metrics.incr("project_with_snowflake_id_created", sample_rate=1)
         else:
             super().save(*args, **kwargs)
         self.update_rev_for_option()
