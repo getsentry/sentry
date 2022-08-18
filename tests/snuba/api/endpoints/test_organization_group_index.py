@@ -1674,6 +1674,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert "firstSeen" not in response.data[0]
         assert "lastSeen" not in response.data[0]
         assert "count" not in response.data[0]
+        assert "userCount" not in response.data[0]
         assert "lifetime" not in response.data[0]
         assert "filtered" not in response.data[0]
 

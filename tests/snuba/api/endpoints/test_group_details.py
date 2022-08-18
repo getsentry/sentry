@@ -177,3 +177,24 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
                 )
             ]
         }
+
+    # bug or something??
+    def test_collapse_stats_does_not_work(self):
+        self.login_as(user=self.user)
+
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(minutes=3))},
+            project_id=self.project.id,
+        )
+        group = event.group
+
+        url = f"/api/0/issues/{group.id}/"
+
+        response = self.client.get(url, {"collapse": ["stats"]}, format="json")
+        assert response.status_code == 200
+        assert int(response.data["id"]) == event.group.id
+        assert response.data["stats"]
+        assert response.data["count"] is not None
+        assert response.data["userCount"] is not None
+        assert response.data["firstSeen"] is not None
+        assert response.data["lastSeen"] is not None

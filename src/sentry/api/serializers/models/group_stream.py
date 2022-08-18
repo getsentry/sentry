@@ -284,9 +284,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         return super()._seen_stats_performance(perf_issue_list, user)
 
     def _seen_stats_error(self, error_issue_list: Sequence[Group], user) -> Mapping[Any, SeenStats]:
-        if self._collapse("stats"):
-            return {}
-
         partial_execute_seen_stats_query = functools.partial(
             self._execute_seen_stats_query,
             item_list=error_issue_list,

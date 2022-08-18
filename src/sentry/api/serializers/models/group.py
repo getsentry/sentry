@@ -339,6 +339,9 @@ class GroupSerializerBase(Serializer, ABC):
             - last_seen
             - user_count
         """
+        if self._collapse("stats"):
+            return {}
+
         # partition the item_list by type
         error_issues = [group for group in item_list if "error" == group.get_issue_category()]
         perf_issues = [group for group in item_list if "performance" == group.get_issue_category()]
