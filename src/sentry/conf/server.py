@@ -1165,6 +1165,8 @@ SENTRY_FEATURES = {
     "organizations:team-insights": True,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": False,
+    # Enable snowflake ids
+    "organizations:enable-snowflake-id": False,
     # Enable sending Active release notifications without creating an explicit rule in DB
     "projects:active-release-monitor-default-on": False,
     # Adds additional filters and a new section to issue alert rules.
