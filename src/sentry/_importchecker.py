@@ -3,12 +3,15 @@ import builtins
 import functools
 import os
 import sys
+import time
 
 real_import = builtins.__import__
 
 
 TRACK_IMPORTS = os.environ.get("SENTRY_TRACK_IMPORTS") == "1"
 TRACKED_PACKAGES = ("sentry", "getsentry")
+GLOBAL_IMPORT_TIME = 0.0
+TRACKED_IMPORT_TIME = 0.0
 
 observations = set()
 import_order = []
@@ -89,10 +92,14 @@ def emit_ascii_tree(filename):
         for name, count in top_n[:30]:
             f.write(f"  - {name}: {count}\n")
 
+        f.write("\nImport time:\n")
+        f.write(f"  Global: {GLOBAL_IMPORT_TIME:.2f} secs\n")
+        f.write(f"  In-Sentry: {TRACKED_IMPORT_TIME:.2f} secs\n")
+
 
 def track_import(from_name, to_name, fromlist):
     if not is_relevant_import(from_name) or not is_relevant_import(to_name):
-        return
+        return False
 
     if sys.modules.get(to_name) is not None and sys.modules.get(from_name) is not None:
         if to_name not in import_order:
@@ -104,9 +111,15 @@ def track_import(from_name, to_name, fromlist):
             if sys.modules.get(potential_module_name) is not None:
                 observations.add((from_name, potential_module_name))
 
+        return True
+
+    return False
+
 
 @functools.wraps(real_import)
 def checking_import(name, globals=None, locals=None, fromlist=(), level=0):
+    global GLOBAL_IMPORT_TIME, TRACKED_IMPORT_TIME
+
     if globals is None:
         globals = sys._getframe(1).f_globals
 
@@ -117,10 +130,14 @@ def checking_import(name, globals=None, locals=None, fromlist=(), level=0):
         return real_import(name, globals, locals, fromlist, level)
 
     to_name = resolve_full_name(package, name, level)
+    now = time.time()
     try:
         return real_import(name, globals, locals, fromlist, level)
     finally:
-        track_import(from_name, to_name, fromlist)
+        this_import_time = time.time() - now
+        GLOBAL_IMPORT_TIME += this_import_time
+        if track_import(from_name, to_name, fromlist):
+            TRACKED_IMPORT_TIME += this_import_time
 
 
 def write_files():
