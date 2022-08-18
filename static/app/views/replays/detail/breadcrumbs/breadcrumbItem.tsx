@@ -55,6 +55,9 @@ function BreadcrumbItem({
       case 'ui':
         setActiveTab('dom');
         break;
+      case 'error':
+        setActiveTab('issues');
+        break;
       default:
         setActiveTab('console');
         break;
