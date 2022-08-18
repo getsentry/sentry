@@ -142,7 +142,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   getSeriesResultType?: (
     data: SeriesResponse,
     widgetQuery: WidgetQuery
-  ) => string | undefined;
+  ) => Record<string, AggregationOutputType>;
   /**
    * Generate the request promises for fetching
    * tabular data.
