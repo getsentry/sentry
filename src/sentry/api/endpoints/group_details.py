@@ -1,6 +1,7 @@
 import functools
 import logging
 from datetime import timedelta
+from typing import Any, Sequence, Tuple
 
 from django.utils import timezone
 from rest_framework.request import Request
@@ -113,6 +114,33 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             PluginSerializer(project),
         )
 
+    @staticmethod
+    def _get_stats_error(group_id: int, environment_ids: Sequence[int]) -> Tuple[Any, Any]:
+        get_range = functools.partial(tsdb.get_range, environment_ids=environment_ids)
+
+        now = timezone.now()
+        hourly_stats = tsdb.rollup(
+            get_range(
+                model=tsdb.models.group, keys=[group_id], end=now, start=now - timedelta(days=1)
+            ),
+            3600,
+        )[group_id]
+        daily_stats = tsdb.rollup(
+            get_range(
+                model=tsdb.models.group,
+                keys=[group_id],
+                end=now,
+                start=now - timedelta(days=30),
+            ),
+            3600 * 24,
+        )[group_id]
+
+        return hourly_stats, daily_stats
+
+    @staticmethod
+    def _get_stats_performance(group_id, environment_ids: Sequence[int]) -> Tuple[Any, Any]:
+        raise NotImplementedError
+
     def get(self, request: Request, group) -> Response:
         """
         Retrieve an Issue
@@ -155,36 +183,27 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     }
                 )
 
-            get_range = functools.partial(tsdb.get_range, environment_ids=environment_ids)
-
             tags = tagstore.get_group_tag_keys(
                 group.project_id, group.id, environment_ids, limit=100
             )
-            if not environment_ids:
-                user_reports = UserReport.objects.filter(group_id=group.id)
-            else:
-                user_reports = UserReport.objects.filter(
+            user_reports = (
+                UserReport.objects.filter(group_id=group.id)
+                if not environment_ids
+                else UserReport.objects.filter(
                     group_id=group.id, environment_id__in=environment_ids
                 )
+            )
 
-            now = timezone.now()
-            hourly_stats = tsdb.rollup(
-                get_range(
-                    model=tsdb.models.group, keys=[group.id], end=now, start=now - timedelta(days=1)
-                ),
-                3600,
-            )[group.id]
-            daily_stats = tsdb.rollup(
-                get_range(
-                    model=tsdb.models.group,
-                    keys=[group.id],
-                    end=now,
-                    start=now - timedelta(days=30),
-                ),
-                3600 * 24,
-            )[group.id]
+            # TODO(gilbert): replace this when the proper issue_category is finalized
+            from sentry import features
 
-            participants = GroupSubscriptionManager.get_participating_users(group)
+            if (
+                features.has("projects:performance-issue-details-backend", group.project)
+                and "performance" == group.get_issue_category()
+            ):
+                hourly_stats, daily_stats = self._get_stats_performance(group.id, environment_ids)
+            else:
+                hourly_stats, daily_stats = self._get_stats_error(group.id, environment_ids)
 
             if "inbox" in expand:
                 inbox_map = get_inbox_details([group])
@@ -196,7 +215,9 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 {
                     "activity": serialize(activity, request.user),
                     "seenBy": seen_by,
-                    "participants": serialize(participants, request.user),
+                    "participants": serialize(
+                        GroupSubscriptionManager.get_participating_users(group), request.user
+                    ),
                     "pluginActions": action_list,
                     "pluginIssues": self._get_available_issue_plugins(request, group),
                     "pluginContexts": self._get_context_plugins(request, group),
