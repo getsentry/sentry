@@ -293,7 +293,12 @@ def search_filters_to_snuba_filters(search_filters: List[SearchFilter]) -> List[
         column_name = search_filter.key.name
         column_name = column_name.replace(".", "_")  # Translate nested fields to flat.
 
-        yield Condition(Column(column_name), operator, search_filter.value.value)
+        if column_name == "duration":
+            value = int(search_filter.value.value)
+        else:
+            value = search_filter.value.value
+
+        yield Condition(Column(column_name), operator, value)
 
 
 # Sort.
