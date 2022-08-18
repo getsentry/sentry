@@ -32,6 +32,7 @@ from sentry.db.models import (
 from sentry.eventstore.models import Event
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.types.activity import ActivityType
+from sentry.types.issues import GROUP_CATEGORY_TO_TYPES, GroupType
 from sentry.utils.http import absolute_uri
 from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
@@ -353,15 +354,6 @@ class GroupManager(BaseManager):
         }
 
 
-class GroupType(Enum):
-    ERROR = 1
-    PERFORMANCE_N_PLUS_ONE = 1000
-    PERFORMANCE_SLOW_SPAN = 1001
-
-class GroupCategory(Enum):
-    ERROR = 1
-    PERFORMANCE = 2
-
 class Group(Model):
     """
     Aggregated message which summarizes a set of Events.
@@ -664,31 +656,13 @@ class Group(Model):
     def times_seen_pending(self, times_seen: int):
         self._times_seen_pending = times_seen
 
-    def get_type_category_mapping(self):
-        return {
-            GroupType.ERROR: GroupCategory.ERROR,
-            GroupType.PERFORMANCE_N_PLUS_ONE: GroupCategory.PERFORMANCE,
-            GroupType.PERFORMANCE_SLOW_SPAN: GroupCategory.PERFORMANCE,
-        }
-
-    def get_category_type_mapping(self):
-        category_type_mapping = {}
-
-        for type, category in self.get_type_category_mapping().items():
-            if category_type_mapping.get(category):
-                category_type_mapping[category].append(type)
-            else:
-                category_type_mapping[category] = [type]
-
-        return category_type_mapping
-
     @property
     def issue_type(self):
         return GroupType(self.type)
 
     @property
     def issue_category(self):
-        for type, category in self.get_type_category_mapping().items():
-            if type == self.issue_type:
+        for type, category in GROUP_CATEGORY_TO_TYPES.items():
+            if type.value == self.issue_type.value:
                 return category
         return None
