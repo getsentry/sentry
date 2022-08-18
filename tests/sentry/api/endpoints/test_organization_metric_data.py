@@ -2614,7 +2614,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                 project_id=self.project.id,
                 type="distribution",
                 name=TransactionMRI.DURATION.value,
-                tags={TransactionTagsKey.TRANSACTION_SATISFACTION.value: tag_value},
+                tags={TransactionTagsKey.TRANSACTION_STATUS.value: tag_value},
                 timestamp=user_ts,
                 value=value,
                 use_case_id=UseCaseKey.PERFORMANCE,
