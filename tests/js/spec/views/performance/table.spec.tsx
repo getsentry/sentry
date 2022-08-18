@@ -19,7 +19,7 @@ const initializeData = (settings = {}, features: string[] = []) => {
   return _initializeData({
     features: [...FEATURES, ...features],
     projects,
-    project: projects[0],
+    selectedProject: projects[0],
     ...settings,
   });
 };
