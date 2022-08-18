@@ -95,27 +95,29 @@ function NetworkList({replayRecord, networkSpans}: Props) {
 
   const columns = [
     <SortItem key="status">
-      <UnstyledButton onClick={() => handleSort('status', row => row.data.statusCode)}>
+      <UnstyledHeaderButton
+        onClick={() => handleSort('status', row => row.data.statusCode)}
+      >
         {t('Status')} {sortArrow('status')}
-      </UnstyledButton>
+      </UnstyledHeaderButton>
     </SortItem>,
     <SortItem key="path">
-      <UnstyledButton onClick={() => handleSort('description')}>
+      <UnstyledHeaderButton onClick={() => handleSort('description')}>
         {t('Path')} {sortArrow('description')}
-      </UnstyledButton>
+      </UnstyledHeaderButton>
     </SortItem>,
     <SortItem key="type">
-      <UnstyledButton onClick={() => handleSort('op')}>
+      <UnstyledHeaderButton onClick={() => handleSort('op')}>
         {t('Type')} {sortArrow('op')}
-      </UnstyledButton>
+      </UnstyledHeaderButton>
     </SortItem>,
     <SortItem key="size">
-      <UnstyledButton onClick={() => handleSort('size', row => row.data.size)}>
+      <UnstyledHeaderButton onClick={() => handleSort('size', row => row.data.size)}>
         {t('Size')} {sortArrow('size')}
-      </UnstyledButton>
+      </UnstyledHeaderButton>
     </SortItem>,
     <SortItem key="duration">
-      <UnstyledButton
+      <UnstyledHeaderButton
         onClick={() =>
           handleSort('duration', row => {
             return row.endTimestamp - row.startTimestamp;
@@ -123,12 +125,12 @@ function NetworkList({replayRecord, networkSpans}: Props) {
         }
       >
         {t('Duration')} {sortArrow('duration')}
-      </UnstyledButton>
+      </UnstyledHeaderButton>
     </SortItem>,
     <SortItem key="timestamp">
-      <UnstyledButton onClick={() => handleSort('startTimestamp')}>
+      <UnstyledHeaderButton onClick={() => handleSort('startTimestamp')}>
         {t('Timestamp')} {sortArrow('startTimestamp')}
-      </UnstyledButton>
+      </UnstyledHeaderButton>
     </SortItem>,
   ];
 
@@ -217,6 +219,12 @@ const UnstyledButton = styled('button')`
   text-align: unset;
 `;
 
+const UnstyledHeaderButton = styled(UnstyledButton)`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
 const StyledPanelTable = styled(PanelTable)<{columns: number}>`
   grid-template-columns: max-content minmax(200px, 1fr) repeat(
       4,
@@ -253,12 +261,6 @@ const StyledPanelTable = styled(PanelTable)<{columns: number}>`
     color: ${p => p.theme.subText};
     line-height: 16px;
     text-transform: none;
-
-    ${/* sc-selector */ UnstyledButton} {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
 
     /* Last, 2nd and 3rd last header columns. As these are flex direction columns we have to treat them separately */
     &:nth-child(${p => p.columns}n),
