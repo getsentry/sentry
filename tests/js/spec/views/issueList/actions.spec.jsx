@@ -83,7 +83,7 @@ describe('IssueListActions', function () {
             query: {
               project: [1],
             },
-            data: {status: 'resolved'},
+            data: {status: 'resolved', statusDetails: {}},
           })
         );
 
@@ -150,7 +150,7 @@ describe('IssueListActions', function () {
             query: {
               project: [1],
             },
-            data: {status: 'resolved'},
+            data: {status: 'resolved', statusDetails: {}},
           })
         );
 
@@ -210,7 +210,7 @@ describe('IssueListActions', function () {
               id: ['3', '6', '9'],
               project: [1],
             },
-            data: {status: 'resolved'},
+            data: {status: 'resolved', statusDetails: {}},
           })
         );
       });
