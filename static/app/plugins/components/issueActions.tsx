@@ -1,9 +1,9 @@
-import GroupActions from 'sentry/actions/groupActions';
 import PluginComponentBase from 'sentry/components/bases/pluginComponentBase';
 import {Form, FormState} from 'sentry/components/deprecatedforms';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import GroupStore from 'sentry/stores/groupStore';
 import {Group, Organization, Plugin, Project} from 'sentry/types';
 
 type Field = {
@@ -301,7 +301,11 @@ class IssueActions extends PluginComponentBase<Props, State> {
   }
 
   onSuccess(data) {
-    GroupActions.updateSuccess(null, [this.getGroup().id], {stale: true});
+    // TODO(ts): This needs a better approach. We splice in this attribute to trigger
+    // a refetch in GroupDetails
+    type StaleGroup = Group & {stale?: boolean};
+
+    GroupStore.onUpdateSuccess('', [this.getGroup().id], {stale: true} as StaleGroup);
     this.props.onSuccess && this.props.onSuccess(data);
   }
 
