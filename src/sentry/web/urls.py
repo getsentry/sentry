@@ -444,7 +444,7 @@ urlpatterns += [
                     react_page_view,
                     name="sentry-organization-auth-settings",
                 ),
-                url(r"^(?P<organization_slug>[\w_-]+)/[\w_-]+/$", react_page_view),
+                url(r"^(?P<organization_slug>[\w_-]+)/(?P<sub_page>[\w_-]+)/$", react_page_view),
                 url(r"^", react_page_view),
             ]
         ),
@@ -552,7 +552,7 @@ urlpatterns += [
                     name="sentry-organization-disabled-member",
                 ),
                 # need to force these to React and ensure organization_slug is captured
-                url(r"^(?P<organization_slug>[\w_-]+)/[\w_-]+/", react_page_view),
+                url(r"^(?P<organization_slug>[\w_-]+)/(?P<sub_page>[\w_-]+)/", react_page_view),
             ]
         ),
     ),
