@@ -135,7 +135,7 @@ describe('Performance > Landing > Index', function () {
     expect(screen.getByTestId('performance-landing-v3')).toBeInTheDocument();
   });
 
-  it('renders frontend pageload view', async function () {
+  it('renders frontend pageload view', function () {
     const data = initializeData({
       query: {landingDisplay: LandingDisplayField.FRONTEND_PAGELOAD},
     });
