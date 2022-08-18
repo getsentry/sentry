@@ -871,7 +871,7 @@ class QueryBuilder:
         if measurement is None:
             return None
 
-        unit = measurement["unit"]
+        unit: str = measurement["unit"]
         if unit in SIZE_UNITS or unit in DURATION_UNITS:
             return unit
         elif unit == "none":
