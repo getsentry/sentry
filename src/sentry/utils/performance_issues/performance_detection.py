@@ -95,7 +95,7 @@ def get_default_detection_settings():
         },
         DetectorType.N_PLUS_ONE_SPANS: [
             {
-                "count": 5,
+                "count": 3,
                 "start_time_threshold": 5.0,  # ms
                 "allowed_span_ops": ["http.client"],
             }
@@ -509,6 +509,7 @@ class NPlusOneSpanDetector(PerformanceDetector):
     def init(self):
         self.spans_involved = {}
         self.most_recent_start_time = {}
+        self.most_recent_hash = {}
         self.stored_issues = {}
 
     def visit_span(self, span: Span):
@@ -525,24 +526,30 @@ class NPlusOneSpanDetector(PerformanceDetector):
         if not fingerprint:
             return
 
+        hash = span.get("hash", None)
+        if not hash:
+            return
+
         if fingerprint not in self.spans_involved:
             self.spans_involved[fingerprint] = []
             self.most_recent_start_time[fingerprint] = 0
+            self.most_recent_hash[fingerprint] = ""
 
         delta_to_previous_span_start_time = timedelta(
             seconds=(span["start_timestamp"] - self.most_recent_start_time[fingerprint])
         )
 
-        self.most_recent_start_time[fingerprint] = span["start_timestamp"]
+        is_concurrent_with_previous_span = delta_to_previous_span_start_time < start_time_threshold
+        has_same_hash_as_previous_span = span["hash"] == self.most_recent_hash[fingerprint]
 
-        if delta_to_previous_span_start_time >= start_time_threshold:
-            # This span is subsequent to the most recent span
+        self.most_recent_start_time[fingerprint] = span["start_timestamp"]
+        self.most_recent_hash[fingerprint] = hash
+
+        if is_concurrent_with_previous_span and has_same_hash_as_previous_span:
+            self.spans_involved[fingerprint].append(span)
+        else:
             self.spans_involved[fingerprint] = [span_id]
             return
-
-        else:
-            # This span is approximately concurrent with the most recent span
-            self.spans_involved[fingerprint].append(span)
 
         if not self.stored_issues.get(fingerprint, False):
             if len(self.spans_involved[fingerprint]) >= count:
