@@ -91,6 +91,15 @@ def convert_status_value(value, projects, user, environments):
             raise InvalidSearchQuery(f"invalid status value of '{status}'")
     return parsed
 
+def convert_category_value(value, projects, user, environments):
+    # value is either error or performance
+    # return matching GroupType.value
+    pass
+
+def convert_type_value(value, projects, user, environments):
+    # value is a GroupType: error, perfnplusone, perfslowspan
+    # return matching GroupType.value
+    pass
 
 value_converters = {
     "assigned_or_suggested": convert_actor_or_none_value,
@@ -101,6 +110,8 @@ value_converters = {
     "release": convert_release_value,
     "status": convert_status_value,
     "regressed_in_release": convert_first_release_value,
+    "category": convert_category_value,
+    "type": convert_type_value,
 }
 
 
@@ -115,11 +126,17 @@ def convert_query_values(search_filters, projects, user, environments):
     """
 
     def convert_search_filter(search_filter):
+        print("$$$$$$$")
+        print(search_filter)
+        print(search_filter.key.name)
+        print(search_filter.value.raw_value)
         if search_filter.key.name in value_converters:
             converter = value_converters[search_filter.key.name]
+            print("converter: ", converter)
             new_value = converter(
                 to_list(search_filter.value.raw_value), projects, user, environments
             )
+            print(new_value)
             if isinstance(new_value, list):
                 operator = "IN" if search_filter.operator in EQUALITY_OPERATORS else "NOT IN"
             else:
