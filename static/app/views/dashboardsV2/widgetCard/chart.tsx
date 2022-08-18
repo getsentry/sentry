@@ -409,11 +409,10 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       },
       tooltip: {
         trigger: 'axis',
-        valueFormatter: (value: number, seriesName: string) => {
-          return timeseriesResultsTypes
+        valueFormatter: (value: number, seriesName: string) =>
+          timeseriesResultsTypes
             ? tooltipFormatter(value, timeseriesResultsTypes[seriesName])
-            : tooltipFormatter(value, aggregateOutputType(seriesName));
-        },
+            : tooltipFormatter(value, aggregateOutputType(seriesName)),
       },
       yAxis: {
         axisLabel: {
