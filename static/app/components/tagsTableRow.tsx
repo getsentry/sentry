@@ -69,4 +69,5 @@ const ValueContainer = styled('span')`
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: normal;
 `;
