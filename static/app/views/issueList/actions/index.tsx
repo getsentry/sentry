@@ -264,7 +264,7 @@ class IssueListActions extends Component<Props, State> {
           <ActionsCheckbox isReprocessingQuery={displayReprocessingActions}>
             <Checkbox
               onChange={this.handleSelectAll}
-              checked={pageSelected}
+              checked={pageSelected || (anySelected ? 'indeterminate' : false)}
               disabled={displayReprocessingActions}
             />
           </ActionsCheckbox>
