@@ -64,6 +64,8 @@ from sentry.snuba.metrics.naming_layer.mapping import get_public_name_from_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
 from sentry.snuba.metrics.utils import (
     DEFAULT_AGGREGATES,
+    GENERIC_OP_TO_SNUBA_FUNCTION,
+    GENERIC_OPERATIONS_TO_ENTITY,
     GRANULARITY,
     METRIC_TYPE_TO_ENTITY,
     OP_TO_SNUBA_FUNCTION,
@@ -142,17 +144,27 @@ def run_metrics_query(
 
 
 def _get_known_entity_of_metric_mri(metric_mri: str) -> Optional[EntityKey]:
-    for KnownMRI in (SessionMRI, TransactionMRI):
-        try:
-            KnownMRI(metric_mri)
-            entity_prefix = metric_mri.split(":")[0]
-            return {
-                "c": EntityKey.MetricsCounters,
-                "d": EntityKey.MetricsDistributions,
-                "s": EntityKey.MetricsSets,
-            }[entity_prefix]
-        except (ValueError, IndexError, KeyError):
-            pass
+    try:
+        SessionMRI(metric_mri)
+        entity_prefix = metric_mri.split(":")[0]
+        return {
+            "c": EntityKey.MetricsCounters,
+            "d": EntityKey.MetricsDistributions,
+            "s": EntityKey.MetricsSets,
+        }[entity_prefix]
+    except (ValueError, IndexError, KeyError):
+        pass
+    try:
+        TransactionMRI(metric_mri)
+        entity_prefix = metric_mri.split(":")[0]
+        return {
+            "c": EntityKey.GenericMetricsCounters,
+            "d": EntityKey.GenericMetricsDistributions,
+            "s": EntityKey.GenericMetricsSets,
+        }[entity_prefix]
+    except (ValueError, IndexError, KeyError):
+        pass
+
     return None
 
 
@@ -170,7 +182,14 @@ def _get_entity_of_metric_mri(
     if metric_id is None:
         raise InvalidParams
 
-    for metric_type in ("counter", "set", "distribution"):
+    for metric_type in (
+        "generic_counter",
+        "generic_set",
+        "generic_distribution",
+        "counter",
+        "set",
+        "distribution",
+    ):
         entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
         data = run_metrics_query(
             entity_key=entity_key,
@@ -484,6 +503,8 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
     """
 
     def get_entity(self, projects: Sequence[Project], use_case_id: UseCaseKey) -> MetricEntity:
+        if use_case_id is UseCaseKey.PERFORMANCE:
+            return GENERIC_OPERATIONS_TO_ENTITY[self.metric_operation.op]
         return OPERATIONS_TO_ENTITY[self.metric_operation.op]
 
     def generate_select_statements(
@@ -549,7 +570,10 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
         metrics_query: MetricsQuery,
         use_case_id: UseCaseKey,
     ) -> Function:
-        snuba_function = OP_TO_SNUBA_FUNCTION[entity][self.metric_operation.op]
+        if use_case_id is UseCaseKey.PERFORMANCE:
+            snuba_function = GENERIC_OP_TO_SNUBA_FUNCTION[entity][self.metric_operation.op]
+        else:
+            snuba_function = OP_TO_SNUBA_FUNCTION[entity][self.metric_operation.op]
         conditions = self.metric_object.generate_filter_snql_conditions(
             org_id=org_id, use_case_id=use_case_id
         )
