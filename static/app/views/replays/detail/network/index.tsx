@@ -141,13 +141,9 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     return (
       <Fragment key={index}>
         <Item {...columnHandlers}>
-          {network.data.statusCode ? (
-            <StatusContainer>{network.data.statusCode}</StatusContainer>
-          ) : (
-            <EmptyText>({t('Missing status')})</EmptyText>
-          )}
+          {network.data.statusCode ? network.data.statusCode : <EmptyText>---</EmptyText>}
         </Item>
-        <Item color="gray400" {...columnHandlers}>
+        <Item {...columnHandlers}>
           {network.description ? (
             <Tooltip
               title={network.description}
@@ -212,8 +208,20 @@ const Item = styled('div')<{center?: boolean; color?: ColorOrAlias; numeric?: bo
   ${p => p.numeric && 'font-variant-numeric: tabular-nums;'}
 `;
 
+const UnstyledButton = styled('button')`
+  border: 0;
+  background: none;
+  padding: 0;
+  text-transform: inherit;
+  width: 100%;
+  text-align: unset;
+`;
+
 const StyledPanelTable = styled(PanelTable)<{columns: number}>`
-  grid-template-columns: max-content minmax(200px, 1fr) repeat(4, max-content);
+  grid-template-columns: max-content minmax(200px, 1fr) repeat(
+      4,
+      minmax(max-content, 160px)
+    );
   grid-template-rows: 24px repeat(auto-fit, 28px);
   font-size: ${p => p.theme.fontSizeSmall};
   margin-bottom: 0;
@@ -244,28 +252,23 @@ const StyledPanelTable = styled(PanelTable)<{columns: number}>`
     border-radius: 0;
     color: ${p => p.theme.subText};
     line-height: 16px;
+    text-transform: none;
+
+    ${/* sc-selector */ UnstyledButton} {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
 
     /* Last, 2nd and 3rd last header columns. As these are flex direction columns we have to treat them separately */
     &:nth-child(${p => p.columns}n),
     &:nth-child(${p => p.columns}n - 1),
     &:nth-child(${p => p.columns}n - 2) {
       justify-content: center;
-      align-items: end;
+      align-items: flex-start;
+      text-align: start;
     }
   }
-`;
-
-const StatusContainer = styled('div')`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: 17px;
-  max-width: 40px;
-  padding: ${space(0.25)} ${space(1)};
-  background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeSmall};
-  line-height: 1.3;
-  display: flex;
-  align-items: center;
 `;
 
 const Text = styled('p')`
@@ -286,17 +289,8 @@ const SortItem = styled('span')`
   width: 100%;
 
   svg {
-    vertical-align: text-top;
+    margin-left: ${space(0.25)};
   }
-`;
-
-const UnstyledButton = styled('button')`
-  border: 0;
-  background: none;
-  padding: 0;
-  text-transform: inherit;
-  width: 100%;
-  text-align: unset;
 `;
 
 export default NetworkList;
