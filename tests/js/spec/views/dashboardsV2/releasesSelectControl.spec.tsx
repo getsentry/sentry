@@ -100,4 +100,21 @@ describe('Dashboards > ReleasesSelectControl', function () {
     userEvent.click(document.body);
     await waitFor(() => expect(mockOnSearch).toBeCalledWith(''));
   });
+
+  it('triggers handleChangeFilter with the release versions', function () {
+    const mockHandleChangeFilter = jest.fn();
+    renderReleasesSelect({handleChangeFilter: mockHandleChangeFilter});
+    expect(screen.getByText('All Releases')).toBeInTheDocument();
+
+    userEvent.click(screen.getByText('All Releases'));
+    userEvent.click(screen.getByText('Latest Release(s)'));
+    userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
+    userEvent.click(screen.getByText('sentry-android-shop@1.4.0'));
+
+    userEvent.click(document.body);
+
+    expect(mockHandleChangeFilter).toHaveBeenCalledWith({
+      release: ['latest', 'sentry-android-shop@1.2.0', 'sentry-android-shop@1.4.0'],
+    });
+  });
 });
