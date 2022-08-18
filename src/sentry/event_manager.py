@@ -1899,6 +1899,7 @@ def _calculate_span_grouping(jobs, projects):
 
 @metrics.wraps("save_event.get_or_create_performance_group")
 def _get_or_create_performance_group(jobs, projects):
+
     # TODO: batch operations (like rate limiting) so we don't repeat for each job
     for job in jobs:
         # FEATURE FLAG RANDOMIZER
@@ -1906,12 +1907,25 @@ def _get_or_create_performance_group(jobs, projects):
         rate = options.get("incidents-performance.rollout-rate")
         if (rate and rate > random.random()) or True:
 
+            kwargs = {
+                "platform": job["platform"],
+                "message": job["event"].search_message,
+                "logger": job["logger_name"],
+                "level": LOG_LEVELS_MAP.get(job["level"]),
+                "last_seen": job["event"].datetime,
+                "first_seen": job["event"].datetime,
+                "active_at": job["event"].datetime,
+            }
+
+            if job["release"]:
+                kwargs["first_release"] = job["release"]
+
             # TODO: get fingerprint
-            existing_grouphash = job.get("fingerprint")
+            existing_grouphashes = job.get("fingerprints", [])
             project = job["event"].project
 
             # use fingerprint to check if group exists
-            if existing_grouphash is None:
+            if not existing_grouphashes:
 
                 # GROUP DOES NOT EXIST
                 with sentry_sdk.start_span(
@@ -1939,10 +1953,17 @@ def _get_or_create_performance_group(jobs, projects):
                     # with writes_limiter.check_write_limits(UseCaseKey("performance"), KeyCollection({job.organization.id: {job.organization.name}})) as writes_limiter_state:
                     #     pass
 
+                    first_release = kwargs.pop("first_release", None)
+
                     group = Group.objects.create(
                         project=project,
                         short_id=short_id,
-                        first_release_id=None,
+                        first_release_id=Release.objects.filter(id=first_release.id)
+                        .values_list("id", flat=True)
+                        .first()
+                        if first_release
+                        else None,
+                        **kwargs,
                     )
 
                     is_new = True
@@ -1964,32 +1985,25 @@ def _get_or_create_performance_group(jobs, projects):
                     continue
 
             # GROUP EXISTS
-            existing_grouphash = GroupHash.objects.get(project=project, hash=None)
+            for existing_grouphash in existing_grouphashes:
+                existing_grouphash_object = GroupHash.objects.get(
+                    project=project, hash=existing_grouphash
+                )
 
-            group = Group.objects.filter(id=existing_grouphash.group_id)
+                group = Group.objects.filter(id=existing_grouphash_object.group_id)
 
-            is_new = False
-            kwargs = {
-                "platform": job["platform"],
-                "message": job["event"].search_message,
-                "culprit": job["culprit"],
-                "logger": job["logger_name"],
-                "level": LOG_LEVELS_MAP.get(job["level"]),
-                "last_seen": job["event"].datetime,
-                "first_seen": job["event"].datetime,
-                "active_at": job["event"].datetime,
-            }
+                is_new = False
 
-            is_regression = _process_existing_aggregate(
-                group=group, event=job["event"], data=kwargs, release=None
-            )
+                is_regression = _process_existing_aggregate(
+                    group=group, event=job["event"], data=kwargs, release=job["release"]
+                )
 
-            # TODO: make groups array
-            # return group IDs we've associated with the transaction
-            job["group"] = group
-            job["event"].group = job["group"]
-            job["is_new"] = is_new
-            job["is_regression"] = is_regression
+                # TODO: make groups array
+                # return group IDs we've associated with the transaction
+                job["group"] = group
+                job["event"].group = job["group"]
+                job["is_new"] = is_new
+                job["is_regression"] = is_regression
 
 
 @metrics.wraps("event_manager.save_transaction_events")
@@ -2032,7 +2046,30 @@ def save_transaction_events(jobs, projects):
     _calculate_span_grouping(jobs, projects)
     _materialize_metadata_many(jobs)
     _get_or_create_environment_many(jobs, projects)
+
+    # create GroupEnvironments
+    for job in jobs:
+        if job["group"]:
+            group_environment, job["is_new_group_environment"] = GroupEnvironment.get_or_create(
+                group_id=job["group"].id,
+                environment_id=job["environment"].id,
+                defaults={"first_release": job["release"] or None},
+            )
+        else:
+            job["is_new_group_environment"] = False
+
     _get_or_create_release_associated_models(jobs, projects)
+
+    # create GroupReleases
+    for job in jobs:
+        if job["release"] and job["group"]:
+            job["grouprelease"] = GroupRelease.get_or_create(
+                group=job["group"],
+                release=job["release"],
+                environment=job["environment"],
+                datetime=job["event"].datetime,
+            )
+
     _tsdb_record_all_metrics(jobs)
     _materialize_event_metrics(jobs)
     _nodestore_save_many(jobs)
