@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import concurrent.futures
 import logging
-from collections import deque
+from collections import defaultdict, deque
 from concurrent.futures import ALL_COMPLETED, Future, wait
 from io import BytesIO
-from typing import Callable, Deque, Mapping, MutableMapping, NamedTuple, Optional, cast
+from typing import Callable, DefaultDict, Deque, Mapping, MutableMapping, NamedTuple, Optional, cast
 
 import msgpack
 from arroyo import Partition
@@ -54,6 +54,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):  # type
         self.__futures: Deque[ReplayRecordingMessageFuture] = deque()
         self.__threadpool = concurrent.futures.ThreadPoolExecutor()
         self.__commit = commit
+        self.__cache_writers: DefaultDict[str, Deque[Future[None]]] = defaultdict(deque)
 
     def poll(self) -> None:
         self._commit_and_prune_futures()
@@ -70,12 +71,15 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):  # type
         chunk_index = message_dict["chunk_index"]
         cache_key = replay_recording_segment_cache_id(project_id, replay_id)
 
-        attachment_cache.set_chunk(
-            key=cache_key,
-            id=recording_segment_uuid,
-            chunk_index=chunk_index,
-            chunk_data=message_dict["payload"],
-            timeout=CACHE_TIMEOUT,
+        self.__cache_writers[cache_key].append(
+            self.__threadpool.submit(
+                attachment_cache.set_chunk,
+                key=cache_key,
+                id=recording_segment_uuid,
+                chunk_index=chunk_index,
+                chunk_data=message_dict["payload"],
+                timeout=CACHE_TIMEOUT,
+            )
         )
 
     def _process_headers(
@@ -88,11 +92,27 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):  # type
             raise MissingRecordingSegmentHeaders
         return json.loads(recording_headers), recording_segment
 
+    def _wait_for_cache_writes(self, message_dict):
+        cache_id = replay_recording_segment_cache_id(
+            message_dict["project_id"], message_dict["replay_id"]
+        )
+
+        # Await all chunk uploads to finish.
+        while self.__cache_writers[cache_id]:
+            self.__cache_writers[cache_id].popleft().result()
+
     def _store(
         self,
         message_dict: RecordingSegmentMessage,
-        cached_replay_recording_segment: CachedAttachment,
     ) -> None:
+
+        self._wait_and_get_recording_from_cache(message_dict)
+
+        cached_replay_recording_segment = self._get_from_cache(message_dict)
+
+        if cached_replay_recording_segment is None:
+            return
+
         try:
             headers, recording_segment = self._process_headers(cached_replay_recording_segment.data)
         except MissingRecordingSegmentHeaders:
@@ -140,9 +160,6 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):  # type
     def _process_recording(
         self, message_dict: RecordingSegmentMessage, message: Message[KafkaPayload]
     ) -> None:
-        cached_replay_recording = self._get_from_cache(message_dict)
-        if cached_replay_recording is None:
-            return
 
         # in a thread, upload the recording segment and delete the cached version
         self.__futures.append(
@@ -151,7 +168,6 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):  # type
                 self.__threadpool.submit(
                     self._store,
                     message_dict=message_dict,
-                    cached_replay_recording_segment=cached_replay_recording,
                 ),
             )
         )
