@@ -401,6 +401,8 @@ class End2EndTest(APITestCase):
                 HTTP_HOST="albertos-apples.testserver",
                 follow=True,
             )
+            assert response.status_code == 200
+            assert response.redirect_chain == [("/api/0/albertos-apples/nameless/", 302)]
             assert response.data == {
                 "organization_slug": "albertos-apples",
                 "subdomain": "albertos-apples",
