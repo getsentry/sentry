@@ -1,7 +1,7 @@
 import {createStore} from 'reflux';
 
 import CommitterActions from 'sentry/actions/committerActions';
-import {Committer} from 'sentry/types';
+import {Committer, ReleaseCommitter} from 'sentry/types';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type State = {
@@ -10,6 +10,7 @@ type State = {
     committers?: Committer[];
     committersError?: Error;
     committersLoading?: boolean;
+    releaseCommitters?: ReleaseCommitter[];
   };
 };
 
@@ -33,7 +34,8 @@ interface CommitterStoreDefinition extends Reflux.StoreDefinition {
     orgSlug: string,
     projectSlug: string,
     eventId: string,
-    data: Committer[]
+    committers: Committer[],
+    releaseCommitters?: ReleaseCommitter[]
   ): void;
 
   state: State;
@@ -80,12 +82,19 @@ export const storeConfig: CommitterStoreDefinition = {
     this.trigger(this.state);
   },
 
-  loadSuccess(orgSlug: string, projectSlug: string, eventId: string, data: Committer[]) {
+  loadSuccess(
+    orgSlug: string,
+    projectSlug: string,
+    eventId: string,
+    committers: Committer[],
+    releaseCommitters?: ReleaseCommitter[]
+  ) {
     const key = getCommitterStoreKey(orgSlug, projectSlug, eventId);
     this.state = {
       ...this.state,
       [key]: {
-        committers: data,
+        committers,
+        releaseCommitters,
         committersLoading: false,
         committersError: undefined,
       },

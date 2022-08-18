@@ -168,4 +168,34 @@ describe('SuggestedOwners', function () {
       expect(screen.getAllByTestId('suggested-assignee')).toHaveLength(3)
     );
   });
+
+  it('displays release committers', async function () {
+    const team1 = TestStubs.Team({slug: 'team-1', id: '1'});
+    const team2 = TestStubs.Team({slug: 'team-2', id: '2'});
+    TeamStore.loadInitialData([team1, team2], false, null);
+
+    Client.addMockResponse({
+      url: `${endpoint}/committers/`,
+      body: {
+        committers: [],
+        releaseCommitters: [
+          {
+            author: TestStubs.CommitAuthor(),
+            commits: [TestStubs.Commit()],
+            release: TestStubs.Release(),
+          },
+        ],
+      },
+    });
+
+    Client.addMockResponse({
+      url: `${endpoint}/owners/`,
+      body: {owners: [], rules: []},
+    });
+
+    render(<SuggestedOwners project={project} group={group} event={event} />, {
+      organization,
+    });
+    userEvent.hover(await screen.findByTestId('suggested-assignee'));
+  });
 });

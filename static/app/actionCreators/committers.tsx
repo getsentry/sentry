@@ -1,7 +1,7 @@
 import CommitterActions from 'sentry/actions/committerActions';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import CommitterStore, {getCommitterStoreKey} from 'sentry/stores/committerStore';
-import {Committer} from 'sentry/types';
+import type {Committer, ReleaseCommitter} from 'sentry/types';
 
 type ParamsGet = {
   eventId: string;
@@ -28,8 +28,14 @@ export function getCommitters(api: Client, params: ParamsGet) {
     .requestPromise(path, {
       method: 'GET',
     })
-    .then((res: {committers: Committer[]}) => {
-      CommitterActions.loadSuccess(orgSlug, projectSlug, eventId, res.committers);
+    .then((res: {committers: Committer[]; releaseCommitters: ReleaseCommitter[]}) => {
+      CommitterActions.loadSuccess(
+        orgSlug,
+        projectSlug,
+        eventId,
+        res.committers,
+        res.releaseCommitters
+      );
     })
     .catch(err => {
       // NOTE: Do not captureException here as EventFileCommittersEndpoint returns
