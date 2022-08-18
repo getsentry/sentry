@@ -79,6 +79,7 @@ const DEFAULT_SORT = IssueSortOptions.DATE;
 const DEFAULT_GRAPH_STATS_PERIOD = '24h';
 // the allowed period choices for graph in each issue row
 const DYNAMIC_COUNTS_STATS_PERIODS = new Set(['14d', '24h', 'auto']);
+const MAX_ISSUES_COUNT = 100;
 
 type Params = {
   orgId: string;
@@ -726,7 +727,7 @@ class IssueListOverview extends Component<Props, State> {
   onRealtimePoll = (data: any, _links: any) => {
     // Note: We do not update state with cursors from polling,
     // `CursorPoller` updates itself with new cursors
-    GroupStore.addToFront(data, {limit: 100});
+    GroupStore.addToFront(data);
   };
 
   listener = GroupStore.listen(() => this.onGroupChange(), undefined);
@@ -788,7 +789,9 @@ class IssueListOverview extends Component<Props, State> {
       }
     }
 
-    const groupIds = GroupStore.getAllItems().map(item => item.id) ?? [];
+    const groupIds = GroupStore.getAllItems()
+      .map(item => item.id)
+      .slice(0, MAX_ISSUES_COUNT);
     if (!isEqual(groupIds, this.state.groupIds)) {
       this.setState({groupIds});
     }

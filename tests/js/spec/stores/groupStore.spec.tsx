@@ -55,11 +55,6 @@ describe('GroupStore', function () {
       GroupStore.addToFront([g('2'), g('1'), g('3')]);
       expect(GroupStore.getAllItemIds()).toEqual(['2', '1', '3']);
     });
-
-    it('removes items over the given limit', function () {
-      GroupStore.addToFront([g('2'), g('1'), g('3')], {limit: 2});
-      expect(GroupStore.getAllItemIds()).toEqual(['2', '1']);
-    });
   });
 
   describe('remove()', function () {

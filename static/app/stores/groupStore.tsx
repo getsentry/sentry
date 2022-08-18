@@ -44,7 +44,7 @@ interface InternalDefinition {
 interface GroupStoreDefinition extends CommonStoreDefinition<Item[]>, InternalDefinition {
   add: (items: Item[]) => void;
   addStatus: (id: string, status: string) => void;
-  addToFront: (items: Item[], options?: {limit?: number}) => void;
+  addToFront: (items: Item[]) => void;
   clearStatus: (id: string, status: string) => void;
 
   get: (id: string) => Item | undefined;
@@ -131,14 +131,6 @@ const storeConfig: GroupStoreDefinition = {
     return items.filter(item => itemsById.hasOwnProperty(item.id));
   },
 
-  trimItemsToLimit(limit: number) {
-    if (limit > this.items.length) {
-      return;
-    }
-
-    this.items = this.items.slice(0, limit);
-  },
-
   /**
    * Adds the provided items to the end of the list.
    * If any items already exist, they will merged into the existing item index.
@@ -155,14 +147,10 @@ const storeConfig: GroupStoreDefinition = {
    * Adds the provided items to the front of the list.
    * If any items already exist, they will be moved to the front in the order provided.
    */
-  addToFront(items, {limit} = {}) {
+  addToFront(items) {
     const itemMap = items.reduce((acc, item) => ({...acc, [item.id]: item}), {});
 
     this.items = [...items, ...this.items.filter(item => !itemMap[item.id])];
-
-    if (limit) {
-      this.trimItemsToLimit(limit);
-    }
 
     this.trigger(this.getAllItemIds());
   },
