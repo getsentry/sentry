@@ -43,7 +43,7 @@ ENV \
   # Thank to https://stackoverflow.com/a/25260588/90297
   UWSGI_PROFILE_OVERRIDE=ssl=false;xml=false;routing=false \
   # UWSGI dogstatsd plugin
-  UWSGI_NEED_PLUGIN=/var/lib/uwsgi/dogstatsd \
+  UWSGI_NEED_PLUGIN=/usr/local/lib/dogstatsd_plugin.so \
   # grpcio>1.30.0 requires this, see requirements.txt for more detail.
   GRPC_POLL_STRATEGY=epoll1
 
@@ -51,10 +51,9 @@ ENV \
 COPY /dist/requirements-frozen.txt /tmp/requirements-frozen.txt
 RUN set -x \
   && buildDeps="" \
-  # uwsgi
+  # c deps
   && buildDeps="$buildDeps \
   gcc \
-  wget \
   " \
   # maxminddb
   && buildDeps="$buildDeps \
@@ -68,13 +67,7 @@ RUN set -x \
   && apt-get update \
   && apt-get install -y --no-install-recommends $buildDeps \
   && pip install -r /tmp/requirements-frozen.txt \
-  && mkdir /tmp/uwsgi-dogstatsd \
-  && wget -O - https://github.com/eventbrite/uwsgi-dogstatsd/archive/filters-and-tags.tar.gz | \
-  tar -xzf - -C /tmp/uwsgi-dogstatsd --strip-components=1 \
-  && UWSGI_NEED_PLUGIN="" uwsgi --build-plugin /tmp/uwsgi-dogstatsd \
-  && mkdir -p /var/lib/uwsgi \
-  && mv dogstatsd_plugin.so /var/lib/uwsgi/ \
-  && rm -rf /tmp/requirements-frozen.txt /tmp/uwsgi-dogstatsd .uwsgi_plugins_builder \
+  && rm -f /tmp/requirements-frozen.txt \
   && apt-get purge -y --auto-remove $buildDeps \
   # We install run-time dependencies strictly after
   # build dependencies to prevent accidental collusion.
