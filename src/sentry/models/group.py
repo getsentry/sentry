@@ -32,7 +32,7 @@ from sentry.db.models import (
 from sentry.eventstore.models import Event
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.types.activity import ActivityType
-from sentry.types.issues import GROUP_CATEGORY_TO_TYPES, GroupType
+from sentry.types.issues import GROUP_TYPE_TO_CATEGORY, GroupType
 from sentry.utils.http import absolute_uri
 from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
@@ -662,7 +662,4 @@ class Group(Model):
 
     @property
     def issue_category(self):
-        for type, category in GROUP_CATEGORY_TO_TYPES.items():
-            if type.value == self.issue_type.value:
-                return category
-        return None
+        return GROUP_TYPE_TO_CATEGORY.get(self.issue_type, None)

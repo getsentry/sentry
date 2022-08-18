@@ -1,3 +1,4 @@
+from collections import defaultdict
 from enum import Enum
 
 
@@ -20,13 +21,10 @@ GROUP_TYPE_TO_CATEGORY = {
 
 
 def get_category_type_mapping():
-    category_type_mapping = {}
+    category_type_mapping = defaultdict(list)
 
     for type, category in GROUP_TYPE_TO_CATEGORY.items():
-        if category_type_mapping.get(category):
-            category_type_mapping[category].append(type)
-        else:
-            category_type_mapping[category] = [type]
+        category_type_mapping[category].append(type)
 
     return category_type_mapping
 
