@@ -23,6 +23,7 @@ import {Organization, PageFilters, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateAggregateFields} from 'sentry/utils/discover/fields';
 import {GenericQueryBatcher} from 'sentry/utils/performance/contexts/genericQueryBatcher';
+import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {
   canUseMetricsData,
   MEPConsumer,
@@ -192,97 +193,99 @@ export function PerformanceLanding(props: Props) {
         </Layout.Header>
         <Layout.Body data-test-id="performance-landing-body">
           <Layout.Main fullWidth>
-            <MetricsDataSwitcher
-              organization={organization}
-              eventView={eventView}
-              location={location}
-            >
-              {metricsDataSide => (
-                <MEPSettingProvider
-                  location={location}
-                  forceTransactions={metricsDataSide.forceTransactionsOnly}
-                >
-                  <MetricsDataSwitcherAlert
-                    organization={organization}
-                    eventView={eventView}
-                    projects={projects}
+            <MetricsCardinalityProvider organization={organization} location={location}>
+              <MetricsDataSwitcher
+                organization={organization}
+                eventView={eventView}
+                location={location}
+              >
+                {metricsDataSide => (
+                  <MEPSettingProvider
                     location={location}
-                    router={props.router}
-                    {...metricsDataSide}
-                  />
-                  <PageErrorAlert />
-                  {showOnboarding ? (
-                    <Fragment>
-                      {pageFilters}
-                      <Onboarding
-                        organization={organization}
-                        project={onboardingProject}
-                      />
-                    </Fragment>
-                  ) : (
-                    <Fragment>
-                      <SearchFilterContainer>
+                    forceTransactions={metricsDataSide.forceTransactionsOnly}
+                  >
+                    <MetricsDataSwitcherAlert
+                      organization={organization}
+                      eventView={eventView}
+                      projects={projects}
+                      location={location}
+                      router={props.router}
+                      {...metricsDataSide}
+                    />
+                    <PageErrorAlert />
+                    {showOnboarding ? (
+                      <Fragment>
                         {pageFilters}
-                        <MEPConsumer>
-                          {({metricSettingState}) => {
-                            const searchQuery =
-                              metricSettingState === MEPState.metricsOnly
-                                ? getFreeTextFromQuery(derivedQuery)
-                                : derivedQuery;
-
-                            return metricSettingState === MEPState.metricsOnly &&
-                              shouldShowTransactionNameOnlySearch ? (
-                              // TODO replace `handleSearch prop` with transaction name search once
-                              // transaction name search becomes the default search bar
-                              <TransactionNameSearchBar
-                                organization={organization}
-                                location={location}
-                                eventView={eventView}
-                                onSearch={(query: string) =>
-                                  handleSearch(query, metricSettingState)
-                                }
-                                query={searchQuery}
-                              />
-                            ) : (
-                              <SearchBar
-                                searchSource="performance_landing"
-                                organization={organization}
-                                projectIds={eventView.project}
-                                query={searchQuery}
-                                fields={generateAggregateFields(
-                                  organization,
-                                  [...eventView.fields, {field: 'tps()'}],
-                                  ['epm()', 'eps()']
-                                )}
-                                onSearch={(query: string) =>
-                                  handleSearch(query, metricSettingState ?? undefined)
-                                }
-                                maxQueryLength={MAX_QUERY_LENGTH}
-                              />
-                            );
-                          }}
-                        </MEPConsumer>
-                        <MetricsEventsDropdown />
-                      </SearchFilterContainer>
-                      {initiallyLoaded ? (
-                        <TeamKeyTransactionManager.Provider
+                        <Onboarding
                           organization={organization}
-                          teams={teams}
-                          selectedTeams={['myteams']}
-                          selectedProjects={eventView.project.map(String)}
-                        >
-                          <GenericQueryBatcher>
-                            <ViewComponent {...props} />
-                          </GenericQueryBatcher>
-                        </TeamKeyTransactionManager.Provider>
-                      ) : (
-                        <LoadingIndicator />
-                      )}
-                    </Fragment>
-                  )}
-                </MEPSettingProvider>
-              )}
-            </MetricsDataSwitcher>
+                          project={onboardingProject}
+                        />
+                      </Fragment>
+                    ) : (
+                      <Fragment>
+                        <SearchFilterContainer>
+                          {pageFilters}
+                          <MEPConsumer>
+                            {({metricSettingState}) => {
+                              const searchQuery =
+                                metricSettingState === MEPState.metricsOnly
+                                  ? getFreeTextFromQuery(derivedQuery)
+                                  : derivedQuery;
+
+                              return metricSettingState === MEPState.metricsOnly &&
+                                shouldShowTransactionNameOnlySearch ? (
+                                // TODO replace `handleSearch prop` with transaction name search once
+                                // transaction name search becomes the default search bar
+                                <TransactionNameSearchBar
+                                  organization={organization}
+                                  location={location}
+                                  eventView={eventView}
+                                  onSearch={(query: string) =>
+                                    handleSearch(query, metricSettingState)
+                                  }
+                                  query={searchQuery}
+                                />
+                              ) : (
+                                <SearchBar
+                                  searchSource="performance_landing"
+                                  organization={organization}
+                                  projectIds={eventView.project}
+                                  query={searchQuery}
+                                  fields={generateAggregateFields(
+                                    organization,
+                                    [...eventView.fields, {field: 'tps()'}],
+                                    ['epm()', 'eps()']
+                                  )}
+                                  onSearch={(query: string) =>
+                                    handleSearch(query, metricSettingState ?? undefined)
+                                  }
+                                  maxQueryLength={MAX_QUERY_LENGTH}
+                                />
+                              );
+                            }}
+                          </MEPConsumer>
+                          <MetricsEventsDropdown />
+                        </SearchFilterContainer>
+                        {initiallyLoaded ? (
+                          <TeamKeyTransactionManager.Provider
+                            organization={organization}
+                            teams={teams}
+                            selectedTeams={['myteams']}
+                            selectedProjects={eventView.project.map(String)}
+                          >
+                            <GenericQueryBatcher>
+                              <ViewComponent {...props} />
+                            </GenericQueryBatcher>
+                          </TeamKeyTransactionManager.Provider>
+                        ) : (
+                          <LoadingIndicator />
+                        )}
+                      </Fragment>
+                    )}
+                  </MEPSettingProvider>
+                )}
+              </MetricsDataSwitcher>
+            </MetricsCardinalityProvider>
           </Layout.Main>
         </Layout.Body>
       </PageErrorProvider>
