@@ -162,7 +162,7 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                       {t('Read Docs')}
                     </Button>
                     <Button onClick={onSetupProfilingClick} priority="primary">
-                      {t('Setup Profiling')}
+                      {t('Set Up Profiling')}
                     </Button>
                   </ProfilingOnboardingPanel>
                 ) : (
