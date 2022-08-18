@@ -1549,7 +1549,7 @@ describe('Dashboards > Detail', function () {
       );
     });
 
-    it('sets releaseId in query params when release filter was selected during search', async function () {
+    it('persists release selections made during search requests that do not appear in default query', async function () {
       // Default response
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
