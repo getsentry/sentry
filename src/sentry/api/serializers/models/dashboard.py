@@ -185,7 +185,8 @@ class DashboardDetailsSerializer(Serializer):
                 data["filters"]["releaseData"] = [
                     serialize(release, user, DashboardReleaseSerializer())
                     for release in Release.objects.filter(
-                        id__in=filter(lambda id: id != "latest", obj.filters["release_id"])
+                        id__in=filter(lambda id: id != "latest", obj.filters["release_id"]),
+                        organization_id=obj.organization_id,
                     )
                 ]
                 if "latest" in obj.filters["release_id"]:
