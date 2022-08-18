@@ -410,7 +410,7 @@ class AuthLoginCustomerDomainTest(TestCase):
         assert resp.status_code == 200
         assert resp.redirect_chain == [
             (reverse("sentry-login"), 302),
-            ("/organizations/new/", 302),
+            ("http://testserver/organizations/new/", 302),
         ]
 
     def test_login_valid_credentials_with_org(self):
@@ -497,4 +497,24 @@ class AuthLoginCustomerDomainTest(TestCase):
                 (f"/organizations/{self.organization.slug}/issues/", 302),
                 ("/organizations/albertos-apples/issues/", 302),
                 ("/auth/login/albertos-apples/", 302),
+            ]
+
+    def test_login_valid_credentials_orgless(self):
+        user = self.create_user()
+        self.create_organization(name="albertos-apples")
+        with override_settings(MIDDLEWARE=tuple(provision_middleware())):
+            # load it once for test cookie
+            self.client.get(self.path)
+
+            resp = self.client.post(
+                self.path,
+                {"username": user.username, "password": "admin", "op": "login"},
+                HTTP_HOST="albertos-apples.testserver",
+                follow=True,
+            )
+
+            assert resp.status_code == 200
+            assert resp.redirect_chain == [
+                (reverse("sentry-login"), 302),
+                ("http://testserver/organizations/new/", 302),
             ]

@@ -14,6 +14,7 @@ from django.views.generic import View
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.api.serializers import serialize
 from sentry.api.utils import is_member_disabled_from_limit
 from sentry.auth import access
@@ -166,6 +167,9 @@ class OrganizationMixin:
             return self.respond("sentry/no-organization-access.html", status=403)
         else:
             url = "/organizations/new/"
+            if request.subdomain:
+                base = options.get("system.url-prefix")
+                url = f"{base}{url}"
         return HttpResponseRedirect(url)
 
 
