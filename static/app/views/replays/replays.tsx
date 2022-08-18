@@ -107,10 +107,10 @@ function Replays({location}: Props) {
           />
           <Pagination
             pageLinks={pageLinks}
-            onCursor={(offset, path, searchQuery) => {
+            onCursor={(cursor, path, searchQuery) => {
               browserHistory.push({
                 pathname: path,
-                query: {...searchQuery, offset},
+                query: {...searchQuery, cursor},
               });
             }}
           />
