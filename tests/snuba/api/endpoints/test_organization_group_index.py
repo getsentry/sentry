@@ -14,6 +14,7 @@ from sentry.models import (
     GROUP_OWNER_TYPE,
     Activity,
     ApiToken,
+    Commit,
     ExternalIssue,
     Group,
     GroupAssignee,
@@ -35,7 +36,9 @@ from sentry.models import (
     Integration,
     OrganizationIntegration,
     Release,
+    ReleaseCommit,
     ReleaseStages,
+    Repository,
     UserOption,
     add_group_to_inbox,
     remove_group_from_inbox,
@@ -48,12 +51,13 @@ from sentry.search.events.constants import (
     SEMVER_PACKAGE_ALIAS,
 )
 from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers import parse_link_header
+from sentry.testutils.helpers import apply_feature_flag_on_cls, parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 
 
+@apply_feature_flag_on_cls("organizations:release-committer-assignees")
 class GroupListTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
 
@@ -1782,6 +1786,114 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == event.group.id
+
+    def test_only_release_committers(self):
+        release = self.create_release(project=self.project, version="1.0.0")
+        event = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=500)),
+                "fingerprint": ["group-1"],
+                "release": release.version,
+            },
+            project_id=self.project.id,
+        )
+        repo = Repository.objects.create(
+            organization_id=self.project.organization_id, name=self.project.name
+        )
+        user2 = self.create_user()
+        self.create_member(organization=self.organization, user=user2)
+        author = self.create_commit_author(project=self.project, user=user2)
+        commit = Commit.objects.create(
+            organization_id=self.project.organization_id,
+            repository_id=repo.id,
+            key="a" * 40,
+            author=author,
+        )
+        commit2 = Commit.objects.create(
+            organization_id=self.project.organization_id,
+            repository_id=repo.id,
+            key="b" * 40,
+            author=author,
+        )
+
+        ReleaseCommit.objects.create(
+            organization_id=self.project.organization_id,
+            release=release,
+            commit=commit,
+            order=1,
+        )
+        ReleaseCommit.objects.create(
+            organization_id=self.project.organization_id,
+            release=release,
+            commit=commit2,
+            order=2,
+        )
+
+        query = "status:unresolved"
+        self.login_as(user=self.user)
+
+        response = self.get_response(sort_by="date", limit=10, query=query, expand="owners")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+
+        owners = response.data[0]["owners"]
+        assert len(owners) == 1
+        assert owners[0]["owner"] == f"user:{user2.id}"
+        assert owners[0]["type"] == "releaseCommit"
+
+    def test_multiple_committers(self):
+        release = self.create_release(project=self.project, version="1.0.0")
+        event = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=500)),
+                "fingerprint": ["group-1"],
+                "release": release.version,
+            },
+            project_id=self.project.id,
+        )
+        repo = Repository.objects.create(
+            organization_id=self.project.organization_id, name=self.project.name
+        )
+        user2 = self.create_user()
+        self.create_member(organization=self.organization, user=user2)
+        author = self.create_commit_author(project=self.project, user=user2)
+        commit = Commit.objects.create(
+            organization_id=self.project.organization_id,
+            repository_id=repo.id,
+            key="a" * 40,
+            author=author,
+        )
+        ReleaseCommit.objects.create(
+            organization_id=self.project.organization_id,
+            release=release,
+            commit=commit,
+            order=1,
+        )
+
+        query = "status:unresolved"
+        self.login_as(user=self.user)
+
+        # Test with owners
+        GroupOwner.objects.create(
+            group=event.group,
+            project=event.project,
+            organization=event.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user=self.user,
+        )
+
+        response = self.get_response(sort_by="date", limit=10, query=query, expand="owners")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+
+        owners = response.data[0]["owners"]
+        assert len(owners) == 2
+        assert owners[0]["owner"] == f"user:{self.user.id}"
+        assert owners[0]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.SUSPECT_COMMIT]
+        assert owners[1]["owner"] == f"user:{user2.id}"
+        assert owners[1]["type"] == "releaseCommit"
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
