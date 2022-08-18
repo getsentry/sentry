@@ -78,7 +78,8 @@ class PerformanceDetectionTest(unittest.TestCase):
                     "_pi_duplicates",
                     "bbbbbbbbbbbbbbbb",
                 ),
-            ]
+            ],
+            True,
         )
 
     def test_calls_detect_duplicate_hash(self):
@@ -116,7 +117,8 @@ class PerformanceDetectionTest(unittest.TestCase):
                     "_pi_dupes_hash",
                     "bbbbbbbbbbbbbbbb",
                 ),
-            ]
+            ],
+            True,
         )
 
     def test_calls_detect_slow_span(self):
@@ -148,7 +150,8 @@ class PerformanceDetectionTest(unittest.TestCase):
                     "_pi_slow_span",
                     "bbbbbbbbbbbbbbbb",
                 ),
-            ]
+            ],
+            True,
         )
 
     def test_calls_partial_span_op_allowed(self):
@@ -172,7 +175,8 @@ class PerformanceDetectionTest(unittest.TestCase):
                     "_pi_slow_span",
                     "bbbbbbbbbbbbbbbb",
                 ),
-            ]
+            ],
+            True,
         )
 
     def test_calls_slow_span_threshold(self):
@@ -227,7 +231,8 @@ class PerformanceDetectionTest(unittest.TestCase):
                     "_pi_n_plus_one",
                     "bbbbbbbbbbbbbbbb",
                 ),
-            ]
+            ],
+            True,
         )
 
     def test_calls_detect_sequential(self):
@@ -266,7 +271,8 @@ class PerformanceDetectionTest(unittest.TestCase):
                     "_pi_sequential",
                     "bbbbbbbbbbbbbbbb",
                 ),
-            ]
+            ],
+            True,
         )
 
     def test_calls_detect_long_task(self):
@@ -301,7 +307,8 @@ class PerformanceDetectionTest(unittest.TestCase):
                     "_pi_long_task",
                     "bbbbbbbbbbbbbbbb",
                 ),
-            ]
+            ],
+            True,
         )
 
         sdk_span_mock.reset_mock()
@@ -322,7 +329,8 @@ class PerformanceDetectionTest(unittest.TestCase):
                     "_pi_long_task",
                     "bbbbbbbbbbbbbbbb",
                 ),
-            ]
+            ],
+            True,
         )
 
     def test_calls_detect_render_blocking_asset(self):
@@ -405,5 +413,6 @@ class PerformanceDetectionTest(unittest.TestCase):
                     "_pi_render_blocking_assets",
                     "bbbbbbbbbbbbbbbb",
                 ),
-            ]
+            ],
+            True,
         )
