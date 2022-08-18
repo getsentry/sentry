@@ -65,7 +65,7 @@ export default function Trace({replayRecord, organization}: Props) {
     location,
     params: {replaySlug, orgSlug},
   } = useRouteContext();
-  const [, eventId] = replaySlug.split(':');
+  const [, replayId] = replaySlug.split(':');
 
   const start = getUtcDateString(replayRecord.startedAt.getTime());
   const end = getUtcDateString(replayRecord.finishedAt.getTime());
@@ -74,10 +74,10 @@ export default function Trace({replayRecord, organization}: Props) {
     async function loadTraces() {
       const eventView = EventView.fromSavedQuery({
         id: undefined,
-        name: `Traces in replay ${eventId}`,
+        name: `Traces in replay ${replayId}`,
         fields: ['trace', 'count(trace)', 'min(timestamp)'],
         orderby: 'min_timestamp',
-        query: `replayId:${eventId} !title:"sentry-replay-event*"`,
+        query: `replayId:${replayId.replaceAll('-', '')} !title:"sentry-replay-event*"`,
         projects: [ALL_ACCESS_PROJECTS],
         version: 2,
 
@@ -99,7 +99,10 @@ export default function Trace({replayRecord, organization}: Props) {
           traceIds.map(traceId =>
             doDiscoverQuery(
               api,
-              `/organizations/${orgSlug}/events-trace/${traceId}/`,
+              `/organizations/${orgSlug}/events-trace/${String(traceId).replaceAll(
+                '-',
+                ''
+              )}/`,
               getTraceRequestPayload({
                 eventView: makeEventView({start, end}),
                 location,
@@ -129,7 +132,7 @@ export default function Trace({replayRecord, organization}: Props) {
     loadTraces();
 
     return () => {};
-  }, [api, eventId, orgSlug, location, start, end]);
+  }, [api, replayId, orgSlug, location, start, end]);
 
   if (state.isLoading) {
     return <LoadingIndicator />;

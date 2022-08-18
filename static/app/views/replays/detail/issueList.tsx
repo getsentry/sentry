@@ -45,7 +45,7 @@ function IssueList(props: Props) {
       fields: ['count(issue)', 'issue'],
       environment: selection.environments,
       projects: selection.projects,
-      query: `replayId:${props.replayId} AND event.type:error`,
+      query: `replayId:${props.replayId.replaceAll('-', '')} AND event.type:error`,
     };
     const result = EventView.fromNewQueryWithLocation(eventQueryParams, location);
     return result;
@@ -59,7 +59,7 @@ function IssueList(props: Props) {
         includeAllArgs: true,
         query: {
           project: props.projectId,
-          query: `replayId:${props.replayId}`,
+          query: `replayId:${props.replayId.replaceAll('-', '')}`,
         },
       });
 
@@ -78,7 +78,7 @@ function IssueList(props: Props) {
           query: {
             project: props.projectId,
             groups: issues[0]?.map(issue => issue.id),
-            query: `replayId:${props.replayId}`,
+            query: `replayId:${props.replayId.replaceAll('-', '')}`,
           },
         }
       );
