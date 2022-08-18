@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
-import DropdownMenu from 'sentry/components/dropdownMenu';
+import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import Hook from 'sentry/components/hook';
 import SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import {IconQuestion} from 'sentry/icons';
@@ -18,7 +18,7 @@ type Props = Pick<CommonSidebarProps, 'collapsed' | 'hidePanel' | 'orientation'>
 };
 
 const SidebarHelp = ({orientation, collapsed, hidePanel, organization}: Props) => (
-  <DropdownMenu>
+  <DeprecatedDropdownMenu>
     {({isOpen, getActorProps, getMenuProps}) => (
       <HelpRoot>
         <HelpActor {...getActorProps({onClick: hidePanel})}>
@@ -49,7 +49,7 @@ const SidebarHelp = ({orientation, collapsed, hidePanel, organization}: Props) =
         )}
       </HelpRoot>
     )}
-  </DropdownMenu>
+  </DeprecatedDropdownMenu>
 );
 
 export default SidebarHelp;

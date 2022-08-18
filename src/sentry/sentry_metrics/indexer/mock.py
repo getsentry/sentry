@@ -58,7 +58,7 @@ class RawSimpleIndexer(StringIndexer):
         strs = self._strings[org_id]
         return strs.get(string)
 
-    def reverse_resolve(self, use_case_id: UseCaseKey, id: int) -> Optional[str]:
+    def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
         return self._reverse.get(id)
 
     def _record(self, org_id: int, string: str) -> Optional[int]:

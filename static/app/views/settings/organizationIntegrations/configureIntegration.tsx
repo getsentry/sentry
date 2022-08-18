@@ -2,8 +2,12 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import Access from 'sentry/components/acl/access';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import List from 'sentry/components/list';
@@ -11,9 +15,15 @@ import ListItem from 'sentry/components/list/listItem';
 import NavTabs from 'sentry/components/navTabs';
 import {IconAdd, IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {IntegrationProvider, IntegrationWithConfig, Organization} from 'sentry/types';
+import {
+  IntegrationProvider,
+  IntegrationWithConfig,
+  Organization,
+  PluginWithProjectList,
+} from 'sentry/types';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {singleLineRenderer} from 'sentry/utils/marked';
+import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 import AddIntegration from 'sentry/views/organizationIntegrations/addIntegration';
@@ -34,6 +44,7 @@ type RouteParams = {
   providerKey: string;
 };
 type Props = RouteComponentProps<RouteParams, {}> & {
+  api: Client;
   organization: Organization;
 };
 
@@ -42,8 +53,10 @@ type Tab = 'repos' | 'codeMappings' | 'userMappings' | 'teamMappings' | 'setting
 type State = AsyncView['state'] & {
   config: {providers: IntegrationProvider[]};
   integration: IntegrationWithConfig;
+  plugins: PluginWithProjectList[] | null;
   tab?: Tab;
 };
+
 class ConfigureIntegration extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId, integrationId} = this.props.params;
@@ -51,6 +64,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
     return [
       ['config', `/organizations/${orgId}/config/integrations/`],
       ['integration', `/organizations/${orgId}/integrations/${integrationId}/`],
+      ['plugins', `/organizations/${orgId}/plugins/configs/`],
     ];
   }
 
@@ -126,8 +140,36 @@ class ConfigureIntegration extends AsyncView<Props, State> {
     this.setState(this.getDefaultState(), this.fetchData);
   };
 
+  handleJiraMigration = async () => {
+    try {
+      const {
+        params: {orgId, integrationId},
+      } = this.props;
+
+      await this.api.requestPromise(
+        `/organizations/${orgId}/integrations/${integrationId}/issues/`,
+        {
+          method: 'PUT',
+          data: {},
+        }
+      );
+      this.setState(
+        {
+          plugins: (this.state.plugins || []).filter(({id}) => id === 'jira'),
+        },
+        () => addSuccessMessage(t('Migration in progress.'))
+      );
+    } catch (error) {
+      addErrorMessage(t('Something went wrong! Please try again.'));
+    }
+  };
   getAction = (provider: IntegrationProvider | undefined) => {
-    const {integration} = this.state;
+    const {integration, plugins} = this.state;
+    const shouldMigrateJiraPlugin =
+      provider &&
+      ['jira', 'jira_server'].includes(provider.key) &&
+      (plugins || []).find(({id}) => id === 'jira');
+
     const action =
       provider && provider.key === 'pagerduty' ? (
         <AddIntegration
@@ -147,6 +189,41 @@ class ConfigureIntegration extends AsyncView<Props, State> {
             </Button>
           )}
         </AddIntegration>
+      ) : shouldMigrateJiraPlugin ? (
+        <Access access={['org:integrations']}>
+          {({hasAccess}) => (
+            <Confirm
+              disabled={!hasAccess}
+              header="Migrate Linked Issues from Jira Plugins"
+              renderMessage={() => (
+                <Fragment>
+                  <p>
+                    {t(
+                      'This will automatically associate all the Linked Issues of your Jira Plugins to this integration.'
+                    )}
+                  </p>
+                  <p>
+                    {t(
+                      'If the Jira Plugins had the option checked to automatically create a Jira ticket for every new Sentry issue checked, you will need to create alert rules to recreate this behavior. Jira Server does not have this feature.'
+                    )}
+                  </p>
+                  <p>
+                    {t(
+                      'Once the migration is complete, your Jira Plugins will be disabled.'
+                    )}
+                  </p>
+                </Fragment>
+              )}
+              onConfirm={() => {
+                this.handleJiraMigration();
+              }}
+            >
+              <Button priority="primary" size="md" disabled={!hasAccess}>
+                {t('Migrate Plugin')}
+              </Button>
+            </Confirm>
+          )}
+        </Access>
       ) : null;
 
     return action;
@@ -302,7 +379,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
   }
 }
 
-export default withOrganization(ConfigureIntegration);
+export default withOrganization(withApi(ConfigureIntegration));
 
 const CapitalizedLink = styled('a')`
   text-transform: capitalize;
