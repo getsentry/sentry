@@ -5,7 +5,7 @@ from django.utils import timezone
 from sentry import features
 from sentry.models import Activity, Release, ReleaseActivity, ReleaseCommit
 from sentry.notifications.notifications.activity.release_summary import (
-    ReleaseSummaryActivityNotification,
+    ActiveReleaseSummaryNotification,
 )
 from sentry.notifications.utils.participants import _get_release_committers
 from sentry.tasks.base import instrumented_task
@@ -55,7 +55,7 @@ def prepare_release_summary():
         if not activity:
             continue
 
-        release_summary = ReleaseSummaryActivityNotification(activity)
+        release_summary = ActiveReleaseSummaryNotification(activity)
         release_summary.send()
         if features.has("organizations:active-release-monitor-alpha", release.organization):
             ReleaseActivity.objects.create(
