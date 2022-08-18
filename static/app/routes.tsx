@@ -1046,7 +1046,7 @@ function buildRoutes() {
 
   const replayRoutes = (
     <Route
-      path="/organizations/:orgSlug/replays/"
+      path="/organizations/:orgId/replays/"
       component={make(() => import('sentry/views/replays'))}
     >
       <IndexRoute component={make(() => import('sentry/views/replays/replays'))} />

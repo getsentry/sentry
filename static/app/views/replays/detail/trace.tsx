@@ -16,9 +16,9 @@ import {
   makeEventView,
 } from 'sentry/utils/performance/quickTrace/utils';
 import useApi from 'sentry/utils/useApi';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import {useLocation} from 'sentry/utils/useLocation';
 import TraceView from 'sentry/views/performance/traceDetails/traceView';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayListLocationQuery, ReplayRecord} from 'sentry/views/replays/types';
 
 type State = {
   /**
@@ -60,12 +60,10 @@ const INITIAL_STATE = Object.freeze({
 export default function Trace({replayRecord, organization}: Props) {
   const [state, setState] = useState<State>(INITIAL_STATE);
   const api = useApi();
+  const location = useLocation<ReplayListLocationQuery>();
 
-  const {
-    location,
-    params: {replaySlug, orgSlug},
-  } = useRouteContext();
-  const [, eventId] = replaySlug.split(':');
+  const replayId = replayRecord.id;
+  const orgSlug = organization.slug;
 
   const start = getUtcDateString(replayRecord.startedAt.getTime());
   const end = getUtcDateString(replayRecord.finishedAt.getTime());
@@ -74,10 +72,10 @@ export default function Trace({replayRecord, organization}: Props) {
     async function loadTraces() {
       const eventView = EventView.fromSavedQuery({
         id: undefined,
-        name: `Traces in replay ${eventId}`,
+        name: `Traces in replay ${replayId}`,
         fields: ['trace', 'count(trace)', 'min(timestamp)'],
         orderby: 'min_timestamp',
-        query: `replayId:${eventId} !title:"sentry-replay-event*"`,
+        query: `replayId:${replayId} !title:"sentry-replay-event*"`,
         projects: [ALL_ACCESS_PROJECTS],
         version: 2,
 
@@ -129,7 +127,7 @@ export default function Trace({replayRecord, organization}: Props) {
     loadTraces();
 
     return () => {};
-  }, [api, eventId, orgSlug, location, start, end]);
+  }, [api, replayId, orgSlug, location, start, end]);
 
   if (state.isLoading) {
     return <LoadingIndicator />;
