@@ -365,7 +365,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 ("user.email", "username@example.com"),
                 ("user.ipAddress", "127.0.0.1"),
                 ("sdk.name", "sentry.javascript.react"),
-                ("sdk.version", "6.18.10"),
                 ("os.name", "macOS"),
                 ("os.version", "15"),
                 ("browser.name", "Firefox"),
