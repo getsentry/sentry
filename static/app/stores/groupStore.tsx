@@ -140,7 +140,7 @@ const storeConfig: GroupStoreDefinition = {
 
     this.items = [...this.items, ...newItems];
 
-    this.trigger(this.getAllItemIds());
+    this.trigger(new Set(items.map(item => item.id)));
   },
 
   /**
@@ -152,7 +152,7 @@ const storeConfig: GroupStoreDefinition = {
 
     this.items = [...items, ...this.items.filter(item => !itemMap[item.id])];
 
-    this.trigger(this.getAllItemIds());
+    this.trigger(new Set(items.map(item => item.id)));
   },
 
   /**
