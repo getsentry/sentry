@@ -10,7 +10,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {Hovercard} from 'sentry/components/hovercard';
 import {Panel} from 'sentry/components/panels';
-import SidebarSection from 'sentry/components/sidebarSection';
+import * as SidebarSection from 'sentry/components/sidebarSection';
 import {IconClose, IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -114,8 +114,8 @@ const OwnershipRules = ({
   );
 
   return (
-    <SidebarSection
-      title={
+    <SidebarSection.Wrap>
+      <SidebarSection.Title>
         <Fragment>
           {t('Ownership Rules')}
           <ClassNames>
@@ -147,10 +147,11 @@ const OwnershipRules = ({
             )}
           </ClassNames>
         </Fragment>
-      }
-    >
-      {showCTA ? codeOwnersCTA : createRuleButton}
-    </SidebarSection>
+      </SidebarSection.Title>
+      <SidebarSection.Content>
+        {showCTA ? codeOwnersCTA : createRuleButton}
+      </SidebarSection.Content>
+    </SidebarSection.Wrap>
   );
 };
 

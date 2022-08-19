@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import SuggestedOwnerHovercard from 'sentry/components/group/suggestedOwnerHovercard';
-import SidebarSection from 'sentry/components/sidebarSection';
+import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Actor, Commit, Organization, Release} from 'sentry/types';

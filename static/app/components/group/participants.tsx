@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
-import SidebarSection from 'sentry/components/sidebarSection';
+import * as SidebarSection from 'sentry/components/sidebarSection';
 import {tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Group} from 'sentry/types';
@@ -11,15 +11,20 @@ type Props = {
 };
 
 const GroupParticipants = ({participants}: Props) => (
-  <SidebarSection title={tn('%s Participant', '%s Participants', participants.length)}>
-    <Faces>
-      {participants.map(user => (
-        <Face key={user.username}>
-          <UserAvatar size={28} user={user} hasTooltip />
-        </Face>
-      ))}
-    </Faces>
-  </SidebarSection>
+  <SidebarSection.Wrap>
+    <SidebarSection.Title>
+      {tn('%s Participant', '%s Participants', participants.length)}
+    </SidebarSection.Title>
+    <SidebarSection.Content>
+      <Faces>
+        {participants.map(user => (
+          <Face key={user.username}>
+            <UserAvatar size={28} user={user} hasTooltip />
+          </Face>
+        ))}
+      </Faces>
+    </SidebarSection.Content>
+  </SidebarSection.Wrap>
 );
 
 export default GroupParticipants;
