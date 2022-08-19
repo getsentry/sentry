@@ -36,6 +36,17 @@ def function_pubsub_name(funcId):
     return f"projects/{settings.SENTRY_FUNCTIONS_PROJECT_NAME}/topics/fn-{funcId}"
 
 
+def project_location_function_name(include_proj, include_loc, include_func, funcId=None):
+    return_value = ""
+    if include_proj:
+        return_value += f"projects/{settings.SENTRY_FUNCTIONS_PROJECT_NAME}/"
+    if include_loc:
+        return_value += f"locations/{settings.SENTRY_FUNCTIONS_REGION}/"
+    if include_func:
+        return_value += f"functions/fn-{funcId}"
+    return return_value
+
+
 def create_function_pubsub_topic(funcId):
     logger = logging.getLogger("sentry.functions")
     logger.info(f"Created topic {function_pubsub_name(funcId)}")
@@ -57,7 +68,7 @@ def upload_function_files(client, code, env_variables):
 
     upload_url = client.generate_upload_url(
         request=GenerateUploadUrlRequest(
-            parent=f"projects/{settings.SENTRY_FUNCTIONS_PROJECT_NAME}/locations/{settings.SENTRY_FUNCTIONS_REGION}"
+            parent=project_location_function_name(True, True, False),
         )
     ).upload_url
     requests.put(
@@ -74,7 +85,7 @@ def create_function(code, funcId, description, env_variables):
     upload_url = upload_function_files(client, code, env_variables)
     client.create_function(
         function=CloudFunction(
-            name=f"projects/{settings.SENTRY_FUNCTIONS_PROJECT_NAME}/locations/{settings.SENTRY_FUNCTIONS_REGION}/functions/fn-{funcId}",
+            name=project_location_function_name(True, True, True, funcId),
             description=description,
             source_upload_url=upload_url,
             runtime="nodejs16",
@@ -85,7 +96,7 @@ def create_function(code, funcId, description, env_variables):
             ),
             environment_variables=env_variables,
         ),
-        location=f"projects/{settings.SENTRY_FUNCTIONS_PROJECT_NAME}/locations/{settings.SENTRY_FUNCTIONS_REGION}",
+        location=project_location_function_name(True, True, False),
     )
 
 
@@ -95,7 +106,7 @@ def update_function(code, funcId, description, env_variables):
     client.update_function(
         request=UpdateFunctionRequest(
             function=CloudFunction(
-                name=f"projects/{settings.SENTRY_FUNCTIONS_PROJECT_NAME}/locations/{settings.SENTRY_FUNCTIONS_REGION}/functions/fn-{funcId}",
+                name=project_location_function_name(True, True, True, funcId),
                 description=description,
                 source_upload_url=upload_url,
                 runtime="nodejs16",
@@ -115,7 +126,7 @@ def delete_function(funcId):
     client = CloudFunctionsServiceClient()
     client.delete_function(
         request=DeleteFunctionRequest(
-            name=f"projects/{settings.SENTRY_FUNCTIONS_PROJECT_NAME}/locations/{settings.SENTRY_FUNCTIONS_REGION}/functions/fn-{funcId}",
+            name=project_location_function_name(True, True, True, funcId),
         ),
     )
 
