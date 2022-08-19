@@ -16,6 +16,7 @@ from snuba_sdk import (
     Query,
     Request,
 )
+from snuba_sdk.expressions import Expression
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.utils.snuba import raw_snql_query
@@ -123,7 +124,7 @@ def query_replays_dataset(
 def make_select_statement() -> List[Union[Column, Function]]:
     """Return the selection that forms the base of our replays response payload."""
     return [
-        Column("replay_id"),
+        _strip_uuid_dashes("replay_id", Column("replay_id")),
         # First, non-null value of a collected array.
         _grouped_unique_scalar_value(column_name="title"),
         Function(
@@ -166,7 +167,7 @@ def make_select_statement() -> List[Union[Column, Function]]:
             parameters=[
                 Lambda(
                     ["trace_id"],
-                    Function("toString", parameters=[Identifier("trace_id")]),
+                    _strip_uuid_dashes("trace_id", Identifier("trace_id")),
                 ),
                 Function(
                     "groupUniqArrayArray",
@@ -178,10 +179,7 @@ def make_select_statement() -> List[Union[Column, Function]]:
         Function(
             "arrayMap",
             parameters=[
-                Lambda(
-                    ["error_id"],
-                    Function("toString", parameters=[Identifier("error_id")]),
-                ),
+                Lambda(["error_id"], _strip_uuid_dashes("error_id", Identifier("error_id"))),
                 Function(
                     "groupUniqArrayArray",
                     parameters=[Column("error_ids")],
@@ -283,3 +281,16 @@ def _coerce_to_integer_default(value: Optional[str], default: int) -> int:
         return int(value)
     except (ValueError, TypeError):
         return default
+
+
+def _strip_uuid_dashes(
+    input_name: str,
+    input_value: Expression,
+    alias: Optional[str] = None,
+    aliased: bool = True,
+):
+    return Function(
+        "replaceAll",
+        parameters=[Function("toString", parameters=[input_value]), "-", ""],
+        alias=alias or input_name if aliased else None,
+    )

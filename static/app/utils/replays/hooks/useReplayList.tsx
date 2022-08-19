@@ -58,7 +58,10 @@ function useReplayList({eventView, organization}: Options): Result {
 
       const [{data: records}, _textStatus, resp] = await api.requestPromise(path, {
         includeAllArgs: true,
-        query: eventView.getEventsAPIPayload(location),
+        query: {
+          ...eventView.getEventsAPIPayload(location),
+          cursor: location.query.cursor,
+        },
       });
 
       const pageLinks = resp?.getResponseHeader('Link') ?? '';
