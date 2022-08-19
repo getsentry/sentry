@@ -37,7 +37,8 @@ def function_pubsub_name(funcId):
 
 
 def create_function_pubsub_topic(funcId):
-    logging.info(f"Created topic {function_pubsub_name(funcId)}")
+    logger = logging.getLogger("sentry.functions")
+    logger.info(f"Created topic {function_pubsub_name(funcId)}")
     publisher = PublisherClient()
     publisher.create_topic(name=function_pubsub_name(funcId))
 
