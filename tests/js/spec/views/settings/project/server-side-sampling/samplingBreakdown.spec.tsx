@@ -20,7 +20,7 @@ describe('Server-Side Sampling - SamplingBreakdown', function () {
 
     expect(
       screen.getByText(
-        'There were no traces initiated from this project in the last 24 hours.'
+        'There were no traces initiated from this project in the last 30 days.'
       )
     ).toBeInTheDocument();
   });

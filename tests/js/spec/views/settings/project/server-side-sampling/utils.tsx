@@ -154,6 +154,8 @@ export const mockedSamplingDistribution: SamplingDistribution = {
     p95: 1,
     p99: 1,
   },
+  startTimestamp: '2017-08-04T07:52:11Z',
+  endTimestamp: '2017-08-05T07:52:11Z',
 };
 
 jest.mock('sentry/views/settings/project/server-side-sampling/utils/useProjectStats');
