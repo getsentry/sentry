@@ -20,6 +20,11 @@ function ReplayHighlight({replay}: Props) {
     const pagesVisitedOverTime = pagesVisited / (duration || 1);
 
     score = (countErrors * 25 + pagesVisited * 5 + pagesVisitedOverTime) / 10;
+    // negatively score sub 5 second replays
+    if (duration <= 5) {
+      score = score - 10 / (duration || 1);
+    }
+
     score = Math.floor(Math.min(10, Math.max(1, score)));
   }
 
