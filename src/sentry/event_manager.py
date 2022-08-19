@@ -2029,9 +2029,9 @@ def save_transaction_events(jobs, projects):
         for job in jobs:
             job["project_id"] = job["data"]["project"]
             job["raw"] = False
-            # job["group"] = None <- these are now set in _get_or_create_performance_group
-            # job["is_new"] = False
-            # job["is_regression"] = False
+            job["group"] = None
+            job["is_new"] = False
+            job["is_regression"] = False
             job["is_new_group_environment"] = False
 
     _pull_out_data(jobs, projects)
