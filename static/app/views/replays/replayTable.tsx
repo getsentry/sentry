@@ -35,16 +35,47 @@ type RowProps = {
   showProjectColumn: boolean;
 };
 
-function ReplayTable({isFetching, replays, showProjectColumn, sort}: Props) {
+function SortableHeader({
+  fieldName,
+  label,
+  sort,
+}: {
+  fieldName: string;
+  label: string;
+  sort: Sort;
+}) {
   const location = useLocation<ReplayListLocationQuery>();
-  const organization = useOrganization();
-  const theme = useTheme();
-  const minWidthIsSmall = useMedia(`(min-width: ${theme.breakpoints.small})`);
-
-  const {pathname} = location;
 
   const arrowDirection = sort.kind === 'asc' ? 'up' : 'down';
   const sortArrow = <IconArrow color="gray300" size="xs" direction={arrowDirection} />;
+
+  return (
+    <SortLink
+      role="columnheader"
+      aria-sort={
+        sort.field.endsWith(fieldName)
+          ? sort.kind === 'asc'
+            ? 'ascending'
+            : 'descending'
+          : 'none'
+      }
+      to={{
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          sort: sort.kind === 'desc' ? fieldName : '-' + fieldName,
+        },
+      }}
+    >
+      {label} {sort.field === fieldName && sortArrow}
+    </SortLink>
+  );
+}
+
+function ReplayTable({isFetching, replays, showProjectColumn, sort}: Props) {
+  const organization = useOrganization();
+  const theme = useTheme();
+  const minWidthIsSmall = useMedia(`(min-width: ${theme.breakpoints.small})`);
 
   return (
     <StyledPanelTable
@@ -53,49 +84,33 @@ function ReplayTable({isFetching, replays, showProjectColumn, sort}: Props) {
       showProjectColumn={showProjectColumn}
       headers={[
         t('Session'),
-        showProjectColumn && minWidthIsSmall ? t('Project') : null,
-        <SortLink
+        showProjectColumn && minWidthIsSmall ? (
+          <SortableHeader
+            key="projectId"
+            sort={sort}
+            fieldName="projectId"
+            label={t('Project')}
+          />
+        ) : null,
+        <SortableHeader
           key="startedAt"
-          role="columnheader"
-          aria-sort={
-            sort.field === 'startedAt'
-              ? sort.kind === 'asc'
-                ? 'ascending'
-                : 'descending'
-              : 'none'
-          }
-          to={{
-            pathname,
-            query: {
-              ...location.query,
-              sort: sort.kind === 'desc' ? 'startedAt' : '-startedAt',
-            },
-          }}
-        >
-          {t('Start Time')} {sort.field.endsWith('startedAt') && sortArrow}
-        </SortLink>,
-        <SortLink
+          sort={sort}
+          fieldName="startedAt"
+          label={t('Start Time')}
+        />,
+        <SortableHeader
           key="duration"
-          role="columnheader"
-          aria-sort={
-            sort.field.endsWith('duration')
-              ? sort.kind === 'asc'
-                ? 'ascending'
-                : 'descending'
-              : 'none'
-          }
-          to={{
-            pathname,
-            query: {
-              ...location.query,
-              sort: sort.kind === 'desc' ? 'duration' : '-duration',
-            },
-          }}
-        >
-          {t('Duration')} {sort.field === 'duration' && sortArrow}
-        </SortLink>,
-        t('Errors'),
-        t('Interest'),
+          sort={sort}
+          fieldName="duration"
+          label={t('Duration')}
+        />,
+        <SortableHeader
+          key="countErrors"
+          sort={sort}
+          fieldName="countErrors"
+          label={t('Errors')}
+        />,
+        t('Activity'),
       ].filter(Boolean)}
     >
       {replays?.map(replay => (
