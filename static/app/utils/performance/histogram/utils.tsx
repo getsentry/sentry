@@ -40,7 +40,9 @@ export function matchBinSize(
       binCount += bins.smallerWidth[smallerBinIndex].count;
       smallerBinIndex++;
     }
-    updatedBin.push({bin: currentBinMax, count: binCount});
+    if (binCount) {
+      updatedBin.push({bin: currentBinMax, count: binCount});
+    }
     largerBinIndex++;
   }
   if (data1 === bins.smallerWidth) {

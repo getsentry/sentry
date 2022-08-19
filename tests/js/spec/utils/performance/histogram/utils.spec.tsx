@@ -50,4 +50,13 @@ describe('matchBinSize()', () => {
       expect(updatedData1[1].count).toBe(12);
     });
   });
+
+  describe('when a bin is empty', () => {
+    it('should skip the bin', () => {
+      data1[0].count = 0;
+      data1[1].count = 0;
+      const [updatedData1] = matchBinSize(data1, data2);
+      expect(updatedData1[0].bin).toBe(10);
+    });
+  });
 });
