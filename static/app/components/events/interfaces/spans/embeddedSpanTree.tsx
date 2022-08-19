@@ -111,6 +111,7 @@ export function EmbeddedSpanTree(props: Props) {
                       focusedSpanIds
                     )
                   }
+                  isEmbedded
                 />
               </Section>
             </Wrapper>
