@@ -104,13 +104,14 @@ const IconWrapper = styled('div')<Required<Pick<SVGIconProps, 'color'>>>`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
   border-radius: 50%;
   color: ${p => p.theme.white};
   background: ${p => p.theme[p.color] ?? p.color};
   box-shadow: ${p => p.theme.dropShadowLightest};
-  z-index: 1;
+  z-index: 2;
 `;
 
 const UnstyledButton = styled('button')`
@@ -150,8 +151,9 @@ const StepConnector = styled('div')`
   position: absolute;
   height: 100%;
   top: 28px;
-  left: 27px;
-  border-right: 1px ${p => p.theme.border} dashed;
+  left: 29px;
+  border-right: 1px ${p => p.theme.border} solid;
+  z-index: 1;
 `;
 
 export default DomMutations;
