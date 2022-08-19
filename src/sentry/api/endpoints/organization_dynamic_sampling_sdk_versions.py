@@ -46,18 +46,18 @@ class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
     private = True
 
     @staticmethod
-    def __parse_query_bounds(query_start, query_end):
+    def __validate_query_bounds(query_start, query_end):
         if not query_start or not query_end:
-            raise QueryBoundsException("start and end are required")
+            raise QueryBoundsException("'start' and 'end' are required")
 
         query_start = ensure_aware(parse_date(query_start))
         query_end = ensure_aware(parse_date(query_end))
 
         if query_start > query_end:
-            raise QueryBoundsException("start has to be before end")
+            raise QueryBoundsException("'start' has to be before 'end'")
 
         if query_end - query_start > timedelta(days=1):
-            raise QueryBoundsException("start and end have to be a maximum of 1 day apart")
+            raise QueryBoundsException("'start' and 'end' have to be a maximum of 1 day apart")
 
         stats_period = query_end - query_start
         # Quantize time boundary down so that during a 5-minute interval, the query time boundaries
@@ -104,7 +104,7 @@ class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
         ]
 
         try:
-            query_start, query_end = self.__parse_query_bounds(
+            query_start, query_end = self.__validate_query_bounds(
                 request.GET.get("start"), request.GET.get("end")
             )
         except QueryBoundsException as e:

@@ -239,35 +239,40 @@ class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
 
     def test_no_query_start_or_no_query_end(self):
         self.login_as(self.user)
-        response = self.client.get(
-            f"{self.endpoint}?project={self.project.id}&end=2022-08-07T00:00:02+00:00"
-        )
-        assert response.status_code == 400
-        assert response.json()["detail"] == "start and end are required"
+        with Feature({"organizations:server-side-sampling": True}):
+            response = self.client.get(
+                f"{self.endpoint}?project={self.project.id}&end=2022-08-07T00:00:02+00:00"
+            )
+            assert response.status_code == 400
+            assert response.json()["detail"] == "'start' and 'end' are required"
 
-        response = self.client.get(
-            f"{self.endpoint}?project={self.project.id}&start=2022-08-06T00:02:00+00:00"
-        )
-        assert response.status_code == 400
-        assert response.json()["detail"] == "start and end are required"
+            response = self.client.get(
+                f"{self.endpoint}?project={self.project.id}&start=2022-08-06T00:02:00+00:00"
+            )
+            assert response.status_code == 400
+            assert response.json()["detail"] == "'start' and 'end' are required"
 
     def test_query_start_is_before_query_end(self):
         self.login_as(self.user)
-        response = self.client.get(
-            f"{self.endpoint}?project="
-            f"{self.project.id}&start=2022-08-10T00:02:00+00:00&end=2022-08-07T00:00:02+00:00"
-        )
-        assert response.status_code == 400
-        assert response.json()["detail"] == "start has to be before end"
+        with Feature({"organizations:server-side-sampling": True}):
+            response = self.client.get(
+                f"{self.endpoint}?project="
+                f"{self.project.id}&start=2022-08-10T00:02:00+00:00&end=2022-08-07T00:00:02+00:00"
+            )
+            assert response.status_code == 400
+            assert response.json()["detail"] == "'start' has to be before 'end'"
 
     def test_query_start_and_query_end_are_atmost_one_day_apart(self):
         self.login_as(self.user)
-        response = self.client.get(
-            f"{self.endpoint}?project="
-            f"{self.project.id}&start=2022-08-05T00:02:00+00:00&end=2022-08-07T00:00:02+00:00"
-        )
-        assert response.status_code == 400
-        assert response.json()["detail"] == "start and end have to be a maximum of 1 day apart"
+        with Feature({"organizations:server-side-sampling": True}):
+            response = self.client.get(
+                f"{self.endpoint}?project="
+                f"{self.project.id}&start=2022-08-05T00:02:00+00:00&end=2022-08-07T00:00:02+00:00"
+            )
+            assert response.status_code == 400
+            assert (
+                response.json()["detail"] == "'start' and 'end' have to be a maximum of 1 day apart"
+            )
 
     @mock.patch("sentry.api.endpoints.organization_dynamic_sampling_sdk_versions.discover.query")
     def test_successful_response(self, mock_query):
