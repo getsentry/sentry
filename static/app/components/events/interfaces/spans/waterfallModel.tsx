@@ -10,9 +10,7 @@ import {ActiveOperationFilter, noFilter, toggleAllFilters, toggleFilter} from '.
 import SpanTreeModel from './spanTreeModel';
 import {
   EnhancedProcessedSpanType,
-  EXPANDED_SPANS_KEY,
   FilterSpans,
-  FocusedSpanIDMap,
   IndexedFusedSpan,
   ParsedTraceType,
   RawSpanType,
@@ -35,9 +33,9 @@ class WaterfallModel {
   searchQuery: string | undefined = undefined;
   hiddenSpanSubTrees: Set<string>;
   traceBounds: Array<TraceBound>;
-  focusedSpanIds: FocusedSpanIDMap | undefined = undefined;
+  focusedSpanIds: Set<string> | undefined = undefined;
 
-  constructor(event: Readonly<EventTransaction>, focusedSpanIds?: FocusedSpanIDMap) {
+  constructor(event: Readonly<EventTransaction>, affectedSpanIds?: string[]) {
     this.event = event;
 
     this.parsedTrace = parseTrace(event);
@@ -60,7 +58,7 @@ class WaterfallModel {
     this.hiddenSpanSubTrees = new Set();
 
     // When viewing the span waterfall from a Performance Issue, a set of span IDs may be provided
-    this.focusedSpanIds = focusedSpanIds;
+    this.focusedSpanIds = affectedSpanIds ? new Set(affectedSpanIds) : undefined;
 
     makeObservable(this, {
       parsedTrace: observable,
@@ -324,7 +322,7 @@ class WaterfallModel {
         return;
       }
 
-      this.focusedSpanIds?.[EXPANDED_SPANS_KEY].add(span.span.span_id);
+      this.focusedSpanIds?.add(span.span.span_id);
     });
   };
 }

@@ -12,14 +12,12 @@ import DragManager, {DragManagerChildrenProps} from './dragManager';
 import TraceViewHeader from './header';
 import * as ScrollbarManager from './scrollbarManager';
 import SpanTree from './spanTree';
-import {FocusedSpanIDMap} from './types';
 import {getTraceContext} from './utils';
 import WaterfallModel from './waterfallModel';
 
 type Props = {
   organization: Organization;
   waterfallModel: WaterfallModel;
-  focusedSpanIds?: FocusedSpanIDMap;
 };
 
 class TraceView extends PureComponent<Props> {
@@ -57,7 +55,7 @@ class TraceView extends PureComponent<Props> {
   );
 
   render() {
-    const {organization, waterfallModel, focusedSpanIds} = this.props;
+    const {organization, waterfallModel} = this.props;
 
     if (!getTraceContext(waterfallModel.event)) {
       return (
@@ -103,7 +101,7 @@ class TraceView extends PureComponent<Props> {
                                         viewStart: dragProps.viewWindowStart,
                                         viewEnd: dragProps.viewWindowEnd,
                                       })}
-                                      focusedSpanIds={focusedSpanIds}
+                                      focusedSpanIds={waterfallModel.focusedSpanIds}
                                     />
                                   </CustomerProfiler>
                                 );

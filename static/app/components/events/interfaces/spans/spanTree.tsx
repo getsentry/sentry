@@ -16,7 +16,6 @@ import {
   EnhancedProcessedSpanType,
   EnhancedSpan,
   FilterSpans,
-  FocusedSpanIDMap,
   GroupType,
   ParsedTraceType,
   SpanType,
@@ -31,7 +30,7 @@ type PropType = ScrollbarManagerChildrenProps & {
   spans: EnhancedProcessedSpanType[];
   traceViewRef: React.RefObject<HTMLDivElement>;
   waterfallModel: WaterfallModel;
-  focusedSpanIds?: FocusedSpanIDMap;
+  focusedSpanIds?: Set<string>;
 };
 
 class SpanTree extends Component<PropType> {

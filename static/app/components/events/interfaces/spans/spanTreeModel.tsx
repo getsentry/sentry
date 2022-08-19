@@ -11,7 +11,6 @@ import {
   EnhancedSpan,
   FetchEmbeddedChildrenState,
   FilterSpans,
-  FocusedSpanIDMap,
   OrphanTreeDepth,
   RawSpanType,
   SpanChildrenLookupType,
@@ -26,7 +25,6 @@ import {
   getSpanOperation,
   isEventFromBrowserJavaScriptSDK,
   isOrphanSpan,
-  isSpanIdFocused,
   parseTrace,
   SpanBoundsType,
   SpanGeneratedBoundsType,
@@ -203,7 +201,7 @@ class SpanTreeModel {
     spanNestedGrouping: EnhancedSpan[] | undefined;
     toggleNestedSpanGroup: (() => void) | undefined;
     treeDepth: number;
-    focusedSpanIds?: FocusedSpanIDMap;
+    focusedSpanIds?: Set<string>;
   }): EnhancedProcessedSpanType[] => {
     const {
       operationNameFilters,
@@ -235,10 +233,10 @@ class SpanTreeModel {
 
     if (focusedSpanIds && this.span.span_id in focusedSpanIds) {
       // Since this is a focused span, show this span's direct parent, and also its children
-      directParent && focusedSpanIds[this.span.span_id].add(directParent.span.span_id);
+      directParent && focusedSpanIds.add(directParent.span.span_id);
 
       descendantsSource.forEach(descendant =>
-        focusedSpanIds[this.span.span_id].add(descendant.span.span_id)
+        focusedSpanIds.add(descendant.span.span_id)
       );
     }
 
@@ -451,7 +449,7 @@ class SpanTreeModel {
           group.forEach((spanModel, index) => {
             if (
               this.isSpanFilteredOut(props, spanModel) ||
-              (focusedSpanIds && !isSpanIdFocused(spanModel.span.span_id, focusedSpanIds))
+              (focusedSpanIds && !focusedSpanIds.has(spanModel.span.span_id))
             ) {
               acc.descendants.push({
                 type: 'filtered_out',
@@ -572,7 +570,7 @@ class SpanTreeModel {
 
     if (
       this.isSpanFilteredOut(props, this) ||
-      (focusedSpanIds && !isSpanIdFocused(this.span.span_id, focusedSpanIds))
+      (focusedSpanIds && !focusedSpanIds.has(this.span.span_id))
     ) {
       return [
         {
