@@ -128,6 +128,7 @@ default_manager.add(
 )
 default_manager.add("organizations:performance-extraneous-spans-poc", OrganizationFeature, True)
 default_manager.add("organizations:profiling", OrganizationFeature, True)
+default_manager.add("organizations:profiling-beta", OrganizationFeature)
 default_manager.add("organizations:project-event-date-limit", OrganizationFeature, True)
 default_manager.add("organizations:related-events", OrganizationFeature)
 default_manager.add("organizations:release-comparison-performance", OrganizationFeature, True)
