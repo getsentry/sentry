@@ -1,3 +1,5 @@
+import styled from '@emotion/styled';
+
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -6,7 +8,6 @@ import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {LinkProps} from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import styled from '@emotion/styled';
 
 import {DashboardDetails} from '../types';
 
