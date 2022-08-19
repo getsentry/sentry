@@ -17,6 +17,8 @@ function BasePlayerRoot({className}: Props) {
     dimensions: videoDimensions,
     fastForwardSpeed,
     isBuffering,
+    togglePlayPause,
+    isPlaying,
   } = useReplayContext();
 
   const windowEl = useRef<HTMLDivElement>(null);
@@ -66,6 +68,20 @@ function BasePlayerRoot({className}: Props) {
       }
     }
   }, [windowDimensions, videoDimensions]);
+
+  useEffect(() => {
+    const handleSpacebarPress = (e: KeyboardEvent) => {
+      if (e.key === ' ' || e.code === 'Space') {
+        e.preventDefault();
+        togglePlayPause(!isPlaying);
+      }
+    };
+
+    window.addEventListener('keydown', handleSpacebarPress);
+    return () => {
+      window.removeEventListener('keydown', handleSpacebarPress);
+    };
+  }, [togglePlayPause, isPlaying]);
 
   return (
     <SizingWindow ref={windowEl} className="sr-block">
