@@ -15,7 +15,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
-        self.replay_id = uuid.uuid4()
+        self.replay_id = uuid.uuid4().hex
         self.url = reverse(
             self.endpoint, args=(self.organization.slug, self.project.slug, self.replay_id)
         )
@@ -31,8 +31,8 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
 
     def test_get_one_replay(self):
         """Test only one replay returned."""
-        replay1_id = str(self.replay_id)
-        replay2_id = str(uuid.uuid4())
+        replay1_id = self.replay_id
+        replay2_id = uuid.uuid4().hex
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
         seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
 
@@ -62,8 +62,8 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
 
     def test_get_replay_schema(self):
         """Test replay schema is well-formed."""
-        replay1_id = str(self.replay_id)
-        replay2_id = str(uuid.uuid4())
+        replay1_id = self.replay_id
+        replay2_id = uuid.uuid4().hex
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=25)
         seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=7)
         seq3_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=4)
@@ -88,7 +88,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                 self.project.id,
                 replay1_id,
                 segment_id=1,
-                trace_ids=["2a0dcb0e-a1fb-4350-b266-47ae1aa57dfb"],
+                trace_ids=["2a0dcb0e-a1fb-4350-b2664-7ae1aa57dfb"],
                 urls=["http://www.sentry.io/"],
             )
         )
@@ -98,6 +98,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                 self.project.id,
                 replay1_id,
                 segment_id=2,
+                trace_ids=["2a0dcb0e-a1fb-4350-b2664-7ae1aa57dfb"],
                 urls=["http://localhost:3000/"],
             )
         )
@@ -115,8 +116,8 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                 seq1_timestamp,
                 seq3_timestamp,
                 trace_ids=[
-                    "ffb5344a-41dd-4b21-9288-187a2cd1ad6d",
-                    "2a0dcb0e-a1fb-4350-b266-47ae1aa57dfb",
+                    "2a0dcb0ea1fb4350b266f7ae1aa57dfb",
+                    "ffb5344a41dd4b219288187a2cd1ad6d",
                 ],
                 urls=[
                     "http://localhost:3000/",
