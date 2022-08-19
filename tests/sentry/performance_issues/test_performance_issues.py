@@ -4,6 +4,7 @@ import uuid
 from sentry.event_manager import EventManager
 from sentry.spans.grouping.utils import hash_values
 from sentry.testutils import TestCase
+from sentry.testutils.helpers import override_options
 
 
 def make_event(**kwargs):
@@ -28,6 +29,7 @@ class EventManagerTestMixin:
 class EventManagerTest(TestCase, EventManagerTestMixin):
 
     # GROUPS TESTS
+    @override_options({"incidents-performance.rollout-rate": 1.0})
     def test_transaction_event_type_and_group(self):
         manager = EventManager(
             make_event(
@@ -55,6 +57,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
         group = event.group
         assert group is not None
 
+    @override_options({"incidents-performance.rollout-rate": 1.0})
     def test_transaction_event_span_grouping_and_group(self):
         with self.feature("projects:performance-suspect-spans-ingestion"):
             manager = EventManager(
