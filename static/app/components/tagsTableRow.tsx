@@ -44,11 +44,11 @@ function TagsTableRow({tag, query, generateUrl, meta}: Props) {
         !!valueMetaData && !tag.value ? (
           <AnnotatedText value={tag.value} meta={valueMetaData} />
         ) : keyMetaData?.err?.length ? (
-          <span>{renderTagValue()}</span>
+          <ValueContainer>{renderTagValue()}</ValueContainer>
         ) : tagInQuery ? (
-          <Tooltip title={t('This tag is in the current filter conditions')}>
-            <span>{renderTagValue()}</span>
-          </Tooltip>
+          <StyledTooltip title={t('This tag is in the current filter conditions')}>
+            <ValueContainer>{renderTagValue()}</ValueContainer>
+          </StyledTooltip>
         ) : (
           <StyledTooltip title={renderTagValue()}>
             <Link to={target || ''}>{renderTagValue()}</Link>
@@ -63,4 +63,11 @@ export default TagsTableRow;
 
 const StyledTooltip = styled(Tooltip)`
   ${p => p.theme.overflowEllipsis};
+`;
+
+const ValueContainer = styled('span')`
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: normal;
 `;
