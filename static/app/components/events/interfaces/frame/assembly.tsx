@@ -55,7 +55,7 @@ const AssemblyWrapper = styled('div')`
   color: ${p => p.theme.textColor};
   text-align: center;
   position: relative;
-  padding: 0 ${space(3)} 0 ${space(3)};
+  padding: ${space(0.25)} ${space(3)};
 `;
 
 const AssemblyInfo = styled('div')`

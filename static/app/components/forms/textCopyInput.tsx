@@ -87,19 +87,17 @@ class TextCopyInput extends Component<Props> {
 
     return (
       <Wrapper className={className}>
-        <OverflowContainer>
-          <StyledInput
-            readOnly
-            disabled={disabled}
-            ref={this.textRef}
-            style={style}
-            value={inputValue}
-            onClick={this.handleSelectText}
-            size={size}
-            rtl={rtl}
-            {...inputProps}
-          />
-        </OverflowContainer>
+        <StyledInput
+          readOnly
+          disabled={disabled}
+          ref={this.textRef}
+          style={style}
+          value={inputValue}
+          onClick={this.handleSelectText}
+          size={size}
+          rtl={rtl}
+          {...inputProps}
+        />
         <Clipboard hideUnsupported value={children}>
           <StyledCopyButton
             type="button"
@@ -123,24 +121,21 @@ const Wrapper = styled('div')`
 
 export const StyledInput = styled(Input)<{rtl?: boolean}>`
   position: relative;
-  border-right-width: 0;
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
+  border-right-color: transparent;
   direction: ${p => (p.rtl ? 'rtl' : 'ltr')};
 
   &:focus {
     z-index: 1;
-    border-right-width: 1px;
+    border-right-color: ${p => p.theme.focusBorder};
   }
 `;
 
-const OverflowContainer = styled('div')`
-  flex-grow: 1;
-  border: none;
-`;
-
 export const StyledCopyButton = styled(Button)`
-  flex-shrink: 1;
-  border-radius: 0 0.25em 0.25em 0;
+  flex-shrink: 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
   box-shadow: none;
+  transform: translateX(-1px);
 `;
