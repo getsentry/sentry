@@ -404,7 +404,7 @@ const storeConfig: GroupStoreDefinition = {
       this.pendingChanges.set(changeId, {itemId, data});
     });
 
-    // Emit in onUpdateSuccess to prevent an incomplete update
+    this.trigger(new Set(ids));
   },
 
   onUpdateError(changeId, itemIds, failSilently) {

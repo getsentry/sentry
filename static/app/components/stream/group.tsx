@@ -137,6 +137,10 @@ class StreamGroup extends Component<Props, State> {
     if (!itemIds.has(id)) {
       return;
     }
+    // Ignore onUpdate optimistic update
+    if (GroupStore.hasStatus(id, 'update')) {
+      return;
+    }
 
     const actionTaken = this.state.data.status !== 'unresolved';
     const data = GroupStore.get(id) as Group;
