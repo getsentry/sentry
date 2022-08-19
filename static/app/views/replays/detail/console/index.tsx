@@ -42,6 +42,7 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
     crumbs: breadcrumbs,
     targetTimestampMs: startTimestampMs + currentTime,
     allowExact: true,
+    allowEqual: true,
   });
 
   const closestUserAction =
@@ -50,6 +51,7 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
           crumbs: breadcrumbs,
           targetTimestampMs: startTimestampMs + (currentHoverTime ?? 0),
           allowExact: true,
+          allowEqual: true,
         })
       : undefined;
 
