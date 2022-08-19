@@ -10,13 +10,12 @@ import ButtonBar from 'sentry/components/buttonBar';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {Hovercard} from 'sentry/components/hovercard';
 import {Panel} from 'sentry/components/panels';
+import SidebarSection from 'sentry/components/sidebarSection';
 import {IconClose, IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {CodeOwner, Organization, Project} from 'sentry/types';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-
-import SidebarSection from '../sidebarSection';
 
 type Props = {
   codeowners: CodeOwner[];
@@ -143,7 +142,7 @@ const OwnershipRules = ({
                   align-items: center;
                 `}
               >
-                <StyledIconQuestion size="xs" color="gray200" />
+                <StyledIconQuestion size="sm" color="gray200" />
               </Hovercard>
             )}
           </ClassNames>

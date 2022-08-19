@@ -1,11 +1,10 @@
 import styled from '@emotion/styled';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
+import SidebarSection from 'sentry/components/sidebarSection';
 import {tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Group} from 'sentry/types';
-
-import SidebarSection from './sidebarSection';
 
 type Props = {
   participants: Group['participants'];

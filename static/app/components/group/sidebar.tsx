@@ -16,6 +16,7 @@ import SuggestedOwners from 'sentry/components/group/suggestedOwners/suggestedOw
 import GroupTagDistributionMeter from 'sentry/components/group/tagDistributionMeter';
 import LoadingError from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
+import SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
@@ -29,7 +30,6 @@ import {
 import {Event} from 'sentry/types/event';
 import withApi from 'sentry/utils/withApi';
 
-import SidebarSection from './sidebarSection';
 import SuspectReleases from './suspectReleases';
 
 type Props = {
@@ -211,7 +211,7 @@ class BaseGroupSidebar extends Component<Props, State> {
 
         {this.renderPluginIssue()}
 
-        <SidebarSection title={t('Tags')}>
+        <SidebarSection title={t('Tag Summary')}>
           {!tagsWithTopValues ? (
             <TagPlaceholders>
               <Placeholder height="40px" />

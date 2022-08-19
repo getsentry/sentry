@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Placeholder from 'sentry/components/placeholder';
+import SidebarSection from 'sentry/components/sidebarSection';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -9,8 +10,6 @@ import type {Group, Release} from 'sentry/types';
 
 import AvatarList from '../avatar/avatarList';
 import TimeSince from '../timeSince';
-
-import SidebarSection from './sidebarSection';
 
 type Props = AsyncComponent['props'] & {
   group: Group;
@@ -40,7 +39,7 @@ class SuspectReleases extends AsyncComponent<Props, State> {
     }
 
     return (
-      <SidebarSection secondary title={t('Suspect Releases')}>
+      <SidebarSection title={t('Suspect Releases')}>
         {this.state.suspectReleases?.map(release => (
           <SuspectReleaseWrapper key={release.version}>
             <div>

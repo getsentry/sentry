@@ -8,6 +8,7 @@ import PluginActions from 'sentry/components/group/pluginActions';
 import SentryAppExternalIssueActions from 'sentry/components/group/sentryAppExternalIssueActions';
 import IssueSyncListElement from 'sentry/components/issueSyncListElement';
 import Placeholder from 'sentry/components/placeholder';
+import SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import ExternalIssueStore from 'sentry/stores/externalIssueStore';
 import SentryAppComponentsStore from 'sentry/stores/sentryAppComponentsStore';
@@ -24,8 +25,6 @@ import {
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import withOrganization from 'sentry/utils/withOrganization';
-
-import SidebarSection from './sidebarSection';
 
 type Props = AsyncComponent['props'] & {
   event: Event;
@@ -226,7 +225,7 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
       !sentryAppIssues && !integrationIssues && !pluginIssues && !pluginActions;
 
     return (
-      <SidebarSection secondary data-test-id="linked-issues" title={t('Issue Tracking')}>
+      <SidebarSection data-test-id="linked-issues" title={t('Issue Tracking')}>
         {showSetup && (
           <AlertLink
             priority="muted"

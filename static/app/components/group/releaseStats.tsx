@@ -5,14 +5,13 @@ import AlertLink from 'sentry/components/alertLink';
 import GroupReleaseChart from 'sentry/components/group/releaseChart';
 import SeenInfo from 'sentry/components/group/seenInfo';
 import Placeholder from 'sentry/components/placeholder';
+import SidebarSection from 'sentry/components/sidebarSection';
 import Tooltip from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {CurrentRelease, Environment, Group, Organization, Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
-
-import SidebarSection from './sidebarSection';
 
 type Props = {
   allEnvironments: Group | undefined;
@@ -86,16 +85,15 @@ const GroupReleaseStats = ({
           </GraphContainer>
 
           <SidebarSection
-            secondary
             title={
               <Fragment>
-                {t('Last seen')}
+                {t('Last Seen')}
                 <TooltipWrapper>
                   <Tooltip
                     title={t('When the most recent event in this issue was captured.')}
                     disableForVisualTest
                   >
-                    <IconQuestion size="xs" color="gray200" />
+                    <IconQuestion size="sm" color="gray200" />
                   </Tooltip>
                 </TooltipWrapper>
               </Fragment>
@@ -118,16 +116,15 @@ const GroupReleaseStats = ({
           </SidebarSection>
 
           <SidebarSection
-            secondary
             title={
               <Fragment>
-                {t('First seen')}
+                {t('First Seen')}
                 <TooltipWrapper>
                   <Tooltip
                     title={t('When the first event in this issue was captured.')}
                     disableForVisualTest
                   >
-                    <IconQuestion size="xs" color="gray200" />
+                    <IconQuestion size="sm" color="gray200" />
                   </Tooltip>
                 </TooltipWrapper>
               </Fragment>
@@ -149,7 +146,7 @@ const GroupReleaseStats = ({
             />
           </SidebarSection>
           {!hasRelease ? (
-            <SidebarSection secondary title={t('Releases')}>
+            <SidebarSection title={t('Releases')}>
               <AlertLink priority="muted" size="small" to={releaseTrackingUrl}>
                 {t('See which release caused this issue ')}
               </AlertLink>

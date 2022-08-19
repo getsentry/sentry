@@ -4,11 +4,10 @@ import styled from '@emotion/styled';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import SuggestedOwnerHovercard from 'sentry/components/group/suggestedOwnerHovercard';
+import SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Actor, Commit, Organization, Release} from 'sentry/types';
-
-import SidebarSection from '../sidebarSection';
 
 type Owner = {
   actor: Actor;
@@ -64,6 +63,7 @@ const Subheading = styled('small')`
   line-height: 100%;
   font-weight: 400;
   margin-left: ${space(0.5)};
+  align-self: center;
 `;
 
 const Content = styled('div')`

@@ -24,7 +24,7 @@ function SidebarSection({title, children, icon, ...props}: Props) {
 }
 
 const Wrapper = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(4)};
 `;
 
 const Heading = styled('h6')`
@@ -39,8 +39,6 @@ const IconWrapper = styled('div')`
   margin-left: ${space(0.5)};
 `;
 
-const SectionContent = styled('div')`
-  color: ${p => p.theme.subText};
-`;
+const SectionContent = styled('div')``;
 
 export default SidebarSection;
