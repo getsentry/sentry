@@ -99,7 +99,6 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                     "url": "http://example.com",
                     "sentry:user": "event2@example.com",
                 },
-                "type": GroupType.ERROR.value,
             },
             project_id=self.project.id,
         )
