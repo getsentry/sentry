@@ -36,7 +36,9 @@ def function_pubsub_name(funcId):
     return f"projects/{settings.SENTRY_FUNCTIONS_PROJECT_NAME}/topics/fn-{funcId}"
 
 
-def project_location_function_name(include_proj, include_loc, include_func, funcId=None):
+def project_location_function_name(
+    include_proj=False, include_loc=False, include_func=False, funcId=None
+):
     return_value = ""
     if include_proj:
         return_value += f"projects/{settings.SENTRY_FUNCTIONS_PROJECT_NAME}/"
@@ -68,7 +70,7 @@ def upload_function_files(client, code, env_variables):
 
     upload_url = client.generate_upload_url(
         request=GenerateUploadUrlRequest(
-            parent=project_location_function_name(True, True, False),
+            parent=project_location_function_name(include_proj=True, include_loc=True),
         )
     ).upload_url
     requests.put(
@@ -84,7 +86,7 @@ def create_function(code, funcId, description, env_variables):
     client = CloudFunctionsServiceClient()
     client.create_function(
         function=subcreate_function(client, code, funcId, description, env_variables),
-        location=project_location_function_name(True, True, False),
+        location=project_location_function_name(include_proj=True, include_loc=True),
     )
 
 
@@ -101,7 +103,9 @@ def update_function(code, funcId, description, env_variables):
 def subcreate_function(client, code, funcId, description, env_variables):
     upload_url = upload_function_files(client, code, env_variables)
     return CloudFunction(
-        name=project_location_function_name(True, True, True, funcId),
+        name=project_location_function_name(
+            include_proj=True, include_loc=True, include_func=True, funcId=funcId
+        ),
         description=description,
         source_upload_url=upload_url,
         runtime="nodejs16",
@@ -118,7 +122,9 @@ def delete_function(funcId):
     client = CloudFunctionsServiceClient()
     client.delete_function(
         request=DeleteFunctionRequest(
-            name=project_location_function_name(True, True, True, funcId),
+            name=project_location_function_name(
+                include_proj=True, include_loc=True, include_func=True, funcId=funcId
+            ),
         ),
     )
 
