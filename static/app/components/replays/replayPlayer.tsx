@@ -71,7 +71,10 @@ function BasePlayerRoot({className}: Props) {
 
   useEffect(() => {
     const handleSpacebarPress = (e: KeyboardEvent) => {
-      if (e.key === ' ' || e.code === 'Space') {
+      if (
+        (e.key === ' ' || e.code === 'Space') &&
+        !['TEXTAREA', 'INPUT'].includes(document.activeElement?.tagName ?? '')
+      ) {
         e.preventDefault();
         togglePlayPause(!isPlaying);
       }
