@@ -33,7 +33,7 @@ function DomMutations({replay}: Props) {
           onMouseEnter={() => handleMouseEnter(mutation.crumb)}
           onMouseLeave={() => handleMouseLeave(mutation.crumb)}
         >
-          {actions.length > 1 && <StepConnector />}
+          {i < actions.length - 1 && <StepConnector />}
           <IconWrapper color={mutation.crumb.color}>
             <BreadcrumbIcon type={mutation.crumb.type} />
           </IconWrapper>
