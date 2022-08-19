@@ -11,7 +11,10 @@ import {DateString, EventError, EventTag, Group, Organization} from 'sentry/type
 import EventView from 'sentry/utils/discover/eventView';
 import SpanCountHistogramQuery from 'sentry/utils/performance/histogram/spanCountHistogramQuery';
 import {HistogramData} from 'sentry/utils/performance/histogram/types';
-import {formatHistogramData} from 'sentry/utils/performance/histogram/utils';
+import {
+  formatHistogramData,
+  matchBinSize,
+} from 'sentry/utils/performance/histogram/utils';
 import theme from 'sentry/utils/theme';
 
 interface Props {
@@ -41,7 +44,7 @@ export function SpanCountChart({issue, event, location, organization}: Props) {
   const spanOp = event.contexts.performance_issue.op;
 
   /**
-   * As affected data has larger bins then all data, combines the all data bins to match the affected data bin size.
+   * As affected data has larger bins then all data, combines the all data bins the match the affected data bin size.
    * @param allData echarts histogram data array of all transactions
    * @param affectedData echarts histrogram data array of affected transactions
    * @returns echarts histogram data array
@@ -115,7 +118,9 @@ export function SpanCountChart({issue, event, location, organization}: Props) {
       },
       {
         seriesName: t('All Transaction Count'),
-        data: formatHistogramData(updateBins(allData, affectedData), {type: 'number'}),
+        data: formatHistogramData(matchBinSize(allData, affectedData)[1], {
+          type: 'number',
+        }),
         stack: 'value',
         color: colors[0],
       },

@@ -3,6 +3,52 @@ import {getDuration} from 'sentry/utils/formatters';
 
 import {HistogramData} from './types';
 
+/**
+ * Given two histogram data, matches the bin size between the two histograms
+ * Todo - Make it work for more bin sizes
+ * @param data1 echarts histogram data array
+ * @param data2 echarts histrogram data array
+ * @returns an array of the data with the matched bin size [updated data1, updated data2]
+ */
+export function matchBinSize(
+  data1: HistogramData,
+  data2: HistogramData
+): [HistogramData, HistogramData] {
+  if (!data1.length || !data2.length) {
+    return [data1, data2];
+  }
+
+  const bins = {smallerWidth: data1, largerWidth: data2};
+  if (getBucketWidth(data1) > getBucketWidth(data2)) {
+    bins.largerWidth = data1;
+    bins.smallerWidth = data2;
+  }
+
+  const updatedBin: HistogramData = [];
+  let smallerBinIndex = 0;
+  let largerBinIndex = 0;
+  while (
+    largerBinIndex < bins.largerWidth.length &&
+    smallerBinIndex < bins.smallerWidth.length
+  ) {
+    const currentBinMax = bins.largerWidth[largerBinIndex].bin;
+    let binCount = 0;
+    while (
+      smallerBinIndex < bins.smallerWidth.length &&
+      bins.smallerWidth[smallerBinIndex].bin <= currentBinMax
+    ) {
+      binCount += bins.smallerWidth[smallerBinIndex].count;
+      smallerBinIndex++;
+    }
+    updatedBin.push({bin: currentBinMax, count: binCount});
+    largerBinIndex++;
+  }
+  if (data1 === bins.smallerWidth) {
+    return [updatedBin, data2];
+  }
+  return [data1, updatedBin];
+}
+
 export function getBucketWidth(data: HistogramData) {
   // We can assume that all buckets are of equal width, use the first two
   // buckets to get the width. The value of each histogram function indicates
