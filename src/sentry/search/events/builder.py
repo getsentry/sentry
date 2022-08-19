@@ -173,6 +173,9 @@ class QueryBuilder:
             orderby=orderby,
         )
 
+    def get_default_converter(self) -> Callable[[SearchFilter], Optional[WhereType]]:
+        return self._default_filter_converter
+
     def resolve_time_conditions(self) -> None:
         if self.skip_time_conditions:
             return

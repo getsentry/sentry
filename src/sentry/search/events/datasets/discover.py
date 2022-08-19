@@ -52,6 +52,8 @@ from sentry.search.events.constants import (
     TEAM_KEY_TRANSACTION_ALIAS,
     TIMESTAMP_TO_DAY_ALIAS,
     TIMESTAMP_TO_HOUR_ALIAS,
+    TRACE_PARENT_SPAN_ALIAS,
+    TRACE_PARENT_SPAN_CONTEXT,
     TRANSACTION_STATUS_ALIAS,
     USER_DISPLAY_ALIAS,
     VITAL_THRESHOLDS,
@@ -119,6 +121,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             SEMVER_ALIAS: self._semver_filter_converter,
             SEMVER_PACKAGE_ALIAS: self._semver_package_filter_converter,
             SEMVER_BUILD_ALIAS: self._semver_build_filter_converter,
+            TRACE_PARENT_SPAN_ALIAS: self._trace_parent_span_converter,
         }
 
     @property
@@ -1485,6 +1488,16 @@ class DiscoverDatasetConfig(DatasetConfig):
                 Op.NEQ if search_filter.operator in EQUALITY_OPERATORS else Op.EQ,
                 0,
             )
+
+    def _trace_parent_span_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
+            return Condition(
+                Function("has", [Column("contexts.key"), TRACE_PARENT_SPAN_CONTEXT]),
+                Op.EQ if search_filter.operator == "!=" else Op.NEQ,
+                1,
+            )
+        else:
+            return self.builder.get_default_converter()(search_filter)
 
     def _transaction_status_filter_converter(
         self, search_filter: SearchFilter
