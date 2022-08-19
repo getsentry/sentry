@@ -238,7 +238,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
 
-        query = {"field": ["id"], "query": "has:trace.parent_span"}
+        query = {"field": ["id"], "query": f"trace.parent_span:{'c' * 16}"}
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
