@@ -274,6 +274,7 @@ def regressed_in_release_filter(versions: Sequence[str], projects: Sequence[Proj
         ).values_list("group_id", flat=True),
     )
 
+
 class Condition:
     """\
     Adds a single filter to a ``QuerySet`` object. Used with
@@ -298,8 +299,6 @@ class QCallbackCondition(Condition):
         queryset_method = (
             queryset.filter if search_filter.operator in EQUALITY_OPERATORS else queryset.exclude
         )
-        print("q: ", q)
-        print("queryset_method: ", queryset_method)
         queryset = queryset_method(q)
         return queryset
 
@@ -432,7 +431,6 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         qs_builder_conditions = self._get_queryset_conditions(
             projects, environments, search_filters
         )
-        print("qs_builder_conditions: ", qs_builder_conditions)
         group_queryset = QuerySetBuilder(qs_builder_conditions).build(
             group_queryset, search_filters
         )
@@ -500,7 +498,6 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
         environments: Optional[Sequence[Environment]],
         search_filters: Sequence[SearchFilter],
     ) -> Mapping[str, Condition]:
-        print("search filter: ", search_filters)
         queryset_conditions: Dict[str, Condition] = {
             "status": QCallbackCondition(lambda statuses: Q(status__in=statuses)),
             "bookmarked_by": QCallbackCondition(
@@ -529,7 +526,7 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             ),
             # CEO: add these behind a feature flag
             "category": QCallbackCondition(lambda category: Q(type__in=category)),
-            "type": QCallbackCondition(lambda type: Q(type__in=type)),
+            "type": QCallbackCondition(lambda type: Q(type=type)),
         }
 
         if environments is not None:

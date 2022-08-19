@@ -31,8 +31,9 @@ from sentry.search.snuba.executors import InvalidQueryForExecutor
 from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.faux import Any
-from sentry.utils.snuba import SENTRY_SNUBA_MAP, Dataset, SnubaError
 from sentry.types.issues import GroupType
+from sentry.utils.snuba import SENTRY_SNUBA_MAP, Dataset, SnubaError
+
 
 def date_to_query_format(date):
     return date.strftime("%Y-%m-%dT%H:%M:%S")
@@ -404,6 +405,9 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         results = self.make_query(search_filter_query="category:performance")
         assert set(results) == {group_3}
 
+        with pytest.raises(InvalidSearchQuery):
+            self.make_query(search_filter_query="category:hellboy")
+
     def test_type(self):
         results = self.make_query(search_filter_query="type:error")
         assert set(results) == {self.group1, self.group2}
@@ -439,6 +443,8 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         results = self.make_query(search_filter_query="type:performance_slow_span")
         assert set(results) == {group_4}
 
+        with pytest.raises(InvalidSearchQuery):
+            self.make_query(search_filter_query="type:performance_i_dont_exist")
 
     def test_status_with_environment(self):
         results = self.make_query(

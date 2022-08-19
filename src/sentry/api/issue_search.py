@@ -13,7 +13,7 @@ from sentry.search.utils import (
     parse_status_value,
     parse_user_value,
 )
-from sentry.types.issues import GroupType, GROUP_TYPE_TO_CATEGORY
+from sentry.types.issues import GROUP_CATEGORY_TO_TYPES, GroupCategory, GroupType
 
 is_filter_translation = {
     "assigned": ("unassigned", False),
@@ -92,11 +92,22 @@ def convert_status_value(value, projects, user, environments):
             raise InvalidSearchQuery(f"invalid status value of '{status}'")
     return parsed
 
+
 def convert_category_value(value, projects, user, environments):
-    return [member.value for v in value for member in GroupType if v.upper() == member.name]
+    for category in value:
+        for member in GroupCategory:
+            if category.upper() == member.name:
+                issue_types = GROUP_CATEGORY_TO_TYPES.get(member, [])
+                return [type.value for type in issue_types]
+        raise InvalidSearchQuery(f"Invalid category value of '{category}'")
+
 
 def convert_type_value(value, projects, user, environments):
-    return [category.value for v in value for type, category in GROUP_TYPE_TO_CATEGORY.items() if type.name == v.upper()]
+    for type in value:
+        for member in GroupType:
+            if type.upper() == member.name:
+                return member.value
+        raise InvalidSearchQuery(f"Invalid type value of '{type}'")
 
 
 value_converters = {
