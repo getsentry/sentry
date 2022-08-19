@@ -1,4 +1,4 @@
-import {Fragment, memo, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
@@ -104,335 +104,327 @@ type Props = Pick<React.ComponentProps<typeof EventEntry>, 'route' | 'router'> &
   showTagSummary?: boolean;
 };
 
-const EventEntries = memo(
-  ({
-    organization,
-    project,
-    location,
-    api,
-    event,
-    group,
-    className,
-    router,
-    route,
-    isShare = false,
-    showExampleCommit = false,
-    showTagSummary = true,
-  }: Props) => {
-    const [isLoading, setIsLoading] = useState(true);
-    const [proGuardErrors, setProGuardErrors] = useState<ProGuardErrors>([]);
-    const [attachments, setAttachments] = useState<IssueAttachment[]>([]);
+const EventEntries = ({
+  organization,
+  project,
+  location,
+  api,
+  event,
+  group,
+  className,
+  router,
+  route,
+  isShare = false,
+  showExampleCommit = false,
+  showTagSummary = true,
+}: Props) => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [proGuardErrors, setProGuardErrors] = useState<ProGuardErrors>([]);
+  const [attachments, setAttachments] = useState<IssueAttachment[]>([]);
 
-    const orgSlug = organization.slug;
-    const projectSlug = project.slug;
-    const orgFeatures = organization?.features ?? [];
+  const orgSlug = organization.slug;
+  const projectSlug = project.slug;
+  const orgFeatures = organization?.features ?? [];
 
-    const hasEventAttachmentsFeature = orgFeatures.includes('event-attachments');
-    const replayId = event?.tags?.find(({key}) => key === 'replayId')?.value;
+  const hasEventAttachmentsFeature = orgFeatures.includes('event-attachments');
+  const replayId = event?.tags?.find(({key}) => key === 'replayId')?.value;
 
-    const recordIssueError = useCallback(() => {
-      if (!event || !event.errors || !(event.errors.length > 0)) {
-        return;
+  const recordIssueError = useCallback(() => {
+    if (!event || !event.errors || !(event.errors.length > 0)) {
+      return;
+    }
+
+    const errors = event.errors;
+    const errorTypes = errors.map(errorEntries => errorEntries.type);
+    const errorMessages = errors.map(errorEntries => errorEntries.message);
+
+    const platform = project.platform;
+
+    // uniquify the array types
+    trackAdvancedAnalyticsEvent('issue_error_banner.viewed', {
+      organization: organization as Organization,
+      group: event?.groupID,
+      error_type: uniq(errorTypes),
+      error_message: uniq(errorMessages),
+      ...(platform && {platform}),
+    });
+  }, [event, organization, project.platform]);
+
+  const fetchProguardMappingFiles = useCallback(
+    async (query: string): Promise<Array<DebugFile>> => {
+      try {
+        const proguardMappingFiles = await api.requestPromise(
+          `/projects/${orgSlug}/${projectSlug}/files/dsyms/`,
+          {
+            method: 'GET',
+            query: {
+              query,
+              file_formats: 'proguard',
+            },
+          }
+        );
+        return proguardMappingFiles;
+      } catch (error) {
+        Sentry.captureException(error);
+        // do nothing, the UI will not display extra error details
+        return [];
       }
+    },
+    [api, orgSlug, projectSlug]
+  );
 
-      const errors = event.errors;
-      const errorTypes = errors.map(errorEntries => errorEntries.type);
-      const errorMessages = errors.map(errorEntries => errorEntries.message);
+  const checkProGuardError = useCallback(async () => {
+    if (!event || event.platform !== 'java') {
+      setIsLoading(false);
+      return;
+    }
 
-      const platform = project.platform;
-
-      // uniquify the array types
-      trackAdvancedAnalyticsEvent('issue_error_banner.viewed', {
-        organization: organization as Organization,
-        group: event?.groupID,
-        error_type: uniq(errorTypes),
-        error_message: uniq(errorMessages),
-        ...(platform && {platform}),
-      });
-    }, [event, organization, project.platform]);
-
-    const fetchProguardMappingFiles = useCallback(
-      async (query: string): Promise<Array<DebugFile>> => {
-        try {
-          const proguardMappingFiles = await api.requestPromise(
-            `/projects/${orgSlug}/${projectSlug}/files/dsyms/`,
-            {
-              method: 'GET',
-              query: {
-                query,
-                file_formats: 'proguard',
-              },
-            }
-          );
-          return proguardMappingFiles;
-        } catch (error) {
-          Sentry.captureException(error);
-          // do nothing, the UI will not display extra error details
-          return [];
-        }
-      },
-      [api, orgSlug, projectSlug]
+    const hasEventErrorsProGuardMissingMapping = event.errors?.find(
+      error => error.type === 'proguard_missing_mapping'
     );
 
-    const checkProGuardError = useCallback(async () => {
-      if (!event || event.platform !== 'java') {
+    if (hasEventErrorsProGuardMissingMapping) {
+      setIsLoading(false);
+      return;
+    }
+
+    const newProGuardErrors: ProGuardErrors = [];
+
+    const debugImages = event.entries?.find(e => e.type === EntryType.DEBUGMETA)?.data
+      .images as undefined | Array<Image>;
+
+    // When debugImages contains a 'proguard' entry, it must always be only one entry
+    const proGuardImage = debugImages?.find(
+      debugImage => debugImage?.type === 'proguard'
+    );
+
+    const proGuardImageUuid = proGuardImage?.uuid;
+
+    // If an entry is of type 'proguard' and has 'uuid',
+    // it means that the Sentry Gradle plugin has been executed,
+    // otherwise the proguard id wouldn't be in the event.
+    // But maybe it failed to upload the mappings file
+    if (defined(proGuardImageUuid)) {
+      if (isShare) {
         setIsLoading(false);
         return;
       }
 
-      const hasEventErrorsProGuardMissingMapping = event.errors?.find(
-        error => error.type === 'proguard_missing_mapping'
-      );
+      const proguardMappingFiles = await fetchProguardMappingFiles(proGuardImageUuid);
 
-      if (hasEventErrorsProGuardMissingMapping) {
-        setIsLoading(false);
-        return;
-      }
-
-      const newProGuardErrors: ProGuardErrors = [];
-
-      const debugImages = event.entries?.find(e => e.type === EntryType.DEBUGMETA)?.data
-        .images as undefined | Array<Image>;
-
-      // When debugImages contains a 'proguard' entry, it must always be only one entry
-      const proGuardImage = debugImages?.find(
-        debugImage => debugImage?.type === 'proguard'
-      );
-
-      const proGuardImageUuid = proGuardImage?.uuid;
-
-      // If an entry is of type 'proguard' and has 'uuid',
-      // it means that the Sentry Gradle plugin has been executed,
-      // otherwise the proguard id wouldn't be in the event.
-      // But maybe it failed to upload the mappings file
-      if (defined(proGuardImageUuid)) {
-        if (isShare) {
-          setIsLoading(false);
-          return;
-        }
-
-        const proguardMappingFiles = await fetchProguardMappingFiles(proGuardImageUuid);
-
-        if (!proguardMappingFiles.length) {
-          newProGuardErrors.push({
-            type: 'proguard_missing_mapping',
-            message: projectProcessingIssuesMessages.proguard_missing_mapping,
-            data: {mapping_uuid: proGuardImageUuid},
-          });
-        }
-
-        setProGuardErrors(newProGuardErrors);
-        setIsLoading(false);
-        return;
-      }
-
-      if (proGuardImage) {
-        Sentry.withScope(function (s) {
-          s.setLevel('warning');
-          if (event.sdk) {
-            s.setTag('offending.event.sdk.name', event.sdk.name);
-            s.setTag('offending.event.sdk.version', event.sdk.version);
-          }
-          Sentry.captureMessage('Event contains proguard image but not uuid');
-        });
-      }
-
-      const threads: Array<Thread> =
-        event.entries?.find(e => e.type === EntryType.THREADS)?.data?.values ?? [];
-
-      const bestThread = findBestThread(threads);
-      const hasThreadOrExceptionMinifiedData = hasThreadOrExceptionMinifiedFrameData(
-        event,
-        bestThread
-      );
-
-      if (hasThreadOrExceptionMinifiedData) {
+      if (!proguardMappingFiles.length) {
         newProGuardErrors.push({
-          type: 'proguard_potentially_misconfigured_plugin',
-          message: tct(
-            'Some frames appear to be minified. Did you configure the [plugin]?',
-            {
-              plugin: (
-                <ExternalLink href="https://docs.sentry.io/platforms/android/proguard/#gradle">
-                  Sentry Gradle Plugin
-                </ExternalLink>
-              ),
-            }
-          ),
+          type: 'proguard_missing_mapping',
+          message: projectProcessingIssuesMessages.proguard_missing_mapping,
+          data: {mapping_uuid: proGuardImageUuid},
         });
       }
 
       setProGuardErrors(newProGuardErrors);
       setIsLoading(false);
-    }, [event, fetchProguardMappingFiles, isShare]);
+      return;
+    }
 
-    const fetchAttachments = useCallback(async () => {
-      if (!event || isShare || !hasEventAttachmentsFeature) {
+    if (proGuardImage) {
+      Sentry.withScope(function (s) {
+        s.setLevel('warning');
+        if (event.sdk) {
+          s.setTag('offending.event.sdk.name', event.sdk.name);
+          s.setTag('offending.event.sdk.version', event.sdk.version);
+        }
+        Sentry.captureMessage('Event contains proguard image but not uuid');
+      });
+    }
+
+    const threads: Array<Thread> =
+      event.entries?.find(e => e.type === EntryType.THREADS)?.data?.values ?? [];
+
+    const bestThread = findBestThread(threads);
+    const hasThreadOrExceptionMinifiedData = hasThreadOrExceptionMinifiedFrameData(
+      event,
+      bestThread
+    );
+
+    if (hasThreadOrExceptionMinifiedData) {
+      newProGuardErrors.push({
+        type: 'proguard_potentially_misconfigured_plugin',
+        message: tct(
+          'Some frames appear to be minified. Did you configure the [plugin]?',
+          {
+            plugin: (
+              <ExternalLink href="https://docs.sentry.io/platforms/android/proguard/#gradle">
+                Sentry Gradle Plugin
+              </ExternalLink>
+            ),
+          }
+        ),
+      });
+    }
+
+    setProGuardErrors(newProGuardErrors);
+    setIsLoading(false);
+  }, [event, fetchProguardMappingFiles, isShare]);
+
+  const fetchAttachments = useCallback(async () => {
+    if (!event || isShare || !hasEventAttachmentsFeature) {
+      return;
+    }
+
+    try {
+      const response = await api.requestPromise(
+        `/projects/${orgSlug}/${projectSlug}/events/${event.id}/attachments/`
+      );
+      setAttachments(response);
+    } catch (error) {
+      Sentry.captureException(error);
+      addErrorMessage('An error occurred while fetching attachments');
+    }
+  }, [api, event, hasEventAttachmentsFeature, isShare, orgSlug, projectSlug]);
+
+  const handleDeleteAttachment = useCallback(
+    async (attachmentId: IssueAttachment['id']) => {
+      if (!event) {
         return;
       }
 
       try {
-        const response = await api.requestPromise(
-          `/projects/${orgSlug}/${projectSlug}/events/${event.id}/attachments/`
+        await api.requestPromise(
+          `/projects/${orgSlug}/${projectSlug}/events/${event.id}/attachments/${attachmentId}/`,
+          {
+            method: 'DELETE',
+          }
         );
-        setAttachments(response);
+
+        setAttachments(attachments.filter(attachment => attachment.id !== attachmentId));
       } catch (error) {
         Sentry.captureException(error);
-        addErrorMessage('An error occurred while fetching attachments');
+        addErrorMessage('An error occurred while deleting the attachment');
       }
-    }, [api, event, hasEventAttachmentsFeature, isShare, orgSlug, projectSlug]);
+    },
+    [api, attachments, event, orgSlug, projectSlug]
+  );
 
-    const handleDeleteAttachment = useCallback(
-      async (attachmentId: IssueAttachment['id']) => {
-        if (!event) {
-          return;
-        }
+  useEffect(() => {
+    checkProGuardError();
+  }, [checkProGuardError]);
 
-        try {
-          await api.requestPromise(
-            `/projects/${orgSlug}/${projectSlug}/events/${event.id}/attachments/${attachmentId}/`,
-            {
-              method: 'DELETE',
-            }
-          );
+  useEffect(() => {
+    recordIssueError();
+  }, [recordIssueError]);
 
-          setAttachments(
-            attachments.filter(attachment => attachment.id !== attachmentId)
-          );
-        } catch (error) {
-          Sentry.captureException(error);
-          addErrorMessage('An error occurred while deleting the attachment');
-        }
-      },
-      [api, attachments, event, orgSlug, projectSlug]
-    );
+  useEffect(() => {
+    fetchAttachments();
+  }, [fetchAttachments]);
 
-    useEffect(() => {
-      checkProGuardError();
-    }, [checkProGuardError]);
-
-    useEffect(() => {
-      recordIssueError();
-    }, [recordIssueError]);
-
-    useEffect(() => {
-      fetchAttachments();
-    }, [fetchAttachments]);
-
-    if (!event) {
-      return (
-        <LatestEventNotAvailable>
-          <h3>{t('Latest Event Not Available')}</h3>
-        </LatestEventNotAvailable>
-      );
-    }
-
-    const hasMobileScreenshotsFeature = orgFeatures.includes('mobile-screenshots');
-    const hasContext = !objectIsEmpty(event.user ?? {}) || !objectIsEmpty(event.contexts);
-    const hasErrors = !objectIsEmpty(event.errors) || !!proGuardErrors.length;
-
+  if (!event) {
     return (
-      <div className={className} data-test-id={`event-entries-loading-${isLoading}`}>
-        {hasErrors && !isLoading && (
-          <EventErrors
-            event={event}
-            orgSlug={orgSlug}
-            projectSlug={projectSlug}
-            proGuardErrors={proGuardErrors}
-          />
-        )}
-        {!isShare &&
-          isNotSharedOrganization(organization) &&
-          (showExampleCommit ? (
-            <EventCauseEmpty
-              event={event}
-              organization={organization}
-              project={project}
-            />
-          ) : (
-            <EventCause project={project} event={event} group={group} />
-          ))}
-        {event.userReport && group && (
-          <StyledEventUserFeedback
-            report={event.userReport}
-            orgId={orgSlug}
-            issueId={group.id}
-            includeBorder={!hasErrors}
-          />
-        )}
-        {showTagSummary &&
-          (hasMobileScreenshotsFeature ? (
-            <EventTagsAndScreenshot
-              event={event}
-              organization={organization as Organization}
-              projectId={projectSlug}
-              location={location}
-              isShare={isShare}
-              hasContext={hasContext}
-              attachments={attachments}
-              onDeleteScreenshot={handleDeleteAttachment}
-            />
-          ) : (
-            (!!(event.tags ?? []).length || hasContext) && (
-              <StyledEventDataSection title={t('Tags')} type="tags">
-                {hasContext && <EventContextSummary event={event} />}
-                <EventTags
-                  event={event}
-                  organization={organization as Organization}
-                  projectId={projectSlug}
-                  location={location}
-                />
-              </StyledEventDataSection>
-            )
-          ))}
-        <Entries
-          definedEvent={event}
-          projectSlug={projectSlug}
-          group={group}
-          organization={organization}
-          route={route}
-          router={router}
-        />
-        {hasContext && <EventContexts group={group} event={event} />}
-        {event && !objectIsEmpty(event.context) && <EventExtraData event={event} />}
-        {event && !objectIsEmpty(event.packages) && <EventPackageData event={event} />}
-        {event && !objectIsEmpty(event.device) && <EventDevice event={event} />}
-        {!isShare && hasEventAttachmentsFeature && (
-          <EventAttachments
-            event={event}
-            orgId={orgSlug}
-            projectId={projectSlug}
-            location={location}
-            attachments={attachments}
-            onDeleteAttachment={handleDeleteAttachment}
-          />
-        )}
-        {event.sdk && !objectIsEmpty(event.sdk) && (
-          <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
-        )}
-        {!isShare && event?.sdkUpdates && event.sdkUpdates.length > 0 && (
-          <EventSdkUpdates event={{sdkUpdates: event.sdkUpdates, ...event}} />
-        )}
-        {!isShare && event.groupID && (
-          <EventGroupingInfo
-            projectId={projectSlug}
-            event={event}
-            showGroupingConfig={orgFeatures.includes('set-grouping-config')}
-          />
-        )}
-        {!isShare && (
-          <MiniReplayView
-            event={event}
-            orgFeatures={orgFeatures}
-            orgSlug={orgSlug}
-            projectSlug={projectSlug}
-            replayId={replayId}
-          />
-        )}
-      </div>
+      <LatestEventNotAvailable>
+        <h3>{t('Latest Event Not Available')}</h3>
+      </LatestEventNotAvailable>
     );
   }
-);
+
+  const hasMobileScreenshotsFeature = orgFeatures.includes('mobile-screenshots');
+  const hasContext = !objectIsEmpty(event.user ?? {}) || !objectIsEmpty(event.contexts);
+  const hasErrors = !objectIsEmpty(event.errors) || !!proGuardErrors.length;
+
+  return (
+    <div className={className} data-test-id={`event-entries-loading-${isLoading}`}>
+      {hasErrors && !isLoading && (
+        <EventErrors
+          event={event}
+          orgSlug={orgSlug}
+          projectSlug={projectSlug}
+          proGuardErrors={proGuardErrors}
+        />
+      )}
+      {!isShare &&
+        isNotSharedOrganization(organization) &&
+        (showExampleCommit ? (
+          <EventCauseEmpty event={event} organization={organization} project={project} />
+        ) : (
+          <EventCause project={project} event={event} group={group} />
+        ))}
+      {event.userReport && group && (
+        <StyledEventUserFeedback
+          report={event.userReport}
+          orgId={orgSlug}
+          issueId={group.id}
+          includeBorder={!hasErrors}
+        />
+      )}
+      {showTagSummary &&
+        (hasMobileScreenshotsFeature ? (
+          <EventTagsAndScreenshot
+            event={event}
+            organization={organization as Organization}
+            projectId={projectSlug}
+            location={location}
+            isShare={isShare}
+            hasContext={hasContext}
+            attachments={attachments}
+            onDeleteScreenshot={handleDeleteAttachment}
+          />
+        ) : (
+          (!!(event.tags ?? []).length || hasContext) && (
+            <StyledEventDataSection title={t('Tags')} type="tags">
+              {hasContext && <EventContextSummary event={event} />}
+              <EventTags
+                event={event}
+                organization={organization as Organization}
+                projectId={projectSlug}
+                location={location}
+              />
+            </StyledEventDataSection>
+          )
+        ))}
+      <Entries
+        definedEvent={event}
+        projectSlug={projectSlug}
+        group={group}
+        organization={organization}
+        route={route}
+        router={router}
+      />
+      {hasContext && <EventContexts group={group} event={event} />}
+      {event && !objectIsEmpty(event.context) && <EventExtraData event={event} />}
+      {event && !objectIsEmpty(event.packages) && <EventPackageData event={event} />}
+      {event && !objectIsEmpty(event.device) && <EventDevice event={event} />}
+      {!isShare && hasEventAttachmentsFeature && (
+        <EventAttachments
+          event={event}
+          orgId={orgSlug}
+          projectId={projectSlug}
+          location={location}
+          attachments={attachments}
+          onDeleteAttachment={handleDeleteAttachment}
+        />
+      )}
+      {event.sdk && !objectIsEmpty(event.sdk) && (
+        <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
+      )}
+      {!isShare && event?.sdkUpdates && event.sdkUpdates.length > 0 && (
+        <EventSdkUpdates event={{sdkUpdates: event.sdkUpdates, ...event}} />
+      )}
+      {!isShare && event.groupID && (
+        <EventGroupingInfo
+          projectId={projectSlug}
+          event={event}
+          showGroupingConfig={orgFeatures.includes('set-grouping-config')}
+        />
+      )}
+      {!isShare && (
+        <MiniReplayView
+          event={event}
+          orgFeatures={orgFeatures}
+          orgSlug={orgSlug}
+          projectSlug={projectSlug}
+          replayId={replayId}
+        />
+      )}
+    </div>
+  );
+};
 
 function Entries({
   definedEvent,
