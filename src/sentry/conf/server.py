@@ -1181,6 +1181,8 @@ SENTRY_FEATURES = {
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,
+    # Backend support for supporting performance issue: endpoints, serializers, etc.
+    "projects:performance-issue-details-backend": False,
     # Enable ingestion for suspect spans
     "projects:performance-suspect-spans-ingestion": False,
     # Enable functionality for project plugins.
