@@ -30,8 +30,8 @@ class SnowflakeIdMixin:
             except IntegrityError:
                 self.id = None
 
-        capture_exception(MaxSnowflakeRetryError)
-        raise MaxSnowflakeRetryError
+        capture_exception(MaxSnowflakeRetryError())
+        raise MaxSnowflakeRetryError()
 
 
 @dataclass(frozen=True, eq=True)
