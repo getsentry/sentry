@@ -73,7 +73,6 @@ class NotificationSetting(Model):
             (NotificationSettingTypes.DEPLOY, "deploy"),
             (NotificationSettingTypes.ISSUE_ALERTS, "issue"),
             (NotificationSettingTypes.WORKFLOW, "workflow"),
-            (NotificationSettingTypes.ACTIVE_RELEASE, "activeRelease"),
             (NotificationSettingTypes.APPROVAL, "approval"),
             (NotificationSettingTypes.QUOTA, "quota"),
             (NotificationSettingTypes.QUOTA_ERRORS, "quotaErrors"),

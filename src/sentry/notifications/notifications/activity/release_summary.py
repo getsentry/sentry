@@ -31,9 +31,9 @@ from sentry.utils.http import absolute_uri
 from .base import ActivityNotification
 
 
-class ActiveReleaseSummaryNotification(ActivityNotification):
+class ReleaseSummaryActivityNotification(ActivityNotification):
     metrics_key = "release_summary"
-    notification_setting_type = NotificationSettingTypes.ACTIVE_RELEASE
+    notification_setting_type = NotificationSettingTypes.DEPLOY
     template_path = "sentry/emails/activity/release_summary"
 
     def __init__(self, activity: Activity) -> None:
@@ -76,12 +76,7 @@ class ActiveReleaseSummaryNotification(ActivityNotification):
     def get_participants_with_group_subscription_reason(
         self,
     ) -> Mapping[ExternalProviders, Mapping[Team | User, int]]:
-        return get_participants_for_release(
-            self.projects,
-            self.organization,
-            self.user_ids,
-            self.notification_setting_type,
-        )
+        return get_participants_for_release(self.projects, self.organization, self.user_ids)
 
     def get_users_by_teams(self) -> Mapping[int, list[int]]:
         if not self.user_id_team_lookup:
