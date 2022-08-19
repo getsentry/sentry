@@ -48,11 +48,7 @@ export function SpanCountChart({issue, event, location, organization}: Props) {
       type: 'category' as const,
       truncate: true,
       axisTick: {
-        interval: 5,
         alignWithLabel: true,
-      },
-      axisLine: {
-        onZero: false,
       },
     };
 
@@ -64,10 +60,12 @@ export function SpanCountChart({issue, event, location, organization}: Props) {
 
         contents = seriesData.map(item => {
           const label = item.seriesName;
-          const value = item.value[1].toLocaleString();
+          const value = item.value[1] === 0 ? 0 : Math.exp(item.value[1]);
           return [
             '<div class="tooltip-series">',
-            `<div><span class="tooltip-label">${item.marker} <strong>${label}</strong></span> ${value}</div>`,
+            `<div><span class="tooltip-label">${
+              item.marker
+            } <strong>${label}</strong></span> ${value.toLocaleString()}</div>`,
             '</div>',
           ].join('');
         });
@@ -79,7 +77,17 @@ export function SpanCountChart({issue, event, location, organization}: Props) {
       },
     };
 
-    [affectedData, allData] = matchBinSize(affectedData, allData);
+    [affectedData, allData] = matchBinSize(affectedData, allData, {
+      autoBinWidthIncrease: true,
+    });
+
+    // This is needed as stacked logged values have issues when count === 0
+    const dataLogMapper = ({bin, count}) => ({
+      bin,
+      count: count === 0 ? 0 : Math.log(count),
+    });
+    affectedData = affectedData.map(dataLogMapper);
+    allData = allData.map(dataLogMapper);
 
     const series: BarChartSeries[] = [
       {
@@ -102,7 +110,7 @@ export function SpanCountChart({issue, event, location, organization}: Props) {
       <BarChart
         grid={{left: '0', right: '0', top: '0', bottom: '0'}}
         xAxis={xAxis}
-        yAxis={{type: 'log', show: false}}
+        yAxis={{type: 'value', show: false}}
         series={series}
         tooltip={tooltip}
         colors={colors}

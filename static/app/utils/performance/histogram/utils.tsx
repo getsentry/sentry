@@ -8,47 +8,61 @@ import {HistogramData} from './types';
  * Todo - Make it work for more bin sizes
  * @param data1 echarts histogram data array
  * @param data2 echarts histrogram data array
- * @returns an array of the data with the matched bin size [updated data1, updated data2]
+ * @returns an array of the data with the matched bin size and the updatedsize [updated data1, updated data2, updated size]
  */
 export function matchBinSize(
   data1: HistogramData,
-  data2: HistogramData
-): [HistogramData, HistogramData] {
+  data2: HistogramData,
+  options: {autoBinWidthIncrease?: boolean; newBinWidth?: number} = {}
+): [HistogramData, HistogramData, number] {
   if (!data1.length || !data2.length) {
-    return [data1, data2];
+    return [data1, data2, 0];
+  }
+  let {newBinWidth} = options;
+
+  newBinWidth ??= Math.max(getBucketWidth(data1), getBucketWidth(data2));
+
+  if (options.autoBinWidthIncrease) {
+    const maxBin = Math.max(data1[data1.length - 1].bin, data2[data2.length - 1].bin);
+    const minBin = Math.min(data1[0].bin, data2[0].bin);
+    if ((maxBin - minBin) / newBinWidth > 30) {
+      newBinWidth = Math.round((maxBin - minBin) / 30);
+    }
   }
 
-  const bins = {smallerWidth: data1, largerWidth: data2};
-  if (getBucketWidth(data1) > getBucketWidth(data2)) {
-    bins.largerWidth = data1;
-    bins.smallerWidth = data2;
-  }
+  return [
+    updateBinWidth(data1, newBinWidth),
+    updateBinWidth(data2, newBinWidth),
+    newBinWidth,
+  ];
+}
 
-  const updatedBin: HistogramData = [];
-  let smallerBinIndex = 0;
-  let largerBinIndex = 0;
-  while (
-    largerBinIndex < bins.largerWidth.length &&
-    smallerBinIndex < bins.smallerWidth.length
-  ) {
-    const currentBinMax = bins.largerWidth[largerBinIndex].bin;
+/**
+ * Combines histogram bins in order to increase the bin width
+ * @param data echarts histogram data
+ * @param binWidth new larger bin width
+ * @returns updated histrogram data
+ */
+export function updateBinWidth(
+  data: HistogramData,
+  binWidth: number,
+  startingBin?: number
+): HistogramData {
+  const updatedData: HistogramData = [];
+  let binIndex = 0;
+  let currentBinMax = startingBin || binWidth;
+
+  while (binIndex < data.length) {
     let binCount = 0;
-    while (
-      smallerBinIndex < bins.smallerWidth.length &&
-      bins.smallerWidth[smallerBinIndex].bin <= currentBinMax
-    ) {
-      binCount += bins.smallerWidth[smallerBinIndex].count;
-      smallerBinIndex++;
+    while (binIndex < data.length && data[binIndex].bin <= currentBinMax) {
+      binCount += data[binIndex].count;
+      binIndex++;
     }
-    if (binCount) {
-      updatedBin.push({bin: currentBinMax, count: binCount});
-    }
-    largerBinIndex++;
+    updatedData.push({bin: currentBinMax, count: binCount});
+    currentBinMax += binWidth;
   }
-  if (data1 === bins.smallerWidth) {
-    return [updatedBin, data2];
-  }
-  return [data1, updatedBin];
+
+  return updatedData;
 }
 
 export function getBucketWidth(data: HistogramData) {
