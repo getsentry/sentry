@@ -38,8 +38,6 @@ def function_pubsub_name(funcId):
 
 def create_function_pubsub_topic(funcId):
     logging.info(f"Created topic {function_pubsub_name(funcId)}")
-    logging.info(f"Project name is {SENTRY_FUNCTIONS_PROJECT_NAME}")
-    logging.info(f"Region name is {SENTRY_FUNCTIONS_REGION}")
     publisher = PublisherClient()
     publisher.create_topic(name=function_pubsub_name(funcId))
 
@@ -48,7 +46,7 @@ def upload_function_files(client, code, env_variables):
     f = BytesIO()
     with ZipFile(f, "w") as codezip:
         codezip.writestr("function.js", code)
-        # codezip.writestr("index.js", WRAPPER_JS)
+        codezip.writestr("index.js", WRAPPER_JS)
         codezip.writestr("package.json", json.dumps(PACKAGE_JSON))
         codezip.writestr("env.json", json.dumps(env_variables))
     f.seek(0)
