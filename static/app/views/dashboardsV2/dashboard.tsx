@@ -12,7 +12,6 @@ import {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -48,13 +47,7 @@ import {
   Position,
 } from './layoutUtils';
 import SortableWidget from './sortableWidget';
-import {
-  DashboardDetails,
-  DashboardFilterKeys,
-  DashboardWidgetSource,
-  Widget,
-  WidgetType,
-} from './types';
+import {DashboardDetails, DashboardWidgetSource, Widget, WidgetType} from './types';
 import {getDashboardFiltersFromURL} from './utils';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
@@ -408,10 +401,7 @@ class Dashboard extends Component<Props, State> {
       onEdit: this.handleEditWidget(widget, index),
       onDuplicate: this.handleDuplicateWidget(widget, index),
       isPreview,
-      dashboardFilters: omit(
-        getDashboardFiltersFromURL(location) ?? dashboard.filters,
-        DashboardFilterKeys.RELEASE_ID
-      ),
+      dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
     };
 
     if (organization.features.includes('dashboard-grid-layout')) {
