@@ -254,6 +254,10 @@ def make_sort_ordering(sort: Optional[str]) -> List[OrderBy]:
         orderby = [OrderBy(Column("duration"), Direction.ASC)]
     elif sort == "-duration":
         orderby = [OrderBy(Column("duration"), Direction.DESC)]
+    elif sort == "countErrors":
+        orderby = [OrderBy(Column("countErrors"), Direction.ASC)]
+    elif sort == "-countErrors":
+        orderby = [OrderBy(Column("countErrors"), Direction.DESC)]
     else:
         # By default return the most recent replays.
         orderby = [OrderBy(Column("startedAt"), Direction.DESC)]
