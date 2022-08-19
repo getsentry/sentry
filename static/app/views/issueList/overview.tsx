@@ -695,7 +695,9 @@ class IssueListOverview extends Component<Props, State> {
       // Remove collapse stats from endpoint before supplying to poller
       const issueEndpoint = new URL(links.previous.href, window.location.origin);
       issueEndpoint.searchParams.delete('collapse');
-      this._poller.setEndpoint(decodeURIComponent(issueEndpoint.href));
+      this._poller.setEndpoint(
+        decodeURIComponent(issueEndpoint.pathname + issueEndpoint.search)
+      );
       this._poller.enable();
     }
   };
