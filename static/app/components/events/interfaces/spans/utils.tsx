@@ -785,11 +785,11 @@ export class SpansInViewMap {
   length: number;
   isRootSpanInView: boolean;
 
-  constructor() {
+  constructor(isRootSpanInView: boolean) {
     this.spanDepthsInView = new Map();
     this.treeDepthSum = 0;
     this.length = 0;
-    this.isRootSpanInView = true;
+    this.isRootSpanInView = isRootSpanInView;
   }
 
   /**

@@ -71,6 +71,7 @@ type Props = {
   interactiveLayerRef: React.RefObject<HTMLDivElement>;
 
   dragProps?: DragManagerChildrenProps;
+  isEmbedded?: boolean;
 };
 
 type State = {
@@ -90,17 +91,14 @@ export class Provider extends Component<Props, State> {
 
     const anchoredSpanHash = window.location.hash.split('#')[1];
 
-    // If we're on the issues page, this is an embedded span tree. I know, this is hacky and weird but idk how else to check for this
-    const isEmbeddedSpanTree = window.location.href.includes('issues');
-
     // If the user is opening the span tree with an anchor link provided, we need to continuously reconnect the observers.
     // This is because we need to wait for the window to scroll to the anchored span first, or there will be inconsistencies in
     // the spans that are actually considered in the view. The IntersectionObserver API cannot keep up with the speed
     // at which the window scrolls to the anchored span, and will be unable to register the spans that went out of the view.
     // We stop reconnecting the observers once we've confirmed that the anchored span is in the view (or after a timeout).
 
-    if (anchoredSpanHash || isEmbeddedSpanTree) {
-      // We cannot assume the root is in view to start off, if there is an anchored span or if this is an embedded span tree
+    if (anchoredSpanHash) {
+      // We cannot assume the root is in view to start off, if there is an anchored span
       this.spansInView.isRootSpanInView = false;
       const anchoredSpanId = window.location.hash.replace(spanTargetHash(''), '');
 
@@ -163,7 +161,7 @@ export class Provider extends Component<Props, State> {
   wheelTimeout: NodeJS.Timeout | null = null;
   animationTimeout: NodeJS.Timeout | null = null;
   previousUserSelect: UserSelectValues | null = null;
-  spansInView: SpansInViewMap = new SpansInViewMap();
+  spansInView: SpansInViewMap = new SpansInViewMap(!this.props.isEmbedded);
   spanBars: SpanBar[] = [];
 
   getReferenceSpanBar() {
