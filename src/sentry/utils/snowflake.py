@@ -6,8 +6,9 @@ from django.conf import settings
 from django.db import IntegrityError, transaction
 from rest_framework import status
 from rest_framework.exceptions import APIException
+from sentry_sdk import capture_exception
 
-from sentry.utils import metrics, redis
+from sentry.utils import redis
 
 _TTL = timedelta(minutes=5)
 
@@ -28,7 +29,8 @@ class SnowflakeIdMixin:
                 return
             except IntegrityError:
                 self.id = None
-        metrics.incr("snowflake_id_creation_failed", sample_rate=1)
+
+        capture_exception(MaxSnowflakeRetryError)
         raise MaxSnowflakeRetryError
 
 

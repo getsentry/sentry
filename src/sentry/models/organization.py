@@ -203,6 +203,7 @@ class Organization(Model, SnowflakeIdMixin):
 
         if SENTRY_USE_SNOWFLAKE:
             snowflake_redis_key = "organization_snowflake_key"
+            metrics.incr("organization_with_snowflake_id_create_attempted", sample_rate=1)
             self.save_with_snowflake_id(
                 snowflake_redis_key, lambda: super(Organization, self).save(*args, **kwargs)
             )
