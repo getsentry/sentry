@@ -131,13 +131,13 @@ def checking_import(name, globals=None, locals=None, fromlist=(), level=0):
         return real_import(name, globals, locals, fromlist, level)
 
     to_name = resolve_full_name(package, name, level)
-    now = time.time()
+    now = time.perf_counter()
     import_time_stack.append(0.0)
     try:
         return real_import(name, globals, locals, fromlist, level)
     finally:
         is_tracked = track_import(from_name, to_name, fromlist)
-        total_time = time.time() - now
+        total_time = time.perf_counter() - now
         children_time = import_time_stack.pop()
         import_time_stack[-1] += total_time
         GLOBAL_IMPORT_TIME += total_time - children_time
