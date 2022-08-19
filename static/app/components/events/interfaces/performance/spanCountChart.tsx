@@ -79,17 +79,18 @@ export function SpanCountChart({issue, event, location, organization}: Props) {
       },
     };
 
+    [affectedData, allData] = matchBinSize(affectedData, allData);
+
     const series: BarChartSeries[] = [
       {
         seriesName: t('Affected Transaction Count'),
         data: formatHistogramData(affectedData, {type: 'number'}),
         stack: 'value',
-        barMinHeight: 0.5,
         color: colors[1],
       },
       {
         seriesName: t('All Transaction Count'),
-        data: formatHistogramData(matchBinSize(allData, affectedData)[0], {
+        data: formatHistogramData(allData, {
           type: 'number',
         }),
         stack: 'value',
