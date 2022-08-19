@@ -1898,10 +1898,13 @@ def _calculate_span_grouping(jobs, projects):
 
 
 @metrics.wraps("save_event.get_or_create_performance_group")
-def _get_or_create_performance_group(jobs, projects):
+def _save_aggregate_performance(jobs, projects):
 
     # TODO: batch operations (like rate limiting) so we don't repeat for each job
-    for job in jobs:
+    MAX_GROUPS = (
+        10  # safety check in case we are passed too many. constant will live somewhere else tbd
+    )
+    for job in jobs[:MAX_GROUPS]:
         # FEATURE FLAG RANDOMIZER
         # check options to see if we should be creating performance issues for this org
         rate = options.get("incidents-performance.rollout-rate")
@@ -1963,6 +1966,7 @@ def _get_or_create_performance_group(jobs, projects):
                         .first()
                         if first_release
                         else None,
+                        type=job["type"].value,  # this is a GroupType enum
                         **kwargs,
                     )
 
@@ -2037,7 +2041,7 @@ def save_transaction_events(jobs, projects):
     _pull_out_data(jobs, projects)
 
     # NEW CODEPATH HERE
-    _get_or_create_performance_group(jobs, projects)
+    _save_aggregate_performance(jobs, projects)
 
     _get_or_create_release_many(jobs, projects)
     _get_event_user_many(jobs, projects)
@@ -2046,30 +2050,9 @@ def save_transaction_events(jobs, projects):
     _calculate_span_grouping(jobs, projects)
     _materialize_metadata_many(jobs)
     _get_or_create_environment_many(jobs, projects)
-
-    # create GroupEnvironments
-    for job in jobs:
-        if job["group"]:
-            group_environment, job["is_new_group_environment"] = GroupEnvironment.get_or_create(
-                group_id=job["group"].id,
-                environment_id=job["environment"].id,
-                defaults={"first_release": job["release"] or None},
-            )
-        else:
-            job["is_new_group_environment"] = False
-
+    _get_or_create_group_environment_many(jobs, projects)
     _get_or_create_release_associated_models(jobs, projects)
-
-    # create GroupReleases
-    for job in jobs:
-        if job["release"] and job["group"]:
-            job["grouprelease"] = GroupRelease.get_or_create(
-                group=job["group"],
-                release=job["release"],
-                environment=job["environment"],
-                datetime=job["event"].datetime,
-            )
-
+    _get_or_create_group_release_many(jobs, projects)
     _tsdb_record_all_metrics(jobs)
     _materialize_event_metrics(jobs)
     _nodestore_save_many(jobs)
