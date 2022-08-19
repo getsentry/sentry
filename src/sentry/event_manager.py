@@ -1897,7 +1897,7 @@ def _calculate_span_grouping(jobs, projects):
             sentry_sdk.capture_exception()
 
 
-@metrics.wraps("save_event.get_or_create_performance_group")
+@metrics.wraps("save_event.save_aggregate_performance")
 def _save_aggregate_performance(jobs, projects):
 
     # TODO: batch operations (like rate limiting) so we don't repeat for each job
@@ -1910,18 +1910,7 @@ def _save_aggregate_performance(jobs, projects):
         rate = options.get("incidents-performance.rollout-rate")
         if rate and rate > random.random():
 
-            kwargs = {
-                "platform": job["platform"],
-                "message": job["event"].search_message,
-                "logger": job["logger_name"],
-                "level": LOG_LEVELS_MAP.get(job["level"]),
-                "last_seen": job["event"].datetime,
-                "first_seen": job["event"].datetime,
-                "active_at": job["event"].datetime,
-            }
-
-            if job["release"]:
-                kwargs["first_release"] = job["release"]
+            kwargs = _create_kwargs(job)
 
             # TODO: get fingerprint
             existing_grouphashes = job.get("fingerprints", [])
@@ -1944,12 +1933,14 @@ def _save_aggregate_performance(jobs, projects):
                     except OperationalError:
                         metrics.incr(
                             "next_short_id.timeout",
-                            tags={"platform": "unknown"},
+                            tags={"platform": job["platform"] or "unknown"},
                         )
                         sentry_sdk.capture_message("short_id.timeout")
                         raise HashDiscarded("Timeout when getting next_short_id")
 
                     # TODO: RATE LIMITER
+                    # ops team will give us a redis cluster, but told us to use the current one for now
+                    # below adapted from postgres_v2.py
                     # from sentry.sentry_metrics.configuration import UseCaseKey
                     # from sentry.sentry_metrics.indexer.base import KeyCollection
                     # from sentry.sentry_metrics.indexer.ratelimiters import writes_limiter
@@ -1966,7 +1957,6 @@ def _save_aggregate_performance(jobs, projects):
                         .first()
                         if first_release
                         else None,
-                        type=job["type"].value,  # this is a GroupType enum
                         **kwargs,
                     )
 
@@ -1979,7 +1969,7 @@ def _save_aggregate_performance(jobs, projects):
                     metrics.incr(
                         "group.created",
                         skip_internal=True,
-                        tags={"platform": "unknown"},
+                        tags={"platform": job["platform"] or "unknown"},
                     )
 
                     job["group"] = group
