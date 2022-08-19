@@ -1,3 +1,4 @@
+import logging
 from io import BytesIO
 from zipfile import ZipFile
 
@@ -36,6 +37,8 @@ def function_pubsub_name(funcId):
 
 
 def create_function_pubsub_topic(funcId):
+    logger = logging.getLogger("sentry.functions")
+    logger.info(f"Created topic {function_pubsub_name(funcId)}")
     publisher = PublisherClient()
     publisher.create_topic(name=function_pubsub_name(funcId))
 
@@ -48,6 +51,9 @@ def upload_function_files(client, code, env_variables):
         codezip.writestr("package.json", json.dumps(PACKAGE_JSON))
         codezip.writestr("env.json", json.dumps(env_variables))
     f.seek(0)
+
+    logger = logging.getLogger("sentry.functions")
+    logger.info(f"The region is {SENTRY_FUNCTIONS_REGION}")
 
     upload_url = client.generate_upload_url(
         request=GenerateUploadUrlRequest(
