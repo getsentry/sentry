@@ -165,5 +165,5 @@ class CachingIndexer(StringIndexer):
 
         return id
 
-    def reverse_resolve(self, use_case_id: UseCaseKey, id: int) -> Optional[str]:
-        return self.indexer.reverse_resolve(use_case_id, id)
+    def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
+        return self.indexer.reverse_resolve(use_case_id, org_id, id)

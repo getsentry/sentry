@@ -37,6 +37,7 @@ import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
@@ -418,7 +419,7 @@ class DashboardDetail extends Component<Props, State> {
       filterParams[key] = activeFilters[key].length ? activeFilters[key] : '';
     });
 
-    if (!isEqual(activeFilters, dashboard.filters?.release)) {
+    if (!isEqual(activeFilters, dashboard.filters)) {
       browserHistory.push({
         ...location,
         query: {
@@ -558,7 +559,7 @@ class DashboardDetail extends Component<Props, State> {
               browserHistory.replace({
                 pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
                 query: {
-                  query: omit(location.query, DashboardFilterKeys.RELEASE),
+                  query: omit(location.query, Object.values(DashboardFilterKeys)),
                 },
               });
             },
@@ -811,27 +812,32 @@ class DashboardDetail extends Component<Props, State> {
               </Layout.Header>
               <Layout.Body>
                 <Layout.Main fullWidth>
-                  {(organization.features.includes('dashboards-mep') ||
-                    organization.features.includes('mep-rollout-flag')) &&
-                  isDashboardUsingTransaction ? (
-                    <MetricsDataSwitcher
-                      organization={organization}
-                      eventView={eventView}
-                      location={location}
-                      hideLoadingIndicator
-                    >
-                      {metricsDataSide => (
-                        <MetricsDataSwitcherAlert
-                          organization={organization}
-                          eventView={eventView}
-                          projects={projects}
-                          location={location}
-                          router={router}
-                          {...metricsDataSide}
-                        />
-                      )}
-                    </MetricsDataSwitcher>
-                  ) : null}
+                  <MetricsCardinalityProvider
+                    organization={organization}
+                    location={location}
+                  >
+                    {(organization.features.includes('dashboards-mep') ||
+                      organization.features.includes('mep-rollout-flag')) &&
+                    isDashboardUsingTransaction ? (
+                      <MetricsDataSwitcher
+                        organization={organization}
+                        eventView={eventView}
+                        location={location}
+                        hideLoadingIndicator
+                      >
+                        {metricsDataSide => (
+                          <MetricsDataSwitcherAlert
+                            organization={organization}
+                            eventView={eventView}
+                            projects={projects}
+                            location={location}
+                            router={router}
+                            {...metricsDataSide}
+                          />
+                        )}
+                      </MetricsDataSwitcher>
+                    ) : null}
+                  </MetricsCardinalityProvider>
                   <FiltersBar
                     filters={(modifiedDashboard ?? dashboard).filters}
                     location={location}
@@ -869,7 +875,10 @@ class DashboardDetail extends Component<Props, State> {
                           addSuccessMessage(t('Dashboard filters updated'));
                           browserHistory.replace({
                             pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
-                            query: omit(location.query, DashboardFilterKeys.RELEASE),
+                            query: omit(
+                              location.query,
+                              Object.values(DashboardFilterKeys)
+                            ),
                           });
                         },
                         () => undefined

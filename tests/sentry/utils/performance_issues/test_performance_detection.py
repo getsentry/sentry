@@ -189,6 +189,49 @@ class PerformanceDetectionTest(unittest.TestCase):
         _detect_performance_issue(db_span_event, sdk_span_mock)
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 3
 
+    def test_calls_n_plus_one_spans_calls(self):
+        # ├── GET list.json
+        # │   ├── GET /events.json?q=1
+        # │   ├──  GET /events.json?q=2
+        # │   ├──   GET /events.json?q=3
+
+        n_plus_one_event = create_event(
+            [
+                create_span("http.client", 250, "GET /list.json"),
+                modify_span_start(
+                    create_span("http.client", 180, "GET /events.json?q=1", "c0c0c0c0"), 101
+                ),
+                modify_span_start(
+                    create_span("http.client", 178, "GET /events.json?q=2", "c0c0c0c0"), 105
+                ),
+                modify_span_start(
+                    create_span("http.client", 163, "GET /events.json?q=3", "c0c0c0c0"), 109
+                ),
+            ]
+        )
+
+        sdk_span_mock = Mock()
+
+        _detect_performance_issue(n_plus_one_event, sdk_span_mock)
+
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 3
+        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
+            [
+                call(
+                    "_pi_all_issue_count",
+                    1,
+                ),
+                call(
+                    "_pi_transaction",
+                    "aaaaaaaaaaaaaaaa",
+                ),
+                call(
+                    "_pi_n_plus_one",
+                    "bbbbbbbbbbbbbbbb",
+                ),
+            ]
+        )
+
     def test_calls_detect_sequential(self):
         no_sequential_event = create_event([create_span("db", 999.0)] * 4)
         sequential_event = create_event(
@@ -312,6 +355,18 @@ class PerformanceDetectionTest(unittest.TestCase):
                 ),
             ],
         }
+        no_fcp_event = {
+            "event_id": "a" * 16,
+            "measurements": {
+                "fcp": {
+                    "value": None,
+                    "unit": "millisecond",
+                }
+            },
+            "spans": [
+                create_span("resource.script", duration=1000.0),
+            ],
+        }
         short_render_blocking_asset_event = {
             "event_id": "a" * 16,
             "measurements": {
@@ -331,6 +386,9 @@ class PerformanceDetectionTest(unittest.TestCase):
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
 
         _detect_performance_issue(short_render_blocking_asset_event, sdk_span_mock)
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
+
+        _detect_performance_issue(no_fcp_event, sdk_span_mock)
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
 
         _detect_performance_issue(render_blocking_asset_event, sdk_span_mock)

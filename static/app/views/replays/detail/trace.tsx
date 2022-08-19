@@ -63,9 +63,9 @@ export default function Trace({replayRecord, organization}: Props) {
 
   const {
     location,
-    params: {eventSlug, orgId},
+    params: {replaySlug, orgSlug},
   } = useRouteContext();
-  const [, eventId] = eventSlug.split(':');
+  const [, eventId] = replaySlug.split(':');
 
   const start = getUtcDateString(replayRecord.startedAt.getTime());
   const end = getUtcDateString(replayRecord.finishedAt.getTime());
@@ -88,7 +88,7 @@ export default function Trace({replayRecord, organization}: Props) {
       try {
         const [data, , resp] = await doDiscoverQuery<TableData>(
           api,
-          `/organizations/${orgId}/events/`,
+          `/organizations/${orgSlug}/events/`,
           eventView.getEventsAPIPayload(location)
         );
 
@@ -99,7 +99,7 @@ export default function Trace({replayRecord, organization}: Props) {
           traceIds.map(traceId =>
             doDiscoverQuery(
               api,
-              `/organizations/${orgId}/events-trace/${traceId}/`,
+              `/organizations/${orgSlug}/events-trace/${traceId}/`,
               getTraceRequestPayload({
                 eventView: makeEventView({start, end}),
                 location,
@@ -129,7 +129,7 @@ export default function Trace({replayRecord, organization}: Props) {
     loadTraces();
 
     return () => {};
-  }, [api, eventId, orgId, location, start, end]);
+  }, [api, eventId, orgSlug, location, start, end]);
 
   if (state.isLoading) {
     return <LoadingIndicator />;

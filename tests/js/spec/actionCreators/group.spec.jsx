@@ -1,6 +1,6 @@
 import {bulkUpdate, mergeGroups, paramsToQueryArgs} from 'sentry/actionCreators/group';
-import GroupActions from 'sentry/actions/groupActions';
 import {Client} from 'sentry/api';
+import GroupStore from 'sentry/stores/groupStore';
 
 describe('group', () => {
   let api;
@@ -82,7 +82,7 @@ describe('group', () => {
   describe('bulkUpdate()', function () {
     beforeEach(function () {
       jest.spyOn(api, 'request');
-      jest.spyOn(GroupActions, 'update'); // stub GroupActions.update call from update
+      jest.spyOn(GroupStore, 'onUpdate'); // stub GroupStore.onUpdate call from update
     });
 
     it('should use itemIds as query if provided', function () {
@@ -105,7 +105,7 @@ describe('group', () => {
       bulkUpdate(api, {
         orgId: '1337',
         projectId: '1337',
-        itemIds: null,
+        itemIds: undefined,
         data: {status: 'unresolved'},
         query: 'is:resolved',
       });
@@ -138,7 +138,7 @@ describe('group', () => {
     //       these API methods/tests.
     beforeEach(function () {
       jest.spyOn(api, 'request');
-      jest.spyOn(GroupActions, 'merge'); // stub GroupActions.merge call from mergeGroups
+      jest.spyOn(GroupStore, 'onMerge'); // stub GroupStore.onMerge call from mergeGroups
     });
 
     it('should use itemIds as query if provided', function () {
@@ -161,7 +161,7 @@ describe('group', () => {
       mergeGroups(api, {
         orgId: '1337',
         projectId: '1337',
-        itemIds: null,
+        itemIds: undefined,
         data: {status: 'unresolved'},
         query: 'is:resolved',
       });

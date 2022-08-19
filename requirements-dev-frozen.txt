@@ -96,7 +96,7 @@ pep517==0.12.0
 petname==2.6
 phabricator==0.7.0
 phonenumberslite==8.12.0
-pillow==9.0.1
+pillow==9.2.0
 pip-tools==6.7.0
 platformdirs==2.5.2
 pluggy==0.13.1
@@ -175,6 +175,7 @@ unidiff==0.7.4
 uritemplate==4.1.1
 urllib3==1.26.11
 uwsgi==2.0.20.0
+uwsgi-dogstatsd-plugin==1.0.0
 vine==1.3.0
 virtualenv==20.14.1
 websocket-client==1.3.2

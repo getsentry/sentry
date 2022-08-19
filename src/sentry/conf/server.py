@@ -9,7 +9,7 @@ import re
 import socket
 import sys
 import tempfile
-from datetime import timedelta
+from datetime import datetime, timedelta
 from urllib.parse import urlparse
 
 import sentry
@@ -1123,15 +1123,19 @@ SENTRY_FEATURES = {
     "organizations:performance-extraneous-spans-poc": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
+    # Enable populating suggested assignees with release committers
+    "organizations:release-committer-assignees": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
     # Enable Sentry Functions
     "organizations:sentry-functions": False,
-    # Enable experimental session replay UI
+    # Enable experimental session replay backend APIs
     "organizations:session-replay": False,
     # Enable experimental session replay SDK for recording on Sentry
     "organizations:session-replay-sdk": False,
+    # Enable experimental session replay UI
+    "organizations:session-replay-ui": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
@@ -2122,6 +2126,9 @@ SENTRY_SDK_CONFIG = {
     "debug": True,
     "send_default_pii": True,
     "auto_enabling_integrations": False,
+    "_experiments": {
+        "custom_measurements": True,
+    },
 }
 
 # Callable to bind additional context for the Sentry SDK
@@ -2732,7 +2739,8 @@ MAX_REDIS_SNOWFLAKE_RETRY_COUNTER = 5
 
 SNOWFLAKE_VERSION_ID = 1
 SNOWFLAKE_REGION_ID = 0
-
+SENTRY_SNOWFLAKE_EPOCH_START = datetime(2022, 8, 8, 0, 0).timestamp()
+SENTRY_USE_SNOWFLAKE = False
 
 SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS = {
     "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
@@ -2747,6 +2755,10 @@ ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT = 300
 SENTRY_STRING_INDEXER_CACHE_OPTIONS = {
     "cache_name": "default",
 }
+
+SENTRY_FUNCTIONS_PROJECT_NAME = None
+
+SENTRY_FUNCTIONS_REGION = "us-central1"
 
 SERVER_COMPONENT_MODE = os.environ.get("SENTRY_SERVER_COMPONENT_MODE", None)
 FAIL_ON_UNAVAILABLE_API_CALL = False
