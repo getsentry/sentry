@@ -1914,7 +1914,8 @@ def _save_aggregate_performance(jobs, projects):
 
             # TODO: get fingerprint
             existing_grouphashes = job.get("fingerprints", [])
-            project = job["event"].project
+            event = job["event"]
+            project = event.project
 
             # use fingerprint to check if group exists
             if not existing_grouphashes:
@@ -1928,16 +1929,6 @@ def _save_aggregate_performance(jobs, projects):
                     span.set_tag("create_group_transaction.outcome", "no_group")
                     metric_tags["create_group_transaction.outcome"] = "no_group"
 
-                    try:
-                        short_id = project.next_short_id()
-                    except OperationalError:
-                        metrics.incr(
-                            "next_short_id.timeout",
-                            tags={"platform": job["platform"] or "unknown"},
-                        )
-                        sentry_sdk.capture_message("short_id.timeout")
-                        raise HashDiscarded("Timeout when getting next_short_id")
-
                     # TODO: RATE LIMITER
                     # ops team will give us a redis cluster, but told us to use the current one for now
                     # below adapted from postgres_v2.py
@@ -1947,18 +1938,7 @@ def _save_aggregate_performance(jobs, projects):
                     # with writes_limiter.check_write_limits(UseCaseKey("performance"), KeyCollection({job.organization.id: {job.organization.name}})) as writes_limiter_state:
                     #     pass
 
-                    first_release = kwargs.pop("first_release", None)
-
-                    group = Group.objects.create(
-                        project=project,
-                        short_id=short_id,
-                        first_release_id=Release.objects.filter(id=first_release.id)
-                        .values_list("id", flat=True)
-                        .first()
-                        if first_release
-                        else None,
-                        **kwargs,
-                    )
+                    group = _create_group(project, event, **kwargs)
 
                     is_new = True
                     is_regression = False
