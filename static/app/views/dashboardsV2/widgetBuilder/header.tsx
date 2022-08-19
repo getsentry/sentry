@@ -6,6 +6,7 @@ import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {LinkProps} from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
+import styled from '@emotion/styled';
 
 import {DashboardDetails} from '../types';
 
@@ -41,7 +42,7 @@ export function Header({
           ]}
         />
         <Layout.Title>
-          <EditableText
+          <StyledEditableText
             aria-label={t('Widget title')}
             value={title}
             onChange={onChangeTitle}
@@ -65,3 +66,9 @@ export function Header({
     </Layout.Header>
   );
 }
+
+const StyledEditableText = styled(EditableText)`
+  input {
+    font-size: inherit;
+  }
+`;
