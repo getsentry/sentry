@@ -22,8 +22,8 @@ describe('GroupReleaseStats', function () {
     createWrapper();
     expect(screen.getByText('Last 24 Hours')).toBeInTheDocument();
     expect(screen.getByText('Last 30 Days')).toBeInTheDocument();
-    expect(screen.getByText('Last seen')).toBeInTheDocument();
-    expect(screen.getByText('First seen')).toBeInTheDocument();
+    expect(screen.getByText('Last Seen')).toBeInTheDocument();
+    expect(screen.getByText('First Seen')).toBeInTheDocument();
     // Displays counts
     expect(screen.getByText('3')).toBeInTheDocument();
     expect(screen.getByText('123')).toBeInTheDocument();
@@ -33,8 +33,8 @@ describe('GroupReleaseStats', function () {
     createWrapper({environments: TestStubs.Environments()});
     expect(screen.getByText('Last 24 Hours')).toBeInTheDocument();
     expect(screen.getByText('Last 30 Days')).toBeInTheDocument();
-    expect(screen.getByText('Last seen')).toBeInTheDocument();
-    expect(screen.getByText('First seen')).toBeInTheDocument();
+    expect(screen.getByText('Last Seen')).toBeInTheDocument();
+    expect(screen.getByText('First Seen')).toBeInTheDocument();
     // Displays counts
     expect(screen.getByText('3')).toBeInTheDocument();
     expect(screen.getByText('123')).toBeInTheDocument();
