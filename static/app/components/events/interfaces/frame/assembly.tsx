@@ -35,12 +35,14 @@ function Assembly({name, version, culture, publicKeyToken, filePath}: Props) {
       </AssemblyInfo>
 
       {filePath && (
-        <FilePathInfo>
+        <AssemblyInfo>
           <Caption>{t('Path')}:</Caption>
           <Tooltip title={filePath}>
-            <TextCopyInput rtl>{filePath}</TextCopyInput>
+            <TextCopyInput rtl size="xs">
+              {filePath}
+            </TextCopyInput>
           </Tooltip>
-        </FilePathInfo>
+        </AssemblyInfo>
       )}
     </AssemblyWrapper>
   );
@@ -57,38 +59,14 @@ const AssemblyWrapper = styled('div')`
 `;
 
 const AssemblyInfo = styled('div')`
-  margin-right: 15px;
-  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  margin-right: ${space(2)};
 `;
 
 const Caption = styled('span')`
   margin-right: 5px;
   font-weight: bold;
-`;
-
-const FilePathInfo = styled('div')`
-  display: flex;
-  align-items: center;
-  margin-bottom: 5px;
-  input {
-    width: 300px;
-    height: 20px;
-    padding-top: 0;
-    padding-bottom: 0;
-    line-height: 1.5;
-    @media (max-width: ${theme.breakpoints.medium}) {
-      width: auto;
-    }
-  }
-  button {
-    min-height: 20px;
-    height: 20px;
-    padding: ${space(1)};
-  }
-  svg {
-    width: 11px;
-    height: 11px;
-  }
 `;
 
 export {Assembly};
