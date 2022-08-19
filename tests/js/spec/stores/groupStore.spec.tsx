@@ -146,8 +146,7 @@ describe('GroupStore', function () {
       it("should treat undefined itemIds argument as 'all'", function () {
         GroupStore.onUpdate('1337', undefined, {});
 
-        expect(GroupStore.trigger).toHaveBeenCalledTimes(1);
-        expect(GroupStore.trigger).toHaveBeenCalledWith(new Set(['1', '2', '3']));
+        expect(GroupStore.trigger).toHaveBeenCalledTimes(0);
       });
     });
 
