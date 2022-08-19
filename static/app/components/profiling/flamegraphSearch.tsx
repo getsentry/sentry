@@ -312,6 +312,7 @@ function FlamegraphSearch({
 
   return (
     <StyledSearchBar
+      size="xs"
       placeholder={t('Find Frames')}
       query={search.query}
       onChange={handleChange}
@@ -321,10 +322,6 @@ function FlamegraphSearch({
 }
 
 const StyledSearchBar = styled(SearchBar)`
-  .search-input {
-    height: 28px;
-  }
-
   flex: 1 1 100%;
 `;
 

@@ -321,15 +321,16 @@ def get_date_range(params: Mapping) -> Tuple[datetime, datetime, int]:
     return start, end, interval
 
 
-def parse_tag(use_case_id: UseCaseKey, tag_string: str) -> str:
+def parse_tag(use_case_id: UseCaseKey, org_id: int, tag_string: str) -> str:
     tag_key = int(tag_string.replace("tags_raw[", "").replace("tags[", "").replace("]", ""))
-    return reverse_resolve(use_case_id, tag_key)
+    return reverse_resolve(use_case_id, org_id, tag_key)
 
 
 def translate_meta_results(
     meta: Sequence[Dict[str, str]],
     query_metric_fields: Set[str],
     use_case_id: UseCaseKey,
+    org_id: int,
 ) -> Sequence[Dict[str, str]]:
     """
     Translate meta results:
@@ -368,7 +369,7 @@ def translate_meta_results(
                 continue
         else:
             if is_tag:
-                record["name"] = parse_tag(use_case_id, record["name"])
+                record["name"] = parse_tag(use_case_id, org_id, record["name"])
                 # since we changed value from int to str we need
                 # also want to change type
                 record["type"] = "string"
@@ -692,8 +693,10 @@ class SnubaResultConverter:
             dict(
                 by=dict(
                     (
-                        parse_tag(self._use_case_id, key),
-                        reverse_resolve_tag_value(self._use_case_id, value, weak=True),
+                        parse_tag(self._use_case_id, self._organization_id, key),
+                        reverse_resolve_tag_value(
+                            self._use_case_id, self._organization_id, value, weak=True
+                        ),
                     )
                     if key not in FIELD_ALIAS_MAPPINGS.values()
                     else (key, value)

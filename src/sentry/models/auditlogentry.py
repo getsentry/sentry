@@ -1,3 +1,5 @@
+import re
+
 from django.db import models
 from django.utils import timezone
 
@@ -11,6 +13,20 @@ from sentry.db.models import (
 )
 
 MAX_ACTOR_LABEL_LENGTH = 64
+
+
+def is_scim_token_actor(actor):
+    scim_prefix = "scim-internal-integration-"
+    return scim_prefix in actor.get_display_name()
+
+
+def format_scim_token_actor_name(actor):
+    scim_regex = re.compile(
+        r".*([0-9a-fA-F]{6})\-[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{7}"
+    )
+    scim_match = re.match(scim_regex, actor.get_display_name())
+    uuid_prefix = scim_match.groups()[0]
+    return "SCIM Internal Integration (" + uuid_prefix + ")"
 
 
 class AuditLogEntry(Model):
@@ -61,6 +77,10 @@ class AuditLogEntry(Model):
 
     def get_actor_name(self):
         if self.actor:
+            # fix display name if needed
+            if is_scim_token_actor(self.actor):
+                return format_scim_token_actor_name(self.actor)
+
             return self.actor.get_display_name()
         elif self.actor_key:
             return self.actor_key.key + " (api key)"
