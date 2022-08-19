@@ -45,7 +45,7 @@ class SendReleaseSummaryTest(ActivityTestCase):
         self.commit1 = self.another_commit(0, "a", self.user1, repository)
 
     @patch(
-        "sentry.notifications.notifications.activity.release_summary.ReleaseSummaryActivityNotification.send"
+        "sentry.notifications.notifications.activity.release_summary.ActiveReleaseSummaryNotification.send"
     )
     def test_simple(self, mock_release_summary_send):
         with self.feature("organizations:active-release-notifications-enable"):
@@ -54,7 +54,7 @@ class SendReleaseSummaryTest(ActivityTestCase):
         assert len(mock_release_summary_send.mock_calls) == 1
 
     @patch(
-        "sentry.notifications.notifications.activity.release_summary.ReleaseSummaryActivityNotification.send"
+        "sentry.notifications.notifications.activity.release_summary.ActiveReleaseSummaryNotification.send"
     )
     def test_without_feature_flag(self, mock_release_summary_send):
         prepare_release_summary()
