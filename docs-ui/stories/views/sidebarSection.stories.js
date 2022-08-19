@@ -25,7 +25,7 @@ export const Default = ({title, icon}) => (
       {title}
       {icon && <QuestionTooltip position="top" title="Tooltip description" size="sm" />}
     </SidebarSection.Title>
-    <SidebarSection.Cotent>{'16 hours'}</SidebarSection.Cotent>
+    <SidebarSection.Content>{'16 hours'}</SidebarSection.Content>
   </SidebarSection.Wrap>
 );
 
