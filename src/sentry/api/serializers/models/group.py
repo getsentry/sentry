@@ -64,6 +64,8 @@ from sentry.search.events.constants import RELEASE_STAGE_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tsdb.snuba import SnubaTSDB
+from sentry.types.issues import SEARCH_TERMS
+from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
 from sentry.utils.safe import safe_execute
@@ -696,8 +698,6 @@ class SharedGroupSerializer(GroupSerializer):
 
 class GroupSerializerSnuba(GroupSerializerBase):
     skip_snuba_fields = {
-        "category",
-        "type",
         "status",
         "bookmarked_by",
         "assigned_to",
@@ -717,6 +717,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         # postgres for no reason
         RELEASE_STAGE_ALIAS,
     }
+    skip_snuba_fields.update(SEARCH_TERMS)
 
     def __init__(
         self,

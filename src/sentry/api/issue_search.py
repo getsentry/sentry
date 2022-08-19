@@ -108,6 +108,7 @@ value_converters = {
     "release": convert_release_value,
     "status": convert_status_value,
     "regressed_in_release": convert_first_release_value,
+    # CEO: add these behind a feature flag
     "category": convert_category_value,
     "type": convert_type_value,
 }

@@ -37,7 +37,7 @@ from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.search.utils import validate_cdc_search_filters
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
-
+from sentry.types.issues import SEARCH_TERMS
 
 def get_search_filter(search_filters: Sequence[SearchFilter], name: str, operator: str) -> Any:
     """
@@ -304,9 +304,8 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "first_release",
         "first_seen",
         "regressed_in_release",
-        "category",
-        "type",
     }
+    postgres_only_fields.update(SEARCH_TERMS)
     sort_strategies = {
         "date": "last_seen",
         "freq": "times_seen",
