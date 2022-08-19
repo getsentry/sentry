@@ -113,7 +113,7 @@ class ActiveReleaseIssueNotification(AlertRuleNotification):
             "users_seen": self.group.count_users_seen(),
             "event": self.event,
             "link": get_group_settings_link(
-                group, environment, rule_details=None, referrer="alert_email_release"
+                self.group, environment, rule_details=None, referrer="alert_email_release"
             ),
             "has_integrations": has_integrations(self.organization, self.project),
             "enhanced_privacy": enhanced_privacy,
@@ -127,6 +127,7 @@ class ActiveReleaseIssueNotification(AlertRuleNotification):
             if self.event_state and self.event_state.is_regression
             else False,
         }
+
         # if the organization has enabled enhanced privacy controls we don't send
         # data which may show PII or source code
         if not enhanced_privacy:

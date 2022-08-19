@@ -286,6 +286,7 @@ MIDDLEWARE = (
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "sentry.middleware.auth.AuthenticationMiddleware",
+    "sentry.middleware.customer_domain.CustomerDomainMiddleware",
     "sentry.middleware.user.UserActiveMiddleware",
     "sentry.middleware.sudo.SudoMiddleware",
     "sentry.middleware.superuser.SuperuserMiddleware",
@@ -2760,3 +2761,5 @@ SENTRY_FUNCTIONS_REGION = "us-central1"
 
 SERVER_COMPONENT_MODE = os.environ.get("SENTRY_SERVER_COMPONENT_MODE", None)
 FAIL_ON_UNAVAILABLE_API_CALL = False
+
+DISALLOWED_CUSTOMER_DOMAINS = []

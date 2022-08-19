@@ -2,15 +2,11 @@ from urllib.parse import quote
 
 from django.core import mail
 
-from sentry.models import Activity, Environment, NotificationSetting, Repository
+from sentry.models import Activity, Environment, Repository
 from sentry.notifications.notifications.activity.release_summary import (
-    ActiveReleaseSummaryNotification,
+    ReleaseSummaryActivityNotification,
 )
-from sentry.notifications.types import (
-    GroupSubscriptionReason,
-    NotificationSettingOptionValues,
-    NotificationSettingTypes,
-)
+from sentry.notifications.types import GroupSubscriptionReason
 from sentry.testutils.cases import ActivityTestCase
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
@@ -48,7 +44,7 @@ class ReleaseSummaryTestCase(ActivityTestCase):
 
     def test_simple(self):
         with self.feature("organizations:active-release-notifications-enable"):
-            release_summary = ActiveReleaseSummaryNotification(
+            release_summary = ReleaseSummaryActivityNotification(
                 Activity(
                     project=self.project,
                     user=self.user1,
@@ -57,30 +53,12 @@ class ReleaseSummaryTestCase(ActivityTestCase):
                 )
             )
 
-        assert NotificationSetting.objects.all().count() == 0
-
-        # opt-in to getting active_release notifications
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ACTIVE_RELEASE,
-            NotificationSettingOptionValues.ALWAYS,
-            user=self.user1,
-            project=self.project,
-        )
-        assert (
-            NotificationSetting.objects.all()[0].type
-            == NotificationSettingTypes.ACTIVE_RELEASE.value
-        )
-
-        recipient_by_parent = NotificationSetting.objects.get_for_recipient_by_parent(
-            NotificationSettingTypes.ACTIVE_RELEASE, self.project, [self.user1, self.user2]
-        )
-        assert len(recipient_by_parent) == 1
-
         # user1 is included because they committed
-        participants = release_summary.get_participants_with_group_subscription_reason()
-        assert len(participants[ExternalProviders.EMAIL]) == 1
-        assert participants[ExternalProviders.EMAIL] == {
+        participants = release_summary.get_participants_with_group_subscription_reason()[
+            ExternalProviders.EMAIL
+        ]
+        assert len(participants) == 1
+        assert participants == {
             self.user1: GroupSubscriptionReason.committed,
         }
 
