@@ -14,6 +14,7 @@ import type {
   BreadcrumbTypeDefault,
   Crumb,
 } from 'sentry/types/breadcrumbs';
+import {defined} from 'sentry/utils';
 import ConsoleMessage from 'sentry/views/replays/detail/console/consoleMessage';
 import {filterBreadcrumbs} from 'sentry/views/replays/detail/console/utils';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
@@ -36,6 +37,16 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
     () => filterBreadcrumbs(breadcrumbs, searchTerm, logLevel),
     [logLevel, searchTerm, breadcrumbs]
   );
+
+  const getActiveTimeInSecs = (timestamp: string): boolean => {
+    if (!defined(currentHoverTime)) {
+      return false;
+    }
+    return (
+      Math.trunc(currentHoverTime / 1000) ===
+      Math.trunc(relativeTimeInMs(timestamp, startTimestampMs) / 1000)
+    );
+  };
 
   return (
     <Fragment>
@@ -61,10 +72,7 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
           {filteredBreadcrumbs.map((breadcrumb, i) => {
             return (
               <ConsoleMessage
-                isActive={
-                  currentHoverTime ===
-                  relativeTimeInMs(breadcrumb?.timestamp || '', startTimestampMs)
-                }
+                isActive={getActiveTimeInSecs(breadcrumb?.timestamp || '')}
                 startTimestampMs={startTimestampMs}
                 key={breadcrumb.id}
                 isLast={i === breadcrumbs.length - 1}
