@@ -62,6 +62,9 @@ def process_profile(
         )
         return
 
+    # remove debug information we don't need anymore
+    profile.pop("debug_meta")
+
     _initialize_publisher()
     _insert_eventstream_call_tree(profile=profile)
     _insert_eventstream_profile(profile=profile)
@@ -181,9 +184,6 @@ def _symbolicate(profile: Profile, project: Project) -> None:
         except Exception as e:
             sentry_sdk.capture_exception(e)
             break
-
-    # remove debug information we don't need anymore
-    profile.pop("debug_meta")
 
     # rename the profile key to suggest it has been processed
     profile["profile"] = profile.pop("sampled_profile")
