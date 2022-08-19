@@ -57,7 +57,6 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 "tags": {"server": "example.com", "sentry:user": "event1@example.com"},
                 "timestamp": event1_timestamp,
                 "stacktrace": {"frames": [{"module": "group1"}]},
-                "type": GroupType.ERROR.value,
             },
             project_id=self.project.id,
         )
@@ -70,7 +69,6 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 "tags": {"server": "example.com", "sentry:user": "event3@example.com"},
                 "timestamp": iso_format(self.base_datetime),
                 "stacktrace": {"frames": [{"module": "group1"}]},
-                "type": GroupType.ERROR.value,
             },
             project_id=self.project.id,
         )
@@ -84,6 +82,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
 
         self.group1.times_seen = 5
         self.group1.status = GroupStatus.UNRESOLVED
+        self.group1.update(type=GroupType.ERROR.value)
         self.group1.save()
         self.store_group(self.group1)
 
@@ -111,6 +110,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
 
         self.group2.status = GroupStatus.RESOLVED
         self.group2.times_seen = 10
+        self.group2.update(type=GroupType.ERROR.value)
         self.group2.save()
         self.store_group(self.group2)
 
@@ -388,26 +388,26 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
 
     def test_category(self):
         results = self.make_query(search_filter_query="category:error")
-        assert set(results) == {self.group1, self.group2, self.group3}
+        assert set(results) == {self.group1, self.group2}
 
         event_3 = self.store_event(
             data={
                 "fingerprint": ["put-me-in-group3"],
                 "event_id": "c" * 32,
                 "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
-                "type": GroupType.PERFORMANCE_N_PLUS_ONE.value,
             },
             project_id=self.project.id,
         )
         group_3 = event_3.group
+        group_3.update(type=GroupType.PERFORMANCE_N_PLUS_ONE.value)
         group_3.save()
 
         results = self.make_query(search_filter_query="category:performance")
-        assert set(results) == {group3}
+        assert set(results) == {group_3}
 
     def test_type(self):
         results = self.make_query(search_filter_query="type:error")
-        assert set(results) == {self.group1, self.group2, self.group3}
+        assert set(results) == {self.group1, self.group2}
 
         event_3 = self.store_event(
             data={
@@ -419,6 +419,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         group_3 = event_3.group
+        group_3.update(type=GroupType.PERFORMANCE_N_PLUS_ONE.value)
         group_3.save()
 
         results = self.make_query(search_filter_query="type:performance_n_plus_one")
@@ -429,11 +430,11 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 "fingerprint": ["put-me-in-group4"],
                 "event_id": "d" * 32,
                 "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
-                "type": GroupType.PERFORMANCE_SLOW_SPAN.value,
             },
             project_id=self.project.id,
         )
         group_4 = event_4.group
+        group_4.update(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
         group_4.save()
 
         results = self.make_query(search_filter_query="type:performance_slow_span")
