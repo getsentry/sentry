@@ -19,7 +19,6 @@ import {
   resetSavedSearches,
 } from 'sentry/actionCreators/savedSearches';
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
-import GroupActions from 'sentry/actions/groupActions';
 import {Client} from 'sentry/api';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -53,6 +52,7 @@ import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReact
 import parseApiError from 'sentry/utils/parseApiError';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {decodeScalar} from 'sentry/utils/queryString';
 import StreamManager from 'sentry/utils/streamManager';
 import withApi from 'sentry/utils/withApi';
 import withIssueTags from 'sentry/utils/withIssueTags';
@@ -290,7 +290,7 @@ class IssueListOverview extends Component<Props, State> {
     const {query} = location.query;
 
     if (query !== undefined) {
-      return query as string;
+      return decodeScalar(query, '');
     }
 
     return DEFAULT_QUERY;
@@ -411,7 +411,7 @@ class IssueListOverview extends Component<Props, State> {
         if (!data) {
           return;
         }
-        GroupActions.populateStats(groups, data);
+        GroupStore.onPopulateStats(groups, data);
       },
       error: err => {
         this.setState({

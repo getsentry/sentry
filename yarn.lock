@@ -2323,10 +2323,10 @@
   resolved "https://registry.yarnpkg.com/@sentry/release-parser/-/release-parser-1.3.1.tgz#0ab8be23fd494d80dd0e4ec8ae5f3d13f805b13d"
   integrity sha512-/dGpCq+j3sJhqQ14RNEEL45Ot/rgq3jAlZDD/8ufeqq+W8p4gUhSrbGWCRL82NEIWY9SYwxYXGXjRcVPSHiA1Q==
 
-"@sentry/replay@0.5.2":
-  version "0.5.2"
-  resolved "https://registry.yarnpkg.com/@sentry/replay/-/replay-0.5.2.tgz#2f586624cde6cef85d5873a13e68947168708757"
-  integrity sha512-hHk/BTt338XfGhioXdpYGogX5ffxVBnC/MEVvk9MRu7iTl2hCsngvAVRLw7PtT+ywvIYMiPF6iRAfaunPlJD/g==
+"@sentry/replay@0.5.4":
+  version "0.5.4"
+  resolved "https://registry.yarnpkg.com/@sentry/replay/-/replay-0.5.4.tgz#c7e52ac1df719eb6307ef431b3f3c4a6d543cbc4"
+  integrity sha512-ofyQiX3aRkIL77q72gDv+zLSHcmY0NCjuVDicsjvnaNEMkJ4oy7E6ZoX6QDRwEY1EoDagGMzRJqpmL+kMqVvrQ==
   dependencies:
     "@sentry/core" "^7.7.0"
     "@sentry/types" "^7.7.0"
