@@ -1,6 +1,7 @@
 from functools import partial
 from typing import List, Union
 
+from sentry import features
 from sentry.api.event_search import AggregateFilter, SearchConfig, SearchValue, default_config
 from sentry.api.event_search import parse_search_query as base_parse_query
 from sentry.exceptions import InvalidSearchQuery
@@ -94,20 +95,24 @@ def convert_status_value(value, projects, user, environments):
 
 
 def convert_category_value(value, projects, user, environments):
-    for category in value:
-        for member in GroupCategory:
-            if category.upper() == member.name:
-                issue_types = GROUP_CATEGORY_TO_TYPES.get(member, [])
-                return [type.value for type in issue_types]
-        raise InvalidSearchQuery(f"Invalid category value of '{category}'")
+    if features.has("projects:performance-issue-details-backend", projects[0]):
+        for category in value:
+            for member in GroupCategory:
+                if category.upper() == member.name:
+                    issue_types = GROUP_CATEGORY_TO_TYPES.get(member, [])
+                    return [type.value for type in issue_types]
+            raise InvalidSearchQuery(f"Invalid category value of '{category}'")
+    raise InvalidSearchQuery("Invalid search value of 'category'")
 
 
 def convert_type_value(value, projects, user, environments):
-    for type in value:
-        for member in GroupType:
-            if type.upper() == member.name:
-                return member.value
-        raise InvalidSearchQuery(f"Invalid type value of '{type}'")
+    if features.has("projects:performance-issue-details-backend", projects[0]):
+        for type in value:
+            for member in GroupType:
+                if type.upper() == member.name:
+                    return member.value
+            raise InvalidSearchQuery(f"Invalid type value of '{type}'")
+    raise InvalidSearchQuery("Invalid search value of 'type'")
 
 
 value_converters = {
@@ -119,7 +124,6 @@ value_converters = {
     "release": convert_release_value,
     "status": convert_status_value,
     "regressed_in_release": convert_first_release_value,
-    # CEO: add these behind a feature flag
     "category": convert_category_value,
     "type": convert_type_value,
 }

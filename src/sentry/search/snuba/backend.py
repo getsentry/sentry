@@ -10,7 +10,7 @@ from django.db.models import Q, QuerySet
 from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 
-from sentry import quotas
+from sentry import features, quotas
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
@@ -524,10 +524,13 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             "regressed_in_release": QCallbackCondition(
                 functools.partial(regressed_in_release_filter, projects=projects)
             ),
-            # CEO: add these behind a feature flag
-            "category": QCallbackCondition(lambda category: Q(type__in=category)),
-            "type": QCallbackCondition(lambda type: Q(type=type)),
         }
+
+        if features.has("projects:performance-issue-details-backend", projects[0]):
+            queryset_conditions.update(
+                {"category": QCallbackCondition(lambda category: Q(type__in=category))}
+            )
+            queryset_conditions.update({"type": QCallbackCondition(lambda type: Q(type=type))})
 
         if environments is not None:
             environment_ids = [environment.id for environment in environments]
