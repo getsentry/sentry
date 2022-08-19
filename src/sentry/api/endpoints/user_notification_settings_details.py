@@ -7,6 +7,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.notification_setting import NotificationSettingsSerializer
 from sentry.api.validators.notifications import validate, validate_type_option
 from sentry.models import NotificationSetting, User
+from sentry.notifications.helpers import get_providers_for_recipient
 
 
 class UserNotificationSettingsDetailsEndpoint(UserEndpoint):
@@ -29,15 +30,24 @@ class UserNotificationSettingsDetailsEndpoint(UserEndpoint):
         """
 
         type_option = validate_type_option(request.GET.get("type"))
+        v2_format = request.GET.get("v2") == "1"
 
-        return Response(
-            serialize(
-                user,
-                request.user,
-                NotificationSettingsSerializer(),
-                type=type_option,
-            ),
+        notification_preferences = serialize(
+            user,
+            request.user,
+            NotificationSettingsSerializer(),
+            type=type_option,
         )
+
+        if v2_format:
+            return Response(
+                {
+                    "providers": list(map(lambda x: x.name, get_providers_for_recipient(user))),
+                    "preferences": notification_preferences,
+                }
+            )
+
+        return Response(notification_preferences)
 
     def put(self, request: Request, user: User) -> Response:
         """
