@@ -133,15 +133,13 @@ function Event({
   return (
     <IconPosition onClick={nodeClickHandler}>
       <IconNodeTooltip title={title} overlayStyle={overlayStyle} isHoverable>
-        {crumbs.slice(0, totalStackNumber).map((crumb, index) => {
-          return (
-            <IconNode
-              color={colors[index] || crumb.color}
-              key={crumb.id}
-              stack={{totalStackNumber, index}}
-            />
-          );
-        })}
+        {crumbs.slice(0, totalStackNumber).map((crumb, index) => (
+          <IconNode
+            color={colors[index] || crumb.color}
+            key={crumb.id}
+            stack={{totalStackNumber, index}}
+          />
+        ))}
       </IconNodeTooltip>
     </IconPosition>
   );
