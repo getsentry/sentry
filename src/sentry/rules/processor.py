@@ -340,9 +340,7 @@ class RuleProcessor:
             self._get_active_release_rule_actions(),
             1,
             1,
-            not features.has(
-                "organizations:active-release-notifications-enable", self.project.organization
-            ),
+            not features.has("projects:active-release-monitor-default-on", self.project),
         )
 
         return self.grouped_futures.values()
