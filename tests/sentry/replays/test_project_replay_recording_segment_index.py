@@ -54,3 +54,39 @@ class ProjectReplayRecordingSegmentTestCase(APITestCase):
         assert response.data["data"][0]["segmentId"] == 0
         assert response.data["data"][1]["segmentId"] == 1
         assert response.data["data"][2]["segmentId"] == 2
+
+    def test_index_download(self):
+        self.login_as(user=self.user)
+
+        recording_segment = ReplayRecordingSegment.objects.create(
+            replay_id=self.replay_id,
+            project_id=self.project.id,
+            segment_id=0,
+            file_id=File.objects.create(name="hello.png", type="image/png").id,
+        )
+        ReplayRecordingSegment.objects.create(
+            replay_id=self.replay_id,
+            project_id=self.project.id,
+            segment_id=1,
+            file_id=File.objects.create(name="hello.png", type="image/png").id,
+        )
+        ReplayRecordingSegment.objects.create(
+            replay_id=self.replay_id,
+            project_id=self.project.id,
+            segment_id=2,
+            file_id=File.objects.create(name="hello.png", type="image/png").id,
+        )
+
+        with self.feature("organizations:session-replay"):
+            response = self.client.get(self.url + "?download=true")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 3
+        assert response.data["data"][0]["replayId"] == recording_segment.replay_id
+        assert response.data["data"][0]["segmentId"] == recording_segment.segment_id
+        assert response.data["data"][0]["projectId"] == str(recording_segment.project_id)
+        assert response.data["data"][0]["dateAdded"] == recording_segment.date_added
+
+        assert response.data["data"][0]["segmentId"] == 0
+        assert response.data["data"][1]["segmentId"] == 1
+        assert response.data["data"][2]["segmentId"] == 2
