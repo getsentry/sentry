@@ -24,35 +24,36 @@ type Props = {
 };
 
 const SuggestedAssignees = ({owners, projectId, organization, onAssign}: Props) => (
-  <SidebarSection
-    title={
+  <SidebarSection.Wrap>
+    <SidebarSection.Title>
       <Fragment>
         {t('Suggested Assignees')}
         <Subheading>{t('Click to assign')}</Subheading>
       </Fragment>
-    }
-  >
-    <Content>
-      {owners.map((owner, i) => (
-        <SuggestedOwnerHovercard
-          key={`${owner.actor.id}:${owner.actor.email}:${owner.actor.name}:${i}`}
-          projectId={projectId}
-          organization={organization}
-          {...owner}
-        >
-          <ActorAvatar
-            css={css`
-              cursor: pointer;
-            `}
-            onClick={onAssign(owner.actor)}
-            hasTooltip={false}
-            actor={owner.actor}
-            data-test-id="suggested-assignee"
-          />
-        </SuggestedOwnerHovercard>
-      ))}
-    </Content>
-  </SidebarSection>
+    </SidebarSection.Title>
+    <SidebarSection.Content>
+      <Content>
+        {owners.map((owner, i) => (
+          <SuggestedOwnerHovercard
+            key={`${owner.actor.id}:${owner.actor.email}:${owner.actor.name}:${i}`}
+            projectId={projectId}
+            organization={organization}
+            {...owner}
+          >
+            <ActorAvatar
+              css={css`
+                cursor: pointer;
+              `}
+              onClick={onAssign(owner.actor)}
+              hasTooltip={false}
+              actor={owner.actor}
+              data-test-id="suggested-assignee"
+            />
+          </SuggestedOwnerHovercard>
+        ))}
+      </Content>
+    </SidebarSection.Content>
+  </SidebarSection.Wrap>
 );
 
 export {SuggestedAssignees};
