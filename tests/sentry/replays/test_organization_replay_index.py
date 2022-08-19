@@ -259,6 +259,37 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response_data["data"][0]["id"] == replay2_id
             assert response_data["data"][1]["id"] == replay1_id
 
+    def test_get_replays_count_errors_sorted(self):
+        """Test replays can be sorted by countErrors."""
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = str(uuid.uuid4())
+        replay2_id = str(uuid.uuid4())
+        replay1_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=15)
+        replay1_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=10)
+        replay2_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=9)
+        replay2_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=2)
+
+        self.store_replays(
+            mock_replay(replay1_timestamp0, project.id, replay1_id, error_ids=[str(uuid.uuid4())])
+        )
+        self.store_replays(mock_replay(replay1_timestamp1, project.id, replay1_id))
+        self.store_replays(mock_replay(replay2_timestamp0, project.id, replay2_id))
+        self.store_replays(mock_replay(replay2_timestamp1, project.id, replay2_id))
+
+        with self.feature(REPLAYS_FEATURES):
+            # Smallest countErrors first.
+            response = self.client.get(self.url + "?sort=countErrors")
+            response_data = response.json()
+            assert response_data["data"][0]["id"] == replay2_id
+            assert response_data["data"][1]["id"] == replay1_id
+
+            # Largest countErrors first.
+            response = self.client.get(self.url + "?sort=-countErrors")
+            response_data = response.json()
+            assert response_data["data"][0]["id"] == replay1_id
+            assert response_data["data"][1]["id"] == replay2_id
+
     def test_get_replays_pagination(self):
         """Test replays can be paginated."""
         project = self.create_project(teams=[self.team])
