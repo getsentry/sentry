@@ -1,3 +1,4 @@
+import datetime
 from datetime import timedelta
 from unittest import mock
 
@@ -209,6 +210,7 @@ class ProjectDynamicSamplingTest(APITestCase):
         response = self.client.get(self.endpoint)
         assert response.status_code == 404
 
+    @freeze_time("2022-08-18T11:00:0.000000Z")
     @mock.patch("sentry.api.endpoints.project_dynamic_sampling.raw_snql_query")
     @mock.patch("sentry.api.endpoints.project_dynamic_sampling.discover.query")
     def test_successful_response_with_distributed_traces(self, mock_query, mock_querybuilder):
@@ -241,8 +243,11 @@ class ProjectDynamicSamplingTest(APITestCase):
                     "p95": 0.9545587106701261,
                     "p99": 0.9545587106701261,
                 },
+                "startTimestamp": "2022-08-18T10:00:00Z",
+                "endTimestamp": "2022-08-18T11:00:00Z",
             }
 
+    @freeze_time("2022-08-18T11:00:0.000000Z")
     @mock.patch("sentry.api.endpoints.project_dynamic_sampling.raw_snql_query")
     @mock.patch("sentry.api.endpoints.project_dynamic_sampling.discover.query")
     def test_successful_response_with_single_transactions(self, mock_query, mock_querybuilder):
@@ -269,8 +274,11 @@ class ProjectDynamicSamplingTest(APITestCase):
                     "p95": 0.9545587106701261,
                     "p99": 0.9545587106701261,
                 },
+                "startTimestamp": "2022-08-18T10:00:00Z",
+                "endTimestamp": "2022-08-18T11:00:00Z",
             }
 
+    @freeze_time("2022-08-18T11:00:0.000000Z")
     @mock.patch("sentry.api.endpoints.project_dynamic_sampling.raw_snql_query")
     @mock.patch("sentry.api.endpoints.project_dynamic_sampling.discover.query")
     def test_successful_response_with_small_sample_size(self, mock_query, mock_querybuilder):
@@ -319,12 +327,14 @@ class ProjectDynamicSamplingTest(APITestCase):
                     "p95": None,
                     "p99": None,
                 },
+                "startTimestamp": "2022-08-18T10:00:00Z",
+                "endTimestamp": "2022-08-18T11:00:00Z",
             }
 
     @mock.patch("sentry.api.endpoints.project_dynamic_sampling.discover.query")
-    def test_response_when_no_transactions_are_available(self, mock_query):
+    def test_response_when_no_transactions_are_available_in_last_month(self, mock_query):
         self.login_as(self.user)
-        mock_query.return_value = {"data": [{"count()": 0}]}
+        mock_query.side_effect = [{"data": [{"count()": 0}]}, {"data": []}]
         with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize=2")
             assert response.json() == {
@@ -332,6 +342,68 @@ class ProjectDynamicSamplingTest(APITestCase):
                 "sample_size": 0,
                 "null_sample_rate_percentage": None,
                 "sample_rate_distributions": None,
+                "startTimestamp": None,
+                "endTimestamp": None,
+            }
+
+    @freeze_time("2022-08-18T11:00:0.000000Z")
+    @mock.patch("sentry.api.endpoints.project_dynamic_sampling.raw_snql_query")
+    @mock.patch("sentry.api.endpoints.project_dynamic_sampling.discover.query")
+    def test_response_when_no_transactions_are_available_in_last_day_only(
+        self, mock_query, mock_querybuilder
+    ):
+        # ToDo: Continue this test
+        self.login_as(self.user)
+        mock_query.side_effect = [
+            {"data": [{"count()": 0}]},
+            {
+                "data": [
+                    {"timestamp.to_day": "2022-08-06T00:00:00+00:00", "count()": 19},
+                ]
+            },
+            {
+                "data": [
+                    {"project_id": 25, "project": "fire", "count()": 2},
+                ]
+            },
+        ]
+        mock_querybuilder.return_value = {
+            "data": [
+                {
+                    "trace": "6503ee33b7bc43aead1facaa625a5dba",
+                    "id": "6ddc83ee612b4e89b95b5278c8fd188f",
+                    "trace.client_sample_rate": "",
+                    "project.name": "fire",
+                    "random_number() AS random_number": 4255299100,
+                },
+                {
+                    "trace": "6503ee33b7bc43aead1facaa625a5dba",
+                    "id": "0b127a578f8440c793f9ba1de595229f",
+                    "trace.client_sample_rate": "",
+                    "project.name": "fire",
+                    "random_number() AS random_number": 3976019453,
+                },
+            ]
+        }
+        with Feature({"organizations:server-side-sampling": True}):
+            response = self.client.get(f"{self.endpoint}?sampleSize=2")
+            assert response.json() == {
+                "project_breakdown": [
+                    {"project_id": 25, "project": "fire", "count()": 2},
+                ],
+                "sample_size": 2,
+                "null_sample_rate_percentage": 100.0,
+                "sample_rate_distributions": {
+                    "min": None,
+                    "max": None,
+                    "avg": None,
+                    "p50": None,
+                    "p90": None,
+                    "p95": None,
+                    "p99": None,
+                },
+                "startTimestamp": "2022-08-06T00:00:00Z",
+                "endTimestamp": "2022-08-07T00:00:00Z",
             }
 
     @mock.patch("sentry.api.endpoints.project_dynamic_sampling.raw_snql_query")
@@ -397,7 +469,7 @@ class ProjectDynamicSamplingTest(APITestCase):
             ]
         }
         end_time = timezone.now()
-        start_time = end_time - timedelta(hours=6)
+        start_time = end_time - timedelta(hours=1)
         query = "environment:dev"
         requested_sample_size = 2
         projects_in_org = Project.objects.filter(
@@ -410,7 +482,7 @@ class ProjectDynamicSamplingTest(APITestCase):
                 selected_columns=[
                     "count()",
                 ],
-                query=f"{query} event.type:transaction !has:trace.parent_span_id",
+                query=f"{query} event.type:transaction !has:trace.parent_span",
                 params={
                     "start": start_time,
                     "end": end_time,
@@ -439,6 +511,7 @@ class ProjectDynamicSamplingTest(APITestCase):
                     "organization_id": self.project.organization,
                 },
                 equations=[],
+                functions_acl=None,
                 orderby=[],
                 offset=0,
                 limit=20,
@@ -459,7 +532,7 @@ class ProjectDynamicSamplingTest(APITestCase):
                 "random_number() AS rand_num",
                 "modulo(rand_num, 10) as modulo_num",
             ],
-            query=f"{query} event.type:transaction !has:trace.parent_span_id",
+            query=f"{query} event.type:transaction !has:trace.parent_span",
             params={
                 "start": start_time,
                 "end": end_time,
@@ -482,7 +555,187 @@ class ProjectDynamicSamplingTest(APITestCase):
 
         with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(
-                f"{self.endpoint}?sampleSize={requested_sample_size}&query={query}&statsPeriod=6h"
+                f"{self.endpoint}?sampleSize={requested_sample_size}&query={query}"
+            )
+            assert response.status_code == 200
+            assert mock_query.mock_calls == calls
+
+            mock_querybuilder_query = mock_querybuilder.call_args_list[0][0][0].query
+
+            def snuba_sort_key(elem):
+                if isinstance(elem, Condition):
+                    try:
+                        return elem.lhs.name
+                    except AttributeError:
+                        return elem.lhs.function
+                elif isinstance(elem, Column):
+                    return elem.name
+                else:
+                    return elem.alias
+
+            assert sorted(mock_querybuilder_query.select, key=snuba_sort_key) == sorted(
+                snuba_query.select, key=snuba_sort_key
+            )
+            assert sorted(mock_querybuilder_query.where, key=snuba_sort_key) == sorted(
+                snuba_query.where, key=snuba_sort_key
+            )
+            assert sorted(mock_querybuilder_query.groupby, key=snuba_sort_key) == sorted(
+                snuba_query.groupby, key=snuba_sort_key
+            )
+
+    @freeze_time("2022-08-18T11:00:0.000000Z")
+    @mock.patch("sentry.api.endpoints.project_dynamic_sampling.raw_snql_query")
+    @mock.patch("sentry.api.endpoints.project_dynamic_sampling.discover.query")
+    def test_path_when_no_transactions_in_last_hour(self, mock_query, mock_querybuilder):
+        self.login_as(self.user)
+        mock_query.side_effect = [
+            {"data": [{"count()": 0}]},
+            {
+                "data": [
+                    {"timestamp.to_day": "2022-08-06T00:00:00+00:00", "count()": 1000},
+                ]
+            },
+            {
+                "data": [
+                    {"project_id": 25, "project": "fire", "count()": 2},
+                ]
+            },
+        ]
+        mock_querybuilder.return_value = {
+            "data": [
+                {
+                    "trace": "6503ee33b7bc43aead1facaa625a5dba",
+                    "id": "6ddc83ee612b4e89b95b5278c8fd188f",
+                    "trace.client_sample_rate": "",
+                    "project.name": "fire",
+                    "random_number() AS random_number": 4255299100,
+                },
+                {
+                    "trace": "6503ee33b7bc43aead1facaa625a5dba",
+                    "id": "0b127a578f8440c793f9ba1de595229f",
+                    "trace.client_sample_rate": "",
+                    "project.name": "fire",
+                    "random_number() AS random_number": 3976019453,
+                },
+            ]
+        }
+        end_time = timezone.now()
+        start_time = end_time - timedelta(hours=1)
+        query = "environment:dev"
+        requested_sample_size = 2
+        projects_in_org = Project.objects.filter(
+            organization=self.project.organization
+        ).values_list("id", flat=True)
+        trace_id_list = ["6503ee33b7bc43aead1facaa625a5dba", "6503ee33b7bc43aead1facaa625a5dba"]
+
+        updated_start_time = datetime.datetime(2022, 8, 6, 0, 0, 0, tzinfo=timezone.utc)
+        updated_end_time = datetime.datetime(2022, 8, 7, 0, 0, 0, tzinfo=timezone.utc)
+
+        end_bound_time = end_time.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(
+            days=1
+        )
+        start_bound_time = end_bound_time - timedelta(days=30)
+
+        calls = [
+            mock.call(
+                selected_columns=[
+                    "count()",
+                ],
+                query=f"{query} event.type:transaction !has:trace.parent_span",
+                params={
+                    "start": start_time,
+                    "end": end_time,
+                    "project_id": [self.project.id],
+                    "organization_id": self.project.organization,
+                },
+                orderby=[],
+                offset=0,
+                limit=requested_sample_size,
+                equations=[],
+                auto_fields=True,
+                auto_aggregations=True,
+                allow_metric_aggregates=True,
+                use_aggregate_conditions=True,
+                transform_alias_to_input_format=True,
+                functions_acl=None,
+                referrer="dynamic-sampling.distribution.fetch-parent-transactions-count",
+            ),
+            mock.call(
+                selected_columns=["count()", "timestamp.to_day"],
+                query=f"{query} event.type:transaction !has:trace.parent_span",
+                params={
+                    "start": start_bound_time,
+                    "end": end_bound_time,
+                    "project_id": [self.project.id],
+                    "organization_id": self.project.organization,
+                },
+                orderby=["-timestamp.to_day"],
+                offset=0,
+                limit=1,
+                equations=[],
+                auto_fields=True,
+                auto_aggregations=True,
+                allow_metric_aggregates=True,
+                use_aggregate_conditions=True,
+                transform_alias_to_input_format=True,
+                functions_acl=None,
+                referrer="dynamic-sampling.distribution.get-most-recent-day-with-transactions",
+            ),
+            mock.call(
+                selected_columns=["project_id", "project", "count()"],
+                query=f"event.type:transaction trace:[{','.join(trace_id_list)}]",
+                params={
+                    "start": updated_start_time,
+                    "end": updated_end_time,
+                    "project_id": list(projects_in_org),
+                    "organization_id": self.project.organization,
+                },
+                equations=[],
+                functions_acl=None,
+                orderby=[],
+                offset=0,
+                limit=20,
+                auto_fields=True,
+                auto_aggregations=True,
+                allow_metric_aggregates=True,
+                use_aggregate_conditions=True,
+                transform_alias_to_input_format=True,
+                referrer="dynamic-sampling.distribution.fetch-project-breakdown",
+            ),
+        ]
+        query_builder = QueryBuilder(
+            Dataset.Discover,
+            selected_columns=[
+                "id",
+                "trace",
+                "trace.client_sample_rate",
+                "random_number() AS rand_num",
+                "modulo(rand_num, 10) as modulo_num",
+            ],
+            query=f"{query} event.type:transaction !has:trace.parent_span",
+            params={
+                "start": updated_start_time,
+                "end": updated_end_time,
+                "project_id": [self.project.id],
+                "organization_id": self.project.organization,
+            },
+            offset=0,
+            orderby=None,
+            limit=requested_sample_size,
+            equations=[],
+            auto_fields=True,
+            auto_aggregations=True,
+            use_aggregate_conditions=True,
+            functions_acl=["random_number", "modulo"],
+        )
+        query_builder.add_conditions([Condition(lhs=Column("modulo_num"), op=Op.EQ, rhs=0)])
+        snuba_query = query_builder.get_snql_query().query
+        groupby = snuba_query.groupby + [Column("modulo_num")]
+        snuba_query = snuba_query.set_groupby(groupby)
+
+        with Feature({"organizations:server-side-sampling": True}):
+            response = self.client.get(
+                f"{self.endpoint}?sampleSize={requested_sample_size}&query={query}"
             )
             assert response.status_code == 200
             assert mock_query.mock_calls == calls

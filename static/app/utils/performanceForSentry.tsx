@@ -141,13 +141,9 @@ export class LongTaskObserver {
         return null;
       }
 
-      const timeOrigin = browserPerformanceTimeOrigin / 1000;
-
-      const observer = new PerformanceObserver(function (list) {
+      const observer = new PerformanceObserver(function () {
         try {
           const transaction = getPerformanceTransaction();
-          const perfEntries = list.getEntries();
-
           if (!transaction) {
             return;
           }
@@ -161,18 +157,6 @@ export class LongTaskObserver {
             LongTaskObserver.longTaskDuration = 0;
             LongTaskObserver.lastTransaction = transaction;
           }
-
-          perfEntries.forEach(entry => {
-            const startSeconds = timeOrigin + entry.startTime / 1000;
-            LongTaskObserver.longTaskCount++;
-            LongTaskObserver.longTaskDuration += entry.duration;
-            transaction.startChild({
-              description: `Long Task`,
-              op: `ui.sentry.long-task`,
-              startTimestamp: startSeconds,
-              endTimestamp: startSeconds + entry.duration / 1000,
-            });
-          });
           LongTaskObserver.setLongTaskData(transaction);
         } catch (_) {
           // Defensive catch.

@@ -101,7 +101,7 @@ describe('Dashboards > ReleasesSelectControl', function () {
     await waitFor(() => expect(mockOnSearch).toBeCalledWith(''));
   });
 
-  it('triggers handleChangeFilter with the release versions and IDs', function () {
+  it('triggers handleChangeFilter with the release versions', function () {
     const mockHandleChangeFilter = jest.fn();
     renderReleasesSelect({handleChangeFilter: mockHandleChangeFilter});
     expect(screen.getByText('All Releases')).toBeInTheDocument();
@@ -115,7 +115,27 @@ describe('Dashboards > ReleasesSelectControl', function () {
 
     expect(mockHandleChangeFilter).toHaveBeenCalledWith({
       release: ['latest', 'sentry-android-shop@1.2.0', 'sentry-android-shop@1.4.0'],
-      releaseId: ['1', '3', 'latest'],
     });
+  });
+
+  it('includes Latest Release(s) even if no matching releases', function () {
+    render(
+      <ReleasesContext.Provider
+        value={{
+          releases: [],
+          loading: false,
+          onSearch: jest.fn(),
+        }}
+      >
+        <ReleasesSelectControl selectedReleases={[]} handleChangeFilter={jest.fn()} />
+      </ReleasesContext.Provider>
+    );
+
+    expect(screen.getByText('All Releases')).toBeInTheDocument();
+
+    userEvent.click(screen.getByText('All Releases'));
+    userEvent.type(screen.getByText('Search\u2026'), 'latest');
+
+    screen.getByText('Latest Release(s)');
   });
 });
