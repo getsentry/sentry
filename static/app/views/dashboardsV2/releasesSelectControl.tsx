@@ -74,23 +74,21 @@ function ReleasesSelectControl({
         {
           value: '_releases',
           label: t('Sorted by date created'),
-          options: releases.length
-            ? [
-                ...ALIASED_RELEASES,
-                ...activeReleases
-                  .filter(version => version !== 'latest')
-                  .map(version => ({
-                    label: version,
-                    value: version,
-                  })),
-                ...releases
-                  .filter(({version}) => !activeReleasesSet.has(version))
-                  .map(({version}) => ({
-                    label: version,
-                    value: version,
-                  })),
-              ]
-            : [],
+          options: [
+            ...ALIASED_RELEASES,
+            ...activeReleases
+              .filter(version => version !== 'latest')
+              .map(version => ({
+                label: version,
+                value: version,
+              })),
+            ...releases
+              .filter(({version}) => !activeReleasesSet.has(version))
+              .map(({version}) => ({
+                label: version,
+                value: version,
+              })),
+          ],
         },
       ]}
       onChange={opts => setActiveReleases(opts.map(opt => opt.value))}
