@@ -82,7 +82,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         """
         Return a list of projects bound to a organization.
         """
-        stats_period = request.GET.get("statsPeriod", request.GET.get("timeframe"))
+        stats_period = request.GET.get("timeframe", request.GET.get("statsPeriod"))
         collapse = request.GET.getlist("collapse", [])
         if stats_period not in (None, "", "1h", "24h", "7d", "14d", "30d"):
             return Response(
