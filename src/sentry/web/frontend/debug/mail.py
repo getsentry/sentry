@@ -745,8 +745,9 @@ def org_delete_confirm(request):
 def render_preview_email_for_notification(
     notification: BaseNotification, recipient: User | Team
 ) -> MutableMapping[str, Any]:
+    shared_context = notification.get_context()
+    basic_args = get_builder_args(notification, recipient, shared_context)
     # remove unneeded fields
-    basic_args = get_builder_args(notification, recipient)
     args = {k: v for k, v in basic_args.items() if k not in ["headers", "reference", "subject"]}
     # convert subject back to a string
     args["subject"] = basic_args["subject"].decode("utf-8")
