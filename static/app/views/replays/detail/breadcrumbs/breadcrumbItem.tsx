@@ -43,26 +43,26 @@ function BreadcrumbItem({
     [onMouseLeave, crumb]
   );
   const handleClick = useCallback(
-    (e: React.MouseEvent<HTMLElement>) => onClick?.(crumb, e),
-    [onClick, crumb]
+    (e: React.MouseEvent<HTMLElement>) => {
+      onClick?.(crumb, e);
+      switch (crumb.type) {
+        case 'navigation':
+        case 'debug':
+          setActiveTab('network');
+          break;
+        case 'ui':
+          setActiveTab('dom');
+          break;
+        case 'error':
+          setActiveTab('issues');
+          break;
+        default:
+          setActiveTab('console');
+          break;
+      }
+    },
+    [crumb, setActiveTab, onClick]
   );
-  const handleIconClick = useCallback(() => {
-    switch (crumb.type) {
-      case 'navigation':
-      case 'debug':
-        setActiveTab('network');
-        break;
-      case 'ui':
-        setActiveTab('dom');
-        break;
-      case 'error':
-        setActiveTab('issues');
-        break;
-      default:
-        setActiveTab('console');
-        break;
-    }
-  }, [crumb, setActiveTab]);
 
   return (
     <CrumbItem
@@ -74,7 +74,7 @@ function BreadcrumbItem({
       isSelected={isSelected}
       aria-current={isSelected}
     >
-      <IconWrapper color={crumb.color} onClick={handleIconClick}>
+      <IconWrapper color={crumb.color}>
         <BreadcrumbIcon type={crumb.type} />
       </IconWrapper>
       <CrumbDetails>
