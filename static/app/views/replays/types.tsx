@@ -76,6 +76,7 @@ export type ReplayRecord = {
 };
 
 export type ReplayListLocationQuery = {
+  cursor?: string;
   end?: string;
   environment?: string[];
   field?: string[];
