@@ -38,6 +38,12 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
     [logLevel, searchTerm, breadcrumbs]
   );
 
+  const currentUserAction = getPrevBreadcrumb({
+    crumbs: breadcrumbs,
+    targetTimestampMs: startTimestampMs + currentTime,
+    allowExact: true,
+  });
+
   const closestUserAction =
     currentHoverTime !== undefined
       ? getPrevBreadcrumb({
@@ -72,6 +78,7 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
             return (
               <ConsoleMessage
                 isActive={closestUserAction?.id === breadcrumb.id}
+                isCurrent={currentUserAction?.id === breadcrumb.id}
                 startTimestampMs={startTimestampMs}
                 key={breadcrumb.id}
                 isLast={i === breadcrumbs.length - 1}

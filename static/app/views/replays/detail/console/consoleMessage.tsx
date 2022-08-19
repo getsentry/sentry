@@ -114,6 +114,7 @@ export function MessageFormatter({breadcrumb}: MessageFormatterProps) {
 interface ConsoleMessageProps extends MessageFormatterProps {
   hasOccurred: boolean;
   isActive: boolean;
+  isCurrent: boolean;
   isLast: boolean;
   startTimestampMs: number;
 }
@@ -122,6 +123,7 @@ function ConsoleMessage({
   isActive = false,
   hasOccurred,
   isLast,
+  isCurrent,
   startTimestampMs = 0,
 }: ConsoleMessageProps) {
   const ICONS = {
@@ -142,6 +144,7 @@ function ConsoleMessage({
         isLast={isLast}
         level={breadcrumb.level}
         isActive={isActive}
+        isCurrent={isCurrent}
         hasOccurred={hasOccurred}
         onMouseOver={handleOnMouseOver}
         onMouseOut={handleOnMouseOut}
@@ -150,6 +153,8 @@ function ConsoleMessage({
       </Icon>
       <Message
         isLast={isLast}
+        isActive={isActive}
+        isCurrent={isCurrent}
         level={breadcrumb.level}
         hasOccurred={hasOccurred}
         onMouseOver={handleOnMouseOver}
@@ -161,6 +166,8 @@ function ConsoleMessage({
       </Message>
       <ConsoleTimestamp
         isLast={isLast}
+        isCurrent={isCurrent}
+        isActive={isActive}
         level={breadcrumb.level}
         hasOccurred={hasOccurred}
       >
@@ -179,10 +186,13 @@ function ConsoleMessage({
 }
 
 const Common = styled('div')<{
+  isActive: boolean;
+  isCurrent: boolean;
   isLast: boolean;
   level: string;
   hasOccurred?: boolean;
 }>`
+  position: relative;
   background-color: ${p =>
     ['warning', 'error'].includes(p.level)
       ? p.theme.alert[p.level].backgroundLight
@@ -218,6 +228,25 @@ const Common = styled('div')<{
   &:nth-last-child(3) {
     border-bottom-left-radius: 3px;
   }
+
+  &:after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    z-index: 1;
+    height: 2px;
+    width: 100%;
+    background-color: ${p => {
+      if (p.isActive) {
+        return p.theme.purple200;
+      }
+      if (p.isCurrent) {
+        return p.theme.purple300;
+      }
+      return 'transparent';
+    }};
+  }
 `;
 
 const ConsoleTimestamp = styled(Common)`
@@ -229,20 +258,10 @@ const ConsoleTimestampButton = styled('button')`
   border: none;
 `;
 
-const Icon = styled(Common)<{isActive: boolean}>`
+const Icon = styled(Common)`
   padding: ${space(0.5)} ${space(1)};
   position: relative;
 
-  &:after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 1;
-    height: 100%;
-    width: ${space(0.5)};
-    background-color: ${p => (p.isActive ? p.theme.focus : 'transparent')};
-  }
   &:nth-child(1):after {
     border-top-left-radius: 3px;
   }
