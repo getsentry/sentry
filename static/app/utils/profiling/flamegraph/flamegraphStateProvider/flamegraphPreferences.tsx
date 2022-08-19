@@ -2,7 +2,8 @@ export type FlamegraphColorCodings = [
   'by symbol name',
   'by system / application',
   'by library',
-  'by recursion'
+  'by recursion',
+  'by frequency'
 ];
 
 export type FlamegraphSorting = ['left heavy', 'call order'];
@@ -11,7 +12,7 @@ export type FlamegraphAxisOptions = ['standalone', 'transaction'];
 
 export interface FlamegraphPreferences {
   colorCoding: FlamegraphColorCodings[number];
-  layout: 'table_right' | 'table_bottom' | 'table_left';
+  layout: 'table right' | 'table bottom' | 'table left';
   sorting: FlamegraphSorting[number];
   view: FlamegraphViewOptions[number];
   xAxis: FlamegraphAxisOptions[number];

@@ -6,8 +6,8 @@ import {openDashboardWidgetQuerySelectorModal} from 'sentry/actionCreators/modal
 import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
-import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
+import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
+import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
 import Tag from 'sentry/components/tag';
 import Tooltip from 'sentry/components/tooltip';
@@ -24,7 +24,6 @@ import {
   isCustomMeasurementWidget,
 } from 'sentry/views/dashboardsV2/utils';
 
-import {UNSAVED_FILTERS_MESSAGE} from '../detail';
 import {Widget, WidgetType} from '../types';
 import {WidgetViewerContext} from '../widgetViewer/widgetViewerContext';
 
@@ -37,7 +36,6 @@ type Props = {
   selection: PageFilters;
   widget: Widget;
   widgetLimitReached: boolean;
-  hasUnsavedFilters?: boolean;
   index?: string;
   isPreview?: boolean;
   onDelete?: () => void;
@@ -45,6 +43,7 @@ type Props = {
   onEdit?: () => void;
   pageLinks?: string;
   seriesData?: Series[];
+  seriesResultsType?: string;
   showContextMenu?: boolean;
   showWidgetViewerButton?: boolean;
   tableData?: TableDataWithTitle[];
@@ -69,7 +68,7 @@ function WidgetCardContextMenu({
   tableData,
   pageLinks,
   totalIssuesCount,
-  hasUnsavedFilters,
+  seriesResultsType,
 }: Props) {
   const {isMetricsData} = useDashboardsMEPContext();
   if (!showContextMenu) {
@@ -96,7 +95,16 @@ function WidgetCardContextMenu({
       <WidgetViewerContext.Consumer>
         {({setData}) => (
           <ContextWrapper>
-            <StyledDropdownMenuControlV2
+            <Feature organization={organization} features={['dashboards-mep']}>
+              {isMetricsData === false && (
+                <SampledTag
+                  tooltipText={t('This widget is only applicable to indexed events.')}
+                >
+                  {t('Indexed')}
+                </SampledTag>
+              )}
+            </Feature>
+            <StyledDropdownMenuControl
               items={[
                 {
                   key: 'preview',
@@ -128,6 +136,7 @@ function WidgetCardContextMenu({
                       tableData,
                       pageLinks,
                       totalIssuesCount,
+                      seriesResultsType,
                     });
                   openWidgetViewerPath(index);
                 }}
@@ -206,8 +215,6 @@ function WidgetCardContextMenu({
       key: 'duplicate-widget',
       label: t('Duplicate Widget'),
       onAction: () => onDuplicate?.(),
-      tooltip: hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE,
-      tooltipOptions: {position: 'left'},
     });
     widgetLimitReached && disabledKeys.push('duplicate-widget');
 
@@ -215,8 +222,6 @@ function WidgetCardContextMenu({
       key: 'edit-widget',
       label: t('Edit Widget'),
       onAction: () => onEdit?.(),
-      tooltip: hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE,
-      tooltipOptions: {position: 'left'},
     });
 
     menuOptions.push({
@@ -230,8 +235,6 @@ function WidgetCardContextMenu({
           onConfirm: () => onDelete?.(),
         });
       },
-      tooltip: hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE,
-      tooltipOptions: {position: 'left'},
     });
   }
 
@@ -246,13 +249,13 @@ function WidgetCardContextMenu({
           <Feature organization={organization} features={['dashboards-mep']}>
             {isMetricsData === false && (
               <SampledTag
-                tooltipText={t('This widget is only applicable to sampled events.')}
+                tooltipText={t('This widget is only applicable to indexed events.')}
               >
-                {t('Sampled')}
+                {t('Indexed')}
               </SampledTag>
             )}
           </Feature>
-          <StyledDropdownMenuControlV2
+          <StyledDropdownMenuControl
             items={menuOptions}
             triggerProps={{
               'aria-label': t('Widget actions'),
@@ -262,12 +265,7 @@ function WidgetCardContextMenu({
               icon: <IconEllipsis direction="down" size="sm" />,
             }}
             placement="bottom right"
-            disabledKeys={[
-              ...disabledKeys,
-              ...(hasUnsavedFilters
-                ? ['duplicate-widget', 'edit-widget', 'delete-widget']
-                : []),
-            ]}
+            disabledKeys={[...disabledKeys]}
           />
           {showWidgetViewerButton && (
             <OpenWidgetViewerButton
@@ -281,6 +279,7 @@ function WidgetCardContextMenu({
                   tableData,
                   pageLinks,
                   totalIssuesCount,
+                  seriesResultsType,
                 });
                 openWidgetViewerPath(widget.id ?? index);
               }}
@@ -301,7 +300,7 @@ const ContextWrapper = styled('div')`
   margin-left: ${space(1)};
 `;
 
-const StyledDropdownMenuControlV2 = styled(DropdownMenuControlV2)`
+const StyledDropdownMenuControl = styled(DropdownMenuControl)`
   & > button {
     z-index: auto;
   }

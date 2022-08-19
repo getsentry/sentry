@@ -26,9 +26,17 @@ class KafkaEventStream(SnubaProtocolEventStream):
     def __init__(self, **options):
         self.topic = settings.KAFKA_EVENTS
         self.transactions_topic = settings.KAFKA_TRANSACTIONS
+        self.assign_transaction_partitions_randomly = (
+            settings.SENTRY_EVENTSTREAM_PARTITION_TRANSACTIONS_RANDOMLY
+        )
 
     @cached_property
     def producer(self):
+        # TODO: The producer is currently hardcoded to KAFKA_EVENTS. This assumes that the transactions
+        # topic is either the same (or is on the same cluster) as the events topic. Since we are in the
+        # process of splitting the topic this will no longer be true. This should be fixed and we should
+        # drop this requirement when the KafkaEventStream is refactored to be agnostic of dataset specific
+        # details and the correct topic should be passed into here instead of hardcoding events.
         return kafka.producers.get(settings.KAFKA_EVENTS)
 
     def delivery_callback(self, error, message):
@@ -57,11 +65,8 @@ class KafkaEventStream(SnubaProtocolEventStream):
                 value = False
             return str(int(value))
 
-        # WARNING: We must remove all None headers. There is a bug in confluent-kafka-python
-        # (used by both Sentry and Snuba) that incorrectly decrements the reference count of
-        # Python's None on any attempt to read header values containing null values, leading
-        # None to eventually get deallocated and crash the interpreter. The bug exists in the
-        # version we are using (1.5) as well as in the latest (at the time of writing) 1.7 version.
+        # we strip `None` values here so later in the pipeline they can be
+        # cleanly encoded without nullability checks
         def strip_none_values(value: Mapping[str, Optional[str]]) -> Mapping[str, str]:
             return {key: value for key, value in value.items() if value is not None}
 
@@ -113,10 +118,14 @@ class KafkaEventStream(SnubaProtocolEventStream):
         **kwargs,
     ):
         message_type = "transaction" if self._is_transaction_event(event) else "error"
-        assign_partitions_randomly = killswitch_matches_context(
-            "kafka.send-project-events-to-random-partitions",
-            {"project_id": event.project_id, "message_type": message_type},
-        )
+
+        if message_type == "transaction" and self.assign_transaction_partitions_randomly:
+            assign_partitions_randomly = True
+        else:
+            assign_partitions_randomly = killswitch_matches_context(
+                "kafka.send-project-events-to-random-partitions",
+                {"project_id": event.project_id, "message_type": message_type},
+            )
 
         if assign_partitions_randomly:
             kwargs[KW_SKIP_SEMANTIC_PARTITIONING] = True

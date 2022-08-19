@@ -30,10 +30,7 @@ import EventView, {
 } from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
-import {
-  MEPConsumer,
-  MEPState,
-} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {MEPConsumer} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import CellAction, {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
 import {TableColumn} from 'sentry/views/eventsV2/table/types';
 
@@ -47,7 +44,11 @@ import {
   transactionSummaryRouteWithQuery,
 } from './transactionSummary/utils';
 import {COLUMN_TITLES} from './data';
-import {EXCLUDE_METRICS_UNPARAM_CONDITIONS, getSelectedProjectPlatforms} from './utils';
+import {
+  createUnnamedTransactionsDiscoverTarget,
+  getSelectedProjectPlatforms,
+  UNPARAMETERIZED_TRANSACTION,
+} from './utils';
 
 export function getProjectID(
   eventData: EventData,
@@ -196,12 +197,18 @@ class _Table extends Component<Props, State> {
         ]);
       }
       summaryView.query = summaryView.getQueryWithAdditionalConditions();
-      const target = transactionSummaryRouteWithQuery({
-        orgSlug: organization.slug,
-        transaction: String(dataRow.transaction) || '',
-        query: summaryView.generateQueryStringObject(),
-        projectID,
-      });
+      const isUnparameterizedRow = dataRow.transaction === UNPARAMETERIZED_TRANSACTION;
+      const target = isUnparameterizedRow
+        ? createUnnamedTransactionsDiscoverTarget({
+            organization,
+            location,
+          })
+        : transactionSummaryRouteWithQuery({
+            orgSlug: organization.slug,
+            transaction: String(dataRow.transaction) || '',
+            query: summaryView.generateQueryStringObject(),
+            projectID,
+          });
 
       return (
         <CellAction
@@ -428,14 +435,9 @@ class _Table extends Component<Props, State> {
     const prependColumnWidths = ['max-content'];
 
     return (
-      <div>
+      <div data-test-id="performance-table">
         <MEPConsumer>
           {value => {
-            const appendRawQuery =
-              value.metricSettingState === MEPState.metricsOnly
-                ? EXCLUDE_METRICS_UNPARAM_CONDITIONS
-                : undefined;
-
             return (
               <DiscoverQuery
                 eventView={sortedEventView}
@@ -447,7 +449,6 @@ class _Table extends Component<Props, State> {
                 transactionThreshold={transactionThreshold}
                 queryExtras={getMEPQueryParams(value)}
                 useEvents={useEvents}
-                forceAppendRawQueryString={appendRawQuery}
               >
                 {({pageLinks, isLoading, tableData}) => (
                   <Fragment>

@@ -5,7 +5,7 @@ import {Breadcrumb} from 'sentry/components/profiling/breadcrumb';
 import {t} from 'sentry/locale';
 import {
   generateProfileDetailsRouteWithQuery,
-  generateProfileFlamegraphRouteWithQuery,
+  generateProfileFlamechartRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -18,6 +18,10 @@ function ProfileHeader() {
   const organization = useOrganization();
   const [profileGroup] = useProfileGroup();
 
+  const transaction = profileGroup.type === 'resolved' ? profileGroup.data.name : '';
+  const profileId = params.eventId ?? '';
+  const projectSlug = params.projectId ?? '';
+
   return (
     <Layout.Header style={{gridTemplateColumns: 'minmax(0, 1fr)'}}>
       <Layout.HeaderContent style={{marginBottom: 0}}>
@@ -27,40 +31,47 @@ function ProfileHeader() {
           trails={[
             {type: 'landing'},
             {
-              type: 'flamegraph',
+              type: 'profile summary',
               payload: {
-                transaction:
-                  profileGroup.type === 'resolved' ? profileGroup.data.name : '',
-                profileId: params.eventId ?? '',
-                projectSlug: params.projectId ?? '',
+                projectSlug,
+                transaction,
+              },
+            },
+            {
+              type: 'flamechart',
+              payload: {
+                transaction,
+                profileId,
+                projectSlug,
+                tab: location.pathname.endsWith('details/') ? 'details' : 'flamechart',
               },
             },
           ]}
         />
       </Layout.HeaderContent>
       <Layout.HeaderNavTabs underlined>
+        <li className={location.pathname.endsWith('flamechart/') ? 'active' : undefined}>
+          <Link
+            to={generateProfileFlamechartRouteWithQuery({
+              orgSlug: organization.slug,
+              projectSlug,
+              profileId,
+              location,
+            })}
+          >
+            {t('Flamechart')}
+          </Link>
+        </li>
         <li className={location.pathname.endsWith('details/') ? 'active' : undefined}>
           <Link
             to={generateProfileDetailsRouteWithQuery({
               orgSlug: organization.slug,
-              projectSlug: params.projectId,
-              profileId: params.eventId,
+              projectSlug,
+              profileId,
               location,
             })}
           >
             {t('Details')}
-          </Link>
-        </li>
-        <li className={location.pathname.endsWith('flamegraph/') ? 'active' : undefined}>
-          <Link
-            to={generateProfileFlamegraphRouteWithQuery({
-              orgSlug: organization.slug,
-              projectSlug: params.projectId,
-              profileId: params.eventId,
-              location,
-            })}
-          >
-            {t('Flamegraph')}
           </Link>
         </li>
       </Layout.HeaderNavTabs>

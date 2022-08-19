@@ -5,7 +5,7 @@ import {logout} from 'sentry/actionCreators/account';
 import {Client} from 'sentry/api';
 import DemoModeGate from 'sentry/components/acl/demoModeGate';
 import Avatar from 'sentry/components/avatar';
-import DropdownMenu from 'sentry/components/dropdownMenu';
+import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import Hook from 'sentry/components/hook';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
@@ -82,7 +82,7 @@ const SidebarDropdown = ({
     );
 
   return (
-    <DropdownMenu>
+    <DeprecatedDropdownMenu>
       {({isOpen, getRootProps, getActorProps, getMenuProps}) => (
         <SidebarDropdownRoot {...getRootProps()}>
           <SidebarDropdownActor
@@ -183,7 +183,7 @@ const SidebarDropdown = ({
           )}
         </SidebarDropdownRoot>
       )}
-    </DropdownMenu>
+    </DeprecatedDropdownMenu>
   );
 };
 

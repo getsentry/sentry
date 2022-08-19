@@ -10,6 +10,7 @@ import space from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import {defined} from 'sentry/utils';
 import useProjects from 'sentry/utils/useProjects';
+import {useRouteContext} from 'sentry/utils/useRouteContext';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -19,7 +20,12 @@ type Props = {
 };
 
 function EventMetaData({crumbs, durationMs, replayRecord}: Props) {
+  const {
+    params: {replaySlug},
+  } = useRouteContext();
   const {projects} = useProjects();
+  const [slug] = replaySlug.split(':');
+
   const errors = crumbs?.filter(crumb => crumb.type === 'error').length;
 
   return (
@@ -27,8 +33,8 @@ function EventMetaData({crumbs, durationMs, replayRecord}: Props) {
       {replayRecord ? (
         <ProjectBadge
           project={
-            projects.find(p => p.id === replayRecord.project_id) || {
-              slug: replayRecord.project_slug || '',
+            projects.find(p => p.id === replayRecord.projectId) || {
+              slug,
             }
           }
           avatarSize={16}
@@ -41,7 +47,7 @@ function EventMetaData({crumbs, durationMs, replayRecord}: Props) {
         {replayRecord ? (
           <React.Fragment>
             <IconCalendar color="gray300" />
-            <TimeSince date={replayRecord.started_at} shorten />
+            <TimeSince date={replayRecord.startedAt} shorten />
           </React.Fragment>
         ) : (
           <HeaderPlaceholder />

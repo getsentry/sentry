@@ -10,7 +10,7 @@ import MenuItem from 'sentry/components/menuItem';
 import {IconAdd, IconPin, IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {SavedSearch, SavedSearchType} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import CreateSavedSearchModal from 'sentry/views/issueList/createSavedSearchModal';
 
 import SmartSearchBar from './index';
@@ -54,10 +54,8 @@ export function makePinSearchAction({pinnedSearch, sort}: PinSearchActionOpts) {
 
       const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
 
-      trackAnalyticsEvent({
-        eventKey: 'search.pin',
-        eventName: 'Search: Pin',
-        organization_id: organization.id,
+      trackAdvancedAnalyticsEvent('search.pin', {
+        organization,
         action: !!pinnedSearch ? 'unpin' : 'pin',
         search_type: savedSearchType === SavedSearchType.ISSUE ? 'issues' : 'events',
         query: pinnedSearch?.query ?? query,
@@ -144,19 +142,32 @@ export function makeSaveSearchAction({sort}: SaveSearchActionOpts) {
 
     return (
       <Access organization={organization} access={['org:write']}>
-        {menuItemVariant ? (
-          <MenuItem withBorder icon={<IconAdd size="xs" />} onClick={onClick}>
-            {t('Create Saved Search')}
-          </MenuItem>
-        ) : (
-          <ActionButton
-            onClick={onClick}
-            data-test-id="save-current-search"
-            icon={<IconAdd size="xs" />}
-            title={t('Add to organization saved searches')}
-            aria-label={t('Add to organization saved searches')}
-          />
-        )}
+        {({hasAccess}) => {
+          const title = hasAccess
+            ? t('Add to organization saved searches')
+            : t('You do not have permission to create a saved search');
+
+          return menuItemVariant ? (
+            <MenuItem
+              onClick={onClick}
+              disabled={!hasAccess}
+              icon={<IconAdd size="xs" />}
+              title={!hasAccess ? title : undefined}
+              withBorder
+            >
+              {t('Create Saved Search')}
+            </MenuItem>
+          ) : (
+            <ActionButton
+              onClick={onClick}
+              disabled={!hasAccess}
+              icon={<IconAdd size="xs" />}
+              title={title}
+              aria-label={title}
+              data-test-id="save-current-search"
+            />
+          );
+        }}
       </Access>
     );
   };

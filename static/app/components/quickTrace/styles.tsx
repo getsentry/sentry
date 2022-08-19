@@ -4,7 +4,7 @@ import {LocationDescriptor} from 'history';
 import MenuHeader from 'sentry/components/actions/menuHeader';
 import ExternalLink from 'sentry/components/links/externalLink';
 import MenuItem from 'sentry/components/menuItem';
-import Tag, {Background} from 'sentry/components/tag';
+import Tag from 'sentry/components/tag';
 import Truncate from 'sentry/components/truncate';
 import space from 'sentry/styles/space';
 import {getDuration} from 'sentry/utils/formatters';
@@ -19,7 +19,6 @@ export const SectionSubtext = styled('div')`
 export const QuickTraceContainer = styled('div')`
   display: flex;
   align-items: center;
-  height: 24px;
 `;
 
 const nodeColors = (theme: Theme) => ({
@@ -45,17 +44,11 @@ const nodeColors = (theme: Theme) => ({
   },
 });
 
-export const EventNode = styled(Tag)<{shouldOffset?: boolean}>`
+export const EventNode = styled(Tag)`
   span {
     display: flex;
     color: ${p => nodeColors(p.theme)[p.type || 'white'].color};
   }
-
-  /*
-   * When the EventNode is contains an icon, we need to offset the
-   * component a little for all the EventNodes to be aligned.
-   */
-  ${p => p.shouldOffset && `margin-top: ${space(0.5)}`}
 `;
 
 export const TraceConnector = styled('div')`

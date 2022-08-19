@@ -26,15 +26,18 @@ import type {User} from './user';
  * The Hooks type mapping is the master interface for all external Hooks into
  * the sentry frontend application.
  */
-export type Hooks = {_: any} & RouteHooks &
-  ComponentHooks &
-  CustomizationHooks &
-  AnalyticsHooks &
-  FeatureDisabledHooks &
-  InterfaceChromeHooks &
-  OnboardingHooks &
-  SettingsHooks &
-  CallbackHooks;
+export interface Hooks
+  extends RouteHooks,
+    ComponentHooks,
+    CustomizationHooks,
+    AnalyticsHooks,
+    FeatureDisabledHooks,
+    InterfaceChromeHooks,
+    OnboardingHooks,
+    SettingsHooks,
+    CallbackHooks {
+  _: any;
+}
 
 export type HookName = keyof Hooks;
 
@@ -81,11 +84,6 @@ type FirstPartyIntegrationAdditionalCTAProps = {
 };
 
 type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
-
-type DefaultAlertRuleActionHook = (
-  callback: (showDefaultAction: boolean) => void,
-  organization: Organization
-) => void;
 
 type CodeOwnersCTAProps = {
   organization: Organization;
@@ -224,7 +222,6 @@ export type SettingsHooks = {
  * and perform some sort of callback logic
  */
 type CallbackHooks = {
-  'callback:default-action-alert-rule': DefaultAlertRuleActionHook;
   'callback:on-guide-update': GuideUpdateCallback;
 };
 

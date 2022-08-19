@@ -30,12 +30,15 @@ def resolve_tags(results: Any, query_definition: MetricsQueryBuilder) -> Any:
                 and column.alias
             ):
                 tags.append(column.alias)
+            # transaction is a special case since we use a transform null & unparam
+            if column.alias in ["transaction", "title"]:
+                tags.append(column.alias)
 
         for tag in tags:
             for row in results["data"]:
                 if row[tag] not in cached_resolves:
                     resolved_tag = indexer.reverse_resolve(
-                        row[tag], use_case_id=UseCaseKey.PERFORMANCE
+                        UseCaseKey.PERFORMANCE, query_definition.organization_id, row[tag]
                     )
                     cached_resolves[row[tag]] = resolved_tag
                 row[tag] = cached_resolves[row[tag]]

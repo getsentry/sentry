@@ -19,7 +19,7 @@ const initializeData = (settings = {}, features: string[] = []) => {
   return _initializeData({
     features: [...FEATURES, ...features],
     projects,
-    project: projects[0],
+    selectedProject: projects[0],
     ...settings,
   });
 };
@@ -314,7 +314,7 @@ describe('Performance > Table', function () {
               'count_miserable(user)',
               'user_misery()',
             ],
-            dataset: 'metricsEnhanced',
+            dataset: 'metrics',
             per_page: 50,
             project: ['1', '2'],
             query: 'event.type:transaction transaction:/api*',
@@ -455,7 +455,7 @@ describe('Performance > Table', function () {
               'count_miserable(user)',
               'user_misery()',
             ],
-            dataset: 'metricsEnhanced',
+            dataset: 'metrics',
             per_page: 50,
             project: ['1', '2'],
             query: 'event.type:transaction transaction:/api*',

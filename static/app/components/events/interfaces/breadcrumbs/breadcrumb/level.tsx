@@ -2,7 +2,7 @@ import {memo} from 'react';
 import styled from '@emotion/styled';
 
 import Highlight from 'sentry/components/highlight';
-import Tag, {Background} from 'sentry/components/tag';
+import Tag from 'sentry/components/tag';
 import {t} from 'sentry/locale';
 import {BreadcrumbLevelType} from 'sentry/types/breadcrumbs';
 
@@ -49,7 +49,6 @@ const Level = memo(function Level({level, searchTerm = ''}: Props) {
 export default Level;
 
 const LevelTag = styled(Tag)`
-  height: 24px;
   display: flex;
   align-items: center;
 `;

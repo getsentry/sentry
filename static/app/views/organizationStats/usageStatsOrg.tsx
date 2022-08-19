@@ -322,7 +322,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     } catch (err) {
       Sentry.withScope(scope => {
         scope.setContext('query', this.endpointQuery);
-        scope.setContext('body', orgStats);
+        scope.setContext('body', {...orgStats});
         Sentry.captureException(err);
       });
 

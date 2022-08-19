@@ -1669,7 +1669,38 @@ describe('Results', function () {
     await tick();
     wrapper.update();
     expect(wrapper.find('Alert').find('Message').text()).toEqual(
-      "You've navigated to this page from a performance metric widget generated from processed events. The results here only show sampled events."
+      "You've navigated to this page from a performance metric widget generated from processed events. The results here only show indexed events."
+    );
+  });
+
+  it('renders unparameterized data banner', async function () {
+    const organization = TestStubs.Organization({
+      features: ['discover-basic'],
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {showUnparameterizedBanner: true}},
+      },
+    });
+
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
+
+    const wrapper = mountWithThemeAndOrg(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      initialData.routerContext,
+      organization
+    );
+
+    await tick();
+    wrapper.update();
+    expect(wrapper.find('Alert').find('Message').text()).toEqual(
+      'These are unparameterized transactions. To better organize your transactions, set transaction names manually.'
     );
   });
 });

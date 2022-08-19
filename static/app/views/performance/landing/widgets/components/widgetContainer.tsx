@@ -4,7 +4,7 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
-import DropdownButtonV2 from 'sentry/components/dropdownButtonV2';
+import DropdownButton from 'sentry/components/dropdownButton';
 import CompositeSelect from 'sentry/components/forms/compositeSelect';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
@@ -189,7 +189,7 @@ export const WidgetContainerActions = ({
 
   function trigger({props, ref}) {
     return (
-      <DropdownButtonV2
+      <DropdownButton
         ref={ref}
         {...props}
         size="xs"
@@ -226,7 +226,6 @@ export const WidgetContainerActions = ({
             : null,
         ].filter(Boolean) as React.ComponentProps<typeof CompositeSelect>['sections']
       }
-      isOptionDisabled={opt => opt.disabled}
       trigger={trigger}
       placement="bottom right"
     />

@@ -47,6 +47,7 @@ from sentry.notifications.utils.digest import get_digest_subject
 from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.plugins.base import Notification
+from sentry.rules import EventState
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.types.activity import ActivityType
@@ -81,12 +82,20 @@ class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
     @mock.patch("sentry.notifications.utils.participants.get_release_committers")
     def test_simple(self, mock_get_release_committers, record):
         new_user = self.create_user(email="test@example.com", username="foo")
-        mock_get_release_committers.return_value = [new_user]
-        self.team = self.create_team(
-            name="Team Name", organization=self.organization, members=[new_user]
+        new_team = self.create_team(name="Team Name", organization=self.organization)
+        new_project = self.create_project(organization=self.organization, teams=[new_team])
+        self.create_member(
+            user=new_user, organization=self.organization, role="owner", teams=[new_team]
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ACTIVE_RELEASE,
+            NotificationSettingOptionValues.ALWAYS,
+            user=new_user,
+            project=new_project,
         )
         event = self.store_event(
-            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+            data={"message": "Hello world", "level": "error"}, project_id=new_project.id
         )
         GroupOwner.objects.create(
             group_id=event.group.id,
@@ -97,7 +106,7 @@ class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
         )
         newRelease = Release.objects.create(
             organization_id=self.organization.id,
-            project_id=self.project.id,
+            project_id=new_project.id,
             version="2",
             date_added=timezone.now() - timedelta(days=1),
             date_released=None,
@@ -111,21 +120,28 @@ class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
             date_started=timezone.now() - timedelta(minutes=37),
             date_finished=timezone.now() - timedelta(minutes=20),
         )
-        newRelease.add_project(self.project)
+        newRelease.add_project(new_project)
 
         event.data["tags"] = (("sentry:release", newRelease.version),)
+        mock_get_release_committers.return_value = [new_user]
 
         mail.outbox = []
-        with self.options({"system.url-prefix": "http://example.com"}), self.tasks(), self.feature(
-            "organizations:active-release-monitor-alpha"
-        ):
-            self.adapter.notify(Notification(event=event), ActionTargetType.RELEASE_MEMBERS, None)
+        with self.tasks(), self.feature("organizations:active-release-monitor-alpha"):
+            self.adapter.notify_active_release(
+                Notification(event=event),
+                EventState(
+                    is_new=True,
+                    is_regression=False,
+                    is_new_group_environment=False,
+                    has_reappeared=False,
+                ),
+            )
 
         assert len(mail.outbox) == 1
         to_committer = mail.outbox[0]
-
-        assert to_committer
-        assert to_committer.subject == "**ARM** [Sentry] BAR-1 - Hello world"
+        assert to_committer.subject == "**ARM** [Sentry] {} - Hello world".format(
+            event.group.qualified_short_id
+        )
 
         notification_record = [
             r for r in record.call_args_list if r[0][0] == "active_release_notification.sent"
@@ -133,16 +149,17 @@ class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
         assert notification_record == [
             mock.call(
                 "active_release_notification.sent",
+                None,
                 organization_id=self.organization.id,
-                project_id=self.project.id,
+                project_id=new_project.id,
                 group_id=event.group.id,
-                provider="email",
+                providers="email",
                 release_version="2",
                 recipient_email="test@example.com",
                 recipient_username="foo",
                 suspect_committer_ids=[f"user:{new_user.id}"],
                 code_owner_ids=[new_user.id],
-                team_ids=[self.team.id],
+                team_ids=[new_team.id],
             )
         ]
 
@@ -288,6 +305,13 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         event = event_manager.save(self.project.id)
         group = event.group
 
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.NEVER,
+            user=self.user,
+        )
+
         with self.tasks():
             AlertRuleNotification(Notification(event=event), ActionTargetType.ISSUE_OWNERS).send()
 
@@ -312,11 +336,20 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         deleted
         """
         # Initial Creation
+        self.organization = self.create_organization()
+        self.team = self.create_team(organization=self.organization)
         user = self.create_user(email="foo@bar.dodo", is_active=True)
         self.create_member(user=user, organization=self.organization, teams=[self.team])
 
         UserOption.objects.create(
             user=user, key="mail:email", value="foo@bar.dodo", project=self.project
+        )
+        # disable slack
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.NEVER,
+            user=user,
         )
 
         # New secondary email is created
@@ -361,6 +394,14 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         event_type = get_event_type(event_data)
         event_data["type"] = event_type.key
         event_data["metadata"] = event_type.get_metadata(event_data)
+
+        # disable slack
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.NEVER,
+            user=self.user,
+        )
 
         event = event_manager.save(self.project.id)
         with self.tasks():
@@ -596,6 +637,7 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
             ),
             fallthrough=True,
         )
+
         with self.feature("organizations:notification-all-recipients"):
             event_all_users = self.store_event(
                 data=make_event_data("foo.cbl"), project_id=project.id
@@ -642,6 +684,14 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
             self.create_member(user=u, organization=organization, teams=[team2])
             for u in [user3, user4, user5]
         ]
+        for u in [user, user2, user3, user4, user5]:
+            # disable slack
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.SLACK,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.NEVER,
+                user=u,
+            )
 
         with self.feature("organizations:notification-all-recipients"):
             self.create_assert_delete_projectownership(
@@ -695,6 +745,14 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
             self.create_member(user=u, organization=organization, teams=[team2])
             for u in [user3, user4, user5]
         ]
+
+        for u in [user, user2, user3, user4, user5]:
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.SLACK,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.NEVER,
+                user=u,
+            )
 
         with self.feature("organizations:notification-all-recipients"):
             self.create_assert_delete_projectownership(
@@ -835,9 +893,16 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
         user_username_star = self.create_user(
             email="user_username_star@example.com", is_active=True
         )
+        users = [user, user_star, user_username, user_username_star]
+        [self.create_member(user=u, organization=organization, teams=[team]) for u in users]
         [
-            self.create_member(user=u, organization=organization, teams=[team])
-            for u in [user, user_star, user_username, user_username_star]
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.SLACK,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.NEVER,
+                user=u,
+            )
+            for u in users
         ]
 
         """

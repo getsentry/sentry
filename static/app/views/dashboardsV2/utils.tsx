@@ -37,8 +37,10 @@ import {
 } from 'sentry/utils/discover/fields';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
+import {decodeList} from 'sentry/utils/queryString';
 import {
   DashboardDetails,
+  DashboardFilterKeys,
   DashboardFilters,
   DisplayType,
   Widget,
@@ -393,6 +395,24 @@ export function getCustomMeasurementQueryParams() {
   };
 }
 
+export function isWidgetUsingTransactionName(widget: Widget) {
+  return (
+    widget.widgetType === WidgetType.DISCOVER &&
+    widget.queries.some(({aggregates, columns, fields}) => {
+      const aggregateArgs = aggregates.reduce((acc: string[], aggregate) => {
+        const aggregateArg = getAggregateArg(aggregate);
+        if (aggregateArg) {
+          acc.push(aggregateArg);
+        }
+        return acc;
+      }, []);
+      return [...aggregateArgs, ...columns, ...(fields ?? [])].some(
+        field => field === 'transaction'
+      );
+    })
+  );
+}
+
 export function hasSavedPageFilters(dashboard: DashboardDetails) {
   return !(
     isEmpty(dashboard.projects) &&
@@ -405,22 +425,43 @@ export function hasSavedPageFilters(dashboard: DashboardDetails) {
 
 export function hasUnsavedFilterChanges(
   initialDashboard: DashboardDetails,
-  location: Location,
-  newDashboardFilters: DashboardFilters
+  location: Location
 ) {
-  const savedFilters = {
-    projects: initialDashboard.projects,
-    environment: initialDashboard.environment,
+  // Use Sets to compare the filter fields that are arrays
+  type Filters = {
+    end?: string;
+    environment?: Set<string>;
+    period?: string;
+    projects?: Set<number>;
+    release?: Set<string>;
+    start?: string;
+    utc?: boolean;
+  };
+
+  const savedFilters: Filters = {
+    projects: new Set(initialDashboard.projects),
+    environment: new Set(initialDashboard.environment),
     period: initialDashboard.period,
     start: normalizeDateTimeString(initialDashboard.start),
     end: normalizeDateTimeString(initialDashboard.end),
-    filters: initialDashboard.filters,
     utc: initialDashboard.utc,
   };
-  const currentFilters = {
+  let currentFilters = {
     ...getCurrentPageFilters(location),
-    filters: newDashboardFilters,
+  } as unknown as Filters;
+  currentFilters = {
+    ...currentFilters,
+    projects: new Set(currentFilters.projects),
+    environment: new Set(currentFilters.environment),
   };
+
+  if (defined(location.query?.release)) {
+    // Release is only included in the comparison if it exists in the query
+    // params, otherwise the dashboard should be using its saved state
+    savedFilters.release = new Set(initialDashboard.filters?.release);
+    currentFilters.release = new Set(location.query?.release);
+  }
+
   return !isEqual(savedFilters, currentFilters);
 }
 
@@ -478,4 +519,14 @@ export function getCurrentPageFilters(
     end: defined(end) ? normalizeDateTimeString(end as string) : undefined,
     utc: defined(utc) ? utc === 'true' : undefined,
   };
+}
+
+export function getDashboardFiltersFromURL(location: Location): DashboardFilters | null {
+  const dashboardFilters: DashboardFilters = {};
+  Object.values(DashboardFilterKeys).forEach(key => {
+    if (defined(location.query?.[key])) {
+      dashboardFilters[key] = decodeList(location.query?.[key]);
+    }
+  });
+  return !isEmpty(dashboardFilters) ? dashboardFilters : null;
 }

@@ -1,20 +1,23 @@
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {DataSection} from 'sentry/components/events/styles';
 import space from 'sentry/styles/space';
+import {objectIsEmpty} from 'sentry/utils';
 
 import Screenshot from './screenshot';
 import Tags from './tags';
+import TagsHighlight from './tagsHighlight';
 
 type ScreenshotProps = React.ComponentProps<typeof Screenshot>;
 
-type Props = Omit<React.ComponentProps<typeof Tags>, 'projectSlug' | 'hasContext'> & {
+type Props = Omit<
+  React.ComponentProps<typeof Tags>,
+  'projectSlug' | 'hasEventContext'
+> & {
   attachments: ScreenshotProps['screenshot'][];
   onDeleteScreenshot: ScreenshotProps['onDelete'];
   projectId: string;
   hasContext?: boolean;
-  isBorderless?: boolean;
   isShare?: boolean;
 };
 
@@ -26,7 +29,6 @@ function EventTagsAndScreenshots({
   onDeleteScreenshot,
   organization,
   isShare = false,
-  isBorderless = false,
   hasContext = false,
 }: Props) {
   const {tags = []} = event;
@@ -40,88 +42,104 @@ function EventTagsAndScreenshots({
   }
 
   const showScreenshot = !isShare && !!screenshot;
+  // Check for context bailout condition. No context is rendered if only user is provided
+  const hasEventContext = hasContext && !objectIsEmpty(event.contexts);
   const showTags = !!tags.length || hasContext;
 
   return (
-    <Wrapper
-      isBorderless={isBorderless}
-      showScreenshot={showScreenshot}
-      showTags={showTags}
-    >
+    <Wrapper showScreenshot={showScreenshot} showTags={showTags}>
       {showScreenshot && (
-        <Screenshot
-          organization={organization}
-          event={event}
-          projectSlug={projectSlug}
-          screenshot={screenshot}
-          onDelete={onDeleteScreenshot}
-        />
+        <ScreenshotWrapper>
+          <Screenshot
+            organization={organization}
+            event={event}
+            projectSlug={projectSlug}
+            screenshot={screenshot}
+            onDelete={onDeleteScreenshot}
+          />
+        </ScreenshotWrapper>
       )}
-      {showScreenshot && showTags && <Divider />}
-      {showTags && (
-        <Tags
-          organization={organization}
-          event={event}
-          projectSlug={projectSlug}
-          hasContext={hasContext}
-          location={location}
-        />
-      )}
+      {showScreenshot && (showTags || hasEventContext) && <VerticalDivider />}
+      <TagWrapper hasEventContext={hasEventContext}>
+        {hasEventContext && (
+          <TagsHighlightWrapper>
+            <TagsHighlight event={event} />
+          </TagsHighlightWrapper>
+        )}
+        {hasEventContext && showTags && <HorizontalDivider />}
+        {showTags && (
+          <Tags
+            organization={organization}
+            event={event}
+            projectSlug={projectSlug}
+            location={location}
+          />
+        )}
+      </TagWrapper>
     </Wrapper>
   );
 }
 
 export default EventTagsAndScreenshots;
 
+/**
+ * Used to adjust padding based on which 3 elements are shown
+ * - screenshot
+ * - context
+ * - tags
+ */
 const Wrapper = styled(DataSection)<{
-  isBorderless: boolean;
   showScreenshot: boolean;
   showTags: boolean;
 }>`
-  > * {
-    :first-child,
-    :last-child {
-      border: 0;
-      padding: 0;
-    }
-  }
+  padding: 0;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
+    padding: 0;
     display: grid;
     grid-template-columns: ${p =>
       p.showScreenshot && p.showTags ? 'max-content auto 1fr' : '1fr'};
-    padding-top: 0;
-    padding-bottom: 0;
-    && {
-      > * {
-        :first-child,
-        :last-child {
-          border: 0;
-          padding: ${space(3)} 0;
-        }
-      }
-    }
   }
-
-  ${p =>
-    p.isBorderless &&
-    css`
-      && {
-        padding-left: 0;
-        padding-right: 0;
-      }
-    `}
 `;
 
-const Divider = styled('div')`
+const VerticalDivider = styled('div')`
   background: ${p => p.theme.innerBorder};
   height: 1px;
   width: 100%;
-  margin: ${space(3)} 0;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     height: 100%;
     width: 1px;
-    margin: 0 ${space(3)};
   }
+`;
+
+const ScreenshotWrapper = styled('div')`
+  & > div {
+    border: 0;
+    height: 100%;
+  }
+`;
+
+const TagWrapper = styled('div')<{hasEventContext: boolean}>`
+  padding: ${p => (p.hasEventContext ? `${space(2)} 0` : '0')};
+  overflow: hidden;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    padding: ${p => (p.hasEventContext ? `${space(2)} 0` : '0')};
+  }
+`;
+
+const TagsHighlightWrapper = styled('div')`
+  overflow: hidden;
+  padding: 0 ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    padding: 0 ${space(4)};
+  }
+`;
+
+const HorizontalDivider = styled('div')`
+  height: 1px;
+  width: 100%;
+  background: ${p => p.theme.innerBorder};
 `;

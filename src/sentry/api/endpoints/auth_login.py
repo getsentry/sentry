@@ -1,10 +1,10 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import ratelimits as ratelimiter
 from sentry.api.base import Endpoint
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.user import DetailedSelfUserSerializer
-from sentry.app import ratelimiter
 from sentry.utils import auth, metrics
 from sentry.utils.hashlib import md5_text
 from sentry.web.forms.accounts import AuthenticationForm

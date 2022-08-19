@@ -12,7 +12,7 @@ from sentry.models import (
 )
 from sentry.models.project import Project
 from sentry.testutils import OrganizationDashboardWidgetTestCase
-from sentry.testutils.helpers.datetime import iso_format
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
@@ -186,9 +186,9 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert not response.data["utc"]
 
     def test_response_truncates_with_retention(self):
-        start = iso_format(datetime.now() - timedelta(days=3))
-        end = iso_format(datetime.now() - timedelta(days=2))
-        expected_adjusted_retention_start = iso_format(datetime.now() - timedelta(days=1))
+        start = before_now(days=3)
+        end = before_now(days=2)
+        expected_adjusted_retention_start = before_now(days=1)
         filters = {"start": start, "end": end}
         dashboard = Dashboard.objects.create(
             title="Dashboard With Filters",
@@ -201,7 +201,9 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
             response = self.do_request("get", self.url(dashboard.id))
 
         assert response.data["expired"]
-        assert iso_format(response.data["start"]) == expected_adjusted_retention_start
+        assert iso_format(response.data["start"].replace(second=0)) == iso_format(
+            expected_adjusted_retention_start.replace(second=0)
+        )
 
 
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
@@ -1364,7 +1366,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 200, response.data
-        assert response.data["projects"] == [project1.id, project2.id]
+        assert sorted(response.data["projects"]) == [project1.id, project2.id]
         assert response.data["environment"] == ["alpha"]
         assert response.data["period"] == "7d"
         assert response.data["filters"]["release"] == ["v1"]
@@ -1378,6 +1380,32 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 403, response.data
+
+    def test_update_dashboard_with_all_projects(self):
+        data = {
+            "title": "First dashboard",
+            "projects": [-1],
+        }
+
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+        assert response.data["projects"] == [-1]
+
+    def test_update_dashboard_with_my_projects_after_setting_all_projects(self):
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Filters",
+            created_by=self.user,
+            organization=self.organization,
+            filters={"all_projects": True},
+        )
+        data = {
+            "title": "First dashboard",
+            "projects": [],
+        }
+
+        response = self.do_request("put", self.url(dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+        assert response.data["projects"] == []
 
 
 class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):

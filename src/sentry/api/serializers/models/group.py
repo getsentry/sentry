@@ -1,10 +1,21 @@
 from __future__ import annotations
 
 import functools
+import itertools
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Iterable, Mapping, Optional, Sequence, Tuple, TypedDict
+from typing import (
+    Any,
+    Iterable,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
+    TypedDict,
+)
 
 import pytz
 import sentry_sdk
@@ -71,7 +82,9 @@ snuba_tsdb = SnubaTSDB(**settings.SENTRY_TSDB_OPTIONS)
 logger = logging.getLogger(__name__)
 
 
-def merge_list_dictionaries(dict1, dict2):
+def merge_list_dictionaries(
+    dict1: MutableMapping[Any, List[Any]], dict2: Mapping[Any, Sequence[Any]]
+):
     for key, val in dict2.items():
         dict1.setdefault(key, []).extend(val)
 
@@ -280,11 +293,106 @@ class GroupSerializerBase(Serializer):
             user,
         )
 
-    def get_attrs(self, item_list, user):
-        from sentry.integrations import IntegrationFeatures
+    @staticmethod
+    def _resolve_resolutions(groups, user) -> Tuple[Mapping[int, Sequence[Any]], Mapping[int, Any]]:
+        resolved_groups = [i for i in groups if i.status == GroupStatus.RESOLVED]
+        if not resolved_groups:
+            return {}, {}
+
+        _release_resolutions = {
+            i[0]: i[1:]
+            for i in GroupResolution.objects.filter(group__in=resolved_groups).values_list(
+                "group", "type", "release__version", "actor_id"
+            )
+        }
+
+        # due to our laziness, and django's inability to do a reasonable join here
+        # we end up with two queries
+        commit_results = list(
+            Commit.objects.extra(
+                select={"group_id": "sentry_grouplink.group_id"},
+                tables=["sentry_grouplink"],
+                where=[
+                    "sentry_grouplink.linked_id = sentry_commit.id",
+                    "sentry_grouplink.group_id IN ({})".format(
+                        ", ".join(str(i.id) for i in resolved_groups)
+                    ),
+                    "sentry_grouplink.linked_type = %s",
+                    "sentry_grouplink.relationship = %s",
+                ],
+                params=[int(GroupLink.LinkedType.commit), int(GroupLink.Relationship.resolves)],
+            )
+        )
+        _commit_resolutions = {
+            i.group_id: d for i, d in zip(commit_results, serialize(commit_results, user))
+        }
+
+        return _release_resolutions, _commit_resolutions
+
+    @staticmethod
+    def _resolve_external_issue_annotations(groups) -> Mapping[int, Sequence[Any]]:
         from sentry.models import PlatformExternalIssue
+
+        # find the external issues for sentry apps and add them in
+        return (
+            safe_execute(
+                PlatformExternalIssue.get_annotations_for_group_list,
+                group_list=groups,
+                _with_transaction=False,
+            )
+            or {}
+        )
+
+    @staticmethod
+    def _resolve_integration_annotations(org_id, groups) -> Sequence[Mapping[int, Sequence[Any]]]:
+        from sentry.integrations import IntegrationFeatures
+
+        integration_annotations = []
+        # find all the integration installs that have issue tracking
+        for integration in Integration.objects.filter(organizations=org_id):
+            if not (
+                integration.has_feature(IntegrationFeatures.ISSUE_BASIC)
+                or integration.has_feature(IntegrationFeatures.ISSUE_SYNC)
+            ):
+                continue
+
+            install = integration.get_installation(org_id)
+            local_annotations_by_group_id = (
+                safe_execute(
+                    install.get_annotations_for_group_list,
+                    group_list=groups,
+                    _with_transaction=False,
+                )
+                or {}
+            )
+            integration_annotations.append(local_annotations_by_group_id)
+
+        return integration_annotations
+
+    @staticmethod
+    def _resolve_and_extend_plugin_annotation(
+        item: Group, current_annotations: List[Any]
+    ) -> Sequence[Any]:
         from sentry.plugins.base import plugins
 
+        annotations_for_group = []
+        annotations_for_group.extend(current_annotations)
+
+        # add the annotations for plugins
+        # note that the model GroupMeta(where all the information is stored) is already cached at the start of
+        # `get_attrs`, so these for loops doesn't make a bunch of queries
+        for plugin in plugins.for_project(project=item.project, version=1):
+            if is_plugin_deprecated(plugin, item.project):
+                continue
+            safe_execute(plugin.tags, None, item, annotations_for_group, _with_transaction=False)
+        for plugin in plugins.for_project(project=item.project, version=2):
+            annotations_for_group.extend(
+                safe_execute(plugin.get_annotations, group=item, _with_transaction=False) or ()
+            )
+
+        return annotations_for_group
+
+    def get_attrs(self, item_list, user):
         GroupMeta.objects.populate_cache(item_list)
 
         # Note that organization is necessary here for use in `_get_permalink` to avoid
@@ -316,38 +424,7 @@ class GroupSerializerBase(Serializer):
 
         ignore_items = {g.group_id: g for g in GroupSnooze.objects.filter(group__in=item_list)}
 
-        resolved_item_list = [i for i in item_list if i.status == GroupStatus.RESOLVED]
-        if resolved_item_list:
-            release_resolutions = {
-                i[0]: i[1:]
-                for i in GroupResolution.objects.filter(group__in=resolved_item_list).values_list(
-                    "group", "type", "release__version", "actor_id"
-                )
-            }
-
-            # due to our laziness, and django's inability to do a reasonable join here
-            # we end up with two queries
-            commit_results = list(
-                Commit.objects.extra(
-                    select={"group_id": "sentry_grouplink.group_id"},
-                    tables=["sentry_grouplink"],
-                    where=[
-                        "sentry_grouplink.linked_id = sentry_commit.id",
-                        "sentry_grouplink.group_id IN ({})".format(
-                            ", ".join(str(i.id) for i in resolved_item_list)
-                        ),
-                        "sentry_grouplink.linked_type = %s",
-                        "sentry_grouplink.relationship = %s",
-                    ],
-                    params=[int(GroupLink.LinkedType.commit), int(GroupLink.Relationship.resolves)],
-                )
-            )
-            commit_resolutions = {
-                i.group_id: d for i, d in zip(commit_results, serialize(commit_results, user))
-            }
-        else:
-            release_resolutions = {}
-            commit_resolutions = {}
+        release_resolutions, commit_resolutions = self._resolve_resolutions(item_list, user)
 
         actor_ids = {r[-1] for r in release_resolutions.values()}
         actor_ids.update(r.actor_id for r in ignore_items.values())
@@ -361,11 +438,7 @@ class GroupSerializerBase(Serializer):
             GroupShare.objects.filter(group__in=item_list).values_list("group_id", "uuid")
         )
 
-        result = {}
-
         seen_stats = self._get_seen_stats(item_list, user)
-
-        annotations_by_group_id = defaultdict(list)
 
         organization_id_list = list({item.project.organization_id for item in item_list})
         # if no groups, then we can't proceed but this seems to be a valid use case
@@ -383,55 +456,20 @@ class GroupSerializerBase(Serializer):
 
         authorized = self._is_authorized(user, organization_id)
 
-        # find all the integration installs that have issue tracking
-        for integration in Integration.objects.filter(organizations=organization_id):
-            if not (
-                integration.has_feature(IntegrationFeatures.ISSUE_BASIC)
-                or integration.has_feature(IntegrationFeatures.ISSUE_SYNC)
-            ):
-                continue
-
-            install = integration.get_installation(organization_id)
-            local_annotations_by_group_id = (
-                safe_execute(
-                    install.get_annotations_for_group_list,
-                    group_list=item_list,
-                    _with_transaction=False,
-                )
-                or {}
-            )
-            merge_list_dictionaries(annotations_by_group_id, local_annotations_by_group_id)
-
-        # find the external issues for sentry apps and add them in
-        local_annotations_by_group_id = (
-            safe_execute(
-                PlatformExternalIssue.get_annotations_for_group_list,
-                group_list=item_list,
-                _with_transaction=False,
-            )
-            or {}
-        )
-        merge_list_dictionaries(annotations_by_group_id, local_annotations_by_group_id)
+        annotations_by_group_id: MutableMapping[int, List[Any]] = defaultdict(list)
+        for annotations_by_group in itertools.chain.from_iterable(
+            [
+                self._resolve_integration_annotations(organization_id, item_list),
+                [self._resolve_external_issue_annotations(item_list)],
+            ]
+        ):
+            merge_list_dictionaries(annotations_by_group_id, annotations_by_group)
 
         snuba_stats = self._get_group_snuba_stats(item_list, seen_stats)
 
+        result = {}
         for item in item_list:
             active_date = item.active_at or item.first_seen
-
-            annotations = []
-            annotations.extend(annotations_by_group_id[item.id])
-
-            # add the annotations for plugins
-            # note that the model GroupMeta where all the information is stored is already cached at the top of this function
-            # so these for loops doesn't make a bunch of queries
-            for plugin in plugins.for_project(project=item.project, version=1):
-                if is_plugin_deprecated(plugin, item.project):
-                    continue
-                safe_execute(plugin.tags, None, item, annotations, _with_transaction=False)
-            for plugin in plugins.for_project(project=item.project, version=2):
-                annotations.extend(
-                    safe_execute(plugin.get_annotations, group=item, _with_transaction=False) or ()
-                )
 
             resolution_actor = None
             resolution_type = None
@@ -445,10 +483,6 @@ class GroupSerializerBase(Serializer):
                     resolution_type = "commit"
 
             ignore_item = ignore_items.get(item.id)
-            if ignore_item:
-                ignore_actor = actors.get(ignore_item.actor_id)
-            else:
-                ignore_actor = None
 
             result[item] = {
                 "id": item.id,
@@ -456,9 +490,11 @@ class GroupSerializerBase(Serializer):
                 "is_bookmarked": item.id in bookmarks,
                 "subscription": subscriptions[item.id],
                 "has_seen": seen_groups.get(item.id, active_date) > active_date,
-                "annotations": annotations,
+                "annotations": self._resolve_and_extend_plugin_annotation(
+                    item, annotations_by_group_id[item.id]
+                ),
                 "ignore_until": ignore_item,
-                "ignore_actor": ignore_actor,
+                "ignore_actor": actors.get(ignore_item.actor_id) if ignore_item else None,
                 "resolution": resolution,
                 "resolution_type": resolution_type,
                 "resolution_actor": resolution_actor,
@@ -1095,7 +1131,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 attrs[item].update({"inbox": inbox_stats.get(item.id)})
 
         if self._expand("owners"):
-            owner_details = get_owner_details(item_list)
+            owner_details = get_owner_details(item_list, user)
             for item in item_list:
                 attrs[item].update({"owners": owner_details.get(item.id)})
 

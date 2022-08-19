@@ -22,14 +22,14 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
     type: 'select',
     label: (
       <Fragment>
-        {t('Issues in My Releases')} <FeatureBadge type="alpha" />
+        {t('Release Issues')} <FeatureBadge type="alpha" />
       </Fragment>
     ),
     choices: [
       ['always', t('On')],
       ['never', t('Off')],
     ],
-    help: t('Get a notification when an issue happens shortly after your release.'),
+    help: t('Notifications sent for issues likely caused by your code changes.'),
   },
   workflow: {
     name: 'workflow',
@@ -58,10 +58,18 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
     type: 'select',
     label: t('Delivery Method'),
     choices: [
-      ['email', t('Send to Email')],
-      ['slack', t('Send to Slack')],
-      ['email+slack', t('Send to Email and Slack')],
+      ['email', t('Email')],
+      ['slack', t('Slack')],
+      ['msteams', t('Microsoft Teams')],
     ],
+    multiple: true,
+    onChange: val => {
+      // This is a little hack to prevent this field from being empty.
+      // TODO(nisanthan): need to prevent showing the clearable on. the multi-select when its only 1 value.
+      if (!val || val.length === 0) {
+        throw Error('Invalid selection. Field cannot be empty.');
+      }
+    },
   },
   approval: {
     name: 'approval',

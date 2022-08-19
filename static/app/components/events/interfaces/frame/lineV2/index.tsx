@@ -37,8 +37,10 @@ type Props = Omit<
     event: Event;
     registers: Record<string, string>;
     emptySourceNotation?: boolean;
+    frameMeta?: Record<string, any>;
     isOnlyFrame?: boolean;
     nativeV2?: boolean;
+    registersMeta?: Record<string, any>;
   };
 
 function Line({
@@ -59,6 +61,8 @@ function Line({
   isOnlyFrame,
   event,
   components,
+  frameMeta,
+  registersMeta,
   emptySourceNotation = false,
   /**
    * Is the stack trace being previewed in a hovercard?
@@ -149,6 +153,7 @@ function Line({
             isExpandable={expandable}
             onToggleContext={toggleContext}
             isUsedForGrouping={isUsedForGrouping}
+            frameMeta={frameMeta}
           />
         );
     }
@@ -181,6 +186,8 @@ function Line({
         hasAssembly={hasAssembly(frame, platform)}
         expandable={expandable}
         isExpanded={isExpanded}
+        registersMeta={registersMeta}
+        frameMeta={frameMeta}
       />
     </StyleListItem>
   );

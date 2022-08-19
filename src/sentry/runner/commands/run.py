@@ -562,16 +562,62 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
 @click.option("commit_max_batch_size", "--commit-max-batch-size", type=int, default=25000)
 @click.option("commit_max_batch_time", "--commit-max-batch-time-ms", type=int, default=10000)
 def metrics_streaming_consumer(**options):
+    import sentry_sdk
+
     from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
     from sentry.sentry_metrics.consumers.indexer.multiprocess import get_streaming_metrics_consumer
     from sentry.sentry_metrics.metrics_wrapper import MetricsWrapper
     from sentry.utils.metrics import backend, global_tags
 
-    ingest_config = get_ingest_config(UseCaseKey(options["ingest_profile"]))
+    use_case = UseCaseKey(options["ingest_profile"])
+    sentry_sdk.set_tag("sentry_metrics.use_case_key", use_case.value)
+    ingest_config = get_ingest_config(use_case)
     metrics_wrapper = MetricsWrapper(backend, "sentry_metrics.indexer")
     configure_metrics(metrics_wrapper)
 
     streamer = get_streaming_metrics_consumer(indexer_profile=ingest_config, **options)
+
+    def handler(signum, frame):
+        streamer.signal_shutdown()
+
+    signal.signal(signal.SIGINT, handler)
+    signal.signal(signal.SIGTERM, handler)
+
+    with global_tags(_all_threads=True, pipeline=ingest_config.internal_metrics_tag):
+        streamer.run()
+
+
+@run.command("ingest-metrics-parallel-consumer")
+@log_options()
+@batching_kafka_options("ingest-metrics-consumer")
+@configuration
+@click.option(
+    "--processes",
+    default=1,
+    type=int,
+)
+@click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
+@click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
+@click.option("--ingest-profile", required=True)
+@click.option("max_msg_batch_size", "--max-msg-batch-size", type=int, default=50)
+@click.option("max_msg_batch_time", "--max-msg-batch-time-ms", type=int, default=10000)
+@click.option("max_parallel_batch_size", "--max-parallel-batch-size", type=int, default=50)
+@click.option("max_parallel_batch_time", "--max-parallel-batch-time-ms", type=int, default=10000)
+def metrics_parallel_consumer(**options):
+    import sentry_sdk
+
+    from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
+    from sentry.sentry_metrics.consumers.indexer.parallel import get_parallel_metrics_consumer
+    from sentry.sentry_metrics.metrics_wrapper import MetricsWrapper
+    from sentry.utils.metrics import backend, global_tags
+
+    use_case = UseCaseKey(options["ingest_profile"])
+    sentry_sdk.set_tag("sentry_metrics.use_case_key", use_case.value)
+    ingest_config = get_ingest_config(use_case)
+    metrics_wrapper = MetricsWrapper(backend, "sentry_metrics.indexer")
+    configure_metrics(metrics_wrapper)
+
+    streamer = get_parallel_metrics_consumer(indexer_profile=ingest_config, **options)
 
     def handler(signum, frame):
         streamer.signal_shutdown()
@@ -614,10 +660,15 @@ def replays_recordings_consumer(**options):
 @click.option("commit_max_batch_size", "--commit-max-batch-size", type=int, default=25000)
 @click.option("commit_max_batch_time", "--commit-max-batch-time-ms", type=int, default=10000)
 @click.option("--topic", default="snuba-metrics", help="Topic to read indexer output from.")
+@click.option("--ingest-profile", required=True)
 def last_seen_updater(**options):
+    from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
     from sentry.sentry_metrics.consumers.last_seen_updater import get_last_seen_updater
+    from sentry.utils.metrics import global_tags
 
-    consumer = get_last_seen_updater(**options)
+    ingest_config = get_ingest_config(UseCaseKey(options["ingest_profile"]))
+
+    consumer = get_last_seen_updater(ingest_config=ingest_config, **options)
 
     def handler(signum, frame):
         consumer.signal_shutdown()
@@ -625,4 +676,5 @@ def last_seen_updater(**options):
     signal.signal(signal.SIGINT, handler)
     signal.signal(signal.SIGTERM, handler)
 
-    consumer.run()
+    with global_tags(_all_threads=True, pipeline=ingest_config.internal_metrics_tag):
+        consumer.run()

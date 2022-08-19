@@ -1,9 +1,9 @@
-import {useCallback, useEffect} from 'react';
-import {browserHistory} from 'react-router';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
+import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Alert from 'sentry/components/alert';
+import {openModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
@@ -14,36 +14,80 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
 import {ProfileTransactionsTable} from 'sentry/components/profiling/profileTransactionsTable';
+import {ProfilingOnboardingModal} from 'sentry/components/profiling/ProfilingOnboarding/profilingOnboardingModal';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
+import {Project} from 'sentry/types';
+import {PageFilters} from 'sentry/types/core';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
-import {useProfiles} from 'sentry/utils/profiling/hooks/useProfiles';
 import {useProfileTransactions} from 'sentry/utils/profiling/hooks/useProfileTransactions';
-import {generateProfilingOnboardingRoute} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 
-import {ProfilingScatterChart} from './landing/profilingScatterChart';
+import {ProfileCharts} from './landing/profileCharts';
+import {ProfilingOnboardingPanel} from './profilingOnboardingPanel';
+
+function hasSetupProfilingForAtLeastOneProject(
+  selectedProjects: PageFilters['projects'],
+  projects: Project[]
+): boolean {
+  const projectIDsToProjectTable = projects.reduce<Record<string, Project>>(
+    (acc, project) => {
+      acc[project.id] = project;
+      return acc;
+    },
+    {}
+  );
+
+  if (selectedProjects[0] === ALL_ACCESS_PROJECTS || selectedProjects.length === 0) {
+    const projectWithProfiles = projects.find(p => {
+      const project = projectIDsToProjectTable[String(p)];
+
+      if (!project) {
+        // Shouldnt happen, but lets be safe and just not do anything
+        return false;
+      }
+      return project.hasProfiles;
+    });
+
+    return projectWithProfiles !== undefined;
+  }
+
+  const projectWithProfiles = selectedProjects.find(p => {
+    const project = projectIDsToProjectTable[String(p)];
+
+    if (!project) {
+      // Shouldnt happen, but lets be safe and just not do anything
+      return false;
+    }
+    return project.hasProfiles;
+  });
+
+  return projectWithProfiles !== undefined;
+}
 
 interface ProfilingContentProps {
   location: Location;
+  router: InjectedRouter;
 }
 
-function ProfilingContent({location}: ProfilingContentProps) {
+function ProfilingContent({location, router}: ProfilingContentProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const cursor = decodeScalar(location.query.cursor);
   const query = decodeScalar(location.query.query, '');
   const profileFilters = useProfileFilters({query: '', selection});
-  const profiles = useProfiles({cursor, query, selection});
   const transactions = useProfileTransactions({cursor, query, selection});
+  const {projects} = useProjects();
 
   useEffect(() => {
     trackAdvancedAnalyticsEvent('profiling_views.landing', {
@@ -65,9 +109,23 @@ function ProfilingContent({location}: ProfilingContentProps) {
     [location]
   );
 
+  // Open the modal on demand
   const onSetupProfilingClick = useCallback(() => {
-    browserHistory.push(generateProfilingOnboardingRoute({orgSlug: organization.slug}));
-  }, [organization.slug]);
+    openModal(props => {
+      return <ProfilingOnboardingModal {...props} />;
+    });
+  }, []);
+
+  const shouldShowProfilingOnboardingPanel = useMemo((): boolean => {
+    if (transactions.type !== 'resolved') {
+      return false;
+    }
+
+    if (transactions.data.transactions.length > 0) {
+      return false;
+    }
+    return !hasSetupProfilingForAtLeastOneProject(selection.projects, projects);
+  }, [selection.projects, projects, transactions]);
 
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
@@ -98,37 +156,40 @@ function ProfilingContent({location}: ProfilingContentProps) {
                     maxQueryLength={MAX_QUERY_LENGTH}
                   />
                 </ActionBar>
-                {profiles.type === 'errored' && (
-                  <Alert type="error" showIcon>
-                    {t('Unable to load profiles')}
-                  </Alert>
+                {shouldShowProfilingOnboardingPanel ? (
+                  <ProfilingOnboardingPanel>
+                    <Button href="https://docs.sentry.io/" external>
+                      {t('Read Docs')}
+                    </Button>
+                    <Button onClick={onSetupProfilingClick} priority="primary">
+                      {t('Set Up Profiling')}
+                    </Button>
+                  </ProfilingOnboardingPanel>
+                ) : (
+                  <Fragment>
+                    <ProfileCharts router={router} query={query} selection={selection} />
+                    <ProfileTransactionsTable
+                      error={
+                        transactions.type === 'errored'
+                          ? t('Unable to load profiles')
+                          : null
+                      }
+                      isLoading={transactions.type === 'loading'}
+                      transactions={
+                        transactions.type === 'resolved'
+                          ? transactions.data.transactions
+                          : []
+                      }
+                    />
+                    <Pagination
+                      pageLinks={
+                        transactions.type === 'resolved'
+                          ? transactions.data.pageLinks
+                          : null
+                      }
+                    />
+                  </Fragment>
                 )}
-                <ProfilingScatterChart
-                  datetime={
-                    selection?.datetime ?? {
-                      start: null,
-                      end: null,
-                      period: null,
-                      utc: null,
-                    }
-                  }
-                  traces={profiles.type === 'resolved' ? profiles.data.traces : []}
-                  isLoading={profiles.type === 'loading'}
-                />
-                <ProfileTransactionsTable
-                  error={
-                    transactions.type === 'errored' ? t('Unable to load profiles') : null
-                  }
-                  isLoading={transactions.type === 'loading'}
-                  transactions={
-                    transactions.type === 'resolved' ? transactions.data.transactions : []
-                  }
-                />
-                <Pagination
-                  pageLinks={
-                    transactions.type === 'resolved' ? transactions.data.pageLinks : null
-                  }
-                />
               </Layout.Main>
             </Layout.Body>
           </StyledPageContent>

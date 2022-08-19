@@ -565,6 +565,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       comparisonDelta,
       uuid,
       timeWindow,
+      eventTypes,
     } = this.state;
     // Remove empty warning trigger
     const sanitizedTriggers = triggers.filter(
@@ -591,6 +592,10 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       }
       transaction.setData('actions', sanitizedTriggers);
 
+      const hasMetricDataset =
+        organization.features.includes('metrics-performance-alerts') ||
+        organization.features.includes('mep-rollout-flag');
+
       this.setState({loading: true});
       const [data, , resp] = await addOrUpdateRule(
         this.api,
@@ -606,11 +611,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
           comparisonDelta: comparisonDelta ?? null,
           timeWindow,
           aggregate,
-          ...(organization.features.includes('metrics-performance-alerts')
-            ? {queryType: DatasetMEPAlertQueryTypes[dataset]}
-            : {}),
+          ...(hasMetricDataset ? {queryType: DatasetMEPAlertQueryTypes[dataset]} : {}),
           // Remove eventTypes as it is no longer requred for crash free
-          eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : rule.eventTypes,
+          eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : eventTypes,
           dataset,
         },
         {
@@ -776,6 +779,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       router,
       disableProjectSelector,
       eventView,
+      location,
     } = this.props;
     const {
       name,
@@ -801,6 +805,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       organization,
       projects: [project],
       triggers,
+      location,
       query: this.chartQuery,
       aggregate,
       dataset,

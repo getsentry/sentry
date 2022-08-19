@@ -1,4 +1,3 @@
-import PluginActions from 'sentry/actions/pluginActions';
 import PluginsStore from 'sentry/stores/pluginsStore';
 
 describe('PluginsStore', function () {
@@ -27,7 +26,7 @@ describe('PluginsStore', function () {
     });
 
     it('has correct state when all plugins fetched successfully', function () {
-      PluginActions.fetchAll.trigger();
+      PluginsStore.onFetchAll();
       expect(PluginsStore.trigger).toHaveBeenCalledWith({
         loading: true,
         error: null,
@@ -35,7 +34,7 @@ describe('PluginsStore', function () {
         plugins: [],
       });
 
-      PluginActions.fetchAllSuccess.trigger(TestStubs.Plugins(), {pageLinks: null});
+      PluginsStore.onFetchAllSuccess(TestStubs.Plugins(), {pageLinks: null});
 
       expect(PluginsStore.trigger).toHaveBeenCalledWith({
         loading: false,
@@ -46,7 +45,7 @@ describe('PluginsStore', function () {
     });
 
     it('has correct state when error in fetching all plugins', function () {
-      PluginActions.fetchAll.trigger();
+      PluginsStore.onFetchAll();
 
       expect(PluginsStore.trigger).toHaveBeenCalledWith({
         loading: true,
@@ -55,7 +54,7 @@ describe('PluginsStore', function () {
         plugins: [],
       });
 
-      PluginActions.fetchAllError.trigger({responseJSON: {message: 'Error'}});
+      PluginsStore.onFetchAllError({responseJSON: {message: 'Error'}});
 
       expect(PluginsStore.trigger).toHaveBeenCalledWith({
         loading: false,
@@ -66,7 +65,7 @@ describe('PluginsStore', function () {
     });
 
     it('does not reset loading state on consecutive fetches', function () {
-      PluginActions.fetchAll.trigger();
+      PluginsStore.onFetchAll();
       expect(PluginsStore.trigger).toHaveBeenCalledWith({
         loading: true,
         error: null,
@@ -74,7 +73,7 @@ describe('PluginsStore', function () {
         plugins: [],
       });
 
-      PluginActions.fetchAllSuccess.trigger(TestStubs.Plugins(), {pageLinks: null});
+      PluginsStore.onFetchAllSuccess(TestStubs.Plugins(), {pageLinks: null});
 
       expect(PluginsStore.trigger).toHaveBeenCalledWith({
         loading: false,
@@ -83,7 +82,7 @@ describe('PluginsStore', function () {
         plugins: TestStubs.Plugins(),
       });
 
-      PluginActions.fetchAll.trigger();
+      PluginsStore.onFetchAll();
       expect(PluginsStore.trigger).toHaveBeenCalledWith({
         loading: false,
         error: null,
@@ -101,7 +100,7 @@ describe('PluginsStore', function () {
     });
 
     it('has optimistic state when updating', function () {
-      PluginActions.update.trigger('amazon-sqs', {name: 'Amazon Sqs'});
+      PluginsStore.onUpdate('amazon-sqs', {name: 'Amazon Sqs'});
 
       const state = PluginsStore.getState();
       expect(state).toMatchObject({
@@ -123,7 +122,7 @@ describe('PluginsStore', function () {
     });
 
     it('saves old plugin state', function () {
-      PluginActions.update.trigger('amazon-sqs', {name: 'Amazon Sqs'});
+      PluginsStore.onUpdate('amazon-sqs', {name: 'Amazon Sqs'});
 
       const state = PluginsStore.getState();
       expect(state).toMatchObject({
@@ -139,7 +138,7 @@ describe('PluginsStore', function () {
     });
 
     it('removes old plugin state on successful update', function () {
-      PluginActions.update.trigger('amazon-sqs', {name: 'Amazon Sqs'});
+      PluginsStore.onUpdate('amazon-sqs', {name: 'Amazon Sqs'});
 
       expect(PluginsStore.updating.get('amazon-sqs')).toMatchObject({
         ...plugin,
@@ -147,7 +146,7 @@ describe('PluginsStore', function () {
         name: 'Amazon SQS',
       });
 
-      PluginActions.updateSuccess.trigger('amazon-sqs');
+      PluginsStore.onUpdateSuccess('amazon-sqs');
 
       expect(PluginsStore.getState().plugins[0]).toMatchObject({
         id: 'amazon-sqs',
@@ -158,14 +157,14 @@ describe('PluginsStore', function () {
     });
 
     it('restores old plugin state when update has an error', function () {
-      PluginActions.update.trigger('amazon-sqs', {name: 'Amazon Sqs'});
+      PluginsStore.onUpdate('amazon-sqs', {name: 'Amazon Sqs'});
 
       expect(PluginsStore.getState().plugins[0]).toMatchObject({
         id: 'amazon-sqs',
         name: 'Amazon Sqs',
       });
 
-      PluginActions.updateError.trigger('amazon-sqs');
+      PluginsStore.onUpdateError('amazon-sqs');
 
       expect(PluginsStore.getState().plugins[0]).toMatchObject({
         id: 'amazon-sqs',

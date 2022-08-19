@@ -48,6 +48,7 @@ _profiling_pool = connection_from_url(
     settings.SENTRY_PROFILING_SERVICE_URL,
     retries=RetrySkipTimeout(
         total=3,
+        status_forcelist={502},
         allowed_methods={"GET", "POST"},
     ),
     timeout=30,
