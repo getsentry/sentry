@@ -60,7 +60,7 @@ def _resolve_redirect_url(request, activeorg):
     kwargs = {**result.kwargs}
     if org_slug_path_mismatch:
         kwargs["organization_slug"] = activeorg
-    path = reverse(result.url_name, kwargs=kwargs)
+    path = reverse(result.url_name or result.func, kwargs=kwargs)
     qs = _query_string(request)
     redirect_url = f"{redirect_url}{path}{qs}"
     return redirect_url
