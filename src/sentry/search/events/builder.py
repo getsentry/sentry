@@ -2324,7 +2324,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             functions_acl=functions_acl,
             dry_run=dry_run,
         )
-        if self.granularity.granularity >= interval:
+        if self.granularity.granularity > interval:
             for granularity in METRICS_GRANULARITIES:
                 if granularity < interval:
                     self.granularity = Granularity(granularity)
