@@ -56,12 +56,34 @@ import EventTagsAndScreenshot from './eventTagsAndScreenshot';
 
 const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =
   /^(([\w\$]\.[\w\$]{1,2})|([\w\$]{2}\.[\w\$]\.[\w\$]))(\.|$)/g;
+
 function isDataMinified(str: string | null) {
   if (!str) {
     return false;
   }
 
   return !![...str.matchAll(MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH)].length;
+}
+
+function hasThreadOrExceptionMinifiedFrameData(definedEvent: Event, bestThread?: Thread) {
+  if (!bestThread) {
+    const exceptionValues: Array<ExceptionValue> =
+      definedEvent.entries?.find(e => e.type === EntryType.EXCEPTION)?.data?.values ?? [];
+
+    return !!exceptionValues.find(exceptionValue =>
+      exceptionValue.stacktrace?.frames?.find(frame => isDataMinified(frame.module))
+    );
+  }
+
+  const threadExceptionValues = getThreadException(definedEvent, bestThread)?.values;
+
+  return !!(threadExceptionValues
+    ? threadExceptionValues.find(threadExceptionValue =>
+        threadExceptionValue.stacktrace?.frames?.find(frame =>
+          isDataMinified(frame.module)
+        )
+      )
+    : bestThread?.stacktrace?.frames?.find(frame => isDataMinified(frame.module)));
 }
 
 type ProGuardErrors = Array<Error>;
@@ -150,34 +172,6 @@ const EventEntries = memo(
         }
       },
       [api, orgSlug, projectSlug]
-    );
-
-    const hasThreadOrExceptionMinifiedFrameData = useCallback(
-      (definedEvent: Event, bestThread?: Thread) => {
-        if (!bestThread) {
-          const exceptionValues: Array<ExceptionValue> =
-            definedEvent.entries?.find(e => e.type === EntryType.EXCEPTION)?.data
-              ?.values ?? [];
-
-          return !!exceptionValues.find(exceptionValue =>
-            exceptionValue.stacktrace?.frames?.find(frame => isDataMinified(frame.module))
-          );
-        }
-
-        const threadExceptionValues = getThreadException(
-          definedEvent,
-          bestThread
-        )?.values;
-
-        return !!(threadExceptionValues
-          ? threadExceptionValues.find(threadExceptionValue =>
-              threadExceptionValue.stacktrace?.frames?.find(frame =>
-                isDataMinified(frame.module)
-              )
-            )
-          : bestThread?.stacktrace?.frames?.find(frame => isDataMinified(frame.module)));
-      },
-      []
     );
 
     const checkProGuardError = useCallback(async () => {
@@ -270,12 +264,7 @@ const EventEntries = memo(
 
       setProGuardErrors(newProGuardErrors);
       setIsLoading(false);
-    }, [
-      event,
-      fetchProguardMappingFiles,
-      hasThreadOrExceptionMinifiedFrameData,
-      isShare,
-    ]);
+    }, [event, fetchProguardMappingFiles, isShare]);
 
     const fetchAttachments = useCallback(async () => {
       if (!event || isShare || !hasEventAttachmentsFeature) {
@@ -320,9 +309,15 @@ const EventEntries = memo(
 
     useEffect(() => {
       checkProGuardError();
+    }, [checkProGuardError]);
+
+    useEffect(() => {
       recordIssueError();
+    }, [recordIssueError]);
+
+    useEffect(() => {
       fetchAttachments();
-    }, [checkProGuardError, fetchAttachments, recordIssueError]);
+    }, [fetchAttachments]);
 
     if (!event) {
       return (
