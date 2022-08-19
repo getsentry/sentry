@@ -89,7 +89,7 @@ export function SpanCountChart({issue, event, location, organization}: Props) {
       },
       {
         seriesName: t('All Transaction Count'),
-        data: formatHistogramData(matchBinSize(allData, affectedData)[1], {
+        data: formatHistogramData(matchBinSize(allData, affectedData)[0], {
           type: 'number',
         }),
         stack: 'value',
