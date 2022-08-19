@@ -38,7 +38,7 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
     [logLevel, searchTerm, breadcrumbs]
   );
 
-  const getActiveTimeInSecs = (timestamp: string): boolean => {
+  const isActiveInSeconds = (timestamp: string): boolean => {
     if (!defined(currentHoverTime)) {
       return false;
     }
@@ -72,7 +72,7 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
           {filteredBreadcrumbs.map((breadcrumb, i) => {
             return (
               <ConsoleMessage
-                isActive={getActiveTimeInSecs(breadcrumb?.timestamp || '')}
+                isActive={isActiveInSeconds(breadcrumb?.timestamp || '')}
                 startTimestampMs={startTimestampMs}
                 key={breadcrumb.id}
                 isLast={i === breadcrumbs.length - 1}
