@@ -43,7 +43,7 @@ export function Header({
           ]}
         />
         <Layout.Title>
-          <StyledEditableText
+          <EditableText
             aria-label={t('Widget title')}
             value={title}
             onChange={onChangeTitle}
@@ -67,9 +67,3 @@ export function Header({
     </Layout.Header>
   );
 }
-
-const StyledEditableText = styled(EditableText)`
-  input {
-    font-size: inherit;
-  }
-`;

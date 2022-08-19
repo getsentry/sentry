@@ -206,6 +206,7 @@ const StyledInput = styled(Input)`
   height: auto;
   min-height: 34px;
   padding: 0;
+  font-size: inherit;
   &,
   &:focus,
   &:active,
