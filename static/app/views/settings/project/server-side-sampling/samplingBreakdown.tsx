@@ -109,7 +109,11 @@ export function SamplingBreakdown({orgSlug}: Props) {
                 )}
               </Projects>
             ) : (
-              <EmptyMessage>{t('No transactions in the last 24 hours')}</EmptyMessage>
+              <EmptyMessage>
+                {t(
+                  'There were no traces initiated from this project in the last 24 hours.'
+                )}
+              </EmptyMessage>
             )}
           </Fragment>
         )}
