@@ -949,8 +949,8 @@ SENTRY_FEATURES = {
     "auth:register": True,
     # Workflow 2.0 Alpha Functionality for sentry users only
     "organizations:active-release-monitor-alpha": False,
-    # Workflow 2.0 Experimental ReleaseMembers who opt-in to get notified as a release committer
-    "organizations:active-release-notification-opt-in": False,
+    # Workflow 2.0 Active Release Notifications
+    "organizations:active-release-notifications-enable": False,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Use metrics as the dataset for crash free metric alerts
@@ -1166,8 +1166,6 @@ SENTRY_FEATURES = {
     "organizations:team-insights": True,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": False,
-    # Enable sending Active release notifications without creating an explicit rule in DB
-    "projects:active-release-monitor-default-on": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1181,6 +1179,8 @@ SENTRY_FEATURES = {
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,
+    # Backend support for supporting performance issue: endpoints, serializers, etc.
+    "projects:performance-issue-details-backend": False,
     # Enable ingestion for suspect spans
     "projects:performance-suspect-spans-ingestion": False,
     # Enable functionality for project plugins.
@@ -2763,3 +2763,5 @@ SENTRY_FUNCTIONS_REGION = "us-central1"
 
 SERVER_COMPONENT_MODE = os.environ.get("SENTRY_SERVER_COMPONENT_MODE", None)
 FAIL_ON_UNAVAILABLE_API_CALL = False
+
+DISALLOWED_CUSTOMER_DOMAINS = []
