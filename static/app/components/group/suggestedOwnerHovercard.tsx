@@ -6,12 +6,14 @@ import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Button from 'sentry/components/button';
+import CommitLink from 'sentry/components/commitLink';
 import {Divider, Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
+import Version from 'sentry/components/version';
 import {IconCommit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Actor, Commit} from 'sentry/types';
+import type {Actor, Commit, Organization, Release} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import theme from 'sentry/utils/theme';
 
@@ -25,12 +27,17 @@ type Props = {
    * we will not be able to trigger any hovercard actions
    */
   children: React.ReactNode;
+  organization: Organization;
   /**
    * The list of commits the actor is suggested for. May be left blank if the
    * actor is not suggested for commits.
    */
   commits?: Commit[];
-
+  /**
+   * Used to pre-select release project
+   */
+  projectId?: string;
+  release?: Release;
   /**
    * The list of ownership rules the actor is suggested for. May be left blank
    * if the actor is not suggested based on ownership rules.
@@ -50,7 +57,8 @@ class SuggestedOwnerHovercard extends Component<Props, State> {
   };
 
   render() {
-    const {actor, commits, rules, ...props} = this.props;
+    const {organization, actor, commits, rules, release, projectId, ...props} =
+      this.props;
     const {commitsExpanded, rulesExpanded} = this.state;
     const modalData = {
       initialData: [
@@ -62,11 +70,11 @@ class SuggestedOwnerHovercard extends Component<Props, State> {
     };
 
     return (
-      <Hovercard
+      <StyledHovercard
         header={
           <Fragment>
             <HovercardHeader>
-              <HovercardActorAvatar actor={actor} />
+              <ActorAvatar size={20} hasTooltip={false} actor={actor} />
               {actor.name || actor.email}
             </HovercardHeader>
             {actor.id === undefined && (
@@ -85,7 +93,7 @@ class SuggestedOwnerHovercard extends Component<Props, State> {
         }
         body={
           <HovercardBody>
-            {commits !== undefined && (
+            {commits !== undefined && !release && (
               <Fragment>
                 <Divider>
                   <h6>{t('Commits')}</h6>
@@ -112,6 +120,50 @@ class SuggestedOwnerHovercard extends Component<Props, State> {
                     {t('View more')}
                   </ViewMoreButton>
                 ) : null}
+              </Fragment>
+            )}
+            {commits !== undefined && release && (
+              <Fragment>
+                <Divider>
+                  <h6>{t('Suspect Release')}</h6>
+                </Divider>
+                <div>
+                  <CommitReasonItem>
+                    <OwnershipTag tagType="release" />
+                    <ReleaseValue>
+                      {tct('[actor] [verb] [commits] in [release]', {
+                        actor: actor.name,
+                        verb: commits.length > 1 ? t('made') : t('last committed'),
+                        commits:
+                          commits.length > 1 ? (
+                            // Link to release commits
+                            <Link
+                              to={{
+                                pathname: `/organizations/${
+                                  organization?.slug
+                                }/releases/${encodeURIComponent(
+                                  release.version
+                                )}/commits/`,
+                                query: {project: projectId},
+                              }}
+                            >
+                              {t('%s commits', commits.length)}
+                            </Link>
+                          ) : (
+                            <CommitLink
+                              inline
+                              showIcon={false}
+                              commitId={commits[0].id}
+                              repository={commits[0].repository}
+                            />
+                          ),
+                        release: (
+                          <Version version={release.version} projectId={projectId} />
+                        ),
+                      })}
+                    </ReleaseValue>
+                  </CommitReasonItem>
+                </div>
               </Fragment>
             )}
             {defined(rules) && (
@@ -153,7 +205,12 @@ const tagColors = {
   path: theme.purple300,
   tag: theme.blue300,
   codeowners: theme.pink300,
+  release: theme.pink200,
 };
+
+const StyledHovercard = styled(Hovercard)`
+  width: 400px;
+`;
 
 const CommitIcon = styled(IconCommit)`
   margin-right: ${space(0.5)};
@@ -182,19 +239,13 @@ const CommitDate = styled(({date, ...props}) => (
 const CommitReasonItem = styled('div')`
   display: flex;
   align-items: flex-start;
-
-  &:not(:last-child) {
-    margin-bottom: ${space(1)};
-  }
+  gap: ${space(1)};
 `;
 
-const RuleReasonItem = styled('code')`
+const RuleReasonItem = styled('div')`
   display: flex;
   align-items: flex-start;
-
-  &:not(:last-child) {
-    margin-bottom: ${space(1)};
-  }
+  gap: ${space(1)};
 `;
 
 const OwnershipTag = styled(({tagType, ...props}) => <div {...props}>{tagType}</div>)`
@@ -220,7 +271,13 @@ const ViewMoreButton = styled(Button)`
 
 const OwnershipValue = styled('code')`
   word-break: break-all;
-  line-height: 1.2;
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  margin-top: ${space(0.25)};
+`;
+
+const ReleaseValue = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  margin-top: ${space(0.5)};
 `;
 
 const EmailAlert = styled(Alert)`
@@ -235,12 +292,7 @@ const EmailAlert = styled(Alert)`
 const HovercardHeader = styled('div')`
   display: flex;
   align-items: center;
-`;
-
-const HovercardActorAvatar = styled(p => (
-  <ActorAvatar size={20} hasTooltip={false} {...p} />
-))`
-  margin-right: ${space(1)};
+  gap: ${space(1)};
 `;
 
 const HovercardBody = styled('div')`

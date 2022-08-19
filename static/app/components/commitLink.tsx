@@ -44,9 +44,10 @@ type Props = {
   commitId: string;
   inline?: boolean;
   repository?: Repository;
+  showIcon?: boolean;
 };
 
-function CommitLink({inline, commitId, repository}: Props) {
+function CommitLink({inline, commitId, repository, showIcon = true}: Props) {
   if (!commitId || !repository) {
     return <span>{t('Unknown Commit')}</span>;
   }
@@ -72,12 +73,17 @@ function CommitLink({inline, commitId, repository}: Props) {
     });
 
   return !inline ? (
-    <Button external href={commitUrl} size="sm" icon={providerData.icon}>
+    <Button
+      external
+      href={commitUrl}
+      size="sm"
+      icon={showIcon ? providerData.icon : null}
+    >
       {shortId}
     </Button>
   ) : (
     <ExternalLink href={commitUrl}>
-      {providerData.icon}
+      {showIcon ? providerData.icon : null}
       {' ' + shortId}
     </ExternalLink>
   );
