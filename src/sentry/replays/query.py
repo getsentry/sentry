@@ -293,7 +293,7 @@ def search_filters_to_snuba_filters(search_filters: List[SearchFilter]) -> List[
         column_name = search_filter.key.name
         column_name = column_name.replace(".", "_")  # Translate nested fields to flat.
 
-        if column_name == "duration":
+        if column_name in ["duration", "countSegments"]:
             try:
                 value = int(search_filter.value.value)
             except ValueError:
