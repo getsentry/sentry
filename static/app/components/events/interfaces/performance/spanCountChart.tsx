@@ -43,35 +43,6 @@ export function SpanCountChart({issue, event, location, organization}: Props) {
   const project = [1];
   const spanOp = event.contexts.performance_issue.op;
 
-  /**
-   * As affected data has larger bins then all data, combines the all data bins the match the affected data bin size.
-   * @param allData echarts histogram data array of all transactions
-   * @param affectedData echarts histrogram data array of affected transactions
-   * @returns echarts histogram data array
-   */
-  function updateBins(allData: HistogramData, affectedData) {
-    const allDataWithNewBins: HistogramData = [];
-    let currentAffectedBinIndex = 0;
-    let currentBinIndex = 0;
-    while (
-      currentAffectedBinIndex < affectedData.length &&
-      currentBinIndex < allData.length
-    ) {
-      const currentBinMax = affectedData[currentAffectedBinIndex].bin;
-      let binCount = 0;
-      while (
-        currentBinIndex < allData.length &&
-        allData[currentBinIndex].bin <= currentBinMax
-      ) {
-        binCount += allData[currentBinIndex].count;
-        currentBinIndex++;
-      }
-      allDataWithNewBins.push({bin: currentBinMax, count: binCount});
-      currentAffectedBinIndex++;
-    }
-    return allDataWithNewBins;
-  }
-
   function renderChart(affectedData: HistogramData, allData: HistogramData) {
     const xAxis = {
       type: 'category' as const,
