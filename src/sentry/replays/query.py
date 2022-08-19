@@ -70,7 +70,9 @@ def query_replays_collection(
     if environment:
         conditions.append(Condition(Column("environment"), Op.IN, environment))
 
-    sort_ordering = make_sort_ordering(sort)
+    sort_ordering = get_valid_sort_commands(
+        sort, OrderBy(Column("startedAt"), Direction.DESC), ReplaysQueryConfig()
+    )
     paginators = make_pagination_values(limit, offset)
 
     response = query_replays_dataset(
@@ -140,7 +142,7 @@ def query_replays_dataset(
                 # Discard short replays (5 seconds by arbitrary decision).
                 Condition(Column("duration"), Op.GTE, 5),
                 # User conditions.
-                *search_filters_to_snuba_filters(search_filters),
+                *generate_valid_conditions(search_filters, ReplaysQueryConfig()),
             ],
             orderby=sorting,
             groupby=[Column("replay_id")],
@@ -270,58 +272,72 @@ def _grouped_unique_scalar_value(
     )
 
 
-# Filter.
+# Filter
+
+from sentry.api.event_search import SearchConfig
+from sentry.replays.querylib import (
+    Number,
+    QueryConfig,
+    String,
+    generate_valid_conditions,
+    get_valid_sort_commands,
+)
+
+replay_config = SearchConfig(
+    allowed_keys={
+        "platform",
+        "release",
+        "dist",
+        "duration",
+        "countErrors",
+        "countSegments",
+        "user.id",
+        "user.email",
+        "user.name",
+        "user.ipAddress",
+        "sdk.name",
+        "sdk.version",
+        "os.name",
+        "os.version",
+        "browser.name",
+        "browser.version",
+        "device.name",
+        "device.brand",
+        "device.model",
+        "device.family",
+    },
+)
 
 
-OPERATOR_MAP = {
-    "=": Op.EQ,
-    "!=": Op.NEQ,
-    ">": Op.GT,
-    ">=": Op.GTE,
-    "<": Op.LT,
-    "<=": Op.LTE,
-}
+class ReplaysQueryConfig(QueryConfig):
+    # Integer filters.
+    duration = Number()
+    count_errors = Number(name="countErrors")
+    count_segments = Number(name="countSegments")
 
+    # String filters.
+    platform = String()
+    agg_environment = String(field_alias="environment")
+    release = String()
+    dist = String()
+    user_id = String(field_alias="user.id")
+    user_email = String(field_alias="user.email")
+    user_name = String(field_alias="user.name")
+    user_ip_address = String(field_alias="user.ip_address")
+    os_name = String(field_alias="os.name")
+    os_version = String(field_alias="os.version")
+    browser_name = String(field_alias="browser.name")
+    browser_version = String(field_alias="browser.version")
+    device_name = String(field_alias="device.name")
+    device_brand = String(field_alias="device.brand")
+    device_family = String(field_alias="device.family")
+    device_model = String(field_alias="device.model")
+    sdk_name = String(field_alias="sdk.name")
+    sdk_version = String(field_alias="sdk.version")
 
-def search_filters_to_snuba_filters(search_filters: List[SearchFilter]) -> List[Condition]:
-    for search_filter in search_filters:
-        operator_string = search_filter.operator
-        operator = OPERATOR_MAP.get(operator_string, "=")
-
-        column_name = search_filter.key.name
-        column_name = column_name.replace(".", "_")  # Translate nested fields to flat.
-
-        if column_name in ["duration", "countSegments"]:
-            try:
-                value = int(search_filter.value.value)
-            except ValueError:
-                continue
-        else:
-            value = search_filter.value.value
-
-        yield Condition(Column(column_name), operator, value)
-
-
-# Sort.
-
-
-def make_sort_ordering(sort: Optional[str]) -> List[OrderBy]:
-    """Return the complete set of conditions to order our query by."""
-    if sort == "startedAt":
-        orderby = [OrderBy(Column("startedAt"), Direction.ASC)]
-    elif sort == "finishedAt":
-        orderby = [OrderBy(Column("finishedAt"), Direction.ASC)]
-    elif sort == "-finishedAt":
-        orderby = [OrderBy(Column("finishedAt"), Direction.DESC)]
-    elif sort == "duration":
-        orderby = [OrderBy(Column("duration"), Direction.ASC)]
-    elif sort == "-duration":
-        orderby = [OrderBy(Column("duration"), Direction.DESC)]
-    else:
-        # By default return the most recent replays.
-        orderby = [OrderBy(Column("startedAt"), Direction.DESC)]
-
-    return orderby
+    # Sort keys
+    started_at = String(name="startedAt", is_filterable=False)
+    finished_at = String(name="finishedAt", is_filterable=False)
 
 
 # Pagination.
