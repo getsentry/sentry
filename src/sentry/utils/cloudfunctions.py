@@ -82,43 +82,35 @@ def upload_function_files(client, code, env_variables):
 def create_function(code, funcId, description, env_variables):
     create_function_pubsub_topic(funcId)
     client = CloudFunctionsServiceClient()
-    upload_url = upload_function_files(client, code, env_variables)
     client.create_function(
-        function=CloudFunction(
-            name=project_location_function_name(True, True, True, funcId),
-            description=description,
-            source_upload_url=upload_url,
-            runtime="nodejs16",
-            entry_point="yourFunction",
-            event_trigger=EventTrigger(
-                event_type="providers/cloud.pubsub/eventTypes/topic.publish",
-                resource=function_pubsub_name(funcId),
-            ),
-            environment_variables=env_variables,
-        ),
+        function=subcreate_function(client, code, funcId, description, env_variables),
         location=project_location_function_name(True, True, False),
     )
 
 
 def update_function(code, funcId, description, env_variables):
     client = CloudFunctionsServiceClient()
-    upload_url = upload_function_files(client, code, env_variables)
     client.update_function(
         request=UpdateFunctionRequest(
-            function=CloudFunction(
-                name=project_location_function_name(True, True, True, funcId),
-                description=description,
-                source_upload_url=upload_url,
-                runtime="nodejs16",
-                entry_point="yourFunction",
-                event_trigger=EventTrigger(
-                    event_type="providers/cloud.pubsub/eventTypes/topic.publish",
-                    resource=function_pubsub_name(funcId),
-                ),
-                environment_variables=env_variables,
-            ),
+            function=subcreate_function(client, code, funcId, description, env_variables),
             update_mask=FieldMask(paths=["source_upload_url", "environment_variables"]),
         )
+    )
+
+
+def subcreate_function(client, code, funcId, description, env_variables):
+    upload_url = upload_function_files(client, code, env_variables)
+    return CloudFunction(
+        name=project_location_function_name(True, True, True, funcId),
+        description=description,
+        source_upload_url=upload_url,
+        runtime="nodejs16",
+        entry_point="yourFunction",
+        event_trigger=EventTrigger(
+            event_type="providers/cloud.pubsub/eventTypes/topic.publish",
+            resource=function_pubsub_name(funcId),
+        ),
+        environment_variables=env_variables,
     )
 
 
