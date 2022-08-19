@@ -13,6 +13,7 @@ from sentry.search.utils import (
     parse_status_value,
     parse_user_value,
 )
+from sentry.types.issues import GroupType, GROUP_TYPE_TO_CATEGORY
 
 is_filter_translation = {
     "assigned": ("unassigned", False),
@@ -92,14 +93,11 @@ def convert_status_value(value, projects, user, environments):
     return parsed
 
 def convert_category_value(value, projects, user, environments):
-    # value is either error or performance
-    # return matching GroupType.value
-    pass
+    return [member.value for v in value for member in GroupType if v.upper() == member.name]
 
 def convert_type_value(value, projects, user, environments):
-    # value is a GroupType: error, perfnplusone, perfslowspan
-    # return matching GroupType.value
-    pass
+    return [category.value for v in value for type, category in GROUP_TYPE_TO_CATEGORY.items() if type.name == v.upper()]
+
 
 value_converters = {
     "assigned_or_suggested": convert_actor_or_none_value,
@@ -126,17 +124,11 @@ def convert_query_values(search_filters, projects, user, environments):
     """
 
     def convert_search_filter(search_filter):
-        print("$$$$$$$")
-        print(search_filter)
-        print(search_filter.key.name)
-        print(search_filter.value.raw_value)
         if search_filter.key.name in value_converters:
             converter = value_converters[search_filter.key.name]
-            print("converter: ", converter)
             new_value = converter(
                 to_list(search_filter.value.raw_value), projects, user, environments
             )
-            print(new_value)
             if isinstance(new_value, list):
                 operator = "IN" if search_filter.operator in EQUALITY_OPERATORS else "NOT IN"
             else:

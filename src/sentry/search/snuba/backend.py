@@ -274,6 +274,20 @@ def regressed_in_release_filter(versions: Sequence[str], projects: Sequence[Proj
         ).values_list("group_id", flat=True),
     )
 
+def category_filter(versions: Sequence[str], projects: Sequence[Project], search_filters) -> Q:
+    types = [filter.value.raw_value[0] for filter in search_filters]
+    project_ids = [project.id for project in projects]
+    # ^ is assuming I can use index 0 safe? what does it look like w/ multiple search filters?
+    return Q(type__in=types, project__id__in=project_ids)
+
+def issue_type_filter(versions: Sequence[str], projects: Sequence[Project]) -> Q:
+    pass
+
+
+# Group.objects.filter(id=1)
+
+# my_filter = Q(id=1)
+# Group.objects.filter(my_filter)
 
 class Condition:
     """\
@@ -299,6 +313,8 @@ class QCallbackCondition(Condition):
         queryset_method = (
             queryset.filter if search_filter.operator in EQUALITY_OPERATORS else queryset.exclude
         )
+        print("q: ", q)
+        print("queryset_method: ", queryset_method)
         queryset = queryset_method(q)
         return queryset
 
@@ -431,6 +447,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         qs_builder_conditions = self._get_queryset_conditions(
             projects, environments, search_filters
         )
+        print("qs_builder_conditions: ", qs_builder_conditions)
         group_queryset = QuerySetBuilder(qs_builder_conditions).build(
             group_queryset, search_filters
         )
@@ -498,6 +515,7 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
         environments: Optional[Sequence[Environment]],
         search_filters: Sequence[SearchFilter],
     ) -> Mapping[str, Condition]:
+        print("search filter: ", search_filters)
         queryset_conditions: Dict[str, Condition] = {
             "status": QCallbackCondition(lambda statuses: Q(status__in=statuses)),
             "bookmarked_by": QCallbackCondition(
@@ -524,6 +542,14 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             "regressed_in_release": QCallbackCondition(
                 functools.partial(regressed_in_release_filter, projects=projects)
             ),
+            "category": QCallbackCondition(lambda category: Q(type__in=category)),
+            "type": QCallbackCondition(lambda type: Q(type__in=type)),
+            # "category": QCallbackCondition(
+            #     functools.partial(category_filter, projects=projects, search_filters=search_filters)
+            # ),
+            # "type": QCallbackCondition(
+            #     functools.partial(issue_type_filter, projects=projects)
+            # ),
         }
 
         if environments is not None:
