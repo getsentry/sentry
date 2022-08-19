@@ -257,7 +257,7 @@ class StringIndexer(Service):
         """
         raise NotImplementedError()
 
-    def reverse_resolve(self, use_case_id: UseCaseKey, id: int) -> Optional[str]:
+    def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
         """Lookup the stored string for a given integer ID.
 
         Callers should not rely on the default use_case_id -- it exists only

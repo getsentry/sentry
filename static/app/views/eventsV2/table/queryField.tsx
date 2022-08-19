@@ -128,7 +128,6 @@ class QueryField extends Component<Props> {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        width: 'calc(100% - 10px)',
       };
       return {...provided, ...custom};
     },
