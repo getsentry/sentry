@@ -52,6 +52,9 @@ def upload_function_files(client, code, env_variables):
         codezip.writestr("env.json", json.dumps(env_variables))
     f.seek(0)
 
+    logger = logging.getLogger("sentry.functions")
+    logger.info(f"The region is {SENTRY_FUNCTIONS_REGION}")
+
     upload_url = client.generate_upload_url(
         request=GenerateUploadUrlRequest(
             parent=f"projects/{SENTRY_FUNCTIONS_PROJECT_NAME}/locations/{SENTRY_FUNCTIONS_REGION}"
