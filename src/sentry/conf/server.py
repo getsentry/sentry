@@ -286,6 +286,7 @@ MIDDLEWARE = (
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "sentry.middleware.auth.AuthenticationMiddleware",
+    "sentry.middleware.customer_domain.CustomerDomainMiddleware",
     "sentry.middleware.user.UserActiveMiddleware",
     "sentry.middleware.sudo.SudoMiddleware",
     "sentry.middleware.superuser.SuperuserMiddleware",
@@ -1123,6 +1124,8 @@ SENTRY_FEATURES = {
     "organizations:performance-extraneous-spans-poc": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
+    # Enable populating suggested assignees with release committers
+    "organizations:release-committer-assignees": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
@@ -2764,3 +2767,5 @@ FAIL_ON_UNAVAILABLE_API_CALL = False
 SERVER_COMPONENT_MODE_SPLICE_TESTS = bool(
     os.environ.get("SENTRY_SERVER_COMPONENT_MODE_SPLICE_TESTS", False)
 )
+
+DISALLOWED_CUSTOMER_DOMAINS = []

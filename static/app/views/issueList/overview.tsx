@@ -52,6 +52,7 @@ import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReact
 import parseApiError from 'sentry/utils/parseApiError';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {decodeScalar} from 'sentry/utils/queryString';
 import StreamManager from 'sentry/utils/streamManager';
 import withApi from 'sentry/utils/withApi';
 import withIssueTags from 'sentry/utils/withIssueTags';
@@ -289,7 +290,7 @@ class IssueListOverview extends Component<Props, State> {
     const {query} = location.query;
 
     if (query !== undefined) {
-      return query as string;
+      return decodeScalar(query, '');
     }
 
     return DEFAULT_QUERY;
@@ -694,7 +695,9 @@ class IssueListOverview extends Component<Props, State> {
       // Remove collapse stats from endpoint before supplying to poller
       const issueEndpoint = new URL(links.previous.href, window.location.origin);
       issueEndpoint.searchParams.delete('collapse');
-      this._poller.setEndpoint(decodeURIComponent(issueEndpoint.href));
+      this._poller.setEndpoint(
+        decodeURIComponent(issueEndpoint.pathname + issueEndpoint.search)
+      );
       this._poller.enable();
     }
   };
