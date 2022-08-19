@@ -69,4 +69,4 @@ def get_files_changed_in_releases(
         .distinct()
     )
 
-    return ReleaseCommitFileChanges(releases, files_changed_in_releases)
+    return ReleaseCommitFileChanges([release.id for release in releases], files_changed_in_releases)
