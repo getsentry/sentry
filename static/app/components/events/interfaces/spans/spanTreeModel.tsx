@@ -220,7 +220,6 @@ class SpanTreeModel {
       addTraceBounds,
       removeTraceBounds,
       focusedSpanIds,
-      directParent,
     } = props;
     let {treeDepth, continuingTreeDepths} = props;
     const parentSpanID = getSpanID(this.span);
@@ -230,15 +229,6 @@ class SpanTreeModel {
     const descendantsSource = this.showEmbeddedChildren
       ? [...this.embeddedChildren, ...this.children]
       : this.children;
-
-    if (focusedSpanIds && this.span.span_id in focusedSpanIds) {
-      // Since this is a focused span, show this span's direct parent, and also its children
-      directParent && focusedSpanIds.add(directParent.span.span_id);
-
-      descendantsSource.forEach(descendant =>
-        focusedSpanIds.add(descendant.span.span_id)
-      );
-    }
 
     const isNotLastSpanOfGroup =
       isOnlySibling && !this.isRoot && descendantsSource.length === 1;
