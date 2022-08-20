@@ -10,7 +10,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group import StreamGroupSerializer
+from sentry.api.serializers.models.group_stream import StreamGroupSerializer
 from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
 from sentry.models import ExternalIssue, Group
 from sentry.shared_integrations.exceptions import ApiError
