@@ -12,10 +12,10 @@ class StreamGroupSerializerTestCase(TestCase):
 
         environment = Environment.get_or_create(group.project, "production")
 
-        from sentry.api.serializers.models.group import tsdb
+        from sentry.api.serializers.models.group_stream import tsdb
 
         with mock.patch(
-            "sentry.api.serializers.models.group.tsdb.get_range", side_effect=tsdb.get_range
+            "sentry.api.serializers.models.group_stream.tsdb.get_range", side_effect=tsdb.get_range
         ) as get_range:
             serialize(
                 [group],
@@ -31,7 +31,8 @@ class StreamGroupSerializerTestCase(TestCase):
             raise Environment.DoesNotExist()
 
         with mock.patch(
-            "sentry.api.serializers.models.group.tsdb.make_series", side_effect=tsdb.make_series
+            "sentry.api.serializers.models.group_stream.tsdb.make_series",
+            side_effect=tsdb.make_series,
         ) as make_series:
             serialize(
                 [group],
