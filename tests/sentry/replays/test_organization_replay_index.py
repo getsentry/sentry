@@ -390,3 +390,146 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response.status_code == 200
             response_data = response.json()
             assert len(response_data["data"]) == 1, "all queries"
+
+    def test_get_replays_user_sorts(self):
+        """Test replays conform to the interchange format."""
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=15)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        self.store_replays(
+            mock_replay(
+                seq1_timestamp,
+                project.id,
+                replay1_id,
+                platform="b",
+                dist="b",
+                user_id="b",
+                user_email="b",
+                user_name="b",
+                user_ip_address="127.0.0.2",
+                sdk_name="b",
+                sdk_version="b",
+                os_name="b",
+                os_version="b",
+                browser_name="b",
+                browser_version="b",
+                device_name="b",
+                device_brand="b",
+                device_family="b",
+                device_model="b",
+            )
+        )
+        self.store_replays(
+            mock_replay(
+                seq2_timestamp,
+                project.id,
+                replay1_id,
+                platform="b",
+                dist="b",
+                user_id="b",
+                user_email="b",
+                user_name="b",
+                user_ip_address="127.0.0.2",
+                sdk_name="b",
+                sdk_version="b",
+                os_name="b",
+                os_version="b",
+                browser_name="b",
+                browser_version="b",
+                device_name="b",
+                device_brand="b",
+                device_family="b",
+                device_model="b",
+            )
+        )
+
+        replay2_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=15)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
+        self.store_replays(
+            mock_replay(
+                seq1_timestamp,
+                project.id,
+                replay2_id,
+                platform="a",
+                dist="a",
+                user_id="a",
+                user_email="a",
+                user_name="a",
+                user_ip_address="127.0.0.1",
+                sdk_name="a",
+                sdk_version="a",
+                os_name="a",
+                os_version="a",
+                browser_name="a",
+                browser_version="a",
+                device_name="a",
+                device_brand="a",
+                device_family="a",
+                device_model="a",
+            )
+        )
+        self.store_replays(
+            mock_replay(
+                seq2_timestamp,
+                project.id,
+                replay2_id,
+                platform="a",
+                dist="a",
+                user_id="a",
+                user_email="a",
+                user_name="a",
+                user_ip_address="127.0.0.1",
+                sdk_name="a",
+                sdk_version="a",
+                os_name="a",
+                os_version="a",
+                browser_name="a",
+                browser_version="a",
+                device_name="a",
+                device_brand="a",
+                device_family="a",
+                device_model="a",
+            )
+        )
+
+        with self.feature(REPLAYS_FEATURES):
+            # Run all the queries individually to determine compliance.
+            queries = [
+                "platform",
+                "dist",
+                "duration",
+                "sdk.name",
+                "os.name",
+                "os.version",
+                "browser.name",
+                "browser.version",
+                "device.name",
+                "device.brand",
+                "device.family",
+                "device.model",
+                "user.id",
+                "user.name",
+                "user.email",
+            ]
+
+            for key in queries:
+                # Ascending
+                response = self.client.get(self.url + f"?sort={key}")
+                assert response.status_code == 200, key
+
+                r = response.json()
+                assert len(r["data"]) == 2, key
+                assert r["data"][0]["id"] == replay2_id, key
+                assert r["data"][1]["id"] == replay1_id, key
+
+                # Descending
+                response = self.client.get(self.url + f"?sort=-{key}")
+                assert response.status_code == 200, key
+
+                r = response.json()
+                assert len(r["data"]) == 2, key
+                assert r["data"][0]["id"] == replay1_id, key
+                assert r["data"][1]["id"] == replay2_id, key
