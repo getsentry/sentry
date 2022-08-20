@@ -30,7 +30,8 @@ describe('StreamGroup', function () {
       query: 'foo',
       body: [TestStubs.Project({slug: 'foo-project'})],
     });
-    jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_1);
+    GroupStore.init();
+    GroupStore.add([GROUP_1]);
   });
 
   afterEach(function () {
@@ -42,9 +43,8 @@ describe('StreamGroup', function () {
     const {routerContext} = initializeOrg();
     const wrapper = render(
       <StreamGroup
-        id="1L"
+        id="1337"
         orgId="orgId"
-        groupId="groupId"
         lastSeen="2017-07-25T22:56:12Z"
         firstSeen="2017-07-01T02:06:02Z"
         hasGuideAnchor
@@ -63,7 +63,6 @@ describe('StreamGroup', function () {
       <StreamGroup
         id="1337"
         orgId="orgId"
-        groupId="groupId"
         lastSeen="2017-07-25T22:56:12Z"
         firstSeen="2017-07-01T02:06:02Z"
         query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
@@ -74,8 +73,8 @@ describe('StreamGroup', function () {
     );
 
     expect(screen.getByTestId('group')).toHaveAttribute('data-test-reviewed', 'false');
-    GROUP_1.inbox = false;
-    GroupStore.trigger(new Set(['1337']));
+    GroupStore.onUpdate('1337', undefined, {});
+    GroupStore.onUpdateSuccess('1337', undefined, {inbox: false});
     // Reviewed only applies styles, difficult to select with RTL
     expect(screen.getByTestId('group')).toHaveAttribute('data-test-reviewed', 'true');
   });
@@ -86,7 +85,6 @@ describe('StreamGroup', function () {
       <StreamGroup
         id="1337"
         orgId="orgId"
-        groupId="groupId"
         lastSeen="2017-07-25T22:56:12Z"
         firstSeen="2017-07-01T02:06:02Z"
         query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
