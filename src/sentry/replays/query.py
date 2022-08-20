@@ -20,6 +20,13 @@ from snuba_sdk.expressions import Expression
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.api.event_search import SearchConfig, SearchFilter
+from sentry.replays.lib.query import (
+    Number,
+    QueryConfig,
+    String,
+    generate_valid_conditions,
+    get_valid_sort_commands,
+)
 from sentry.utils.snuba import raw_snql_query
 
 MAX_PAGE_SIZE = 100
@@ -274,15 +281,6 @@ def _grouped_unique_scalar_value(
 
 # Filter
 
-from sentry.api.event_search import SearchConfig
-from sentry.replays.querylib import (
-    Number,
-    QueryConfig,
-    String,
-    generate_valid_conditions,
-    get_valid_sort_commands,
-)
-
 replay_config = SearchConfig(
     allowed_keys={
         "platform",
@@ -323,7 +321,7 @@ class ReplaysQueryConfig(QueryConfig):
     user_id = String(field_alias="user.id")
     user_email = String(field_alias="user.email")
     user_name = String(field_alias="user.name")
-    user_ip_address = String(field_alias="user.ip_address")
+    user_ip_address = String(field_alias="user.ip_address", query_alias="user_ipAddress")
     os_name = String(field_alias="os.name")
     os_version = String(field_alias="os.version")
     browser_name = String(field_alias="browser.name")

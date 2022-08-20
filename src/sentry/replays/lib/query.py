@@ -4,9 +4,9 @@ from typing import Any, Generator, List, Optional, Tuple
 from snuba_sdk import Column, Condition, Op
 from snuba_sdk.orderby import Direction, OrderBy
 
-from sentry.api.event_search import SearchConfig, SearchFilter, parse_search_query
+from sentry.api.event_search import SearchFilter
 
-# Declarative Building Blocks.
+# Interface.
 
 
 OPERATOR_MAP = {
@@ -102,11 +102,6 @@ class QueryConfig:
 
 
 # Implementation.
-
-
-def parse_query_input(query: str, search_config: SearchConfig) -> List[SearchFilter]:
-    search_filters = parse_search_query(query, search_config)
-    return [term for term in search_filters if isinstance(term, SearchFilter)]
 
 
 def generate_valid_conditions(
