@@ -1,0 +1,85 @@
+/**
+* Release Detail
+* ============================================================================
+*/
+
+.release-details {
+  position: relative;
+  margin: 0 0 20px;
+  border-bottom: 1px solid @trim;
+
+  h3 {
+    margin-bottom: 0;
+    color: @gray-darkest;
+  }
+
+  .release-stats {
+    text-align: right;
+
+    .avatar-grid {
+      flex-direction: row-reverse;
+    }
+
+    h6 {
+      .nav-header;
+      margin-bottom: 10px;
+    }
+  }
+
+  .nav-tabs {
+    margin-bottom: 0;
+  }
+}
+
+.release-meta {
+  color: @gray;
+  margin-bottom: 20px;
+
+  .icon {
+    font-size: 13px;
+  }
+
+  a {
+    color: @gray-dark;
+
+    &:hover {
+      color: @gray-darker;
+    }
+  }
+}
+
+.release-count {
+  font-size: 28px;
+  color: lighten(@gray, 30);
+}
+
+/**
+* Last Commit in Release Overview
+* ============================================================================
+*/
+
+.commit {
+  margin-top: 5px;
+  margin-bottom: 20px;
+  position: relative;
+  padding: 1px 0 0 25px;
+  font-size: 13px;
+
+  .commit-avatar {
+    position: absolute;
+    width: 19px;
+    height: 19px;
+    top: 2px;
+    left: 0;
+
+    .avatar {
+      width: 19px;
+      height: 19px;
+    }
+  }
+
+  .commit-message {
+    line-height: 1.4;
+    margin: 2px 0 5px;
+  }
+}
