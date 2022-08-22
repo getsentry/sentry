@@ -73,10 +73,33 @@ describe('StreamGroup', function () {
     );
 
     expect(screen.getByTestId('group')).toHaveAttribute('data-test-reviewed', 'false');
-    GroupStore.onUpdate('1337', undefined, {});
-    GroupStore.onUpdateSuccess('1337', undefined, {inbox: false});
+    const data = {inbox: false};
+    GroupStore.onUpdate('1337', undefined, data);
+    GroupStore.onUpdateSuccess('1337', undefined, data);
     // Reviewed only applies styles, difficult to select with RTL
     expect(screen.getByTestId('group')).toHaveAttribute('data-test-reviewed', 'true');
+  });
+
+  it('marks as resolved', function () {
+    const {routerContext, organization} = initializeOrg();
+    render(
+      <StreamGroup
+        id="1337"
+        orgId="orgId"
+        lastSeen="2017-07-25T22:56:12Z"
+        firstSeen="2017-07-01T02:06:02Z"
+        query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
+        organization={organization}
+        {...routerContext}
+      />,
+      {context: routerContext}
+    );
+
+    expect(screen.queryByTestId('resolved-issue')).not.toBeInTheDocument();
+    const data = {status: 'resolved', statusDetails: {}};
+    GroupStore.onUpdate('1337', undefined, data);
+    GroupStore.onUpdateSuccess('1337', undefined, data);
+    expect(screen.getByTestId('resolved-issue')).toBeInTheDocument();
   });
 
   it('tracks clicks from issues stream', function () {
