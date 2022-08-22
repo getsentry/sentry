@@ -111,6 +111,7 @@ class Match:
 
     @staticmethod
     def _from_config_structure(obj: str, version: int) -> "Match":
+        print("MATCHER", obj)
         val = obj
         if val.startswith("|[") and val.endswith("]"):
             return CalleeMatch(Match._from_config_structure(val[2:-1], version))

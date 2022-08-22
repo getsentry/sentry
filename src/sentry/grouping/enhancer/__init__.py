@@ -214,8 +214,16 @@ class Enhancements:
         version, bases, rules = data
         if version not in VERSIONS:
             raise ValueError("Unknown version")
+
+        ruless = []
+        for x in ruless:
+            print("-- RULE", x)
+            rule = Rule._from_config_structure(x, version=version)
+            print(rule)
+            ruless.append(rule)
+
         return cls(
-            rules=[Rule._from_config_structure(x, version=version) for x in rules],
+            rules=ruless,
             version=version,
             bases=bases,
         )

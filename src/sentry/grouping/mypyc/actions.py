@@ -45,7 +45,7 @@ ACTION_FLAGS: Mapping[Tuple[bool, FlagRange], int] = {
 REVERSE_ACTION_FLAGS = {v: k for k, v in ACTION_FLAGS.items()}
 
 
-ActionConfigStructure = Union[int, List[str]]
+ActionConfigStructure = Union[int, List[Any]]
 Component = Any  # TODO
 
 
@@ -87,6 +87,7 @@ class Action:
 
     @classmethod
     def _from_config_structure(cls, val: ActionConfigStructure, version: int) -> "Action":
+        print("ACTION", val)
         if isinstance(val, list):
             return VarAction(val[0], val[1])
         flag, range = REVERSE_ACTION_FLAGS[val >> ACTION_BITSIZE[version]]
@@ -227,7 +228,7 @@ class VarAction(Action):
     def __str__(self) -> str:
         return f"{self.var}={self.value}"
 
-    def _to_config_structure(self, version: int) -> List[str]:
+    def _to_config_structure(self, version: int) -> List[Any]:
         return [self.var, self.value]
 
     def modify_stacktrace_state(self, state: StacktraceState, rule: "Rule") -> None:
