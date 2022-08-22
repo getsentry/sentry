@@ -72,14 +72,33 @@ function getSentryIntegrations(sentryConfig: Config['sentryConfig'], routes?: Fu
 
 let infiniteBreadcrumbs: Breadcrumb[] = [];
 
-// class PatchedHub extends Hub {
-//   public addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void {
-//     super.addBreadcrumb(breadcrumb, hint);
-//     const { scope } = this.getStackTop();
-//     if (!scope || !client) return;
-//     const breadcrumb = scope._bread
-//   }
-// }
+function setSession(sessionId: string): string {
+  const hasSessionStorage = 'sessionStorage' in window;
+  if (hasSessionStorage) {
+    try {
+      window.sessionStorage.setItem('sentry.infinite.breadcrumbs', sessionId);
+    } catch {
+      // this shouldn't happen
+    }
+  }
+
+  return sessionId;
+}
+
+function getSession(): string | null {
+  const hasSessionStorage = 'sessionStorage' in window;
+  if (!hasSessionStorage) {
+    return null;
+  }
+
+  try {
+    return window.sessionStorage.getItem('sentry.infinite.breadcrumbs');
+  } catch {
+    // this shouldn't happen
+  }
+
+  return null;
+}
 
 /**
  * Initialize the Sentry SDK
@@ -120,19 +139,24 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     ignoreErrors: ['AbortError: Fetch is aborted'],
   });
 
-  function flushBreadcrumbs() {
-    const client = getCurrentHub().getClient();
+  const hub = getCurrentHub();
+
+  function flushBreadcrumbs(session_id: string) {
+    const client = hub.getClient();
     if (client) {
       client.sendEvent({
         message: 'Breadcrumb Event',
         event_id: uuid4(),
         tags: {session_id},
+        breadcrumbs: infiniteBreadcrumbs,
       });
     }
     infiniteBreadcrumbs = [];
   }
 
-  const scope = getCurrentHub().getScope();
+  const sessionId = getSession() || setSession(uuid4());
+
+  const scope = hub.getScope();
   if (scope) {
     scope.addScopeListener(updatedScope => {
       // @ts-ignore accessing private _breadcrumbs
@@ -145,23 +169,21 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
       infiniteBreadcrumbs.push(updatedScope._breadcrumbs[len]);
 
       if (infiniteBreadcrumbs.length >= 100) {
-        flushBreadcrumbs();
+        flushBreadcrumbs(sessionId);
       }
     });
   }
 
-  const session_id = uuid4();
-
   setInterval(() => {
-    flushBreadcrumbs();
-  }, 3000);
+    flushBreadcrumbs(sessionId);
+  }, 5000);
 
   // Track timeOrigin Selection by the SDK to see if it improves transaction durations
   addGlobalEventProcessor((event: SentryEvent, _hint?: EventHint) => {
     event.tags = event.tags || {};
     event.tags['timeOrigin.mode'] = _browserPerformanceTimeOriginMode;
-    event.tags.session_id = session_id;
-    infiniteBreadcrumbs = [];
+    event.tags.session_id = sessionId;
+    // flushBreadcrumbs(sessionId);
     return event;
   });
 
