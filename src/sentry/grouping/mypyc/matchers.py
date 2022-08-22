@@ -1,5 +1,6 @@
 from typing import Any, ClassVar, Mapping, MutableMapping, Optional, Sequence, Tuple, Type, cast
 
+from sentry.grouping.mypyc.exceptions import InvalidEnhancerConfig
 from sentry.grouping.utils import get_rule_bool
 from sentry.stacktraces.functions import get_function_name_for_frame
 from sentry.stacktraces.platform import get_behavior_family_for_platform
@@ -51,7 +52,7 @@ MATCHERS = {
 
 
 FrameData = Mapping[str, Any]
-MatchFrame = Mapping[str, Any]  # TODO
+MatchFrame = MutableMapping[str, Any]  # TODO
 
 
 def _get_function_name(frame_data: FrameData, platform: Optional[str]) -> str:
@@ -172,7 +173,7 @@ class FrameMatch(Match):
         try:
             self.key = MATCHERS[key]
         except KeyError:
-            raise RuntimeError("Unknown matcher '%s'" % key)  # FIXME
+            raise InvalidEnhancerConfig("Unknown matcher '%s'" % key)
         self.pattern = pattern
         self._encoded_pattern = pattern.encode("utf-8")
         self.negated = negated
