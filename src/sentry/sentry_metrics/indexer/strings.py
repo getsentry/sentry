@@ -43,6 +43,13 @@ SESSION_METRIC_NAMES = {
     "s:sessions/error@none": PREFIX + 2,
     "s:sessions/user@none": PREFIX + 3,
     "d:sessions/duration@second": PREFIX + 4,
+    "os": PREFIX + 5,
+    "os.kernel_version": PREFIX + 6,
+    "os.build": PREFIX + 7,
+    "device.brand": PREFIX + 8,
+    "device.family": PREFIX + 9,
+    "device.model_id": PREFIX + 10,
+    "device.name": PREFIX + 11,
 }
 # 100 - 199
 TRANSACTION_METRICS_NAMES = {

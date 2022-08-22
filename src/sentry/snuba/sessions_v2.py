@@ -218,9 +218,10 @@ GROUPBY_MAP = {
     "environment": SimpleGroupBy("environment"),
     "release": SimpleGroupBy("release"),
     "session.status": SessionStatusGroupBy(),
+    "os": SimpleGroupBy("os"),
 }
 
-CONDITION_COLUMNS = ["project", "project_id", "environment", "release"]
+CONDITION_COLUMNS = ["project", "project_id", "environment", "release", "os"]
 FILTER_KEY_COLUMNS = ["project_id"]
 
 

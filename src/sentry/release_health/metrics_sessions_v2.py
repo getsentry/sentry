@@ -75,7 +75,7 @@ Scalar = Union[int, float, None]
 #: Group key as featured in output format
 GroupKeyDict = TypedDict(
     "GroupKeyDict",
-    {"project": int, "release": str, "environment": str, "session.status": str},
+    {"project": int, "release": str, "environment": str, "session.status": str, "os": str},
     total=False,
 )
 
@@ -85,6 +85,7 @@ class MetricsGroupKeyDict(TypedDict, total=False):
     project_id: int
     release: str
     environment: str
+    os: str
 
 
 class SessionStatus(Enum):
@@ -111,6 +112,7 @@ class GroupKey:
     release: Optional[str] = None
     environment: Optional[str] = None
     session_status: Optional[SessionStatus] = None
+    os: Optional[str] = None
 
     @staticmethod
     def from_input_dict(dct: MetricsGroupKeyDict) -> "GroupKey":
@@ -119,6 +121,7 @@ class GroupKey:
             project=dct.get("project_id", None),
             release=dct.get("release", None),
             environment=dct.get("environment", None),
+            os=dct.get("os", None),
         )
 
     def to_output_dict(self) -> GroupKeyDict:
@@ -131,6 +134,8 @@ class GroupKey:
             dct["environment"] = self.environment
         if self.session_status is not None:
             dct["session.status"] = self.session_status.value
+        if self.os is not None:
+            dct["os"] = self.os
 
         return dct
 
