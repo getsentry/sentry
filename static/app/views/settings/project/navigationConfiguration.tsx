@@ -140,6 +140,14 @@ export default function getConfiguration({
           description: t("View and manage the project's client keys (DSN)"),
         },
         {
+          path: `${pathPrefix}/feature-flags/`,
+          title: t('Feature Flags'),
+          description: t(
+            'By enabling or disabling a flag in Sentry, your SDK can determine which features to enable or disable'
+          ),
+          badge: () => 'beta',
+        },
+        {
           path: `${pathPrefix}/release-tracking/`,
           title: t('Releases'),
         },

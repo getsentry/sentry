@@ -397,6 +397,11 @@ function buildRoutes() {
       />
       <Redirect from="issue-tracking/" to="/settings/:orgId/:projectId/plugins/" />
       <Route
+        path="feature-flags/"
+        name={t('Feature Flags')}
+        component={make(() => import('sentry/views/settings/project/feature-flags'))}
+      />
+      <Route
         path="release-tracking/"
         name={t('Release Tracking')}
         component={make(
