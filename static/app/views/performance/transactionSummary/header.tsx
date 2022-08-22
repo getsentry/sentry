@@ -17,6 +17,7 @@ import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
+import {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import HasMeasurementsQuery from 'sentry/utils/performance/vitals/hasMeasurementsQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
@@ -73,6 +74,7 @@ type Props = {
   projectId: string;
   projects: Project[];
   transactionName: string;
+  metricsCardinality?: MetricsCardinalityContext;
   onChangeThreshold?: (threshold: number, metric: TransactionThresholdMetric) => void;
 };
 
@@ -101,7 +103,11 @@ class TransactionHeader extends Component<Props> {
   };
 
   renderCreateAlertButton() {
-    const {eventView, organization, projects} = this.props;
+    const {eventView, organization, projects, metricsCardinality} = this.props;
+
+    if (metricsCardinality?.isLoading) {
+      return <Fragment />;
+    }
 
     return (
       <CreateAlertFromViewButton
@@ -112,6 +118,7 @@ class TransactionHeader extends Component<Props> {
         referrer="performance"
         alertType="trans_duration"
         aria-label={t('Create Alert')}
+        disableMetricDataset={metricsCardinality?.outcome?.forceTransactionsOnly}
       />
     );
   }
@@ -312,7 +319,7 @@ class TransactionHeader extends Component<Props> {
               </ListLink>
             </Feature>
             {this.renderWebVitalsTab()}
-            <Feature features={['session-replay']} organization={organization}>
+            <Feature features={['session-replay-ui']} organization={organization}>
               <ListLink
                 data-test-id="replays-tab"
                 to={replaysTarget}

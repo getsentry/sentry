@@ -32,6 +32,10 @@ import {
   formatPercentage,
 } from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {
+  MetricsCardinalityContext,
+  useMetricsCardinalityContext,
+} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {Theme} from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
@@ -117,10 +121,12 @@ function SidebarCharts(props: Props) {
   );
 }
 
-function getDataCounts({
+function getDatasetCounts({
   chartData,
   metricsChartData,
+  metricsCardinality,
 }: {
+  metricsCardinality: MetricsCardinalityContext;
   chartData?: ChartData;
   metricsChartData?: ChartData;
 }) {
@@ -128,7 +134,10 @@ function getDataCounts({
     chartData?.series[0]?.data.reduce((sum, {value}) => sum + value, 0) ?? 0;
   const metricsCount =
     metricsChartData?.series[0]?.data.reduce((sum, {value}) => sum + value, 0) ?? 0;
-  const missingMetrics = !metricsCount && transactionCount;
+  const missingMetrics =
+    (!metricsCount && transactionCount) ||
+    metricsCount < transactionCount ||
+    metricsCardinality.outcome?.forceTransactionsOnly;
   return {
     transactionCount,
     metricsCount,
@@ -148,11 +157,13 @@ function ChartLabels({
   const useAggregateAlias = !organization.features.includes(
     'performance-frontend-use-events-endpoint'
   );
+  const metricsCardinality = useMetricsCardinalityContext();
 
   if (isShowingMetricsEventCount) {
-    const {transactionCount, metricsCount, missingMetrics} = getDataCounts({
+    const {transactionCount, metricsCount, missingMetrics} = getDatasetCounts({
       chartData,
       metricsChartData,
+      metricsCardinality,
     });
 
     return (
@@ -426,6 +437,7 @@ function SidebarChartsContainer({
 }: ContainerProps) {
   const api = useApi();
   const theme = useTheme();
+  const metricsCardinality = useMetricsCardinalityContext();
 
   const statsPeriod = eventView.statsPeriod;
   const start = eventView.start ? getUtcToLocalDateObject(eventView.start) : undefined;
@@ -545,9 +557,10 @@ function SidebarChartsContainer({
                   }
                 }
 
-                const {missingMetrics} = getDataCounts({
+                const {missingMetrics} = getDatasetCounts({
                   chartData,
                   metricsChartData: _metricsChartData,
+                  metricsCardinality,
                 });
 
                 const metricsCountSeries = metricSeries[0];

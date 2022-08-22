@@ -1,3 +1,6 @@
+// Mirrors src/sentry/utils/platform_categories.py
+// When changing this file, make sure to keep src/sentry/utils/platform_categories.py in sync.
+
 import {t} from 'sentry/locale';
 
 export const popularPlatformCategories = [

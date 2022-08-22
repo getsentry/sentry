@@ -86,6 +86,7 @@ export interface WidgetViewerModalOptions {
   onEdit?: () => void;
   pageLinks?: string;
   seriesData?: Series[];
+  seriesResultsType?: string;
   tableData?: TableDataWithTitle[];
   totalIssuesCount?: string;
 }
@@ -165,6 +166,7 @@ function WidgetViewerModal(props: Props) {
     tableData,
     totalIssuesCount,
     pageLinks: defaultPageLinks,
+    seriesResultsType,
   } = props;
   const shouldShowSlider = organization.features.includes('widget-viewer-modal-minimap');
   // Get widget zoom from location
@@ -443,11 +445,12 @@ function WidgetViewerModal(props: Props) {
     });
   }
 
-  const renderDiscoverTable = ({
+  function DiscoverTable({
     tableResults,
     loading,
     pageLinks,
-  }: GenericWidgetQueriesChildrenProps) => {
+  }: GenericWidgetQueriesChildrenProps) {
+    const {isMetricsData} = useDashboardsMEPContext();
     const links = parseLinkHeader(pageLinks ?? null);
     const isFirstPage = links.previous?.results === false;
     return (
@@ -470,6 +473,7 @@ function WidgetViewerModal(props: Props) {
                   setChartUnmodified(false);
                 }
               },
+              isMetricsData,
             }) as (column: GridColumnOrder, columnIndex: number) => React.ReactNode,
             renderBodyCell: renderGridBodyCell({
               ...props,
@@ -506,7 +510,7 @@ function WidgetViewerModal(props: Props) {
         )}
       </Fragment>
     );
-  };
+  }
 
   const renderIssuesTable = ({
     tableResults,
@@ -746,11 +750,13 @@ function WidgetViewerModal(props: Props) {
       case WidgetType.DISCOVER:
       default:
         if (tableData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
-          return renderDiscoverTable({
-            tableResults: tableData,
-            loading: false,
-            pageLinks: defaultPageLinks,
-          });
+          return (
+            <DiscoverTable
+              tableResults={tableData}
+              loading={false}
+              pageLinks={defaultPageLinks}
+            />
+          );
         }
         return (
           <WidgetQueries
@@ -765,7 +771,13 @@ function WidgetViewerModal(props: Props) {
             }
             cursor={cursor}
           >
-            {renderDiscoverTable}
+            {({tableResults, loading, pageLinks}) => (
+              <DiscoverTable
+                tableResults={tableResults}
+                loading={loading}
+                pageLinks={pageLinks}
+              />
+            )}
           </WidgetQueries>
         );
     }
@@ -794,6 +806,7 @@ function WidgetViewerModal(props: Props) {
             {(!!seriesData || !!tableData) && chartUnmodified ? (
               <MemoizedWidgetCardChart
                 timeseriesResults={seriesData}
+                timeseriesResultsType={seriesResultsType}
                 tableResults={tableData}
                 errorMessage={undefined}
                 loading={false}

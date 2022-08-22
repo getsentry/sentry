@@ -172,7 +172,7 @@ function SelectProjectStep({
   return (
     <ModalBody>
       <ModalHeader>
-        <h3>{t('Setup Profiling')}</h3>
+        <h3>{t('Set Up Profiling')}</h3>
       </ModalHeader>
       <form onSubmit={onFormSubmit}>
         <StyledList symbol="colored-numeric">
@@ -226,19 +226,17 @@ function AndroidInstallSteps() {
       <li>
         <StepTitle>{t('Setup Performance Monitoring')}</StepTitle>
         {t(
-          `For Sentry to ingest profiles, we first require you to setup performance monitoring.`
+          `For Sentry to ingest profiles, we first require you to setup performance monitoring. To set up performance monitoring,`
         )}{' '}
         <ExternalLink
           openInNewTab
           href="https://docs.sentry.io/platforms/android/performance/"
         >
-          {t('Lear more about performance monitoring.')}
+          {t('follow our step by step instructions here.')}
         </ExternalLink>
       </li>
       <li>
-        <StepTitle>
-          {t('Enable profiling in your app by configuring the SDKs like below:')}
-        </StepTitle>
+        <StepTitle>{t('Set Up Profiling')}</StepTitle>
         <CodeContainer>
           {`<application>
   <meta-data android:name="io.sentry.dsn" android:value="..." />
@@ -265,13 +263,13 @@ function IOSInstallSteps() {
       <li>
         <StepTitle>{t('Setup Performance Monitoring')}</StepTitle>
         {t(
-          `For Sentry to ingest profiles, we first require you to setup performance monitoring.`
+          `For Sentry to ingest profiles, we first require you to setup performance monitoring. To set up performance monitoring,`
         )}{' '}
         <ExternalLink
           openInNewTab
           href="https://docs.sentry.io/platforms/apple/guides/ios/performance/"
         >
-          {t('Lear more about performance monitoring.')}
+          {t('follow our step by step instructions here.')}
         </ExternalLink>
       </li>
       <li>
@@ -317,12 +315,12 @@ function AndroidSendDebugFilesInstruction({
   return (
     <ModalBody>
       <ModalHeader>
-        <h3>{t('Setup Profiling')}</h3>
+        <h3>{t('Set Up Profiling')}</h3>
       </ModalHeader>
       <p>
-        {t(`The most straightforward way to provide Sentry with debug information files is to
-        upload them using sentry-cli. Depending on your workflow, you may want to upload
-        as part of your build pipeline or when deploying and publishing your application.`)}{' '}
+        {t(
+          `If you want to see de-obfuscated stack traces, you'll need to use ProGuard with Sentry. To do so, upload the ProGuard mapping files by either the recommended method of using our Gradle integration or manually by using sentry-cli.`
+        )}{' '}
         <ExternalLink href="https://docs.sentry.io/product/cli/dif/">
           {t('Learn more about Debug Information Files.')}
         </ExternalLink>
@@ -380,7 +378,7 @@ function IOSSendDebugFilesInstruction({
   return (
     <ModalBody>
       <ModalHeader>
-        <h3>{t('Setup Profiling')}</h3>
+        <h3>{t('Set Up Profiling')}</h3>
       </ModalHeader>
       <p>
         {t(`The most straightforward way to provide Sentry with debug information files is to

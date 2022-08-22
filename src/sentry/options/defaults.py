@@ -494,11 +494,6 @@ register("project-abuse-quota.session-limit", type=Int, default=0, flags=FLAG_PR
 
 # END PROJECT ABUSE QUOTAS
 
-# Send transaction events to random Kafka partitions. Currently
-# this defaults to false as transaction events are partitioned the same
-# as errors (by project ID). Eventually we will flip the default.
-register("kafka.partition-transactions-randomly", default=False)
-
 # Send event messages for specific project IDs to random partitions in Kafka
 # contents are a list of project IDs to message types to be randomly assigned
 # e.g. [{"project_id": 2, "message_type": "error"}, {"project_id": 3, "message_type": "transaction"}]

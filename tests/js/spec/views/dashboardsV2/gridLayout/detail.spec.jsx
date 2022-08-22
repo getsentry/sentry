@@ -1127,6 +1127,70 @@ describe('Dashboards > Detail', function () {
       );
     });
 
+    it('can clear dashboard filters in compact select', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: TestStubs.Dashboard(widgets, {
+          id: '1',
+          title: 'Custom Errors',
+          filters: {release: ['sentry-android-shop@1.2.0']},
+        }),
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/',
+        body: [
+          TestStubs.Release({
+            shortVersion: 'sentry-android-shop@1.2.0',
+            version: 'sentry-android-shop@1.2.0',
+          }),
+        ],
+      });
+      const testData = initializeOrg({
+        organization: TestStubs.Organization({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-query',
+            'dashboard-grid-layout',
+            'dashboards-top-level-filter',
+          ],
+        }),
+        router: {
+          location: {
+            ...TestStubs.location(),
+            query: {
+              statsPeriod: '7d',
+            },
+          },
+        },
+      });
+      render(
+        <ViewEditDashboard
+          organization={testData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={testData.router}
+          location={testData.router.location}
+        />,
+        {context: testData.routerContext, organization: testData.organization}
+      );
+
+      await screen.findByText('7D');
+      userEvent.click(await screen.findByText('sentry-android-shop@1.2.0'));
+      userEvent.click(screen.getByText('Clear'));
+      screen.getByText('All Releases');
+      userEvent.click(document.body);
+
+      expect(browserHistory.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            release: '',
+          }),
+        })
+      );
+    });
+
     it('can save absolute time range in existing dashboard', async () => {
       const testData = initializeOrg({
         organization: TestStubs.Organization({
@@ -1483,6 +1547,66 @@ describe('Dashboards > Detail', function () {
           }),
         })
       );
+    });
+
+    it('persists release selections made during search requests that do not appear in default query', async function () {
+      // Default response
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/',
+        body: [
+          TestStubs.Release({
+            shortVersion: 'sentry-android-shop@1.2.0',
+            version: 'sentry-android-shop@1.2.0',
+          }),
+        ],
+      });
+      // Mocked search results
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/',
+        body: [
+          TestStubs.Release({
+            id: '9',
+            shortVersion: 'search-result',
+            version: 'search-result',
+          }),
+        ],
+        match: [MockApiClient.matchData({query: 's'})],
+      });
+      const testData = initializeOrg({
+        organization: TestStubs.Organization({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-basic',
+            'discover-query',
+            'dashboard-grid-layout',
+            'dashboards-top-level-filter',
+          ],
+        }),
+        router: {
+          location: TestStubs.location(),
+        },
+      });
+      render(
+        <ViewEditDashboard
+          organization={testData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={testData.router}
+          location={testData.router.location}
+        />,
+        {context: testData.routerContext, organization: testData.organization}
+      );
+
+      userEvent.click(await screen.findByText('All Releases'));
+      userEvent.type(screen.getByText('Search\u2026'), 's');
+      await act(async () => {
+        userEvent.click(await screen.findByText('search-result'));
+      });
+
+      // Validate that after search is cleared, search result still appears
+      await screen.findByText('Latest Release(s)');
+      screen.getByTestId('search-result');
     });
   });
 });

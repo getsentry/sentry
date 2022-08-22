@@ -2,7 +2,8 @@ from datetime import timedelta
 from functools import cmp_to_key
 from typing import Any, Dict
 
-from django.utils import timezone
+from dateutil.parser import parse as parse_date
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_relay.processing import compare_version as compare_version_relay
@@ -10,7 +11,7 @@ from sentry_relay.processing import compare_version as compare_version_relay
 from sentry import features
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.snuba import discover
-from sentry.utils.dates import parse_stats_period
+from sentry.utils.dates import ensure_aware
 
 SDK_NAME_FILTER_THRESHOLD = 0.1
 SDK_VERSION_FILTER_THRESHOLD = 0.05
@@ -37,8 +38,35 @@ ALLOWED_SDK_NAMES = frozenset(
 )
 
 
+class QueryBoundsException(Exception):
+    pass
+
+
 class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
     private = True
+
+    @staticmethod
+    def __validate_query_bounds(query_start, query_end):
+        if not query_start or not query_end:
+            raise QueryBoundsException("'start' and 'end' are required")
+
+        query_start = ensure_aware(parse_date(query_start))
+        query_end = ensure_aware(parse_date(query_end))
+
+        if query_start > query_end:
+            raise QueryBoundsException("'start' has to be before 'end'")
+
+        if query_end - query_start > timedelta(days=1):
+            raise QueryBoundsException("'start' and 'end' have to be a maximum of 1 day apart")
+
+        stats_period = query_end - query_start
+        # Quantize time boundary down so that during a 5-minute interval, the query time boundaries
+        # remain the same to leverage the snuba cache
+        query_end = query_end.replace(
+            minute=(query_end.minute - query_end.minute % 5), second=0, microsecond=0
+        )
+        query_start = query_end - stats_period
+        return query_start, query_end
 
     def get(self, request: Request, organization) -> Response:
         """
@@ -49,8 +77,8 @@ class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
 
         :pparam string organization_slug: the slug of the organization.
         :qparam array[string] project: A required list of project ids to filter
-        :qparam string statsPeriod: an optional stat period (can be one of
-                                    ``"24h"``, ``"14d"``, and ``""``).
+        :qparam string start: specify a date to begin at. Format must be iso format
+        :qparam string end:  specify a date to end at. Format must be iso format
         :auth: required
         """
         if not features.has("organizations:server-side-sampling", organization, actor=request.user):
@@ -75,17 +103,12 @@ class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
             )
         ]
 
-        stats_period = min(
-            parse_stats_period(request.GET.get("statsPeriod", "24h")), timedelta(days=2)
-        )
-
-        end_time = timezone.now()
-        # Quantize time boundary down so that during a 5-minute interval, the query time boundaries
-        # remain the same to leverage the snuba cache
-        end_time = end_time.replace(
-            minute=(end_time.minute - end_time.minute % 5), second=0, microsecond=0
-        )
-        start_time = end_time - stats_period
+        try:
+            query_start, query_end = self.__validate_query_bounds(
+                request.GET.get("start"), request.GET.get("end")
+            )
+        except QueryBoundsException as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         sample_rate_count_if = 'count_if(trace.client_sample_rate, notEquals, "")'
         avg_sample_rate_equation = f"{sample_rate_count_if} / count()"
@@ -103,8 +126,8 @@ class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
             ],
             query="event.type:transaction",
             params={
-                "start": start_time,
-                "end": end_time,
+                "start": query_start,
+                "end": query_end,
                 "project_id": project_ids,
                 "organization_id": organization,
             },

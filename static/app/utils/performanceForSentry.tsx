@@ -141,13 +141,9 @@ export class LongTaskObserver {
         return null;
       }
 
-      const timeOrigin = browserPerformanceTimeOrigin / 1000;
-
-      const observer = new PerformanceObserver(function (list) {
+      const observer = new PerformanceObserver(function () {
         try {
           const transaction = getPerformanceTransaction();
-          const perfEntries = list.getEntries();
-
           if (!transaction) {
             return;
           }
@@ -161,18 +157,6 @@ export class LongTaskObserver {
             LongTaskObserver.longTaskDuration = 0;
             LongTaskObserver.lastTransaction = transaction;
           }
-
-          perfEntries.forEach(entry => {
-            const startSeconds = timeOrigin + entry.startTime / 1000;
-            LongTaskObserver.longTaskCount++;
-            LongTaskObserver.longTaskDuration += entry.duration;
-            transaction.startChild({
-              description: `Long Task`,
-              op: `ui.sentry.long-task`,
-              startTimestamp: startSeconds,
-              endTimestamp: startSeconds + entry.duration / 1000,
-            });
-          });
           LongTaskObserver.setLongTaskData(transaction);
         } catch (_) {
           // Defensive catch.
@@ -206,6 +190,13 @@ export const CustomerProfiler = ({id, children}: {children: ReactNode; id: strin
   );
 };
 
+/**
+ * This component wraps the main component on a page with a measurement checking for visual completedness.
+ * It uses the data check to make sure endpoints have resolved and the component is meaningfully rendering
+ * which sets it apart from simply checking LCP, which makes it a good back up check the LCP heuristic performance.
+ *
+ * Since this component is guaranteed to be part of the -real- critical path, it also wraps the component with the custom profiler.
+ */
 export const VisuallyCompleteWithData = ({
   id,
   hasData,
