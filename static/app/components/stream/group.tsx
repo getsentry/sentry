@@ -75,9 +75,9 @@ type Props = {
 } & Partial<typeof defaultProps>;
 
 type State = {
-  actionTaken: boolean;
   data: Group;
-  reviewed: boolean;
+  /** The initial inbox reason for the group, should not be updated */
+  originalInbox: Group['inbox'];
 };
 
 class StreamGroup extends Component<Props, State> {
@@ -95,8 +95,7 @@ class StreamGroup extends Component<Props, State> {
         ...data,
         filtered: useFilteredStats ? data.filtered : null,
       },
-      reviewed: false,
-      actionTaken: false,
+      originalInbox: data.inbox,
     };
   }
 
@@ -132,23 +131,25 @@ class StreamGroup extends Component<Props, State> {
 
   listener = GroupStore.listen(itemIds => this.onGroupChange(itemIds), undefined);
 
+  get reviewed(): boolean {
+    return (
+      // Original state had an inbox reason
+      (this.state.originalInbox as InboxDetails)?.reason !== undefined &&
+      // Updated state has been removed from inbox
+      !this.state.data.inbox &&
+      // Only apply reviewed on the "for review" tab
+      isForReviewQuery(this.props.query)
+    );
+  }
+
   onGroupChange(itemIds: Set<string>) {
-    const {id, query} = this.props;
+    const {id} = this.props;
     if (!itemIds.has(id)) {
       return;
     }
 
-    const actionTaken = this.state.data.status !== 'unresolved';
     const data = GroupStore.get(id) as Group;
-    this.setState(state => {
-      // When searching is:for_review and the inbox reason is removed
-      const reviewed =
-        state.reviewed ||
-        (isForReviewQuery(query) &&
-          (state.data.inbox as InboxDetails)?.reason !== undefined &&
-          data.inbox === false);
-      return {data, reviewed, actionTaken};
-    });
+    this.setState({data});
   }
 
   /** Shared between two events */
@@ -319,7 +320,7 @@ class StreamGroup extends Component<Props, State> {
   }
 
   render() {
-    const {data, reviewed, actionTaken} = this.state;
+    const {data} = this.state;
     const {
       index,
       query,
@@ -361,11 +362,9 @@ class StreamGroup extends Component<Props, State> {
     return (
       <Wrapper
         data-test-id="group"
-        data-test-reviewed={reviewed}
+        data-test-reviewed={this.reviewed}
         onClick={displayReprocessingLayout ? undefined : this.toggleSelect}
-        reviewed={reviewed}
-        unresolved={data.status === 'unresolved'}
-        actionTaken={actionTaken}
+        reviewed={this.reviewed}
         useTintRow={useTintRow ?? true}
       >
         {canSelect && (
@@ -554,9 +553,7 @@ export default withPageFilters(withOrganization(StreamGroup));
 
 // Position for wrapper is relative for overlay actions
 const Wrapper = styled(PanelItem)<{
-  actionTaken: boolean;
   reviewed: boolean;
-  unresolved: boolean;
   useTintRow: boolean;
 }>`
   position: relative;
@@ -565,8 +562,7 @@ const Wrapper = styled(PanelItem)<{
 
   ${p =>
     p.useTintRow &&
-    (p.reviewed || !p.unresolved) &&
-    !p.actionTaken &&
+    p.reviewed &&
     css`
       animation: tintRow 0.2s linear forwards;
       position: relative;
