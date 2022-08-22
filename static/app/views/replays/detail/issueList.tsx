@@ -158,6 +158,7 @@ function IssueList(props: Props) {
       location={location}
       orgSlug={organization.slug}
       limit={15}
+      useEvents
     >
       {data => {
         return (
