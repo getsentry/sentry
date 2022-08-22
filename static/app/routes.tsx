@@ -1240,10 +1240,6 @@ function buildRoutes() {
         component={make(() => import('sentry/views/breadcrumbs/sessionView'))}
       />
     </Route>
-    // <Route
-    //   path="/organizations/:orgId/breadcrumbs/"
-    //   component={make(() => import('sentry/views/breadcrumbs'))}
-    // />
   );
 
   const issueListRoutes = (

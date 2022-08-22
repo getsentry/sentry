@@ -30,6 +30,7 @@ function Breadcrumbs({}: Props) {
   const api = useApi();
   const location = useLocation();
   const [sessions, setSessions] = useState<Array<Session>>([]);
+  const [isLoading, setLoading] = useState(false);
 
   const eventView = useMemo(() => {
     const query = decodeScalar(location.query.query, '');
@@ -60,6 +61,7 @@ function Breadcrumbs({}: Props) {
       });
 
       setSessions(res.data.filter(session => session.session_id !== ''));
+      setLoading(false);
     }
     fetchEvents();
   }, [api, org, location, eventView]);
@@ -75,7 +77,11 @@ function Breadcrumbs({}: Props) {
           <EnvironmentPageFilter />
           <DatePageFilter alignDropdown="right" />
         </PageFilterBar>
-        <PanelTable isEmpty={sessions.length === 0} headers={[t('Session')]}>
+        <PanelTable
+          isLoading={isLoading}
+          isEmpty={sessions.length === 0}
+          headers={[t('Session')]}
+        >
           {sessions.map(session => (
             <Item key={session.session_id}>
               <Link to={`/organizations/${org.slug}/breadcrumbs/${session.session_id}`}>
