@@ -38,23 +38,11 @@ export function initializeVoiceAssistant() {
   console.log('Initializing Voice Assistant...');
 }
 
-const diagnosticPara = document.querySelector('.output');
-
-const btnStart = document.querySelector('button#btn-start') as HTMLButtonElement;
-const btnStop = document.querySelector('button#btn-stop') as HTMLButtonElement;
-
+// const SpeechRecognitionEngine: SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition: SpeechRecognition;
 
-function startTestSpeech() {
-  if (!diagnosticPara) {
-    return;
-  }
-
-  btnStart.disabled = true;
-  btnStart.textContent = 'Test in progress';
-
-  diagnosticPara.textContent = '...diagnostic messages';
-
+export function startVoiceRecognition() {
+  // recognition = new SpeechRecognitionEngine();
   recognition = new SpeechRecognition();
 
   if (!recognition) {
@@ -81,21 +69,17 @@ function startTestSpeech() {
     // The second [0] returns the SpeechRecognitionAlternative at position 0.
     // We then return the transcript property of the SpeechRecognitionAlternative object
     const speechResult = event.results[0][0].transcript.toLowerCase();
-    diagnosticPara.textContent = 'Speech received: ' + speechResult + '.';
+    console.log(speechResult);
 
     console.log(serializeSpeechRecognitionResultList(event.results));
   };
 
   recognition.onspeechend = function () {
     recognition.stop();
-    btnStart.disabled = false;
-    btnStart.textContent = 'Start new test';
   };
 
   recognition.onerror = function (event) {
-    btnStart.disabled = false;
-    btnStart.textContent = 'Start new test';
-    diagnosticPara.textContent = 'Error occurred in recognition: ' + event.error;
+    console.log('Error occurred in recognition: ' + event.error);
   };
 
   recognition.onaudiostart = function (_) {
@@ -138,19 +122,10 @@ function startTestSpeech() {
   };
 }
 
-function stopTestSpeech() {
+export function stopVoiceRecognition() {
   if (recognition) {
     recognition.stop();
   }
-  btnStart.disabled = false;
-  btnStart.textContent = 'Start new test';
-}
-
-if (btnStart) {
-  btnStart.addEventListener('click', startTestSpeech);
-}
-if (btnStop) {
-  btnStop.addEventListener('click', stopTestSpeech);
 }
 
 // Helpers
