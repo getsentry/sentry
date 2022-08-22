@@ -4,7 +4,7 @@ import {browserHistory} from 'react-router';
 import ApiForm from 'sentry/components/forms/apiForm';
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 import FormField from 'sentry/components/forms/formField';
-import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {API_ACCESS_SCOPES, DEFAULT_API_ACCESS_SCOPES} from 'sentry/constants';
@@ -40,7 +40,7 @@ export default class ApiNewToken extends Component {
             {tct(
               'For more information on how to use the web API, see our [link:documentation].',
               {
-                link: <ExternalLink href="https://docs.sentry.io/api/" />,
+                link: <Link to="/api-docs/" />,
               }
             )}
           </TextBlock>

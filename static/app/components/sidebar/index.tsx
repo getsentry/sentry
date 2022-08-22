@@ -306,8 +306,8 @@ function Sidebar({location, organization}: Props) {
       {...sidebarItemProps}
       icon={<IconDocs size="md" />}
       label={t('Api Docs')}
-      to="/docs/"
-      id="docs"
+      to="/api-docs/"
+      id="api-docs"
     />
   );
 

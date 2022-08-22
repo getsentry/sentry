@@ -1879,7 +1879,7 @@ function buildRoutes() {
   const appRoutes = (
     <Route>
       {experimentalSpaRoutes}
-      <Route path="/docs" component={SwaggerUIDocs} />
+      <Route path="/api-docs" component={SwaggerUIDocs} />
       <Route path="/" component={errorHandler(App)}>
         {rootRoutes}
         {organizationRoutes}
