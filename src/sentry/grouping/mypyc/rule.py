@@ -1,4 +1,4 @@
-from typing import List, Sequence, Tuple
+from typing import List, Sequence, Tuple, Union
 
 from sentry.grouping.mypyc.matchers import (
     ExceptionData,
@@ -10,7 +10,7 @@ from sentry.grouping.mypyc.matchers import (
 
 from .actions import Action, ActionConfigStructure
 
-RuleConfigStructure = Tuple[List[str], List[ActionConfigStructure]]
+RuleConfigStructure = List[Union[List[str], List[ActionConfigStructure]]]
 
 
 class Rule:
@@ -84,15 +84,15 @@ class Rule:
         return rv
 
     def _to_config_structure(self, version: int) -> RuleConfigStructure:
-        return (
+        return [
             [x._to_config_structure(version) for x in self.matchers],
             [x._to_config_structure(version) for x in self.actions],
-        )
+        ]
 
     @classmethod
     def _from_config_structure(cls, tuple: RuleConfigStructure, version: int) -> "Rule":
         matchers, actions = tuple
         return Rule(
-            [Match._from_config_structure(x, version) for x in matchers],
-            [Action._from_config_structure(x, version) for x in actions],
+            [Match._from_config_structure(x, version) for x in matchers],  # type: ignore  # TODO
+            [Action._from_config_structure(x, version) for x in actions],  # type: ignore  # TODO
         )

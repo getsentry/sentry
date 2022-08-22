@@ -1,13 +1,28 @@
-from typing import Any, List, Literal, Mapping, Optional, Sequence, Tuple, TypeVar, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    ClassVar,
+    List,
+    Literal,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
-from sentry.grouping.enhancer import StacktraceState
+from sentry.grouping.mypyc.stacktrace import StacktraceState
 from sentry.grouping.utils import get_rule_bool
 from sentry.stacktraces.functions import set_in_app
 from sentry.utils.safe import get_path, set_path
 
 from .exceptions import InvalidEnhancerConfig
 from .matchers import FrameData, MatchFrame
-from .rule import Rule
+
+if TYPE_CHECKING:
+    from .rule import Rule
+
 
 ACTIONS = ["group", "app", "prefix", "sentinel"]
 ACTION_BITSIZE = {
@@ -44,7 +59,7 @@ class Action:
         frames: Sequence[FrameData],
         match_frames: Sequence[MatchFrame],
         idx: int,
-        rule: Optional[Rule] = None,
+        rule: Optional["Rule"] = None,
     ) -> None:
         pass
 
@@ -53,11 +68,11 @@ class Action:
         components: Sequence[Component],
         frames: Sequence[FrameData],
         idx: int,
-        rule: Optional[Rule] = None,
+        rule: Optional["Rule"] = None,
     ) -> None:
         pass
 
-    def modify_stacktrace_state(self, state: StacktraceState, rule: Rule) -> None:
+    def modify_stacktrace_state(self, state: StacktraceState, rule: "Rule") -> None:
         pass
 
     @property
@@ -75,7 +90,6 @@ class Action:
         if isinstance(val, list):
             return VarAction(val[0], val[1])
         flag, range = REVERSE_ACTION_FLAGS[val >> ACTION_BITSIZE[version]]
-        assert range in ("up", "down")
         return FlagAction(ACTIONS[val & 0xF], flag, range)
 
     def _to_config_structure(self, version: int) -> ActionConfigStructure:
@@ -127,7 +141,7 @@ class FlagAction(Action):
         frames: Sequence[FrameData],
         match_frames: Sequence[MatchFrame],
         idx: int,
-        rule: Optional[Rule] = None,
+        rule: Optional["Rule"] = None,
     ) -> None:
         # Grouping is not stored on the frame
         if self.key == "group":
@@ -142,7 +156,7 @@ class FlagAction(Action):
         components: Sequence[Component],
         frames: Sequence[FrameData],
         idx: int,
-        rule: Optional[Rule] = None,
+        rule: Optional["Rule"] = None,
     ) -> None:
         rule_hint = "stack trace rule"
         if rule:
@@ -184,14 +198,14 @@ def identity(x: T) -> T:
 class VarAction(Action):
     range = None
 
-    _VALUE_PARSERS = {
+    _VALUE_PARSERS: ClassVar = {
         "max-frames": int,
         "min-frames": int,
         "invert-stacktrace": get_rule_bool,
         "category": identity,
     }
 
-    _FRAME_VARIABLES = {"category"}
+    _FRAME_VARIABLES: ClassVar = {"category"}
 
     def __init__(self, var: str, value: str):
         super().__init__()
@@ -200,7 +214,7 @@ class VarAction(Action):
         self._is_updater = self.var not in VarAction._FRAME_VARIABLES
 
         try:
-            self.value = VarAction._VALUE_PARSERS[var](value)
+            self.value = VarAction._VALUE_PARSERS[var](value)  # type: ignore
         except (ValueError, TypeError):
             raise InvalidEnhancerConfig(f"Invalid value '{value}' for '{var}'")
         except KeyError:
@@ -216,7 +230,7 @@ class VarAction(Action):
     def _to_config_structure(self, version: int) -> List[str]:
         return [self.var, self.value]
 
-    def modify_stacktrace_state(self, state: StacktraceState, rule: Rule) -> None:
+    def modify_stacktrace_state(self, state: StacktraceState, rule: "Rule") -> None:
         if self.var not in VarAction._FRAME_VARIABLES:
             state.set(self.var, self.value, rule)
 
@@ -225,7 +239,7 @@ class VarAction(Action):
         frames: Sequence[FrameData],
         match_frames: Sequence[MatchFrame],
         idx: int,
-        rule: Optional[Rule] = None,
+        rule: Optional["Rule"] = None,
     ) -> None:
         if self.var == "category":
             frame = frames[idx]
