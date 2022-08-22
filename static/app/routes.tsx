@@ -1120,6 +1120,10 @@ function buildRoutes() {
     </Route>
   );
 
+  const apiDocsRoutes = (
+    <Route path="docs/" component={make(() => import('sentry/views/swagger-ui'))} />
+  );
+
   // TODO(mark) Long term this /queries route should go away and /discover
   // should be the canonical route for discover2. We have a redirect right now
   // as /discover was for discover 1 and most of the application is linking to
@@ -1733,6 +1737,7 @@ function buildRoutes() {
       {activityRoutes}
       {statsRoutes}
       {discoverRoutes}
+      {apiDocsRoutes}
       {performanceRoutes}
       {profilingRoutes}
       {adminManageRoutes}

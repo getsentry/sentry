@@ -292,6 +292,10 @@ const appConfig: Configuration = {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg|mp4)($|\?)/,
         type: 'asset',
       },
+      {
+        test: /\.yml/,
+        type: 'asset',
+      },
     ],
     noParse: [
       // don't parse known, pre-built javascript files (improves webpack perf)
@@ -393,6 +397,7 @@ const appConfig: Configuration = {
       'sentry-images': path.join(staticPrefix, 'images'),
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),
+      'sentry-swagger-ui': path.join(__dirname, 'swagger-ui'),
 
       // Aliasing this for getsentry's build, otherwise `less/select2` will not be able
       // to be resolved

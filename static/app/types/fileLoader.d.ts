@@ -4,6 +4,10 @@
 declare module '*.png';
 declare module '*.jpg';
 declare module '*.mp4';
+declare module '*.yml' {
+  const data: any;
+  export default data;
+}
 declare module '*.svg' {
   const content: any;
   export default content;

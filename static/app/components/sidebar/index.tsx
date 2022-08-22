@@ -11,6 +11,7 @@ import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboardin
 import {
   IconChevron,
   IconDashboard,
+  IconDocs,
   IconIssues,
   IconLab,
   IconLightning,
@@ -300,6 +301,16 @@ function Sidebar({location, organization}: Props) {
     />
   );
 
+  const apiDocs = hasOrganization && (
+    <SidebarItem
+      {...sidebarItemProps}
+      icon={<IconDocs size="md" />}
+      label={t('Api Docs')}
+      to="/docs/"
+      id="docs"
+    />
+  );
+
   return (
     <SidebarWrapper collapsed={collapsed}>
       <SidebarSectionGroupPrimary>
@@ -336,6 +347,7 @@ function Sidebar({location, organization}: Props) {
               <SidebarSection>
                 {activity}
                 {stats}
+                {apiDocs}
               </SidebarSection>
 
               <SidebarSection>{settings}</SidebarSection>
