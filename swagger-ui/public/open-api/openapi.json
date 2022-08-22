@@ -16,6 +16,9 @@
   "servers": [
     {
       "url": "https://sentry.io/"
+    },
+    {
+      "url": "http://localhost:3000/"
     }
   ],
   "tags": [
