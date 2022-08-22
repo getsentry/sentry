@@ -1,5 +1,4 @@
-from dataclasses import dataclass
-from typing import Any, Mapping, MutableMapping, Optional, Sequence, Type, cast
+from typing import Any, ClassVar, Mapping, MutableMapping, Optional, Sequence, Tuple, Type, cast
 
 from sentry.grouping.utils import get_rule_bool
 from sentry.stacktraces.functions import get_function_name_for_frame
@@ -131,22 +130,18 @@ class Match:
         return FrameMatch.from_key(key, arg, negated)
 
 
-@dataclass
-class InstanceKey:
-    key: str
-    pattern: str
-    negated: bool
+InstanceKey = Tuple[str, str, bool]
 
 
 class FrameMatch(Match):
 
     # Global registry of matchers
-    instances: MutableMapping[InstanceKey, "FrameMatch"] = {}
+    instances: ClassVar[MutableMapping[InstanceKey, "FrameMatch"]] = {}
 
     @classmethod
     def from_key(cls, key: str, pattern: str, negated: bool) -> "FrameMatch":
 
-        instance_key = InstanceKey(key, pattern, negated)
+        instance_key = (key, pattern, negated)
         if instance_key in cls.instances:
             instance = cls.instances[instance_key]
         else:
@@ -314,7 +309,7 @@ class FunctionMatch(FrameMatch):
 
 class FrameFieldMatch(FrameMatch):
 
-    field: str
+    field: ClassVar[str]
 
     def _positive_frame_match(
         self,
@@ -342,7 +337,7 @@ class CategoryMatch(FrameFieldMatch):
 
 class ExceptionFieldMatch(FrameMatch):
 
-    field_path: Sequence[str]
+    field_path: ClassVar[Sequence[str]]
 
     def _positive_frame_match(
         self,
