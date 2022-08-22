@@ -1,3 +1,6 @@
+/* eslint-disable-next-line import/no-unresolved */
+import Pokedex from 'remote/pokedex';
+
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import {t} from 'sentry/locale';
@@ -22,7 +25,7 @@ function PokemonContainer({organization}: Props) {
         </PageContent>
       )}
     >
-      Foo bar
+      <Pokedex path={`/organizations/${organization.slug}/pokedex`} />
     </Feature>
   );
 }

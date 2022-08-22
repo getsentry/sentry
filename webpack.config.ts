@@ -391,11 +391,14 @@ const appConfig: Configuration = {
      */
     new ModuleFederationPlugin({
       name: 'host',
-      filename: 'remoteEntry.js',
+      filename: 'remotePokemon.js',
       remotes: {
-        remote: 'remote@http://localhost:3000/remoteEntry.js',
+        remote: 'remote@http://localhost:3000/remotePokedex.js',
+        counter: 'counter@http://localhost:3001/remoteEntry.js',
       },
-      exposes: {},
+      exposes: {
+        // component library
+      },
       shared: {
         react: {
           singleton: true,
