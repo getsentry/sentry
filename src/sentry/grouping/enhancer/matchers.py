@@ -1,4 +1,5 @@
-from typing import Optional
+from dataclasses import dataclass
+from typing import Any, Mapping, MutableMapping, Optional, Sequence, Type, cast
 
 from sentry.grouping.utils import get_rule_bool
 from sentry.stacktraces.functions import get_function_name_for_frame
@@ -50,14 +51,18 @@ MATCHERS = {
 }
 
 
-def _get_function_name(frame_data: dict, platform: Optional[str]):
+FrameData = Mapping[str, Any]
+MatchFrame = Mapping[str, Any]  # TODO
+
+
+def _get_function_name(frame_data: FrameData, platform: Optional[str]) -> str:
 
     function_name = get_function_name_for_frame(frame_data, platform)
 
     return function_name or "<unknown>"
 
 
-def create_match_frame(frame_data: dict, platform: Optional[str]) -> dict:
+def create_match_frame(frame_data: FrameData, platform: Optional[str]) -> MatchFrame:
     """Create flat dict of values relevant to matchers"""
     match_frame = dict(
         category=get_path(frame_data, "data", "category"),
@@ -81,17 +86,31 @@ def create_match_frame(frame_data: dict, platform: Optional[str]) -> dict:
     return match_frame
 
 
-class Match:
-    description = None
+Frame = Any  # TODO
+ExceptionData = Any  # TODO
+MatchingCache = MutableMapping[str, Any]  # TODO
 
-    def matches_frame(self, frames, idx, platform, exception_data, cache):
+
+class Match:
+    @property
+    def description(self) -> str:
         raise NotImplementedError()
 
-    def _to_config_structure(self, version):
+    def matches_frame(
+        self,
+        frames: Sequence[Frame],
+        idx: int,
+        platform: str,
+        exception_data: ExceptionData,
+        cache: MatchingCache,
+    ) -> bool:
+        raise NotImplementedError()
+
+    def _to_config_structure(self, version: int) -> str:
         raise NotImplementedError()
 
     @staticmethod
-    def _from_config_structure(obj, version):
+    def _from_config_structure(obj: str, version: int) -> "Match":
         val = obj
         if val.startswith("|[") and val.endswith("]"):
             return CalleeMatch(Match._from_config_structure(val[2:-1], version))
@@ -112,15 +131,22 @@ class Match:
         return FrameMatch.from_key(key, arg, negated)
 
 
+@dataclass
+class InstanceKey:
+    key: str
+    pattern: str
+    negated: bool
+
+
 class FrameMatch(Match):
 
     # Global registry of matchers
-    instances = {}
+    instances: MutableMapping[InstanceKey, "FrameMatch"] = {}
 
     @classmethod
-    def from_key(cls, key, pattern, negated):
+    def from_key(cls, key: str, pattern: str, negated: bool) -> "FrameMatch":
 
-        instance_key = (key, pattern, negated)
+        instance_key = InstanceKey(key, pattern, negated)
         if instance_key in cls.instances:
             instance = cls.instances[instance_key]
         else:
@@ -129,9 +155,9 @@ class FrameMatch(Match):
         return instance
 
     @classmethod
-    def _from_key(cls, key, pattern, negated):
+    def _from_key(cls, key: str, pattern: str, negated: bool) -> "FrameMatch":
 
-        subclass = {
+        subclass: Type["FrameMatch"] = {
             "package": PackageMatch,
             "path": PathMatch,
             "family": FamilyMatch,
@@ -146,7 +172,7 @@ class FrameMatch(Match):
 
         return subclass(key, pattern, negated)
 
-    def __init__(self, key, pattern, negated=False):
+    def __init__(self, key: str, pattern: str, negated: bool = False):
         super().__init__()
         try:
             self.key = MATCHERS[key]
@@ -157,34 +183,47 @@ class FrameMatch(Match):
         self.negated = negated
 
     @property
-    def description(self):
+    def description(self) -> str:
         return "{}:{}".format(
             self.key,
             self.pattern.split() != [self.pattern] and '"%s"' % self.pattern or self.pattern,
         )
 
-    def matches_frame(self, frames, idx, platform, exception_data, cache):
+    def matches_frame(
+        self,
+        frames: Sequence[Frame],
+        idx: int,
+        platform: str,
+        exception_data: ExceptionData,
+        cache: MatchingCache,
+    ) -> bool:
         match_frame = frames[idx]
         rv = self._positive_frame_match(match_frame, platform, exception_data, cache)
         if self.negated:
             rv = not rv
         return rv
 
-    def _positive_frame_match(self, match_frame, platform, exception_data, cache):
+    def _positive_frame_match(
+        self,
+        match_frame: MatchFrame,
+        platform: str,
+        exception_data: ExceptionData,
+        cache: MatchingCache,
+    ) -> bool:
         # Implement is subclasses
         raise NotImplementedError
 
-    def _to_config_structure(self, version):
+    def _to_config_structure(self, version: int) -> str:
         if self.key == "family":
             arg = "".join(_f for _f in [FAMILIES.get(x) for x in self.pattern.split(",")] if _f)
         elif self.key == "app":
-            arg = {True: "1", False: "0"}.get(get_rule_bool(self.pattern), "")
+            arg = {True: "1", False: "0"}.get(get_rule_bool(self.pattern) or False, "")
         else:
             arg = self.pattern
         return ("!" if self.negated else "") + MATCH_KEYS[self.key] + arg
 
 
-def path_like_match(pattern, value):
+def path_like_match(pattern: str, value: bytes) -> bool:
     """Stand-alone function for use with ``cached``"""
     if glob_match(value, pattern, ignorecase=False, doublestar=True, path_normalize=True):
         return True
@@ -197,15 +236,24 @@ def path_like_match(pattern, value):
 
 
 class PathLikeMatch(FrameMatch):
-    def __init__(self, key, pattern, negated=False):
+
+    field: str
+
+    def __init__(self, key: str, pattern: str, negated: bool = False):
         super().__init__(key, pattern.lower(), negated)
 
-    def _positive_frame_match(self, match_frame, platform, exception_data, cache):
+    def _positive_frame_match(
+        self,
+        match_frame: MatchFrame,
+        platform: str,
+        exception_data: ExceptionData,
+        cache: MatchingCache,
+    ) -> bool:
         value = match_frame[self.field]
         if value is None:
             return False
 
-        return cached(cache, path_like_match, self._encoded_pattern, value)
+        return cast(bool, cached(cache, path_like_match, self._encoded_pattern, value))
 
 
 class PackageMatch(PathLikeMatch):
@@ -219,11 +267,17 @@ class PathMatch(PathLikeMatch):
 
 
 class FamilyMatch(FrameMatch):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self._flags = set(self._encoded_pattern.split(b","))
 
-    def _positive_frame_match(self, match_frame, platform, exception_data, cache):
+    def _positive_frame_match(
+        self,
+        match_frame: MatchFrame,
+        platform: str,
+        exception_data: ExceptionData,
+        cache: MatchingCache,
+    ) -> bool:
         if b"all" in self._flags:
             return True
 
@@ -231,28 +285,49 @@ class FamilyMatch(FrameMatch):
 
 
 class InAppMatch(FrameMatch):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self._ref_val = get_rule_bool(self.pattern)
 
-    def _positive_frame_match(self, match_frame, platform, exception_data, cache):
+    def _positive_frame_match(
+        self,
+        match_frame: MatchFrame,
+        platform: str,
+        exception_data: ExceptionData,
+        cache: MatchingCache,
+    ) -> bool:
         ref_val = self._ref_val
         return ref_val is not None and ref_val == match_frame["in_app"]
 
 
 class FunctionMatch(FrameMatch):
-    def _positive_frame_match(self, match_frame, platform, exception_data, cache):
+    def _positive_frame_match(
+        self,
+        match_frame: MatchFrame,
+        platform: str,
+        exception_data: ExceptionData,
+        cache: MatchingCache,
+    ) -> bool:
 
-        return cached(cache, glob_match, match_frame["function"], self._encoded_pattern)
+        return cast(bool, cached(cache, glob_match, match_frame["function"], self._encoded_pattern))
 
 
 class FrameFieldMatch(FrameMatch):
-    def _positive_frame_match(self, match_frame, platform, exception_data, cache):
+
+    field: str
+
+    def _positive_frame_match(
+        self,
+        match_frame: MatchFrame,
+        platform: str,
+        exception_data: ExceptionData,
+        cache: MatchingCache,
+    ) -> bool:
         field = match_frame[self.field]
         if field is None:
             return False
 
-        return cached(cache, glob_match, field, self._encoded_pattern)
+        return cast(bool, cached(cache, glob_match, field, self._encoded_pattern))
 
 
 class ModuleMatch(FrameFieldMatch):
@@ -266,9 +341,18 @@ class CategoryMatch(FrameFieldMatch):
 
 
 class ExceptionFieldMatch(FrameMatch):
-    def _positive_frame_match(self, frame_data, platform, exception_data, cache):
+
+    field_path: Sequence[str]
+
+    def _positive_frame_match(
+        self,
+        match_frame: MatchFrame,
+        platform: str,
+        exception_data: ExceptionData,
+        cache: MatchingCache,
+    ) -> bool:
         field = get_path(exception_data, *self.field_path) or "<unknown>"
-        return cached(cache, glob_match, field, self._encoded_pattern)
+        return cast(bool, cached(cache, glob_match, field, self._encoded_pattern))
 
 
 class ExceptionTypeMatch(ExceptionFieldMatch):
@@ -287,34 +371,48 @@ class ExceptionMechanismMatch(ExceptionFieldMatch):
 
 
 class CallerMatch(Match):
-    def __init__(self, caller: FrameMatch):
+    def __init__(self, caller: Match):
         self.caller = caller
 
     @property
-    def description(self):
+    def description(self) -> str:
         return f"[ {self.caller.description} ] |"
 
-    def _to_config_structure(self, version):
+    def _to_config_structure(self, version: int) -> str:
         return f"[{self.caller._to_config_structure(version)}]|"
 
-    def matches_frame(self, frames, idx, platform, exception_data, cache):
+    def matches_frame(
+        self,
+        frames: Sequence[Frame],
+        idx: int,
+        platform: str,
+        exception_data: ExceptionData,
+        cache: MatchingCache,
+    ) -> bool:
         return idx > 0 and self.caller.matches_frame(
             frames, idx - 1, platform, exception_data, cache
         )
 
 
 class CalleeMatch(Match):
-    def __init__(self, caller: FrameMatch):
+    def __init__(self, caller: Match):
         self.caller = caller
 
     @property
-    def description(self):
+    def description(self) -> str:
         return f"| [ {self.caller.description} ]"
 
-    def _to_config_structure(self, version):
+    def _to_config_structure(self, version: int) -> str:
         return f"|[{self.caller._to_config_structure(version)}]"
 
-    def matches_frame(self, frames, idx, platform, exception_data, cache):
+    def matches_frame(
+        self,
+        frames: Sequence[Frame],
+        idx: int,
+        platform: str,
+        exception_data: ExceptionData,
+        cache: MatchingCache,
+    ) -> bool:
         return idx < len(frames) - 1 and self.caller.matches_frame(
             frames, idx + 1, platform, exception_data, cache
         )
