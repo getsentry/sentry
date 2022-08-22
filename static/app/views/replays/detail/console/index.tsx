@@ -19,6 +19,7 @@ import {getPrevBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
 import {useCurrentItemScroller} from 'sentry/utils/replays/hooks/useCurrentItemScroller';
 import ConsoleMessage from 'sentry/views/replays/detail/console/consoleMessage';
 import {filterBreadcrumbs} from 'sentry/views/replays/detail/console/utils';
+import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 interface Props {
   breadcrumbs: Extract<Crumb, BreadcrumbTypeDefault>[];
@@ -58,7 +59,7 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
   });
 
   return (
-    <ConsoleContainer ref={containerRef}>
+    <ConsoleContainer>
       <ConsoleFilters>
         <CompactSelect
           triggerProps={{
@@ -75,36 +76,43 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
         />
         <SearchBar onChange={handleSearch} placeholder={t('Search console logs...')} />
       </ConsoleFilters>
-
-      {filteredBreadcrumbs.length > 0 ? (
-        <ConsoleTable>
-          {filteredBreadcrumbs.map((breadcrumb, i) => {
-            return (
-              <ConsoleMessage
-                isActive={closestUserAction?.id === breadcrumb.id}
-                isCurrent={currentUserAction?.id === breadcrumb.id}
-                startTimestampMs={startTimestampMs}
-                key={breadcrumb.id}
-                isLast={i === breadcrumbs.length - 1}
-                breadcrumb={breadcrumb}
-                hasOccurred={
-                  currentTime >=
-                  relativeTimeInMs(breadcrumb?.timestamp || '', startTimestampMs)
-                }
-              />
-            );
-          })}
-        </ConsoleTable>
-      ) : (
-        <StyledEmptyMessage title={t('No results found.')} />
-      )}
+      <ConsoleMessageContainer ref={containerRef}>
+        {filteredBreadcrumbs.length > 0 ? (
+          <ConsoleTable>
+            {filteredBreadcrumbs.map((breadcrumb, i) => {
+              return (
+                <ConsoleMessage
+                  isActive={closestUserAction?.id === breadcrumb.id}
+                  isCurrent={currentUserAction?.id === breadcrumb.id}
+                  startTimestampMs={startTimestampMs}
+                  key={breadcrumb.id}
+                  isLast={i === breadcrumbs.length - 1}
+                  breadcrumb={breadcrumb}
+                  hasOccurred={
+                    currentTime >=
+                    relativeTimeInMs(breadcrumb?.timestamp || '', startTimestampMs)
+                  }
+                />
+              );
+            })}
+          </ConsoleTable>
+        ) : (
+          <StyledEmptyMessage title={t('No results found.')} />
+        )}
+      </ConsoleMessageContainer>
     </ConsoleContainer>
   );
 }
 
-const ConsoleContainer = styled('div')`
+const ConsoleContainer = styled(FluidHeight)`
   height: 100%;
+`;
+
+const ConsoleMessageContainer = styled(FluidHeight)`
   overflow: auto;
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.border};
+  box-shadow: ${p => p.theme.dropShadowLight};
 `;
 
 const ConsoleFilters = styled('div')`
@@ -128,6 +136,9 @@ const ConsoleTable = styled(Panel)`
   width: 100%;
   font-family: ${p => p.theme.text.familyMono};
   font-size: 0.8em;
+  border: none;
+  box-shadow: none;
+  margin-bottom: 0;
 `;
 
 export default Console;

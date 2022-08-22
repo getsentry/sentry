@@ -3,11 +3,11 @@ import {useEffect, useState} from 'react';
 
 const defer = (fn: () => void) => setTimeout(fn, 0);
 
-export function useCurrentItemScroller(containerRef: RefObject<HTMLElement> | undefined) {
+export function useCurrentItemScroller(containerRef: RefObject<HTMLElement>) {
   const [isAutoScrollDisabled, setIsAutoScrollDisabled] = useState(false);
 
   useEffect(() => {
-    const containerEl = containerRef?.current;
+    const containerEl = containerRef.current;
     let observer: MutationObserver | undefined;
 
     if (containerEl) {

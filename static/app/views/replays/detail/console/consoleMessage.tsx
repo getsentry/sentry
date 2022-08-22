@@ -204,23 +204,6 @@ const Common = styled('div')<{
   ${p => (!p.isLast ? `border-bottom: 1px solid ${p.theme.innerBorder}` : '')};
 
   transition: color 0.5s ease;
-
-  /*
-  Using radius of 3px instead of p.theme.borderRadius (4px) because this is an
-  inner radius to the border, and needs to be smaller to avoid gaps in the turn.
-  */
-  &:nth-child(1) {
-    border-top-left-radius: 3px;
-  }
-  &:nth-child(3) {
-    border-top-right-radius: 3px;
-  }
-  &:nth-last-child(1) {
-    border-bottom-right-radius: 3px;
-  }
-  &:nth-last-child(3) {
-    border-bottom-left-radius: 3px;
-  }
 `;
 
 const ConsoleTimestamp = styled(Common)`
@@ -245,12 +228,6 @@ const Icon = styled(Common)<{isActive: boolean}>`
     height: 100%;
     width: ${space(0.5)};
     background-color: ${p => (p.isActive ? p.theme.focus : 'transparent')};
-  }
-  &:nth-child(1):after {
-    border-top-left-radius: 3px;
-  }
-  &:nth-last-child(3):after {
-    border-bottom-left-radius: 3px;
   }
 `;
 const Message = styled(Common)`
