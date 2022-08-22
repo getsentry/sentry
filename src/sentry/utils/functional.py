@@ -68,6 +68,6 @@ def cached(cache, function, *args, **kwargs):
     if key in cache:
         rv = cache[key]
     else:
-        rv = cache[key] = function(*args)
+        rv = cache[key] = function(*args, **kwargs)
 
     return rv
