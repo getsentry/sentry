@@ -7,7 +7,7 @@ from sentry.utils.functional import cached
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
 
-from .exceptions import InvalidEnhancerConfig
+# from .enhancers import InvalidEnhancerConfig
 
 MATCH_KEYS = {
     "path": "p",
@@ -172,7 +172,7 @@ class FrameMatch(Match):
         try:
             self.key = MATCHERS[key]
         except KeyError:
-            raise InvalidEnhancerConfig("Unknown matcher '%s'" % key)
+            raise RuntimeError("Unknown matcher '%s'" % key)  # FIXME
         self.pattern = pattern
         self._encoded_pattern = pattern.encode("utf-8")
         self.negated = negated

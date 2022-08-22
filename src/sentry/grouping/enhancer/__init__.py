@@ -8,11 +8,7 @@ from parsimonious.grammar import Grammar, NodeVisitor
 
 from sentry import projectoptions
 from sentry.grouping.component import GroupingComponent
-from sentry.utils.strings import unescape_string
-
-from .actions import Action, FlagAction, VarAction
-from .exceptions import InvalidEnhancerConfig
-from .matchers import (
+from sentry.grouping.matchers import (  # TODO: Better directory structure
     CalleeMatch,
     CallerMatch,
     ExceptionFieldMatch,
@@ -20,6 +16,10 @@ from .matchers import (
     Match,
     create_match_frame,
 )
+from sentry.utils.strings import unescape_string
+
+from .actions import Action, FlagAction, VarAction
+from .exceptions import InvalidEnhancerConfig
 
 # Grammar is defined in EBNF syntax.
 enhancements_grammar = Grammar(
