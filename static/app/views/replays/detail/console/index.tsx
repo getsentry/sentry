@@ -14,6 +14,7 @@ import type {
   BreadcrumbTypeDefault,
   Crumb,
 } from 'sentry/types/breadcrumbs';
+import {defined} from 'sentry/utils';
 import {getPrevBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
 import ConsoleMessage from 'sentry/views/replays/detail/console/consoleMessage';
 import {filterBreadcrumbs} from 'sentry/views/replays/detail/console/utils';
@@ -55,6 +56,23 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
         })
       : undefined;
 
+  const isOcurring = (breadcrumb: Crumb, closestBreadcrumb?: Crumb): boolean => {
+    if (!defined(currentHoverTime) || !defined(closestBreadcrumb)) {
+      return false;
+    }
+
+    const isCurrentBreadcrumb = closestBreadcrumb.id === breadcrumb.id;
+
+    // We don't want to hightlight the breadcrumb if it's more than 1 second away from the current hover time
+    const isMoreThanASecondOfDiff =
+      Math.trunc(currentHoverTime / 1000) >
+      Math.trunc(
+        relativeTimeInMs(closestBreadcrumb.timestamp || '', startTimestampMs) / 1000
+      );
+
+    return isCurrentBreadcrumb && !isMoreThanASecondOfDiff;
+  };
+
   return (
     <Fragment>
       <ConsoleFilters>
@@ -80,6 +98,7 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
             return (
               <ConsoleMessage
                 isActive={closestUserAction?.id === breadcrumb.id}
+                isOcurring={isOcurring(breadcrumb, closestUserAction)}
                 isCurrent={currentUserAction?.id === breadcrumb.id}
                 startTimestampMs={startTimestampMs}
                 key={breadcrumb.id}

@@ -116,11 +116,13 @@ interface ConsoleMessageProps extends MessageFormatterProps {
   isActive: boolean;
   isCurrent: boolean;
   isLast: boolean;
+  isOcurring: boolean;
   startTimestampMs: number;
 }
 function ConsoleMessage({
   breadcrumb,
   isActive = false,
+  isOcurring = false,
   hasOccurred,
   isLast,
   isCurrent,
@@ -145,6 +147,7 @@ function ConsoleMessage({
         level={breadcrumb.level}
         isActive={isActive}
         isCurrent={isCurrent}
+        isOcurring={isOcurring}
         hasOccurred={hasOccurred}
         onMouseOver={handleOnMouseOver}
         onMouseOut={handleOnMouseOut}
@@ -258,9 +261,20 @@ const ConsoleTimestampButton = styled('button')`
   border: none;
 `;
 
-const Icon = styled(Common)`
+const Icon = styled(Common)<{isOcurring?: boolean}>`
   padding: ${space(0.5)} ${space(1)};
   position: relative;
+
+  &:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    height: 100%;
+    width: ${space(0.5)};
+    background-color: ${p => (p.isOcurring ? p.theme.focus : 'transparent')};
+  }
 
   &:nth-child(1):after {
     border-top-left-radius: 3px;
