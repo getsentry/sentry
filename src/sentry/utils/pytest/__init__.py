@@ -7,4 +7,5 @@ pytest_plugins = [
     "sentry.utils.pytest.relay",
     "sentry.utils.pytest.metrics",
     "sentry.utils.pytest.stale_database_reads",
+    "sentry.utils.pytest.testcase_misuse",
 ]

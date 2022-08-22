@@ -46,3 +46,4 @@ filterwarnings = [
     "ignore:.*sentry.digests.backends.dummy.DummyBackend.*:sentry.utils.warnings.UnsupportedBackend",
 ]
 looponfailroots = ["src", "tests"]
+python_classes = "Test* *Test"
