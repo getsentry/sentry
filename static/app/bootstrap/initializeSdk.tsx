@@ -1,8 +1,20 @@
 import {browserHistory, createRoutes, match} from 'react-router';
 import {ExtraErrorData} from '@sentry/integrations';
-import * as Sentry from '@sentry/react';
+import {
+  addGlobalEventProcessor,
+  Breadcrumb,
+  // BreadcrumbHint,
+  Event as SentryEvent,
+  EventHint,
+  // Hub,
+  getCurrentHub,
+  init,
+  reactRouterV3Instrumentation,
+  setTag,
+  setUser,
+} from '@sentry/react';
 import {Integrations} from '@sentry/tracing';
-import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
+import {_browserPerformanceTimeOriginMode, uuid4} from '@sentry/utils';
 
 import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
 import {Config} from 'sentry/types';
@@ -40,7 +52,7 @@ function getSentryIntegrations(sentryConfig: Config['sentryConfig'], routes?: Fu
     new Integrations.BrowserTracing({
       ...(typeof routes === 'function'
         ? {
-            routingInstrumentation: Sentry.reactRouterV3Instrumentation(
+            routingInstrumentation: reactRouterV3Instrumentation(
               browserHistory as any,
               createRoutes(routes()),
               match
@@ -58,6 +70,17 @@ function getSentryIntegrations(sentryConfig: Config['sentryConfig'], routes?: Fu
   return integrations;
 }
 
+let infiniteBreadcrumbs: Breadcrumb[] = [];
+
+// class PatchedHub extends Hub {
+//   public addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void {
+//     super.addBreadcrumb(breadcrumb, hint);
+//     const { scope } = this.getStackTop();
+//     if (!scope || !client) return;
+//     const breadcrumb = scope._bread
+//   }
+// }
+
 /**
  * Initialize the Sentry SDK
  *
@@ -68,7 +91,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
   const {apmSampling, sentryConfig, userIdentity} = config;
   const tracesSampleRate = apmSampling ?? 0;
 
-  Sentry.init({
+  init({
     ...sentryConfig,
     /**
      * For SPA mode, we need a way to overwrite the default DSN from backend
@@ -97,18 +120,56 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     ignoreErrors: ['AbortError: Fetch is aborted'],
   });
 
+  function flushBreadcrumbs() {
+    const client = getCurrentHub().getClient();
+    if (client) {
+      client.sendEvent({
+        message: 'Breadcrumb Event',
+        event_id: uuid4(),
+        tags: {session_id},
+      });
+    }
+    infiniteBreadcrumbs = [];
+  }
+
+  const scope = getCurrentHub().getScope();
+  if (scope) {
+    scope.addScopeListener(updatedScope => {
+      // @ts-ignore accessing private _breadcrumbs
+      const len = updatedScope._breadcrumbs.length - 1;
+      if (len === 0) {
+        return;
+      }
+
+      // @ts-ignore accessing private _breadcrumbs
+      infiniteBreadcrumbs.push(updatedScope._breadcrumbs[len]);
+
+      if (infiniteBreadcrumbs.length >= 100) {
+        flushBreadcrumbs();
+      }
+    });
+  }
+
+  const session_id = uuid4();
+
+  setInterval(() => {
+    flushBreadcrumbs();
+  }, 3000);
+
   // Track timeOrigin Selection by the SDK to see if it improves transaction durations
-  Sentry.addGlobalEventProcessor((event: Sentry.Event, _hint?: Sentry.EventHint) => {
+  addGlobalEventProcessor((event: SentryEvent, _hint?: EventHint) => {
     event.tags = event.tags || {};
     event.tags['timeOrigin.mode'] = _browserPerformanceTimeOriginMode;
+    event.tags.session_id = session_id;
+    infiniteBreadcrumbs = [];
     return event;
   });
 
   if (userIdentity) {
-    Sentry.setUser(userIdentity);
+    setUser(userIdentity);
   }
   if (window.__SENTRY__VERSION) {
-    Sentry.setTag('sentry_version', window.__SENTRY__VERSION);
+    setTag('sentry_version', window.__SENTRY__VERSION);
   }
 
   LongTaskObserver.startPerformanceObserver();
