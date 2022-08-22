@@ -1,19 +1,24 @@
-declare global {
-  interface Window {
-    SpeechGrammarList: any;
-    SpeechRecognition: any;
-    SpeechRecognitionEvent: any;
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable no-console */
 
-    webkitSpeechGrammarList: any;
-    webkitSpeechRecognition: any;
-    webkitSpeechRecognitionEvent: any;
-  }
-}
+// declare global {
+//   interface Window {
+//     SpeechGrammarList: any;
+//     SpeechRecognition: any;
+//     SpeechRecognitionEvent: any;
 
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-const SpeechGrammarList = window.SpeechGrammarList || window.webkitSpeechGrammarList;
-const SpeechRecognitionEvent =
-  window.SpeechRecognitionEvent || window.webkitSpeechRecognitionEvent;
+//     webkitSpeechGrammarList: any;
+//     webkitSpeechRecognition: any;
+//     webkitSpeechRecognitionEvent: any;
+//   }
+// }
+
+// import SpeechRecognition from 'react-speech-recognition';
+
+// const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+// const SpeechGrammarList = window.SpeechGrammarList || window.webkitSpeechGrammarList;
+// const SpeechRecognitionEvent =
+//   window.SpeechRecognitionEvent || window.webkitSpeechRecognitionEvent;
 
 const grammar = `
 #JSGF V1.0;
@@ -30,27 +35,24 @@ public <phrase> = <navigationCommand>;
 `;
 
 export function initializeVoiceAssistant() {
-  console.log('Hello!');
+  console.log('Initializing Voice Assistant...');
 }
 
-const phrasePara = document.querySelector('.phrase');
-const resultPara = document.querySelector('.result');
 const diagnosticPara = document.querySelector('.output');
 
-const btnStart = document.querySelector('button#btn-start');
-const btnStop = document.querySelector('button#btn-stop');
+const btnStart = document.querySelector('button#btn-start') as HTMLButtonElement;
+const btnStop = document.querySelector('button#btn-stop') as HTMLButtonElement;
 
-let recognition = null;
+let recognition: SpeechRecognition;
 
 function startTestSpeech() {
+  if (!diagnosticPara) {
+    return;
+  }
+
   btnStart.disabled = true;
   btnStart.textContent = 'Test in progress';
 
-  phrase = 'bla';
-
-  phrasePara.textContent = 'bla';
-  resultPara.textContent = 'Right or wrong?';
-  resultPara.style.background = 'rgba(0,0,0,0.2)';
   diagnosticPara.textContent = '...diagnostic messages';
 
   recognition = new SpeechRecognition();
@@ -80,16 +82,8 @@ function startTestSpeech() {
     // We then return the transcript property of the SpeechRecognitionAlternative object
     const speechResult = event.results[0][0].transcript.toLowerCase();
     diagnosticPara.textContent = 'Speech received: ' + speechResult + '.';
-    if (speechResult === phrase) {
-      resultPara.textContent = 'I heard the correct phrase!';
-      resultPara.style.background = 'lime';
-    } else {
-      resultPara.textContent = "That didn't sound right.";
-      resultPara.style.background = 'red';
-    }
 
     console.log(serializeSpeechRecognitionResultList(event.results));
-    // console.log('Confidence: ' + event.results[0][0].confidence);
   };
 
   recognition.onspeechend = function () {
@@ -104,41 +98,41 @@ function startTestSpeech() {
     diagnosticPara.textContent = 'Error occurred in recognition: ' + event.error;
   };
 
-  recognition.onaudiostart = function (event) {
+  recognition.onaudiostart = function (_) {
     // Fired when the user agent has started to capture audio.
     console.log('SpeechRecognition.onaudiostart');
   };
 
-  recognition.onaudioend = function (event) {
+  recognition.onaudioend = function (_) {
     // Fired when the user agent has finished capturing audio.
     console.log('SpeechRecognition.onaudioend');
   };
 
-  recognition.onend = function (event) {
+  recognition.onend = function (_) {
     // Fired when the speech recognition service has disconnected.
     console.log('SpeechRecognition.onend');
   };
 
-  recognition.onnomatch = function (event) {
+  recognition.onnomatch = function (_) {
     // Fired when the speech recognition service returns a final result with no significant recognition. This may involve some degree of recognition, which doesn't meet or exceed the confidence threshold.
     console.log('SpeechRecognition.onnomatch');
   };
 
-  recognition.onsoundstart = function (event) {
+  recognition.onsoundstart = function (_) {
     // Fired when any sound — recognisable speech or not — has been detected.
     console.log('SpeechRecognition.onsoundstart');
   };
 
-  recognition.onsoundend = function (event) {
+  recognition.onsoundend = function (_) {
     // Fired when any sound — recognisable speech or not — has stopped being detected.
     console.log('SpeechRecognition.onsoundend');
   };
 
-  recognition.onspeechstart = function (event) {
+  recognition.onspeechstart = function (_) {
     // Fired when sound that is recognised by the speech recognition service as speech has been detected.
     console.log('SpeechRecognition.onspeechstart');
   };
-  recognition.onstart = function (event) {
+  recognition.onstart = function (_) {
     // Fired when the speech recognition service has begun listening to incoming audio with intent to recognize grammars associated with the current SpeechRecognition.
     console.log('SpeechRecognition.onstart');
   };
@@ -150,6 +144,13 @@ function stopTestSpeech() {
   }
   btnStart.disabled = false;
   btnStart.textContent = 'Start new test';
+}
+
+if (btnStart) {
+  btnStart.addEventListener('click', startTestSpeech);
+}
+if (btnStop) {
+  btnStop.addEventListener('click', stopTestSpeech);
 }
 
 // Helpers

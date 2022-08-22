@@ -11,6 +11,7 @@ import {initApiClientErrorHandling} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import GlobalModal from 'sentry/components/globalModal';
 import Indicators from 'sentry/components/indicators';
+import {VoiceAssistantButton} from 'sentry/components/voiceAssistant/floatingButton';
 import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'sentry/constants';
 import AlertStore from 'sentry/stores/alertStore';
 import ConfigStore from 'sentry/stores/configStore';
@@ -171,6 +172,7 @@ function App({children}: Props) {
         <SystemAlerts className="messages-container" />
         <Indicators className="indicators-container" />
         <ErrorBoundary>{renderBody()}</ErrorBoundary>
+        <VoiceAssistantButton>Yo</VoiceAssistantButton>
       </MainContainer>
     </Profiler>
   );

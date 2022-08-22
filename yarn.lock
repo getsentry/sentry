@@ -3565,6 +3565,11 @@
   resolved "https://registry.yarnpkg.com/@types/diff/-/diff-5.0.2.tgz#dd565e0086ccf8bc6522c6ebafd8a3125c91c12b"
   integrity sha512-uw8eYMIReOwstQ0QKF0sICefSy8cNO/v7gOTiIy9SbwuHyEecJUm7qlgueOO5S1udZ5I/irVydHVwMchgzbKTg==
 
+"@types/dom-speech-recognition@^0.0.1":
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/@types/dom-speech-recognition/-/dom-speech-recognition-0.0.1.tgz#e326761a04b4a49c0eec2ac7948afc1c6aa12baa"
+  integrity sha512-udCxb8DvjcDKfk1WTBzDsxFbLgYxmQGKrE/ricoMqHRNjSlSUCcamVTA5lIQqzY10mY5qCY0QDwBfFEwhfoDPw==
+
 "@types/dompurify@^2.0.4", "@types/dompurify@^2.3.3":
   version "2.3.3"
   resolved "https://registry.yarnpkg.com/@types/dompurify/-/dompurify-2.3.3.tgz#c24c92f698f77ed9cc9d9fa7888f90cf2bfaa23f"
@@ -3898,6 +3903,11 @@
   integrity sha512-N1GwO7Ri5C5fE8+CxhiDntuSw1qYdGytBuedKrCxWpaojXm4WnfygbdBdc5sXGX7feMxDXBy9MNhxoUTwrMl4A==
   dependencies:
     "@types/react" "*"
+
+"@types/react-speech-recognition@^3.9.0":
+  version "3.9.0"
+  resolved "https://registry.yarnpkg.com/@types/react-speech-recognition/-/react-speech-recognition-3.9.0.tgz#645e5de99c0837cc928b607979cc6c66a01e64c3"
+  integrity sha512-GstxYfAs4kFPPTQ3p2RU2NmRni5CnxUCHPioq4UytitootYa7iA4aEvXEXHH7S330kMcBY1MuhJ6CV696++0PQ==
 
 "@types/react-syntax-highlighter@11.0.5":
   version "11.0.5"
@@ -12445,6 +12455,11 @@ react-sparklines@1.7.0:
   integrity sha512-bJFt9K4c5Z0k44G8KtxIhbG+iyxrKjBZhdW6afP+R7EnIq+iKjbWbEFISrf3WKNFsda+C46XAfnX0StS5fbDcg==
   dependencies:
     prop-types "^15.5.10"
+
+react-speech-recognition@^3.9.1:
+  version "3.9.1"
+  resolved "https://registry.yarnpkg.com/react-speech-recognition/-/react-speech-recognition-3.9.1.tgz#dea4c4163e7cfb8e8c9e523abc99127eee7bcd43"
+  integrity sha512-HzhHydSvLcpaCW7q9HZamNg4XQaKXEMGBT9rYP/rGhbwBRj6dgrCZsHcoV3Lr3WSDyFw0svXeoRzbG/cneFGnQ==
 
 react-syntax-highlighter@^15.4.5:
   version "15.5.0"
