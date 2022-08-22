@@ -68,7 +68,7 @@ class ProjectReplayRecordingSegmentTestCase(APITestCase):
         # dont think i can use generator
         # try to debg through file source
         f = File.objects.create(name=f"rr:1", type="replay.recording")
-        f.putfile(BytesIO(zlib.compress(f'{{"test":"hello 1"}}'.encode("utf-8"))))
+        f.putfile(BytesIO(zlib.compress(f'{{"test":"hello 1"}}'.encode())))
         with ThreadPoolExecutor(max_workers=3) as exe:
             results = exe.map(lambda file: file.getfile(), [f])
 
