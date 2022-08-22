@@ -1,4 +1,4 @@
-import 'prism-sentry/index.css';
+import 'sentry/styles/prism-sentry-light.css';
 
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
