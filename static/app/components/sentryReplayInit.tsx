@@ -3,13 +3,11 @@ import {useEffect} from 'react';
 import {Organization} from 'sentry/types';
 
 async function initSentryReplays() {
-  const {SentryReplay} = await import('@sentry/replay');
-
-  const replays = new SentryReplay({
-    stickySession: true,
-  });
-
-  replays.setup();
+  // const {SentryReplay} = await import('@sentry/replay');
+  // const replays = new SentryReplay({
+  //   stickySession: true,
+  // });
+  // replays.setup();
 }
 
 /**
