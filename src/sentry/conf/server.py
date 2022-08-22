@@ -1968,6 +1968,14 @@ SENTRY_DEVSERVICES = {
             or settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS,
         }
     ),
+    "neo4j": lambda settings, options: (
+        {
+            "image": "neo4j:4.4.9-community",
+            "ports": {"7474/tcp": 7474, "7687/tcp": 7687},
+            "environment": {"NEO4J_AUTH": "none"},
+            "volumes": {"neo4j": {"bind": "/data"}},
+        }
+    ),
     "clickhouse": lambda settings, options: (
         {
             "image": "yandex/clickhouse-server:20.3.9.70" if not APPLE_ARM64
