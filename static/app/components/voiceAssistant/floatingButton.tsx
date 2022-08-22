@@ -1,13 +1,12 @@
 /* eslint-disable no-alert */
 import React from 'react';
 import {css, keyframes} from '@emotion/react';
-// import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-// import {
-//   startVoiceRecognition,
-//   stopVoiceRecognition,
-// } from 'sentry/bootstrap/voiceAssistant';
+import {
+  startVoiceRecognition,
+  stopVoiceRecognition,
+} from 'sentry/bootstrap/voiceAssistant';
 
 interface VoiceAssistantState {
   isToggleOn: boolean;
@@ -150,11 +149,16 @@ export class VoiceAssistantButton extends React.Component<{}, VoiceAssistantStat
   }
 
   handleClick() {
-    // if (!this.state.isToggleOn) {
-    //   startVoiceRecognition();
-    // } else {
-    //   stopVoiceRecognition();
-    // }
+    if (!this.state.isToggleOn) {
+      startVoiceRecognition(_ => {
+        // ugly hack
+        this.setState(_prevState => ({
+          isToggleOn: false,
+        }));
+      });
+    } else {
+      stopVoiceRecognition();
+    }
 
     this.setState(prevState => ({
       isToggleOn: !prevState.isToggleOn,
@@ -165,7 +169,6 @@ export class VoiceAssistantButton extends React.Component<{}, VoiceAssistantStat
     return (
       <Wrapper>
         <VoiceButton active={this.state.isToggleOn} onClick={this.handleClick}>
-          {/* {this.state.isToggleOn ? 'ACTIVATED' : 'Waiting...'} */}
           <Ripple1 />
           <Ripple2 />
           <Logo

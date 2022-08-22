@@ -1,24 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable no-console */
 
-// declare global {
-//   interface Window {
-//     SpeechGrammarList: any;
-//     SpeechRecognition: any;
-//     SpeechRecognitionEvent: any;
-
-//     webkitSpeechGrammarList: any;
-//     webkitSpeechRecognition: any;
-//     webkitSpeechRecognitionEvent: any;
-//   }
-// }
-
-// import SpeechRecognition from 'react-speech-recognition';
-
-// const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-// const SpeechGrammarList = window.SpeechGrammarList || window.webkitSpeechGrammarList;
-// const SpeechRecognitionEvent =
-//   window.SpeechRecognitionEvent || window.webkitSpeechRecognitionEvent;
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const SpeechGrammarList = window.SpeechGrammarList || window.webkitSpeechGrammarList;
 
 const grammar = `
 #JSGF V1.0;
@@ -38,15 +22,18 @@ export function initializeVoiceAssistant() {
   console.log('Initializing Voice Assistant...');
 }
 
-// const SpeechRecognitionEngine: SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition: SpeechRecognition;
 
-export function startVoiceRecognition() {
-  // recognition = new SpeechRecognitionEngine();
+export function startVoiceRecognition(finalizeCallback: CallableFunction) {
+  if (!SpeechRecognition) {
+    console.log('Speech recognition not supported');
+    return;
+  }
+
   recognition = new SpeechRecognition();
 
   if (!recognition) {
-    console.log('Speech recognition not supported');
+    console.log('Speech recognition API cannot be initialized');
     return;
   }
 
@@ -59,7 +46,7 @@ export function startVoiceRecognition() {
 
   recognition.start();
 
-  recognition.onresult = function (event) {
+  recognition.onresult = function (event: SpeechRecognitionEvent) {
     // The SpeechRecognitionEvent results property returns a SpeechRecognitionResultList object
     // The SpeechRecognitionResultList object contains SpeechRecognitionResult objects.
     // It has a getter so it can be accessed like an array
@@ -69,17 +56,19 @@ export function startVoiceRecognition() {
     // The second [0] returns the SpeechRecognitionAlternative at position 0.
     // We then return the transcript property of the SpeechRecognitionAlternative object
     const speechResult = event.results[0][0].transcript.toLowerCase();
-    console.log(speechResult);
+    console.log(`Phrase recognized: "${speechResult}"`);
 
     console.log(serializeSpeechRecognitionResultList(event.results));
   };
 
   recognition.onspeechend = function () {
     recognition.stop();
+    finalizeCallback();
   };
 
   recognition.onerror = function (event) {
     console.log('Error occurred in recognition: ' + event.error);
+    finalizeCallback();
   };
 
   recognition.onaudiostart = function (_) {
