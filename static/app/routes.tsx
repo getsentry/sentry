@@ -1232,6 +1232,20 @@ function buildRoutes() {
     />
   );
 
+  const breadcrumbRoutes = (
+    <Route path="/organizations/:orgId/breadcrumbs/">
+      <IndexRoute component={make(() => import('sentry/views/breadcrumbs'))} />
+      <Route
+        path=":sessionId/"
+        component={make(() => import('sentry/views/breadcrumbs/sessionView'))}
+      />
+    </Route>
+    // <Route
+    //   path="/organizations/:orgId/breadcrumbs/"
+    //   component={make(() => import('sentry/views/breadcrumbs'))}
+    // />
+  );
+
   const issueListRoutes = (
     <Route
       path="/organizations/:orgId/issues/"
@@ -1724,6 +1738,7 @@ function buildRoutes() {
       {projectsRoutes}
       {dashboardRoutes}
       {userFeedbackRoutes}
+      {breadcrumbRoutes}
       {issueListRoutes}
       {issueDetailsRoutes}
       {alertRoutes}

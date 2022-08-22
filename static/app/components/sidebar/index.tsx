@@ -198,6 +198,16 @@ function Sidebar({location, organization}: Props) {
     />
   );
 
+  const breadcrumbs = hasOrganization && (
+    <SidebarItem
+      {...sidebarItemProps}
+      icon={<IconSupport size="md" />}
+      label={t('Breadcrumbs')}
+      to={`/organizations/${organization.slug}/breadcrumbs/`}
+      id="user-feedback"
+    />
+  );
+
   const alerts = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
@@ -322,6 +332,7 @@ function Sidebar({location, organization}: Props) {
                 {performance}
                 {releases}
                 {userFeedback}
+                {breadcrumbs}
                 {alerts}
                 {discover2}
                 {dashboards}

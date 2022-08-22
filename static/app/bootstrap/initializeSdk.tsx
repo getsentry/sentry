@@ -143,7 +143,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
 
   function flushBreadcrumbs(session_id: string) {
     const client = hub.getClient();
-    if (client) {
+    if (client && infiniteBreadcrumbs.length) {
       client.sendEvent({
         message: 'Breadcrumb Event',
         event_id: uuid4(),
