@@ -233,7 +233,7 @@
   "proxyURL": "http://localhost:8000",
   "scripts": {
     "test-wrap": "node scripts/test.js",
-    "pre-build": "yarn combine-docs",
+    "pre-build": "yarn combine-docs && sed -i '' 's@- url: https://sentry.io/@- url: http://localhost:8000/@' swagger-ui/openapi.yml",
     "test": "yarn test-wrap --watch",
     "test-ci": "yarn test-wrap --ci --coverage --runInBand",
     "test-debug": "node --inspect-brk scripts/test.js --runInBand",
@@ -256,7 +256,7 @@
     "build-acceptance": "yarn pre-build && IS_ACCEPTANCE_TEST=1 NODE_ENV=production yarn webpack --mode development",
     "build-production": "yarn pre-build && NODE_ENV=production yarn webpack --mode production",
     "build": "NODE_OPTIONS=--max-old-space-size=4096 yarn webpack",
-    "combine-docs": "speccy resolve api-docs/openapi.json -o swagger-ui/openapi.yml",
+    "combine-docs": "speccy resolve tests/apidocs/openapi-derefed.json -o swagger-ui/openapi.yml",
     "validate-api-examples": "cd api-docs && yarn openapi-examples-validator ../tests/apidocs/openapi-derefed.json --no-additional-properties",
     "mkcert-localhost": "mkcert -key-file config/localhost-key.pem -cert-file config/localhost.pem localhost 127.0.0.1 dev.getsentry.net && mkcert -install"
   },
