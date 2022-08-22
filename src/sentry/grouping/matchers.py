@@ -218,7 +218,7 @@ class FrameMatch(Match):
         return ("!" if self.negated else "") + MATCH_KEYS[self.key] + arg
 
 
-def path_like_match(pattern: str, value: bytes) -> bool:
+def path_like_match(pattern: bytes, value: bytes) -> bool:
     """Stand-alone function for use with ``cached``"""
     if glob_match(value, pattern, ignorecase=False, doublestar=True, path_normalize=True):
         return True
@@ -262,8 +262,8 @@ class PathMatch(PathLikeMatch):
 
 
 class FamilyMatch(FrameMatch):
-    def __init__(self, *args: Any, **kwargs: Any):
-        super().__init__(*args, **kwargs)
+    def __init__(self, key: str, pattern: str, negated: bool = False):
+        super().__init__(key, pattern, negated)
         self._flags = set(self._encoded_pattern.split(b","))
 
     def _positive_frame_match(
@@ -280,8 +280,8 @@ class FamilyMatch(FrameMatch):
 
 
 class InAppMatch(FrameMatch):
-    def __init__(self, *args: Any, **kwargs: Any):
-        super().__init__(*args, **kwargs)
+    def __init__(self, key: str, pattern: str, negated: bool = False):
+        super().__init__(key, pattern, negated)
         self._ref_val = get_rule_bool(self.pattern)
 
     def _positive_frame_match(
