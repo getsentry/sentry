@@ -35,11 +35,6 @@ function StatsHeader({organization, activeTab}: Props) {
             {t('Health')}
           </Link>
         </li>
-        <li className={`${activeTab === 'foobar' ? 'active' : ''}`}>
-          <Link to={`/organizations/${organization.slug}/stats/foobar/`}>
-            {t('Foobar')}
-          </Link>
-        </li>
       </Layout.HeaderNavTabs>
     </Layout.Header>
   );
