@@ -172,7 +172,7 @@ function App({children}: Props) {
         <SystemAlerts className="messages-container" />
         <Indicators className="indicators-container" />
         <ErrorBoundary>{renderBody()}</ErrorBoundary>
-        <VoiceAssistantButton>Yo</VoiceAssistantButton>
+        <VoiceAssistantButton>...</VoiceAssistantButton>
       </MainContainer>
     </Profiler>
   );
