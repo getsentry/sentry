@@ -29,7 +29,7 @@ from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
-from sentry.utils.http import absolute_uri, is_valid_origin, origin_from_request
+from sentry.utils.http import absolute_uri, origin_from_request
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.sdk import capture_exception, set_measurement
 
@@ -231,15 +231,15 @@ class Endpoint(APIView):
 
         try:
             with sentry_sdk.start_span(op="base.dispatch.request", description=type(self).__name__):
-                if origin:
-                    if request.auth:
-                        allowed_origins = request.auth.get_allowed_origins()
-                    else:
-                        allowed_origins = None
-                    if not is_valid_origin(origin, allowed=allowed_origins):
-                        response = Response(f"Invalid origin: {origin}", status=400)
-                        self.response = self.finalize_response(request, response, *args, **kwargs)
-                        return self.response
+                # if origin:
+                #     if request.auth:
+                #         allowed_origins = request.auth.get_allowed_origins()
+                #     else:
+                #         allowed_origins = None
+                #     # if not is_valid_origin(origin, allowed=allowed_origins):
+                #     #     response = Response(f"Invalid origin: {origin}", status=400)
+                #     #     self.response = self.finalize_response(request, response, *args, **kwargs)
+                #     #     return self.response
 
                 self.initial(request, *args, **kwargs)
 
