@@ -35,7 +35,7 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
                 order_by="segment_id",
                 on_results=self.on_download_results,
                 response_type=StreamingHttpResponse,
-                response_type_kwargs={"content_type": "application_json"},
+                response_type_kwargs={"content_type": "application/json"},
                 paginator_cls=OffsetPaginator,
             )
 
@@ -54,15 +54,26 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
             )
 
     def on_download_results(self, results):
+        """
+        get the files associated with the segment range requested. prefetch the files
+        in a threadpool.
+        """
         recording_segment_files = File.objects.filter(id__in=[r.file_id for r in results])
-        with ThreadPoolExecutor(max_workers=4) as exe:
-            file_objects = list(
-                exe.map(lambda file: file.getfile(prefetch=True), recording_segment_files)
-            )
+        with ThreadPoolExecutor(max_workers=3) as exe:
+            print("here?")
 
-            return iter(self.segment_generator(file_objects))
+            file_objects = exe.map(lambda file: file.getfile(), recording_segment_files)
+
+        # file_objects = [file.getfile(prefetch=True) for file in recording_segment_files]
+        print(next(file_objects).read())
+        return iter(self.segment_generator(list(file_objects)))
 
     def segment_generator(self, recording_segments):
+        """
+        streams a JSON object made of replay recording segments.
+        the segments are gzip compressed json, so we build a JSON list around them.
+        we stream the decompressed output to the client.
+        """
         yield "["
 
         for i, file in enumerate(recording_segments):
