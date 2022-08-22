@@ -1,42 +1,39 @@
 {
-  "newWelcomeMessage": {
-    "state": "disabled",
-    "description": "This is a description"
-  },
-  "hexColor": {
-    "returnType": "string",
-    "variants": {
-      "red": "CC0000",
-      "green": "00CC00",
-      "blue": "0000CC",
-      "yellow": "yellow"
+  "accessToProfiling": {
+    "tags": {
+      "isEarlyAdopter": "true"
     },
-    "defaultVariant": "blue",
-    "state": "enabled",
-    "description": "This is a description"
-  },
-  "fibAlgo": {
-    "returnType": "string",
-    "variants": {
-      "recursive": "recursive",
-      "memo": "memo",
-      "loop": "loop",
-      "binet": "binet"
-    },
-    "defaultVariant": "recursive",
-    "state": "enabled",
-    "rules": [
+    "evaluation": [
       {
-        "action": {
-          "variant": "binet"
-        },
-        "conditions": [
-          {
-            "context": "email",
-            "op": "ends_with",
-            "value": "@faas.com"
-          }
-        ]
+        "type": "rollout",
+        "percentage": 0.5,
+        "result": true,
+        "tags": {
+          "userSegment": "slow"
+        }
+      },
+      {
+        "type": "match",
+        "result": true,
+        "tags": {
+          "isSentryDev": "true"
+        }
+      }
+    ]
+  },
+  "profilingEnabled": {
+    "evaluation": [
+      {
+        "type": "rollout",
+        "percentage": 0.05,
+        "result": true
+      },
+      {
+        "type": "match",
+        "result": true,
+        "tags": {
+          "isSentryDev": "true"
+        }
       }
     ]
   }
