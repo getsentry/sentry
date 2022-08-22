@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import itertools
 import logging
+from abc import ABC, abstractmethod
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import (
@@ -64,6 +65,7 @@ from sentry.search.events.constants import RELEASE_STAGE_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tsdb.snuba import SnubaTSDB
+from sentry.types.issues import GroupCategory
 from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
 from sentry.utils.safe import safe_execute
@@ -158,7 +160,14 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     annotations: Sequence[str]
 
 
-class GroupSerializerBase(Serializer):
+class SeenStats(TypedDict):
+    times_seen: int
+    first_seen: datetime
+    last_seen: datetime
+    user_count: int
+
+
+class GroupSerializerBase(Serializer, ABC):
     def __init__(
         self,
         collapse=None,
@@ -167,7 +176,9 @@ class GroupSerializerBase(Serializer):
         self.collapse = collapse
         self.expand = expand
 
-    def get_attrs(self, item_list, user):
+    def get_attrs(
+        self, item_list: Sequence[Group], user: Any, **kwargs: Any
+    ) -> MutableMapping[Group, MutableMapping[str, Any]]:
         GroupMeta.objects.populate_cache(item_list)
 
         # Note that organization is necessary here for use in `_get_permalink` to avoid
@@ -283,7 +294,9 @@ class GroupSerializerBase(Serializer):
                 result[item].update(seen_stats.get(item, {}))
         return result
 
-    def serialize(self, obj, attrs, user) -> BaseGroupSerializerResponse:
+    def serialize(
+        self, obj: Group, attrs: MutableMapping[str, Any], user: Any, **kwargs: Any
+    ) -> BaseGroupSerializerResponse:
         status_details, status_label = self._get_status(attrs, obj)
         permalink = self._get_permalink(attrs, obj)
         is_subscribed, subscription_details = get_subscription_from_attributes(attrs)
@@ -325,18 +338,30 @@ class GroupSerializerBase(Serializer):
             group_dict.update(self._convert_seen_stats(attrs))
         return group_dict
 
-    def _expand(self, key):
+    @abstractmethod
+    def _seen_stats_error(
+        self, error_issue_list: Sequence[Group], user
+    ) -> Mapping[Group, SeenStats]:
+        pass
+
+    @abstractmethod
+    def _seen_stats_performance(
+        self, perf_issue_list: Sequence[Group], user
+    ) -> Mapping[Group, SeenStats]:
+        pass
+
+    def _expand(self, key) -> bool:
         if self.expand is None:
             return False
 
         return key in self.expand
 
-    def _collapse(self, key):
+    def _collapse(self, key) -> bool:
         if self.collapse is None:
             return False
         return key in self.collapse
 
-    def _get_status(self, attrs, obj):
+    def _get_status(self, attrs: MutableMapping[str, Any], obj: Group):
         status = obj.status
         status_details = {}
         if attrs["ignore_until"]:
@@ -392,7 +417,9 @@ class GroupSerializerBase(Serializer):
             status_label = "unresolved"
         return status_details, status_label
 
-    def _get_seen_stats(self, item_list, user):
+    def _get_seen_stats(
+        self, item_list: Sequence[Group], user
+    ) -> Optional[Mapping[Group, SeenStats]]:
         """
         Returns a dictionary keyed by item that includes:
             - times_seen
@@ -400,9 +427,25 @@ class GroupSerializerBase(Serializer):
             - last_seen
             - user_count
         """
-        raise NotImplementedError
+        if self._collapse("stats"):
+            return None
 
-    def _get_group_snuba_stats(self, item_list, seen_stats):
+        # partition the item_list by type
+        error_issues = [group for group in item_list if GroupCategory.ERROR == group.issue_category]
+        perf_issues = [
+            group for group in item_list if GroupCategory.PERFORMANCE == group.issue_category
+        ]
+
+        # bulk query for the seen_stats by type
+        error_stats = self._seen_stats_error(error_issues, user) or {}
+        perf_stats = (self._seen_stats_performance(perf_issues, user) if perf_issues else {}) or {}
+        agg_stats = {**error_stats, **perf_stats}
+        # combine results back
+        return {group: agg_stats.get(group, {}) for group in item_list}
+
+    def _get_group_snuba_stats(
+        self, item_list: Sequence[Group], seen_stats: Optional[Mapping[Group, SeenStats]]
+    ):
         start = self._get_start_from_seen_stats(seen_stats)
         unhandled = {}
 
@@ -449,7 +492,7 @@ class GroupSerializerBase(Serializer):
         return {group_id: {"unhandled": unhandled} for group_id, unhandled in unhandled.items()}
 
     @staticmethod
-    def _get_start_from_seen_stats(seen_stats):
+    def _get_start_from_seen_stats(seen_stats: Optional[Mapping[Group, SeenStats]]):
         # Try to figure out what is a reasonable time frame to look into stats,
         # based on a given "seen stats".  We try to pick a day prior to the earliest last seen,
         # but it has to be at least 14 days, and not more than 90 days ago.
@@ -502,7 +545,9 @@ class GroupSerializerBase(Serializer):
         )
 
     @staticmethod
-    def _resolve_resolutions(groups, user) -> Tuple[Mapping[int, Sequence[Any]], Mapping[int, Any]]:
+    def _resolve_resolutions(
+        groups: Sequence[Group], user
+    ) -> Tuple[Mapping[int, Sequence[Any]], Mapping[int, Any]]:
         resolved_groups = [i for i in groups if i.status == GroupStatus.RESOLVED]
         if not resolved_groups:
             return {}, {}
@@ -538,7 +583,7 @@ class GroupSerializerBase(Serializer):
         return _release_resolutions, _commit_resolutions
 
     @staticmethod
-    def _resolve_external_issue_annotations(groups) -> Mapping[int, Sequence[Any]]:
+    def _resolve_external_issue_annotations(groups: Sequence[Group]) -> Mapping[int, Sequence[Any]]:
         from sentry.models import PlatformExternalIssue
 
         # find the external issues for sentry apps and add them in
@@ -552,7 +597,9 @@ class GroupSerializerBase(Serializer):
         )
 
     @staticmethod
-    def _resolve_integration_annotations(org_id, groups) -> Sequence[Mapping[int, Sequence[Any]]]:
+    def _resolve_integration_annotations(
+        org_id: int, groups: Sequence[Group]
+    ) -> Sequence[Mapping[int, Sequence[Any]]]:
         from sentry.integrations import IntegrationFeatures
 
         integration_annotations = []
@@ -601,7 +648,7 @@ class GroupSerializerBase(Serializer):
         return annotations_for_group
 
     @staticmethod
-    def _is_authorized(user, organization_id):
+    def _is_authorized(user, organization_id: int):
         # If user is not logged in and member of the organization,
         # do not return the permalink which contains private information i.e. org name.
         request = env.request
@@ -624,7 +671,7 @@ class GroupSerializerBase(Serializer):
         return user.is_authenticated and user.get_orgs().filter(id=organization_id).exists()
 
     @staticmethod
-    def _get_permalink(attrs, obj):
+    def _get_permalink(attrs, obj: Group):
         if attrs["authorized"]:
             with sentry_sdk.start_span(op="GroupSerializerBase.serialize.permalink.build"):
                 return obj.get_absolute_url()
@@ -632,12 +679,12 @@ class GroupSerializerBase(Serializer):
             return None
 
     @staticmethod
-    def _convert_seen_stats(stats):
+    def _convert_seen_stats(attrs: SeenStats):
         return {
-            "count": str(stats["times_seen"]),
-            "userCount": stats["user_count"],
-            "firstSeen": stats["first_seen"],
-            "lastSeen": stats["last_seen"],
+            "count": str(attrs["times_seen"]),
+            "userCount": attrs["user_count"],
+            "firstSeen": attrs["first_seen"],
+            "lastSeen": attrs["last_seen"],
         }
 
 
@@ -647,7 +694,7 @@ class GroupSerializer(GroupSerializerBase):
         GroupSerializerBase.__init__(self)
         self.environment_func = environment_func if environment_func is not None else lambda: None
 
-    def _get_seen_stats(self, item_list, user):
+    def _seen_stats_error(self, item_list, user):
         try:
             environment = self.environment_func()
         except Environment.DoesNotExist:
@@ -689,11 +736,22 @@ class GroupSerializer(GroupSerializerBase):
 
         return attrs
 
+    def _seen_stats_performance(
+        self, perf_issue_list: Sequence[Group], user
+    ) -> Mapping[Group, SeenStats]:
+        # TODO(gilbert): implement this to return real data
+        if perf_issue_list:
+            raise NotImplementedError
+
+        return {}
+
 
 class SharedGroupSerializer(GroupSerializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(
+        self, obj: Group, attrs: MutableMapping[str, Any], user: Any, **kwargs: Any
+    ) -> BaseGroupSerializerResponse:
         result = super().serialize(obj, attrs, user)
-        del result["annotations"]
+        del result["annotations"]  # type:ignore
         return result
 
 
@@ -765,6 +823,24 @@ class GroupSerializerSnuba(GroupSerializerBase):
             else []
         )
 
+    def _seen_stats_error(self, error_issue_list: Sequence[Group], user) -> Mapping[Any, SeenStats]:
+        return self._execute_seen_stats_query(
+            item_list=error_issue_list,
+            start=self.start,
+            end=self.end,
+            conditions=self.conditions,
+            environment_ids=self.environment_ids,
+        )
+
+    def _seen_stats_performance(
+        self, perf_issue_list: Sequence[Group], user
+    ) -> Mapping[Group, SeenStats]:
+        # TODO(gilbert): implement this to return real data
+        if perf_issue_list:
+            raise NotImplementedError
+
+        return {}
+
     def _execute_seen_stats_query(
         self, item_list, start=None, end=None, conditions=None, environment_ids=None
     ):
@@ -825,12 +901,3 @@ class GroupSerializerSnuba(GroupSerializerBase):
             }
 
         return attrs
-
-    def _get_seen_stats(self, item_list, user):
-        return self._execute_seen_stats_query(
-            item_list=item_list,
-            start=self.start,
-            end=self.end,
-            conditions=self.conditions,
-            environment_ids=self.environment_ids,
-        )
