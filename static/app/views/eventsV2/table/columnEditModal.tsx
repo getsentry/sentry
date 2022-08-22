@@ -72,7 +72,7 @@ function ColumnEditModal(props: Props) {
       <Body>
         <Instruction>
           {tct(
-            'To group events, add [functionLink: functions] f(x) that may take in additional parameters. [fieldTagLink: Tag and field] columns will help you view more details about the events (i.e. title).',
+            'To group events, add [functionLink: functions] f(x), which may take in additional parameters. [fieldTagLink: Tags and fields] will help you view more details about the events (i.e. title).',
             {
               functionLink: (
                 <ExternalLink href="https://docs.sentry.io/product/discover-queries/query-builder/#filter-by-table-columns" />
