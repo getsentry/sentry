@@ -14,15 +14,17 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-scripts": "5.0.1",
+    "speccy": "^0.11.0",
     "swagger-ui-react": "^4.14.0",
     "typescript": "^4.7.4",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "GENERATE_SOURCEMAP=false react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "combine-spec": "speccy resolve public/open-api/openapi.json -o public/open-api/openapi.yml",
+    "start": "yarn combine-spec && GENERATE_SOURCEMAP=false react-scripts start",
+    "build": "yarn combine-spec && react-scripts build",
+    "test": "yarn combine-spec && react-scripts test",
+    "eject": "yarn combine-spec && react-scripts eject"
   },
   "eslintConfig": {
     "extends": [

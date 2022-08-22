@@ -57,3 +57,4 @@ Brewfile.lock.json
 import-graph.txt
 import-graph.dot
 bin/rrweb-output
+swagger-ui/**/openapi.yml
