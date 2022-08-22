@@ -1,0 +1,248 @@
+{
+  "culprit": "SentryTest2.Controllers.ValuesController in Get",
+  "event_id": "33234783df934474926b229431daf7b0",
+  "environment": "Development",
+  "platform": "csharp",
+  "logger": "Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddle...",
+  "fingerprint": [
+    "{{ default }}"
+  ],
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "Invoke",
+              "package": "Microsoft.AspNetCore.Diagnostics, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60",
+              "module": "Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddleware",
+              "context_line": "Void MoveNext()",
+              "in_app": false
+            },
+            {
+              "function": "HandleNonSuccessAndDebuggerNotification",
+              "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
+              "module": "System.Runtime.CompilerServices.TaskAwaiter",
+              "context_line": "Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)",
+              "in_app": false
+            },
+            {
+              "function": "Throw",
+              "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
+              "module": "System.Runtime.ExceptionServices.ExceptionDispatchInfo",
+              "context_line": "Void Throw()",
+              "in_app": false
+            },
+            {
+              "function": "Invoke",
+              "package": "Microsoft.AspNetCore.Routing, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60",
+              "module": "Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware",
+              "context_line": "Void MoveNext()",
+              "in_app": false
+            },
+            {
+              "function": "HandleNonSuccessAndDebuggerNotification",
+              "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
+              "module": "System.Runtime.CompilerServices.TaskAwaiter",
+              "context_line": "Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)",
+              "in_app": false
+            },
+            {
+              "function": "Throw",
+              "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
+              "module": "System.Runtime.ExceptionServices.ExceptionDispatchInfo",
+              "context_line": "Void Throw()",
+              "in_app": false
+            },
+            {
+              "function": "Invoke",
+              "package": "Microsoft.AspNetCore.Routing, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60",
+              "module": "Microsoft.AspNetCore.Routing.EndpointMiddleware",
+              "context_line": "Void MoveNext()",
+              "in_app": false
+            },
+            {
+              "function": "HandleNonSuccessAndDebuggerNotification",
+              "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
+              "module": "System.Runtime.CompilerServices.TaskAwaiter",
+              "context_line": "Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)",
+              "in_app": false
+            },
+            {
+              "function": "Throw",
+              "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
+              "module": "System.Runtime.ExceptionServices.ExceptionDispatchInfo",
+              "context_line": "Void Throw()",
+              "in_app": false
+            },
+            {
+              "function": "InvokeAsync",
+              "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60",
+              "module": "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker",
+              "context_line": "Void MoveNext()",
+              "in_app": false
+            },
+            {
+              "function": "HandleNonSuccessAndDebuggerNotification",
+              "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
+              "module": "System.Runtime.CompilerServices.TaskAwaiter",
+              "context_line": "Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)",
+              "in_app": false
+            },
+            {
+              "function": "Throw",
+              "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
+              "module": "System.Runtime.ExceptionServices.ExceptionDispatchInfo",
+              "context_line": "Void Throw()",
+              "in_app": false
+            },
+            {
+              "function": "InvokeFilterPipelineAsync",
+              "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60",
+              "module": "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker",
+              "context_line": "Void MoveNext()",
+              "in_app": false
+            },
+            {
+              "function": "Next",
+              "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60",
+              "module": "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker",
+              "context_line": "System.Threading.Tasks.Task Next(State ByRef, Scope ByRef, System.Object ByRef, Boolean ByRef)",
+              "in_app": false
+            },
+            {
+              "function": "Rethrow",
+              "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60",
+              "module": "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker",
+              "context_line": "Void Rethrow(Microsoft.AspNetCore.Mvc.Filters.ResourceExecutedContext)",
+              "in_app": false
+            },
+            {
+              "function": "Throw",
+              "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
+              "module": "System.Runtime.ExceptionServices.ExceptionDispatchInfo",
+              "context_line": "Void Throw()",
+              "in_app": false
+            },
+            {
+              "function": "InvokeNextResourceFilter",
+              "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60",
+              "module": "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker",
+              "context_line": "Void MoveNext()",
+              "in_app": false
+            },
+            {
+              "function": "HandleNonSuccessAndDebuggerNotification",
+              "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
+              "module": "System.Runtime.CompilerServices.TaskAwaiter",
+              "context_line": "Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)",
+              "in_app": false
+            },
+            {
+              "function": "Throw",
+              "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
+              "module": "System.Runtime.ExceptionServices.ExceptionDispatchInfo",
+              "context_line": "Void Throw()",
+              "in_app": false
+            },
+            {
+              "function": "InvokeInnerFilterAsync",
+              "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60",
+              "module": "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker",
+              "context_line": "Void MoveNext()",
+              "in_app": false
+            },
+            {
+              "function": "Next",
+              "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60",
+              "module": "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker",
+              "context_line": "System.Threading.Tasks.Task Next(State ByRef, Scope ByRef, System.Object ByRef, Boolean ByRef)",
+              "in_app": false
+            },
+            {
+              "function": "Rethrow",
+              "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60",
+              "module": "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker",
+              "context_line": "Void Rethrow(Microsoft.AspNetCore.Mvc.Filters.ActionExecutedContext)",
+              "in_app": false
+            },
+            {
+              "function": "Throw",
+              "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
+              "module": "System.Runtime.ExceptionServices.ExceptionDispatchInfo",
+              "context_line": "Void Throw()",
+              "in_app": false
+            },
+            {
+              "function": "InvokeNextActionFilterAsync",
+              "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60",
+              "module": "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker",
+              "context_line": "Void MoveNext()",
+              "in_app": false
+            },
+            {
+              "function": "HandleNonSuccessAndDebuggerNotification",
+              "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
+              "module": "System.Runtime.CompilerServices.TaskAwaiter",
+              "context_line": "Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)",
+              "in_app": false
+            },
+            {
+              "function": "Throw",
+              "package": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
+              "module": "System.Runtime.ExceptionServices.ExceptionDispatchInfo",
+              "context_line": "Void Throw()",
+              "in_app": false
+            },
+            {
+              "function": "InvokeActionMethodAsync",
+              "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60",
+              "module": "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker",
+              "context_line": "Void MoveNext()",
+              "in_app": false
+            },
+            {
+              "function": "Execute",
+              "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60",
+              "module": "Microsoft.AspNetCore.Mvc.Internal.ActionMethodExecutor+SyncObjectResultExecutor",
+              "context_line": "System.Threading.Tasks.ValueTask`1[Microsoft.AspNetCore.Mvc.IActionResult] Execute(Microsoft.AspNetCore.Mvc.Infrastructure.IActionResultTypeMapper, Microsoft.Extensions.Internal.ObjectMethodExecutor, System.Object, System.Object[])",
+              "in_app": false
+            },
+            {
+              "function": "Execute",
+              "package": "Microsoft.AspNetCore.Mvc.Core, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60",
+              "module": "Microsoft.Extensions.Internal.ObjectMethodExecutor",
+              "context_line": "System.Object Execute(System.Object, System.Object[])",
+              "in_app": false
+            },
+            {
+              "function": "lambda_method",
+              "module": "(unknown)",
+              "context_line": "System.Object lambda_method(System.Runtime.CompilerServices.Closure, System.Object, System.Object[])",
+              "in_app": true
+            },
+            {
+              "function": "Get",
+              "abs_path": "C:\\Users\\dvora\\source\\repos\\SentryTest2\\SentryTest2\\Controllers\\ValuesController.cs",
+              "package": "SentryTest2, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+              "module": "SentryTest2.Controllers.ValuesController",
+              "filename": "C:\\Users\\dvora\\source\\repos\\SentryTest2\\SentryTest2\\Controllers\\ValuesController.cs",
+              "lineno": 27,
+              "colno": 13,
+              "in_app": true,
+              "context_line": "Microsoft.AspNetCore.Mvc.ActionResult`1[System.String] Get(Int32)"
+            }
+          ]
+        },
+        "type": "System.Exception",
+        "value": "sync exception",
+        "module": "System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
+        "thread_id": 16
+      }
+    ]
+  },
+  "logentry": {
+    "formatted": "An unhandled exception has occurred while executing the request."
+  },
+  "release": null
+}

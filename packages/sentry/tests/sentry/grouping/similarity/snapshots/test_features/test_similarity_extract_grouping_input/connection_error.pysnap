@@ -1,0 +1,78 @@
+---
+created: '2020-08-21T21:07:52.050172Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)"],["filename","services.py"],["function","<lambda>"],["module","sentry.utils.services"]],[["context-line","return super(SubscriptionQuota, self).is_rate_limited(project, key=key)"],["filename","quotas.py"],["function","is_rate_limited"],["module","getsentry.quotas"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","rejections = is_rate_limited(client, keys, args)"],["filename","redis.py"],["function","is_rate_limited"],["module","sentry.quotas.redis"]],[["context-line","return script(keys, args, client)"],["filename","redis.py"],["function","call_script"],["module","sentry.utils.redis"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","response = connection.read_response()"],["filename","client.py"],["function","parse_response"],["module","redis.client"]],[["context-line","response = self._parser.read_response()"],["filename","connection.py"],["function","read_response"],["module","redis.connection"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","response = self._parser.read_response()"],["filename","connection.py"],["function","read_response"],["module","redis.connection"]],[["context-line","(e.args,))"],["filename","connection.py"],["function","read_response"],["module","redis.connection"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","result = func(*args, **kwargs)"],["filename","safe.py"],["function","safe_execute"],["module","sentry.utils.safe"]],[["context-line","context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)"],["filename","services.py"],["function","<lambda>"],["module","sentry.utils.services"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","return client.evalsha(self.sha, len(keys), *args)"],["filename","client.py"],["function","__call__"],["module","redis.client"]],[["context-line","return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"],["filename","client.py"],["function","evalsha"],["module","redis.client"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","return script(keys, args, client)"],["filename","redis.py"],["function","call_script"],["module","sentry.utils.redis"]],[["context-line","return client.evalsha(self.sha, len(keys), *args)"],["filename","client.py"],["function","__call__"],["module","redis.client"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"],["filename","client.py"],["function","evalsha"],["module","redis.client"]],[["context-line","return self.parse_response(connection, command_name, **options)"],["filename","client.py"],["function","execute_command"],["module","redis.client"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","return self.parse_response(connection, command_name, **options)"],["filename","client.py"],["function","execute_command"],["module","redis.client"]],[["context-line","response = connection.read_response()"],["filename","client.py"],["function","parse_response"],["module","redis.client"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","return super(SubscriptionQuota, self).is_rate_limited(project, key=key)"],["filename","quotas.py"],["function","is_rate_limited"],["module","getsentry.quotas"]],[["context-line","rejections = is_rate_limited(client, keys, args)"],["filename","redis.py"],["function","is_rate_limited"],["module","sentry.quotas.redis"]]]
+similarity:2020-07-23:type:ident-shingle: "ConnectionError"
+similarity:2020-07-23:value:character-5-shingle: " ('Co"
+similarity:2020-07-23:value:character-5-shingle: " by s"
+similarity:2020-07-23:value:character-5-shingle: " clos"
+similarity:2020-07-23:value:character-5-shingle: " from"
+similarity:2020-07-23:value:character-5-shingle: " read"
+similarity:2020-07-23:value:character-5-shingle: " serv"
+similarity:2020-07-23:value:character-5-shingle: " sock"
+similarity:2020-07-23:value:character-5-shingle: " whil"
+similarity:2020-07-23:value:character-5-shingle: "'Conn"
+similarity:2020-07-23:value:character-5-shingle: "('Con"
+similarity:2020-07-23:value:character-5-shingle: ": ('C"
+similarity:2020-07-23:value:character-5-shingle: "Conne"
+similarity:2020-07-23:value:character-5-shingle: "Error"
+similarity:2020-07-23:value:character-5-shingle: "ading"
+similarity:2020-07-23:value:character-5-shingle: "by se"
+similarity:2020-07-23:value:character-5-shingle: "cket:"
+similarity:2020-07-23:value:character-5-shingle: "close"
+similarity:2020-07-23:value:character-5-shingle: "ction"
+similarity:2020-07-23:value:character-5-shingle: "d by "
+similarity:2020-07-23:value:character-5-shingle: "ding "
+similarity:2020-07-23:value:character-5-shingle: "e rea"
+similarity:2020-07-23:value:character-5-shingle: "eadin"
+similarity:2020-07-23:value:character-5-shingle: "ectio"
+similarity:2020-07-23:value:character-5-shingle: "ed by"
+similarity:2020-07-23:value:character-5-shingle: "er.',"
+similarity:2020-07-23:value:character-5-shingle: "erver"
+similarity:2020-07-23:value:character-5-shingle: "et: ("
+similarity:2020-07-23:value:character-5-shingle: "from "
+similarity:2020-07-23:value:character-5-shingle: "g fro"
+similarity:2020-07-23:value:character-5-shingle: "hile "
+similarity:2020-07-23:value:character-5-shingle: "ile r"
+similarity:2020-07-23:value:character-5-shingle: "ing f"
+similarity:2020-07-23:value:character-5-shingle: "ion c"
+similarity:2020-07-23:value:character-5-shingle: "ket: "
+similarity:2020-07-23:value:character-5-shingle: "le re"
+similarity:2020-07-23:value:character-5-shingle: "losed"
+similarity:2020-07-23:value:character-5-shingle: "m soc"
+similarity:2020-07-23:value:character-5-shingle: "n clo"
+similarity:2020-07-23:value:character-5-shingle: "necti"
+similarity:2020-07-23:value:character-5-shingle: "ng fr"
+similarity:2020-07-23:value:character-5-shingle: "nnect"
+similarity:2020-07-23:value:character-5-shingle: "ocket"
+similarity:2020-07-23:value:character-5-shingle: "om so"
+similarity:2020-07-23:value:character-5-shingle: "on cl"
+similarity:2020-07-23:value:character-5-shingle: "onnec"
+similarity:2020-07-23:value:character-5-shingle: "or wh"
+similarity:2020-07-23:value:character-5-shingle: "osed "
+similarity:2020-07-23:value:character-5-shingle: "r whi"
+similarity:2020-07-23:value:character-5-shingle: "r.',)"
+similarity:2020-07-23:value:character-5-shingle: "readi"
+similarity:2020-07-23:value:character-5-shingle: "rom s"
+similarity:2020-07-23:value:character-5-shingle: "ror w"
+similarity:2020-07-23:value:character-5-shingle: "rror "
+similarity:2020-07-23:value:character-5-shingle: "rver."
+similarity:2020-07-23:value:character-5-shingle: "sed b"
+similarity:2020-07-23:value:character-5-shingle: "serve"
+similarity:2020-07-23:value:character-5-shingle: "socke"
+similarity:2020-07-23:value:character-5-shingle: "t: ('"
+similarity:2020-07-23:value:character-5-shingle: "tion "
+similarity:2020-07-23:value:character-5-shingle: "ver.'"
+similarity:2020-07-23:value:character-5-shingle: "while"
+similarity:2020-07-23:value:character-5-shingle: "y ser"

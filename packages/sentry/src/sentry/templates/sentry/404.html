@@ -1,0 +1,24 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Page Not Found" %} | {{ block.super }}{% endblock %}
+
+{% block main %}
+  <section class="body">
+    <div class="alert alert-block alert-error">
+      <div style="font-size:24px;margin-bottom:10px">
+        <span class="icon-exclamation" style="font-size:20px;margin-right:10px;"></span>
+        <span>Page Not Found</span>
+      </div>
+      <p>{% trans "The page you are looking for was not found." %}</p>
+      <p>{% trans "You may wish to try the following:" %}</p>
+      <ul>
+        <li>If you entered the address manually, double check the path. Did you forget a trailing slash?</li>
+        <li>If you followed a link here, try hitting back and reloading the page. It's possible the resource was moved out from under you.</li>
+        <li>If all else fails, <a href="https://github.com/getsentry/sentry/issues/new/choose">contact us</a> with more details.</li>
+      </ul>
+      <p>Not sure what to do? <a href="{% url 'sentry' %}">{% trans "Return to the dashboard" %}</a></p>
+    </div>
+  </section>
+{% endblock %}

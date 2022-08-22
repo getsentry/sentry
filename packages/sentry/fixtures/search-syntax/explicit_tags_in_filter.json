@@ -1,0 +1,64 @@
+[
+  {
+    "query": "tags[fruit]:[apple, pear]",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "textIn",
+        "negated": false,
+        "key": {
+          "type": "keyExplicitTag",
+          "prefix": "tags",
+          "key": {"type": "keySimple", "value": "fruit", "quoted": false}
+        },
+        "operator": "",
+        "value": {
+          "type": "valueTextList",
+          "items": [
+            {
+              "separator": "",
+              "value": {"type": "valueText", "value": "apple", "quoted": false}
+            },
+            {
+              "separator": ", ",
+              "value": {"type": "valueText", "value": "pear", "quoted": false}
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "tags[fruit]:[\"apple wow\", \"pear\"]",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "textIn",
+        "negated": false,
+        "key": {
+          "type": "keyExplicitTag",
+          "prefix": "tags",
+          "key": {"type": "keySimple", "value": "fruit", "quoted": false}
+        },
+        "operator": "",
+        "value": {
+          "type": "valueTextList",
+          "items": [
+            {
+              "separator": "",
+              "value": {"type": "valueText", "value": "apple wow", "quoted": true}
+            },
+            {
+              "separator": ", ",
+              "value": {"type": "valueText", "value": "pear", "quoted": true}
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

@@ -1,0 +1,12 @@
+{% extends "sentry/bases/auth.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Recover Account" %} | {{ block.super }}{% endblock %}
+
+{% block auth_main %}
+	<h3>{% trans "Recover Account" %}</h3>
+
+	<p>{% blocktrans %}We have sent an email to the address registered with this account containing further instructions to reset your password.{% endblocktrans %}</p>
+{% endblock %}

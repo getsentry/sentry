@@ -1,0 +1,17 @@
+[
+  {
+    "query": "timestamp.to_hour:2018-01-01T05:06:07+00:00",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "specificDate",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "timestamp.to_hour", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueIso8601Date", "value": "2018-01-01T05:06:07.000Z"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

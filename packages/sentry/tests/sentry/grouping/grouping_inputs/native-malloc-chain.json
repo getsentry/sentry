@@ -1,0 +1,83 @@
+{
+  "platform": "native",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "handled": false,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "application_frame"
+            },
+            {
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "symbolicated"
+              },
+              "function": "malloc_zone_malloc",
+              "in_app": false,
+              "instruction_addr": "0x7fff714c3d79",
+              "package": "/usr/lib/system/libsystem_malloc.dylib",
+              "symbol": "malloc_zone_malloc",
+              "trust": "fp"
+            },
+            {
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "symbolicated"
+              },
+              "function": "nanov2_malloc",
+              "in_app": false,
+              "instruction_addr": "0x7fff714c3e57",
+              "package": "/usr/lib/system/libsystem_malloc.dylib",
+              "symbol": "nanov2_malloc",
+              "trust": "fp"
+            },
+            {
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "symbolicated"
+              },
+              "function": "nanov2_allocate",
+              "in_app": false,
+              "instruction_addr": "0x7fff714c3f2a",
+              "package": "/usr/lib/system/libsystem_malloc.dylib",
+              "symbol": "nanov2_allocate",
+              "trust": "fp"
+            },
+            {
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "symbolicated"
+              },
+              "function": "nanov2_allocate_from_block",
+              "in_app": false,
+              "instruction_addr": "0x7fff714c49b0",
+              "package": "/usr/lib/system/libsystem_malloc.dylib",
+              "symbol": "nanov2_allocate_from_block",
+              "trust": "fp"
+            },
+            {
+              "data": {
+                "orig_in_app": -1,
+                "symbolicator_status": "symbolicated"
+              },
+              "function": "nanov2_allocate_from_block.cold.1",
+              "in_app": false,
+              "instruction_addr": "0x7fff714e3f3e",
+              "package": "/usr/lib/system/libsystem_malloc.dylib",
+              "symbol": "nanov2_allocate_from_block.cold.1",
+              "trust": "context"
+            }
+          ]
+        },
+        "type": "EXC_BAD_INSTRUCTION / EXC_I386_INVOP",
+        "value": "Fatal Error: EXC_BAD_INSTRUCTION / EXC_I386_INVOP"
+      }
+    ]
+  }
+}

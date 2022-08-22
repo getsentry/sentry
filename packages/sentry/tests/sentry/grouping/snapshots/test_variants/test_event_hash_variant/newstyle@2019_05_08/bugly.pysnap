@@ -1,0 +1,54 @@
+---
+created: '2021-07-12T13:33:40.148674Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
+          frame (non app frame)
+          frame (non app frame)
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "__kernel_rt_sigreturn"
+          frame (non app frame)
+          frame (marked out of app by stack trace rule (family:native package:/lib/** -app))
+          frame (non app frame)
+            function*
+              "kill"
+        type (ignored because exception is synthetic)
+          "SIGSEGV"
+        value*
+          "Segfault"
+--------------------------------------------------------------------------
+system:
+  hash: "d9c9b0f9ba46e32fddd7cd1512fad235"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame
+          frame
+          frame (ignored due to recursion)
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "__kernel_rt_sigreturn"
+          frame
+          frame (marked out of app by stack trace rule (family:native package:/lib/** -app))
+          frame*
+            function*
+              "kill"
+        type (ignored because exception is synthetic)
+          "SIGSEGV"
+        value (ignored because stacktrace takes precedence)
+          "Segfault"

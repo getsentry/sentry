@@ -1,0 +1,99 @@
+---
+created: '2021-08-04T15:53:47.893224Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "1523e835042dfe806fce37ff02ffa142"
+  tree_label: "application_frame"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "application_frame"
+        type (ignored because exception is synthetic)
+          "EXC_BAD_INSTRUCTION / EXC_I386_INVOP"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXC_BAD_INSTRUCTION / EXC_I386_INVOP"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "3ff01ce959249abecc6bc8a8f1432b0b"
+  tree_label: "malloc_zone_malloc | application_frame"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "application_frame"
+          frame* (marked as prefix frame by stack trace rule (category:malloc +prefix))
+            function*
+              "malloc_zone_malloc"
+            package (ignored because function takes precedence)
+              "libsystem_malloc.dylib"
+        type (ignored because exception is synthetic)
+          "EXC_BAD_INSTRUCTION / EXC_I386_INVOP"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXC_BAD_INSTRUCTION / EXC_I386_INVOP"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "3ff01ce959249abecc6bc8a8f1432b0b"
+  tree_label: "malloc_zone_malloc | application_frame"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "application_frame"
+          frame* (marked as prefix frame by stack trace rule (category:malloc +prefix))
+            function*
+              "malloc_zone_malloc"
+            package (ignored because function takes precedence)
+              "libsystem_malloc.dylib"
+        type (ignored because exception is synthetic)
+          "EXC_BAD_INSTRUCTION / EXC_I386_INVOP"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXC_BAD_INSTRUCTION / EXC_I386_INVOP"
+--------------------------------------------------------------------------
+system:
+  hash: "d3c9685e03a527da49fc79412c994997"
+  tree_label: "malloc_zone_malloc | application_frame"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "application_frame"
+          frame* (marked as prefix frame by stack trace rule (category:malloc +prefix))
+            function*
+              "malloc_zone_malloc"
+            package (ignored because function takes precedence)
+              "libsystem_malloc.dylib"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "nanov2_malloc"
+            package (ignored because function takes precedence)
+              "libsystem_malloc.dylib"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "nanov2_allocate"
+            package (ignored because function takes precedence)
+              "libsystem_malloc.dylib"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "nanov2_allocate_from_block"
+            package (ignored because function takes precedence)
+              "libsystem_malloc.dylib"
+          frame (ignored by stack trace rule (category:indirection -group))
+            function*
+              "nanov2_allocate_from_block.cold.1"
+            package (ignored because function takes precedence)
+              "libsystem_malloc.dylib"
+        type*
+          "EXC_BAD_INSTRUCTION / EXC_I386_INVOP"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXC_BAD_INSTRUCTION / EXC_I386_INVOP"

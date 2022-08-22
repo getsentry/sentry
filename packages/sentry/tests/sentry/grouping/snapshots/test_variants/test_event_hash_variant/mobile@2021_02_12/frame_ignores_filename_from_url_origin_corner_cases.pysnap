@@ -1,0 +1,86 @@
+---
+created: '2021-08-04T15:53:48.995305Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "5899e74dc4921df46bf8fc493dc1fd0a"
+  tree_label: "test"
+  component:
+    app-depth-1*
+      stacktrace*
+        frame*
+          filename*
+            "foo.js"
+          function*
+            "test"
+          context-line*
+            "hello world"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "e04dce7550635e05dbd7f656102cf304"
+  tree_label: "test | test"
+  component:
+    app-depth-2*
+      stacktrace*
+        frame*
+          filename (ignored because frame points to a URL)
+            "foo.js"
+          function*
+            "test"
+          context-line*
+            "hello world"
+        frame*
+          filename*
+            "foo.js"
+          function*
+            "test"
+          context-line*
+            "hello world"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "e04dce7550635e05dbd7f656102cf304"
+  tree_label: "test | test"
+  component:
+    app-depth-max*
+      stacktrace*
+        frame*
+          filename (ignored because frame points to a URL)
+            "foo.js"
+          function*
+            "test"
+          context-line*
+            "hello world"
+        frame*
+          filename*
+            "foo.js"
+          function*
+            "test"
+          context-line*
+            "hello world"
+--------------------------------------------------------------------------
+system:
+  hash: "e04dce7550635e05dbd7f656102cf304"
+  tree_label: "test | test"
+  component:
+    system*
+      stacktrace*
+        frame*
+          filename (ignored because frame points to a URL)
+            "foo.js"
+          function*
+            "test"
+          context-line*
+            "hello world"
+        frame*
+          filename*
+            "foo.js"
+          function*
+            "test"
+          context-line*
+            "hello world"
+        frame
+          filename (ignored because frame points to a URL)
+            "foo.js"
+          context-line (discarded because from URL origin and no function)
+            "hello world"

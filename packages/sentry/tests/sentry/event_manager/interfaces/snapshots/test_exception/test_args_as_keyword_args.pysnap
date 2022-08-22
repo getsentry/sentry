@@ -1,0 +1,23 @@
+---
+created: '2019-03-14T17:12:35.296533Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_exception.py
+---
+errors: null
+get_api_context:
+  excOmitted: null
+  hasSystemFrames: false
+  values:
+  - mechanism: null
+    module: foo.bar
+    rawStacktrace: null
+    stacktrace: null
+    threadId: null
+    type: ValueError
+    value: hello world
+to_json:
+  values:
+  - module: foo.bar
+    type: ValueError
+    value: hello world
+to_string: 'ValueError: hello world'

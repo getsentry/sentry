@@ -1,0 +1,236 @@
+{
+    "event_id": "28434de4ccf346c3b9b95f07ec3a3846",
+    "level": "error",
+    "modules": {
+        "certifi": "2018.4.16",
+        "pip": "18.0",
+        "python": "2.7.15",
+        "sentry-sdk": "0.3.1",
+        "setuptools": "40.0.0",
+        "urllib3": "1.23",
+        "wheel": "0.31.1",
+        "wsgiref": "0.1.2"
+    },
+    "platform": "python",
+    "server_name": "mcbk.local",
+    "exception": {
+        "values": [
+            {
+                "type": "RuntimeError",
+                "value": "Invalid device: A949AE01EBB07300D62AE0178F0944DD21F8C98C",
+                "module": "exceptions",
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "function": "<module>",
+                            "module": "__main__",
+                            "filename": "example.py",
+                            "abs_path": "/Users/[user]/Coding/semaphore/example.py",
+                            "lineno": 20,
+                            "pre_context": [
+                                "def outer():",
+                                "    inner()",
+                                "",
+                                "if __name__ == '__main__':",
+                                "    try:"
+                            ],
+                            "context_line": "        outer()",
+                            "post_context": [
+                                "    except RuntimeError as e:",
+                                "        capture_exception(e)",
+                                ""
+                            ],
+                            "in_app": true,
+                            "vars": {
+                                "__builtins__": "<module '__builtin__' (built-in)>",
+                                "__doc__": "None",
+                                "__file__": "'/Users/jauer/Coding/semaphore/example.py'",
+                                "__name__": "'__main__'",
+                                "__package__": "None",
+                                "capture_exception": "<function capture_exception at 0x1077e75f0>",
+                                "crash": "<function crash at 0x1078379b0>",
+                                "e": "RuntimeError('Invalid device: d/123456789012',)",
+                                "init": "<function init at 0x1077e7410>",
+                                "inner": "<function inner at 0x107837aa0>",
+                                "os": "<module 'os' from '/Users/jauer/.virtualenvs/sentry-python/lib/python2.7/os.py'>",
+                                "outer": "<function outer at 0x107837b18>"
+                            }
+                        },
+                        {
+                            "function": "outer",
+                            "module": "__main__",
+                            "filename": "example.py",
+                            "abs_path": "/Users/[user]/Coding/semaphore/example.py",
+                            "lineno": 16,
+                            "pre_context": [
+                                "",
+                                "def inner():",
+                                "    crash()",
+                                "",
+                                "def outer():"
+                            ],
+                            "context_line": "    inner()",
+                            "post_context": [
+                                "",
+                                "if __name__ == '__main__':",
+                                "    try:",
+                                "        outer()",
+                                "    except RuntimeError as e:"
+                            ],
+                            "in_app": true
+                        },
+                        {
+                            "function": "inner",
+                            "module": "__main__",
+                            "filename": "example.py",
+                            "abs_path": "/Users/[user]/Coding/semaphore/example.py",
+                            "lineno": 13,
+                            "pre_context": [
+                                "def crash():",
+                                "    print('raising now')",
+                                "    raise RuntimeError('Invalid device: d/123456789012')",
+                                "",
+                                "def inner():"
+                            ],
+                            "context_line": "    crash()",
+                            "post_context": [
+                                "",
+                                "def outer():",
+                                "    inner()",
+                                "",
+                                "if __name__ == '__main__':"
+                            ],
+                            "in_app": true
+                        },
+                        {
+                            "function": "crash",
+                            "module": "__main__",
+                            "filename": "example.py",
+                            "abs_path": "/Users/[user]/Coding/semaphore/example.py",
+                            "lineno": 10,
+                            "pre_context": [
+                                "",
+                                "init(os.environ['SENTRY_DSN']);",
+                                "",
+                                "def crash():",
+                                "    print('raising now')"
+                            ],
+                            "context_line": "    raise RuntimeError('Invalid device: d/123456789012')",
+                            "post_context": [
+                                "",
+                                "def inner():",
+                                "    crash()",
+                                "",
+                                "def outer():"
+                            ],
+                            "in_app": true
+                        }
+                    ]
+                }
+            }
+        ]
+    },
+    "sdk": {
+        "name": "sentry.python",
+        "version": "0.1",
+        "integrations": [
+            "logging",
+            "stdlib",
+            "excepthook",
+            "dedupe",
+            "atexit",
+            "modules"
+        ],
+        "packages": [
+            {
+                "name": "pypi:sentry-sdk",
+                "version": "0.1"
+            }
+        ]
+    },
+    "_meta": {
+        "exception": {
+            "values": {
+                "0": {
+                    "stacktrace": {
+                        "frames": {
+                            "0": {
+                                "abs_path": {
+                                    "": {
+                                        "len": 40,
+                                        "rem": [
+                                            [
+                                                "@userpath:replace",
+                                                "s",
+                                                7,
+                                                13
+                                            ]
+                                        ]
+                                    }
+                                }
+                            },
+                            "1": {
+                                "abs_path": {
+                                    "": {
+                                        "len": 40,
+                                        "rem": [
+                                            [
+                                                "@userpath:replace",
+                                                "s",
+                                                7,
+                                                13
+                                            ]
+                                        ]
+                                    }
+                                }
+                            },
+                            "2": {
+                                "abs_path": {
+                                    "": {
+                                        "len": 40,
+                                        "rem": [
+                                            [
+                                                "@userpath:replace",
+                                                "s",
+                                                7,
+                                                13
+                                            ]
+                                        ]
+                                    }
+                                }
+                            },
+                            "3": {
+                                "abs_path": {
+                                    "": {
+                                        "len": 40,
+                                        "rem": [
+                                            [
+                                                "@userpath:replace",
+                                                "s",
+                                                7,
+                                                13
+                                            ]
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "value": {
+                        "": {
+                            "len": 30,
+                            "rem": [
+                                [
+                                    "device_id",
+                                    "p",
+                                    16,
+                                    56
+                                ]
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

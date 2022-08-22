@@ -1,0 +1,63 @@
+---
+created: '2021-07-08T17:38:02.005485Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+SIGABRT:_ (thread_id:_, crashed:_)
+                                              stripped_application_code
+                                              stripped_application_code
+                                   UIKitCore  UIApplicationMain category=threadbase
+                                   UIKitCore  -[UIApplication _run] category=ui
+                                              stripped_application_code
+                              CoreFoundation  CFRunLoopRunSpecific category=indirection
+                              CoreFoundation  __CFRunLoopRun category=internals
+                              CoreFoundation  __CFRunLoopDoSource1 category=internals
+                              CoreFoundation  __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE1_PERFORM_FUNCTION__ category=internals
+                              CoreFoundation  __CFMachPortPerform category=internals
+                                       IOKit  IODispatchCalloutFromCFMessage category=internals
+                                  QuartzCore  CA::Display::DisplayLink::dispatch_items category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                      libsystem_malloc.dylib  malloc_vreport category=malloc
+                           libsystem_c.dylib  abort category=throw
+                                              stripped_application_code
+                                              stripped_application_code

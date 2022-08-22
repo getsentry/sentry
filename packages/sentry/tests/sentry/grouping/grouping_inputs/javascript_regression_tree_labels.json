@@ -1,0 +1,205 @@
+{
+  "platform": "javascript",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "handled": true,
+          "type": "generic"
+        },
+        "raw_stacktrace": {
+          "frames": [
+            {
+              "abs_path": "https://s1.sentry-cdn.com/_static/dist/sentry/chunks/app_actionCreators_tags_tsx-app_actions_savedSearchesActions_tsx-app_components_forms_apiForm-0c4c6a.6e2d643981bbe16ce67b.js",
+              "colno": 60702,
+              "context_line": "{snip} ),a.setExtra(\"code\",r.detail.code),s.Tb(new Error(e))})):s.$e((a=>{a.setExtra(\"status\",t.status),a.setExtra(\"detail\",r.detail),s.Tb(new Erro {snip}",
+              "filename": "/_static/dist/sentry/chunks/app_actionCreators_tags_tsx-app_actions_savedSearchesActions_tsx-app_components_forms_apiForm-0c4c6a.6e2d643981bbe16ce67b.js",
+              "lineno": 1,
+              "post_context": [
+                "//# sourceMappingURL=../sourcemaps/app_actionCreators_tags_tsx-app_actions_savedSearchesActions_tsx-app_components_forms_apiForm-0c4c6a.1054 {snip}"
+              ]
+            },
+            {
+              "abs_path": "https://s1.sentry-cdn.com/_static/dist/sentry/chunks/vendors-node_modules_sentry_minimal_esm_index_js.9747c9fc1b116cf91afd.js",
+              "colno": 7337,
+              "context_line": "{snip} i(\"setTag\",t,e)}function _(t){i(\"setUser\",t)}function y(t){i(\"withScope\",t)}function g(t,e){return i(\"startTransaction\",(0,o.pi)({},t),e)}}, {snip}",
+              "filename": "/_static/dist/sentry/chunks/vendors-node_modules_sentry_minimal_esm_index_js.9747c9fc1b116cf91afd.js",
+              "function": "Object.y",
+              "lineno": 1,
+              "post_context": [
+                "//# sourceMappingURL=../sourcemaps/vendors-node_modules_sentry_minimal_esm_index_js.4aaf96781da16f5906bab6ced49c1a24.js.map"
+              ]
+            },
+            {
+              "abs_path": "https://s1.sentry-cdn.com/_static/dist/sentry/chunks/vendors-node_modules_sentry_minimal_esm_index_js.9747c9fc1b116cf91afd.js",
+              "colno": 6508,
+              "context_line": "{snip} [n-1]=arguments[n];var i=(0,r.Gd)();if(i&&i[t])return i[t].apply(i,(0,o.fl)(e));throw new Error(\"No hub defined or \"+t+\" was not found on th {snip}",
+              "filename": "/_static/dist/sentry/chunks/vendors-node_modules_sentry_minimal_esm_index_js.9747c9fc1b116cf91afd.js",
+              "function": "i",
+              "lineno": 1,
+              "post_context": [
+                "//# sourceMappingURL=../sourcemaps/vendors-node_modules_sentry_minimal_esm_index_js.4aaf96781da16f5906bab6ced49c1a24.js.map"
+              ]
+            },
+            {
+              "abs_path": "https://s1.sentry-cdn.com/_static/dist/sentry/chunks/vendors-node_modules_sentry_minimal_esm_index_js.9747c9fc1b116cf91afd.js",
+              "colno": 1257,
+              "context_line": "{snip} prototype.withScope=function(t){var e=this.pushScope();try{t(e)}finally{this.popScope()}},t.prototype.getClient=function(){return this.getSt {snip}",
+              "filename": "/_static/dist/sentry/chunks/vendors-node_modules_sentry_minimal_esm_index_js.9747c9fc1b116cf91afd.js",
+              "function": "t.withScope",
+              "lineno": 1,
+              "post_context": [
+                "//# sourceMappingURL=../sourcemaps/vendors-node_modules_sentry_minimal_esm_index_js.4aaf96781da16f5906bab6ced49c1a24.js.map"
+              ]
+            },
+            {
+              "abs_path": "https://s1.sentry-cdn.com/_static/dist/sentry/chunks/app_actionCreators_tags_tsx-app_actions_savedSearchesActions_tsx-app_components_forms_apiForm-0c4c6a.6e2d643981bbe16ce67b.js",
+              "colno": 60775,
+              "context_line": "{snip} xtra(\"status\",t.status),a.setExtra(\"detail\",r.detail),s.Tb(new Error(e))}))}}},\"./app/utils/withGlobalSelection.tsx\":(e,t,r)=>{r.d(t,{Z:()=> {snip}",
+              "filename": "/_static/dist/sentry/chunks/app_actionCreators_tags_tsx-app_actions_savedSearchesActions_tsx-app_components_forms_apiForm-0c4c6a.6e2d643981bbe16ce67b.js",
+              "lineno": 1,
+              "post_context": [
+                "//# sourceMappingURL=../sourcemaps/app_actionCreators_tags_tsx-app_actions_savedSearchesActions_tsx-app_components_forms_apiForm-0c4c6a.1054 {snip}"
+              ]
+            }
+          ]
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "webpack:///./app/utils/handleXhrErrorResponse.tsx",
+              "colno": 7,
+              "context_line": "      Sentry.withScope(scope => {",
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/dist/sentry/sourcemaps/app_actionCreators_tags_tsx-app_actions_savedSearchesActions_tsx-app_components_forms_apiF..."
+              },
+              "filename": "./app/utils/handleXhrErrorResponse.tsx",
+              "lineno": 18,
+              "module": "app/utils/handleXhrErrorResponse",
+              "post_context": [
+                "        scope.setExtra('status', resp.status);",
+                "        scope.setExtra('detail', responseJSON.detail);",
+                "        Sentry.captureException(new Error(message));",
+                "      });",
+                "      return;"
+              ],
+              "pre_context": [
+                "",
+                "    const {responseJSON} = resp;",
+                "",
+                "    // If this is a string then just capture it as error",
+                "    if (typeof responseJSON.detail === 'string') {"
+              ]
+            },
+            {
+              "abs_path": "webpack:///../node_modules/@sentry/minimal/esm/index.js",
+              "colno": 5,
+              "context_line": "    callOnHub('withScope', callback);",
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/dist/sentry/sourcemaps/vendors-node_modules_sentry_minimal_esm_index_js.4aaf96781da16f5906bab6ced49c1a24.js.map"
+              },
+              "filename": "../node_modules/@sentry/minimal/esm/index.js",
+              "function": "Sentry",
+              "lineno": 154,
+              "module": "@sentry/minimal/esm/index",
+              "post_context": [
+                "}",
+                "/**",
+                " * Calls a function on the latest client. Use this with caution, it's meant as",
+                " * in \"internal\" helper so we don't need to expose every possible function in",
+                " * the shim. It is not guaranteed that the client actually implements the"
+              ],
+              "pre_context": [
+                " *     popScope();",
+                " *",
+                " * @param callback that will be enclosed into push/popScope.",
+                " */",
+                "export function withScope(callback) {"
+              ]
+            },
+            {
+              "abs_path": "webpack:///../node_modules/@sentry/minimal/esm/index.js",
+              "colno": 28,
+              "context_line": "        return hub[method].apply(hub, __spread(args));",
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/dist/sentry/sourcemaps/vendors-node_modules_sentry_minimal_esm_index_js.4aaf96781da16f5906bab6ced49c1a24.js.map"
+              },
+              "filename": "../node_modules/@sentry/minimal/esm/index.js",
+              "function": "callOnHub",
+              "lineno": 17,
+              "module": "@sentry/minimal/esm/index",
+              "post_context": [
+                "    }",
+                "    throw new Error(\"No hub defined or \" + method + \" was not found on the hub, please open a bug report.\");",
+                "}",
+                "/**",
+                " * Captures an exception event and sends it to Sentry."
+              ],
+              "pre_context": [
+                "        args[_i - 1] = arguments[_i];",
+                "    }",
+                "    var hub = getCurrentHub();",
+                "    if (hub && hub[method]) {",
+                "        // eslint-disable-next-line @typescript-eslint/no-explicit-any"
+              ]
+            },
+            {
+              "abs_path": "webpack:///../node_modules/@sentry/hub/esm/hub.js",
+              "colno": 13,
+              "context_line": "            callback(scope);",
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/dist/sentry/sourcemaps/vendors-node_modules_sentry_minimal_esm_index_js.4aaf96781da16f5906bab6ced49c1a24.js.map"
+              },
+              "filename": "../node_modules/@sentry/hub/esm/hub.js",
+              "function": "apply",
+              "lineno": 86,
+              "module": "@sentry/hub/esm/hub",
+              "post_context": [
+                "        }",
+                "        finally {",
+                "            this.popScope();",
+                "        }",
+                "    };"
+              ],
+              "pre_context": [
+                "     * @inheritDoc",
+                "     */",
+                "    Hub.prototype.withScope = function (callback) {",
+                "        var scope = this.pushScope();",
+                "        try {"
+              ]
+            },
+            {
+              "abs_path": "webpack:///./app/utils/handleXhrErrorResponse.tsx",
+              "colno": 33,
+              "context_line": "        Sentry.captureException(new Error(message));",
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/dist/sentry/sourcemaps/app_actionCreators_tags_tsx-app_actions_savedSearchesActions_tsx-app_components_forms_apiF..."
+              },
+              "filename": "./app/utils/handleXhrErrorResponse.tsx",
+              "function": "callback",
+              "lineno": 21,
+              "module": "app/utils/handleXhrErrorResponse",
+              "post_context": [
+                "      });",
+                "      return;",
+                "    }",
+                "",
+                "    // Ignore sudo-required errors"
+              ],
+              "pre_context": [
+                "    // If this is a string then just capture it as error",
+                "    if (typeof responseJSON.detail === 'string') {",
+                "      Sentry.withScope(scope => {",
+                "        scope.setExtra('status', resp.status);",
+                "        scope.setExtra('detail', responseJSON.detail);"
+              ]
+            }
+          ]
+        },
+        "type": "Error",
+        "value": "Unable to save a recent search"
+      }
+    ]
+  }
+}

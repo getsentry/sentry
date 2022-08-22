@@ -1,0 +1,32 @@
+---
+created: '2020-10-13T10:09:31.365749Z'
+creator: sentry
+source: tests/sentry/grouping/test_fingerprinting.py
+---
+config:
+  rules:
+  - attributes: {}
+    fingerprint:
+    - symcache-error
+    matchers:
+    - - function
+      - symbolicator::actors::symcaches::*
+    - - app
+      - 'false'
+  version: 1
+fingerprint:
+- '{{ default }}'
+title: 'SymCacheError: failed to parse symcache'
+variants:
+  app:
+    component:
+      contributes: true
+      contributes_to_similarity: true
+      hint: null
+    type: component
+  system:
+    component:
+      contributes: true
+      contributes_to_similarity: true
+      hint: null
+    type: component

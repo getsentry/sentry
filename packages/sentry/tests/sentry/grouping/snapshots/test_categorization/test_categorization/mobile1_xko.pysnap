@@ -1,0 +1,39 @@
+---
+created: '2021-08-03T15:05:54.259365Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+SecurityException:_ (thread_id:_, crashed:_)
+                            java.lang.Thread  run category=std
+  java.util.concurrent.ThreadPoolExecutor$Wo  run category=internals
+     java.util.concurrent.ThreadPoolExecutor  runWorker category=threadbase
+       android.os.AsyncTask$SerialExecutor$1  run category=indirection
+             java.util.concurrent.FutureTask  run category=std
+                      android.os.AsyncTask$3  call category=threadbase
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                   android.app.PendingIntent  getActivity category=std
+                   android.app.PendingIntent  getActivity category=internals
+                                              stripped_application_code
+                     java.lang.reflect.Proxy  invoke category=indirection
+                                              stripped_application_code
+                                              stripped_application_code
+                    java.lang.reflect.Method  invoke category=indirection
+     android.app.IActivityManager$Stub$Proxy  getIntentSenderWithSourceToken category=std
+                           android.os.Parcel  readException category=internals
+                           android.os.Parcel  readException category=internals
+                           android.os.Parcel  createException category=internals
+
+
+RuntimeException:An error occurred while executing doInBackground() (thread_id:_, crashed:_)
+                            java.lang.Thread  run category=std
+  java.util.concurrent.ThreadPoolExecutor$Wo  run category=internals
+     java.util.concurrent.ThreadPoolExecutor  runWorker category=threadbase
+       android.os.AsyncTask$SerialExecutor$1  run category=indirection
+             java.util.concurrent.FutureTask  run category=std
+             java.util.concurrent.FutureTask  setException category=internals
+             java.util.concurrent.FutureTask  finishCompletion category=internals
+                      android.os.AsyncTask$4  done category=internals

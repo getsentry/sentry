@@ -1,0 +1,12 @@
+---
+created: '2021-03-29T22:02:40.177701Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+SIGSEGV:Segfault (thread_id:_, crashed:_)
+  /system/framework/arm64/boot-framework.oat  ??? category=internals
+         /system/lib64/libandroid_runtime.so  ??? category=internals
+                     /system/lib64/libgui.so  android::SurfaceControl::getHandle category=indirection
+  /apex/com.android.runtime/lib64/bionic/lib  pthread_mutex_lock category=lock

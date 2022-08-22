@@ -1,0 +1,97 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load sentry_assets %}
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block title %}{{ title }} | {{ block.super }}{% endblock %}
+
+{% block css %}
+  <link href="{% asset_url "sentry" "vendor/select2.css" %}" rel="stylesheet"/>
+{% endblock %}
+
+{% block scripts %}
+  {{ block.super }}
+  {% asset_url 'sentry' 'vendor/jquery.2.2.4.min.js' as jquery_url %}
+  {% script src=jquery_url %}{% endscript %}
+  {% asset_url "sentry" "vendor/select2.min.js" as asset_url %}
+  {% script src=asset_url %}{% endscript %}
+  {% asset_url "sentry" "vendor/tooltip.min.js" as asset_url %}
+  {% script src=asset_url %}{% endscript %}
+
+  {% script %}
+  <script>
+    if (window.$) {
+        window.$(function () {
+            $('select').select2();
+        })
+    }
+  </script>
+  {% endscript %}
+{% endblock %}
+
+
+{% block main %}
+
+    <div class="page-header">
+        <h3>{{ title }}</h3>
+    </div>
+
+    {% if can_link_existing_issues %}
+        <ul class="nav nav-tabs">
+            <li {% if op == "create" %}class="active"{% endif %}>
+                <a href="#create" data-toggle="tab">{% trans "Create New" %}</a>
+            </li>
+            <li {% if op == "link" %}class="active"{% endif %}>
+                <a href="#link" data-toggle="tab">{% trans "Link Existing" %}</a>
+            </li>
+        </ul>
+    {% endif %}
+
+    <div class="tab-content">
+
+        {% for field in read_only_fields %}
+            <div class="form-group">
+                <label class="control-label">{{ field.label }}</label>
+                <div>{{ field.value }}</div>
+            </div>
+        {% endfor %}
+
+        <div class="tab-pane{% if op == "create" or not op %} active{% endif %}" id="create">
+            <form class="form-stacked" action="" method="post">
+                {% csrf_token %}
+                {{ form|as_crispy_errors }}
+                <input type="hidden" name="next" value="{{ next }}" />
+                <input type="hidden" name="op" value="create" />
+                <fieldset>
+                    {% for field in form %}
+                        {{ field|as_crispy_field }}
+                    {% endfor %}
+                </fieldset>
+                <p class="actions">
+                    <button type="submit" class="btn btn-primary">{% trans "Create Issue" %}</button>
+                </p>
+            </form>
+        </div>
+
+        {% if can_link_existing_issues %}
+            <div class="tab-pane{% if op == "link" %} active{% endif %}" id="link">
+                <form class="form-stacked" action="" method="post">
+                    {% csrf_token %}
+                    {{ link_form|as_crispy_errors }}
+                    <input type="hidden" name="next" value="{{ next }}" />
+                    <input type="hidden" name="op" value="link" />
+                    <fieldset>
+                        {% for field in link_form %}
+                            {{ field|as_crispy_field }}
+                        {% endfor %}
+                    </fieldset>
+                    <p class="actions">
+                        <button type="submit" class="btn btn-primary">{% trans "Link Issue" %}</button>
+                    </p>
+                </form>
+            </div>
+        {% endif %}
+
+    </div>
+{% endblock %}

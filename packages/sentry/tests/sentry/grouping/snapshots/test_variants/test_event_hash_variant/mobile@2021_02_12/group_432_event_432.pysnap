@@ -1,0 +1,302 @@
+---
+created: '2021-08-09T15:01:32.698056Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "aeed765d29d1a60cb094f66d2cd8efb2"
+  tree_label: "stripped_application_code"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+        type (ignored because exception is synthetic)
+          "0x40000015 / 0x00000001"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "3cd20dc9b7e7fea3e8575c7cae7b76c2"
+  tree_label: "abort | stripped_application_code | stripped_application_code"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "abort"
+            package (ignored because function takes precedence)
+              "ucrtbase.dll"
+        type (ignored because exception is synthetic)
+          "0x40000015 / 0x00000001"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "6816ce334af8d6b9fb66dc1265c9fccc"
+  tree_label: "abort | stripped_application_code | stripped_application_code | stripped_application_code"
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "abort"
+            package (ignored because function takes precedence)
+              "ucrtbase.dll"
+        type (ignored because exception is synthetic)
+          "0x40000015 / 0x00000001"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"
+--------------------------------------------------------------------------
+app-depth-4:
+  hash: "26eb79a70b1adbd61006c21288099591"
+  tree_label: "abort | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code"
+  component:
+    app-depth-4*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "abort"
+            package (ignored because function takes precedence)
+              "ucrtbase.dll"
+        type (ignored because exception is synthetic)
+          "0x40000015 / 0x00000001"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"
+--------------------------------------------------------------------------
+app-depth-5:
+  hash: "1056f62d72ff8b4d0c3842d696dbb10a"
+  tree_label: "abort | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code"
+  component:
+    app-depth-5*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "abort"
+            package (ignored because function takes precedence)
+              "ucrtbase.dll"
+        type (ignored because exception is synthetic)
+          "0x40000015 / 0x00000001"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "6148c73af04344a8597354711f5951ea"
+  tree_label: "abort | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "abort"
+            package (ignored because function takes precedence)
+              "ucrtbase.dll"
+        type (ignored because exception is synthetic)
+          "0x40000015 / 0x00000001"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"
+--------------------------------------------------------------------------
+system:
+  hash: "8de0f3051007f493cd596f0db872d598"
+  tree_label: "abort | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "RtlUserThreadStart"
+            package (ignored because function takes precedence)
+              "ntdll.dll"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "BaseThreadInitThunk"
+            package (ignored because function takes precedence)
+              "kernel32.dll"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "TppWorkerThread"
+            package (ignored because function takes precedence)
+              "ntdll.dll"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "RtlpTpWorkCallback"
+            package (ignored because function takes precedence)
+              "ntdll.dll"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename (discarded native filename for grouping stability)
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename (discarded native filename for grouping stability)
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename (discarded native filename for grouping stability)
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename (discarded native filename for grouping stability)
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename (discarded native filename for grouping stability)
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "abort"
+            package (ignored because function takes precedence)
+              "ucrtbase.dll"
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "raise"
+            package (ignored because function takes precedence)
+              "ucrtbase.dll"
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
+            filename (discarded native filename for grouping stability)
+              "crashpad_client_win.cc"
+            function*
+              "crashpad::`anonymous namespace'::HandleAbortSignal"
+        type*
+          "0x40000015 / 0x00000001"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"

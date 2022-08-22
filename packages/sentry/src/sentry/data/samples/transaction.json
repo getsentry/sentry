@@ -1,0 +1,198 @@
+{
+   "platform": "python",
+   "message": "",
+   "tags": [
+      [
+         "application",
+         "countries"
+      ],
+      [
+         "browser",
+         "Python Requests 2.22"
+      ],
+      [
+         "browser.name",
+         "Python Requests"
+      ],
+      [
+         "environment",
+         "dev"
+      ],
+      [
+         "release",
+         "v0.1"
+      ],
+      [
+         "user",
+         "ip:127.0.0.1"
+      ],
+      [
+         "transaction",
+         "/country_by_code/"
+      ],
+      [
+         "url",
+         "http://countries:8010/country_by_code/"
+      ]
+   ],
+   "breadcrumbs": {
+      "values": [
+         {
+            "category": "query",
+            "timestamp":1562681591.0,
+            "message": "SELECT \"countries\".\"id\", \"countries\".\"name\", \"countries\".\"continent\", \"countries\".\"region\", \"countries\".\"surface_area\", \"coun...'CAN'",
+            "type": "default",
+            "level": "info"
+         }
+      ]
+   },
+   "contexts": {
+      "runtime": {
+         "version": "3.7.3",
+         "type": "runtime",
+         "name": "CPython",
+         "build": "3.7.3 (default, Jun 27 2019, 22:53:21) \n[GCC 8.3.0]"
+      },
+      "trace": {
+         "parent_span_id": "8988cec7cc0779c1",
+         "type": "trace",
+         "op": "http.server",
+         "trace_id": "a7d67cf796774551a95be6543cacd459",
+         "span_id": "babaae0d4b7512d9",
+         "status": "ok"
+      },
+      "browser": {
+         "version": "2.22",
+         "type": "browser",
+         "name": "Python Requests"
+      }
+   },
+   "culprit": "/country_by_code/",
+   "environment": "dev",
+   "extra": {},
+   "logger": "",
+   "metadata": {
+      "location": "/country_by_code/",
+      "title": "/country_by_code/"
+   },
+   "request": {
+      "url": "http://countries:8010/country_by_code/",
+      "headers": [
+         [
+            "Accept",
+            "*/*"
+         ],
+         [
+            "Accept-Encoding",
+            "gzip, deflate"
+         ],
+         [
+            "Connection",
+            "keep-alive"
+         ],
+         [
+            "Content-Length",
+            ""
+         ],
+         [
+            "Content-Type",
+            "text/plain"
+         ],
+         [
+            "Host",
+            "countries:8010"
+         ],
+         [
+            "Referer",
+            "fixtures.transaction"
+         ],
+         [
+            "Sentry-Trace",
+            "a7d67cf796774551a95be6543cacd459-8988cec7cc0779c1-1"
+         ],
+         [
+            "User-Agent",
+            "python-requests/2.22.0"
+         ]
+      ],
+      "env": {
+         "SERVER_PORT": "8010",
+         "SERVER_NAME": "a90286977562"
+      },
+      "query_string": [
+         [
+            "code",
+            "CAN"
+         ]
+      ],
+      "method": "GET",
+      "inferred_content_type": "text/plain"
+   },
+   "spans": [
+      {
+         "same_process_as_parent":true,
+         "description": "django.contrib.messages.middleware.MessageMiddleware.process_request",
+         "tags": {
+            "error":false
+         },
+         "parent_span_id": "babaae0d4b7512d9",
+         "trace_id": "a7d67cf796774551a95be6543cacd459",
+         "op": "django.middleware",
+         "data": {"duration": 0.02, "offset": 0.02},
+         "span_id": "c048b4fffdc4279d"
+      },
+      {
+         "same_process_as_parent":true,
+         "description": "Django: SELECT \"countries\".\"id\", \"countries\".\"name\", \"countries\".\"continent\", \"countries\".\"region\", \"countries\".\"surface_area\", \"coun...'CAN'",
+         "tags": {
+            "error":false
+         },
+         "parent_span_id": "c048b4fffdc4279d",
+         "trace_id": "a7d67cf796774551a95be6543cacd459",
+         "op": "db",
+         "data": {"duration": 0.100, "offset": 1.0},
+         "span_id": "d047a3a8edc3276a"
+      }
+   ],
+   "transaction": "/country_by_code/",
+   "type": "transaction",
+   "user": {
+      "ip_address": "127.0.0.1"
+   },
+   "measurements": {
+      "fp": {
+         "value": 2258.060000000114
+      },
+      "fcp": {
+         "value": 2258.060000000114
+      },
+      "lcp": {
+         "value": 2807.335
+      },
+      "fid": {
+         "value": 3.4900000027846545
+      },
+      "cls": {
+         "value": 0.0382
+      }
+   },
+   "breakdowns": {
+      "span_ops": {
+         "ops.http": {
+            "value": 2039.16049
+         },
+         "ops.db": {
+            "value": 91.876
+         },
+         "ops.resource": {
+            "value": 2024.234772
+         },
+         "ops.browser": {
+            "value": 633.474827
+         },
+         "total.time": {
+            "value": 2875.570536
+         }
+      }
+   }
+}

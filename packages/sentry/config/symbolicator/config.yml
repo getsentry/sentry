@@ -1,0 +1,11 @@
+bind: "0.0.0.0:3021"
+logging:
+  level: "debug"
+  format: "pretty"
+  enable_backtraces: true
+
+# explicitly disable caches as it's not something we want in tests. in
+# development it may be less ideal. perhaps we should do the same thing as we
+# do with relay one day (one container per test/session), although that will be
+# slow
+cache_dir: null

@@ -1,0 +1,163 @@
+{
+  "event_id": "9ff4f2e96cf54c0aac1f2665f7872e49",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": {
+            "mach_exception": {
+              "code": 0,
+              "exception": 10,
+              "name": "EXC_CRASH",
+              "subcode": 0
+            },
+            "signal": {
+              "code": 0,
+              "name": "SIGABRT",
+              "number": 6
+            }
+          },
+          "synthetic": null,
+          "type": "nsexception"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "UIApplicationMain",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "CFRunLoopRunSpecific",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRunLoopRun",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRunLoopDoSource1",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE1_PERFORM_FUNCTION__",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFMachPortPerform",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "IODispatchCalloutFromCFMessage",
+              "package": "IOKit"
+            },
+            {
+              "function": "CA::Display::DisplayLink::dispatch_items",
+              "package": "QuartzCore"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "-[UIView(Hierarchy) becomeFirstResponder]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIResponder becomeFirstResponder]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIResponder(UIResponderInputViewAdditions) reloadInputViews]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIPeripheralHost(UIKitInternal) _reloadInputViewsForResponder:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIPeripheralHost(UIKitInternal) _inputViewsForResponder:withAutomaticKeyboard:]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "__forwarding_prep_0___",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "___forwarding___",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "+[NSObject(NSObject) doesNotRecognizeSelector:]",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "objc_exception_throw",
+              "package": "libobjc.A.dylib"
+            },
+            {
+              "function": "__exceptionPreprocess",
+              "package": "CoreFoundation"
+            }
+          ]
+        },
+        "type": "NSInvalidArgumentException",
+        "value": "+[UIColor systemBackgroundColor]: unrecognized selector sent to class 0x1baf0e158"
+      }
+    ]
+  },
+  "platform": "cocoa"
+}

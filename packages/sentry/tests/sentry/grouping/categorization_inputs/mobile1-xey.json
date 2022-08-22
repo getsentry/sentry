@@ -1,0 +1,86 @@
+{
+  "event_id": "a7604ffa9bfd4d139c8a905200d242ac",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": {
+            "mach_exception": {
+              "code": 0,
+              "exception": 1,
+              "name": "EXC_BAD_ACCESS",
+              "subcode": 8
+            },
+            "signal": {
+              "code": 0,
+              "code_name": "BUS_NOOP",
+              "name": "SIGBUS",
+              "number": 10
+            }
+          },
+          "synthetic": null,
+          "type": "mach"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "_pthread_wqthread",
+              "package": "libsystem_pthread.dylib"
+            },
+            {
+              "function": "_dispatch_workloop_worker_thread",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_lane_invoke$VARIANT$mp",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_lane_serial_drain$VARIANT$mp",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_client_callout",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_call_block_and_release",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "AudioConverterSetProperty",
+              "package": "AudioToolboxCore"
+            },
+            {
+              "function": "AudioConverterSetProperty",
+              "package": "AudioToolboxCore"
+            },
+            {
+              "function": "SampleRateConverter::SetProperty",
+              "package": "AudioToolboxCore"
+            }
+          ]
+        },
+        "type": "EXC_BAD_ACCESS",
+        "value": "Exception 1, Code 0, Subcode 8 >\nAttempted to dereference null pointer."
+      }
+    ]
+  },
+  "platform": "cocoa"
+}

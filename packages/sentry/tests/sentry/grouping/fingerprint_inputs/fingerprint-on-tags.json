@@ -1,0 +1,23 @@
+{
+  "_fingerprinting_rules": [
+    {
+      "matchers": [
+        [
+          "tags.foobar",
+          "*stuff*"
+        ]
+      ],
+      "fingerprint": [
+        "foobar-matched-stuff-",
+        "{{ tags.barfoo }}"
+      ]
+    }
+  ],
+  "logentry": {
+    "formatted": "Hello my sweet Love"
+  },
+  "tags": {
+    "foobar": "my-stuff-other-stuff",
+    "barfoo": "amazing"
+  }
+}

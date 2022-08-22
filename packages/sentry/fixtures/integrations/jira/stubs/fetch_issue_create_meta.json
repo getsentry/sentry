@@ -1,0 +1,561 @@
+{
+  "expand": "issuetypes",
+  "self": "https://beepboopimatest.atlassian.net/rest/api/2/project/10001",
+  "id": "10001",
+  "key": "CO2",
+  "name": "Colleen-2",
+  "avatarUrls": {
+    "48x48": "https://beepboopimatest.atlassian.net/rest/api/2/universal_avatar/view/type/project/avatar/10410",
+    "24x24": "https://beepboopimatest.atlassian.net/rest/api/2/universal_avatar/view/type/project/avatar/10410?size=small",
+    "16x16": "https://beepboopimatest.atlassian.net/rest/api/2/universal_avatar/view/type/project/avatar/10410?size=xsmall",
+    "32x32": "https://beepboopimatest.atlassian.net/rest/api/2/universal_avatar/view/type/project/avatar/10410?size=medium"
+  },
+  "issuetypes": [
+    {
+      "self": "https://beepboopimatest.atlassian.net/rest/api/2/issuetype/10000",
+      "id": "10000",
+      "description": "A big user story that needs to be broken down. Created by Jira Software - do not edit or delete.",
+      "iconUrl": "https://beepboopimatest.atlassian.net/images/icons/issuetypes/epic.svg",
+      "name": "Epic",
+      "untranslatedName": "Epic",
+      "subtask": false,
+      "expand": "fields",
+      "fields": {
+        "summary": {
+          "required": true,
+          "schema": {
+            "type": "string",
+            "system": "summary"
+          },
+          "name": "Summary",
+          "key": "summary",
+          "hasDefaultValue": false,
+          "operations": ["set"]
+        },
+        "issuetype": {
+          "required": true,
+          "schema": {
+            "type": "issuetype",
+            "system": "issuetype"
+          },
+          "name": "Issue Type",
+          "key": "issuetype",
+          "hasDefaultValue": false,
+          "operations": [],
+          "allowedValues": [
+            {
+              "self": "https://beepboopimatest.atlassian.net/rest/api/2/issuetype/10000",
+              "id": "10000",
+              "description": "A big user story that needs to be broken down. Created by Jira Software - do not edit or delete.",
+              "iconUrl": "https://beepboopimatest.atlassian.net/images/icons/issuetypes/epic.svg",
+              "name": "Epic",
+              "subtask": false,
+              "hierarchyLevel": 1
+            }
+          ]
+        },
+        "components": {
+          "required": false,
+          "schema": {
+            "type": "array",
+            "items": "component",
+            "system": "components"
+          },
+          "name": "Components",
+          "key": "components",
+          "hasDefaultValue": false,
+          "operations": ["add", "set", "remove"],
+          "allowedValues": []
+        },
+        "description": {
+          "required": false,
+          "schema": {
+            "type": "string",
+            "system": "description"
+          },
+          "name": "Description",
+          "key": "description",
+          "hasDefaultValue": false,
+          "operations": ["set"]
+        },
+        "project": {
+          "required": true,
+          "schema": {
+            "type": "project",
+            "system": "project"
+          },
+          "name": "Project",
+          "key": "project",
+          "hasDefaultValue": false,
+          "operations": ["set"],
+          "allowedValues": [
+            {
+              "self": "https://beepboopimatest.atlassian.net/rest/api/2/project/10001",
+              "id": "10001",
+              "key": "CO2",
+              "name": "Colleen-2",
+              "projectTypeKey": "software",
+              "simplified": false,
+              "avatarUrls": {
+                "48x48": "https://beepboopimatest.atlassian.net/rest/api/2/universal_avatar/view/type/project/avatar/10410",
+                "24x24": "https://beepboopimatest.atlassian.net/rest/api/2/universal_avatar/view/type/project/avatar/10410?size=small",
+                "16x16": "https://beepboopimatest.atlassian.net/rest/api/2/universal_avatar/view/type/project/avatar/10410?size=xsmall",
+                "32x32": "https://beepboopimatest.atlassian.net/rest/api/2/universal_avatar/view/type/project/avatar/10410?size=medium"
+              }
+            }
+          ]
+        },
+        "reporter": {
+          "required": true,
+          "schema": {
+            "type": "user",
+            "system": "reporter"
+          },
+          "name": "Reporter",
+          "key": "reporter",
+          "autoCompleteUrl": "https://beepboopimatest.atlassian.net/rest/api/2/user/search?query=",
+          "hasDefaultValue": true,
+          "operations": ["set"]
+        },
+        "customfield_10011": {
+          "required": true,
+          "schema": {
+            "type": "string",
+            "custom": "com.pyxis.greenhopper.jira:gh-epic-label",
+            "customId": 10011
+          },
+          "name": "Epic Name",
+          "key": "customfield_10011",
+          "hasDefaultValue": false,
+          "operations": ["set"]
+        },
+        "customfield_10014": {
+          "required": false,
+          "schema": {
+            "type": "any",
+            "custom": "com.pyxis.greenhopper.jira:gh-epic-link",
+            "customId": 10014
+          },
+          "name": "Epic Link",
+          "key": "customfield_10014",
+          "hasDefaultValue": false,
+          "operations": ["set"]
+        },
+        "labels": {
+          "required": false,
+          "schema": {
+            "type": "array",
+            "items": "string",
+            "system": "labels"
+          },
+          "name": "Labels",
+          "key": "labels",
+          "autoCompleteUrl": "https://beepboopimatest.atlassian.net/rest/api/1.0/labels/suggest?query=",
+          "hasDefaultValue": false,
+          "operations": ["add", "set", "remove"]
+        },
+        "attachment": {
+          "required": false,
+          "schema": {
+            "type": "array",
+            "items": "attachment",
+            "system": "attachment"
+          },
+          "name": "Attachment",
+          "key": "attachment",
+          "hasDefaultValue": false,
+          "operations": ["set"]
+        },
+        "issuelinks": {
+          "required": false,
+          "schema": {
+            "type": "array",
+            "items": "issuelinks",
+            "system": "issuelinks"
+          },
+          "name": "Linked Issues",
+          "key": "issuelinks",
+          "autoCompleteUrl": "https://beepboopimatest.atlassian.net/rest/api/2/issue/picker?currentProjectId=&showSubTaskParent=true&showSubTasks=true&currentIssueKey=null&query=",
+          "hasDefaultValue": false,
+          "operations": ["add"]
+        },
+        "assignee": {
+          "required": false,
+          "schema": {
+            "type": "user",
+            "system": "assignee"
+          },
+          "name": "Assignee",
+          "key": "assignee",
+          "autoCompleteUrl": "https://beepboopimatest.atlassian.net/rest/api/2/user/assignable/search?project=CO2&query=",
+          "hasDefaultValue": false,
+          "operations": ["set"]
+        }
+      }
+    },
+    {
+      "self": "https://beepboopimatest.atlassian.net/rest/api/2/issuetype/10001",
+      "id": "10001",
+      "description": "Functionality or a feature expressed as a user goal.",
+      "iconUrl": "https://beepboopimatest.atlassian.net/rest/api/2/universal_avatar/view/type/issuetype/avatar/10315?size=medium",
+      "name": "Story",
+      "untranslatedName": "Story",
+      "subtask": false,
+      "expand": "fields",
+      "fields": {
+        "summary": {
+          "required": true,
+          "schema": {
+            "type": "string",
+            "system": "summary"
+          },
+          "name": "Summary",
+          "key": "summary",
+          "hasDefaultValue": false,
+          "operations": ["set"]
+        },
+        "issuetype": {
+          "required": true,
+          "schema": {
+            "type": "issuetype",
+            "system": "issuetype"
+          },
+          "name": "Issue Type",
+          "key": "issuetype",
+          "hasDefaultValue": false,
+          "operations": [],
+          "allowedValues": [
+            {
+              "self": "https://beepboopimatest.atlassian.net/rest/api/2/issuetype/10001",
+              "id": "10001",
+              "description": "Functionality or a feature expressed as a user goal.",
+              "iconUrl": "https://beepboopimatest.atlassian.net/rest/api/2/universal_avatar/view/type/issuetype/avatar/10315?size=medium",
+              "name": "Story",
+              "subtask": false,
+              "avatarId": 10315,
+              "hierarchyLevel": 0
+            }
+          ]
+        },
+        "parent": {
+          "required": false,
+          "schema": {
+            "type": "issuelink",
+            "system": "parent"
+          },
+          "name": "Parent",
+          "key": "parent",
+          "hasDefaultValue": false,
+          "operations": ["set"]
+        },
+        "components": {
+          "required": false,
+          "schema": {
+            "type": "array",
+            "items": "component",
+            "system": "components"
+          },
+          "name": "Components",
+          "key": "components",
+          "hasDefaultValue": false,
+          "operations": ["add", "set", "remove"],
+          "allowedValues": []
+        },
+        "description": {
+          "required": false,
+          "schema": {
+            "type": "string",
+            "system": "description"
+          },
+          "name": "Description",
+          "key": "description",
+          "hasDefaultValue": false,
+          "operations": ["set"]
+        },
+        "project": {
+          "required": true,
+          "schema": {
+            "type": "project",
+            "system": "project"
+          },
+          "name": "Project",
+          "key": "project",
+          "hasDefaultValue": false,
+          "operations": ["set"],
+          "allowedValues": [
+            {
+              "self": "https://beepboopimatest.atlassian.net/rest/api/2/project/10001",
+              "id": "10001",
+              "key": "CO2",
+              "name": "Colleen-2",
+              "projectTypeKey": "software",
+              "simplified": false,
+              "avatarUrls": {
+                "48x48": "https://beepboopimatest.atlassian.net/rest/api/2/universal_avatar/view/type/project/avatar/10410",
+                "24x24": "https://beepboopimatest.atlassian.net/rest/api/2/universal_avatar/view/type/project/avatar/10410?size=small",
+                "16x16": "https://beepboopimatest.atlassian.net/rest/api/2/universal_avatar/view/type/project/avatar/10410?size=xsmall",
+                "32x32": "https://beepboopimatest.atlassian.net/rest/api/2/universal_avatar/view/type/project/avatar/10410?size=medium"
+              }
+            }
+          ]
+        },
+        "reporter": {
+          "required": true,
+          "schema": {
+            "type": "user",
+            "system": "reporter"
+          },
+          "name": "Reporter",
+          "key": "reporter",
+          "autoCompleteUrl": "https://beepboopimatest.atlassian.net/rest/api/2/user/search?query=",
+          "hasDefaultValue": true,
+          "operations": ["set"]
+        },
+        "customfield_10014": {
+          "required": false,
+          "schema": {
+            "type": "any",
+            "custom": "com.pyxis.greenhopper.jira:gh-epic-link",
+            "customId": 10014
+          },
+          "name": "Epic Link",
+          "key": "customfield_10014",
+          "hasDefaultValue": false,
+          "operations": ["set"]
+        },
+        "labels": {
+          "required": false,
+          "schema": {
+            "type": "array",
+            "items": "string",
+            "system": "labels"
+          },
+          "name": "Labels",
+          "key": "labels",
+          "autoCompleteUrl": "https://beepboopimatest.atlassian.net/rest/api/1.0/labels/suggest?query=",
+          "hasDefaultValue": false,
+          "operations": ["add", "set", "remove"]
+        },
+        "attachment": {
+          "required": false,
+          "schema": {
+            "type": "array",
+            "items": "attachment",
+            "system": "attachment"
+          },
+          "name": "Attachment",
+          "key": "attachment",
+          "hasDefaultValue": false,
+          "operations": ["set"]
+        },
+        "issuelinks": {
+          "required": false,
+          "schema": {
+            "type": "array",
+            "items": "issuelinks",
+            "system": "issuelinks"
+          },
+          "name": "Linked Issues",
+          "key": "issuelinks",
+          "autoCompleteUrl": "https://beepboopimatest.atlassian.net/rest/api/2/issue/picker?currentProjectId=&showSubTaskParent=true&showSubTasks=true&currentIssueKey=null&query=",
+          "hasDefaultValue": false,
+          "operations": ["add"]
+        },
+        "assignee": {
+          "required": false,
+          "schema": {
+            "type": "user",
+            "system": "assignee"
+          },
+          "name": "Assignee",
+          "key": "assignee",
+          "autoCompleteUrl": "https://beepboopimatest.atlassian.net/rest/api/2/user/assignable/search?project=CO2&query=",
+          "hasDefaultValue": false,
+          "operations": ["set"]
+        }
+      }
+    },
+    {
+      "self": "https://beepboopimatest.atlassian.net/rest/api/2/issuetype/10002",
+      "id": "10002",
+      "description": "A small, distinct piece of work.",
+      "iconUrl": "https://beepboopimatest.atlassian.net/rest/api/2/universal_avatar/view/type/issuetype/avatar/10318?size=medium",
+      "name": "Task",
+      "untranslatedName": "Task",
+      "subtask": false,
+      "expand": "fields",
+      "fields": {
+        "summary": {
+          "required": true,
+          "schema": {
+            "type": "string",
+            "system": "summary"
+          },
+          "name": "Summary",
+          "key": "summary",
+          "hasDefaultValue": false,
+          "operations": ["set"]
+        },
+        "issuetype": {
+          "required": true,
+          "schema": {
+            "type": "issuetype",
+            "system": "issuetype"
+          },
+          "name": "Issue Type",
+          "key": "issuetype",
+          "hasDefaultValue": false,
+          "operations": [],
+          "allowedValues": [
+            {
+              "self": "https://beepboopimatest.atlassian.net/rest/api/2/issuetype/10002",
+              "id": "10002",
+              "description": "A small, distinct piece of work.",
+              "iconUrl": "https://beepboopimatest.atlassian.net/rest/api/2/universal_avatar/view/type/issuetype/avatar/10318?size=medium",
+              "name": "Task",
+              "subtask": false,
+              "avatarId": 10318,
+              "hierarchyLevel": 0
+            }
+          ]
+        },
+        "parent": {
+          "required": false,
+          "schema": {
+            "type": "issuelink",
+            "system": "parent"
+          },
+          "name": "Parent",
+          "key": "parent",
+          "hasDefaultValue": false,
+          "operations": ["set"]
+        },
+        "components": {
+          "required": false,
+          "schema": {
+            "type": "array",
+            "items": "component",
+            "system": "components"
+          },
+          "name": "Components",
+          "key": "components",
+          "hasDefaultValue": false,
+          "operations": ["add", "set", "remove"],
+          "allowedValues": []
+        },
+        "description": {
+          "required": false,
+          "schema": {
+            "type": "string",
+            "system": "description"
+          },
+          "name": "Description",
+          "key": "description",
+          "hasDefaultValue": false,
+          "operations": ["set"]
+        },
+        "project": {
+          "required": true,
+          "schema": {
+            "type": "project",
+            "system": "project"
+          },
+          "name": "Project",
+          "key": "project",
+          "hasDefaultValue": false,
+          "operations": ["set"],
+          "allowedValues": [
+            {
+              "self": "https://beepboopimatest.atlassian.net/rest/api/2/project/10001",
+              "id": "10001",
+              "key": "CO2",
+              "name": "Colleen-2",
+              "projectTypeKey": "software",
+              "simplified": false,
+              "avatarUrls": {
+                "48x48": "https://beepboopimatest.atlassian.net/rest/api/2/universal_avatar/view/type/project/avatar/10410",
+                "24x24": "https://beepboopimatest.atlassian.net/rest/api/2/universal_avatar/view/type/project/avatar/10410?size=small",
+                "16x16": "https://beepboopimatest.atlassian.net/rest/api/2/universal_avatar/view/type/project/avatar/10410?size=xsmall",
+                "32x32": "https://beepboopimatest.atlassian.net/rest/api/2/universal_avatar/view/type/project/avatar/10410?size=medium"
+              }
+            }
+          ]
+        },
+        "reporter": {
+          "required": true,
+          "schema": {
+            "type": "user",
+            "system": "reporter"
+          },
+          "name": "Reporter",
+          "key": "reporter",
+          "autoCompleteUrl": "https://beepboopimatest.atlassian.net/rest/api/2/user/search?query=",
+          "hasDefaultValue": true,
+          "operations": ["set"]
+        },
+        "customfield_10014": {
+          "required": false,
+          "schema": {
+            "type": "any",
+            "custom": "com.pyxis.greenhopper.jira:gh-epic-link",
+            "customId": 10014
+          },
+          "name": "Epic Link",
+          "key": "customfield_10014",
+          "hasDefaultValue": false,
+          "operations": ["set"]
+        },
+        "labels": {
+          "required": false,
+          "schema": {
+            "type": "array",
+            "items": "string",
+            "system": "labels"
+          },
+          "name": "Labels",
+          "key": "labels",
+          "autoCompleteUrl": "https://beepboopimatest.atlassian.net/rest/api/1.0/labels/suggest?query=",
+          "hasDefaultValue": false,
+          "operations": ["add", "set", "remove"]
+        },
+        "attachment": {
+          "required": false,
+          "schema": {
+            "type": "array",
+            "items": "attachment",
+            "system": "attachment"
+          },
+          "name": "Attachment",
+          "key": "attachment",
+          "hasDefaultValue": false,
+          "operations": ["set"]
+        },
+        "issuelinks": {
+          "required": false,
+          "schema": {
+            "type": "array",
+            "items": "issuelinks",
+            "system": "issuelinks"
+          },
+          "name": "Linked Issues",
+          "key": "issuelinks",
+          "autoCompleteUrl": "https://beepboopimatest.atlassian.net/rest/api/2/issue/picker?currentProjectId=&showSubTaskParent=true&showSubTasks=true&currentIssueKey=null&query=",
+          "hasDefaultValue": false,
+          "operations": ["add"]
+        },
+        "assignee": {
+          "required": false,
+          "schema": {
+            "type": "user",
+            "system": "assignee"
+          },
+          "name": "Assignee",
+          "key": "assignee",
+          "autoCompleteUrl": "https://beepboopimatest.atlassian.net/rest/api/2/user/assignable/search?project=CO2&query=",
+          "hasDefaultValue": false,
+          "operations": ["set"]
+        }
+      }
+    }
+  ]
+}

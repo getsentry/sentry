@@ -1,0 +1,28 @@
+---
+created: '2021-08-06T16:25:44.806471Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+IllegalArgumentException:eglChooseConfig failed EGL_NOT_INITIALIZED (thread_id:_, crashed:_)
+                   dalvik.system.NativeStart  main category=system
+          com.android.internal.os.ZygoteInit  main category=internals
+  com.android.internal.os.ZygoteInit$MethodA  run category=internals
+                    java.lang.reflect.Method  invoke category=indirection
+                    java.lang.reflect.Method  invokeNative category=indirection
+                  android.app.ActivityThread  main category=threadbase
+                           android.os.Looper  loop category=threadbase
+                          android.os.Handler  dispatchMessage category=threadbase
+                          android.os.Handler  handleCallback category=threadbase
+  android.view.Choreographer$FrameDisplayEve  run category=indirection
+                  android.view.Choreographer  doFrame category=ui
+                  android.view.Choreographer  doCallbacks category=internals
+   android.view.Choreographer$CallbackRecord  run category=indirection
+  android.view.ViewRootImpl$TraversalRunnabl  run category=indirection
+                   android.view.ViewRootImpl  doTraversal category=ui
+                   android.view.ViewRootImpl  performTraversals category=internals
+    android.view.HardwareRenderer$GlRenderer  initialize category=internals
+    android.view.HardwareRenderer$GlRenderer  initializeEgl category=internals
+    android.view.HardwareRenderer$GlRenderer  loadEglConfig category=internals
+    android.view.HardwareRenderer$GlRenderer  chooseEglConfig category=internals

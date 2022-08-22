@@ -1,0 +1,337 @@
+---
+created: '2021-08-09T15:01:35.927520Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "aeed765d29d1a60cb094f66d2cd8efb2"
+  tree_label: "stripped_application_code"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+        type (ignored because exception is synthetic)
+          "0x40000015 / 0x00000001"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "9a6cd9472e8cac05c8e9b555384341d9"
+  tree_label: "raise | stripped_application_code | stripped_application_code"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "raise"
+            package (ignored because function takes precedence)
+              "ucrtbase.dll"
+        type (ignored because exception is synthetic)
+          "0x40000015 / 0x00000001"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "10931b6ba91d6826d5cce1682fd9d67b"
+  tree_label: "raise | stripped_application_code | stripped_application_code | stripped_application_code"
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "raise"
+            package (ignored because function takes precedence)
+              "ucrtbase.dll"
+        type (ignored because exception is synthetic)
+          "0x40000015 / 0x00000001"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"
+--------------------------------------------------------------------------
+app-depth-4:
+  hash: "4b191f37efd301221e8e32962b44f4d5"
+  tree_label: "raise | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code"
+  component:
+    app-depth-4*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "raise"
+            package (ignored because function takes precedence)
+              "ucrtbase.dll"
+        type (ignored because exception is synthetic)
+          "0x40000015 / 0x00000001"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"
+--------------------------------------------------------------------------
+app-depth-5:
+  hash: "fca1c2ac2f8b338a36b19dc2064660d9"
+  tree_label: "raise | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | DispatchMessageWorker"
+  component:
+    app-depth-5*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "DispatchMessageWorker"
+            package (ignored because function takes precedence)
+              "user32.dll"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "raise"
+            package (ignored because function takes precedence)
+              "ucrtbase.dll"
+        type (ignored because exception is synthetic)
+          "0x40000015 / 0x00000001"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "e964d1e7cfec1ffbfe73559e02f9ac1b"
+  tree_label: "raise | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | DispatchMessageWorker | stripped_application_code | stripped_application_code | std::basic_string<T>::{ctor}"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            filename (discarded native filename for grouping stability)
+              "xstring"
+            function*
+              "std::basic_string<T>::{ctor}"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "DispatchMessageWorker"
+            package (ignored because function takes precedence)
+              "user32.dll"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "raise"
+            package (ignored because function takes precedence)
+              "ucrtbase.dll"
+        type (ignored because exception is synthetic)
+          "0x40000015 / 0x00000001"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"
+--------------------------------------------------------------------------
+system:
+  hash: "6ca70b05afe6f28addb3923c2e247b70"
+  tree_label: "raise | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | DispatchMessageWorker | stripped_application_code | stripped_application_code | std::basic_string<T>::{ctor}"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "RtlUserThreadStart"
+            package (ignored because function takes precedence)
+              "ntdll.dll"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "BaseThreadInitThunk"
+            package (ignored because function takes precedence)
+              "kernel32.dll"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            filename (discarded native filename for grouping stability)
+              "exe_common.inl"
+            function*
+              "invoke_main"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            filename (discarded native filename for grouping stability)
+              "winmain.cpp"
+            function*
+              "wWinMain"
+          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            filename (discarded native filename for grouping stability)
+              "xstring"
+            function*
+              "std::basic_string<T>::{ctor}"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "xstring"
+            function*
+              "std::basic_string<T>::assign"
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+            filename (discarded native filename for grouping stability)
+              "xstring"
+            function*
+              "std::basic_string<T>::assign"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "xstring"
+            function*
+              "std::basic_string<T>::_Reallocate_for"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename (discarded native filename for grouping stability)
+              "functional"
+            function*
+              "std::_Func_class<T>::operator()"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "DispatchMessageWorker"
+            package (ignored because function takes precedence)
+              "user32.dll"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "UserCallWinProcCheckWow"
+            package (ignored because function takes precedence)
+              "user32.dll"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename (discarded native filename for grouping stability)
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename (discarded native filename for grouping stability)
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename (discarded native filename for grouping stability)
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename (discarded native filename for grouping stability)
+              "purevirt.cpp"
+            function*
+              "_purecall"
+            package (ignored because function takes precedence)
+              "vcruntime140.dll"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "abort"
+            package (ignored because function takes precedence)
+              "ucrtbase.dll"
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "raise"
+            package (ignored because function takes precedence)
+              "ucrtbase.dll"
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
+            filename (discarded native filename for grouping stability)
+              "crashpad_client_win.cc"
+            function*
+              "crashpad::`anonymous namespace'::HandleAbortSignal"
+        type*
+          "0x40000015 / 0x00000001"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"

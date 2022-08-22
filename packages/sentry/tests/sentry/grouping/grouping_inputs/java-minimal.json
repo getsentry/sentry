@@ -1,0 +1,462 @@
+{
+  "culprit": "io.sentry.example.Application in home",
+  "event_id": "1c373c00a6da473c869dda24823f2eb4",
+  "platform": "java",
+  "logger": "org.apache.catalina.core.ContainerBase.[Tomcat].[localhost].[...",
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "run",
+              "abs_path": "Thread.java",
+              "module": "java.lang.Thread",
+              "filename": "Thread.java",
+              "lineno": 844,
+              "in_app": false
+            },
+            {
+              "function": "run",
+              "abs_path": "TaskThread.java",
+              "module": "org.apache.tomcat.util.threads.TaskThread$WrappingRunnable",
+              "filename": "TaskThread.java",
+              "lineno": 61,
+              "in_app": false
+            },
+            {
+              "function": "run",
+              "abs_path": "ThreadPoolExecutor.java",
+              "module": "java.util.concurrent.ThreadPoolExecutor$Worker",
+              "filename": "ThreadPoolExecutor.java",
+              "lineno": 641,
+              "in_app": false
+            },
+            {
+              "function": "runWorker",
+              "abs_path": "ThreadPoolExecutor.java",
+              "module": "java.util.concurrent.ThreadPoolExecutor",
+              "filename": "ThreadPoolExecutor.java",
+              "lineno": 1167,
+              "in_app": false
+            },
+            {
+              "function": "run",
+              "abs_path": "SocketProcessorBase.java",
+              "module": "org.apache.tomcat.util.net.SocketProcessorBase",
+              "filename": "SocketProcessorBase.java",
+              "lineno": 49,
+              "in_app": false
+            },
+            {
+              "function": "doRun",
+              "abs_path": "NioEndpoint.java",
+              "module": "org.apache.tomcat.util.net.NioEndpoint$SocketProcessor",
+              "filename": "NioEndpoint.java",
+              "lineno": 1434,
+              "in_app": false
+            },
+            {
+              "function": "process",
+              "abs_path": "AbstractProtocol.java",
+              "module": "org.apache.coyote.AbstractProtocol$ConnectionHandler",
+              "filename": "AbstractProtocol.java",
+              "lineno": 798,
+              "in_app": false
+            },
+            {
+              "function": "process",
+              "abs_path": "AbstractProcessorLight.java",
+              "module": "org.apache.coyote.AbstractProcessorLight",
+              "filename": "AbstractProcessorLight.java",
+              "lineno": 66,
+              "in_app": false
+            },
+            {
+              "function": "service",
+              "abs_path": "Http11Processor.java",
+              "module": "org.apache.coyote.http11.Http11Processor",
+              "filename": "Http11Processor.java",
+              "lineno": 783,
+              "in_app": false
+            },
+            {
+              "function": "service",
+              "abs_path": "CoyoteAdapter.java",
+              "module": "org.apache.catalina.connector.CoyoteAdapter",
+              "filename": "CoyoteAdapter.java",
+              "lineno": 349,
+              "in_app": false
+            },
+            {
+              "function": "invoke",
+              "abs_path": "StandardEngineValve.java",
+              "module": "org.apache.catalina.core.StandardEngineValve",
+              "filename": "StandardEngineValve.java",
+              "lineno": 87,
+              "in_app": false
+            },
+            {
+              "function": "invoke",
+              "abs_path": "ErrorReportValve.java",
+              "module": "org.apache.catalina.valves.ErrorReportValve",
+              "filename": "ErrorReportValve.java",
+              "lineno": 79,
+              "in_app": false
+            },
+            {
+              "function": "invoke",
+              "abs_path": "StandardHostValve.java",
+              "module": "org.apache.catalina.core.StandardHostValve",
+              "filename": "StandardHostValve.java",
+              "lineno": 140,
+              "in_app": false
+            },
+            {
+              "function": "invoke",
+              "abs_path": "AuthenticatorBase.java",
+              "module": "org.apache.catalina.authenticator.AuthenticatorBase",
+              "filename": "AuthenticatorBase.java",
+              "lineno": 474,
+              "in_app": false
+            },
+            {
+              "function": "invoke",
+              "abs_path": "StandardContextValve.java",
+              "module": "org.apache.catalina.core.StandardContextValve",
+              "filename": "StandardContextValve.java",
+              "lineno": 96,
+              "in_app": false
+            },
+            {
+              "function": "invoke",
+              "abs_path": "StandardWrapperValve.java",
+              "module": "org.apache.catalina.core.StandardWrapperValve",
+              "filename": "StandardWrapperValve.java",
+              "lineno": 198,
+              "in_app": false
+            },
+            {
+              "function": "doFilter",
+              "abs_path": "ApplicationFilterChain.java",
+              "module": "org.apache.catalina.core.ApplicationFilterChain",
+              "filename": "ApplicationFilterChain.java",
+              "lineno": 165,
+              "in_app": false
+            },
+            {
+              "function": "internalDoFilter",
+              "abs_path": "ApplicationFilterChain.java",
+              "module": "org.apache.catalina.core.ApplicationFilterChain",
+              "filename": "ApplicationFilterChain.java",
+              "lineno": 192,
+              "in_app": false
+            },
+            {
+              "function": "doFilter",
+              "abs_path": "OncePerRequestFilter.java",
+              "module": "org.springframework.web.filter.OncePerRequestFilter",
+              "filename": "OncePerRequestFilter.java",
+              "lineno": 107,
+              "in_app": false
+            },
+            {
+              "function": "doFilterInternal",
+              "abs_path": "CharacterEncodingFilter.java",
+              "module": "org.springframework.web.filter.CharacterEncodingFilter",
+              "filename": "CharacterEncodingFilter.java",
+              "lineno": 197,
+              "in_app": false
+            },
+            {
+              "function": "doFilter",
+              "abs_path": "ApplicationFilterChain.java",
+              "module": "org.apache.catalina.core.ApplicationFilterChain",
+              "filename": "ApplicationFilterChain.java",
+              "lineno": 165,
+              "in_app": false
+            },
+            {
+              "function": "internalDoFilter",
+              "abs_path": "ApplicationFilterChain.java",
+              "module": "org.apache.catalina.core.ApplicationFilterChain",
+              "filename": "ApplicationFilterChain.java",
+              "lineno": 192,
+              "in_app": false
+            },
+            {
+              "function": "doFilter",
+              "abs_path": "OncePerRequestFilter.java",
+              "module": "org.springframework.web.filter.OncePerRequestFilter",
+              "filename": "OncePerRequestFilter.java",
+              "lineno": 107,
+              "in_app": false
+            },
+            {
+              "function": "doFilterInternal",
+              "abs_path": "HiddenHttpMethodFilter.java",
+              "module": "org.springframework.web.filter.HiddenHttpMethodFilter",
+              "filename": "HiddenHttpMethodFilter.java",
+              "lineno": 81,
+              "in_app": false
+            },
+            {
+              "function": "doFilter",
+              "abs_path": "ApplicationFilterChain.java",
+              "module": "org.apache.catalina.core.ApplicationFilterChain",
+              "filename": "ApplicationFilterChain.java",
+              "lineno": 165,
+              "in_app": false
+            },
+            {
+              "function": "internalDoFilter",
+              "abs_path": "ApplicationFilterChain.java",
+              "module": "org.apache.catalina.core.ApplicationFilterChain",
+              "filename": "ApplicationFilterChain.java",
+              "lineno": 192,
+              "in_app": false
+            },
+            {
+              "function": "doFilter",
+              "abs_path": "OncePerRequestFilter.java",
+              "module": "org.springframework.web.filter.OncePerRequestFilter",
+              "filename": "OncePerRequestFilter.java",
+              "lineno": 107,
+              "in_app": false
+            },
+            {
+              "function": "doFilterInternal",
+              "abs_path": "HttpPutFormContentFilter.java",
+              "module": "org.springframework.web.filter.HttpPutFormContentFilter",
+              "filename": "HttpPutFormContentFilter.java",
+              "lineno": 105,
+              "in_app": false
+            },
+            {
+              "function": "doFilter",
+              "abs_path": "ApplicationFilterChain.java",
+              "module": "org.apache.catalina.core.ApplicationFilterChain",
+              "filename": "ApplicationFilterChain.java",
+              "lineno": 165,
+              "in_app": false
+            },
+            {
+              "function": "internalDoFilter",
+              "abs_path": "ApplicationFilterChain.java",
+              "module": "org.apache.catalina.core.ApplicationFilterChain",
+              "filename": "ApplicationFilterChain.java",
+              "lineno": 192,
+              "in_app": false
+            },
+            {
+              "function": "doFilter",
+              "abs_path": "OncePerRequestFilter.java",
+              "module": "org.springframework.web.filter.OncePerRequestFilter",
+              "filename": "OncePerRequestFilter.java",
+              "lineno": 107,
+              "in_app": false
+            },
+            {
+              "function": "doFilterInternal",
+              "abs_path": "RequestContextFilter.java",
+              "module": "org.springframework.web.filter.RequestContextFilter",
+              "filename": "RequestContextFilter.java",
+              "lineno": 99,
+              "in_app": false
+            },
+            {
+              "function": "doFilter",
+              "abs_path": "ApplicationFilterChain.java",
+              "module": "org.apache.catalina.core.ApplicationFilterChain",
+              "filename": "ApplicationFilterChain.java",
+              "lineno": 165,
+              "in_app": false
+            },
+            {
+              "function": "internalDoFilter",
+              "abs_path": "ApplicationFilterChain.java",
+              "module": "org.apache.catalina.core.ApplicationFilterChain",
+              "filename": "ApplicationFilterChain.java",
+              "lineno": 192,
+              "in_app": false
+            },
+            {
+              "function": "doFilter",
+              "abs_path": "WsFilter.java",
+              "module": "org.apache.tomcat.websocket.server.WsFilter",
+              "filename": "WsFilter.java",
+              "lineno": 52,
+              "in_app": false
+            },
+            {
+              "function": "doFilter",
+              "abs_path": "ApplicationFilterChain.java",
+              "module": "org.apache.catalina.core.ApplicationFilterChain",
+              "filename": "ApplicationFilterChain.java",
+              "lineno": 165,
+              "in_app": false
+            },
+            {
+              "function": "internalDoFilter",
+              "abs_path": "ApplicationFilterChain.java",
+              "module": "org.apache.catalina.core.ApplicationFilterChain",
+              "filename": "ApplicationFilterChain.java",
+              "lineno": 230,
+              "in_app": false
+            },
+            {
+              "function": "service",
+              "abs_path": "HttpServlet.java",
+              "module": "javax.servlet.http.HttpServlet",
+              "filename": "HttpServlet.java",
+              "lineno": 729,
+              "in_app": false
+            },
+            {
+              "function": "service",
+              "abs_path": "FrameworkServlet.java",
+              "module": "org.springframework.web.servlet.FrameworkServlet",
+              "filename": "FrameworkServlet.java",
+              "lineno": 846,
+              "in_app": false
+            },
+            {
+              "function": "service",
+              "abs_path": "HttpServlet.java",
+              "module": "javax.servlet.http.HttpServlet",
+              "filename": "HttpServlet.java",
+              "lineno": 622,
+              "in_app": false
+            },
+            {
+              "function": "doGet",
+              "abs_path": "FrameworkServlet.java",
+              "module": "org.springframework.web.servlet.FrameworkServlet",
+              "filename": "FrameworkServlet.java",
+              "lineno": 861,
+              "in_app": false
+            },
+            {
+              "function": "processRequest",
+              "abs_path": "FrameworkServlet.java",
+              "module": "org.springframework.web.servlet.FrameworkServlet",
+              "filename": "FrameworkServlet.java",
+              "lineno": 970,
+              "in_app": false
+            },
+            {
+              "function": "doService",
+              "abs_path": "DispatcherServlet.java",
+              "module": "org.springframework.web.servlet.DispatcherServlet",
+              "filename": "DispatcherServlet.java",
+              "lineno": 897,
+              "in_app": false
+            },
+            {
+              "function": "doDispatch",
+              "abs_path": "DispatcherServlet.java",
+              "module": "org.springframework.web.servlet.DispatcherServlet",
+              "filename": "DispatcherServlet.java",
+              "lineno": 963,
+              "in_app": false
+            },
+            {
+              "function": "handle",
+              "abs_path": "AbstractHandlerMethodAdapter.java",
+              "module": "org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter",
+              "filename": "AbstractHandlerMethodAdapter.java",
+              "lineno": 85,
+              "in_app": false
+            },
+            {
+              "function": "handleInternal",
+              "abs_path": "RequestMappingHandlerAdapter.java",
+              "module": "org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter",
+              "filename": "RequestMappingHandlerAdapter.java",
+              "lineno": 738,
+              "in_app": false
+            },
+            {
+              "function": "invokeHandlerMethod",
+              "abs_path": "RequestMappingHandlerAdapter.java",
+              "module": "org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter",
+              "filename": "RequestMappingHandlerAdapter.java",
+              "lineno": 827,
+              "in_app": false
+            },
+            {
+              "function": "invokeAndHandle",
+              "abs_path": "ServletInvocableHandlerMethod.java",
+              "module": "org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod",
+              "filename": "ServletInvocableHandlerMethod.java",
+              "lineno": 116,
+              "in_app": false
+            },
+            {
+              "function": "invokeForRequest",
+              "abs_path": "InvocableHandlerMethod.java",
+              "module": "org.springframework.web.method.support.InvocableHandlerMethod",
+              "filename": "InvocableHandlerMethod.java",
+              "lineno": 133,
+              "in_app": false
+            },
+            {
+              "function": "doInvoke",
+              "abs_path": "InvocableHandlerMethod.java",
+              "module": "org.springframework.web.method.support.InvocableHandlerMethod",
+              "filename": "InvocableHandlerMethod.java",
+              "lineno": 205,
+              "in_app": false
+            },
+            {
+              "function": "invoke",
+              "abs_path": "Method.java",
+              "module": "java.lang.reflect.Method",
+              "filename": "Method.java",
+              "lineno": 564,
+              "in_app": false
+            },
+            {
+              "function": "invoke",
+              "abs_path": "DelegatingMethodAccessorImpl.java",
+              "module": "jdk.internal.reflect.DelegatingMethodAccessorImpl",
+              "filename": "DelegatingMethodAccessorImpl.java",
+              "lineno": 43,
+              "in_app": false
+            },
+            {
+              "function": "invoke",
+              "abs_path": "NativeMethodAccessorImpl.java",
+              "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
+              "filename": "NativeMethodAccessorImpl.java",
+              "lineno": 62,
+              "in_app": false
+            },
+            {
+              "function": "invoke0",
+              "abs_path": "NativeMethodAccessorImpl.java",
+              "filename": "NativeMethodAccessorImpl.java",
+              "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
+              "in_app": false
+            },
+            {
+              "function": "home",
+              "abs_path": "Application.java",
+              "module": "io.sentry.example.Application",
+              "filename": "Application.java",
+              "lineno": 30,
+              "in_app": false
+            }
+          ]
+        },
+        "type": "ArithmeticException",
+        "value": "/ by zero",
+        "module": "java.lang"
+      }
+    ]
+  },
+  "logentry": {
+    "formatted": "Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is java.lang.ArithmeticException: / by zero] with root cause"
+  },
+  "release": null
+}

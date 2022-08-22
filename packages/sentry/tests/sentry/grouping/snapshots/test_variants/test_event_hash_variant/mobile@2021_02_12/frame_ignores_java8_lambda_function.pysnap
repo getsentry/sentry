@@ -1,0 +1,40 @@
+---
+created: '2021-08-23T08:27:23.778248Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "be7f1b8b4014de623c533a8218dba5bd"
+  tree_label: "Baz"
+  component:
+    app-depth-1*
+      stacktrace*
+        frame*
+          module*
+            "foo.bar.Baz"
+          function (ignored lambda function)
+            "lambda$work$1"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "be7f1b8b4014de623c533a8218dba5bd"
+  tree_label: "Baz"
+  component:
+    app-depth-max*
+      stacktrace*
+        frame*
+          module*
+            "foo.bar.Baz"
+          function (ignored lambda function)
+            "lambda$work$1"
+--------------------------------------------------------------------------
+system:
+  hash: "be7f1b8b4014de623c533a8218dba5bd"
+  tree_label: "Baz"
+  component:
+    system*
+      stacktrace*
+        frame*
+          module*
+            "foo.bar.Baz"
+          function (ignored lambda function)
+            "lambda$work$1"

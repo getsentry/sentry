@@ -1,0 +1,55 @@
+{% extends "sentry/layout.html" %}
+
+{% load sentry_assets %}
+{% load i18n %}
+
+{% block wrapperclass %}{{ block.super }} narrow{% endblock %}
+
+{% block content %}
+<div class="pattern-bg"></div>
+<section class="org-login">
+  <div class="box box-modal">
+    <div class="box-header">
+      {% block modal_header %}
+        {% block modal_header_signout %}
+          {% if request.user.is_authenticated %}
+            <div class="pull-right">
+              <a href="#" id="sign-out">{% trans "Sign out" %}</a>
+              <form style="display:none;" name="modalLogoutForm" action="{% url 'sentry-logout' %}?next={{ request.get_full_path|urlencode }}" method="POST">
+                {% csrf_token %}
+              </form>
+            </div>
+          {% endif %}
+        {% endblock %}
+        <a class="logo-with-action" href="{% block modal_header_link %}/{% endblock %}">
+          {% if request.user.is_authenticated %}
+            <span class="icon-sentry-logo"></span>
+          {% else %}
+            <span class="icon-sentry-logo-full"></span>
+          {% endif %}
+          {% block modal_header_extra %}{% endblock %}
+        </a>
+      {% endblock %}
+    </div>
+    <div class="box-content with-padding">
+      {% block main %}{% endblock %}
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts_bottom %}
+  {{ block.super }}
+  {% script %}
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const el = document.querySelector('#sign-out');
+      if (el) {
+        el.addEventListener('click', function() {
+          document.modalLogoutForm.submit();
+        });
+      }
+    });
+  </script>
+  {% endscript %}
+{% endblock %}

@@ -1,0 +1,45 @@
+{
+  "event_id": "4af8d4a2e5234d7abe06ea5b5a19339a",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": {
+            "signal": {
+              "name": "SIGSEGV",
+              "number": 11
+            }
+          },
+          "synthetic": true,
+          "type": "signalhandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "oatexec",
+              "package": "/system/framework/arm/boot.oat"
+            },
+            {
+              "package": "/system/lib/libart.so"
+            },
+            {
+              "function": "artAllocArrayFromCodeRosAlloc",
+              "package": "/system/lib/libart.so"
+            },
+            {
+              "function": "art::gc::allocator::RosAlloc::AllocFromRun",
+              "package": "/system/lib/libart.so"
+            }
+          ]
+        },
+        "type": "SIGSEGV",
+        "value": "Segfault"
+      }
+    ]
+  },
+  "platform": "native"
+}

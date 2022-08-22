@@ -1,0 +1,170 @@
+{
+  "event_id": "31db348166be4c3fbc10621291a6d998",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "start",
+              "package": "/usr/lib/system/libdyld.dylib"
+            },
+            {
+              "function": "start",
+              "package": "/usr/lib/system/libdyld.dylib"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "-[NSRunLoop(NSRunLoop) runMode:beforeDate:]",
+              "package": "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation"
+            },
+            {
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
+            },
+            {
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
+            },
+            {
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
+            },
+            {
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
+            },
+            {
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "glDeleteTextures_Exec",
+              "package": "/System/Library/Frameworks/OpenGL.framework/Versions/A/Resources/GLEngine.bundle/GLEngine"
+            },
+            {
+              "function": "gleUnbindDeleteHashNamesAndObjects",
+              "package": "/System/Library/Frameworks/OpenGL.framework/Versions/A/Resources/GLEngine.bundle/GLEngine"
+            },
+            {
+              "function": "gleUnbindTextureObject",
+              "package": "/System/Library/Frameworks/OpenGL.framework/Versions/A/Resources/GLEngine.bundle/GLEngine"
+            },
+            {
+              "function": "glrATI_Hwl_SubmitPacketsWithToken",
+              "package": "/System/Library/Extensions/AMDRadeonX5000GLDriver.bundle/Contents/MacOS/AMDRadeonX5000GLDriver"
+            },
+            {
+              "function": "gpusSubmitDataBuffers",
+              "package": "/System/Library/PrivateFrameworks/GPUSupport.framework/Versions/A/Libraries/libGPUSupportMercury.dylib"
+            },
+            {
+              "function": "gpusKillClientExt",
+              "package": "/System/Library/Extensions/AMDRadeonX5000GLDriver.bundle/Contents/MacOS/AMDRadeonX5000GLDriver"
+            },
+            {
+              "function": "gpusGenerateCrashLog",
+              "package": "/System/Library/PrivateFrameworks/GPUSupport.framework/Versions/A/Libraries/libGPUSupportMercury.dylib"
+            },
+            {
+              "function": "gpusGenerateCrashLog.cold.1",
+              "package": "/System/Library/PrivateFrameworks/GPUSupport.framework/Versions/A/Libraries/libGPUSupportMercury.dylib"
+            },
+            {
+              "function": "abort",
+              "package": "/usr/lib/system/libsystem_c.dylib"
+            },
+            {
+              "function": "__pthread_kill",
+              "package": "/usr/lib/system/libsystem_kernel.dylib"
+            }
+          ]
+        },
+        "type": "0x00000000 / 0x00000000",
+        "value": "Fatal Error: 0x00000000 / 0x00000000"
+      }
+    ]
+  },
+  "platform": "native"
+}

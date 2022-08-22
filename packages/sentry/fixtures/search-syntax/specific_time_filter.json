@@ -1,0 +1,115 @@
+[
+  {
+    "query": "firstSeen:2018-01-01",
+    "result": [
+      {
+        "type": "spaces",
+        "value": ""
+      },
+      {
+        "type": "filter",
+        "filter": "specificDate",
+        "negated": false,
+        "key": {
+          "type": "keySimple",
+          "value": "firstSeen",
+          "quoted": false
+        },
+        "operator": "",
+        "value": {
+          "type": "valueIso8601Date",
+          "value": "2018-01-01T00:00:00.000Z"
+        }
+      },
+      {
+        "type": "spaces",
+        "value": ""
+      }
+    ]
+  },
+  {
+    "query": "lastSeen:2018-01-01T05:06:07Z",
+    "result": [
+      {
+        "type": "spaces",
+        "value": ""
+      },
+      {
+        "type": "filter",
+        "filter": "specificDate",
+        "negated": false,
+        "key": {
+          "type": "keySimple",
+          "value": "lastSeen",
+          "quoted": false
+        },
+        "operator": "",
+        "value": {
+          "type": "valueIso8601Date",
+          "value": "2018-01-01T05:06:07.000Z"
+        }
+      },
+      {
+        "type": "spaces",
+        "value": ""
+      }
+    ]
+  },
+  {
+    "query": "firstSeen:2018-01-01T05:06:07+00:00",
+    "result": [
+      {
+        "type": "spaces",
+        "value": ""
+      },
+      {
+        "type": "filter",
+        "filter": "specificDate",
+        "negated": false,
+        "key": {
+          "type": "keySimple",
+          "value": "firstSeen",
+          "quoted": false
+        },
+        "operator": "",
+        "value": {
+          "type": "valueIso8601Date",
+          "value": "2018-01-01T05:06:07.000Z"
+        }
+      },
+      {
+        "type": "spaces",
+        "value": ""
+      }
+    ]
+  },
+  {
+    "query": "random:2018-01-01T05:06:07",
+    "result": [
+      {
+        "type": "spaces",
+        "value": ""
+      },
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {
+          "type": "keySimple",
+          "value": "random",
+          "quoted": false
+        },
+        "operator": "",
+        "value": {
+          "type": "valueText",
+          "value": "2018-01-01T05:06:07",
+          "quoted": false
+        }
+      },
+      {
+        "type": "spaces",
+        "value": ""
+      }
+    ]
+  }
+]

@@ -1,0 +1,76 @@
+# This script is meant to be sourced by bash, not executed.
+# As such, don't use exit, use return.
+
+# This script is purely a python virtualenv bootstrap, not the entire development environment.
+# For the entire thing, you should still use make bootstrap.
+# Eventually, the goal would be to have an idempotent single script that does
+# everything make bootstrap does and more (system dependencies and so on).
+
+# So just going to sprinkle returns everywhere.
+
+SCRIPTS_DIR="$(
+    cd "$(dirname "${BASH_SOURCE[0]}")"
+    pwd -P
+)"
+source "${SCRIPTS_DIR}/lib.sh"
+configure-sentry-cli
+
+command -v pyenv >/dev/null || {
+    echo "You need to install pyenv. https://develop.sentry.dev/environment/#python"
+    return 1
+}
+
+command -v direnv >/dev/null || {
+    echo "You need to install direnv. https://develop.sentry.dev/environment/#direnv"
+    return 1
+}
+
+# This executes very quickly if the Python versions are already installed
+# This calling approach activates pyenv correctly -> eval "$(pyenv init --path)"
+. "$SCRIPTS_DIR/pyenv_setup.sh"
+venv_name="${PWD}/.venv"
+
+if [[ -f "${venv_name}/bin/activate" ]]; then
+    echo "You have an existing virtualenv. This script will OVERWRITE it. Continue (y/N)?"
+    read resp
+    case "$resp" in
+    y | Y) echo "Okay, let's do this." ;;
+    *)
+        echo "Aborted!"
+        return 1
+        ;;
+    esac
+fi
+
+deactivate 2>/dev/null || true
+rm -rf "$venv_name"
+
+if [ -z "${SENTRY_PYTHON_VERSION-}" ] && ! query-valid-python-version; then
+    echo "Your python3 version isn't as expected. Please run: make setup-pyenv"
+    return 1
+fi
+
+python3 -m venv "${venv_name}" || {
+    echo "bootstrap failed!"
+    return 1
+}
+source "${venv_name}/bin/activate" || {
+    echo "bootstrap failed!"
+    return 1
+}
+make install-py-dev || {
+    echo "bootstrap failed!"
+    return 1
+}
+make setup-git || {
+    echo "bootstrap failed!"
+    return 1
+}
+deactivate || {
+    echo "bootstrap failed!"
+    return 1
+}
+direnv allow || {
+    echo "bootstrap failed!"
+    return 1
+}

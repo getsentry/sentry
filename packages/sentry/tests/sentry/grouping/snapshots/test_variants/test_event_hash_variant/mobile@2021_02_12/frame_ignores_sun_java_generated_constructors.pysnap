@@ -1,0 +1,40 @@
+---
+created: '2021-08-23T08:27:24.048854Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "07d1a8e5728b3c4c7aa8b8273fd0e753"
+  tree_label: "GeneratedSerializationConstructorAccessor<auto>.invoke"
+  component:
+    app-depth-1*
+      stacktrace*
+        frame*
+          module* (removed codegen marker)
+            "sun.reflect.GeneratedSerializationConstructorAccessor<auto>"
+          function*
+            "invoke"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "07d1a8e5728b3c4c7aa8b8273fd0e753"
+  tree_label: "GeneratedSerializationConstructorAccessor<auto>.invoke"
+  component:
+    app-depth-max*
+      stacktrace*
+        frame*
+          module* (removed codegen marker)
+            "sun.reflect.GeneratedSerializationConstructorAccessor<auto>"
+          function*
+            "invoke"
+--------------------------------------------------------------------------
+system:
+  hash: "07d1a8e5728b3c4c7aa8b8273fd0e753"
+  tree_label: "GeneratedSerializationConstructorAccessor<auto>.invoke"
+  component:
+    system*
+      stacktrace*
+        frame*
+          module* (removed codegen marker)
+            "sun.reflect.GeneratedSerializationConstructorAccessor<auto>"
+          function*
+            "invoke"

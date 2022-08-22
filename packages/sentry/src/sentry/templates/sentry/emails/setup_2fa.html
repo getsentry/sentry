@@ -1,0 +1,17 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+
+{% block main %}
+    <h3>Setup Two-Factor Authentication</h3>
+    <p>
+        The {{ organization.name|title }} organization now requires all members to enable
+        two-factor authentication. Effective immediately, you will be unable to access
+        this organization or receive its notifications until you enable at least
+        one form of 2FA.
+    </p>
+    <p>
+        Click the button below to enable 2FA and reinstate your access and settings.
+    </p>
+    <a href="{{ url }}" class="btn">Enable Two-Factor Authentication</a>
+{% endblock %}

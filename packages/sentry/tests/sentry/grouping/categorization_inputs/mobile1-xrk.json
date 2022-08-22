@@ -1,0 +1,108 @@
+{
+  "event_id": "e81e557ec18148fce3d1f716f4d9ad2e",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": {
+            "signal": {
+              "name": "SIGBUS",
+              "number": 7
+            }
+          },
+          "synthetic": true,
+          "type": "signalhandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "__start_thread",
+              "package": "/system/lib64/libc.so"
+            },
+            {
+              "function": "__pthread_start",
+              "package": "/system/lib64/libc.so"
+            },
+            {
+              "function": "std::__ndk1::__thread_proxy<T>"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "std::__ndk1::__function::__func<T>::operator()"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "memcpy",
+              "package": "/system/lib64/libc.so"
+            }
+          ]
+        },
+        "type": "SIGBUS",
+        "value": "BusError"
+      }
+    ]
+  },
+  "platform": "native"
+}

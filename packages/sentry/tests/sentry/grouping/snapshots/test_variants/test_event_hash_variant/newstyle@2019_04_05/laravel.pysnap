@@ -1,0 +1,518 @@
+---
+created: '2020-02-26T19:54:31.812849Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "294cfb8d1aa7ab375c4b49ce2733092c"
+  component:
+    app*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "server.php"
+          frame*
+            filename*
+              "index.php"
+            function*
+              "require_once"
+          frame (non app frame)
+            filename*
+              "kernel.php"
+            function*
+              "Illuminate\\Foundation\\Http\\Kernel::handle"
+          frame (non app frame)
+            filename*
+              "kernel.php"
+            function*
+              "Illuminate\\Foundation\\Http\\Kernel::sendRequestThroughRouter"
+          frame (non app frame)
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::then"
+          frame (non app frame)
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
+          frame (non app frame)
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+          frame (non app frame)
+            filename*
+              "checkformaintenancemode.php"
+            function*
+              "Illuminate\\Foundation\\Http\\Middleware\\CheckForMaintenanceMode::handle"
+          frame (non app frame)
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
+          frame (non app frame)
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+          frame (non app frame)
+            filename*
+              "validatepostsize.php"
+            function*
+              "Illuminate\\Foundation\\Http\\Middleware\\ValidatePostSize::handle"
+          frame (non app frame)
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
+          frame (non app frame)
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+          frame (non app frame)
+            filename*
+              "transformsrequest.php"
+            function*
+              "Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest::handle"
+          frame (non app frame)
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
+          frame (non app frame)
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+          frame (non app frame)
+            filename*
+              "transformsrequest.php"
+            function*
+              "Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest::handle"
+          frame (non app frame)
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
+          frame (non app frame)
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+          frame (non app frame)
+            filename*
+              "trustproxies.php"
+            function*
+              "Fideloper\\Proxy\\TrustProxies::handle"
+          frame (non app frame)
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
+          frame (non app frame)
+            filename*
+              "kernel.php"
+            function*
+              "Illuminate\\Foundation\\Http\\Kernel::Illuminate\\Foundation\\Http\\{closure}"
+          frame (non app frame)
+            filename*
+              "router.php"
+            function*
+              "Illuminate\\Routing\\Router::dispatch"
+          frame (non app frame)
+            filename*
+              "router.php"
+            function*
+              "Illuminate\\Routing\\Router::dispatchToRoute"
+          frame (non app frame)
+            filename*
+              "router.php"
+            function*
+              "Illuminate\\Routing\\Router::runRoute"
+          frame (non app frame)
+            filename*
+              "router.php"
+            function*
+              "Illuminate\\Routing\\Router::runRouteWithinStack"
+          frame (non app frame)
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::then"
+          frame (non app frame)
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
+          frame (non app frame)
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+          frame (non app frame)
+            filename*
+              "encryptcookies.php"
+            function*
+              "Illuminate\\Cookie\\Middleware\\EncryptCookies::handle"
+          frame (non app frame)
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
+          frame (non app frame)
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+          frame (non app frame)
+            filename*
+              "addqueuedcookiestoresponse.php"
+            function*
+              "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse::handle"
+          frame (non app frame)
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
+          frame (non app frame)
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+          frame (non app frame)
+            filename*
+              "startsession.php"
+            function*
+              "Illuminate\\Session\\Middleware\\StartSession::handle"
+          frame (non app frame)
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
+          frame (non app frame)
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+          frame (non app frame)
+            filename*
+              "shareerrorsfromsession.php"
+            function*
+              "Illuminate\\View\\Middleware\\ShareErrorsFromSession::handle"
+          frame (non app frame)
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
+          frame (non app frame)
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+          frame (non app frame)
+            filename*
+              "verifycsrftoken.php"
+            function*
+              "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken::handle"
+          frame (non app frame)
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
+          frame (non app frame)
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+          frame (non app frame)
+            filename*
+              "substitutebindings.php"
+            function*
+              "Illuminate\\Routing\\Middleware\\SubstituteBindings::handle"
+          frame (non app frame)
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
+          frame (non app frame)
+            filename*
+              "router.php"
+            function*
+              "Illuminate\\Routing\\Router::Illuminate\\Routing\\{closure}"
+          frame (non app frame)
+            filename*
+              "route.php"
+            function*
+              "Illuminate\\Routing\\Route::run"
+          frame (non app frame)
+            filename*
+              "route.php"
+            function*
+              "Illuminate\\Routing\\Route::runCallable"
+          frame*
+            filename*
+              "web.php"
+            function*
+              "Illuminate\\Routing\\RouteFileRegistrar::{closure}"
+        type*
+          "Exception"
+--------------------------------------------------------------------------
+system:
+  hash: "a3719dac43d28c56931056d073154398"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "server.php"
+          frame*
+            filename*
+              "index.php"
+            function*
+              "require_once"
+          frame*
+            filename*
+              "kernel.php"
+            function*
+              "Illuminate\\Foundation\\Http\\Kernel::handle"
+          frame*
+            filename*
+              "kernel.php"
+            function*
+              "Illuminate\\Foundation\\Http\\Kernel::sendRequestThroughRouter"
+          frame*
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::then"
+          frame*
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
+          frame*
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+          frame*
+            filename*
+              "checkformaintenancemode.php"
+            function*
+              "Illuminate\\Foundation\\Http\\Middleware\\CheckForMaintenanceMode::handle"
+          frame*
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
+          frame*
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+          frame*
+            filename*
+              "validatepostsize.php"
+            function*
+              "Illuminate\\Foundation\\Http\\Middleware\\ValidatePostSize::handle"
+          frame*
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
+          frame*
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+          frame*
+            filename*
+              "transformsrequest.php"
+            function*
+              "Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest::handle"
+          frame*
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
+          frame*
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+          frame*
+            filename*
+              "transformsrequest.php"
+            function*
+              "Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest::handle"
+          frame*
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
+          frame*
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+          frame*
+            filename*
+              "trustproxies.php"
+            function*
+              "Fideloper\\Proxy\\TrustProxies::handle"
+          frame*
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
+          frame*
+            filename*
+              "kernel.php"
+            function*
+              "Illuminate\\Foundation\\Http\\Kernel::Illuminate\\Foundation\\Http\\{closure}"
+          frame*
+            filename*
+              "router.php"
+            function*
+              "Illuminate\\Routing\\Router::dispatch"
+          frame*
+            filename*
+              "router.php"
+            function*
+              "Illuminate\\Routing\\Router::dispatchToRoute"
+          frame*
+            filename*
+              "router.php"
+            function*
+              "Illuminate\\Routing\\Router::runRoute"
+          frame*
+            filename*
+              "router.php"
+            function*
+              "Illuminate\\Routing\\Router::runRouteWithinStack"
+          frame*
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::then"
+          frame*
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
+          frame*
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+          frame*
+            filename*
+              "encryptcookies.php"
+            function*
+              "Illuminate\\Cookie\\Middleware\\EncryptCookies::handle"
+          frame*
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
+          frame*
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+          frame*
+            filename*
+              "addqueuedcookiestoresponse.php"
+            function*
+              "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse::handle"
+          frame*
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
+          frame*
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+          frame*
+            filename*
+              "startsession.php"
+            function*
+              "Illuminate\\Session\\Middleware\\StartSession::handle"
+          frame*
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
+          frame*
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+          frame*
+            filename*
+              "shareerrorsfromsession.php"
+            function*
+              "Illuminate\\View\\Middleware\\ShareErrorsFromSession::handle"
+          frame*
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
+          frame*
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+          frame*
+            filename*
+              "verifycsrftoken.php"
+            function*
+              "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken::handle"
+          frame*
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
+          frame*
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+          frame*
+            filename*
+              "substitutebindings.php"
+            function*
+              "Illuminate\\Routing\\Middleware\\SubstituteBindings::handle"
+          frame*
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
+          frame*
+            filename*
+              "router.php"
+            function*
+              "Illuminate\\Routing\\Router::Illuminate\\Routing\\{closure}"
+          frame*
+            filename*
+              "route.php"
+            function*
+              "Illuminate\\Routing\\Route::run"
+          frame*
+            filename*
+              "route.php"
+            function*
+              "Illuminate\\Routing\\Route::runCallable"
+          frame*
+            filename*
+              "web.php"
+            function*
+              "Illuminate\\Routing\\RouteFileRegistrar::{closure}"
+        type*
+          "Exception"

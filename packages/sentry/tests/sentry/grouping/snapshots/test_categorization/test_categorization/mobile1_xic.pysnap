@@ -1,0 +1,31 @@
+---
+created: '2021-08-03T17:17:28.921739Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+NSInvalidArgumentException:-[__NSCFString replaceCharactersInRange:withString:]: Range or index out of bounds (thread_id:_, crashed:_)
+                                              stripped_application_code
+                                              stripped_application_code
+                                   UIKitCore  UIApplicationMain category=threadbase
+                                   UIKitCore  -[UIApplication _run] category=ui
+                                              stripped_application_code
+                              CoreFoundation  CFRunLoopRunSpecific category=indirection
+                              CoreFoundation  __CFRunLoopRun category=internals
+                              CoreFoundation  __CFRunLoopDoSources0 category=internals
+                              CoreFoundation  __CFRunLoopDoSource0 category=internals
+                              CoreFoundation  __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__ category=internals
+                                              stripped_application_code
+                                   UIKitCore  -[UIKeyboardTaskQueue continueExecutionOnMainThread] category=ui
+                                   UIKitCore  -[UIKeyboardTaskEntry execute:] category=internals
+                                   UIKitCore  __55-[UIKeyboardImpl handleKeyboardInput:executionContext:]_block_invoke_2 category=internals
+                                   UIKitCore  -[UIKeyboardImpl performKeyboardOutput:] category=internals
+                                   UIKitCore  -[UIKeyboardImpl _performKeyboardOutput:shouldCheckDelegate:] category=internals
+                                   UIKitCore  -[UIKeyboardImpl insertText:updateInputSource:] category=internals
+                                              stripped_application_code
+                              CoreFoundation  -[__NSCFString replaceCharactersInRange:withString:] category=system
+                              CoreFoundation  mutateError category=internals
+                              CoreFoundation  _CFThrowFormattedException category=throw
+                             libobjc.A.dylib  objc_exception_throw category=internals
+                              CoreFoundation  __exceptionPreprocess category=internals

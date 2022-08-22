@@ -1,0 +1,37 @@
+[
+  {
+    "query": "\"hello there\" user.email:foo@example.com \"general kenobi\"",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {"type": "freeText", "value": "hello there", "quoted": true},
+      {"type": "spaces", "value": " "},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "user.email", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "foo@example.com", "quoted": false}
+      },
+      {"type": "spaces", "value": " "},
+      {"type": "freeText", "value": "general kenobi", "quoted": true},
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": " \" hello \" ",
+    "result": [
+      {"type": "spaces", "value": " "},
+      {"type": "freeText", "value": " hello ", "quoted": true},
+      {"type": "spaces", "value": " "}
+    ]
+  },
+  {
+    "query": " \" he\\\"llo \" ",
+    "result": [
+      {"type": "spaces", "value": " "},
+      {"type": "freeText", "value": " he\\\"llo ", "quoted": true},
+      {"type": "spaces", "value": " "}
+    ]
+  }
+]

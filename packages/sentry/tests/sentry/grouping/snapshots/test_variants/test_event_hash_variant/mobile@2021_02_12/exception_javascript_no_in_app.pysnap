@@ -1,0 +1,109 @@
+---
+created: '2021-09-01T10:07:53.921178Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "2f2dc85b9b0cd1e3be91984802c7b1b7"
+  tree_label: "onError"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "app/views/settings/components/forms/form"
+            filename (module takes precedence)
+              "form.jsx"
+            function (ignored because sourcemap used and context line available)
+              "onError"
+            context-line*
+              "this.model.submitError(error);"
+        type*
+          "TypeError"
+        value (ignored because stacktrace takes precedence)
+          "Cannot read property 'submitError' of null"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "26552f86ca2368e708afa1df6effc1c5"
+  tree_label: "onError"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "app/components/modals/createTeamModal"
+            filename (module takes precedence)
+              "createteammodal.jsx"
+            context-line*
+              "onError(err);"
+          frame*
+            module*
+              "app/views/settings/components/forms/form"
+            filename (module takes precedence)
+              "form.jsx"
+            function (ignored because sourcemap used and context line available)
+              "onError"
+            context-line*
+              "this.model.submitError(error);"
+        type*
+          "TypeError"
+        value (ignored because stacktrace takes precedence)
+          "Cannot read property 'submitError' of null"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "26552f86ca2368e708afa1df6effc1c5"
+  tree_label: "onError"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "app/components/modals/createTeamModal"
+            filename (module takes precedence)
+              "createteammodal.jsx"
+            context-line*
+              "onError(err);"
+          frame*
+            module*
+              "app/views/settings/components/forms/form"
+            filename (module takes precedence)
+              "form.jsx"
+            function (ignored because sourcemap used and context line available)
+              "onError"
+            context-line*
+              "this.model.submitError(error);"
+        type*
+          "TypeError"
+        value (ignored because stacktrace takes precedence)
+          "Cannot read property 'submitError' of null"
+--------------------------------------------------------------------------
+system:
+  hash: "26552f86ca2368e708afa1df6effc1c5"
+  tree_label: "onError"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "app/components/modals/createTeamModal"
+            filename (module takes precedence)
+              "createteammodal.jsx"
+            context-line*
+              "onError(err);"
+          frame*
+            module*
+              "app/views/settings/components/forms/form"
+            filename (module takes precedence)
+              "form.jsx"
+            function (ignored because sourcemap used and context line available)
+              "onError"
+            context-line*
+              "this.model.submitError(error);"
+        type*
+          "TypeError"
+        value (ignored because stacktrace takes precedence)
+          "Cannot read property 'submitError' of null"

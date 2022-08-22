@@ -1,0 +1,16 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+
+{% block main %}
+    <h3>Reset Password</h3>
+    <p>A password reset was requested for your account ({{ user.username|safe }}) on Sentry ({{ domain }}). If you did not authorize this, you may simply ignore this email.</p>
+    <p>To continue with your password reset, simply click the button below, and you will be able to change your password. This link will expire in 48 hours.</p>
+
+    <p><a href="{{ url|safe }}" class="btn">Reset Password</a></p>
+
+    <p><small>This request was made by:</small></p>
+    <p><small><pre>
+IP: {{ ip_address }}
+Date: {{ datetime|date:"N j, Y, P e" }}</pre></small></p>
+{% endblock %}

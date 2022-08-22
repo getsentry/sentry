@@ -1,0 +1,3 @@
+# Avoid yarn and prettier fighting over formatting
+package.json
+**/*.trace.json

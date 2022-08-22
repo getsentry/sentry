@@ -1,0 +1,225 @@
+{
+    "sentry.interfaces.Exception": {
+        "values": [
+            {
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "function": "member",
+                            "abs_path": "https://sentry.io/_static/sentry/scripts/views.js",
+                            "pre_context": [
+                                "        removeMember: function(member){",
+                                "            this.collection.remove(member);",
+                                "        },",
+                                "",
+                                "        renderMemberInContainer: function(member){"
+                            ],
+                            "vars": {},
+                            "module": null,
+                            "filename": "../../sentry/scripts/views.js",
+                            "post_context": [
+                                "                $el, $rel;",
+                                "",
+                                "            this.$parent.find('li.empty').remove();",
+                                "",
+                                "            $el = $('#' + this.id + member.id);"
+                            ],
+                            "colno": 50,
+                            "in_app": true,
+                            "data": {
+                                "orig_filename": "/_static/sentry/scripts/global.min.js",
+                                "orig_abs_path": "https://sentry.io/_static/sentry/scripts/global.min.js",
+                                "sourcemap": "https://sentry.io/_static/sentry/scripts/global.min.map.js",
+                                "orig_lineno": 1,
+                                "orig_function": "app.OrderedElementsView.Backbone.View.extend.updateMember",
+                                "orig_colno": 14930
+                            },
+                            "context_line": "            var new_pos = this.collection.indexOf(member),",
+                            "lineno": 283
+                        },
+                        {
+                            "function": "merge",
+                            "abs_path": "https://sentry.io/_static/sentry/scripts/views.js",
+                            "pre_context": [
+                                "            var existing = this.collection.get(member.id);",
+                                "            if (existing.get('version') > member.get('version'))",
+                                "                return;",
+                                "",
+                                "            this.collection.add(member, {"
+                            ],
+                            "vars": {},
+                            "module": null,
+                            "filename": "../../sentry/scripts/views.js",
+                            "post_context": [
+                                "                sort: options.sort !== false ? true : false",
+                                "            });",
+                                "",
+                                "        },",
+                                ""
+                            ],
+                            "colno": 16,
+                            "in_app": true,
+                            "data": {
+                                "orig_filename": "/_static/sentry/scripts/global.min.js",
+                                "orig_abs_path": "https://sentry.io/_static/sentry/scripts/global.min.js",
+                                "sourcemap": "https://sentry.io/_static/sentry/scripts/global.min.map.js",
+                                "orig_lineno": 1,
+                                "orig_function": "app.OrderedElementsView.Backbone.View.extend.addMember",
+                                "orig_colno": 14663
+                            },
+                            "context_line": "                merge: true,",
+                            "lineno": 268
+                        },
+                        {
+                            "function": "poll",
+                            "abs_path": "https://sentry.io/_static/sentry/scripts/views.js",
+                            "pre_context": [
+                                "",
+                                "        poll: function(){",
+                                "            var data;",
+                                "",
+                                "            if (!this.options.realtime || !this.options.pollUrl)"
+                            ],
+                            "vars": {},
+                            "module": null,
+                            "filename": "../../sentry/scripts/views.js",
+                            "post_context": [
+                                "",
+                                "            data = app.utils.getQueryParams();",
+                                "            data.cursor = this.cursor || undefined;",
+                                "",
+                                "            $.ajax({"
+                            ],
+                            "colno": 46,
+                            "in_app": true,
+                            "data": {
+                                "orig_filename": "/_static/sentry/scripts/global.min.js",
+                                "orig_abs_path": "https://sentry.io/_static/sentry/scripts/global.min.js",
+                                "sourcemap": "https://sentry.io/_static/sentry/scripts/global.min.map.js",
+                                "orig_lineno": 1,
+                                "orig_function": "app.GroupListView.app.OrderedElementsView.extend.tick",
+                                "orig_colno": 16467
+                            },
+                            "context_line": "                return window.setTimeout(this.poll, this.options.pollTime);",
+                            "lineno": 389
+                        },
+                        {
+                            "function": "apply",
+                            "abs_path": "https://d3nslu0hdya83q.cloudfront.net/dist/1.0/raven.js",
+                            "pre_context": [
+                                " * @return {Function} The wrapped func",
+                                " */",
+                                "TraceKit.wrap = function traceKitWrapper(func) {",
+                                "    function wrapped() {",
+                                "        try {"
+                            ],
+                            "vars": {},
+                            "module": null,
+                            "filename": "raven.js",
+                            "post_context": [
+                                "        } catch (e) {",
+                                "            TraceKit.report(e);",
+                                "            throw e;",
+                                "        }",
+                                "    }"
+                            ],
+                            "colno": 24,
+                            "in_app": false,
+                            "data": {
+                                "orig_filename": "/dist/1.0/raven.min.js",
+                                "orig_abs_path": "https://d3nslu0hdya83q.cloudfront.net/dist/1.0/raven.min.js",
+                                "sourcemap": "https://d3nslu0hdya83q.cloudfront.net/dist/1.0/raven.min.map",
+                                "orig_lineno": 2,
+                                "orig_function": "e",
+                                "orig_colno": 254
+                            },
+                            "context_line": "            return func.apply(this, arguments);",
+                            "lineno": 62
+                        }
+                    ]
+                },
+                "type": "TypeError",
+                "value": "Object [object Object] has no method 'updateFrom'",
+                "module": null
+            }
+        ]
+    },
+    "sentry.interfaces.Breadcrumbs": {
+        "values": [
+            {
+                "type": "navigation",
+                "timestamp": 1463071692.0,
+                "category": "react-router",
+                "data": {
+                    "from": "/login/",
+                    "to": "/dashboard/"
+                }
+            },
+            {
+                "timestamp": 1463072692.0,
+                "message": "This is an info log message",
+                "category": "console"
+            },
+            {
+                "timestamp": 1463073692.0,
+                "message": "This is a warning log message",
+                "level": "warning",
+                "category": "console"
+            },
+            {
+                "timestamp": 1463074692.0,
+                "message": "This is an error log message",
+                "level": "error",
+                "category": "console"
+            },
+            {
+                "timestamp": 1463075692.0,
+                "message": "This is a critical log message",
+                "level": "critical",
+                "category": "console"
+            },
+            {
+                "timestamp": 1463076692.0,
+                "message": "This is a debug log message",
+                "level": "debug",
+                "category": "console",
+                "data": {
+                    "foo": "bar",
+                    "baz": "blah"
+                }
+            },
+            {
+                "type": "http",
+                "category": "ajax",
+                "timestamp": 1463077692.0,
+                "data": {
+                    "reason": "OK",
+                    "status_code": 200,
+                    "url": "Http://example.com/",
+                    "method": "POST"
+                }
+            },
+            {
+                "type": "ui",
+                "timestamp": 1463078692.0,
+                "message": "div > form[name=\"post\"] > button.btn.btn-small[name=\"submit\"]",
+                "category": "ui.click"
+            }
+        ]
+    },
+    "contexts": {
+        "os": {
+            "version": "10.13.4",
+            "name": "Mac OS X"
+        },
+        "browser": {
+            "version": "65.0.3325",
+            "name": "Chrome"
+        }
+    },
+    "sentry.interfaces.User": {
+        "ip_address": "127.0.0.1",
+        "email": "mail@example.org",
+        "id": "1"
+    }
+}

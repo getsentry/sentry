@@ -1,0 +1,22 @@
+---
+created: '2021-08-03T17:13:31.462062Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+EXC_BAD_ACCESS:_hasGesturesNeedingUpdate > _pressesEvent > _touchesEvent > addTask: > ndType.trigger > taskQueue >
+Attempted to dereference garbage pointer 0x912e01a10. (thread_id:_, crashed:_)
+                                              stripped_application_code
+                                              stripped_application_code
+                                       UIKit  UIApplicationMain category=threadbase
+                                              stripped_application_code
+                              CoreFoundation  CFRunLoopRunSpecific category=indirection
+                              CoreFoundation  __CFRunLoopRun category=internals
+                              CoreFoundation  __CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__ category=internals
+                           libdispatch.dylib  _dispatch_main_queue_callback_4CF$VARIANT$mp category=internals
+                           libdispatch.dylib  _dispatch_client_callout category=threadbase
+                           libdispatch.dylib  _dispatch_sync_thread_bound_invoke category=internals
+                           libdispatch.dylib  _dispatch_client_callout category=threadbase
+                                       UIKit  __97-[UIKeyboardLayout recognizer:beginTouchDownForTouchWithId:atPoint:forBeginState:whenStateReady:]_block_invoke.563 category=internals
+                             libobjc.A.dylib  objc_msgSend category=internals

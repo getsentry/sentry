@@ -1,0 +1,47 @@
+[
+  {
+    "query": "measurements.fp:1.5s",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "duration",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "measurements.fp", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueDuration", "value": 1.5, "unit": "s"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "measurements.fp:>1.5s",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "duration",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "measurements.fp", "quoted": false},
+        "operator": ">",
+        "value": {"type": "valueDuration", "value": 1.5, "unit": "s"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "measurements.fp:<1.5s",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "duration",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "measurements.fp", "quoted": false},
+        "operator": "<",
+        "value": {"type": "valueDuration", "value": 1.5, "unit": "s"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

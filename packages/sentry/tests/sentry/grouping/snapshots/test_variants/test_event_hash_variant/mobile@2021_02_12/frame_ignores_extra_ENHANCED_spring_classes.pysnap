@@ -1,0 +1,40 @@
+---
+created: '2021-08-23T08:27:21.800454Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "be15ca3d511b96918e087c4f42503ca2"
+  tree_label: "config.jipJipManagementApplication"
+  component:
+    app-depth-1*
+      stacktrace*
+        frame*
+          module* (removed codegen marker)
+            "invalid.gruml.talkytalkyhub.common.config.JipJipConfig$$EnhancerBySpringCGLIB$$<auto>$$EnhancerBySpringCGLIB$$<auto>$$FastClassBySpringCGLIB$$<auto>"
+          function*
+            "jipJipManagementApplication"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "be15ca3d511b96918e087c4f42503ca2"
+  tree_label: "config.jipJipManagementApplication"
+  component:
+    app-depth-max*
+      stacktrace*
+        frame*
+          module* (removed codegen marker)
+            "invalid.gruml.talkytalkyhub.common.config.JipJipConfig$$EnhancerBySpringCGLIB$$<auto>$$EnhancerBySpringCGLIB$$<auto>$$FastClassBySpringCGLIB$$<auto>"
+          function*
+            "jipJipManagementApplication"
+--------------------------------------------------------------------------
+system:
+  hash: "be15ca3d511b96918e087c4f42503ca2"
+  tree_label: "config.jipJipManagementApplication"
+  component:
+    system*
+      stacktrace*
+        frame*
+          module* (removed codegen marker)
+            "invalid.gruml.talkytalkyhub.common.config.JipJipConfig$$EnhancerBySpringCGLIB$$<auto>$$EnhancerBySpringCGLIB$$<auto>$$FastClassBySpringCGLIB$$<auto>"
+          function*
+            "jipJipManagementApplication"

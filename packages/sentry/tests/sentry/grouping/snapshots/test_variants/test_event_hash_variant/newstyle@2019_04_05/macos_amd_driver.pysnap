@@ -1,0 +1,308 @@
+---
+created: '2021-04-02T10:31:51.387156Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "start"
+          frame (non app frame)
+            function* (isolated function)
+              "code"
+          frame (non app frame)
+            function* (isolated function)
+              "code"
+          frame (non app frame)
+            function* (isolated function)
+              "code"
+          frame (non app frame)
+            function* (isolated function)
+              "code"
+          frame (non app frame)
+            function* (isolated function)
+              "code"
+          frame (non app frame)
+            function* (isolated function)
+              "code"
+          frame (non app frame)
+            function* (isolated function)
+              "code"
+          frame (non app frame)
+            function* (isolated function)
+              "code"
+          frame (non app frame)
+            function* (isolated function)
+              "code"
+          frame (non app frame)
+            function* (isolated function)
+              "code"
+          frame (non app frame)
+            function* (isolated function)
+              "code"
+          frame (non app frame)
+            function* (isolated function)
+              "code"
+          frame (non app frame)
+            function* (isolated function)
+              "code"
+          frame (non app frame)
+            function*
+              "-[NSRunLoop(NSRunLoop) runMode:beforeDate:]"
+          frame (non app frame)
+            function*
+              "CFRunLoopRunSpecific"
+          frame (non app frame)
+            function*
+              "__CFRunLoopRun"
+          frame (non app frame)
+            function*
+              "__CFRunLoopDoSources0"
+          frame (non app frame)
+            function*
+              "__CFRunLoopDoSource0"
+          frame (non app frame)
+            function*
+              "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__"
+          frame (non app frame)
+            function* (isolated function)
+              "code"
+          frame (non app frame)
+            function* (isolated function)
+              "code"
+          frame (non app frame)
+            function* (isolated function)
+              "code"
+          frame (non app frame)
+            function* (isolated function)
+              "code"
+          frame (non app frame)
+            function* (isolated function)
+              "code"
+          frame (non app frame)
+            function* (isolated function)
+              "code"
+          frame (non app frame)
+            function* (isolated function)
+              "code"
+          frame (non app frame)
+            function* (isolated function)
+              "code"
+          frame (non app frame)
+            function* (isolated function)
+              "code"
+          frame (non app frame)
+            function* (isolated function)
+              "code"
+          frame (non app frame)
+            function* (isolated function)
+              "code"
+          frame (non app frame)
+            function* (isolated function)
+              "code"
+          frame (non app frame)
+            function* (isolated function)
+              "code"
+          frame (non app frame)
+            function* (isolated function)
+              "code"
+          frame (non app frame)
+            function* (isolated function)
+              "code"
+          frame (non app frame)
+            function* (isolated function)
+              "code"
+          frame (non app frame)
+            function* (isolated function)
+              "code"
+          frame (non app frame)
+            function* (isolated function)
+              "code"
+          frame (non app frame)
+            function* (isolated function)
+              "code"
+          frame (non app frame)
+            function*
+              "glTexSubImage2D"
+          frame (non app frame)
+            function*
+              "glTexSubImage2D_Exec"
+          frame (non app frame)
+            function*
+              "gleTextureImagePut"
+          frame (non app frame)
+          frame (non app frame)
+            function*
+              "gpusSubmitDataBuffers"
+          frame (non app frame)
+          frame (non app frame)
+            function*
+              "gpusGenerateCrashLog"
+          frame (non app frame)
+            function*
+              "gpusGenerateCrashLog.cold.1"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "abort"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "__pthread_kill"
+        type (ignored because exception is synthetic)
+          "0x00000000 / 0x00000000"
+--------------------------------------------------------------------------
+system:
+  hash: "6188cd480f18f1ce368de0500be00733"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "start"
+          frame*
+            function* (isolated function)
+              "code"
+          frame (ignored due to recursion)
+            function* (isolated function)
+              "code"
+          frame (ignored due to recursion)
+            function* (isolated function)
+              "code"
+          frame (ignored due to recursion)
+            function* (isolated function)
+              "code"
+          frame (ignored due to recursion)
+            function* (isolated function)
+              "code"
+          frame (ignored due to recursion)
+            function* (isolated function)
+              "code"
+          frame (ignored due to recursion)
+            function* (isolated function)
+              "code"
+          frame (ignored due to recursion)
+            function* (isolated function)
+              "code"
+          frame (ignored due to recursion)
+            function* (isolated function)
+              "code"
+          frame (ignored due to recursion)
+            function* (isolated function)
+              "code"
+          frame (ignored due to recursion)
+            function* (isolated function)
+              "code"
+          frame (ignored due to recursion)
+            function* (isolated function)
+              "code"
+          frame (ignored due to recursion)
+            function* (isolated function)
+              "code"
+          frame*
+            function*
+              "-[NSRunLoop(NSRunLoop) runMode:beforeDate:]"
+          frame*
+            function*
+              "CFRunLoopRunSpecific"
+          frame*
+            function*
+              "__CFRunLoopRun"
+          frame*
+            function*
+              "__CFRunLoopDoSources0"
+          frame*
+            function*
+              "__CFRunLoopDoSource0"
+          frame*
+            function*
+              "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__"
+          frame*
+            function* (isolated function)
+              "code"
+          frame (ignored due to recursion)
+            function* (isolated function)
+              "code"
+          frame (ignored due to recursion)
+            function* (isolated function)
+              "code"
+          frame (ignored due to recursion)
+            function* (isolated function)
+              "code"
+          frame (ignored due to recursion)
+            function* (isolated function)
+              "code"
+          frame (ignored due to recursion)
+            function* (isolated function)
+              "code"
+          frame (ignored due to recursion)
+            function* (isolated function)
+              "code"
+          frame (ignored due to recursion)
+            function* (isolated function)
+              "code"
+          frame (ignored due to recursion)
+            function* (isolated function)
+              "code"
+          frame (ignored due to recursion)
+            function* (isolated function)
+              "code"
+          frame (ignored due to recursion)
+            function* (isolated function)
+              "code"
+          frame (ignored due to recursion)
+            function* (isolated function)
+              "code"
+          frame (ignored due to recursion)
+            function* (isolated function)
+              "code"
+          frame (ignored due to recursion)
+            function* (isolated function)
+              "code"
+          frame (ignored due to recursion)
+            function* (isolated function)
+              "code"
+          frame (ignored due to recursion)
+            function* (isolated function)
+              "code"
+          frame (ignored due to recursion)
+            function* (isolated function)
+              "code"
+          frame (ignored due to recursion)
+            function* (isolated function)
+              "code"
+          frame (ignored due to recursion)
+            function* (isolated function)
+              "code"
+          frame*
+            function*
+              "glTexSubImage2D"
+          frame*
+            function*
+              "glTexSubImage2D_Exec"
+          frame*
+            function*
+              "gleTextureImagePut"
+          frame
+          frame*
+            function*
+              "gpusSubmitDataBuffers"
+          frame
+          frame*
+            function*
+              "gpusGenerateCrashLog"
+          frame*
+            function*
+              "gpusGenerateCrashLog.cold.1"
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "abort"
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "__pthread_kill"
+        type (ignored because exception is synthetic)
+          "0x00000000 / 0x00000000"

@@ -1,0 +1,13 @@
+Some events failed to process in your project "{{ project.slug }}".
+
+{% if reprocessing_active %}Since reprocessing is enabled, these events
+will not show up in Sentry until the processing issues are resolved.
+
+{% endif %}Issues:
+{% for issue in issues %}
+* {{ issue.message }}{% if issue.extra_info %}
+  ({{ issue.extra_info }}){% endif %}
+{% endfor %}
+
+You can fix these issues here:
+  {{ info_url }}

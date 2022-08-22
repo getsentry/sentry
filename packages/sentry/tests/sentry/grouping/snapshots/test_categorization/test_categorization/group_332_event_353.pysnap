@@ -1,0 +1,51 @@
+---
+created: '2021-03-26T18:19:11.181970Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+0x00000000 / 0x00000000:Fatal Error: 0x00000000 / 0x00000000 (thread_id:_, crashed:_)
+               /usr/lib/system/libdyld.dylib  start category=threadbase
+               /usr/lib/system/libdyld.dylib  start category=threadbase
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+  /System/Library/Frameworks/Foundation.fram  -[NSRunLoop(NSRunLoop) runMode:beforeDate:] category=system
+  /System/Library/Frameworks/CoreFoundation.  CFRunLoopRunSpecific category=internals
+  /System/Library/Frameworks/CoreFoundation.  __CFRunLoopRun category=internals
+  /System/Library/Frameworks/CoreFoundation.  __CFRunLoopDoSources0 category=internals
+  /System/Library/Frameworks/CoreFoundation.  __CFRunLoopDoSource0 category=internals
+  /System/Library/Frameworks/CoreFoundation.  __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__ category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+  /System/Library/Extensions/AppleIntelBDWGr  intelSubmitCommands category=internals
+  /System/Library/Extensions/AppleIntelBDWGr  IntelCommandBuffer::getNew category=internals
+  /System/Library/PrivateFrameworks/GPUSuppo  gpusSubmitDataBuffers category=driver
+  /System/Library/Extensions/AppleIntelBDWGr  gpusKillClientExt category=telemetry
+  /System/Library/PrivateFrameworks/GPUSuppo  gpusGenerateCrashLog category=telemetry
+  /System/Library/PrivateFrameworks/GPUSuppo  gpusGenerateCrashLog.cold.1 category=indirection
+           /usr/lib/system/libsystem_c.dylib  abort category=throw
+      /usr/lib/system/libsystem_kernel.dylib  __pthread_kill category=internals

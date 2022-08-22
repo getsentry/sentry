@@ -1,0 +1,31 @@
+{% extends "sentry/bases/auth.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_assets %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Sentry - Setup Wizard" %}{% endblock %}
+
+{% block auth_main %}
+  <div id="setup-wizard-container">
+    <div class="loading">
+      <div class="loading-mask"></div>
+      <div class="loading-indicator" data-test-id="loading-indicator"></div>
+    </div>
+  </div>
+
+  {% script %}
+  <script>
+    window.__onSentryInit = window.__onSentryInit || [];
+    window.__onSentryInit.push({
+      name: 'renderReact',
+      component: 'SetupWizard',
+      container: '#setup-wizard-container',
+      props: {
+        hash: {{ hash|to_json|safe }},
+      },
+    });
+  </script>
+  {% endscript %}
+{% endblock %}

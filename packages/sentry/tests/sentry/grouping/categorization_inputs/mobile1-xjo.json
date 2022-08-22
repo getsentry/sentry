@@ -1,0 +1,130 @@
+{
+  "event_id": "ddc237c4e0764cc68b7cefbdf8685828",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": null,
+          "type": "UncaughtExceptionHandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "NativeStart.java",
+              "filename": "NativeStart.java",
+              "function": "main",
+              "module": "dalvik.system.NativeStart"
+            },
+            {
+              "abs_path": "ZygoteInit.java",
+              "filename": "ZygoteInit.java",
+              "function": "main",
+              "module": "com.android.internal.os.ZygoteInit"
+            },
+            {
+              "abs_path": "ZygoteInit.java",
+              "filename": "ZygoteInit.java",
+              "function": "run",
+              "module": "com.android.internal.os.ZygoteInit$MethodAndArgsCaller"
+            },
+            {
+              "abs_path": "Method.java",
+              "filename": "Method.java",
+              "function": "invoke",
+              "module": "java.lang.reflect.Method"
+            },
+            {
+              "abs_path": "Method.java",
+              "filename": "Method.java",
+              "function": "invokeNative",
+              "module": "java.lang.reflect.Method"
+            },
+            {
+              "abs_path": "ActivityThread.java",
+              "filename": "ActivityThread.java",
+              "function": "main",
+              "module": "android.app.ActivityThread"
+            },
+            {
+              "abs_path": "Looper.java",
+              "filename": "Looper.java",
+              "function": "loop",
+              "module": "android.os.Looper"
+            },
+            {
+              "abs_path": "Handler.java",
+              "filename": "Handler.java",
+              "function": "dispatchMessage",
+              "module": "android.os.Handler"
+            },
+            {
+              "abs_path": "Handler.java",
+              "filename": "Handler.java",
+              "function": "handleCallback",
+              "module": "android.os.Handler"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "run",
+              "module": "android.view.View$PerformClick"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "performClick",
+              "module": "android.view.View"
+            },
+            {
+              "function": "onClick",
+              "module": "com.lenovo.lsf.lenovoid.ui.KeyLoginActivity$1"
+            },
+            {
+              "function": "\u1ad4\u1ad9\u1adb",
+              "module": "com.lenovo.lsf.lenovoid.ui.KeyLoginActivity$1"
+            },
+            {
+              "function": "trackEventCommon",
+              "module": "com.lenovo.lsf.lenovoid.analytics.AnalyticsDataHelper"
+            },
+            {
+              "function": "\u0863\u1ad2\u1adb",
+              "module": "com.lenovo.lsf.lenovoid.analytics.AnalyticsDataHelper"
+            },
+            {
+              "function": "trackEventCommon",
+              "module": "com.lenovo.lsf.lenovoid.analytics.AnalyticsDataHelper"
+            },
+            {
+              "function": "\u0863\u1ad2\u1adb",
+              "module": "com.lenovo.lsf.lenovoid.analytics.AnalyticsDataHelper"
+            },
+            {
+              "function": "getImeiAddr",
+              "module": "com.lenovo.lsf.lenovoid.utility.DeviceInfoUtil"
+            },
+            {
+              "function": "\u1ac4\u1ac4\u1adb",
+              "module": "com.lenovo.lsf.lenovoid.utility.DeviceInfoUtil"
+            },
+            {
+              "function": "getIMEI",
+              "module": "com.lenovo.lsf.lenovoid.utility.DeviceInfoUtil"
+            },
+            {
+              "function": "\u1ac4\u1ac4\u1adb",
+              "module": "com.lenovo.lsf.lenovoid.utility.DeviceInfoUtil"
+            }
+          ]
+        },
+        "type": "NullPointerException"
+      }
+    ]
+  },
+  "platform": "java"
+}

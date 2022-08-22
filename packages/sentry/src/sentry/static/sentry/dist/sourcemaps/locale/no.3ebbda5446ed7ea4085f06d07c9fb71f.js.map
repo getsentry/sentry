@@ -1,0 +1,1 @@
+{"version":3,"file":"chunks/locale/no.xxxxxxxxxxxxxxxxxxxx.js","mappings":";;;;;;;;AAAA,kBAAkB,IAAI,8CAA8C,gBAAgB","sources":["webpack:///../src/sentry/locale/no/LC_MESSAGES/django.po"],"sourcesContent":["module.exports = {\"\":{\"domain\":\"sentry\",\"plural_forms\":\"nplurals=2; plural=(n != 1);\",\"lang\":\"no\"}};"],"names":[],"sourceRoot":""}

@@ -1,0 +1,40 @@
+---
+created: '2021-08-23T08:27:23.292074Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "09e0efcab18f545166318118ed4e0292"
+  tree_label: "GeneratedConstructorAccessor<auto>.invoke"
+  component:
+    app-depth-1*
+      stacktrace*
+        frame*
+          module* (removed codegen marker)
+            "sun.reflect.GeneratedConstructorAccessor<auto>"
+          function*
+            "invoke"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "09e0efcab18f545166318118ed4e0292"
+  tree_label: "GeneratedConstructorAccessor<auto>.invoke"
+  component:
+    app-depth-max*
+      stacktrace*
+        frame*
+          module* (removed codegen marker)
+            "sun.reflect.GeneratedConstructorAccessor<auto>"
+          function*
+            "invoke"
+--------------------------------------------------------------------------
+system:
+  hash: "09e0efcab18f545166318118ed4e0292"
+  tree_label: "GeneratedConstructorAccessor<auto>.invoke"
+  component:
+    system*
+      stacktrace*
+        frame*
+          module* (removed codegen marker)
+            "sun.reflect.GeneratedConstructorAccessor<auto>"
+          function*
+            "invoke"

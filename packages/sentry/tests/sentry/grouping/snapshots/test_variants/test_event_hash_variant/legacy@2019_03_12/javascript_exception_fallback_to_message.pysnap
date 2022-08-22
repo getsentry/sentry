@@ -1,0 +1,24 @@
+---
+created: '2020-02-26T19:54:27.298305Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        type*
+          "Error"
+        value*
+          "Loading chunk 158 failed.\n(timeout: https://s1.sentry-cdn.com/_static/34f8a6d11b9f52ebb4e5fd949650088f/sentry/dist/passwordStrength.js)"
+--------------------------------------------------------------------------
+system:
+  hash: "ad1efff799d4f9435077701aee66dde0"
+  component:
+    system*
+      exception*
+        type*
+          "Error"
+        value*
+          "Loading chunk 158 failed.\n(timeout: https://s1.sentry-cdn.com/_static/34f8a6d11b9f52ebb4e5fd949650088f/sentry/dist/passwordStrength.js)"

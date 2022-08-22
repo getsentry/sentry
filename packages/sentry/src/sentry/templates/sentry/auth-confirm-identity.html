@@ -1,0 +1,89 @@
+{% extends "sentry/bases/auth.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_avatars %}
+
+{% block title %}{% trans "Confirm Identity" %} | {{ block.super }}{% endblock %}
+
+{% block auth_main %}
+  {% if existing_user %}
+    <div class="sso-link">
+      <div class="sso-grid">
+        <div class="column left-column">
+          <div class="avatar-row">
+            <span class="avatar">
+              <img src="{% gravatar_url identity.email 36 'blank' %}">
+            </span>
+            <span class="avatar">
+              {% letter_avatar_svg identity_display_name identity_identifier %}
+            </span>
+            <span class="icon-arrow-right"></span>
+          </div>
+          <div><strong>{{ provider }}</strong></div>
+          <div class="email-truncate">{{ identity.email }}</div>
+        </div>
+
+        <div class="column right-column">
+          <div class="avatar-row">
+            <span class="icon-arrow-left"></span>
+            <span class="avatar">{% avatar existing_user %}</span>
+          </div>
+          <div><strong>Sentry</strong></div>
+          <div class="email-truncate">{{ existing_user.email }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sso-link">
+      <p>We found an existing Sentry account for {{ identity.email }}. Please confirm your credentials:</p>
+    </div>
+
+    <form class="form-stacked" action="" method="post" autocomplete="off">
+      {% csrf_token %}
+
+      {{ login_form|as_crispy_errors }}
+
+      {% for field in login_form %}
+        {{ field|as_crispy_field }}
+      {% endfor %}
+
+      <fieldset class="form-actions">
+        <button type="submit" class="btn btn-primary" name="op" value="login">{% trans "Sign In" %}</button>
+        <a class="pull-right" style="margin-top: 9px" href="{% url 'sentry-account-recover' %}">{% trans "Lost your password?" %}</a>
+      </fieldset>
+    </form>
+  {% else %}
+    <form class="form-stacked" action="" method="post">
+      {% csrf_token %}
+      <div class="sso-link">
+        <div class="sso-grid flex">
+          <div class="column left-column">
+            <div class="avatar-row">
+              <span class="avatar">
+                <img src="{% gravatar_url identity.email 36 'blank' %}" class="avatar">
+              </span>
+              <span class="avatar">
+                {% letter_avatar_svg identity_display_name identity_identifier %}
+              </span>
+            </div>
+          </div>
+
+          <div class="column right-column">
+            <div><strong>{{ provider }}</strong></div>
+            <div class="email-truncate">{{ identity.email }}</div>
+          </div>
+        </div>
+      </div>
+
+
+      <div class="align-center">
+        <p>You have logged into {{ provider }} as {{ identity.email }}.</p>
+
+        <p>We'll create a new Sentry account for you with this email address.</p>
+
+        <p><button class="btn btn-primary" type="submit" name="op" value="newuser">Continue</button></p>
+      </div>
+    </form>
+  {% endif %}
+{% endblock %}

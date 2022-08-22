@@ -1,0 +1,82 @@
+---
+created: '2021-04-02T10:31:49.450143Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "thread_start"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_pthread_start"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_pthread_body"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_pthread_testcancel"
+        type (ignored because exception is synthetic)
+          "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+--------------------------------------------------------------------------
+system:
+  hash: "ba5ff7b8a3adc9b87681ff0f8275a72e"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "thread_start"
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_pthread_start"
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_pthread_body"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_pthread_testcancel"
+        type (ignored because exception is synthetic)
+          "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"

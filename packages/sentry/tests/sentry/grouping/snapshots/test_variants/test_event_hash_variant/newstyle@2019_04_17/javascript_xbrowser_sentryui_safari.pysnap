@@ -1,0 +1,232 @@
+---
+created: '2020-02-26T19:54:35.388863Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "503cd0a69d1bdcfb9bdc7fa560201d73"
+  component:
+    app*
+      exception*
+        stacktrace*
+          frame*
+            filename (native code indicated by filename)
+              "[native code]"
+            function*
+              "promiseReactionJob"
+          frame (non app frame)
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator"
+            filename (module takes precedence)
+              "asynctogenerator.js"
+            function*
+              "_next"
+          frame (non app frame)
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator"
+            filename (module takes precedence)
+              "asynctogenerator.js"
+            function*
+              "asyncGeneratorStep"
+          frame (non app frame)
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"
+            filename (module takes precedence)
+              "runtime.js"
+            function*
+              "key"
+          frame (non app frame)
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"
+            filename (module takes precedence)
+              "runtime.js"
+            function*
+              "tryCatch"
+          frame*
+            module*
+              "app/components/lazyLoad"
+            filename (module takes precedence)
+              "lazyload.jsx"
+            function*
+              "call"
+          frame (non app frame)
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/react/cjs/react.production"
+            filename (module takes precedence)
+              "react.production.min.js"
+            function*
+              "setState"
+          frame (non app frame)
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
+            filename (module takes precedence)
+              "react-dom.production.min.js"
+            function*
+              "enqueueSetState"
+          frame (non app frame)
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
+            filename (module takes precedence)
+              "react-dom.production.min.js"
+            function*
+              "tag"
+          frame (non app frame)
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
+            filename (module takes precedence)
+              "react-dom.production.min.js"
+            function*
+              "Yg"
+          frame (non app frame)
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
+            filename (module takes precedence)
+              "react-dom.production.min.js"
+            function*
+              "Xg"
+          frame (non app frame)
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
+            filename (module takes precedence)
+              "react-dom.production.min.js"
+            function*
+              "ih"
+          frame*
+            module*
+              "app/views/groupDetails/shared/groupEventDetails"
+            filename (module takes precedence)
+              "groupeventdetails.jsx"
+            function*
+              "q"
+          frame*
+            module*
+              "app/views/groupDetails/shared/groupEventDetails"
+            filename (module takes precedence)
+              "groupeventdetails.jsx"
+            function*
+              "fetchData"
+          frame*
+            module*
+              "app/api"
+            filename (module takes precedence)
+              "api.jsx"
+            function*
+              "fetchGroupEventAndMarkSeen"
+        type*
+          "NotFoundError"
+        value (ignored because stacktrace takes precedence)
+          "GET /issues/<int>/events/latest/ <int>"
+--------------------------------------------------------------------------
+system:
+  hash: "6404c9ce987071526293aa0b5456e60b"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            filename (native code indicated by filename)
+              "[native code]"
+            function*
+              "promiseReactionJob"
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator"
+            filename (module takes precedence)
+              "asynctogenerator.js"
+            function*
+              "_next"
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator"
+            filename (module takes precedence)
+              "asynctogenerator.js"
+            function*
+              "asyncGeneratorStep"
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"
+            filename (module takes precedence)
+              "runtime.js"
+            function*
+              "key"
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"
+            filename (module takes precedence)
+              "runtime.js"
+            function*
+              "tryCatch"
+          frame*
+            module*
+              "app/components/lazyLoad"
+            filename (module takes precedence)
+              "lazyload.jsx"
+            function*
+              "call"
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/react/cjs/react.production"
+            filename (module takes precedence)
+              "react.production.min.js"
+            function*
+              "setState"
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
+            filename (module takes precedence)
+              "react-dom.production.min.js"
+            function*
+              "enqueueSetState"
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
+            filename (module takes precedence)
+              "react-dom.production.min.js"
+            function*
+              "tag"
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
+            filename (module takes precedence)
+              "react-dom.production.min.js"
+            function*
+              "Yg"
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
+            filename (module takes precedence)
+              "react-dom.production.min.js"
+            function*
+              "Xg"
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
+            filename (module takes precedence)
+              "react-dom.production.min.js"
+            function*
+              "ih"
+          frame*
+            module*
+              "app/views/groupDetails/shared/groupEventDetails"
+            filename (module takes precedence)
+              "groupeventdetails.jsx"
+            function*
+              "q"
+          frame*
+            module*
+              "app/views/groupDetails/shared/groupEventDetails"
+            filename (module takes precedence)
+              "groupeventdetails.jsx"
+            function*
+              "fetchData"
+          frame*
+            module*
+              "app/api"
+            filename (module takes precedence)
+              "api.jsx"
+            function*
+              "fetchGroupEventAndMarkSeen"
+        type*
+          "NotFoundError"
+        value (ignored because stacktrace takes precedence)
+          "GET /issues/<int>/events/latest/ <int>"

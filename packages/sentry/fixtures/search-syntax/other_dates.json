@@ -1,0 +1,48 @@
+[
+  {
+    "desc": "test date format with other name",
+    "query": "timestamp:>2015-05-18",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "date",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "timestamp", "quoted": false},
+        "operator": ">",
+        "value": {"type": "valueIso8601Date", "value": "2015-05-18T00:00:00.000Z"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "timestamp.to_hour:>2018-01-01T05:06:07+00:00",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "date",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "timestamp.to_hour", "quoted": false},
+        "operator": ">",
+        "value": {"type": "valueIso8601Date", "value": "2018-01-01T05:06:07.000Z"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "random:>2015-05-18",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "random", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": ">2015-05-18", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

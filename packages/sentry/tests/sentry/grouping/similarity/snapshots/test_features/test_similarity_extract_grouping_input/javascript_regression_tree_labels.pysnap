@@ -1,0 +1,36 @@
+---
+created: '2021-09-01T16:43:50.626906Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","Sentry.withScope(scope => {"],["filename","handlexhrerrorresponse.tsx"],["module","app/utils/handleXhrErrorResponse"]],[["context-line","callOnHub('withScope', callback);"],["filename","index.js"],["function","Sentry"],["module","@sentry/minimal/esm/index"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","callOnHub('withScope', callback);"],["filename","index.js"],["function","Sentry"],["module","@sentry/minimal/esm/index"]],[["context-line","return hub[method].apply(hub, __spread(args));"],["filename","index.js"],["function","callOnHub"],["module","@sentry/minimal/esm/index"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","callback(scope);"],["filename","hub.js"],["function","apply"],["module","@sentry/hub/esm/hub"]],[["context-line","Sentry.captureException(new Error(message));"],["filename","handlexhrerrorresponse.tsx"],["function","callback"],["module","app/utils/handleXhrErrorResponse"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","return hub[method].apply(hub, __spread(args));"],["filename","index.js"],["function","callOnHub"],["module","@sentry/minimal/esm/index"]],[["context-line","callback(scope);"],["filename","hub.js"],["function","apply"],["module","@sentry/hub/esm/hub"]]]
+similarity:2020-07-23:type:ident-shingle: "Error"
+similarity:2020-07-23:value:character-5-shingle: " a re"
+similarity:2020-07-23:value:character-5-shingle: " rece"
+similarity:2020-07-23:value:character-5-shingle: " save"
+similarity:2020-07-23:value:character-5-shingle: " sear"
+similarity:2020-07-23:value:character-5-shingle: " to s"
+similarity:2020-07-23:value:character-5-shingle: "Unabl"
+similarity:2020-07-23:value:character-5-shingle: "a rec"
+similarity:2020-07-23:value:character-5-shingle: "able "
+similarity:2020-07-23:value:character-5-shingle: "ave a"
+similarity:2020-07-23:value:character-5-shingle: "ble t"
+similarity:2020-07-23:value:character-5-shingle: "cent "
+similarity:2020-07-23:value:character-5-shingle: "e a r"
+similarity:2020-07-23:value:character-5-shingle: "e to "
+similarity:2020-07-23:value:character-5-shingle: "earch"
+similarity:2020-07-23:value:character-5-shingle: "ecent"
+similarity:2020-07-23:value:character-5-shingle: "ent s"
+similarity:2020-07-23:value:character-5-shingle: "le to"
+similarity:2020-07-23:value:character-5-shingle: "nable"
+similarity:2020-07-23:value:character-5-shingle: "nt se"
+similarity:2020-07-23:value:character-5-shingle: "o sav"
+similarity:2020-07-23:value:character-5-shingle: "recen"
+similarity:2020-07-23:value:character-5-shingle: "save "
+similarity:2020-07-23:value:character-5-shingle: "searc"
+similarity:2020-07-23:value:character-5-shingle: "t sea"
+similarity:2020-07-23:value:character-5-shingle: "to sa"
+similarity:2020-07-23:value:character-5-shingle: "ve a "

@@ -1,0 +1,131 @@
+---
+created: '2021-08-04T15:53:48.110339Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "534735884d341071762ede7af01c53e8"
+  tree_label: "kill"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "kill"
+            package (ignored because function takes precedence)
+              "libc.so"
+        type (ignored because exception is synthetic)
+          "SIGSEGV"
+        value (ignored because stacktrace takes precedence)
+          "Segfault"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "5fe18d8a5d2a24744675e650fc46afc6"
+  tree_label: "kill | __kernel_rt_sigreturn"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "__kernel_rt_sigreturn"
+            package (ignored because function takes precedence)
+              "[vdso]"
+          frame*
+            function*
+              "kill"
+            package (ignored because function takes precedence)
+              "libc.so"
+        type (ignored because exception is synthetic)
+          "SIGSEGV"
+        value (ignored because stacktrace takes precedence)
+          "Segfault"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "d9c9b0f9ba46e32fddd7cd1512fad235"
+  tree_label: "kill | __kernel_rt_sigreturn | stripped_application_code"
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "__kernel_rt_sigreturn"
+            package (ignored because function takes precedence)
+              "[vdso]"
+          frame*
+            function*
+              "kill"
+            package (ignored because function takes precedence)
+              "libc.so"
+        type (ignored because exception is synthetic)
+          "SIGSEGV"
+        value (ignored because stacktrace takes precedence)
+          "Segfault"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "d9c9b0f9ba46e32fddd7cd1512fad235"
+  tree_label: "kill | __kernel_rt_sigreturn | stripped_application_code"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "__kernel_rt_sigreturn"
+            package (ignored because function takes precedence)
+              "[vdso]"
+          frame*
+            function*
+              "kill"
+            package (ignored because function takes precedence)
+              "libc.so"
+        type (ignored because exception is synthetic)
+          "SIGSEGV"
+        value (ignored because stacktrace takes precedence)
+          "Segfault"
+--------------------------------------------------------------------------
+system:
+  hash: "5d36f5363b3d4125907c15b93f85bbd8"
+  tree_label: "kill | __kernel_rt_sigreturn | stripped_application_code"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame
+          frame (ignored by stack trace rule (category:internals -group))
+            package* (used as fallback because function name is not available)
+              "libc.so"
+          frame (ignored due to recursion)
+            package* (used as fallback because function name is not available)
+              "libc.so"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "__kernel_rt_sigreturn"
+            package (ignored because function takes precedence)
+              "[vdso]"
+          frame (ignored by stack trace rule (category:internals -group))
+            package* (used as fallback because function name is not available)
+              "app_process64"
+          frame (ignored by stack trace rule (category:telemetry -group))
+            package* (used as fallback because function name is not available)
+              "libbugly.so"
+          frame*
+            function*
+              "kill"
+            package (ignored because function takes precedence)
+              "libc.so"
+        type*
+          "SIGSEGV"
+        value (ignored because stacktrace takes precedence)
+          "Segfault"

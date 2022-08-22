@@ -1,0 +1,87 @@
+{
+  "culprit": "SampleScript.cs in SampleScript.ThrowNull ()",
+  "event_id": "0462551de2bd442bb938fb8c282c5359",
+  "environment": "production",
+  "platform": "csharp",
+  "logger": "",
+  "fingerprint": [
+    "{{ default }}"
+  ],
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "UnityEngine.EventSystems.EventSystem:Update",
+              "raw_function": "UnityEngine.EventSystems.EventSystem:Update()",
+              "abs_path": "/Applications/Unity/Hub/Editor/2019.4.11f1/Unity.app/Contents/Resources/PackageManager/BuiltInPackages/com.unity.ugui/Runtime/EventSystem/EventSystem.cs",
+              "filename": "EventSystem.cs",
+              "lineno": 377,
+              "in_app": false
+            },
+            {
+              "function": "UnityEngine.EventSystems.ExecuteEvents.Execute[T]",
+              "raw_function": "UnityEngine.EventSystems.ExecuteEvents.Execute[T] (UnityEngine.GameObject target, UnityEngine.EventSystems.BaseEventData eventData, UnityEngine.EventSystems.ExecuteEvents+EventFunction`1[T1] functor)",
+              "abs_path": "/Applications/Unity/Hub/Editor/2019.4.11f1/Unity.app/Contents/Resources/PackageManager/BuiltInPackages/com.unity.ugui/Runtime/EventSystem/ExecuteEvents.cs",
+              "filename": "ExecuteEvents.cs",
+              "lineno": 261,
+              "in_app": false
+            },
+            {
+              "function": "UnityEngine.EventSystems.ExecuteEvents.Execute",
+              "raw_function": "UnityEngine.EventSystems.ExecuteEvents.Execute (UnityEngine.EventSystems.IPointerClickHandler handler, UnityEngine.EventSystems.BaseEventData eventData)",
+              "abs_path": "/Applications/Unity/Hub/Editor/2019.4.11f1/Unity.app/Contents/Resources/PackageManager/BuiltInPackages/com.unity.ugui/Runtime/EventSystem/ExecuteEvents.cs",
+              "filename": "ExecuteEvents.cs",
+              "lineno": 50,
+              "in_app": false
+            },
+            {
+              "function": "UnityEngine.UI.Button.OnPointerClick",
+              "raw_function": "UnityEngine.UI.Button.OnPointerClick (UnityEngine.EventSystems.PointerEventData eventData)",
+              "abs_path": "/Applications/Unity/Hub/Editor/2019.4.11f1/Unity.app/Contents/Resources/PackageManager/BuiltInPackages/com.unity.ugui/Runtime/UI/Core/Button.cs",
+              "filename": "Button.cs",
+              "lineno": 110,
+              "in_app": false
+            },
+            {
+              "function": "UnityEngine.UI.Button.Press",
+              "raw_function": "UnityEngine.UI.Button.Press ()",
+              "abs_path": "/Applications/Unity/Hub/Editor/2019.4.11f1/Unity.app/Contents/Resources/PackageManager/BuiltInPackages/com.unity.ugui/Runtime/UI/Core/Button.cs",
+              "filename": "Button.cs",
+              "lineno": 68,
+              "in_app": false
+            },
+            {
+              "function": "UnityEngine.Events.UnityEvent.Invoke",
+              "raw_function": "UnityEngine.Events.UnityEvent.Invoke ()",
+              "abs_path": "/Users/bokken/buildslave/unity/build/Runtime/Export/UnityEvent/UnityEvent/UnityEvent_0.cs",
+              "filename": "UnityEvent_0.cs",
+              "lineno": 58,
+              "in_app": false
+            },
+            {
+              "function": "UnityEngine.Events.InvokableCall.Invoke",
+              "raw_function": "UnityEngine.Events.InvokableCall.Invoke ()",
+              "abs_path": "/Users/bokken/buildslave/unity/build/Runtime/Export/UnityEvent/UnityEvent.cs",
+              "filename": "UnityEvent.cs",
+              "lineno": 166,
+              "in_app": false
+            },
+            {
+              "function": "SampleScript.ThrowNull",
+              "raw_function": "SampleScript.ThrowNull ()",
+              "abs_path": "Assets/SampleScript.cs",
+              "filename": "SampleScript.cs",
+              "lineno": 123,
+              "in_app": true
+            }
+          ]
+        },
+        "type": "NullReferenceException",
+        "value": "Object reference not set to an instance of an object"
+      }
+    ]
+  },
+  "release": "0.1"
+}

@@ -1,0 +1,99 @@
+{% load sentry_assets %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% script src=ac_js_src %}{% endscript %}
+  {% asset_url 'sentry' 'vendor/jquery.2.2.4.min.js' as jquery_url %}
+  {% script src=jquery_url %}{% endscript %}
+
+  {% asset_url 'sentry' 'vendor/aui-prototyping.9.1.5.js' as aui_js_url %}
+  {% script src=aui_js_url %}{% endscript %}
+  <link rel="stylesheet" href="{% asset_url 'sentry' 'vendor/aui-prototyping.9.1.5.css' %}" media="all">
+  <style>
+    :root {
+      --gray500: #C6BECF;
+      --gray800: #302839;
+      --purple400: #6C5FC7;
+      --purple500: #3E2C73;
+    }
+    #wrapper{
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 90vh;
+    }
+    body {
+      background: transparent;
+    }
+    .container {
+      padding: 30px;
+      width: 30em;
+      border: 1px var(--gray500) solid;
+      border-radius: 4px;
+    }
+    .img-container{
+      width: 100%;
+    }
+    img{
+      width: 72px;
+      margin: -10px;
+    }
+    .button{
+      background-color: var(--purple400);
+      border: 1px var(--purple500) solid;
+      border-radius: 4px;
+      padding: 12px;
+      color: white;
+      float: right;
+      font-size: 14px;
+    }
+    h1,
+    h3,
+    p{
+      margin: 0;
+      padding: 0;
+      var(--purple500);
+    }
+    h1{
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    h3{
+      font-size: 12px;
+      font-weight: 800;
+      padding: 8px 0;
+      color: var(--purple400);
+      text-transform: uppercase;
+    }
+    p{
+      font-size: 18px;
+      margin-bottom: 24px;
+    }
+
+  </style>
+</head>
+<body>
+  <div id="wrapper">
+    <div class="container">
+      <div class="img-container">
+        <img src="{{image_path}}" >
+      </div>
+      <h3>FINISH INSTALLATION</h3>
+      <h1>Alright, here we go.</h1>
+      <p>To complete the Jira-Sentry Integration, we'll need to configure some settings in the Sentry app.</p>
+      {% if error_message %}
+        {{ error_message }}
+      {% elif refresh_required %}
+        <div class="aui-message aui-message-info">
+          <p>This page has expired, please refresh to configure your Sentry integration</p>
+        </div>
+      {% else %}
+        <a target="_blank" href="{{ finish_link }}" class="button">
+          Finish Installation in Sentry
+        </a>
+      {% endif %}
+  </div>
+  </div>
+</body>
+</html>

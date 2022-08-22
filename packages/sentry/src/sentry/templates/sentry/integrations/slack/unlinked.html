@@ -1,0 +1,19 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Slack Unlinked" %} | {{ block.super }}{% endblock %}
+{% block wrapperclass %}narrow auth{% endblock %}
+
+{% block main %}
+  <div class="align-center">
+    <p>
+      {% trans "Your Slack identity has been unassociated with your Sentry account." %}
+    </p>
+    <p>
+      <a href="slack://channel?id={{ channel_id }}&team={{ team_id }}" class="btn btn-default btn-login-slack">
+        <span class="provider-logo slack"></span> Go back to Slack
+      </a>
+    </p>
+  </div>
+{% endblock %}

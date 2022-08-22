@@ -1,0 +1,17 @@
+---
+created: '2021-02-12T10:41:31.029047Z'
+creator: sentry
+source: tests/symbolicator/test_payload_full.py
+---
+- debug:
+    status: ok
+  download:
+    features:
+      has_debug_info: true
+      has_sources: false
+      has_symbols: true
+      has_unwind_info: true
+    status: ok
+  location: sentry://project_debug_file/x
+  source: sentry:project
+  source_name: Sentry

@@ -1,0 +1,18 @@
+---
+created: '2022-04-19T12:13:12.606509Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_contexts.py
+---
+errors: null
+tags:
+- - os
+  - Windows 7
+- - os.name
+  - Windows
+to_json:
+  os:
+    build: '7601'
+    name: Windows
+    raw_description: Microsoft Windows 6.1.7601 S
+    type: os
+    version: '7'

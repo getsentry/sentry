@@ -1,0 +1,15 @@
+---
+created: '2020-02-26T19:54:29.850049Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+default:
+  hash: "4e6f2bce9d121aa89f4dc5e5da08afb5"
+  component:
+    default*
+      csp*
+        salt* (a static salt)
+          "img-src"
+        violation (not a local script violation)
+        uri*
+          "data:"

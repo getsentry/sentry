@@ -1,0 +1,457 @@
+{
+  "culprit": "io.sentry.example.Application in main",
+  "event_id": "0c958c4b7c5f447eb54b4656198d8d5a",
+  "environment": "production",
+  "platform": "java",
+  "logger": "org.apache.catalina.core.StandardService",
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "main",
+              "abs_path": "Application.java",
+              "module": "io.sentry.example.Application",
+              "filename": "Application.java",
+              "lineno": 86,
+              "in_app": false
+            },
+            {
+              "function": "run",
+              "abs_path": "SpringApplication.java",
+              "module": "org.springframework.boot.SpringApplication",
+              "filename": "SpringApplication.java",
+              "lineno": 1151,
+              "in_app": false
+            },
+            {
+              "function": "run",
+              "abs_path": "SpringApplication.java",
+              "module": "org.springframework.boot.SpringApplication",
+              "filename": "SpringApplication.java",
+              "lineno": 1162,
+              "in_app": false
+            },
+            {
+              "function": "run",
+              "abs_path": "SpringApplication.java",
+              "module": "org.springframework.boot.SpringApplication",
+              "filename": "SpringApplication.java",
+              "lineno": 314,
+              "in_app": false
+            },
+            {
+              "function": "refreshContext",
+              "abs_path": "SpringApplication.java",
+              "module": "org.springframework.boot.SpringApplication",
+              "filename": "SpringApplication.java",
+              "lineno": 370,
+              "in_app": false
+            },
+            {
+              "function": "refresh",
+              "abs_path": "SpringApplication.java",
+              "module": "org.springframework.boot.SpringApplication",
+              "filename": "SpringApplication.java",
+              "lineno": 737,
+              "in_app": false
+            },
+            {
+              "function": "refresh",
+              "abs_path": "EmbeddedWebApplicationContext.java",
+              "module": "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext",
+              "filename": "EmbeddedWebApplicationContext.java",
+              "lineno": 122,
+              "in_app": false
+            },
+            {
+              "function": "refresh",
+              "abs_path": "AbstractApplicationContext.java",
+              "module": "org.springframework.context.support.AbstractApplicationContext",
+              "filename": "AbstractApplicationContext.java",
+              "lineno": 545,
+              "in_app": false
+            },
+            {
+              "function": "finishRefresh",
+              "abs_path": "EmbeddedWebApplicationContext.java",
+              "module": "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext",
+              "filename": "EmbeddedWebApplicationContext.java",
+              "lineno": 145,
+              "in_app": false
+            },
+            {
+              "function": "startEmbeddedServletContainer",
+              "abs_path": "EmbeddedWebApplicationContext.java",
+              "module": "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext",
+              "filename": "EmbeddedWebApplicationContext.java",
+              "lineno": 297,
+              "in_app": false
+            },
+            {
+              "function": "start",
+              "abs_path": "TomcatEmbeddedServletContainer.java",
+              "module": "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer",
+              "filename": "TomcatEmbeddedServletContainer.java",
+              "lineno": 190,
+              "in_app": false
+            },
+            {
+              "function": "addPreviouslyRemovedConnectors",
+              "abs_path": "TomcatEmbeddedServletContainer.java",
+              "module": "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer",
+              "filename": "TomcatEmbeddedServletContainer.java",
+              "lineno": 247,
+              "in_app": false
+            },
+            {
+              "function": "addConnector",
+              "abs_path": "StandardService.java",
+              "module": "org.apache.catalina.core.StandardService",
+              "filename": "StandardService.java",
+              "lineno": 225,
+              "in_app": false
+            },
+            {
+              "function": "start",
+              "abs_path": "LifecycleBase.java",
+              "module": "org.apache.catalina.util.LifecycleBase",
+              "filename": "LifecycleBase.java",
+              "lineno": 150,
+              "in_app": false
+            },
+            {
+              "function": "startInternal",
+              "abs_path": "Connector.java",
+              "module": "org.apache.catalina.connector.Connector",
+              "filename": "Connector.java",
+              "lineno": 993,
+              "in_app": false
+            },
+            {
+              "function": "start",
+              "abs_path": "AbstractProtocol.java",
+              "module": "org.apache.coyote.AbstractProtocol",
+              "filename": "AbstractProtocol.java",
+              "lineno": 573,
+              "in_app": false
+            },
+            {
+              "function": "start",
+              "abs_path": "AbstractEndpoint.java",
+              "module": "org.apache.tomcat.util.net.AbstractEndpoint",
+              "filename": "AbstractEndpoint.java",
+              "lineno": 980,
+              "in_app": false
+            },
+            {
+              "function": "bind",
+              "abs_path": "NioEndpoint.java",
+              "module": "org.apache.tomcat.util.net.NioEndpoint",
+              "filename": "NioEndpoint.java",
+              "lineno": 210,
+              "in_app": false
+            },
+            {
+              "function": "bind",
+              "abs_path": "ServerSocketAdaptor.java",
+              "module": "sun.nio.ch.ServerSocketAdaptor",
+              "filename": "ServerSocketAdaptor.java",
+              "lineno": 74,
+              "in_app": false
+            },
+            {
+              "function": "bind",
+              "abs_path": "ServerSocketChannelImpl.java",
+              "module": "sun.nio.ch.ServerSocketChannelImpl",
+              "filename": "ServerSocketChannelImpl.java",
+              "lineno": 223,
+              "in_app": false
+            },
+            {
+              "function": "bind",
+              "abs_path": "Net.java",
+              "module": "sun.nio.ch.Net",
+              "filename": "Net.java",
+              "lineno": 425,
+              "in_app": false
+            },
+            {
+              "function": "bind",
+              "abs_path": "Net.java",
+              "module": "sun.nio.ch.Net",
+              "filename": "Net.java",
+              "lineno": 433,
+              "in_app": false
+            },
+            {
+              "function": "bind0",
+              "abs_path": "Net.java",
+              "filename": "Net.java",
+              "module": "sun.nio.ch.Net",
+              "in_app": false
+            }
+          ]
+        },
+        "type": "BindException",
+        "value": "Address already in use",
+        "module": "java.net"
+      },
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "main",
+              "abs_path": "Application.java",
+              "module": "io.sentry.example.Application",
+              "filename": "Application.java",
+              "lineno": 86,
+              "in_app": false
+            },
+            {
+              "function": "run",
+              "abs_path": "SpringApplication.java",
+              "module": "org.springframework.boot.SpringApplication",
+              "filename": "SpringApplication.java",
+              "lineno": 1151,
+              "in_app": false
+            },
+            {
+              "function": "run",
+              "abs_path": "SpringApplication.java",
+              "module": "org.springframework.boot.SpringApplication",
+              "filename": "SpringApplication.java",
+              "lineno": 1162,
+              "in_app": false
+            },
+            {
+              "function": "run",
+              "abs_path": "SpringApplication.java",
+              "module": "org.springframework.boot.SpringApplication",
+              "filename": "SpringApplication.java",
+              "lineno": 314,
+              "in_app": false
+            },
+            {
+              "function": "refreshContext",
+              "abs_path": "SpringApplication.java",
+              "module": "org.springframework.boot.SpringApplication",
+              "filename": "SpringApplication.java",
+              "lineno": 370,
+              "in_app": false
+            },
+            {
+              "function": "refresh",
+              "abs_path": "SpringApplication.java",
+              "module": "org.springframework.boot.SpringApplication",
+              "filename": "SpringApplication.java",
+              "lineno": 737,
+              "in_app": false
+            },
+            {
+              "function": "refresh",
+              "abs_path": "EmbeddedWebApplicationContext.java",
+              "module": "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext",
+              "filename": "EmbeddedWebApplicationContext.java",
+              "lineno": 122,
+              "in_app": false
+            },
+            {
+              "function": "refresh",
+              "abs_path": "AbstractApplicationContext.java",
+              "module": "org.springframework.context.support.AbstractApplicationContext",
+              "filename": "AbstractApplicationContext.java",
+              "lineno": 545,
+              "in_app": false
+            },
+            {
+              "function": "finishRefresh",
+              "abs_path": "EmbeddedWebApplicationContext.java",
+              "module": "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext",
+              "filename": "EmbeddedWebApplicationContext.java",
+              "lineno": 145,
+              "in_app": false
+            },
+            {
+              "function": "startEmbeddedServletContainer",
+              "abs_path": "EmbeddedWebApplicationContext.java",
+              "module": "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext",
+              "filename": "EmbeddedWebApplicationContext.java",
+              "lineno": 297,
+              "in_app": false
+            },
+            {
+              "function": "start",
+              "abs_path": "TomcatEmbeddedServletContainer.java",
+              "module": "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer",
+              "filename": "TomcatEmbeddedServletContainer.java",
+              "lineno": 190,
+              "in_app": false
+            },
+            {
+              "function": "addPreviouslyRemovedConnectors",
+              "abs_path": "TomcatEmbeddedServletContainer.java",
+              "module": "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer",
+              "filename": "TomcatEmbeddedServletContainer.java",
+              "lineno": 247,
+              "in_app": false
+            },
+            {
+              "function": "addConnector",
+              "abs_path": "StandardService.java",
+              "module": "org.apache.catalina.core.StandardService",
+              "filename": "StandardService.java",
+              "lineno": 225,
+              "in_app": false
+            },
+            {
+              "function": "start",
+              "abs_path": "LifecycleBase.java",
+              "module": "org.apache.catalina.util.LifecycleBase",
+              "filename": "LifecycleBase.java",
+              "lineno": 150,
+              "in_app": false
+            },
+            {
+              "function": "startInternal",
+              "abs_path": "Connector.java",
+              "module": "org.apache.catalina.connector.Connector",
+              "filename": "Connector.java",
+              "lineno": 1000,
+              "in_app": false
+            }
+          ]
+        },
+        "type": "LifecycleException",
+        "value": "service.getName(): \"Tomcat\";  Protocol handler start failed",
+        "module": "org.apache.catalina"
+      },
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "main",
+              "abs_path": "Application.java",
+              "module": "io.sentry.example.Application",
+              "filename": "Application.java",
+              "lineno": 86,
+              "in_app": true
+            },
+            {
+              "function": "run",
+              "abs_path": "SpringApplication.java",
+              "module": "org.springframework.boot.SpringApplication",
+              "filename": "SpringApplication.java",
+              "lineno": 1151,
+              "in_app": false
+            },
+            {
+              "function": "run",
+              "abs_path": "SpringApplication.java",
+              "module": "org.springframework.boot.SpringApplication",
+              "filename": "SpringApplication.java",
+              "lineno": 1162,
+              "in_app": false
+            },
+            {
+              "function": "run",
+              "abs_path": "SpringApplication.java",
+              "module": "org.springframework.boot.SpringApplication",
+              "filename": "SpringApplication.java",
+              "lineno": 314,
+              "in_app": false
+            },
+            {
+              "function": "refreshContext",
+              "abs_path": "SpringApplication.java",
+              "module": "org.springframework.boot.SpringApplication",
+              "filename": "SpringApplication.java",
+              "lineno": 370,
+              "in_app": false
+            },
+            {
+              "function": "refresh",
+              "abs_path": "SpringApplication.java",
+              "module": "org.springframework.boot.SpringApplication",
+              "filename": "SpringApplication.java",
+              "lineno": 737,
+              "in_app": false
+            },
+            {
+              "function": "refresh",
+              "abs_path": "EmbeddedWebApplicationContext.java",
+              "module": "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext",
+              "filename": "EmbeddedWebApplicationContext.java",
+              "lineno": 122,
+              "in_app": false
+            },
+            {
+              "function": "refresh",
+              "abs_path": "AbstractApplicationContext.java",
+              "module": "org.springframework.context.support.AbstractApplicationContext",
+              "filename": "AbstractApplicationContext.java",
+              "lineno": 545,
+              "in_app": false
+            },
+            {
+              "function": "finishRefresh",
+              "abs_path": "EmbeddedWebApplicationContext.java",
+              "module": "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext",
+              "filename": "EmbeddedWebApplicationContext.java",
+              "lineno": 145,
+              "in_app": false
+            },
+            {
+              "function": "startEmbeddedServletContainer",
+              "abs_path": "EmbeddedWebApplicationContext.java",
+              "module": "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext",
+              "filename": "EmbeddedWebApplicationContext.java",
+              "lineno": 297,
+              "in_app": false
+            },
+            {
+              "function": "start",
+              "abs_path": "TomcatEmbeddedServletContainer.java",
+              "module": "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer",
+              "filename": "TomcatEmbeddedServletContainer.java",
+              "lineno": 190,
+              "in_app": false
+            },
+            {
+              "function": "addPreviouslyRemovedConnectors",
+              "abs_path": "TomcatEmbeddedServletContainer.java",
+              "module": "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer",
+              "filename": "TomcatEmbeddedServletContainer.java",
+              "lineno": 247,
+              "in_app": false
+            },
+            {
+              "function": "addConnector",
+              "abs_path": "StandardService.java",
+              "module": "org.apache.catalina.core.StandardService",
+              "filename": "StandardService.java",
+              "lineno": 225,
+              "in_app": false
+            },
+            {
+              "function": "start",
+              "abs_path": "LifecycleBase.java",
+              "module": "org.apache.catalina.util.LifecycleBase",
+              "filename": "LifecycleBase.java",
+              "lineno": 167,
+              "in_app": false
+            }
+          ]
+        },
+        "type": "LifecycleException",
+        "value": "Failed to start component [Connector[HTTP/1.1-8080]]",
+        "module": "org.apache.catalina"
+      }
+    ]
+  },
+  "logentry": {
+    "formatted": "Failed to start connector [Connector[HTTP/1.1-8080]]"
+  },
+  "release": null
+}

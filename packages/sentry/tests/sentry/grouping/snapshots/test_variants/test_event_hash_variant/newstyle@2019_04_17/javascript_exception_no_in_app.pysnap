@@ -1,0 +1,146 @@
+---
+created: '2020-02-26T19:54:35.057576Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
+            filename*
+              "react-dom.development.js"
+            function*
+              "dispatchInteractiveEvent"
+          frame (non app frame)
+            filename*
+              "react-dom.development.js"
+            function*
+              "interactiveUpdates"
+          frame (non app frame)
+            filename*
+              "react-dom.development.js"
+            function*
+              "interactiveUpdates$1"
+          frame (non app frame)
+            filename*
+              "react-dom.development.js"
+            function*
+              "performSyncWork"
+          frame (non app frame)
+            filename*
+              "react-dom.development.js"
+            function*
+              "performWork"
+          frame (non app frame)
+            filename*
+              "react-dom.development.js"
+            function*
+              "performWorkOnRoot"
+          frame (non app frame)
+            filename*
+              "react-dom.development.js"
+            function*
+              "renderRoot"
+          frame (non app frame)
+            filename*
+              "react-dom.development.js"
+            function*
+              "replayUnitOfWork"
+          frame (non app frame)
+            filename*
+              "react-dom.development.js"
+            function*
+              "invokeGuardedCallback"
+          frame (non app frame)
+            filename*
+              "react-dom.development.js"
+            function*
+              "Object.invokeGuardedCallbackDev"
+          frame (non app frame)
+            filename*
+              "index.js"
+            function*
+              "HTMLUnknownElement.sentryWrapped"
+          frame (non app frame)
+            filename*
+              "react-dom.development.js"
+            function*
+              "HTMLUnknownElement.callCallback"
+        type*
+          "ReferenceError"
+        value*
+          "varant is not defined"
+--------------------------------------------------------------------------
+system:
+  hash: "c792aaace0c1a534a115ece18c376538"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "react-dom.development.js"
+            function*
+              "dispatchInteractiveEvent"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function*
+              "interactiveUpdates"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function*
+              "interactiveUpdates$1"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function*
+              "performSyncWork"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function*
+              "performWork"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function*
+              "performWorkOnRoot"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function*
+              "renderRoot"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function*
+              "replayUnitOfWork"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function*
+              "invokeGuardedCallback"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function*
+              "Object.invokeGuardedCallbackDev"
+          frame*
+            filename*
+              "index.js"
+            function*
+              "HTMLUnknownElement.sentryWrapped"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function*
+              "HTMLUnknownElement.callCallback"
+        type*
+          "ReferenceError"
+        value (ignored because stacktrace takes precedence)
+          "varant is not defined"

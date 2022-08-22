@@ -1,0 +1,13 @@
+{
+  "_fingerprinting_rules": [
+    {
+      "matchers": [
+        ["message", "*love*"]
+      ],
+      "fingerprint": ["what-is-love", "{{ message }}"]
+    }
+  ],
+  "logentry": {
+    "formatted": "Hello my sweet Love"
+  }
+}

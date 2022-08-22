@@ -1,0 +1,28 @@
+---
+created: '2021-03-26T17:47:45.553756Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+EXCEPTION_ACCESS_VIOLATION_WRITE:Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE (thread_id:_, crashed:_)
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlUserThreadStart category=threadbase
+            C:\WINDOWS\System32\KERNEL32.DLL  BaseThreadInitThunk category=threadbase
+               C:\WINDOWS\SYSTEM32\ntdll.dll  TppWorkerThread category=system
+               C:\WINDOWS\SYSTEM32\ntdll.dll  TppWorkpExecuteCallback category=internals
+             C:\WINDOWS\SYSTEM32\WINHTTP.dll  HTTP_THREAD_POOL::_StaticWorkItemCallback category=internals
+             C:\WINDOWS\SYSTEM32\WINHTTP.dll  HTTP_ASYNC_OVERLAPPED::OnWorkItem category=internals
+             C:\WINDOWS\SYSTEM32\WINHTTP.dll  WEBIO_REQUEST::OnIoComplete category=internals
+             C:\WINDOWS\SYSTEM32\WINHTTP.dll  HTTP_USER_REQUEST::OnSendRequest category=internals
+             C:\WINDOWS\SYSTEM32\WINHTTP.dll  HTTP_BASE_OBJECT::Dereference category=internals
+             C:\WINDOWS\SYSTEM32\WINHTTP.dll  destructor' category=indirection
+             C:\WINDOWS\SYSTEM32\WINHTTP.dll  HTTP_USER_REQUEST::~HTTP_USER_REQUEST category=system
+             C:\WINDOWS\SYSTEM32\WINHTTP.dll  destructor' category=indirection
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlFreeHeap category=free
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpFreeHeapInternal category=internals
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpFreeHeap category=system
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlEnterCriticalSection category=internals
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpEnterCriticalSectionContended category=internals
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpWaitOnCriticalSection category=internals
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpWaitOnAddress category=internals
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpOptimizeWaitOnAddressWaitList category=internals

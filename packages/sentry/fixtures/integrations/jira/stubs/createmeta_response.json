@@ -1,0 +1,173 @@
+{
+  "projects": [
+    {
+      "self": "http://www.example.com/jira/rest/api/2/project/EX",
+      "id": "10000",
+      "key": "EX",
+      "name": "Example Project",
+      "avatarUrls": {
+        "48x48": "http://www.example.com/jira/secure/projectavatar?pid=10000&avatarId=10011",
+        "24x24": "http://www.example.com/jira/secure/projectavatar?size=small&pid=10000&avatarId=10011",
+        "16x16": "http://www.example.com/jira/secure/projectavatar?size=xsmall&pid=10000&avatarId=10011",
+        "32x32": "http://www.example.com/jira/secure/projectavatar?size=medium&pid=10000&avatarId=10011"
+      },
+      "issuetypes": [
+        {
+          "self": "http://www.example.com/jira/rest/api/2/issueType/1",
+          "id": "1",
+          "description": "An error in the code",
+          "iconUrl": "http://www.example.com/jira/images/icons/issuetypes/bug.png",
+          "name": "Bug",
+          "subtask": false,
+          "fields": {
+            "summary": {
+              "hasDefaultValue": false,
+              "key": "summary",
+              "name": "Summary",
+              "operations": ["set"],
+              "required": true,
+              "schema": {
+                "system": "summary",
+                "type": "string"
+              }
+            },
+            "description": {
+              "hasDefaultValue": false,
+              "key": "description",
+              "name": "Description",
+              "operations": ["set"],
+              "required": false,
+              "schema": {
+                "system": "description",
+                "type": "string"
+              }
+            },
+            "issuetype": {
+              "required": true,
+              "name": "Issue Type",
+              "key": "issuetype",
+              "hasDefaultValue": false,
+              "operations": ["set"]
+            },
+            "labels": {
+              "required": false,
+              "schema": {
+                "type": "array",
+                "items": "string",
+                "system": "labels"
+              },
+              "name": "Labels",
+              "key": "labels"
+            },
+            "project": {
+              "allowedValues": [
+                {
+                  "avatarUrls": {
+                    "48x48": "http://www.example.com/jira/secure/projectavatar?pid=10000&avatarId=10011",
+                    "24x24": "http://www.example.com/jira/secure/projectavatar?size=small&pid=10000&avatarId=10011",
+                    "16x16": "http://www.example.com/jira/secure/projectavatar?size=xsmall&pid=10000&avatarId=10011",
+                    "32x32": "http://www.example.com/jira/secure/projectavatar?size=medium&pid=10000&avatarId=10011"
+                  },
+                  "id": "10000",
+                  "key": "EX",
+                  "name": "Example Project",
+                  "projectTypeKey": "software",
+                  "self": "https://hellboi.atlassian.net/rest/api/2/project/10000",
+                  "simplified": false
+                }
+              ],
+              "hasDefaultValue": false,
+              "key": "project",
+              "name": "Project",
+              "operations": ["set"],
+              "required": true,
+              "schema": {
+                "system": "project",
+                "type": "project"
+              }
+            },
+            "customfield_10200": {
+              "operations": ["set"],
+              "required": false,
+              "schema": {
+                "type": "option",
+                "custom": "com.codebarrel.jira.iconselectlist:icon-select-cf",
+                "customId": 10200
+              },
+              "name": "Mood",
+              "hasDefaultValue": false,
+              "allowedValues": [
+                {"id": 10100, "label": "sad"},
+                {"id": 10101, "label": "happy"}
+              ]
+            },
+            "customfield_10300": {
+              "required": false,
+              "schema": {
+                "type": "array",
+                "items": "option",
+                "custom": "com.atlassian.jira.plugin.system.customfieldtypes:multiselect",
+                "customId": 10202
+              },
+              "name": "Feature",
+              "hasDefaultValue": false,
+              "operations": ["add", "set", "remove"],
+              "allowedValues": [
+                {"value": "Feature 1", "id": "10105"},
+                {"value": "Feature 2", "id": "10106"}
+              ]
+            },
+            "customfield_10400": {
+              "operations": ["set"],
+              "name": "Epic Link",
+              "required": false,
+              "hasDefaultValue": false,
+              "key": "customfield_10400",
+              "schema": {
+                "customId": 10400,
+                "type": "any",
+                "custom": "com.pyxis.greenhopper.jira:gh-epic-link"
+              }
+            },
+            "customfield_10500": {
+              "operations": ["set"],
+              "name": "Sprint",
+              "required": false,
+              "hasDefaultValue": false,
+              "key": "customfield_10500",
+              "schema": {
+                "items": "json",
+                "customId": 10500,
+                "type": "array",
+                "custom": "com.pyxis.greenhopper.jira:gh-sprint"
+              }
+            },
+            "parent": {
+              "operations": ["set"],
+              "name": "Parent",
+              "required": false,
+              "hasDefaultValue": false,
+              "key": "parent",
+              "schema": {
+                "type": "issuelink",
+                "system": "parent"
+              }
+            },
+            "reporter": {
+              "operations": ["set"],
+              "name": "Reporter",
+              "required": true,
+              "autoCompleteUrl": "https://saifelse.atlassian.net/rest/api/2/user/search?query=",
+              "hasDefaultValue": true,
+              "key": "reporter",
+              "schema": {
+                "type": "user",
+                "system": "reporter"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

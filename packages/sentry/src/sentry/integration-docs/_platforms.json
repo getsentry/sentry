@@ -1,0 +1,670 @@
+{
+  "platforms": [
+    {
+      "id": "dotnet",
+      "name": ".NET",
+      "integrations": [
+        {
+          "id": "dotnet",
+          "name": ".NET",
+          "type": "language",
+          "link": "https://docs.sentry.io/platforms/dotnet/"
+        },
+        {
+          "id": "dotnet-aspnet",
+          "name": "ASP.NET",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/dotnet/guides/aspnet/"
+        },
+        {
+          "id": "dotnet-aspnetcore",
+          "name": "ASP.NET Core",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/dotnet/guides/aspnetcore/"
+        },
+        {
+          "id": "dotnet-awslambda",
+          "name": "AWS Lambda (.NET)",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/dotnet/guides/aws-lambda/"
+        },
+        {
+          "id": "dotnet-gcpfunctions",
+          "name": "Google Cloud Functions (.NET)",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/dotnet/guides/google-cloud-functions/"
+        },
+        {
+          "id": "dotnet-uwp",
+          "name": "Universal Windows Platform",
+          "type": "language",
+          "link": "https://docs.sentry.io/platforms/dotnet/guides/uwp/"
+        },
+        {
+          "id": "dotnet-winforms",
+          "name": "Windows Forms",
+          "type": "language",
+          "link": "https://docs.sentry.io/platforms/dotnet/guides/winforms/"
+        },
+        {
+          "id": "dotnet-wpf",
+          "name": "Windows Presentation Foundation",
+          "type": "language",
+          "link": "https://docs.sentry.io/platforms/dotnet/guides/wpf/"
+        },
+        {
+          "id": "dotnet-xamarin",
+          "name": "Xamarin",
+          "type": "library",
+          "link": "https://docs.sentry.io/platforms/dotnet/guides/xamarin/"
+        }
+      ]
+    },
+    {
+      "id": "android",
+      "name": "Android",
+      "integrations": [
+        {
+          "id": "android",
+          "name": "Android",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/android/"
+        }
+      ]
+    },
+    {
+      "id": "apple",
+      "name": "Apple",
+      "integrations": [
+        {
+          "id": "apple",
+          "name": "Apple",
+          "type": "language",
+          "link": "https://docs.sentry.io/platforms/apple/"
+        },
+        {
+          "id": "apple-ios",
+          "name": "iOS",
+          "type": "language",
+          "link": "https://docs.sentry.io/platforms/apple/"
+        },
+        {
+          "id": "apple-macos",
+          "name": "macOS",
+          "type": "language",
+          "link": "https://docs.sentry.io/platforms/apple/"
+        }
+      ]
+    },
+    {
+      "id": "capacitor",
+      "name": "Capacitor",
+      "integrations": [
+        {
+          "id": "capacitor",
+          "name": "Capacitor",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/javascript/guides/capacitor/"
+        }
+      ]
+    },
+    {
+      "id": "cordova",
+      "name": "Cordova",
+      "integrations": [
+        {
+          "id": "cordova",
+          "name": "Cordova",
+          "type": "language",
+          "link": "https://docs.sentry.io/platforms/javascript/guides/cordova/"
+        }
+      ]
+    },
+    {
+      "id": "dart",
+      "name": "Dart",
+      "integrations": [
+        {
+          "id": "dart",
+          "name": "Dart",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/dart/"
+        }
+      ]
+    },
+    {
+      "id": "electron",
+      "name": "Electron",
+      "integrations": [
+        {
+          "id": "electron",
+          "name": "Electron",
+          "type": "language",
+          "link": "https://docs.sentry.io/platforms/javascript/guides/electron/"
+        }
+      ]
+    },
+    {
+      "id": "elixir",
+      "name": "Elixir",
+      "integrations": [
+        {
+          "id": "elixir",
+          "name": "Elixir",
+          "type": "language",
+          "link": "https://docs.sentry.io/platforms/elixir/"
+        }
+      ]
+    },
+    {
+      "id": "flutter",
+      "name": "Flutter",
+      "integrations": [
+        {
+          "id": "flutter",
+          "name": "Flutter",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/flutter/"
+        }
+      ]
+    },
+    {
+      "id": "go",
+      "name": "Go",
+      "integrations": [
+        {
+          "id": "go",
+          "name": "Go",
+          "type": "language",
+          "link": "https://docs.sentry.io/platforms/go/"
+        }
+      ]
+    },
+    {
+      "id": "ionic",
+      "name": "Ionic",
+      "integrations": [
+        {
+          "id": "ionic",
+          "name": "Ionic",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/javascript/guides/capacitor/"
+        }
+      ]
+    },
+    {
+      "id": "java",
+      "name": "Java",
+      "integrations": [
+        {
+          "id": "java",
+          "name": "Java",
+          "type": "language",
+          "link": "https://docs.sentry.io/platforms/java/"
+        },
+        {
+          "id": "java-log4j2",
+          "name": "Log4j 2.x",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/java/guides/log4j2/"
+        },
+        {
+          "id": "java-logback",
+          "name": "Logback",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/java/guides/logback/"
+        },
+        {
+          "id": "java-spring",
+          "name": "Spring",
+          "type": "framework",
+          "link": "https://https://docs.sentry.io/platforms/java/guides/spring/"
+        },
+        {
+          "id": "java-spring-boot",
+          "name": "Spring Boot",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/java/guides/spring-boot/"
+        }
+      ]
+    },
+    {
+      "id": "javascript",
+      "name": "JavaScript",
+      "integrations": [
+        {
+          "id": "javascript-angular",
+          "name": "Angular",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/javascript/guides/angular/"
+        },
+        {
+          "id": "javascript-angularjs",
+          "name": "AngularJS",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/javascript/guides/angular/angular1/"
+        },
+        {
+          "id": "javascript-backbone",
+          "name": "Backbone",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/javascript/"
+        },
+        {
+          "id": "javascript-browser",
+          "name": "Browser JavaScript",
+          "type": "language",
+          "link": "https://docs.sentry.io/platforms/guides/javascript/"
+        },
+        {
+          "id": "javascript-ember",
+          "name": "Ember",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/javascript/guides/ember/"
+        },
+        {
+          "id": "javascript-gatsby",
+          "name": "Gatsby",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/javascript/guides/gatsby/"
+        },
+        {
+          "id": "javascript",
+          "name": "JavaScript",
+          "type": "language",
+          "link": "https://docs.sentry.io/platforms/javascript/"
+        },
+        {
+          "id": "javascript-performance-onboarding-1-install",
+          "name": "JavaScript",
+          "type": "language",
+          "link": "https://docs.sentry.io/platforms/javascript/performance/"
+        },
+        {
+          "id": "javascript-performance-onboarding-2-configure",
+          "name": "JavaScript",
+          "type": "language",
+          "link": "https://docs.sentry.io/platforms/javascript/performance/"
+        },
+        {
+          "id": "javascript-performance-onboarding-3-verify",
+          "name": "JavaScript",
+          "type": "language",
+          "link": "https://docs.sentry.io/platforms/javascript/performance/"
+        },
+        {
+          "id": "javascript-nextjs",
+          "name": "Next.js",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/javascript/guides/nextjs/"
+        },
+        {
+          "id": "javascript-react",
+          "name": "React",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/javascript/guides/react/"
+        },
+        {
+          "id": "javascript-react-performance-onboarding-1-install",
+          "name": "React",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/javascript/guides/react/performance/"
+        },
+        {
+          "id": "javascript-react-performance-onboarding-2-configure",
+          "name": "React",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/javascript/guides/react/performance/"
+        },
+        {
+          "id": "javascript-react-performance-onboarding-3-verify",
+          "name": "React",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/javascript/guides/react/performance/"
+        },
+        {
+          "id": "javascript-vue",
+          "name": "Vue",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/javascript/guides/vue/"
+        }
+      ]
+    },
+    {
+      "id": "kotlin",
+      "name": "Kotlin",
+      "integrations": [
+        {
+          "id": "kotlin",
+          "name": "Kotlin",
+          "type": "language",
+          "link": "https://docs.sentry.io/platforms/kotlin/"
+        }
+      ]
+    },
+    {
+      "id": "minidump",
+      "name": "Minidump",
+      "integrations": [
+        {
+          "id": "minidump",
+          "name": "Minidump",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/native/minidump/"
+        }
+      ]
+    },
+    {
+      "id": "native",
+      "name": "Native",
+      "integrations": [
+        {
+          "id": "native",
+          "name": "Native",
+          "type": "language",
+          "link": "https://docs.sentry.io/platforms/native/"
+        },
+        {
+          "id": "native-qt",
+          "name": "Qt",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/native/guides/qt/"
+        }
+      ]
+    },
+    {
+      "id": "node",
+      "name": "Node.js",
+      "integrations": [
+        {
+          "id": "node-awslambda",
+          "name": "AWS Lambda (Node)",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/node/guides/aws-lambda/"
+        },
+        {
+          "id": "node-azurefunctions",
+          "name": "Azure Functions (Node)",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/node/guides/azure-functions/"
+        },
+        {
+          "id": "node-connect",
+          "name": "Connect",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/node/guides/connect/"
+        },
+        {
+          "id": "node-express",
+          "name": "Express",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/node/guides/express/"
+        },
+        {
+          "id": "node-serverlesscloud",
+          "name": "Express",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/node/guides/serverless-cloud/"
+        },
+        {
+          "id": "node-gcpfunctions",
+          "name": "Google Cloud Functions (Node)",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/node/guides/gcp-functions/"
+        },
+        {
+          "id": "node-koa",
+          "name": "Koa",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/node/guides/koa/"
+        },
+        {
+          "id": "node",
+          "name": "Node.js",
+          "type": "language",
+          "link": "https://docs.sentry.io/platforms/node/"
+        },
+        {
+          "id": "node-tracing",
+          "name": "Node.js",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/node/performance/"
+        }
+      ]
+    },
+    {
+      "id": "php",
+      "name": "PHP",
+      "integrations": [
+        {
+          "id": "php-laravel",
+          "name": "Laravel",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/php/guides/laravel/"
+        },
+        {
+          "id": "php",
+          "name": "PHP",
+          "type": "language",
+          "link": "https://docs.sentry.io/platforms/php/"
+        },
+        {
+          "id": "php-symfony",
+          "name": "Symfony",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/php/guides/symfony/"
+        }
+      ]
+    },
+    {
+      "id": "python",
+      "name": "Python",
+      "integrations": [
+        {
+          "id": "python-aiohttp",
+          "name": "AIOHTTP",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/python/guides/aiohttp/"
+        },
+        {
+          "id": "python-asgi",
+          "name": "ASGI",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/python/guides/asgi/"
+        },
+        {
+          "id": "python-awslambda",
+          "name": "AWS Lambda (Python)",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/python/guides/aws-lambda/"
+        },
+        {
+          "id": "python-bottle",
+          "name": "Bottle",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/python/guides/bottle/"
+        },
+        {
+          "id": "python-celery",
+          "name": "Celery",
+          "type": "library",
+          "link": "https://docs.sentry.io/platforms/python/guides/celery/"
+        },
+        {
+          "id": "python-chalice",
+          "name": "Chalice",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/python/guides/chalice/"
+        },
+        {
+          "id": "python-django",
+          "name": "Django",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/python/guides/django/"
+        },
+        {
+          "id": "python-falcon",
+          "name": "Falcon",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/python/guides/falcon/"
+        },
+        {
+          "id": "python-flask",
+          "name": "Flask",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/python/guides/flask/"
+        },
+        {
+          "id": "python-gcpfunctions",
+          "name": "Google Cloud Functions (Python)",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/python/guides/gcp-functions/"
+        },
+        {
+          "id": "python-pylons",
+          "name": "Pylons",
+          "type": "framework",
+          "link": "https://docs.sentry.io/clients/python/integrations/pylons/"
+        },
+        {
+          "id": "python-pyramid",
+          "name": "Pyramid",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/python/pyramid/"
+        },
+        {
+          "id": "python",
+          "name": "Python",
+          "type": "language",
+          "link": "https://docs.sentry.io/platforms/python/"
+        },
+        {
+          "id": "python-tracing",
+          "name": "Python",
+          "type": "language",
+          "link": "https://docs.sentry.io/platforms/python/performance/"
+        },
+        {
+          "id": "python-quart",
+          "name": "Quart",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/python/guides/quart/"
+        },
+        {
+          "id": "python-rq",
+          "name": "RQ (Redis Queue)",
+          "type": "library",
+          "link": "https://docs.sentry.io/platforms/python/guides/rq/"
+        },
+        {
+          "id": "python-sanic",
+          "name": "Sanic",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/python/guides/sanic/"
+        },
+        {
+          "id": "python-serverless",
+          "name": "Serverless",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/python/guides/serverless/"
+        },
+        {
+          "id": "python-tornado",
+          "name": "Tornado",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/python/guides/tornado/"
+        },
+        {
+          "id": "python-tryton",
+          "name": "Tryton",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/python/guides/tryton/"
+        },
+        {
+          "id": "python-wsgi",
+          "name": "WSGI",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/python/guides/wsgi/"
+        }
+      ]
+    },
+    {
+      "id": "react-native",
+      "name": "React Native",
+      "integrations": [
+        {
+          "id": "react-native",
+          "name": "React Native",
+          "type": "language",
+          "link": "https://docs.sentry.io/platforms/react-native/"
+        },
+        {
+          "id": "react-native-tracing",
+          "name": "React-Native",
+          "type": "language",
+          "link": "https://docs.sentry.io/platforms/react-native/performance/"
+        }
+      ]
+    },
+    {
+      "id": "ruby",
+      "name": "Ruby",
+      "integrations": [
+        {
+          "id": "ruby-rack",
+          "name": "Rack Middleware",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/ruby/guides/rack/"
+        },
+        {
+          "id": "ruby-rails",
+          "name": "Rails",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/ruby/guides/rails/"
+        },
+        {
+          "id": "ruby",
+          "name": "Ruby",
+          "type": "language",
+          "link": "https://docs.sentry.io/platforms/ruby/"
+        }
+      ]
+    },
+    {
+      "id": "rust",
+      "name": "Rust",
+      "integrations": [
+        {
+          "id": "rust",
+          "name": "Rust",
+          "type": "language",
+          "link": "https://docs.sentry.io/platforms/rust/"
+        }
+      ]
+    },
+    {
+      "id": "unity",
+      "name": "Unity",
+      "integrations": [
+        {
+          "id": "unity",
+          "name": "Unity",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/unity/"
+        }
+      ]
+    },
+    {
+      "id": "unreal",
+      "name": "Unreal Engine",
+      "integrations": [
+        {
+          "id": "unreal",
+          "name": "Unreal Engine",
+          "type": "framework",
+          "link": "https://docs.sentry.io/platforms/unreal/"
+        }
+      ]
+    }
+  ]
+}

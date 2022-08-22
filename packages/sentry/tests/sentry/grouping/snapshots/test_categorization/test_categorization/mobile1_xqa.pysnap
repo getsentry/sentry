@@ -1,0 +1,16 @@
+---
+created: '2021-08-03T15:05:50.690894Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+SIGSEGV:Segfault (thread_id:_, crashed:_)
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                         /system/lib/libc.so  memcpy category=indirection
+                         /system/lib/libc.so  ??? category=internals
+                   /system/bin/app_process32  ??? category=internals
+                       /system/lib/libart.so  art::FaultManager::HandleFault category=internals
+                       /system/lib/libart.so  art::FaultManager::IsInGeneratedCode category=internals

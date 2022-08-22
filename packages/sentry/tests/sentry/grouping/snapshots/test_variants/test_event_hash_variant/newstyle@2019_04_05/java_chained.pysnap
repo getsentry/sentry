@@ -1,0 +1,775 @@
+---
+created: '2020-08-25T09:17:13.909441Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "6492c5a2c66315cff20930ec07f587ad"
+  component:
+    app*
+      chained-exception*
+        exception*
+          stacktrace
+            frame (non app frame)
+              module*
+                "io.sentry.example.Application"
+              filename (module takes precedence)
+                "application.java"
+              function*
+                "main"
+            frame (non app frame)
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame (non app frame)
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame (non app frame)
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame (non app frame)
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (module takes precedence)
+                "springapplication.java"
+              function*
+                "refreshContext"
+            frame (non app frame)
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (module takes precedence)
+                "springapplication.java"
+              function*
+                "refresh"
+            frame (non app frame)
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "refresh"
+            frame (non app frame)
+              module*
+                "org.springframework.context.support.AbstractApplicationContext"
+              filename (module takes precedence)
+                "abstractapplicationcontext.java"
+              function*
+                "refresh"
+            frame (non app frame)
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "finishRefresh"
+            frame (non app frame)
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "startEmbeddedServletContainer"
+            frame (non app frame)
+              module*
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+              filename (module takes precedence)
+                "tomcatembeddedservletcontainer.java"
+              function*
+                "start"
+            frame (non app frame)
+              module*
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+              filename (module takes precedence)
+                "tomcatembeddedservletcontainer.java"
+              function*
+                "addPreviouslyRemovedConnectors"
+            frame (non app frame)
+              module*
+                "org.apache.catalina.core.StandardService"
+              filename (module takes precedence)
+                "standardservice.java"
+              function*
+                "addConnector"
+            frame (non app frame)
+              module*
+                "org.apache.catalina.util.LifecycleBase"
+              filename (module takes precedence)
+                "lifecyclebase.java"
+              function*
+                "start"
+            frame (non app frame)
+              module*
+                "org.apache.catalina.connector.Connector"
+              filename (module takes precedence)
+                "connector.java"
+              function*
+                "startInternal"
+            frame (non app frame)
+              module*
+                "org.apache.coyote.AbstractProtocol"
+              filename (module takes precedence)
+                "abstractprotocol.java"
+              function*
+                "start"
+            frame (non app frame)
+              module*
+                "org.apache.tomcat.util.net.AbstractEndpoint"
+              filename (module takes precedence)
+                "abstractendpoint.java"
+              function*
+                "start"
+            frame (non app frame)
+              module*
+                "org.apache.tomcat.util.net.NioEndpoint"
+              filename (module takes precedence)
+                "nioendpoint.java"
+              function*
+                "bind"
+            frame (non app frame)
+              module*
+                "sun.nio.ch.ServerSocketAdaptor"
+              filename (module takes precedence)
+                "serversocketadaptor.java"
+              function*
+                "bind"
+            frame (non app frame)
+              module*
+                "sun.nio.ch.ServerSocketChannelImpl"
+              filename (module takes precedence)
+                "serversocketchannelimpl.java"
+              function*
+                "bind"
+            frame (non app frame)
+              module*
+                "sun.nio.ch.Net"
+              filename (module takes precedence)
+                "net.java"
+              function*
+                "bind"
+            frame (non app frame)
+              module*
+                "sun.nio.ch.Net"
+              filename (module takes precedence)
+                "net.java"
+              function*
+                "bind"
+            frame (non app frame)
+              module*
+                "sun.nio.ch.Net"
+              filename (module takes precedence)
+                "net.java"
+              function*
+                "bind0"
+          type*
+            "BindException"
+        exception*
+          stacktrace
+            frame (non app frame)
+              module*
+                "io.sentry.example.Application"
+              filename (module takes precedence)
+                "application.java"
+              function*
+                "main"
+            frame (non app frame)
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame (non app frame)
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame (non app frame)
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame (non app frame)
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (module takes precedence)
+                "springapplication.java"
+              function*
+                "refreshContext"
+            frame (non app frame)
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (module takes precedence)
+                "springapplication.java"
+              function*
+                "refresh"
+            frame (non app frame)
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "refresh"
+            frame (non app frame)
+              module*
+                "org.springframework.context.support.AbstractApplicationContext"
+              filename (module takes precedence)
+                "abstractapplicationcontext.java"
+              function*
+                "refresh"
+            frame (non app frame)
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "finishRefresh"
+            frame (non app frame)
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "startEmbeddedServletContainer"
+            frame (non app frame)
+              module*
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+              filename (module takes precedence)
+                "tomcatembeddedservletcontainer.java"
+              function*
+                "start"
+            frame (non app frame)
+              module*
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+              filename (module takes precedence)
+                "tomcatembeddedservletcontainer.java"
+              function*
+                "addPreviouslyRemovedConnectors"
+            frame (non app frame)
+              module*
+                "org.apache.catalina.core.StandardService"
+              filename (module takes precedence)
+                "standardservice.java"
+              function*
+                "addConnector"
+            frame (non app frame)
+              module*
+                "org.apache.catalina.util.LifecycleBase"
+              filename (module takes precedence)
+                "lifecyclebase.java"
+              function*
+                "start"
+            frame (non app frame)
+              module*
+                "org.apache.catalina.connector.Connector"
+              filename (module takes precedence)
+                "connector.java"
+              function*
+                "startInternal"
+          type*
+            "LifecycleException"
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "io.sentry.example.Application"
+              filename (module takes precedence)
+                "application.java"
+              function*
+                "main"
+            frame (non app frame)
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame (non app frame)
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame (non app frame)
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame (non app frame)
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (module takes precedence)
+                "springapplication.java"
+              function*
+                "refreshContext"
+            frame (non app frame)
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (module takes precedence)
+                "springapplication.java"
+              function*
+                "refresh"
+            frame (non app frame)
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "refresh"
+            frame (non app frame)
+              module*
+                "org.springframework.context.support.AbstractApplicationContext"
+              filename (module takes precedence)
+                "abstractapplicationcontext.java"
+              function*
+                "refresh"
+            frame (non app frame)
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "finishRefresh"
+            frame (non app frame)
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "startEmbeddedServletContainer"
+            frame (non app frame)
+              module*
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+              filename (module takes precedence)
+                "tomcatembeddedservletcontainer.java"
+              function*
+                "start"
+            frame (non app frame)
+              module*
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+              filename (module takes precedence)
+                "tomcatembeddedservletcontainer.java"
+              function*
+                "addPreviouslyRemovedConnectors"
+            frame (non app frame)
+              module*
+                "org.apache.catalina.core.StandardService"
+              filename (module takes precedence)
+                "standardservice.java"
+              function*
+                "addConnector"
+            frame (non app frame)
+              module*
+                "org.apache.catalina.util.LifecycleBase"
+              filename (module takes precedence)
+                "lifecyclebase.java"
+              function*
+                "start"
+          type*
+            "LifecycleException"
+--------------------------------------------------------------------------
+default:
+  hash: null
+  component:
+    default (exception of app/system takes precedence)
+      message (exception of app/system takes precedence)
+        "Failed to start connector [Connector[HTTP/1.1-8080]]"
+--------------------------------------------------------------------------
+system:
+  hash: "8924849495809d42431719c2b9ab65c8"
+  component:
+    system*
+      chained-exception*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "io.sentry.example.Application"
+              filename (module takes precedence)
+                "application.java"
+              function*
+                "main"
+            frame*
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame*
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame*
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame*
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (module takes precedence)
+                "springapplication.java"
+              function*
+                "refreshContext"
+            frame*
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (module takes precedence)
+                "springapplication.java"
+              function*
+                "refresh"
+            frame*
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "refresh"
+            frame*
+              module*
+                "org.springframework.context.support.AbstractApplicationContext"
+              filename (module takes precedence)
+                "abstractapplicationcontext.java"
+              function*
+                "refresh"
+            frame*
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "finishRefresh"
+            frame*
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "startEmbeddedServletContainer"
+            frame*
+              module*
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+              filename (module takes precedence)
+                "tomcatembeddedservletcontainer.java"
+              function*
+                "start"
+            frame*
+              module*
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+              filename (module takes precedence)
+                "tomcatembeddedservletcontainer.java"
+              function*
+                "addPreviouslyRemovedConnectors"
+            frame*
+              module*
+                "org.apache.catalina.core.StandardService"
+              filename (module takes precedence)
+                "standardservice.java"
+              function*
+                "addConnector"
+            frame*
+              module*
+                "org.apache.catalina.util.LifecycleBase"
+              filename (module takes precedence)
+                "lifecyclebase.java"
+              function*
+                "start"
+            frame*
+              module*
+                "org.apache.catalina.connector.Connector"
+              filename (module takes precedence)
+                "connector.java"
+              function*
+                "startInternal"
+            frame*
+              module*
+                "org.apache.coyote.AbstractProtocol"
+              filename (module takes precedence)
+                "abstractprotocol.java"
+              function*
+                "start"
+            frame*
+              module*
+                "org.apache.tomcat.util.net.AbstractEndpoint"
+              filename (module takes precedence)
+                "abstractendpoint.java"
+              function*
+                "start"
+            frame*
+              module*
+                "org.apache.tomcat.util.net.NioEndpoint"
+              filename (module takes precedence)
+                "nioendpoint.java"
+              function*
+                "bind"
+            frame*
+              module*
+                "sun.nio.ch.ServerSocketAdaptor"
+              filename (module takes precedence)
+                "serversocketadaptor.java"
+              function*
+                "bind"
+            frame*
+              module*
+                "sun.nio.ch.ServerSocketChannelImpl"
+              filename (module takes precedence)
+                "serversocketchannelimpl.java"
+              function*
+                "bind"
+            frame*
+              module*
+                "sun.nio.ch.Net"
+              filename (module takes precedence)
+                "net.java"
+              function*
+                "bind"
+            frame*
+              module*
+                "sun.nio.ch.Net"
+              filename (module takes precedence)
+                "net.java"
+              function*
+                "bind"
+            frame*
+              module*
+                "sun.nio.ch.Net"
+              filename (module takes precedence)
+                "net.java"
+              function*
+                "bind0"
+          type*
+            "BindException"
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "io.sentry.example.Application"
+              filename (module takes precedence)
+                "application.java"
+              function*
+                "main"
+            frame*
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame*
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame*
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame*
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (module takes precedence)
+                "springapplication.java"
+              function*
+                "refreshContext"
+            frame*
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (module takes precedence)
+                "springapplication.java"
+              function*
+                "refresh"
+            frame*
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "refresh"
+            frame*
+              module*
+                "org.springframework.context.support.AbstractApplicationContext"
+              filename (module takes precedence)
+                "abstractapplicationcontext.java"
+              function*
+                "refresh"
+            frame*
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "finishRefresh"
+            frame*
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "startEmbeddedServletContainer"
+            frame*
+              module*
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+              filename (module takes precedence)
+                "tomcatembeddedservletcontainer.java"
+              function*
+                "start"
+            frame*
+              module*
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+              filename (module takes precedence)
+                "tomcatembeddedservletcontainer.java"
+              function*
+                "addPreviouslyRemovedConnectors"
+            frame*
+              module*
+                "org.apache.catalina.core.StandardService"
+              filename (module takes precedence)
+                "standardservice.java"
+              function*
+                "addConnector"
+            frame*
+              module*
+                "org.apache.catalina.util.LifecycleBase"
+              filename (module takes precedence)
+                "lifecyclebase.java"
+              function*
+                "start"
+            frame*
+              module*
+                "org.apache.catalina.connector.Connector"
+              filename (module takes precedence)
+                "connector.java"
+              function*
+                "startInternal"
+          type*
+            "LifecycleException"
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "io.sentry.example.Application"
+              filename (module takes precedence)
+                "application.java"
+              function*
+                "main"
+            frame*
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame*
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame*
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (module takes precedence)
+                "springapplication.java"
+              function*
+                "run"
+            frame*
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (module takes precedence)
+                "springapplication.java"
+              function*
+                "refreshContext"
+            frame*
+              module*
+                "org.springframework.boot.SpringApplication"
+              filename (module takes precedence)
+                "springapplication.java"
+              function*
+                "refresh"
+            frame*
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "refresh"
+            frame*
+              module*
+                "org.springframework.context.support.AbstractApplicationContext"
+              filename (module takes precedence)
+                "abstractapplicationcontext.java"
+              function*
+                "refresh"
+            frame*
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "finishRefresh"
+            frame*
+              module*
+                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+              filename (module takes precedence)
+                "embeddedwebapplicationcontext.java"
+              function*
+                "startEmbeddedServletContainer"
+            frame*
+              module*
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+              filename (module takes precedence)
+                "tomcatembeddedservletcontainer.java"
+              function*
+                "start"
+            frame*
+              module*
+                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+              filename (module takes precedence)
+                "tomcatembeddedservletcontainer.java"
+              function*
+                "addPreviouslyRemovedConnectors"
+            frame*
+              module*
+                "org.apache.catalina.core.StandardService"
+              filename (module takes precedence)
+                "standardservice.java"
+              function*
+                "addConnector"
+            frame*
+              module*
+                "org.apache.catalina.util.LifecycleBase"
+              filename (module takes precedence)
+                "lifecyclebase.java"
+              function*
+                "start"
+          type*
+            "LifecycleException"

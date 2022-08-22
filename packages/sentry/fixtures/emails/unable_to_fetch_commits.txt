@@ -1,0 +1,11 @@
+Unable to Fetch Commits
+-----------------------
+
+We were unable to fetch the commit log for your release (abcdef) for repository (repo_name) in the (myorg) organization due to the following error:
+
+An internal server error occurred
+
+Troubleshooting &amp; References
+
+https://help.sentry.io/product-features/integrations/why-am-i-receiving-the-email-unable-to-fetch-commits/
+https://docs.sentry.io/product/releases/setup/

@@ -1,0 +1,22 @@
+{
+  "changelog": {
+    "items": [
+      {
+        "to": "admin",
+        "field": "assignee",
+        "toString": "Jess MacQueen",
+        "from": null,
+        "fromString": null,
+        "fieldtype": "jira",
+        "fieldId": "assignee"
+      }
+    ],
+    "id": "10172"
+  },
+  "issue": {
+    "fields": {
+      "assignee": null
+    },
+    "key": "APP-123"
+  }
+}

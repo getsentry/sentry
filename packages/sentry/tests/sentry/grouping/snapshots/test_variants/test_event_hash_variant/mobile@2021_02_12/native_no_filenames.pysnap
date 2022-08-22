@@ -1,0 +1,200 @@
+---
+created: '2021-08-04T15:53:48.500922Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "59c0434e3624d23495e047f18d5615c5"
+  tree_label: "log::__private_api_log"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "log::__private_api_log"
+            package (ignored because function takes precedence)
+              "log"
+        type (ignored because exception is synthetic)
+          "log_demo"
+        value (ignored because stacktrace takes precedence)
+          "Holy shit everything is on fire!"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "76f35a6a10b48e05d6f2eef4ed6e964e"
+  tree_label: "log::__private_api_log | log_demo::main"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "log_demo::main"
+            package (ignored because function takes precedence)
+              "log_demo"
+          frame*
+            function*
+              "log::__private_api_log"
+            package (ignored because function takes precedence)
+              "log"
+        type (ignored because exception is synthetic)
+          "log_demo"
+        value (ignored because stacktrace takes precedence)
+          "Holy shit everything is on fire!"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "34020cf04e5ece6c917775f7c2d6bb27"
+  tree_label: "log::__private_api_log | log_demo::main | ___rust_maybe_catch_panic"
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "___rust_maybe_catch_panic"
+          frame*
+            function*
+              "log_demo::main"
+            package (ignored because function takes precedence)
+              "log_demo"
+          frame*
+            function*
+              "log::__private_api_log"
+            package (ignored because function takes precedence)
+              "log"
+        type (ignored because exception is synthetic)
+          "log_demo"
+        value (ignored because stacktrace takes precedence)
+          "Holy shit everything is on fire!"
+--------------------------------------------------------------------------
+app-depth-4:
+  hash: "418120a66f7031923031f5c52aca0724"
+  tree_label: "log::__private_api_log | log_demo::main | ___rust_maybe_catch_panic | _main"
+  component:
+    app-depth-4*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "_main"
+          frame*
+            function*
+              "___rust_maybe_catch_panic"
+          frame*
+            function*
+              "log_demo::main"
+            package (ignored because function takes precedence)
+              "log_demo"
+          frame*
+            function*
+              "log::__private_api_log"
+            package (ignored because function takes precedence)
+              "log"
+        type (ignored because exception is synthetic)
+          "log_demo"
+        value (ignored because stacktrace takes precedence)
+          "Holy shit everything is on fire!"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "418120a66f7031923031f5c52aca0724"
+  tree_label: "log::__private_api_log | log_demo::main | ___rust_maybe_catch_panic | _main"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "_main"
+          frame*
+            function*
+              "___rust_maybe_catch_panic"
+          frame*
+            function*
+              "log_demo::main"
+            package (ignored because function takes precedence)
+              "log_demo"
+          frame*
+            function*
+              "log::__private_api_log"
+            package (ignored because function takes precedence)
+              "log"
+        type (ignored because exception is synthetic)
+          "log_demo"
+        value (ignored because stacktrace takes precedence)
+          "Holy shit everything is on fire!"
+--------------------------------------------------------------------------
+system:
+  hash: "ef1b58eb2e70ff452c576019ee8481bd"
+  tree_label: "something | sentry | sentry::hub::Hub::with_active::{{closure}} | sentry::hub::Hub::with | sentry::hub::Hub::with_active | sentry::integrations::log::Logger::log | log::__private_api_log | log_demo::main | std::panicking::try::do_call | ___rust_maybe_catch_panic | std::rt::lang_start | _main"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "_main"
+          frame*
+            function*
+              "std::rt::lang_start"
+            package (ignored because function takes precedence)
+              "std"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "std::rt::lang_start_internal"
+            package (ignored because function takes precedence)
+              "std"
+          frame*
+            function*
+              "___rust_maybe_catch_panic"
+          frame*
+            function*
+              "std::panicking::try::do_call"
+            package (ignored because function takes precedence)
+              "std"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "std::rt::lang_start::{{closure}}"
+            package (ignored because function takes precedence)
+              "std"
+          frame*
+            function*
+              "log_demo::main"
+            package (ignored because function takes precedence)
+              "log_demo"
+          frame*
+            function*
+              "log::__private_api_log"
+            package (ignored because function takes precedence)
+              "log"
+          frame*
+            function*
+              "sentry::integrations::log::Logger::log"
+          frame*
+            function*
+              "sentry::hub::Hub::with_active"
+            package (ignored because function takes precedence)
+              "sentry"
+          frame*
+            function*
+              "sentry::hub::Hub::with"
+            package (ignored because function takes precedence)
+              "sentry"
+          frame*
+            function*
+              "sentry::hub::Hub::with_active::{{closure}}"
+            package (ignored because function takes precedence)
+              "sentry"
+          frame*
+            function (ignored unknown function)
+              "<unknown>"
+            package* (used as fallback because function name is not available)
+              "sentry"
+          frame*
+            function (ignored unknown function)
+              "<redacted>"
+            package* (used as fallback because function name is not available)
+              "something"
+        type*
+          "log_demo"
+        value (ignored because stacktrace takes precedence)
+          "Holy shit everything is on fire!"

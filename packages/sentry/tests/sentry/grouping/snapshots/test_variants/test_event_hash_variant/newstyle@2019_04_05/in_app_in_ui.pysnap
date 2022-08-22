@@ -1,0 +1,290 @@
+---
+created: '2021-07-26T19:38:33.015744Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "9b037f38798ea127aac3e8b8e1e1024a"
+  component:
+    app*
+      exception*
+        stacktrace*
+          frame (non app frame)
+            function*
+              "start"
+          frame*
+            filename*
+              "main.m"
+            function*
+              "main"
+          frame (non app frame)
+            function*
+              "UIApplicationMain"
+          frame (non app frame)
+            function*
+              "-[UIApplication _run]"
+          frame (non app frame)
+            function*
+              "GSEventRunModal"
+          frame (non app frame)
+            function*
+              "CFRunLoopRunSpecific"
+          frame (non app frame)
+            function*
+              "__CFRunLoopRun"
+          frame (non app frame)
+            function*
+              "__CFRunLoopDoObservers"
+          frame (non app frame)
+            function*
+              "__CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__"
+          frame (non app frame)
+            function* (isolated function)
+              "CA::Transaction::observer_callback"
+          frame (non app frame)
+            function* (isolated function)
+              "CA::Transaction::commit"
+          frame (non app frame)
+            function* (isolated function)
+              "CA::Context::commit_transaction"
+          frame (non app frame)
+            function* (isolated function)
+              "CA::Layer::layout_and_display_if_needed"
+          frame (non app frame)
+            function* (isolated function)
+              "CA::Layer::layout_if_needed"
+          frame (non app frame)
+            function*
+              "-[CALayer layoutSublayers]"
+          frame (non app frame)
+            function*
+              "-[UIView(CALayerDelegate) layoutSublayersOfLayer:]"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "TableView.layoutSubviews"
+          frame (non app frame)
+            function*
+              "-[UITableView layoutSubviews]"
+          frame (non app frame)
+            function*
+              "-[UITableView _updateVisibleCellsNow:]"
+          frame (non app frame)
+            function*
+              "-[UITableView _createPreparedCellForGlobalRow:withIndexPath:willDisplay:]"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "AnyTableViewController.tableView"
+          frame (ignored due to recursion)
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "AnyTableViewController.tableView"
+          frame*
+            filename*
+              "anytableviewcontroller.swift"
+            function* (isolated function)
+              "AnyTableViewController.tableView"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "closure"
+          frame*
+            filename*
+              "dailydigesttableviewsection.swift"
+            function* (isolated function)
+              "DailyDigestTableViewSection.photoCell"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "MediaSlideshow.toSources"
+          frame*
+            filename*
+              "mediaslideshow+extensions.swift"
+            function* (isolated function)
+              "MediaSlideshow.toSources"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "Sequence.compactMap<T>"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "closure"
+          frame*
+            filename*
+              "mediaslideshow+extensions.swift"
+            function* (isolated function)
+              "MediaSlideshow.toSources"
+          frame*
+            filename*
+              "mediaslideshow+extensions.swift"
+            function* (isolated function)
+              "MediaSlideshow.toSource"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "CurrentUserProfile.isVideoAutoplay.getter"
+          frame*
+            filename*
+              "currentuserprofile.swift"
+            function*
+              "CurrentUserProfile.isVideoAutoplay.getter"
+          frame*
+            filename*
+              "currentuserprofile.swift"
+            function* (isolated function)
+              "value"
+        type (ignored because exception is synthetic)
+          "EXC_BREAKPOINT"
+--------------------------------------------------------------------------
+system:
+  hash: "fe8b15fe322c91ede2fc48363fe43587"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "start"
+          frame*
+            filename*
+              "main.m"
+            function*
+              "main"
+          frame*
+            function*
+              "UIApplicationMain"
+          frame*
+            function*
+              "-[UIApplication _run]"
+          frame*
+            function*
+              "GSEventRunModal"
+          frame*
+            function*
+              "CFRunLoopRunSpecific"
+          frame*
+            function*
+              "__CFRunLoopRun"
+          frame*
+            function*
+              "__CFRunLoopDoObservers"
+          frame*
+            function*
+              "__CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__"
+          frame*
+            function* (isolated function)
+              "CA::Transaction::observer_callback"
+          frame*
+            function* (isolated function)
+              "CA::Transaction::commit"
+          frame*
+            function* (isolated function)
+              "CA::Context::commit_transaction"
+          frame*
+            function* (isolated function)
+              "CA::Layer::layout_and_display_if_needed"
+          frame*
+            function* (isolated function)
+              "CA::Layer::layout_if_needed"
+          frame*
+            function*
+              "-[CALayer layoutSublayers]"
+          frame*
+            function*
+              "-[UIView(CALayerDelegate) layoutSublayersOfLayer:]"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "TableView.layoutSubviews"
+          frame*
+            function*
+              "-[UITableView layoutSubviews]"
+          frame*
+            function*
+              "-[UITableView _updateVisibleCellsNow:]"
+          frame*
+            function*
+              "-[UITableView _createPreparedCellForGlobalRow:withIndexPath:willDisplay:]"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "AnyTableViewController.tableView"
+          frame (ignored due to recursion)
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "AnyTableViewController.tableView"
+          frame*
+            filename*
+              "anytableviewcontroller.swift"
+            function* (isolated function)
+              "AnyTableViewController.tableView"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "closure"
+          frame*
+            filename*
+              "dailydigesttableviewsection.swift"
+            function* (isolated function)
+              "DailyDigestTableViewSection.photoCell"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "MediaSlideshow.toSources"
+          frame*
+            filename*
+              "mediaslideshow+extensions.swift"
+            function* (isolated function)
+              "MediaSlideshow.toSources"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "Sequence.compactMap<T>"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "closure"
+          frame*
+            filename*
+              "mediaslideshow+extensions.swift"
+            function* (isolated function)
+              "MediaSlideshow.toSources"
+          frame*
+            filename*
+              "mediaslideshow+extensions.swift"
+            function* (isolated function)
+              "MediaSlideshow.toSource"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function* (isolated function)
+              "CurrentUserProfile.isVideoAutoplay.getter"
+          frame*
+            filename*
+              "currentuserprofile.swift"
+            function*
+              "CurrentUserProfile.isVideoAutoplay.getter"
+          frame*
+            filename*
+              "currentuserprofile.swift"
+            function* (isolated function)
+              "value"
+        type (ignored because exception is synthetic)
+          "EXC_BREAKPOINT"

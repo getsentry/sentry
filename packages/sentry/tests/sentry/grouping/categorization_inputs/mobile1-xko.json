@@ -1,0 +1,182 @@
+{
+  "event_id": "937bf0cab2e84cb3aee56d90d7611a04",
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "Thread.java",
+              "filename": "Thread.java",
+              "function": "run",
+              "module": "java.lang.Thread"
+            },
+            {
+              "abs_path": "ThreadPoolExecutor.java",
+              "filename": "ThreadPoolExecutor.java",
+              "function": "run",
+              "module": "java.util.concurrent.ThreadPoolExecutor$Worker"
+            },
+            {
+              "abs_path": "ThreadPoolExecutor.java",
+              "filename": "ThreadPoolExecutor.java",
+              "function": "runWorker",
+              "module": "java.util.concurrent.ThreadPoolExecutor"
+            },
+            {
+              "abs_path": "AsyncTask.java",
+              "filename": "AsyncTask.java",
+              "function": "run",
+              "module": "android.os.AsyncTask$SerialExecutor$1"
+            },
+            {
+              "abs_path": "FutureTask.java",
+              "filename": "FutureTask.java",
+              "function": "run",
+              "module": "java.util.concurrent.FutureTask"
+            },
+            {
+              "abs_path": "AsyncTask.java",
+              "filename": "AsyncTask.java",
+              "function": "call",
+              "module": "android.os.AsyncTask$3"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "PendingIntent.java",
+              "filename": "PendingIntent.java",
+              "function": "getActivity",
+              "module": "android.app.PendingIntent"
+            },
+            {
+              "abs_path": "PendingIntent.java",
+              "filename": "PendingIntent.java",
+              "function": "getActivity",
+              "module": "android.app.PendingIntent"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "Proxy.java",
+              "filename": "Proxy.java",
+              "function": "invoke",
+              "module": "java.lang.reflect.Proxy"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "Method.java",
+              "filename": "Method.java",
+              "function": "invoke",
+              "module": "java.lang.reflect.Method"
+            },
+            {
+              "abs_path": "IActivityManager.java",
+              "filename": "IActivityManager.java",
+              "function": "getIntentSenderWithSourceToken",
+              "module": "android.app.IActivityManager$Stub$Proxy"
+            },
+            {
+              "abs_path": "Parcel.java",
+              "filename": "Parcel.java",
+              "function": "readException",
+              "module": "android.os.Parcel"
+            },
+            {
+              "abs_path": "Parcel.java",
+              "filename": "Parcel.java",
+              "function": "readException",
+              "module": "android.os.Parcel"
+            },
+            {
+              "abs_path": "Parcel.java",
+              "filename": "Parcel.java",
+              "function": "createException",
+              "module": "android.os.Parcel"
+            }
+          ]
+        },
+        "type": "SecurityException"
+      },
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": null,
+          "type": "UncaughtExceptionHandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "Thread.java",
+              "filename": "Thread.java",
+              "function": "run",
+              "module": "java.lang.Thread"
+            },
+            {
+              "abs_path": "ThreadPoolExecutor.java",
+              "filename": "ThreadPoolExecutor.java",
+              "function": "run",
+              "module": "java.util.concurrent.ThreadPoolExecutor$Worker"
+            },
+            {
+              "abs_path": "ThreadPoolExecutor.java",
+              "filename": "ThreadPoolExecutor.java",
+              "function": "runWorker",
+              "module": "java.util.concurrent.ThreadPoolExecutor"
+            },
+            {
+              "abs_path": "AsyncTask.java",
+              "filename": "AsyncTask.java",
+              "function": "run",
+              "module": "android.os.AsyncTask$SerialExecutor$1"
+            },
+            {
+              "abs_path": "FutureTask.java",
+              "filename": "FutureTask.java",
+              "function": "run",
+              "module": "java.util.concurrent.FutureTask"
+            },
+            {
+              "abs_path": "FutureTask.java",
+              "filename": "FutureTask.java",
+              "function": "setException",
+              "module": "java.util.concurrent.FutureTask"
+            },
+            {
+              "abs_path": "FutureTask.java",
+              "filename": "FutureTask.java",
+              "function": "finishCompletion",
+              "module": "java.util.concurrent.FutureTask"
+            },
+            {
+              "abs_path": "AsyncTask.java",
+              "filename": "AsyncTask.java",
+              "function": "done",
+              "module": "android.os.AsyncTask$4"
+            }
+          ]
+        },
+        "type": "RuntimeException",
+        "value": "An error occurred while executing doInBackground()"
+      }
+    ]
+  },
+  "platform": "java"
+}

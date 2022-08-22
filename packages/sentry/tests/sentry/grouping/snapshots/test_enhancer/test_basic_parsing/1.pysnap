@@ -1,0 +1,104 @@
+---
+created: '2021-03-31T12:13:52.920886Z'
+creator: sentry
+source: tests/sentry/grouping/test_enhancer.py
+---
+bases:
+- common:v1
+id: null
+rules:
+- actions:
+  - flag: true
+    key: app
+    range: null
+  matchers:
+  - key: path
+    negated: false
+    pattern: '*/code/game/whatever/*'
+- actions:
+  - flag: false
+    key: group
+    range: up
+  - flag: false
+    key: group
+    range: null
+  matchers:
+  - key: function
+    negated: false
+    pattern: panic_handler
+- actions:
+  - flag: false
+    key: group
+    range: down
+  matchers:
+  - key: function
+    negated: false
+    pattern: ThreadStartWin32
+- actions:
+  - flag: false
+    key: group
+    range: down
+  matchers:
+  - key: function
+    negated: false
+    pattern: ThreadStartLinux
+- actions:
+  - flag: false
+    key: group
+    range: down
+  matchers:
+  - key: function
+    negated: false
+    pattern: ThreadStartMac
+- actions:
+  - flag: false
+    key: app
+    range: null
+  matchers:
+  - key: family
+    negated: false
+    pattern: native
+  - key: module
+    negated: false
+    pattern: std::*
+- actions:
+  - flag: false
+    key: app
+    range: null
+  matchers:
+  - key: module
+    negated: false
+    pattern: core::*
+- actions:
+  - flag: false
+    key: app
+    range: null
+  matchers:
+  - key: family
+    negated: false
+    pattern: javascript
+  - key: path
+    negated: false
+    pattern: '*/test.js'
+- actions:
+  - flag: false
+    key: app
+    range: null
+  matchers:
+  - key: family
+    negated: false
+    pattern: javascript
+  - key: app
+    negated: false
+    pattern: '1'
+  - key: path
+    negated: false
+    pattern: '*/test.js'
+- actions:
+  - value: 3
+    var: max-frames
+  matchers:
+  - key: family
+    negated: false
+    pattern: native
+version: 1

@@ -1,0 +1,84 @@
+---
+created: '2021-08-04T15:53:48.024209Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "aeed765d29d1a60cb094f66d2cd8efb2"
+  tree_label: "stripped_application_code"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+        type (ignored because exception is synthetic)
+          "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "aeed765d29d1a60cb094f66d2cd8efb2"
+  tree_label: "stripped_application_code"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+        type (ignored because exception is synthetic)
+          "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+--------------------------------------------------------------------------
+system:
+  hash: "feea96cac35c5f633ff72273d8b97ebb"
+  tree_label: "stripped_application_code"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "thread_start"
+            package (ignored because function takes precedence)
+              "libsystem_pthread.dylib"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "_pthread_start"
+            package (ignored because function takes precedence)
+              "libsystem_pthread.dylib"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "_pthread_body"
+            package (ignored because function takes precedence)
+              "libsystem_pthread.dylib"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "_pthread_testcancel"
+            package (ignored because function takes precedence)
+              "libsystem_pthread.dylib"
+        type*
+          "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"

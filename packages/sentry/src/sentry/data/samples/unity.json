@@ -1,0 +1,227 @@
+{
+  "event_id": "ce6ab074ae0d45388af7a1cbb9eb092d",
+  "message": "DivideByZeroException",
+  "logger": "",
+  "platform": "csharp",
+  "release": "1.1",
+  "contexts": {
+    "app": {
+      "app_identifier": "",
+      "app_start_time": "2018-10-25T13:02:58Z",
+      "device_app_hash": "",
+      "build_type": "release",
+      "app_name": "",
+      "app_version": "",
+      "app_build": ""
+    },
+    "gpu": {
+      "name": "AMD Radeon Pro 560",
+      "id": 0,
+      "vendor_id": 0,
+      "vendor_name": "Apple",
+      "memory_size": 4096,
+      "api_type": "Metal",
+      "multi_threaded_rendering": true,
+      "version": "Metal",
+      "npot_support": "Full"
+    },
+    "os": {
+      "name": "Mac OS X 10.14.0",
+      "version": "",
+      "raw_description": "",
+      "build": "",
+      "kernel_version": ""
+    },
+    "device": {
+      "name": "Bruno’s MacBook Pro",
+      "family": "",
+      "model": "MacBookPro14,3",
+      "model_id": "",
+      "arch": "",
+      "cpu_description": "Intel(R) Core(TM) i7-7920HQ CPU @ 3.10GHz",
+      "battery_level": 100,
+      "battery_status": "Full",
+      "orientation": "",
+      "simulator": false,
+      "memory_size": 17179869184,
+      "timezone": "",
+      "device_type": "Desktop"
+    }
+  },
+  "sdk": {
+    "name": "sentry.unity.lite",
+    "version": "0.0.2"
+  },
+  "breadcrumbs": [
+    {
+      "timestamp": "2018-10-25T13:03:02",
+      "message": "Frame number: 100"
+    },
+    {
+      "timestamp": "2018-10-25T13:03:04",
+      "message": "Frame number: 200"
+    },
+    {
+      "timestamp": "2018-10-25T13:03:06",
+      "message": "Frame number: 300"
+    },
+    {
+      "timestamp": "2018-10-25T13:03:07",
+      "message": "Frame number: 400"
+    },
+    {
+      "timestamp": "2018-10-25T13:03:10",
+      "message": "Frame number: 500"
+    },
+    {
+      "timestamp": "2018-10-25T13:03:12",
+      "message": "Frame number: 600"
+    },
+    {
+      "timestamp": "2018-10-25T13:03:14",
+      "message": "Frame number: 700"
+    },
+    {
+      "timestamp": "2018-10-25T13:03:15",
+      "message": "Frame number: 800"
+    },
+    {
+      "timestamp": "2018-10-25T13:03:17",
+      "message": "Frame number: 900"
+    },
+    {
+      "timestamp": "2018-10-25T13:03:19",
+      "message": "Frame number: 1000"
+    },
+    {
+      "timestamp": "2018-10-25T13:03:20",
+      "message": "Frame number: 1100"
+    },
+    {
+      "timestamp": "2018-10-25T13:03:22",
+      "message": "Frame number: 1200"
+    },
+    {
+      "timestamp": "2018-10-25T13:03:24",
+      "message": "Frame number: 1300"
+    },
+    {
+      "timestamp": "2018-10-25T13:03:25",
+      "message": "Frame number: 1400"
+    },
+    {
+      "timestamp": "2018-10-25T13:03:27",
+      "message": "Frame number: 1500"
+    },
+    {
+      "timestamp": "2018-10-25T13:03:29",
+      "message": "Frame number: 1600"
+    },
+    {
+      "timestamp": "2018-10-25T13:03:30",
+      "message": "Frame number: 1700"
+    },
+    {
+      "timestamp": "2018-10-25T13:03:32",
+      "message": "Frame number: 1800"
+    },
+    {
+      "timestamp": "2018-10-25T13:03:34",
+      "message": "Frame number: 1900"
+    },
+    {
+      "timestamp": "2018-10-25T13:03:35",
+      "message": "Frame number: 2000"
+    },
+    {
+      "timestamp": "2018-10-25T13:03:37",
+      "message": "Frame number: 2100"
+    },
+    {
+      "timestamp": "2018-10-25T13:03:39",
+      "message": "Frame number: 2200"
+    }
+  ],
+  "tags": {
+    "deviceUniqueIdentifier": "C52DC39D-DAF3-5E36-A8D3-BF5F53A5D38F"
+  },
+  "extra": {
+    "unityVersion": "2018.3.0b4",
+    "screenOrientation": "Portrait"
+  },
+  "exception": {
+    "values": [
+      {
+        "type": "DivideByZeroException",
+        "value": "Attempted to divide by zero.",
+        "stacktrace": {
+          "frames": [
+            {
+              "filename": "",
+              "function": "UnityEngine.EventSystems.EventSystem:Update()",
+              "module": "",
+              "lineno": -1,
+              "in_app": false
+            },
+            {
+              "filename": "",
+              "function": "UnityEngine.EventSystems.ExecuteEvents.Execute[T] (UnityEngine.GameObject target, UnityEngine.EventSystems.BaseEventData eventData, UnityEngine.EventSystems.ExecuteEvents+EventFunction`1[T1] functor)",
+              "module": "",
+              "lineno": 0,
+              "in_app": false
+            },
+            {
+              "filename": "",
+              "function": "UnityEngine.EventSystems.ExecuteEvents.Execute (UnityEngine.EventSystems.IPointerClickHandler handler, UnityEngine.EventSystems.BaseEventData eventData)",
+              "module": "",
+              "lineno": 0,
+              "in_app": false
+            },
+            {
+              "filename": "",
+              "function": "UnityEngine.UI.Button.OnPointerClick (UnityEngine.EventSystems.PointerEventData eventData)",
+              "module": "",
+              "lineno": 0,
+              "in_app": false
+            },
+            {
+              "filename": "",
+              "function": "UnityEngine.UI.Button.Press ()",
+              "module": "",
+              "lineno": 0,
+              "in_app": false
+            },
+            {
+              "filename": "",
+              "function": "UnityEngine.Events.UnityEvent.Invoke ()",
+              "module": "",
+              "lineno": 0,
+              "in_app": false
+            },
+            {
+              "filename": "",
+              "function": "UnityEngine.Events.CachedInvokableCall`1[T].Invoke (System.Object[] args)",
+              "module": "",
+              "lineno": 0,
+              "in_app": false
+            },
+            {
+              "filename": "",
+              "function": "UnityEngine.Events.InvokableCall`1[T1].Invoke (T1 args0)",
+              "module": "",
+              "lineno": 0,
+              "in_app": false
+            },
+            {
+              "filename": "",
+              "function": "SentryTest.SendMessage (System.String message)",
+              "module": "",
+              "lineno": 0,
+              "in_app": true
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

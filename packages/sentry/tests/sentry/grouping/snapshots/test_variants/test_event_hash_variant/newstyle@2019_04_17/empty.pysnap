@@ -1,0 +1,7 @@
+---
+created: '2020-02-26T19:54:33.739395Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+fallback:
+  hash: "d41d8cd98f00b204e9800998ecf8427e"

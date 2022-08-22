@@ -1,0 +1,97 @@
+[
+  {
+    "query": "project.id:one",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "invalid": {
+          "reason": "Invalid number. Expected number then optional k, m, or b suffix (e.g. 500k)",
+          "expectedType": ["numeric", "numericIn"]
+        },
+        "key": {"type": "keySimple", "value": "project.id", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "one", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "issue.id:two",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "invalid": {
+          "reason": "Invalid number. Expected number then optional k, m, or b suffix (e.g. 500k)",
+          "expectedType": ["numeric", "numericIn"]
+        },
+        "key": {"type": "keySimple", "value": "issue.id", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "two", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "transaction.duration:>hotdog",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "invalid": {
+          "reason": "Invalid duration. Expected number followed by duration unit suffix",
+          "expectedType": ["duration"]
+        },
+        "key": {"type": "keySimple", "value": "transaction.duration", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": ">hotdog", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "measurements.lcp:>hotdog",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "invalid": {
+          "reason": "Invalid duration. Expected number followed by duration unit suffix",
+          "expectedType": ["duration"]
+        },
+        "key": {"type": "keySimple", "value": "measurements.lcp", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": ">hotdog", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "spans.db:>hotdog",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "invalid": {
+          "reason": "Invalid duration. Expected number followed by duration unit suffix",
+          "expectedType": ["duration"]
+        },
+        "key": {"type": "keySimple", "value": "spans.db", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": ">hotdog", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

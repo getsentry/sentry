@@ -1,0 +1,178 @@
+{
+  "event_id": "88f3899f413a49dd8b64bcfb0436579e",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "_dispatch_root_queues_init_once",
+              "package": "/usr/lib/system/libdispatch.dylib"
+            },
+            {
+              "function": "start_wqthread",
+              "package": "/usr/lib/system/libsystem_pthread.dylib"
+            },
+            {
+              "function": "_pthread_wqthread",
+              "package": "/usr/lib/system/libsystem_pthread.dylib"
+            },
+            {
+              "function": "_dispatch_worker_thread2",
+              "package": "/usr/lib/system/libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_root_queue_drain",
+              "package": "/usr/lib/system/libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_client_callout",
+              "package": "/usr/lib/system/libdispatch.dylib"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "filename": "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
+              "function": "boost::function0<T>::operator()"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "filename": "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
+              "function": "boost::function0<T>::operator()"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "filename": "mac",
+              "function": "std::__1::map<T>::~map"
+            },
+            {
+              "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/map",
+              "filename": "map",
+              "function": "std::__1::map<T>::~map"
+            },
+            {
+              "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/__tree",
+              "filename": "__tree",
+              "function": "std::__1::__tree<T>::~__tree"
+            },
+            {
+              "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/__tree",
+              "filename": "__tree",
+              "function": "std::__1::__tree<T>::~__tree"
+            },
+            {
+              "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/__tree",
+              "filename": "__tree",
+              "function": "std::__1::__tree<T>::destroy"
+            },
+            {
+              "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/__tree",
+              "filename": "__tree",
+              "function": "std::__1::__tree<T>::destroy"
+            },
+            {
+              "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/memory",
+              "filename": "memory",
+              "function": "std::__1::allocator_traits<T>::destroy<T>"
+            },
+            {
+              "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/memory",
+              "filename": "memory",
+              "function": "std::__1::allocator_traits<T>::__destroy<T>"
+            },
+            {
+              "filename": "mac",
+              "function": "std::__1::pair<T>::~pair"
+            },
+            {
+              "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/utility",
+              "filename": "utility",
+              "function": "std::__1::pair<T>::~pair"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "std::terminate",
+              "package": "/usr/lib/libc++abi.dylib"
+            },
+            {
+              "function": "std::__terminate",
+              "package": "/usr/lib/libc++abi.dylib"
+            },
+            {
+              "function": "demangling_terminate_handler",
+              "package": "/usr/lib/libc++abi.dylib"
+            },
+            {
+              "function": "abort_message",
+              "package": "/usr/lib/libc++abi.dylib"
+            },
+            {
+              "function": "abort",
+              "package": "/usr/lib/system/libsystem_c.dylib"
+            },
+            {
+              "function": "__abort",
+              "package": "/usr/lib/system/libsystem_c.dylib"
+            },
+            {
+              "function": "__pthread_kill",
+              "package": "/usr/lib/system/libsystem_kernel.dylib"
+            }
+          ]
+        },
+        "type": "0x00000000 / 0x00000000",
+        "value": "Fatal Error: 0x00000000 / 0x00000000"
+      }
+    ]
+  },
+  "platform": "native"
+}

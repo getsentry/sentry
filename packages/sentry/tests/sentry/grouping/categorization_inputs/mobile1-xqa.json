@@ -1,0 +1,57 @@
+{
+  "event_id": "c7b6d541a4b544003e6d0425057880bd",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": {
+            "signal": {
+              "name": "SIGSEGV",
+              "number": 11
+            }
+          },
+          "synthetic": true,
+          "type": "signalhandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "memcpy",
+              "package": "/system/lib/libc.so"
+            },
+            {
+              "package": "/system/lib/libc.so"
+            },
+            {
+              "package": "/system/bin/app_process32"
+            },
+            {
+              "function": "art::FaultManager::HandleFault",
+              "package": "/system/lib/libart.so"
+            },
+            {
+              "function": "art::FaultManager::IsInGeneratedCode",
+              "package": "/system/lib/libart.so"
+            }
+          ]
+        },
+        "type": "SIGSEGV",
+        "value": "Segfault"
+      }
+    ]
+  },
+  "platform": "native"
+}

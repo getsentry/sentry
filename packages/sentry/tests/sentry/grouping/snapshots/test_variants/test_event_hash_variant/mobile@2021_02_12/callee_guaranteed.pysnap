@@ -1,0 +1,207 @@
+---
+created: '2021-08-04T15:53:48.970948Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "59472e9088d0dd53ab86b896eb702aba"
+  tree_label: "stripped_application_code"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+        type*
+          "<redacted>"
+        ns-error*
+          "<redacted>"
+          2
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "2ecf772c4321a58364d53670ddd82bad"
+  tree_label: "stripped_application_code | stripped_application_code"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+        type*
+          "<redacted>"
+        ns-error*
+          "<redacted>"
+          2
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "4ef1fb44d656c3be2a146971f2a222dc"
+  tree_label: "stripped_application_code | stripped_application_code | stripped_application_code"
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+        type*
+          "<redacted>"
+        ns-error*
+          "<redacted>"
+          2
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "4ef1fb44d656c3be2a146971f2a222dc"
+  tree_label: "stripped_application_code | stripped_application_code | stripped_application_code"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+        type*
+          "<redacted>"
+        ns-error*
+          "<redacted>"
+          2
+--------------------------------------------------------------------------
+system:
+  hash: "0211daaed35e19ba74b4d6f08cd00fef"
+  tree_label: "stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "start"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "UIApplicationMain"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "-[UIApplication _run]"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "GSEventRunModal"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "CFRunLoopRunSpecific"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "__CFRunLoopRun"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "_dispatch_main_queue_callback_4CF"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "_dispatch_client_callout"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "_dispatch_call_block_and_release"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame (ignored due to recursion)
+            filename (discarded native filename for grouping stability)
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame (ignored due to recursion)
+            filename (discarded native filename for grouping stability)
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame (ignored due to recursion)
+            filename (discarded native filename for grouping stability)
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame (ignored due to recursion)
+            filename (discarded native filename for grouping stability)
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame (ignored due to recursion)
+            filename (discarded native filename for grouping stability)
+              "<compiler-generated>"
+            function*
+              "@callee_guaranteed"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+        type*
+          "<redacted>"
+        ns-error*
+          "<redacted>"
+          2

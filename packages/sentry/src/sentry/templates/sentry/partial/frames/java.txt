@@ -1,0 +1,4 @@
+{% load sentry_helpers %}{% autoescape off %}
+    at {% if module %}{{ module }}.{% endif %}{% if function %}{{ function }}{% endif %}{% if filename %}({{ filename|basename }}{% if lineno >= 0 %}:{{ lineno }}{% endif %}){% endif %}{% if context_line %}
+    {{ context_line.strip }}{% endif %}
+{% endautoescape %}

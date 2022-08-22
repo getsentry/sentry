@@ -1,0 +1,16 @@
+---
+created: '2021-07-12T14:13:56.982061Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+SIGSEGV:Segfault (thread_id:_, crashed:_)
+                                              stripped_application_code
+  /apex/com.android.runtime/lib64/bionic/lib  ??? category=internals
+  /apex/com.android.runtime/lib64/bionic/lib  ??? category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+                   /system/bin/app_process64  ??? category=internals
+                      /lib/arm64/libBugly.so  ??? category=telemetry
+  /apex/com.android.runtime/lib64/bionic/lib  kill category=system

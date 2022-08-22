@@ -1,0 +1,21 @@
+{% extends "sentry/layout.html" %}
+
+{% load sentry_api %}
+{% load sentry_assets %}
+
+{% block body %}
+  <div id="blk_router">
+    <div class="loading triangle">
+      <div class="loading-mask"></div>
+
+      <div class="loading-indicator" data-test-id="loading-indicator">
+        <img src="{% asset_url 'sentry' 'images/sentry-loader.svg' %}" />
+      </div>
+
+      <div class="loading-message">
+        <p>Please wait while we load an obnoxious amount of JavaScript.</p>
+        <p><small>You may need to disable adblocking extensions to load Sentry.</small></p>
+      </div>
+    </div>
+  </div>
+{% endblock %}

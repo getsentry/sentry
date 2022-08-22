@@ -1,0 +1,66 @@
+---
+created: '2020-02-26T19:54:26.604429Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace*
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "app/components/modals/createTeamModal"
+            filename (module takes precedence)
+              "./app/components/modals/createTeamModal.jsx"
+            context-line*
+              "        onError(err);"
+            lineno (line number is not used if context-line is available)
+              27
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "app/views/settings/components/forms/form"
+            filename (module takes precedence)
+              "./app/views/settings/components/forms/form.jsx"
+            context-line*
+              "    this.model.submitError(error);"
+            function (function name is not used if context-line is available)
+              "onError"
+            lineno (line number is not used if context-line is available)
+              125
+        type*
+          "TypeError"
+        value (stacktrace and type take precedence)
+          "Cannot read property 'submitError' of null"
+--------------------------------------------------------------------------
+system:
+  hash: "d1f185038ed0941ba9e5d2bad519b773"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "app/components/modals/createTeamModal"
+            filename (module takes precedence)
+              "./app/components/modals/createTeamModal.jsx"
+            context-line*
+              "        onError(err);"
+            lineno (line number is not used if context-line is available)
+              27
+          frame*
+            module*
+              "app/views/settings/components/forms/form"
+            filename (module takes precedence)
+              "./app/views/settings/components/forms/form.jsx"
+            context-line*
+              "    this.model.submitError(error);"
+            function (function name is not used if context-line is available)
+              "onError"
+            lineno (line number is not used if context-line is available)
+              125
+        type*
+          "TypeError"
+        value (stacktrace and type take precedence)
+          "Cannot read property 'submitError' of null"

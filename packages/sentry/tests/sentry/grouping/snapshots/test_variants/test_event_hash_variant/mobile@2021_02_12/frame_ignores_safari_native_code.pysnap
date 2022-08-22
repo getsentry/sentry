@@ -1,0 +1,40 @@
+---
+created: '2021-08-04T15:53:48.437575Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "30eb5001914d29dd8461898b5b8094fe"
+  tree_label: "forEach"
+  component:
+    app-depth-1*
+      stacktrace*
+        frame*
+          filename (native code indicated by filename)
+            "[native code]"
+          function*
+            "forEach"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "30eb5001914d29dd8461898b5b8094fe"
+  tree_label: "forEach"
+  component:
+    app-depth-max*
+      stacktrace*
+        frame*
+          filename (native code indicated by filename)
+            "[native code]"
+          function*
+            "forEach"
+--------------------------------------------------------------------------
+system:
+  hash: "30eb5001914d29dd8461898b5b8094fe"
+  tree_label: "forEach"
+  component:
+    system*
+      stacktrace*
+        frame*
+          filename (native code indicated by filename)
+            "[native code]"
+          function*
+            "forEach"

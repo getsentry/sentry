@@ -1,0 +1,241 @@
+---
+created: '2021-08-31T10:25:51.009888Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "e48dbc3d72a1bba72eb10cf0cfb2f122"
+  tree_label: "aha"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "test.html"
+            function* (trimmed javascript function)
+              "aha"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "78acc30fe8d8e2064308f28393383e51"
+  tree_label: "aha | callAnotherThing"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "test.html"
+            function*
+              "callAnotherThing"
+          frame*
+            filename*
+              "test.html"
+            function* (trimmed javascript function)
+              "aha"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "ec9def2a5325597f5b348f141b83b261"
+  tree_label: "aha | callAnotherThing | callback"
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "test.html"
+            function* (trimmed javascript function)
+              "callback"
+          frame*
+            filename*
+              "test.html"
+            function*
+              "callAnotherThing"
+          frame*
+            filename*
+              "test.html"
+            function* (trimmed javascript function)
+              "aha"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"
+--------------------------------------------------------------------------
+app-depth-4:
+  hash: "01b5dfbc3a7cf58591f53b2da01832da"
+  tree_label: "aha | callAnotherThing | callback | test.html"
+  component:
+    app-depth-4*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "test.html"
+          frame*
+            filename*
+              "test.html"
+            function* (trimmed javascript function)
+              "callback"
+          frame*
+            filename*
+              "test.html"
+            function*
+              "callAnotherThing"
+          frame*
+            filename*
+              "test.html"
+            function* (trimmed javascript function)
+              "aha"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"
+--------------------------------------------------------------------------
+app-depth-5:
+  hash: "4b0afdab89c9fdf5c0ddcfa2098bd6e8"
+  tree_label: "aha | callAnotherThing | callback | test.html | test"
+  component:
+    app-depth-5*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "test.html"
+            function*
+              "test"
+          frame*
+            filename*
+              "test.html"
+          frame*
+            filename*
+              "test.html"
+            function* (trimmed javascript function)
+              "callback"
+          frame*
+            filename*
+              "test.html"
+            function*
+              "callAnotherThing"
+          frame*
+            filename*
+              "test.html"
+            function* (trimmed javascript function)
+              "aha"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "c63e8727af1a8fe75872b6a762797113"
+  tree_label: "aha | callAnotherThing | callback | test.html | test | aha | testMethod | test.html"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "test.html"
+          frame*
+            filename*
+              "test.html"
+            function* (trimmed javascript function)
+              "testMethod"
+          frame*
+            filename*
+              "test.html"
+            function*
+              "aha"
+          frame*
+            filename*
+              "test.html"
+            function*
+              "test"
+          frame*
+            filename*
+              "test.html"
+          frame*
+            filename*
+              "test.html"
+            function* (trimmed javascript function)
+              "callback"
+          frame*
+            filename*
+              "test.html"
+            function*
+              "callAnotherThing"
+          frame*
+            filename*
+              "test.html"
+            function* (trimmed javascript function)
+              "aha"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"
+--------------------------------------------------------------------------
+system:
+  hash: "c63e8727af1a8fe75872b6a762797113"
+  tree_label: "aha | callAnotherThing | callback | test.html | test | aha | testMethod | test.html"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "test.html"
+          frame*
+            filename*
+              "test.html"
+            function* (trimmed javascript function)
+              "testMethod"
+          frame*
+            filename*
+              "test.html"
+            function*
+              "aha"
+          frame (ignored low quality javascript frame)
+            filename*
+              "test.html"
+            function*
+              "eval"
+          frame*
+            filename*
+              "test.html"
+            function*
+              "test"
+          frame (ignored low quality javascript frame)
+            filename (anonymous filename discarded)
+              "<anonymous>"
+            function* (trimmed javascript function)
+              "map"
+          frame*
+            filename*
+              "test.html"
+          frame*
+            filename*
+              "test.html"
+            function* (trimmed javascript function)
+              "callback"
+          frame*
+            filename*
+              "test.html"
+            function*
+              "callAnotherThing"
+          frame*
+            filename*
+              "test.html"
+            function* (trimmed javascript function)
+              "aha"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"

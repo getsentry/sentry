@@ -1,0 +1,41 @@
+{% spaceless %}
+{% autoescape off %}
+{% if enhanced_privacy %}
+Details about this issue are not shown in this notification since enhanced
+privacy controls are enabled. For more details about this issue, view this
+issue on Sentry.
+Details
+-------
+
+{{ link }}
+{% else %}
+Details
+-------
+
+{{ link }}
+
+{% if commits %}
+Suspect Commits
+---------------
+{% for commit in commits %}
+* {{ commit.subject }}
+  {{ commit.shortId }} - {% if commit.author %}{{ commit.author.name }}{% else %}Unknown Author{% endif %}
+{% endfor %}{% endif %}
+
+Tags
+----
+{% for tag_key, tag_value in tags %}
+* {{ tag_key }} = {{ tag_value }}{% endfor %}
+
+{% if interfaces %}{% for label, _, text in interfaces %}
+{{ label }}
+-----------
+
+{{ text }}
+
+{% endfor %}
+{% endif %}{% endif %}
+
+Unsubscribe: {{ unsubscribe_link }}
+{% endautoescape %}
+{% endspaceless %}

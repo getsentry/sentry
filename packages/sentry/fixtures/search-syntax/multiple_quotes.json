@@ -1,0 +1,50 @@
+[
+  {
+    "query": "device.family:\"\" browser.name:\"Chrome\"",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "device.family", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "", "quoted": true}
+      },
+      {"type": "spaces", "value": " "},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "browser.name", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "Chrome", "quoted": true}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "device.family:\"\\\"\" browser.name:\"Chrome\"",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "device.family", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "\\\"", "quoted": true}
+      },
+      {"type": "spaces", "value": " "},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "browser.name", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "Chrome", "quoted": true}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

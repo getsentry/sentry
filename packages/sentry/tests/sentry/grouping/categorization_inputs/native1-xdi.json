@@ -1,0 +1,52 @@
+{
+  "event_id": "afa01d4e2eae4c74b35e52e50111cd4b",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "RtlUserThreadStart",
+              "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "BaseThreadInitThunk",
+              "package": "C:\\Windows\\System32\\KERNEL32.DLL"
+            },
+            {
+              "function": "TppWorkerThread",
+              "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "RtlExitUserThread",
+              "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "LdrShutdownThread",
+              "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "RtlpFlsDataCleanup",
+              "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "stripped_application_code"
+            }
+          ]
+        },
+        "type": "EXCEPTION_ACCESS_VIOLATION_EXEC",
+        "value": "Fatal Error: EXCEPTION_ACCESS_VIOLATION_EXEC"
+      }
+    ]
+  },
+  "platform": "native"
+}

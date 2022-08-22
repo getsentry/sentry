@@ -1,0 +1,164 @@
+---
+created: '2021-04-22T14:32:51.341008Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "029f3b967068b1539f96957b7c0451d7"
+  component:
+    app*
+      exception*
+        type*
+          "iOS_Swift.SampleError"
+        ns-error*
+          "iOS_Swift.SampleError"
+          0
+        value (ignored because ns-error info takes precedence)
+          "Code=<int> Description=The operation couldn\u2019t be completed. (iOS_Swift.SampleError error <int>.)"
+      threads (exception of app takes precedence)
+        stacktrace*
+          frame (non app frame)
+            function*
+              "start"
+          frame*
+            function*
+              "main"
+          frame (non app frame)
+            function*
+              "UIApplicationMain"
+          frame (non app frame)
+            function*
+              "-[UIApplication _run]"
+          frame (non app frame)
+            function*
+              "GSEventRunModal"
+          frame (non app frame)
+            function*
+              "CFRunLoopRunSpecific"
+          frame (non app frame)
+            function*
+              "__CFRunLoopRun"
+          frame (non app frame)
+            function*
+              "__CFRunLoopDoSources0"
+          frame (non app frame)
+            function*
+              "__CFRunLoopDoSource0"
+          frame (non app frame)
+            function*
+              "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__"
+          frame (non app frame)
+            function*
+              "__eventFetcherSourceCallback"
+          frame (non app frame)
+            function*
+              "__processEventQueue"
+          frame (non app frame)
+            function*
+              "-[UIApplicationAccessibility sendEvent:]"
+          frame (non app frame)
+            function*
+              "-[UIApplication sendEvent:]"
+          frame (non app frame)
+            function*
+              "-[UIWindow sendEvent:]"
+          frame (non app frame)
+            function*
+              "-[UIWindow _sendTouchesForEvent:]"
+          frame (non app frame)
+            function*
+              "-[UIControl touchesEnded:withEvent:]"
+          frame (non app frame)
+            function*
+              "-[UIControl _sendActionsForEvents:withEvent:]"
+          frame (non app frame)
+            function*
+              "-[UIControl sendAction:to:forEvent:]"
+          frame (non app frame)
+            function*
+              "__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2"
+          frame (non app frame)
+            function*
+              "-[UIApplication sendAction:to:from:forEvent:]"
+          frame*
+            function*
+              "ViewController.captureError"
+          frame (ignored due to recursion)
+            function*
+              "ViewController.captureError"
+--------------------------------------------------------------------------
+system:
+  hash: null
+  component:
+    system (exception of app takes precedence)
+      threads (exception of app takes precedence)
+        stacktrace*
+          frame*
+            function*
+              "start"
+          frame*
+            function*
+              "main"
+          frame*
+            function*
+              "UIApplicationMain"
+          frame*
+            function*
+              "-[UIApplication _run]"
+          frame*
+            function*
+              "GSEventRunModal"
+          frame*
+            function*
+              "CFRunLoopRunSpecific"
+          frame*
+            function*
+              "__CFRunLoopRun"
+          frame*
+            function*
+              "__CFRunLoopDoSources0"
+          frame*
+            function*
+              "__CFRunLoopDoSource0"
+          frame*
+            function*
+              "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__"
+          frame*
+            function*
+              "__eventFetcherSourceCallback"
+          frame*
+            function*
+              "__processEventQueue"
+          frame*
+            function*
+              "-[UIApplicationAccessibility sendEvent:]"
+          frame*
+            function*
+              "-[UIApplication sendEvent:]"
+          frame*
+            function*
+              "-[UIWindow sendEvent:]"
+          frame*
+            function*
+              "-[UIWindow _sendTouchesForEvent:]"
+          frame*
+            function*
+              "-[UIControl touchesEnded:withEvent:]"
+          frame*
+            function*
+              "-[UIControl _sendActionsForEvents:withEvent:]"
+          frame*
+            function*
+              "-[UIControl sendAction:to:forEvent:]"
+          frame*
+            function*
+              "__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2"
+          frame*
+            function*
+              "-[UIApplication sendAction:to:from:forEvent:]"
+          frame*
+            function*
+              "ViewController.captureError"
+          frame (ignored due to recursion)
+            function*
+              "ViewController.captureError"

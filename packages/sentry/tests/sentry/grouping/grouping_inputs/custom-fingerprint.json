@@ -1,0 +1,413 @@
+{
+  "culprit": "sentry.tasks.store.process_event",
+  "event_id": "f8e9e434cc2043f09797d56c6ceeafab",
+  "environment": "prod",
+  "platform": "python",
+  "logger": "",
+  "fingerprint": [
+    "celery",
+    "SoftTimeLimitExceeded",
+    "sentry.tasks.store.process_event"
+  ],
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "_wrapped",
+              "abs_path": "/usr/src/getsentry/src/sentry/src/sentry/tasks/base.py",
+              "pre_context": [
+                "                scope.set_tag('task_name', name)",
+                "                scope.set_tag('transaction_id', transaction_id)",
+                "",
+                "            with metrics.timer(key, instance=instance), \\",
+                "                    track_memory_usage('jobs.memory_change', instance=instance):"
+              ],
+              "module": "sentry.tasks.base",
+              "filename": "sentry/tasks/base.py",
+              "post_context": [
+                "",
+                "            return result",
+                "",
+                "        return app.task(name=name, **kwargs)(_wrapped)",
+                ""
+              ],
+              "in_app": true,
+              "context_line": "                result = func(*args, **kwargs)",
+              "lineno": 54
+            },
+            {
+              "function": "process_event",
+              "abs_path": "/usr/src/getsentry/src/sentry/src/sentry/tasks/store.py",
+              "pre_context": [
+                "    queue='events.process_event',",
+                "    time_limit=65,",
+                "    soft_time_limit=60,",
+                ")",
+                "def process_event(cache_key, start_time=None, event_id=None, **kwargs):"
+              ],
+              "module": "sentry.tasks.store",
+              "filename": "sentry/tasks/store.py",
+              "post_context": [
+                "",
+                "",
+                "@instrumented_task(",
+                "    name='sentry.tasks.store.process_event_from_reprocessing',",
+                "    queue='events.reprocessing.process_event',"
+              ],
+              "in_app": true,
+              "context_line": "    return _do_process_event(cache_key, start_time, event_id, process_event)",
+              "lineno": 206
+            },
+            {
+              "function": "_do_process_event",
+              "abs_path": "/usr/src/getsentry/src/sentry/src/sentry/tasks/store.py",
+              "pre_context": [
+                "            if enhanced:",
+                "                data = enhanced",
+                "                has_changed = True",
+                "",
+                "    # Stacktrace based event processors."
+              ],
+              "module": "sentry.tasks.store",
+              "filename": "sentry/tasks/store.py",
+              "post_context": [
+                "    if new_data is not None:",
+                "        has_changed = True",
+                "        data = new_data",
+                "",
+                "    # TODO(dcramer): ideally we would know if data changed by default"
+              ],
+              "in_app": true,
+              "context_line": "    new_data = process_stacktraces(data)",
+              "lineno": 151
+            },
+            {
+              "function": "process_stacktraces",
+              "abs_path": "/usr/src/getsentry/src/sentry/src/sentry/stacktraces.py",
+              "pre_context": [
+                "    processing_task = get_stacktrace_processing_task(infos, processors)",
+                "    try:",
+                "",
+                "        # Preprocess step",
+                "        for processor in processing_task.iter_processors():"
+              ],
+              "module": "sentry.stacktraces",
+              "filename": "sentry/stacktraces.py",
+              "post_context": [
+                "                changed = True",
+                "",
+                "        # Process all stacktraces",
+                "        for stacktrace_info, processable_frames in processing_task.iter_processable_stacktraces():",
+                "            new_frames, new_raw_frames, errors = process_single_stacktrace("
+              ],
+              "in_app": true,
+              "context_line": "            if processor.preprocess_step(processing_task):",
+              "lineno": 375
+            },
+            {
+              "function": "preprocess_step",
+              "abs_path": "/usr/src/getsentry/src/sentry/src/sentry/lang/native/plugin.py",
+              "pre_context": [
+                "        )",
+                "",
+                "        self.sym = Symbolizer(",
+                "            self.project,",
+                "            self.object_lookup,"
+              ],
+              "module": "sentry.lang.native.plugin",
+              "filename": "sentry/lang/native/plugin.py",
+              "post_context": [
+                "        )",
+                "",
+                "        if options.get('symbolserver.enabled'):",
+                "            self.fetch_system_symbols(processing_task)",
+                ""
+              ],
+              "in_app": true,
+              "context_line": "            referenced_images=referenced_images,",
+              "lineno": 146
+            },
+            {
+              "function": "__init__",
+              "abs_path": "/usr/src/getsentry/src/sentry/src/sentry/lang/native/symbolizer.py",
+              "pre_context": [
+                "",
+                "        self.symcaches, self.symcaches_conversion_errors = \\",
+                "            ProjectDebugFile.difcache.get_symcaches(",
+                "                project, referenced_images,",
+                "                on_dif_referenced=on_dif_referenced,"
+              ],
+              "module": "sentry.lang.native.symbolizer",
+              "filename": "sentry/lang/native/symbolizer.py",
+              "post_context": [
+                "",
+                "    def _process_frame(self, sym, obj, package=None, addr_off=0):",
+                "        frame = {",
+                "            'sym_addr': sym.sym_addr + addr_off,",
+                "            'instruction_addr': sym.instr_addr + addr_off,"
+              ],
+              "in_app": true,
+              "context_line": "                with_conversion_errors=True)",
+              "lineno": 128
+            },
+            {
+              "function": "get_symcaches",
+              "abs_path": "/usr/src/getsentry/src/sentry/src/sentry/models/debugfile.py",
+              "pre_context": [
+                "                      with_conversion_errors=False):",
+                "        \"\"\"Loads symcaches for the given debug IDs from the file system cache or",
+                "        blob store.\"\"\"",
+                "        cachefiles, conversion_errors = self._get_caches_impl(",
+                "            project, debug_ids, ProjectSymCacheFile, on_dif_referenced)"
+              ],
+              "module": "sentry.models.debugfile",
+              "filename": "sentry/models/debugfile.py",
+              "post_context": [
+                "        if with_conversion_errors:",
+                "            return symcaches, dict((k, v) for k, v in conversion_errors.items())",
+                "        return symcaches",
+                "",
+                "    def get_cficaches(self, project, debug_ids, on_dif_referenced=None,"
+              ],
+              "in_app": true,
+              "context_line": "        symcaches = self._load_cachefiles_via_fs(project, cachefiles, SymCache)",
+              "lineno": 580
+            },
+            {
+              "function": "_load_cachefiles_via_fs",
+              "abs_path": "/usr/src/getsentry/src/sentry/src/sentry/models/debugfile.py",
+              "pre_context": [
+                "            try:",
+                "                stat = os.stat(cachefile_path)",
+                "            except OSError as e:",
+                "                if e.errno != errno.ENOENT:",
+                "                    raise"
+              ],
+              "module": "sentry.models.debugfile",
+              "filename": "sentry/models/debugfile.py",
+              "post_context": [
+                "            else:",
+                "                now = int(time.time())",
+                "                if stat.st_ctime < now - ONE_DAY:",
+                "                    os.utime(cachefile_path, (now, now))",
+                ""
+              ],
+              "in_app": true,
+              "context_line": "                model.cache_file.save_to(cachefile_path)",
+              "lineno": 821
+            },
+            {
+              "function": "save_to",
+              "abs_path": "/usr/src/getsentry/src/sentry/src/sentry/models/file.py",
+              "pre_context": [
+                "",
+                "        f = None",
+                "        try:",
+                "            f = self._get_chunked_blob(prefetch=True,",
+                "                                       prefetch_to=base,"
+              ],
+              "module": "sentry.models.file",
+              "filename": "sentry/models/file.py",
+              "post_context": [
+                "            os.rename(f.name, path)",
+                "            f.close()",
+                "            f = None",
+                "        finally:",
+                "            if f is not None:"
+              ],
+              "in_app": true,
+              "context_line": "                                       delete=False).detach_tempfile()",
+              "lineno": 398
+            },
+            {
+              "function": "_get_chunked_blob",
+              "abs_path": "/usr/src/getsentry/src/sentry/src/sentry/models/file.py",
+              "pre_context": [
+                "                file=self,",
+                "            ).select_related('blob').order_by('offset'),",
+                "            mode=mode,",
+                "            prefetch=prefetch,",
+                "            prefetch_to=prefetch_to,"
+              ],
+              "module": "sentry.models.file",
+              "filename": "sentry/models/file.py",
+              "post_context": [
+                "        )",
+                "",
+                "    def getfile(self, mode=None, prefetch=False, as_tempfile=False):",
+                "        \"\"\"Returns a file object.  By default the file is fetched on",
+                "        demand but if prefetch is enabled the file is fully prefetched"
+              ],
+              "in_app": true,
+              "context_line": "            delete=delete",
+              "lineno": 363
+            },
+            {
+              "function": "__init__",
+              "abs_path": "/usr/src/getsentry/src/sentry/src/sentry/models/file.py",
+              "pre_context": [
+                "        self._indexes = list(indexes)",
+                "        self._curfile = None",
+                "        self._curidx = None",
+                "        if prefetch:",
+                "            self.prefetched = True"
+              ],
+              "module": "sentry.models.file",
+              "filename": "sentry/models/file.py",
+              "post_context": [
+                "        else:",
+                "            self.prefetched = False",
+                "        self.mode = mode",
+                "        self.open()",
+                ""
+              ],
+              "in_app": true,
+              "context_line": "            self._prefetch(prefetch_to, delete)",
+              "lineno": 504
+            },
+            {
+              "function": "_prefetch",
+              "abs_path": "/usr/src/getsentry/src/sentry/src/sentry/models/file.py",
+              "pre_context": [
+                "                    mem[offset:offset + len(chunk)] = chunk",
+                "                    offset += len(chunk)",
+                "",
+                "        with ThreadPoolExecutor(max_workers=4) as exe:",
+                "            for idx in self._indexes:"
+              ],
+              "module": "sentry.models.file",
+              "filename": "sentry/models/file.py",
+              "post_context": [
+                "",
+                "        mem.flush()",
+                "        self._curfile = f",
+                "",
+                "    def close(self):"
+              ],
+              "in_app": true,
+              "context_line": "                exe.submit(fetch_file, idx.offset, idx.blob.getfile)",
+              "lineno": 574
+            },
+            {
+              "function": "__exit__",
+              "abs_path": "/usr/local/lib/python2.7/site-packages/concurrent/futures/_base.py",
+              "pre_context": [
+                "",
+                "    def __enter__(self):",
+                "        return self",
+                "",
+                "    def __exit__(self, exc_type, exc_val, exc_tb):"
+              ],
+              "module": "concurrent.futures._base",
+              "filename": "concurrent/futures/_base.py",
+              "post_context": [
+                "        return False"
+              ],
+              "in_app": false,
+              "context_line": "        self.shutdown(wait=True)",
+              "lineno": 666
+            },
+            {
+              "function": "shutdown",
+              "abs_path": "/usr/local/lib/python2.7/site-packages/concurrent/futures/thread.py",
+              "pre_context": [
+                "        with self._shutdown_lock:",
+                "            self._shutdown = True",
+                "            self._work_queue.put(None)",
+                "        if wait:",
+                "            for t in self._threads:"
+              ],
+              "module": "concurrent.futures.thread",
+              "filename": "concurrent/futures/thread.py",
+              "post_context": [
+                "    shutdown.__doc__ = _base.Executor.shutdown.__doc__"
+              ],
+              "in_app": false,
+              "context_line": "                t.join(sys.maxint)",
+              "lineno": 159
+            },
+            {
+              "function": "join",
+              "abs_path": "/usr/local/lib/python2.7/threading.py",
+              "pre_context": [
+                "                    delay = deadline - _time()",
+                "                    if delay <= 0:",
+                "                        if __debug__:",
+                "                            self._note(\"%s.join(): timed out\", self)",
+                "                        break"
+              ],
+              "module": "threading",
+              "filename": "threading.py",
+              "post_context": [
+                "                else:",
+                "                    if __debug__:",
+                "                        self._note(\"%s.join(): thread stopped\", self)",
+                "        finally:",
+                "            self.__block.release()"
+              ],
+              "in_app": false,
+              "context_line": "                    self.__block.wait(delay)",
+              "lineno": 951
+            },
+            {
+              "function": "wait",
+              "abs_path": "/usr/local/lib/python2.7/threading.py",
+              "pre_context": [
+                "                        break",
+                "                    remaining = endtime - _time()",
+                "                    if remaining <= 0:",
+                "                        break",
+                "                    delay = min(delay * 2, remaining, .05)"
+              ],
+              "module": "threading",
+              "filename": "threading.py",
+              "post_context": [
+                "                if not gotit:",
+                "                    if __debug__:",
+                "                        self._note(\"%s.wait(%s): timed out\", self, timeout)",
+                "                    try:",
+                "                        self.__waiters.remove(waiter)"
+              ],
+              "in_app": false,
+              "context_line": "                    _sleep(delay)",
+              "lineno": 359
+            },
+            {
+              "function": "soft_timeout_sighandler",
+              "abs_path": "/usr/local/lib/python2.7/site-packages/billiard/pool.py",
+              "pre_context": [
+                "class WorkersJoined(Exception):",
+                "    \"\"\"All workers have terminated.\"\"\"",
+                "",
+                "",
+                "def soft_timeout_sighandler(signum, frame):"
+              ],
+              "module": "billiard.pool",
+              "filename": "billiard/pool.py",
+              "post_context": [
+                "",
+                "#",
+                "# Code run by worker processes",
+                "#",
+                ""
+              ],
+              "in_app": false,
+              "context_line": "    raise SoftTimeLimitExceeded()",
+              "lineno": 231
+            }
+          ]
+        },
+        "type": "SoftTimeLimitExceeded",
+        "value": "SoftTimeLimitExceeded()",
+        "module": "billiard.exceptions",
+        "mechanism": {
+          "type": "celery",
+          "handled": false
+        }
+      }
+    ]
+  },
+  "release": "74d1fca81fc9d5336ee0076e80ca86acbf009a74"
+}

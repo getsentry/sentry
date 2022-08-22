@@ -1,0 +1,94 @@
+[
+  {
+    "desc": "Numeric format should still return a string if field isn't allowed",
+    "query": "random_field:>500",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "random_field", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": ">500", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "desc": "Numeric format should not negate operator if field isn't allowed",
+    "query": "!random_field:>500",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": true,
+        "key": {"type": "keySimple", "value": "random_field", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": ">500", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "!random_field:500",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": true,
+        "key": {"type": "keySimple", "value": "random_field", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "500", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "project_id:-500",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "numeric",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "project_id", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueNumber", "value": "-500", "rawValue": -500, "unit": null}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "!issue.id:500",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "numeric",
+        "negated": true,
+        "key": {"type": "keySimple", "value": "issue.id", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueNumber", "value": "500", "rawValue": 500, "unit": null}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "issue.id:<500",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "numeric",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "issue.id", "quoted": false},
+        "operator": "<",
+        "value": {"type": "valueNumber", "value": "500", "rawValue": 500, "unit": null}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

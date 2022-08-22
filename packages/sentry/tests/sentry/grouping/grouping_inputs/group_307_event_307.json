@@ -1,0 +1,76 @@
+{
+  "event_id": "79a0945f5bdf481ca75ddd133782fd63",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "thread_start",
+              "package": "/usr/lib/system/libsystem_pthread.dylib"
+            },
+            {
+              "function": "_pthread_start",
+              "package": "/usr/lib/system/libsystem_pthread.dylib"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "__dynamic_cast",
+              "package": "/usr/lib/libc++abi.dylib"
+            }
+          ]
+        },
+        "type": "EXC_BAD_ACCESS / EXC_I386_GPFLT",
+        "value": "Fatal Error: EXC_BAD_ACCESS / EXC_I386_GPFLT"
+      }
+    ]
+  },
+  "platform": "native"
+}

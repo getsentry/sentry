@@ -1,0 +1,96 @@
+---
+created: '2020-02-26T19:54:28.397519Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace*
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "exe_common.inl"
+            function*
+              "__scrt_common_main_seh"
+            lineno (function takes precedence)
+              288
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "exe_common.inl"
+            function*
+              "invoke_main"
+            lineno (function takes precedence)
+              78
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "main.cpp"
+            function*
+              "main"
+            lineno (function takes precedence)
+              35
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "main.cpp"
+            function*
+              "`anonymous namespace'::start"
+            lineno (function takes precedence)
+              28
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "main.cpp"
+            function*
+              "?A0xc3a0617d::crash"
+            lineno (function takes precedence)
+              24
+        type*
+          "EXCEPTION_ACCESS_VIOLATION_WRITE"
+        value (stacktrace and type take precedence)
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
+--------------------------------------------------------------------------
+system:
+  hash: "f133068802b8a7f6162e0c7d8fc6b984"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "exe_common.inl"
+            function*
+              "__scrt_common_main_seh"
+            lineno (function takes precedence)
+              288
+          frame*
+            filename*
+              "exe_common.inl"
+            function*
+              "invoke_main"
+            lineno (function takes precedence)
+              78
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "main"
+            lineno (function takes precedence)
+              35
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "`anonymous namespace'::start"
+            lineno (function takes precedence)
+              28
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "?A0xc3a0617d::crash"
+            lineno (function takes precedence)
+              24
+        type*
+          "EXCEPTION_ACCESS_VIOLATION_WRITE"
+        value (stacktrace and type take precedence)
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"

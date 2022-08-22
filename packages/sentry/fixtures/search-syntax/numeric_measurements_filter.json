@@ -1,0 +1,62 @@
+[
+  {
+    "query": "measurements.size:3.1415",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "numeric",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "measurements.size", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueNumber",
+          "value": "3.1415",
+          "rawValue": 3.1415,
+          "unit": null
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "measurements.size:>3.1415",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "numeric",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "measurements.size", "quoted": false},
+        "operator": ">",
+        "value": {
+          "type": "valueNumber",
+          "value": "3.1415",
+          "rawValue": 3.1415,
+          "unit": null
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "measurements.size:<3.1415",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "numeric",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "measurements.size", "quoted": false},
+        "operator": "<",
+        "value": {
+          "type": "valueNumber",
+          "value": "3.1415",
+          "rawValue": 3.1415,
+          "unit": null
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

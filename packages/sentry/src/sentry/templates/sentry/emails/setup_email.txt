@@ -1,0 +1,13 @@
+Confirm Email
+
+The {{ organization.name|title }} organization now requires all members to
+confirm their primary email address. Effective immediately, you will be unable
+to access this organization or receive its notifications until you confirm this
+email address.
+
+Step 1: Confirm your email ({{ email|safe }}) by clicking the link below. This
+link will expire in 48 hours.
+{{ confirm_url|safe }}
+
+Step 2: Click the link below to reinstate your access and settings.
+{{ invite_url }}

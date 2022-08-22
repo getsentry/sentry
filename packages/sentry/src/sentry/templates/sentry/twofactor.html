@@ -1,0 +1,56 @@
+{% extends "sentry/bases/auth.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Two-Factor Authentication" %} | {{ block.super }}{% endblock %}
+
+{% block auth_main %}
+  <div class="tab-content">
+    <div class="tab-pane active" id="login">
+      <h3>Two-Factor Authentication</h3>
+      <p>
+        Your account is protected with two-factor authentication.
+        {% if interface.can_validate_otp %}
+          To continue with the sign-in you need to provide the access code
+          from your authenticator or a recovery code if you have one.
+        {% endif %}
+      </p>
+      {% if activation %}
+        {% if activation.type == 'error' or activation.type == 'warning' or activation.type == 'info' %}
+          <p class="{{ activation.type }}">{{ activation.message|safe }}</p>
+        {% endif %}
+      {% endif %}
+      <form class="form-stacked" action="" method="post" autocomplete="off">
+        {% csrf_token %}
+
+        {{ form|as_crispy_errors }}
+        {% block twofactor_form_body %}
+          {% for field in form %}
+            {{ field|as_crispy_field }}
+          {% endfor %}
+          {% if interface.interface_id == "sms" %}
+            <a class="info" href="" >Resend Code</a>
+          {% endif %}
+        {% endblock %}
+
+        {% block twofactor_submit %}
+        <fieldset class="form-actions">
+          <button type="submit" class="btn btn-primary">{% trans "Continue" %}</button>
+        </fieldset>
+        {% endblock %}
+
+        {% if other_interfaces %}
+          <p>Other authentication methods:</p>
+          <ul>
+            {% for interface in other_interfaces %}
+              <li>
+                <a href="?interface={{ interface.interface_id }}">{{ interface.name }}</a>
+              </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+{% endblock %}

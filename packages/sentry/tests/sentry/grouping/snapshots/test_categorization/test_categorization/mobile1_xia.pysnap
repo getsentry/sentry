@@ -1,0 +1,44 @@
+---
+created: '2021-07-08T10:29:51.852457Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+NSInvalidArgumentException:+[UIColor systemBackgroundColor]: unrecognized selector sent to class 0x1baf0e158 (thread_id:_, crashed:_)
+                                              stripped_application_code
+                                              stripped_application_code
+                                   UIKitCore  UIApplicationMain category=threadbase
+                                              stripped_application_code
+                              CoreFoundation  CFRunLoopRunSpecific category=indirection
+                              CoreFoundation  __CFRunLoopRun category=internals
+                              CoreFoundation  __CFRunLoopDoSource1 category=internals
+                              CoreFoundation  __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE1_PERFORM_FUNCTION__ category=internals
+                              CoreFoundation  __CFMachPortPerform category=internals
+                                       IOKit  IODispatchCalloutFromCFMessage category=internals
+                                  QuartzCore  CA::Display::DisplayLink::dispatch_items category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                   UIKitCore  -[UIView(Hierarchy) becomeFirstResponder] category=ui
+                                   UIKitCore  -[UIResponder becomeFirstResponder] category=internals
+                                   UIKitCore  -[UIResponder(UIResponderInputViewAdditions) reloadInputViews] category=internals
+                                   UIKitCore  -[UIPeripheralHost(UIKitInternal) _reloadInputViewsForResponder:] category=internals
+                                   UIKitCore  -[UIPeripheralHost(UIKitInternal) _inputViewsForResponder:withAutomaticKeyboard:] category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                              CoreFoundation  __forwarding_prep_0___ category=internals
+                              CoreFoundation  ___forwarding___ category=internals
+                              CoreFoundation  +[NSObject(NSObject) doesNotRecognizeSelector:] category=indirection
+                             libobjc.A.dylib  objc_exception_throw category=throw
+                              CoreFoundation  __exceptionPreprocess category=internals

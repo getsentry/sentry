@@ -1,0 +1,55 @@
+from unittest import mock
+
+from django.views.generic import View
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+from sentry.incidents.action_handlers import generate_incident_trigger_email_context
+from sentry.incidents.models import (
+    AlertRule,
+    AlertRuleTrigger,
+    Incident,
+    IncidentStatus,
+    TriggerStatus,
+)
+from sentry.models import Organization, Project
+from sentry.snuba.models import SnubaQuery
+
+from .mail import MailPreview
+
+
+class MockedIncidentTrigger:
+    date_added = "Some date"
+
+
+class DebugIncidentTriggerEmailView(View):
+    @mock.patch(
+        "sentry.incidents.models.IncidentTrigger.objects.get", return_value=MockedIncidentTrigger()
+    )
+    def get(self, request: Request, mock) -> Response:
+        organization = Organization(slug="myorg")
+        project = Project(slug="myproject", organization=organization)
+
+        query = SnubaQuery(
+            time_window=60, query="transaction:/some/transaction", aggregate="count()"
+        )
+        alert_rule = AlertRule(id=1, organization=organization, name="My Alert", snuba_query=query)
+        incident = Incident(
+            id=2,
+            identifier=123,
+            organization=organization,
+            title="Something broke",
+            alert_rule=alert_rule,
+            status=IncidentStatus.CRITICAL,
+        )
+        trigger = AlertRuleTrigger(alert_rule=alert_rule)
+
+        context = generate_incident_trigger_email_context(
+            project, incident, trigger, TriggerStatus.ACTIVE, IncidentStatus(incident.status)
+        )
+
+        return MailPreview(
+            text_template="sentry/emails/incidents/trigger.txt",
+            html_template="sentry/emails/incidents/trigger.html",
+            context=context,
+        ).render(request)

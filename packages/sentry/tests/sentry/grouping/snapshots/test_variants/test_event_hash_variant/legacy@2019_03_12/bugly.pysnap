@@ -1,0 +1,54 @@
+---
+created: '2021-07-12T13:33:39.580522Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace
+          frame (frame considered in-app because no frame is in-app)
+          frame (frame considered in-app because no frame is in-app)
+          frame (ignored due to recursion)
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "__kernel_rt_sigreturn"
+          frame (frame considered in-app because no frame is in-app)
+          frame (marked out of app by stack trace rule (family:native package:/lib/** -app))
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "kill"
+        type*
+          "SIGSEGV"
+        value*
+          "Segfault"
+--------------------------------------------------------------------------
+system:
+  hash: "8ecc10ce70f427a50370968e7271fa51"
+  component:
+    system*
+      exception*
+        stacktrace
+          frame
+          frame
+          frame (ignored due to recursion)
+          frame
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame
+            function (function name is not used if module or filename are available)
+              "__kernel_rt_sigreturn"
+          frame
+          frame (marked out of app by stack trace rule (family:native package:/lib/** -app))
+          frame
+            function (function name is not used if module or filename are available)
+              "kill"
+        type*
+          "SIGSEGV"
+        value*
+          "Segfault"

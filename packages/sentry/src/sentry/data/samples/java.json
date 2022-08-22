@@ -1,0 +1,618 @@
+{
+  "platform": "java",
+  "release": "3.0.2",
+  "sdk": {
+    "client_ip": "172.56.7.13",
+    "name": "sentry-java",
+    "version": "1.4.0-3ded0"
+  },
+  "sentry.interfaces.Breadcrumbs": {
+    "values": [
+      {
+        "level": "debug",
+        "message": "Querying for user.",
+        "timestamp": 1501799139,
+        "type": "default"
+      },
+      {
+        "level": "debug",
+        "message": "User found: user@sentry.io",
+        "timestamp": 1501799139,
+        "type": "default"
+      },
+      {
+        "message": "Loaded homepage content from memcached.",
+        "timestamp": 1501799139,
+        "type": "default"
+      },
+      {
+        "level": "warning",
+        "message": "Sidebar content not in cache, hitting API server.",
+        "timestamp": 1501799139,
+        "type": "default"
+      }
+    ]
+  },
+  "sentry.interfaces.Exception": {
+    "exc_omitted": null,
+    "values": [
+      {
+        "mechanism": null,
+        "module": "io.sentry.example",
+        "raw_stacktrace": null,
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "Thread.java",
+              "filename": "Thread.java",
+              "function": "run",
+              "in_app": false,
+              "lineno": 748,
+              "module": "java.lang.Thread"
+            },
+            {
+              "abs_path": "TaskThread.java",
+              "filename": "TaskThread.java",
+              "function": "run",
+              "in_app": false,
+              "lineno": 61,
+              "module": "org.apache.tomcat.util.threads.TaskThread$WrappingRunnable"
+            },
+            {
+              "abs_path": "ThreadPoolExecutor.java",
+              "filename": "ThreadPoolExecutor.java",
+              "function": "run",
+              "in_app": false,
+              "lineno": 624,
+              "module": "java.util.concurrent.ThreadPoolExecutor$Worker"
+            },
+            {
+              "abs_path": "ThreadPoolExecutor.java",
+              "filename": "ThreadPoolExecutor.java",
+              "function": "runWorker",
+              "in_app": false,
+              "lineno": 1149,
+              "module": "java.util.concurrent.ThreadPoolExecutor"
+            },
+            {
+              "abs_path": "SocketProcessorBase.java",
+              "filename": "SocketProcessorBase.java",
+              "function": "run",
+              "in_app": false,
+              "lineno": 49,
+              "module": "org.apache.tomcat.util.net.SocketProcessorBase"
+            },
+            {
+              "abs_path": "NioEndpoint.java",
+              "filename": "NioEndpoint.java",
+              "function": "doRun",
+              "in_app": false,
+              "lineno": 1434,
+              "module": "org.apache.tomcat.util.net.NioEndpoint$SocketProcessor"
+            },
+            {
+              "abs_path": "AbstractProtocol.java",
+              "filename": "AbstractProtocol.java",
+              "function": "process",
+              "in_app": false,
+              "lineno": 798,
+              "module": "org.apache.coyote.AbstractProtocol$ConnectionHandler"
+            },
+            {
+              "abs_path": "AbstractProcessorLight.java",
+              "filename": "AbstractProcessorLight.java",
+              "function": "process",
+              "in_app": false,
+              "lineno": 66,
+              "module": "org.apache.coyote.AbstractProcessorLight"
+            },
+            {
+              "abs_path": "Http11Processor.java",
+              "filename": "Http11Processor.java",
+              "function": "service",
+              "in_app": false,
+              "lineno": 783,
+              "module": "org.apache.coyote.http11.Http11Processor"
+            },
+            {
+              "abs_path": "CoyoteAdapter.java",
+              "filename": "CoyoteAdapter.java",
+              "function": "service",
+              "in_app": false,
+              "lineno": 349,
+              "module": "org.apache.catalina.connector.CoyoteAdapter"
+            },
+            {
+              "abs_path": "StandardEngineValve.java",
+              "filename": "StandardEngineValve.java",
+              "function": "invoke",
+              "in_app": false,
+              "lineno": 87,
+              "module": "org.apache.catalina.core.StandardEngineValve"
+            },
+            {
+              "abs_path": "ErrorReportValve.java",
+              "filename": "ErrorReportValve.java",
+              "function": "invoke",
+              "in_app": false,
+              "lineno": 79,
+              "module": "org.apache.catalina.valves.ErrorReportValve"
+            },
+            {
+              "abs_path": "StandardHostValve.java",
+              "filename": "StandardHostValve.java",
+              "function": "invoke",
+              "in_app": false,
+              "lineno": 140,
+              "module": "org.apache.catalina.core.StandardHostValve"
+            },
+            {
+              "abs_path": "AuthenticatorBase.java",
+              "filename": "AuthenticatorBase.java",
+              "function": "invoke",
+              "in_app": false,
+              "lineno": 474,
+              "module": "org.apache.catalina.authenticator.AuthenticatorBase"
+            },
+            {
+              "abs_path": "StandardContextValve.java",
+              "filename": "StandardContextValve.java",
+              "function": "invoke",
+              "in_app": false,
+              "lineno": 96,
+              "module": "org.apache.catalina.core.StandardContextValve"
+            },
+            {
+              "abs_path": "StandardWrapperValve.java",
+              "filename": "StandardWrapperValve.java",
+              "function": "invoke",
+              "in_app": false,
+              "lineno": 198,
+              "module": "org.apache.catalina.core.StandardWrapperValve"
+            },
+            {
+              "abs_path": "ApplicationFilterChain.java",
+              "filename": "ApplicationFilterChain.java",
+              "function": "doFilter",
+              "in_app": false,
+              "lineno": 165,
+              "module": "org.apache.catalina.core.ApplicationFilterChain"
+            },
+            {
+              "abs_path": "ApplicationFilterChain.java",
+              "filename": "ApplicationFilterChain.java",
+              "function": "internalDoFilter",
+              "in_app": false,
+              "lineno": 192,
+              "module": "org.apache.catalina.core.ApplicationFilterChain"
+            },
+            {
+              "abs_path": "OncePerRequestFilter.java",
+              "filename": "OncePerRequestFilter.java",
+              "function": "doFilter",
+              "in_app": false,
+              "lineno": 107,
+              "module": "org.springframework.web.filter.OncePerRequestFilter"
+            },
+            {
+              "abs_path": "CharacterEncodingFilter.java",
+              "filename": "CharacterEncodingFilter.java",
+              "function": "doFilterInternal",
+              "in_app": false,
+              "lineno": 197,
+              "module": "org.springframework.web.filter.CharacterEncodingFilter"
+            },
+            {
+              "abs_path": "ApplicationFilterChain.java",
+              "filename": "ApplicationFilterChain.java",
+              "function": "doFilter",
+              "in_app": false,
+              "lineno": 165,
+              "module": "org.apache.catalina.core.ApplicationFilterChain"
+            },
+            {
+              "abs_path": "ApplicationFilterChain.java",
+              "filename": "ApplicationFilterChain.java",
+              "function": "internalDoFilter",
+              "in_app": false,
+              "lineno": 192,
+              "module": "org.apache.catalina.core.ApplicationFilterChain"
+            },
+            {
+              "abs_path": "OncePerRequestFilter.java",
+              "filename": "OncePerRequestFilter.java",
+              "function": "doFilter",
+              "in_app": false,
+              "lineno": 107,
+              "module": "org.springframework.web.filter.OncePerRequestFilter"
+            },
+            {
+              "abs_path": "HiddenHttpMethodFilter.java",
+              "filename": "HiddenHttpMethodFilter.java",
+              "function": "doFilterInternal",
+              "in_app": false,
+              "lineno": 81,
+              "module": "org.springframework.web.filter.HiddenHttpMethodFilter"
+            },
+            {
+              "abs_path": "ApplicationFilterChain.java",
+              "filename": "ApplicationFilterChain.java",
+              "function": "doFilter",
+              "in_app": false,
+              "lineno": 165,
+              "module": "org.apache.catalina.core.ApplicationFilterChain"
+            },
+            {
+              "abs_path": "ApplicationFilterChain.java",
+              "filename": "ApplicationFilterChain.java",
+              "function": "internalDoFilter",
+              "in_app": false,
+              "lineno": 192,
+              "module": "org.apache.catalina.core.ApplicationFilterChain"
+            },
+            {
+              "abs_path": "OncePerRequestFilter.java",
+              "filename": "OncePerRequestFilter.java",
+              "function": "doFilter",
+              "in_app": false,
+              "lineno": 107,
+              "module": "org.springframework.web.filter.OncePerRequestFilter"
+            },
+            {
+              "abs_path": "HttpPutFormContentFilter.java",
+              "filename": "HttpPutFormContentFilter.java",
+              "function": "doFilterInternal",
+              "in_app": false,
+              "lineno": 105,
+              "module": "org.springframework.web.filter.HttpPutFormContentFilter"
+            },
+            {
+              "abs_path": "ApplicationFilterChain.java",
+              "filename": "ApplicationFilterChain.java",
+              "function": "doFilter",
+              "in_app": false,
+              "lineno": 165,
+              "module": "org.apache.catalina.core.ApplicationFilterChain"
+            },
+            {
+              "abs_path": "ApplicationFilterChain.java",
+              "filename": "ApplicationFilterChain.java",
+              "function": "internalDoFilter",
+              "in_app": false,
+              "lineno": 192,
+              "module": "org.apache.catalina.core.ApplicationFilterChain"
+            },
+            {
+              "abs_path": "OncePerRequestFilter.java",
+              "filename": "OncePerRequestFilter.java",
+              "function": "doFilter",
+              "in_app": false,
+              "lineno": 107,
+              "module": "org.springframework.web.filter.OncePerRequestFilter"
+            },
+            {
+              "abs_path": "RequestContextFilter.java",
+              "filename": "RequestContextFilter.java",
+              "function": "doFilterInternal",
+              "in_app": false,
+              "lineno": 99,
+              "module": "org.springframework.web.filter.RequestContextFilter"
+            },
+            {
+              "abs_path": "ApplicationFilterChain.java",
+              "filename": "ApplicationFilterChain.java",
+              "function": "doFilter",
+              "in_app": false,
+              "lineno": 165,
+              "module": "org.apache.catalina.core.ApplicationFilterChain"
+            },
+            {
+              "abs_path": "ApplicationFilterChain.java",
+              "filename": "ApplicationFilterChain.java",
+              "function": "internalDoFilter",
+              "in_app": false,
+              "lineno": 192,
+              "module": "org.apache.catalina.core.ApplicationFilterChain"
+            },
+            {
+              "abs_path": "WsFilter.java",
+              "filename": "WsFilter.java",
+              "function": "doFilter",
+              "in_app": false,
+              "lineno": 52,
+              "module": "org.apache.tomcat.websocket.server.WsFilter"
+            },
+            {
+              "abs_path": "ApplicationFilterChain.java",
+              "filename": "ApplicationFilterChain.java",
+              "function": "doFilter",
+              "in_app": false,
+              "lineno": 165,
+              "module": "org.apache.catalina.core.ApplicationFilterChain"
+            },
+            {
+              "abs_path": "ApplicationFilterChain.java",
+              "filename": "ApplicationFilterChain.java",
+              "function": "internalDoFilter",
+              "in_app": false,
+              "lineno": 230,
+              "module": "org.apache.catalina.core.ApplicationFilterChain"
+            },
+            {
+              "abs_path": "HttpServlet.java",
+              "filename": "HttpServlet.java",
+              "function": "service",
+              "in_app": false,
+              "lineno": 729,
+              "module": "javax.servlet.http.HttpServlet"
+            },
+            {
+              "abs_path": "FrameworkServlet.java",
+              "filename": "FrameworkServlet.java",
+              "function": "service",
+              "in_app": false,
+              "lineno": 846,
+              "module": "org.springframework.web.servlet.FrameworkServlet"
+            },
+            {
+              "abs_path": "HttpServlet.java",
+              "filename": "HttpServlet.java",
+              "function": "service",
+              "in_app": false,
+              "lineno": 622,
+              "module": "javax.servlet.http.HttpServlet"
+            },
+            {
+              "abs_path": "FrameworkServlet.java",
+              "filename": "FrameworkServlet.java",
+              "function": "doGet",
+              "in_app": false,
+              "lineno": 861,
+              "module": "org.springframework.web.servlet.FrameworkServlet"
+            },
+            {
+              "abs_path": "FrameworkServlet.java",
+              "filename": "FrameworkServlet.java",
+              "function": "processRequest",
+              "in_app": false,
+              "lineno": 970,
+              "module": "org.springframework.web.servlet.FrameworkServlet"
+            },
+            {
+              "abs_path": "DispatcherServlet.java",
+              "filename": "DispatcherServlet.java",
+              "function": "doService",
+              "in_app": false,
+              "lineno": 897,
+              "module": "org.springframework.web.servlet.DispatcherServlet"
+            },
+            {
+              "abs_path": "DispatcherServlet.java",
+              "filename": "DispatcherServlet.java",
+              "function": "doDispatch",
+              "in_app": false,
+              "lineno": 963,
+              "module": "org.springframework.web.servlet.DispatcherServlet"
+            },
+            {
+              "abs_path": "AbstractHandlerMethodAdapter.java",
+              "filename": "AbstractHandlerMethodAdapter.java",
+              "function": "handle",
+              "in_app": false,
+              "lineno": 85,
+              "module": "org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter"
+            },
+            {
+              "abs_path": "RequestMappingHandlerAdapter.java",
+              "filename": "RequestMappingHandlerAdapter.java",
+              "function": "handleInternal",
+              "in_app": false,
+              "lineno": 738,
+              "module": "org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter"
+            },
+            {
+              "abs_path": "RequestMappingHandlerAdapter.java",
+              "filename": "RequestMappingHandlerAdapter.java",
+              "function": "invokeHandlerMethod",
+              "in_app": false,
+              "lineno": 827,
+              "module": "org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter"
+            },
+            {
+              "abs_path": "ServletInvocableHandlerMethod.java",
+              "filename": "ServletInvocableHandlerMethod.java",
+              "function": "invokeAndHandle",
+              "in_app": false,
+              "lineno": 116,
+              "module": "org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod"
+            },
+            {
+              "abs_path": "InvocableHandlerMethod.java",
+              "filename": "InvocableHandlerMethod.java",
+              "function": "invokeForRequest",
+              "in_app": false,
+              "lineno": 133,
+              "module": "org.springframework.web.method.support.InvocableHandlerMethod"
+            },
+            {
+              "abs_path": "InvocableHandlerMethod.java",
+              "filename": "InvocableHandlerMethod.java",
+              "function": "doInvoke",
+              "in_app": false,
+              "lineno": 205,
+              "module": "org.springframework.web.method.support.InvocableHandlerMethod"
+            },
+            {
+              "abs_path": "Method.java",
+              "filename": "Method.java",
+              "function": "invoke",
+              "in_app": false,
+              "lineno": 498,
+              "module": "java.lang.reflect.Method"
+            },
+            {
+              "abs_path": "DelegatingMethodAccessorImpl.java",
+              "filename": "DelegatingMethodAccessorImpl.java",
+              "function": "invoke",
+              "in_app": false,
+              "lineno": 43,
+              "module": "sun.reflect.DelegatingMethodAccessorImpl"
+            },
+            {
+              "abs_path": "NativeMethodAccessorImpl.java",
+              "filename": "NativeMethodAccessorImpl.java",
+              "function": "invoke",
+              "in_app": false,
+              "lineno": 62,
+              "module": "sun.reflect.NativeMethodAccessorImpl"
+            },
+            {
+              "abs_path": "NativeMethodAccessorImpl.java",
+              "filename": "NativeMethodAccessorImpl.java",
+              "function": "invoke0",
+              "in_app": false,
+              "module": "sun.reflect.NativeMethodAccessorImpl"
+            },
+            {
+              "abs_path": "Application.java",
+              "filename": "Application.java",
+              "function": "home",
+              "in_app": true,
+              "lineno": 102,
+              "module": "io.sentry.example.Application"
+            },
+            {
+              "abs_path": "Sidebar.java",
+              "filename": "Sidebar.java",
+              "function": "fetch",
+              "in_app": true,
+              "lineno": 5,
+              "module": "io.sentry.example.Sidebar"
+            },
+            {
+              "abs_path": "ApiRequest.java",
+              "filename": "ApiRequest.java",
+              "function": "perform",
+              "in_app": true,
+              "lineno": 8,
+              "module": "io.sentry.example.ApiRequest"
+            }
+          ],
+          "frames_omitted": null,
+          "registers": null
+        },
+        "thread_id": null,
+        "type": "ApiException",
+        "value": "Authentication failed, token expired!"
+      }
+    ]
+  },
+  "sentry.interfaces.Http": {
+    "data": "{\"logged_in\":[\"1\"]}",
+    "env": {
+      "AUTH_TYPE": null,
+      "LOCAL_ADDR": "0:0:0:0:0:0:0:1",
+      "LOCAL_NAME": "localhost",
+      "LOCAL_PORT": 8080,
+      "REMOTE_ADDR": "0:0:0:0:0:0:0:1",
+      "REMOTE_USER": null,
+      "REQUEST_ASYNC": false,
+      "REQUEST_SECURE": false,
+      "SERVER_NAME": "localhost",
+      "SERVER_PORT": 8080,
+      "SERVER_PROTOCOL": "HTTP/1.1"
+    },
+    "headers": [
+      [
+        "Accept-Language",
+        "en-US,en;q=0.8"
+      ],
+      [
+        "Host",
+        "localhost:8080"
+      ],
+      [
+        "Upgrade-Insecure-Requests",
+        "1"
+      ],
+      [
+        "Connection",
+        "keep-alive"
+      ],
+      [
+        "Dnt",
+        "1"
+      ],
+      [
+        "Cache-Control",
+        "max-age=0"
+      ],
+      [
+        "Accept-Encoding",
+        "gzip, deflate, br"
+      ],
+      [
+        "User-Agent",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.78 Safari/537.36"
+      ],
+      [
+        "Accept",
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8"
+      ]
+    ],
+    "method": "GET",
+    "query_string": "logged_in=1",
+    "url": "http://localhost:8080/"
+  },
+  "sentry.interfaces.Message": {
+    "message": "Authentication failed, token expired!"
+  },
+  "sentry.interfaces.User": {
+    "data": {
+      "account_level": "premium"
+    },
+    "email": "user@sentry.io",
+    "ip_address": "0:0:0:0:0:0:0:1",
+    "username": "user"
+  },
+  "tags": [
+    [
+      "server_name",
+      "web1.example.com"
+    ],
+    [
+      "level",
+      "error"
+    ],
+    [
+      "url",
+      "http://localhost:8080/"
+    ],
+    [
+      "environment",
+      "production"
+    ],
+    [
+      "sentry:user",
+      "email:user@sentry.io"
+    ],
+    [
+      "device",
+      "Other"
+    ],
+    [
+      "sentry:release",
+      "3.0.2"
+    ],
+    [
+      "os",
+      "Mac OS X 10.12.6"
+    ],
+    [
+      "browser",
+      "Chrome 60.0"
+    ]
+  ],
+  "type": "error",
+  "version": "6"
+}

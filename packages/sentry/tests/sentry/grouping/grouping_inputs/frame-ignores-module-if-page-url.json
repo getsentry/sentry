@@ -1,0 +1,12 @@
+{
+  "stacktrace": {
+    "frames": [
+      {
+        "abs_path": "https://sentry.io/foo/bar/baz.js",
+        "module": "foo/bar/baz",
+        "filename": "foo.py"
+      }
+    ]
+  },
+  "platform": "javascript"
+}

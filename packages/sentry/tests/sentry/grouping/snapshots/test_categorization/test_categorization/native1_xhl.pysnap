@@ -1,0 +1,29 @@
+---
+created: '2021-07-08T17:52:59.172534Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+0x00000000 / 0x00000000:Fatal Error: 0x00000000 / 0x00000000 (thread_id:_, crashed:_)
+  boost_threads.framework/Versions/A/boost_t  boost::thread::start_thread_noexcept category=std
+     /usr/lib/system/libsystem_pthread.dylib  thread_start category=threadbase
+     /usr/lib/system/libsystem_pthread.dylib  _pthread_start category=threadbase
+  boost_threads.framework/Versions/A/boost_t  boost::`anonymous namespace'::thread_proxy category=threadbase
+                                              stripped_application_code
+        abccore.framework/Versions/A/abccore  boost::function0<T>::operator() category=indirection
+                                              stripped_application_code
+        abccore.framework/Versions/A/abccore  std::__1::auto_ptr<T>::~auto_ptr category=internals
+        abccore.framework/Versions/A/abccore  std::__1::auto_ptr<T>::~auto_ptr category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+        abccore.framework/Versions/A/abccore  boost::function<T>::~function category=indirection
+        abccore.framework/Versions/A/abccore  boost::function<T>::~function category=indirection
+        abccore.framework/Versions/A/abccore  boost::function0<T>::~function0 category=indirection
+        abccore.framework/Versions/A/abccore  boost::function0<T>::clear category=indirection
+        abccore.framework/Versions/A/abccore  boost::detail::function::basic_vtable0<T>::clear category=std
+      /usr/lib/system/libsystem_malloc.dylib  malloc_report category=malloc
+      /usr/lib/system/libsystem_malloc.dylib  malloc_vreport category=internals
+           /usr/lib/system/libsystem_c.dylib  abort category=throw
+           /usr/lib/system/libsystem_c.dylib  __abort category=internals
+      /usr/lib/system/libsystem_kernel.dylib  __pthread_kill category=internals

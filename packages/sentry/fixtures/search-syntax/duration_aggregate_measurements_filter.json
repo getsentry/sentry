@@ -1,0 +1,113 @@
+[
+  {
+    "query": "percentile(measurements.fp, 0.5):3.3s",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "aggregateDuration",
+        "negated": false,
+        "key": {
+          "type": "keyAggregate",
+          "name": {"type": "keySimple", "value": "percentile", "quoted": false},
+          "args": {
+            "type": "keyAggregateArgs",
+            "args": [
+              {
+                "separator": "",
+                "value": {
+                  "type": "keyAggregateParam",
+                  "value": "measurements.fp",
+                  "quoted": false
+                }
+              },
+              {
+                "separator": ", ",
+                "value": {"type": "keyAggregateParam", "value": "0.5", "quoted": false}
+              }
+            ]
+          },
+          "argsSpaceBefore": {"type": "spaces", "value": ""},
+          "argsSpaceAfter": {"type": "spaces", "value": ""}
+        },
+        "operator": "",
+        "value": {"type": "valueDuration", "value": 3.3, "unit": "s"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "percentile(measurements.fp, 0.5):>3.3s",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "aggregateDuration",
+        "negated": false,
+        "key": {
+          "type": "keyAggregate",
+          "name": {"type": "keySimple", "value": "percentile", "quoted": false},
+          "args": {
+            "type": "keyAggregateArgs",
+            "args": [
+              {
+                "separator": "",
+                "value": {
+                  "type": "keyAggregateParam",
+                  "value": "measurements.fp",
+                  "quoted": false
+                }
+              },
+              {
+                "separator": ", ",
+                "value": {"type": "keyAggregateParam", "value": "0.5", "quoted": false}
+              }
+            ]
+          },
+          "argsSpaceBefore": {"type": "spaces", "value": ""},
+          "argsSpaceAfter": {"type": "spaces", "value": ""}
+        },
+        "operator": ">",
+        "value": {"type": "valueDuration", "value": 3.3, "unit": "s"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "percentile(measurements.fp, 0.5):<3.3s",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "aggregateDuration",
+        "negated": false,
+        "key": {
+          "type": "keyAggregate",
+          "name": {"type": "keySimple", "value": "percentile", "quoted": false},
+          "args": {
+            "type": "keyAggregateArgs",
+            "args": [
+              {
+                "separator": "",
+                "value": {
+                  "type": "keyAggregateParam",
+                  "value": "measurements.fp",
+                  "quoted": false
+                }
+              },
+              {
+                "separator": ", ",
+                "value": {"type": "keyAggregateParam", "value": "0.5", "quoted": false}
+              }
+            ]
+          },
+          "argsSpaceBefore": {"type": "spaces", "value": ""},
+          "argsSpaceAfter": {"type": "spaces", "value": ""}
+        },
+        "operator": "<",
+        "value": {"type": "valueDuration", "value": 3.3, "unit": "s"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

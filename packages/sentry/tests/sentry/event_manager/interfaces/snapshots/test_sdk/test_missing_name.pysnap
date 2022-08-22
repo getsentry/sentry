@@ -1,0 +1,10 @@
+---
+created: '2019-03-14T17:12:36.072827Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_sdk.py
+---
+errors:
+- name: sdk.name
+  type: missing_attribute
+to_json:
+  version: '1.0'

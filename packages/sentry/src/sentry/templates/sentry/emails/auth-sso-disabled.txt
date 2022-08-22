@@ -1,0 +1,13 @@
+{{ provider.name }} Single Sign-On has been disabled for the {{ organization.name }} organization.
+
+{% if has_password %}
+You can now login using your email {{ email }}, and password. If you forgot your password you can always reset it by visiting the following url:
+
+{{ recover_url }}
+{% else %}
+You can now login using your email {{ email }}, however you'll first have to set a password for your account by visiting the following url:
+
+{{ set_password_url }}
+{% endif %}
+
+SSO was disabled by {{ actor.email }}

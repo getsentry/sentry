@@ -1,0 +1,35 @@
+---
+created: '2021-08-06T16:25:44.671435Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+IllegalStateException:securePreferences.getString(key) must not be null (thread_id:_, crashed:_)
+                   dalvik.system.NativeStart  main category=system
+          com.android.internal.os.ZygoteInit  main category=internals
+  com.android.internal.os.ZygoteInit$MethodA  run category=internals
+                    java.lang.reflect.Method  invoke category=indirection
+                    java.lang.reflect.Method  invokeNative category=indirection
+                  android.app.ActivityThread  main category=threadbase
+                           android.os.Looper  loop category=threadbase
+                          android.os.Handler  dispatchMessage category=threadbase
+                android.app.ActivityThread$H  handleMessage category=threadbase
+                  android.app.ActivityThread  access$1700 category=std
+                  android.app.ActivityThread  handleReceiver category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+
+
+RuntimeException:_ (thread_id:_, crashed:_)
+                   dalvik.system.NativeStart  main category=system
+          com.android.internal.os.ZygoteInit  main category=internals
+  com.android.internal.os.ZygoteInit$MethodA  run category=internals
+                    java.lang.reflect.Method  invoke category=indirection
+                    java.lang.reflect.Method  invokeNative category=indirection
+                  android.app.ActivityThread  main category=threadbase
+                           android.os.Looper  loop category=threadbase
+                          android.os.Handler  dispatchMessage category=threadbase
+                android.app.ActivityThread$H  handleMessage category=threadbase
+                  android.app.ActivityThread  access$1700 category=std
+                  android.app.ActivityThread  handleReceiver category=internals

@@ -1,0 +1,110 @@
+import click
+
+from sentry.runner.decorators import configuration
+
+
+@click.group()
+def config():
+    "Manage runtime config options."
+
+
+@config.command()
+@click.argument("pattern", default="*", required=False)
+@configuration
+def list(pattern):
+    "List configuration options."
+    from fnmatch import fnmatch
+
+    from sentry.options import default_manager as manager
+
+    for key in manager.all():
+        if fnmatch(key.name, pattern):
+            click.echo(f"{key.name} {key.type.name.upper()}")
+
+
+@config.command()
+@click.option("--silent", "-q", default=False, is_flag=True, help="Suppress extraneous output.")
+@click.argument("option")
+@configuration
+def get(option, silent):
+    "Get a configuration option."
+    from django.conf import settings
+
+    from sentry.options import default_manager as manager
+    from sentry.options.manager import UnknownOption
+
+    try:
+        key = manager.lookup_key(option)
+    except UnknownOption:
+        raise click.ClickException("unknown option: %s" % option)
+    value = manager.get(key.name)
+    if silent:
+        click.echo(value)
+        return
+    # TODO(mattrobenolt): Add help to option keys
+    # if key.help:
+    #     click.echo(key.help + '\n')
+    click.echo("        type: %s" % key.type.name.upper())
+    click.echo(" from config: %s" % settings.SENTRY_OPTIONS.get(key.name, "<not set>"))
+    click.echo("     current: %s" % value)
+
+
+@config.command()
+@click.option(
+    "--secret", default=False, is_flag=True, help="Hide prompt input when inputting secret data."
+)
+@click.argument("key")
+@click.argument("value", required=False)
+@configuration
+def set(key, value, secret):
+    "Set a configuration option to a new value."
+    from sentry import options
+    from sentry.options.manager import UnknownOption
+
+    if value is None:
+        if secret:
+            value = click.prompt("(hidden) Value", hide_input=True)
+        else:
+            value = click.prompt("Value")
+
+    try:
+        options.set(key, value)
+    except UnknownOption:
+        raise click.ClickException("unknown option: %s" % key)
+    except TypeError as e:
+        raise click.ClickException(str(e))
+
+
+@config.command()
+@click.option("--no-input", default=False, is_flag=True, help="Do not show confirmation.")
+@click.argument("option")
+@configuration
+def delete(option, no_input):
+    "Delete/unset a configuration option."
+    from sentry import options
+    from sentry.options.manager import UnknownOption
+
+    if not no_input:
+        click.confirm('Are you sure you want to delete "%s"?' % option, default=False, abort=True)
+    try:
+        options.delete(option)
+    except UnknownOption:
+        raise click.ClickException("unknown option: %s" % option)
+
+
+@config.command(name="generate-secret-key")
+def generate_secret_key():
+    "Generate a new cryptographically secure secret key value."
+    from sentry.runner.settings import generate_secret_key
+
+    click.echo(generate_secret_key())
+
+
+@config.command()
+def discover():
+    "Print paths to config files."
+    from sentry.runner.settings import discover_configs
+
+    _, py, yaml = discover_configs()
+    click.echo(py)
+    click.echo(yaml)

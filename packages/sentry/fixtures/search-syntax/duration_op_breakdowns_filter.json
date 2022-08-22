@@ -1,0 +1,47 @@
+[
+  {
+    "query": "spans.browser:1.5s",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "duration",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "spans.browser", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueDuration", "value": 1.5, "unit": "s"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "spans.browser:>1.5s",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "duration",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "spans.browser", "quoted": false},
+        "operator": ">",
+        "value": {"type": "valueDuration", "value": 1.5, "unit": "s"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "spans.browser:<1.5s",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "duration",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "spans.browser", "quoted": false},
+        "operator": "<",
+        "value": {"type": "valueDuration", "value": 1.5, "unit": "s"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

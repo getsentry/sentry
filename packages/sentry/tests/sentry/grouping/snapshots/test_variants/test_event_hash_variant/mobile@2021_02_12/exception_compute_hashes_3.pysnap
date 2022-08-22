@@ -1,0 +1,79 @@
+---
+created: '2021-08-31T10:25:50.657036Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "669cb6664e0f5fed38665da04e464f7e"
+  tree_label: "baz.py"
+  component:
+    app-depth-1*
+      chained-exception*
+        exception*
+          stacktrace*
+            frame*
+              filename*
+                "baz.py"
+          type*
+            "ValueError"
+          value (ignored because stacktrace takes precedence)
+            "hello world"
+        exception*
+          stacktrace*
+            frame*
+              filename*
+                "baz.py"
+          type*
+            "ValueError"
+          value (ignored because stacktrace takes precedence)
+            "hello world"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "669cb6664e0f5fed38665da04e464f7e"
+  tree_label: "baz.py"
+  component:
+    app-depth-max*
+      chained-exception*
+        exception*
+          stacktrace*
+            frame*
+              filename*
+                "baz.py"
+          type*
+            "ValueError"
+          value (ignored because stacktrace takes precedence)
+            "hello world"
+        exception*
+          stacktrace*
+            frame*
+              filename*
+                "baz.py"
+          type*
+            "ValueError"
+          value (ignored because stacktrace takes precedence)
+            "hello world"
+--------------------------------------------------------------------------
+system:
+  hash: "669cb6664e0f5fed38665da04e464f7e"
+  tree_label: "baz.py"
+  component:
+    system*
+      chained-exception*
+        exception*
+          stacktrace*
+            frame*
+              filename*
+                "baz.py"
+          type*
+            "ValueError"
+          value (ignored because stacktrace takes precedence)
+            "hello world"
+        exception*
+          stacktrace*
+            frame*
+              filename*
+                "baz.py"
+          type*
+            "ValueError"
+          value (ignored because stacktrace takes precedence)
+            "hello world"

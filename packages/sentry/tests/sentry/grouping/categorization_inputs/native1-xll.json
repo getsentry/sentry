@@ -1,0 +1,77 @@
+{
+  "event_id": "162dfe4c70784b0da178e062f9d329a2",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "RtlUserThreadStart",
+              "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "BaseThreadInitThunk",
+              "package": "C:\\Windows\\System32\\KERNEL32.DLL"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "exit",
+              "package": "C:\\Windows\\System32\\ucrtbase.dll"
+            },
+            {
+              "function": "exit",
+              "package": "C:\\Windows\\System32\\ucrtbase.dll"
+            },
+            {
+              "function": "FatalExit",
+              "package": "C:\\Windows\\System32\\KERNEL32.DLL"
+            },
+            {
+              "function": "RtlExitUserProcess",
+              "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "LdrShutdownProcess",
+              "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "RtlDeactivateActivationContextUnsafeFast",
+              "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "f:\\dd\\vctools\\crt_bld\\self_64_amd64\\crt\\src\\free.c",
+              "filename": "free.c",
+              "function": "free",
+              "package": "C:\\Windows\\SYSTEM32\\MSVCR100.dll"
+            },
+            {
+              "function": "RtlFreeHeap",
+              "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "RtlpFreeHeapInternal",
+              "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
+            }
+          ]
+        },
+        "type": "EXCEPTION_ACCESS_VIOLATION_READ",
+        "value": "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
+      }
+    ]
+  },
+  "platform": "native"
+}

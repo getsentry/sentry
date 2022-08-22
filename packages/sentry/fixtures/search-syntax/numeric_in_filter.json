@@ -1,0 +1,359 @@
+[
+  {
+    "query": "project_id:[500,501,502]",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "numericIn",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "project_id", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueNumberList",
+          "items": [
+            {
+              "separator": "",
+              "value": {
+                "type": "valueNumber",
+                "value": "500",
+                "rawValue": 500,
+                "unit": null
+              }
+            },
+            {
+              "separator": ",",
+              "value": {
+                "type": "valueNumber",
+                "value": "501",
+                "rawValue": 501,
+                "unit": null
+              }
+            },
+            {
+              "separator": ",",
+              "value": {
+                "type": "valueNumber",
+                "value": "502",
+                "rawValue": 502,
+                "unit": null
+              }
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "project_id:[500, 501,     502]",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "numericIn",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "project_id", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueNumberList",
+          "items": [
+            {
+              "separator": "",
+              "value": {
+                "type": "valueNumber",
+                "value": "500",
+                "rawValue": 500,
+                "unit": null
+              }
+            },
+            {
+              "separator": ", ",
+              "value": {
+                "type": "valueNumber",
+                "value": "501",
+                "rawValue": 501,
+                "unit": null
+              }
+            },
+            {
+              "separator": ",     ",
+              "value": {
+                "type": "valueNumber",
+                "value": "502",
+                "rawValue": 502,
+                "unit": null
+              }
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "project_id:[500, 501 ,502]",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "numericIn",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "project_id", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueNumberList",
+          "items": [
+            {
+              "separator": "",
+              "value": {
+                "type": "valueNumber",
+                "value": "500",
+                "rawValue": 500,
+                "unit": null
+              }
+            },
+            {
+              "separator": ", ",
+              "value": {
+                "type": "valueNumber",
+                "value": "501",
+                "rawValue": 501,
+                "unit": null
+              }
+            },
+            {
+              "separator": " ,",
+              "value": {
+                "type": "valueNumber",
+                "value": "502",
+                "rawValue": 502,
+                "unit": null
+              }
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "project_id:[500,501,502] issue.id:[100]",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "numericIn",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "project_id", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueNumberList",
+          "items": [
+            {
+              "separator": "",
+              "value": {
+                "type": "valueNumber",
+                "value": "500",
+                "rawValue": 500,
+                "unit": null
+              }
+            },
+            {
+              "separator": ",",
+              "value": {
+                "type": "valueNumber",
+                "value": "501",
+                "rawValue": 501,
+                "unit": null
+              }
+            },
+            {
+              "separator": ",",
+              "value": {
+                "type": "valueNumber",
+                "value": "502",
+                "rawValue": 502,
+                "unit": null
+              }
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": " "},
+      {
+        "type": "filter",
+        "filter": "numericIn",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "issue.id", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueNumberList",
+          "items": [
+            {
+              "separator": "",
+              "value": {
+                "type": "valueNumber",
+                "value": "100",
+                "rawValue": 100,
+                "unit": null
+              }
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "desc": "Numeric format should still return a string if field isn't allowed",
+    "query": "project_id:[500,501,502] random_field:[500,501,502]",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "numericIn",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "project_id", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueNumberList",
+          "items": [
+            {
+              "separator": "",
+              "value": {
+                "type": "valueNumber",
+                "value": "500",
+                "rawValue": 500,
+                "unit": null
+              }
+            },
+            {
+              "separator": ",",
+              "value": {
+                "type": "valueNumber",
+                "value": "501",
+                "rawValue": 501,
+                "unit": null
+              }
+            },
+            {
+              "separator": ",",
+              "value": {
+                "type": "valueNumber",
+                "value": "502",
+                "rawValue": 502,
+                "unit": null
+              }
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": " "},
+      {
+        "type": "filter",
+        "filter": "textIn",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "random_field", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueTextList",
+          "items": [
+            {
+              "separator": "",
+              "value": {"type": "valueText", "value": "500", "quoted": false}
+            },
+            {
+              "separator": ",",
+              "value": {"type": "valueText", "value": "501", "quoted": false}
+            },
+            {
+              "separator": ",",
+              "value": {"type": "valueText", "value": "502", "quoted": false}
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "project_id:[500,501,]",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "numericIn",
+        "invalid": {"reason": "Lists should not have empty values"},
+        "negated": false,
+        "key": {"type": "keySimple", "value": "project_id", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueNumberList",
+          "items": [
+            {
+              "separator": "",
+              "value": {
+                "type": "valueNumber",
+                "value": "500",
+                "rawValue": 500,
+                "unit": null
+              }
+            },
+            {
+              "separator": ",",
+              "value": {
+                "type": "valueNumber",
+                "value": "501",
+                "rawValue": 501,
+                "unit": null
+              }
+            },
+            {
+              "separator": ",",
+              "value": null
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "!project_id:[500,501]",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "numericIn",
+        "negated": true,
+        "key": {"type": "keySimple", "value": "project_id", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueNumberList",
+          "items": [
+            {
+              "separator": "",
+              "value": {
+                "type": "valueNumber",
+                "value": "500",
+                "rawValue": 500,
+                "unit": null
+              }
+            },
+            {
+              "separator": ",",
+              "value": {
+                "type": "valueNumber",
+                "value": "501",
+                "rawValue": 501,
+                "unit": null
+              }
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

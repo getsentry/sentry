@@ -1,0 +1,226 @@
+{
+  "event_id": "e70b3f2e93184bf38e6c6f42aa2c917e",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "filename": "artifacts/boost_source_libraries/1.65.1d/boost_libraries/libs/thread/src/pthread/thread.cpp",
+              "function": "boost::thread::start_thread_noexcept"
+            },
+            {
+              "function": "thread_start",
+              "package": "/usr/lib/system/libsystem_pthread.dylib"
+            },
+            {
+              "function": "_pthread_start",
+              "package": "/usr/lib/system/libsystem_pthread.dylib"
+            },
+            {
+              "filename": "artifacts/boost_source_libraries/1.65.1d/boost_libraries/libs/thread/src/pthread/thread.cpp",
+              "function": "boost::`anonymous namespace'::thread_proxy"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "filename": "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
+              "function": "boost::function0<T>::operator()"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "filename": "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
+              "function": "boost::function0<T>::operator()"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "filename": "../../../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/smart_ptr/shared_ptr.hpp",
+              "function": "boost::shared_ptr<T>::shared_ptr"
+            },
+            {
+              "filename": "../../../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/smart_ptr/shared_ptr.hpp",
+              "function": "boost::shared_ptr<T>::shared_ptr"
+            },
+            {
+              "filename": "../../../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/smart_ptr/detail/shared_count.hpp",
+              "function": "boost::detail::shared_count::shared_count"
+            },
+            {
+              "filename": "../../../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/smart_ptr/detail/shared_count.hpp",
+              "function": "boost::detail::shared_count::shared_count"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "clEnqueueMapBuffer",
+              "package": "/System/Library/Frameworks/OpenCL.framework/Versions/A/OpenCL"
+            },
+            {
+              "function": "clCreateCommandQueueWithPropertiesAPPLE",
+              "package": "/System/Library/Frameworks/OpenCL.framework/Versions/A/OpenCL"
+            },
+            {
+              "function": "_dispatch_lane_barrier_sync_invoke_and_complete",
+              "package": "/usr/lib/system/libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_client_callout",
+              "package": "/usr/lib/system/libdispatch.dylib"
+            },
+            {
+              "function": "clCreateCommandQueueWithPropertiesAPPLE",
+              "package": "/System/Library/Frameworks/OpenCL.framework/Versions/A/OpenCL"
+            },
+            {
+              "function": "clSetEventCallback",
+              "package": "/System/Library/Frameworks/OpenCL.framework/Versions/A/OpenCL"
+            },
+            {
+              "function": "clFlush",
+              "package": "/System/Library/Frameworks/OpenCL.framework/Versions/A/OpenCL"
+            },
+            {
+              "function": "gldFinishQueue",
+              "package": "/System/Library/Extensions/GeForceGLDriver.bundle/Contents/MacOS/GeForceGLDriver"
+            },
+            {
+              "function": "gldWriteComputeProgramBinary",
+              "package": "/System/Library/Extensions/GeForceGLDriver.bundle/Contents/MacOS/GeForceGLDriver"
+            },
+            {
+              "function": "gldWaitForFenceOnQueue",
+              "package": "/System/Library/Extensions/GeForceGLDriver.bundle/Contents/MacOS/GeForceGLDriver"
+            },
+            {
+              "function": "gldWaitForFenceOnQueue",
+              "package": "/System/Library/Extensions/GeForceGLDriver.bundle/Contents/MacOS/GeForceGLDriver"
+            }
+          ]
+        },
+        "type": "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS",
+        "value": "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+      }
+    ]
+  },
+  "platform": "native"
+}

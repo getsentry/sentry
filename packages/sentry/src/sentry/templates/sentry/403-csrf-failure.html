@@ -1,0 +1,36 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "CSRF Verification Failed" %} | {{ block.super }}{% endblock %}
+
+{% block main %}
+    <section class="body">
+        <div class="page-header">
+            <h2>{% trans "CSRF Verification Failed" %}</h2>
+        </div>
+
+        <p>{% trans "A required security token was not found or was invalid." %}</p>
+
+        <p>{% trans "If you're continually seeing this issue, try the following:" %}</p>
+
+        <ol>
+          <li>{% trans "Clear cookies (at least for Sentry's domain)." %}</li>
+          <li>{% trans "Reload the page you're trying to submit (don't re-submit data)." %}</li>
+          <li>{% trans "Re-enter the information, and submit the form again." %}</li>
+        </ol>
+
+        {% if no_referer %}
+          <p>You are seeing this message because Sentry requires a 'Referer
+           header' to be sent by your Web browser, but none was sent. This header is
+           required for security reasons, to ensure that your browser is not being
+           hijacked by third parties.</p>
+
+          <p>If you have configured your browser to disable 'Referer' headers, please
+           re-enable them, at least for this site, or for HTTPS connections, or for
+           'same-origin' requests.</p>
+        {% endif %}
+
+        <p>Read more about <a href="http://en.wikipedia.org/wiki/Cross-site_request_forgery">CSRF on Wikipedia</a>.</p>
+    </section>
+{% endblock %}

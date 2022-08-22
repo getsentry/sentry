@@ -1,0 +1,57 @@
+{% load sentry_helpers %}
+{% load sentry_assets %}
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  {% include "sentry/emails/email-styles.html" %}
+
+  {% block head %}{% endblock %}
+
+</head>
+<body class="{% block bodyclass %}{% endblock %}">
+<div class="preheader">{% block preheader %}{% endblock %}</div>
+<table class="main">
+  <tr>
+    <td>
+      <div class="header">
+        <div class="container">
+          {% block header %}
+          <h1>
+            <a href="{% absolute_uri %}"><img src="{% absolute_asset_url 'sentry' 'images/email/sentry_logo_full.png' %}" width="125px" height="29px" alt="Sentry"></a>
+          </h1>
+          {% endblock %}
+        </div>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      {% block content %}
+      <div class="container">
+        <div class="inner">
+          {% block main %}
+          <p>This is the body of an email</p>
+          {% endblock %}
+        </div>
+      </div>
+      {% endblock %}
+      <div class="container">
+        <div class="footer">
+          {% block footer %}
+          <a href="{% absolute_uri %}" style="float:right">Home</a>
+          {% url 'sentry-account-settings-notifications' as settings_link %}
+          <a href="{% absolute_uri settings_link %}">Notification Settings</a>
+          {% if unsubscribe_link %}
+            &middot; <a href="{{ unsubscribe_link }}">Unsubscribe</a>
+          {% endif %}
+          {% endblock %}
+        </div>
+      </div>
+    </td>
+  </tr>
+</table>
+</body>
+</html>

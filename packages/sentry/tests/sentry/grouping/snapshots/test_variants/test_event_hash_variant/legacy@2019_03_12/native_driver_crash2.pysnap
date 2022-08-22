@@ -1,0 +1,70 @@
+---
+created: '2021-04-02T09:10:50.785912Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "?UCDestroy@?$CUseCountedObject@VCDeviceChild@NOutermost@@@@UEAAXXZ"
+            function (function name is not used if module or filename are available)
+              "CUseCountedObject<class NOutermost::CDeviceChild>::UCDestroy(void)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "?LUCBeginLayerDestruction@CContext@@QEAAXXZ"
+            function (function name is not used if module or filename are available)
+              "CContext::LUCBeginLayerDestruction(void)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "?DestroyDriverInstance@CDevice@NDXGI@@UEAAXXZ"
+            function (function name is not used if module or filename are available)
+              "NDXGI::CDevice::DestroyDriverInstance(void)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "OpenAdapter10"
+            function (function name is not used if module or filename are available)
+              "OpenAdapter10"
+          frame (frame considered in-app because no frame is in-app)
+          frame (ignored due to recursion)
+        type*
+          "EXCEPTION_ACCESS_VIOLATION_READ"
+        value*
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
+--------------------------------------------------------------------------
+system:
+  hash: "c0efa3bdfea2264ffda696557937ff9f"
+  component:
+    system*
+      exception*
+        stacktrace
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "?UCDestroy@?$CUseCountedObject@VCDeviceChild@NOutermost@@@@UEAAXXZ"
+            function (function name is not used if module or filename are available)
+              "CUseCountedObject<class NOutermost::CDeviceChild>::UCDestroy(void)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "?LUCBeginLayerDestruction@CContext@@QEAAXXZ"
+            function (function name is not used if module or filename are available)
+              "CContext::LUCBeginLayerDestruction(void)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "?DestroyDriverInstance@CDevice@NDXGI@@UEAAXXZ"
+            function (function name is not used if module or filename are available)
+              "NDXGI::CDevice::DestroyDriverInstance(void)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "OpenAdapter10"
+            function (function name is not used if module or filename are available)
+              "OpenAdapter10"
+          frame
+          frame (ignored due to recursion)
+        type*
+          "EXCEPTION_ACCESS_VIOLATION_READ"
+        value*
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"

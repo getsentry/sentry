@@ -1,0 +1,6 @@
+{
+  "id": "javascript-react-performance-onboarding-1-install",
+  "name": "React",
+  "html": "<h4 id=\"install\" style=\"position:relative;\">Install</h4>\n<p>Install our JavaScript browser SDK using either <code>yarn</code> or <code>npm</code>:</p>\n<div class=\"gatsby-highlight\" data-language=\"bash\"><pre class=\"language-bash highlight\"><code class=\"language-bash\"><span class=\"token comment\"># Using yarn</span>\n<span class=\"token function\">yarn</span> <span class=\"token function\">add</span> @sentry/react @sentry/tracing\n\n<span class=\"token comment\"># Using npm</span>\n<span class=\"token function\">npm</span> <span class=\"token function\">install</span> --save @sentry/react @sentry/tracing</code></pre></div>",
+  "link": "https://docs.sentry.io/platforms/javascript/guides/react/performance/"
+}

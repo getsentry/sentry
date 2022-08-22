@@ -1,0 +1,49 @@
+---
+created: '2021-08-31T10:25:51.014818Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "9509e122c6175606d52862fa4f64853c"
+  tree_label: "baz.py"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "baz.py"
+        type*
+          "ValueError"
+        value (ignored because stacktrace takes precedence)
+          "hello world"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "9509e122c6175606d52862fa4f64853c"
+  tree_label: "baz.py"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "baz.py"
+        type*
+          "ValueError"
+        value (ignored because stacktrace takes precedence)
+          "hello world"
+--------------------------------------------------------------------------
+system:
+  hash: "9509e122c6175606d52862fa4f64853c"
+  tree_label: "baz.py"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "baz.py"
+        type*
+          "ValueError"
+        value (ignored because stacktrace takes precedence)
+          "hello world"

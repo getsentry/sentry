@@ -1,0 +1,40 @@
+---
+created: '2021-08-04T15:53:48.643906Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "fb73cb54ced59b1c0c60d9bb40b7336b"
+  tree_label: "bar"
+  component:
+    app-depth-1*
+      stacktrace*
+        frame*
+          filename*
+            "foo.py"
+          function*
+            "bar"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "fb73cb54ced59b1c0c60d9bb40b7336b"
+  tree_label: "bar"
+  component:
+    app-depth-max*
+      stacktrace*
+        frame*
+          filename*
+            "foo.py"
+          function*
+            "bar"
+--------------------------------------------------------------------------
+system:
+  hash: "fb73cb54ced59b1c0c60d9bb40b7336b"
+  tree_label: "bar"
+  component:
+    system*
+      stacktrace*
+        frame*
+          filename*
+            "foo.py"
+          function*
+            "bar"

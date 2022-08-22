@@ -1,0 +1,289 @@
+5,Chamada ou argumento de procedimento inválido
+6,Excesso de capacidade
+7,Memória esgotada
+9,Formato inferior à linha fora do intervalo
+10,Esta matriz é constante ou está temporariamente bloqueada
+11,Divisão por zero
+13,Tipo incorreto
+14,Espaço insuficiente para cadeias
+17,Não é possível efetuar operação pedida
+28,Espaço insuficiente na pilha
+35,Sub ou Function não definidas
+48,Erro ao carregar a DLL
+51,Erro interno
+52,Nome ou número de ficheiro incorreto
+53,Ficheiro não encontrado
+54,Modo de ficheiro incorreto
+55,Ficheiro já está aberto
+57,Erro de E/S no dispositivo
+58,Ficheiro já existente
+61,Disco cheio
+62,O comando Input ultrapassou o final do ficheiro
+67,Demasiados ficheiros
+68,Dispositivo não disponível
+70,Permissão negada
+71,O disco não está preparado
+74,Não é possível mudar o nome para uma unidade diferente
+75,Erro de acesso a caminho/ficheiro
+76,Caminho não encontrado
+91,Variável de objeto ou variável de bloco With não definidos
+92,Loop com For não inicializado
+94,Utilização incorreta de Null
+322,Não é possível criar o ficheiro temporário necessário
+424,Objeto necessário
+429,O servidor Automation não consegue criar o objeto
+430,Class não suporta Automation
+432,Nome de ficheiro ou classe não encontrado durante a operação Automation
+438,O objeto não suporta esta propriedade ou método
+440,Erro de Automation
+445,O objeto não suporta esta ação
+446,O objeto não suporta argumentos com nomes
+447,O objeto não suporta a definição de local atual
+448,Nome de argumento não encontrado
+449,O argumento não é opcional
+450,Número errado de argumentos ou atribuição inválida de propriedade
+451,O objeto não é uma coleção
+453,A função DLL especificada não foi encontrada
+458,A variável utiliza um tipo de Automation não suportado em JavaScript
+462,O servidor remoto não existe ou não está disponível
+501,Não é possível atribuir um valor à variável
+502,Não é seguro processar o script do objeto
+503,Não é seguro iniciar o objeto
+504,Não é seguro criar objeto
+507,Ocorreu uma exceção
+1001,Memória esgotada
+1002,Erro de sintaxe
+1003,Caráter ':' esperado
+1004,Caráter ';' esperado
+1005,Caráter '(' esperado
+1006,Caráter ')' esperado
+1007,Caráter ']' esperado
+1008,Caráter '{' esperado
+1009,Caráter '}' esperado
+1010,Identificador esperado
+1011,Caráter '=' esperado
+1012,Caráter '/' esperado
+1013,Número inválido
+1014,Caráter inválido
+1015,Constante de cadeia não terminada
+1016,Comentário não terminado
+1018,Instrução 'return' fora da função
+1019,Não é permitido 'break' fora do loop
+1020,Não é permitido 'continue' fora do loop
+1023,Dígito hexadecimal esperado
+1024,'while' esperado
+1025,Rótulo redefinido
+1026,Rótulo não encontrado
+1027,'default' só pode aparecer uma vez numa instrução 'switch'
+1028,Identificador, cadeia ou número esperado
+1029,Caráter '@end' esperado
+1030,A compilação condicional está desativada
+1031,Constante esperada
+1032,Caráter '@' esperado
+1033,'catch' esperado
+1034,'var' esperado
+1035,a 'devolução de uma exceção' deverá ser seguida de uma expressão na mesma linha de código original
+1037,declarações 'com' não são permitidas no modo estrito
+1038,Não são permitidos nomes de parâmetro formais duplicados no modo estrito
+1039,Não são permitidos literais numéricos octais e carateres de escape no modo estrito
+1041,Utilização inválida de 'eval' no modo estrito
+1042,Utilização inválida de 'arguments' no modo estrito
+1045,Chamada de eliminação com expressão não permitida no modo estrito
+1046,Múltiplas definições de uma propriedade não permitidas no modo estrito
+1047,No modo restrito, não é possível aninhar declarações de função dentro de uma instrução ou bloco. Só podem aparecer no nível superior ou diretamente dentro do corpo de uma função.
+1048,A utilização de uma palavra-chave para um identificador é inválida
+1049,A utilização de uma palavra reservada futura para um identificador é inválida
+1050,A utilização de uma palavra reservada futura para um identificador é inválida. O nome do identificador está reservado no modo restrito.
+1051,As funções setter têm de ter um argumento
+4096,Erro de compilação de JavaScript
+4097,Erro de runtime de JavaScript
+4098,Erro em tempo de execução desconhecido
+5000,Não é possível atribuir um valor a 'this'
+5001,Número esperado
+5002,Função esperada
+5003,Não é permitido atribuir um valor a um resultado de função
+5004,Não é possível indexar objeto
+5005,Cadeia esperada
+5006,Objeto Date esperado
+5007,Objeto esperado
+5008,Parte esquerda inválida na atribuição
+5009,Identificador não definido
+5010,Booleano esperado
+5011,Não é possível executar códigos a partir de um script livre
+5012,Membro de objeto esperado
+5013,VBArray esperado
+5014,Objeto JavaScript esperado
+5015,Objeto Enumerator esperado
+5016,Objeto Regular Expression esperado
+5017,Erro de sintaxe na expressão normal
+5018,Quantificador inesperado
+5019,Caráter ']' esperado em expressão normal
+5020,Caráter ')' esperado em expressão normal
+5021,Intervalo inválido no conjunto de carateres
+5022,Foi devolvida uma exceção mas desconhece-se a sua origem
+5023,A função não tem um objeto protótipo válido
+5024,O URI a ser codificado contém um caráter inválido
+5025,O URI a ser descodificado não possui uma codificação válida
+5026,O número de dígitos fracionais está fora do intervalo
+5027,A precisão está fora do intervalo
+5028,Objeto 'Array' ou 'arguments' esperado
+5029,O comprimento da matriz tem de ser um inteiro finito positivo
+5030,O comprimento da matriz tem de ter atribuído um número finito positivo
+5031,Objeto 'Array' esperado
+5034,A referência circular no argumento 'value' não é suportada
+5035,Argumento 'replacer' inválido
+5038,Lista de argumentos demasiado grande para aplicar
+5039,Nova declaração da propriedade const
+5041,Membro de objeto não configurável
+5042,Variável não definida no modo estrito
+5043,Acesso à propriedade 'caller' de um objeto de função ou de argumentos não permitido no modo estrito
+5044,Acesso à propriedade 'callee' de um objeto de argumentos não permitido no modo estrito
+5045,Atribuição a propriedades só de leitura não permitida no modo estrito
+5046,Não é possível criar a propriedade para um objeto não extensível
+5047,Objeto esperado
+5048,Objeto esperado
+5049,Objeto esperado
+5050,Objeto esperado
+5051,Função esperada
+5052,Função esperada
+5053,A propriedade não pode ter simultaneamente acessores e um valor
+5054,'this' é nulo ou não definido
+5055,Objeto esperado
+5056,Função esperada
+5057,Cadeia esperada
+5058,Booleano esperado
+5059,Data esperada
+5060,Número esperado
+5061,VBArray esperado
+5062,Objeto JavaScript esperado
+5063,Objeto Enumerator esperado
+5064,Objeto RegExp esperado
+5065,Argumento de função inválido
+5066,Objeto esperado
+5067,Objeto JavaScript esperado
+5068,Função esperada
+5069,VBArray esperado
+5070,Objeto esperado
+5071,Objeto esperado
+5072,Propriedade 'length' inválida
+5073,Objeto 'Array' ou 'arguments' esperado
+5074,Operando inválido
+5075,Operando inválido
+5076,Descritor de propriedade inválido
+5077,Não é possível definir a propriedade: o objeto não é extensível
+5078,Não é possível redefinir uma propriedade não configurável
+5079,Não é possível alterar uma propriedade não gravável
+5080,Não é possível alterar a propriedade: 'length' não é gravável
+5081,Não é possível definir a propriedade
+5082,O argumento de construtor da matriz escrita é inválido
+5083,'this' não é um objeto da matriz escrita
+5084,Desvio/comprimento inválido ao criar a matriz escrita
+5085,Valor de início/fim inválido no método de submatriz da matriz escrita
+5086,Origem inválida no conjunto da matriz escrita
+5087,'this' não é um objeto DataView
+5088,Argumentos inválidos em DataView
+5089,Acesso da operação DataView para lá do tamanho da memória intermédia especificado
+5090,Argumentos inválidos em DataView
+5091,assinatura de função inválida
+5092,assinatura de propriedade inválida
+5093,tipo de parâmetro de entrada inválido
+5094,parâmetro de saída inválido
+5095,O acesso à propriedade 'arguments' de uma função não é permitido no modo restrito
+5096,Objeto Passível de Inspeção esperado
+5097,Não foi possível converter o argumento no tipo 'char'
+5098,Não foi possível converter o argumento no tipo 'GUID'
+5099,Era esperado IInspectable
+5100,Não foi possível converter o objeto em estrutura: falta uma propriedade esperada no objeto
+5101,Tipo desconhecido
+5102,Função chamada com argumentos insuficientes
+5103,O tipo não é estruturável
+5104,Não foi possível converter o valor em PropertyValue: tipo não suportado por PropertyValue
+5105,Não foi possível converter o valor em IInspectable: tipo não suportado por IInspectable
+5106,Não foi possível converter Date em Windows.Foundation.DateTime: valor fora do intervalo válido
+5107,Não foi possível converter o valor em Windows.Foundation.TimeSpan: valor fora do intervalo válido
+5108,Acesso inválido ao Objeto Passível de Inspeção já libertado
+5109,Não é possível libertar o Objeto Passível de Inspeção já libertado
+5110,'this' não tem o tipo esperado
+5111,Comprimento e tamanho inválidos especificados para a matriz
+5112,Ocorreu uma falha inesperada ao tentar obter informações de metadados
+5200,O estado é 'erro', mas getResults não devolveu um erro
+5201,Um parâmetro de estado inválido ou em falta foi transmitido a um processador concluído
+5202,Um parâmetro de emissor inválido ou em falta foi transmitido a um processador concluído
+6000,Infinito
+6001,-Infinito
+10438,O objeto não suporta a propriedade nem o método '%s'
+10449,O argumento da função '%s' não é opcional
+15001,'%s' não é um número
+15002,'%s' não é uma função
+15004,'%s' não é um objeto indexável
+15005,'%s' não é uma cadeia
+15006,'%s' não é um objeto Date
+15007,'%s' é nulo ou não é um objeto
+15008,Não é possível atribuir a '%s'
+15009,'%s' não está definido
+15010,'%s' não é um booleano
+15012,Não é possível eliminar '%s'
+15013,'%s' não é um VBArray
+15014,'%s' não é um objeto JavaScript
+15015,'%s' não é um objeto Enumerator
+15016,'%s' não é um objeto Regular Expression
+15028,%s não é um objeto 'Array' ou 'arguments'
+15031,%s não é um objeto 'Array'
+15036,Não é possível definir o atributo '%s' do descritor de propriedades como 'true' neste objeto
+15037,Não é possível definir o atributo '%s' do descritor de propriedades como 'false' neste objeto
+15039,Nova declaração de const '%s'
+15041,Chamada de eliminação para '%s' não permitida no modo estrito
+15047,Não é possível definir a propriedade '%s' de uma referência não definida ou nula
+15048,Não é possível obter a propriedade '%s' de uma referência não definida ou nula
+15049,Não é possível eliminar a propriedade '%s' de uma referência não definida ou nula
+15050,Não é possível aceder à propriedade '%s': o tipo 'VarDate' não suporta propriedades definidas pelo utilizador
+15051,O valor da propriedade '%s' não é um objeto de Função
+15052,O valor da propriedade '%s' é nulo ou não definido, não um objeto de Função
+15054,%s: 'this' é nulo ou não definido
+15055,%s: 'this' não é um Objeto
+15056,%s: 'this' não é um objeto de Função
+15057,%s: 'this' não é um objeto de Cadeia
+15058,%s: 'this' não é um objeto Booleano
+15059,%s: 'this' não é um objeto de Data
+15060,%s: 'this' não é um objeto de Número
+15061,%s: 'this' não é um objeto VBArray
+15062,%s: 'this' não é um objeto JavaScript
+15063,%s: 'this' não é um objeto Enumerador
+15064,%s: 'this' não é um objeto RegExp
+15065,%s: argumento inválido
+15066,%s: o argumento não é um Objeto
+15067,%s: o argumento não é um objeto JavaScript
+15068,%s: o argumento não é um objeto de Função
+15069,%s: o argumento não é um objeto VBArray
+15070,%s: o argumento é nulo ou não definido
+15071,%s: o argumento não é um Objeto e não é nulo
+15072,%s: o argumento não tem uma propriedade 'length' válida
+15073,%s: Matriz ou objeto de argumentos esperados
+15074,Operando inválido para '%s': Objeto esperado
+15075,Operando inválido para '%s': Função esperada
+15076,Descritor inválido para a propriedade '%s'
+15077,Não é possível definir a propriedade '%s': objeto não é extensível
+15078,Não é possível redefinir uma propriedade não configurável '%s'
+15079,Não é possível alterar uma propriedade não gravável '%s'
+15080,Não é possível alterar a propriedade '%s': 'length' não é gravável
+15081,Não é possível definir a propriedade '%s'
+15088,O argumento necessário %s no método DataView não foi especificado
+15090,O argumento do construtor DataView %s é inválido
+15091,A função '%s' tem uma assinatura inválida e não pode ser chamada
+15092,A propriedade '%s' tem uma assinatura inválida e não pode ser acedida
+15093,O runtimeclass %s que tem Windows.Foundation.IPropertyValue como interface predefinida não é suportado como tipo de parâmetro de entrada
+15094,O objeto com a interface Windows.Foundation.IPropertyValue que tem o nome de runtimeclass %s não é suportado como parâmetro de saída
+15096,%s: 'this' não é um Objeto Passível de Inspeção
+15097,%s: não foi possível converter o argumento no tipo 'char'
+15098,%s: não foi possível converter o argumento no tipo 'GUID'
+15099,%s: não foi possível converter o valor de retorno em IInspectable
+15100,Não foi possível converter o objeto em estrutura: falta a propriedade esperada '%s' no objeto
+15101,O tipo '%s' não foi encontrado
+15102,%s: função chamada com argumentos insuficientes
+15103,%s: o tipo não é estruturável
+15104,Não foi possível converter o valor em PropertyValue: %s não é suportado por PropertyValue
+15105,Não foi possível converter o valor em IInspectable: %s não é suportado por IInspectable
+15108,%s: o objeto passível de inspeção 'this' foi libertado e não pode ser acedido
+15110,'this' não tem o tipo esperado: %s
+15112,%s: ocorreu uma falha inesperada ao tentar obter informações de metadados
+32812,A data especificada não está disponível no calendário da localização atual

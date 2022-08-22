@@ -1,0 +1,55 @@
+{% load i18n %}
+{% load sentry_avatars %}
+{% load sentry_helpers %}
+<table class="reset">
+  <tr>
+    <td>
+      <table>
+        <colgroup>
+          <col style="width:130px;">
+        </colgroup>
+        <tbody>
+          {% if user_id %}
+            <tr>
+              <th>{% trans "ID:" %}</th>
+              <td class="code">{{ user_id }}</td>
+            </tr>
+            {% endif %}
+          {% if user_ip_address %}
+            <tr>
+              <th>{% trans "IP Address:" %}</th>
+              <td class="code">{{ user_ip_address }}</td>
+            </tr>
+          {% endif %}
+          {% if user_username %}
+            <tr>
+              <th>{% trans "Username:" %}</th>
+              <td class="code">{{ user_username }}</td>
+            </tr>
+          {% endif %}
+          {% if user_email %}
+            <tr>
+              <th>{% trans "Email:" %}</th>
+              <td class="code">{{ user_email }}</td>
+            </tr>
+          {% endif %}
+          {% if user_data %}
+            {% for key, value in user_data.items %}
+              <tr>
+                <th>{{ key|titleize }}</th>
+                <td class="code">{{ value }}</td>
+              </tr>
+            {% endfor %}
+          {% endif %}
+        </tbody>
+      </table>
+    </td>
+    {% if user_email %}
+      <td style="padding-top:5px; width:64px; vertical-align:top; text-align: right;">
+        <span class="avatar-container" style="width: inherit;">
+          {% email_avatar user.get_display_name user.get_label 64 %}
+        </span>
+      </td>
+    {% endif %}
+  </tr>
+</table>

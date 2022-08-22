@@ -1,0 +1,128 @@
+{
+    "level": "error",
+    "platform": "python",
+    "server_name": "mcbk.local",
+    "breadcrumbs": {
+        "values": [
+            {
+                "message": "missing timestamp"
+            },
+            {
+                "message": "invalid level",
+                "timestamp": "2017-08-04T07:37:08Z",
+                "level": "invalid",
+                "type": "debug"
+            },
+            {
+                "message": "invalid data",
+                "timestamp": "2017-08-04T07:37:08Z",
+                "data": "must be a mapping"
+            }
+        ]
+    },
+    "debug_meta": {
+        "is_debug_build": "nope",
+        "images": [
+            {
+                "type": ""
+            },
+            {
+                "type": "invalid"
+            },
+            {
+                "type": "symbolic",
+                "name": "missing image_size"
+            },
+            {
+                "type": "symbolic",
+                "image_size": "0xbeef",
+                "name": "missing id"
+            },
+            {
+                "type": "symbolic",
+                "image_size": "invalid",
+                "name": "missing id"
+            }
+        ],
+        "sdk_info": {
+            "dsym_type": "none"
+        }
+    },
+    "exception": {
+        "values": [
+            {},
+            {
+                "type": "",
+                "value": ""
+            },
+            {
+                "type": "ValueError",
+                "mechanism": {
+                    "type": "",
+                    "handled": true
+                }
+            },
+            {
+                "type": "ValueError",
+                "mechanism": {
+                    "type": "generic",
+                    "handled": true,
+                    "description": 42
+                }
+            },
+            {
+                "type": "ValueError",
+                "stacktrace": {
+                    "frames": [
+                        {},
+                        {
+                            "unknown": "unknown attribute"
+                        }
+                    ]
+                }
+            }
+        ],
+        "exc_omitted": [
+            1
+        ]
+    },
+    "logentry": {
+        "params": [
+            "bogus"
+        ],
+        "formatted": 42
+    },
+    "request": {
+        "method": "unknown",
+        "query_string": [
+            ["foo", "bar"],
+            ["bam", null],
+            null
+        ]
+    },
+    "sdk": {
+        "name": "sentry.python",
+        "version": "0.1",
+        "integrations": "no list",
+        "packages": "no list"
+    },
+    "template": {
+        "lineno": 0,
+        "context_line": [
+            2,
+            "{% something %} "
+        ],
+        "pre_context": [
+            1,
+            "<!-- printing something --> "
+        ],
+        "post_context": [
+            3,
+            " "
+        ]
+    },
+    "user": {
+        "email": "B5849C8CC2779009ECA17792D1138D13",
+        "ip_address": "F528764D624DB129B32C21FBCA0CB8D6"
+    }
+}

@@ -1,0 +1,28 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+
+{% block main %}
+  <h3>Single Sign-On disabled</h3>
+
+  <p>
+    <strong>{{ provider.name }}</strong> Single Sign-On has been disabled for the
+    <strong>{{ organization.name }}</strong> organization.
+  </p>
+
+  {% if has_password %}
+    <p>
+      You can now login using your email <strong>{{ email }}</strong>, and password. If you forgot
+      your password you can always <a href="{{ recover_url }}">reset it</a>.
+    </p>
+  {% else %}
+    <p>
+      You can now login using your email <strong>{{ email }}</strong>, however you'll first have to
+      set a password for your account.
+    </p>
+
+    <p><a href="{{ set_password_url }}" class="btn">Set your password</a></p>
+  {% endif %}
+
+  <p><small>SSO was disabled by <strong>{{ actor.email }}</strong></small></p>
+{% endblock %}

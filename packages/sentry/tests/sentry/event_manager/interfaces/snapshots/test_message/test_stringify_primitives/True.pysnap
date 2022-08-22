@@ -1,0 +1,8 @@
+---
+created: '2019-03-14T17:12:36.025383Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_message.py
+---
+errors: null
+to_json:
+  formatted: 'true'

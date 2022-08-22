@@ -1,0 +1,10 @@
+---
+created: '2019-03-14T17:12:34.912353Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_contexts.py
+---
+errors: null
+tags: []
+to_json:
+  os:
+    type: os

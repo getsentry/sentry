@@ -1,0 +1,935 @@
+---
+created: '2021-08-23T08:27:22.434291Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "52ea220ca35556ebb03e1991e153c653"
+  tree_label: "Application.home"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "io.sentry.example.Application"
+            filename (module takes precedence)
+              "application.java"
+            function*
+              "home"
+        type*
+          "ArithmeticException"
+        value (ignored because stacktrace takes precedence)
+          "/ by zero"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "59ef3cab7ba66f62b79d29aa80090c5c"
+  tree_label: "Application.home | NativeMethodAccessorImpl.invoke0"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "jdk.internal.reflect.NativeMethodAccessorImpl"
+            filename (module takes precedence)
+              "nativemethodaccessorimpl.java"
+            function*
+              "invoke0"
+          frame*
+            module*
+              "io.sentry.example.Application"
+            filename (module takes precedence)
+              "application.java"
+            function*
+              "home"
+        type*
+          "ArithmeticException"
+        value (ignored because stacktrace takes precedence)
+          "/ by zero"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "1415060f2c35db944c439d52c620310b"
+  tree_label: "Application.home | NativeMethodAccessorImpl.invoke0 | NativeMethodAccessorImpl.invoke"
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "jdk.internal.reflect.NativeMethodAccessorImpl"
+            filename (module takes precedence)
+              "nativemethodaccessorimpl.java"
+            function*
+              "invoke"
+          frame*
+            module*
+              "jdk.internal.reflect.NativeMethodAccessorImpl"
+            filename (module takes precedence)
+              "nativemethodaccessorimpl.java"
+            function*
+              "invoke0"
+          frame*
+            module*
+              "io.sentry.example.Application"
+            filename (module takes precedence)
+              "application.java"
+            function*
+              "home"
+        type*
+          "ArithmeticException"
+        value (ignored because stacktrace takes precedence)
+          "/ by zero"
+--------------------------------------------------------------------------
+app-depth-4:
+  hash: "fceae19423f2f5c139821d29c433ba4c"
+  tree_label: "Application.home | NativeMethodAccessorImpl.invoke0 | NativeMethodAccessorImpl.invoke | DelegatingMethodAccessorImpl.invoke"
+  component:
+    app-depth-4*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "jdk.internal.reflect.DelegatingMethodAccessorImpl"
+            filename (module takes precedence)
+              "delegatingmethodaccessorimpl.java"
+            function*
+              "invoke"
+          frame*
+            module*
+              "jdk.internal.reflect.NativeMethodAccessorImpl"
+            filename (module takes precedence)
+              "nativemethodaccessorimpl.java"
+            function*
+              "invoke"
+          frame*
+            module*
+              "jdk.internal.reflect.NativeMethodAccessorImpl"
+            filename (module takes precedence)
+              "nativemethodaccessorimpl.java"
+            function*
+              "invoke0"
+          frame*
+            module*
+              "io.sentry.example.Application"
+            filename (module takes precedence)
+              "application.java"
+            function*
+              "home"
+        type*
+          "ArithmeticException"
+        value (ignored because stacktrace takes precedence)
+          "/ by zero"
+--------------------------------------------------------------------------
+app-depth-5:
+  hash: "90de1f0caf1150bfdc92d957fdbb1fea"
+  tree_label: "Application.home | NativeMethodAccessorImpl.invoke0 | NativeMethodAccessorImpl.invoke | DelegatingMethodAccessorImpl.invoke | InvocableHandlerMethod.doInvoke"
+  component:
+    app-depth-5*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "org.springframework.web.method.support.InvocableHandlerMethod"
+            filename (module takes precedence)
+              "invocablehandlermethod.java"
+            function*
+              "doInvoke"
+          frame*
+            module*
+              "jdk.internal.reflect.DelegatingMethodAccessorImpl"
+            filename (module takes precedence)
+              "delegatingmethodaccessorimpl.java"
+            function*
+              "invoke"
+          frame*
+            module*
+              "jdk.internal.reflect.NativeMethodAccessorImpl"
+            filename (module takes precedence)
+              "nativemethodaccessorimpl.java"
+            function*
+              "invoke"
+          frame*
+            module*
+              "jdk.internal.reflect.NativeMethodAccessorImpl"
+            filename (module takes precedence)
+              "nativemethodaccessorimpl.java"
+            function*
+              "invoke0"
+          frame*
+            module*
+              "io.sentry.example.Application"
+            filename (module takes precedence)
+              "application.java"
+            function*
+              "home"
+        type*
+          "ArithmeticException"
+        value (ignored because stacktrace takes precedence)
+          "/ by zero"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "12f3d3df2e7804af98f4b56c602d17b0"
+  tree_label: "Application.home | NativeMethodAccessorImpl.invoke0 | NativeMethodAccessorImpl.invoke | DelegatingMethodAccessorImpl.invoke | InvocableHandlerMethod.doInvoke | InvocableHandlerMethod.invokeForRequest | ServletInvocableHandlerMethod.invokeAndHandle | RequestMappingHandlerAdapter.invokeHandlerMethod | RequestMappingHandlerAdapter.handleInternal | AbstractHandlerMethodAdapter.handle | DispatcherServlet.doDispatch | DispatcherServlet.doService | FrameworkServlet.processRequest | FrameworkServlet.doGet | HttpServlet.service | FrameworkServlet.service | HttpServlet.service | ApplicationFilterChain.internalDoFilter | ApplicationFilterChain.doFilter | WsFilter.doFilter | ApplicationFilterChain.internalDoFilter | ApplicationFilterChain.doFilter | RequestContextFilter.doFilterInternal | OncePerRequestFilter.doFilter | ApplicationFilterChain.internalDoFilter | ApplicationFilterChain.doFilter | HttpPutFormContentFilter.doFilterInternal | OncePerRequestFilter.doFilter | ApplicationFilterChain.internalDoFilter | ApplicationFilterChain.doFilter | HiddenHttpMethodFilter.doFilterInternal | OncePerRequestFilter.doFilter | ApplicationFilterChain.internalDoFilter | ApplicationFilterChain.doFilter | CharacterEncodingFilter.doFilterInternal | OncePerRequestFilter.doFilter | ApplicationFilterChain.internalDoFilter | ApplicationFilterChain.doFilter | StandardWrapperValve.invoke | StandardContextValve.invoke | AuthenticatorBase.invoke | StandardHostValve.invoke | ErrorReportValve.invoke | StandardEngineValve.invoke | CoyoteAdapter.service | Http11Processor.service | AbstractProcessorLight.process | coyote.process | net.doRun | SocketProcessorBase.run"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "org.apache.tomcat.util.net.SocketProcessorBase"
+            filename (module takes precedence)
+              "socketprocessorbase.java"
+            function*
+              "run"
+          frame*
+            module*
+              "org.apache.tomcat.util.net.NioEndpoint$SocketProcessor"
+            filename (module takes precedence)
+              "nioendpoint.java"
+            function*
+              "doRun"
+          frame*
+            module*
+              "org.apache.coyote.AbstractProtocol$ConnectionHandler"
+            filename (module takes precedence)
+              "abstractprotocol.java"
+            function*
+              "process"
+          frame*
+            module*
+              "org.apache.coyote.AbstractProcessorLight"
+            filename (module takes precedence)
+              "abstractprocessorlight.java"
+            function*
+              "process"
+          frame*
+            module*
+              "org.apache.coyote.http11.Http11Processor"
+            filename (module takes precedence)
+              "http11processor.java"
+            function*
+              "service"
+          frame*
+            module*
+              "org.apache.catalina.connector.CoyoteAdapter"
+            filename (module takes precedence)
+              "coyoteadapter.java"
+            function*
+              "service"
+          frame*
+            module*
+              "org.apache.catalina.core.StandardEngineValve"
+            filename (module takes precedence)
+              "standardenginevalve.java"
+            function*
+              "invoke"
+          frame*
+            module*
+              "org.apache.catalina.valves.ErrorReportValve"
+            filename (module takes precedence)
+              "errorreportvalve.java"
+            function*
+              "invoke"
+          frame*
+            module*
+              "org.apache.catalina.core.StandardHostValve"
+            filename (module takes precedence)
+              "standardhostvalve.java"
+            function*
+              "invoke"
+          frame*
+            module*
+              "org.apache.catalina.authenticator.AuthenticatorBase"
+            filename (module takes precedence)
+              "authenticatorbase.java"
+            function*
+              "invoke"
+          frame*
+            module*
+              "org.apache.catalina.core.StandardContextValve"
+            filename (module takes precedence)
+              "standardcontextvalve.java"
+            function*
+              "invoke"
+          frame*
+            module*
+              "org.apache.catalina.core.StandardWrapperValve"
+            filename (module takes precedence)
+              "standardwrappervalve.java"
+            function*
+              "invoke"
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "applicationfilterchain.java"
+            function*
+              "doFilter"
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "applicationfilterchain.java"
+            function*
+              "internalDoFilter"
+          frame*
+            module*
+              "org.springframework.web.filter.OncePerRequestFilter"
+            filename (module takes precedence)
+              "onceperrequestfilter.java"
+            function*
+              "doFilter"
+          frame*
+            module*
+              "org.springframework.web.filter.CharacterEncodingFilter"
+            filename (module takes precedence)
+              "characterencodingfilter.java"
+            function*
+              "doFilterInternal"
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "applicationfilterchain.java"
+            function*
+              "doFilter"
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "applicationfilterchain.java"
+            function*
+              "internalDoFilter"
+          frame*
+            module*
+              "org.springframework.web.filter.OncePerRequestFilter"
+            filename (module takes precedence)
+              "onceperrequestfilter.java"
+            function*
+              "doFilter"
+          frame*
+            module*
+              "org.springframework.web.filter.HiddenHttpMethodFilter"
+            filename (module takes precedence)
+              "hiddenhttpmethodfilter.java"
+            function*
+              "doFilterInternal"
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "applicationfilterchain.java"
+            function*
+              "doFilter"
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "applicationfilterchain.java"
+            function*
+              "internalDoFilter"
+          frame*
+            module*
+              "org.springframework.web.filter.OncePerRequestFilter"
+            filename (module takes precedence)
+              "onceperrequestfilter.java"
+            function*
+              "doFilter"
+          frame*
+            module*
+              "org.springframework.web.filter.HttpPutFormContentFilter"
+            filename (module takes precedence)
+              "httpputformcontentfilter.java"
+            function*
+              "doFilterInternal"
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "applicationfilterchain.java"
+            function*
+              "doFilter"
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "applicationfilterchain.java"
+            function*
+              "internalDoFilter"
+          frame*
+            module*
+              "org.springframework.web.filter.OncePerRequestFilter"
+            filename (module takes precedence)
+              "onceperrequestfilter.java"
+            function*
+              "doFilter"
+          frame*
+            module*
+              "org.springframework.web.filter.RequestContextFilter"
+            filename (module takes precedence)
+              "requestcontextfilter.java"
+            function*
+              "doFilterInternal"
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "applicationfilterchain.java"
+            function*
+              "doFilter"
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "applicationfilterchain.java"
+            function*
+              "internalDoFilter"
+          frame*
+            module*
+              "org.apache.tomcat.websocket.server.WsFilter"
+            filename (module takes precedence)
+              "wsfilter.java"
+            function*
+              "doFilter"
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "applicationfilterchain.java"
+            function*
+              "doFilter"
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "applicationfilterchain.java"
+            function*
+              "internalDoFilter"
+          frame*
+            module*
+              "javax.servlet.http.HttpServlet"
+            filename (module takes precedence)
+              "httpservlet.java"
+            function*
+              "service"
+          frame*
+            module*
+              "org.springframework.web.servlet.FrameworkServlet"
+            filename (module takes precedence)
+              "frameworkservlet.java"
+            function*
+              "service"
+          frame*
+            module*
+              "javax.servlet.http.HttpServlet"
+            filename (module takes precedence)
+              "httpservlet.java"
+            function*
+              "service"
+          frame*
+            module*
+              "org.springframework.web.servlet.FrameworkServlet"
+            filename (module takes precedence)
+              "frameworkservlet.java"
+            function*
+              "doGet"
+          frame*
+            module*
+              "org.springframework.web.servlet.FrameworkServlet"
+            filename (module takes precedence)
+              "frameworkservlet.java"
+            function*
+              "processRequest"
+          frame*
+            module*
+              "org.springframework.web.servlet.DispatcherServlet"
+            filename (module takes precedence)
+              "dispatcherservlet.java"
+            function*
+              "doService"
+          frame*
+            module*
+              "org.springframework.web.servlet.DispatcherServlet"
+            filename (module takes precedence)
+              "dispatcherservlet.java"
+            function*
+              "doDispatch"
+          frame*
+            module*
+              "org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter"
+            filename (module takes precedence)
+              "abstracthandlermethodadapter.java"
+            function*
+              "handle"
+          frame*
+            module*
+              "org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter"
+            filename (module takes precedence)
+              "requestmappinghandleradapter.java"
+            function*
+              "handleInternal"
+          frame*
+            module*
+              "org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter"
+            filename (module takes precedence)
+              "requestmappinghandleradapter.java"
+            function*
+              "invokeHandlerMethod"
+          frame*
+            module*
+              "org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod"
+            filename (module takes precedence)
+              "servletinvocablehandlermethod.java"
+            function*
+              "invokeAndHandle"
+          frame*
+            module*
+              "org.springframework.web.method.support.InvocableHandlerMethod"
+            filename (module takes precedence)
+              "invocablehandlermethod.java"
+            function*
+              "invokeForRequest"
+          frame*
+            module*
+              "org.springframework.web.method.support.InvocableHandlerMethod"
+            filename (module takes precedence)
+              "invocablehandlermethod.java"
+            function*
+              "doInvoke"
+          frame*
+            module*
+              "jdk.internal.reflect.DelegatingMethodAccessorImpl"
+            filename (module takes precedence)
+              "delegatingmethodaccessorimpl.java"
+            function*
+              "invoke"
+          frame*
+            module*
+              "jdk.internal.reflect.NativeMethodAccessorImpl"
+            filename (module takes precedence)
+              "nativemethodaccessorimpl.java"
+            function*
+              "invoke"
+          frame*
+            module*
+              "jdk.internal.reflect.NativeMethodAccessorImpl"
+            filename (module takes precedence)
+              "nativemethodaccessorimpl.java"
+            function*
+              "invoke0"
+          frame*
+            module*
+              "io.sentry.example.Application"
+            filename (module takes precedence)
+              "application.java"
+            function*
+              "home"
+        type*
+          "ArithmeticException"
+        value (ignored because stacktrace takes precedence)
+          "/ by zero"
+--------------------------------------------------------------------------
+default:
+  hash: null
+  component:
+    default (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
+      message (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
+        "Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is java.lang.ArithmeticException: / by zero] with root cause"
+--------------------------------------------------------------------------
+system:
+  hash: "12f3d3df2e7804af98f4b56c602d17b0"
+  tree_label: "Application.home | NativeMethodAccessorImpl.invoke0 | NativeMethodAccessorImpl.invoke | DelegatingMethodAccessorImpl.invoke | InvocableHandlerMethod.doInvoke | InvocableHandlerMethod.invokeForRequest | ServletInvocableHandlerMethod.invokeAndHandle | RequestMappingHandlerAdapter.invokeHandlerMethod | RequestMappingHandlerAdapter.handleInternal | AbstractHandlerMethodAdapter.handle | DispatcherServlet.doDispatch | DispatcherServlet.doService | FrameworkServlet.processRequest | FrameworkServlet.doGet | HttpServlet.service | FrameworkServlet.service | HttpServlet.service | ApplicationFilterChain.internalDoFilter | ApplicationFilterChain.doFilter | WsFilter.doFilter | ApplicationFilterChain.internalDoFilter | ApplicationFilterChain.doFilter | RequestContextFilter.doFilterInternal | OncePerRequestFilter.doFilter | ApplicationFilterChain.internalDoFilter | ApplicationFilterChain.doFilter | HttpPutFormContentFilter.doFilterInternal | OncePerRequestFilter.doFilter | ApplicationFilterChain.internalDoFilter | ApplicationFilterChain.doFilter | HiddenHttpMethodFilter.doFilterInternal | OncePerRequestFilter.doFilter | ApplicationFilterChain.internalDoFilter | ApplicationFilterChain.doFilter | CharacterEncodingFilter.doFilterInternal | OncePerRequestFilter.doFilter | ApplicationFilterChain.internalDoFilter | ApplicationFilterChain.doFilter | StandardWrapperValve.invoke | StandardContextValve.invoke | AuthenticatorBase.invoke | StandardHostValve.invoke | ErrorReportValve.invoke | StandardEngineValve.invoke | CoyoteAdapter.service | Http11Processor.service | AbstractProcessorLight.process | coyote.process | net.doRun | SocketProcessorBase.run"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "java.lang.Thread"
+            filename (module takes precedence)
+              "thread.java"
+            function*
+              "run"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "org.apache.tomcat.util.threads.TaskThread$WrappingRunnable"
+            filename (module takes precedence)
+              "taskthread.java"
+            function*
+              "run"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "java.util.concurrent.ThreadPoolExecutor$Worker"
+            filename (module takes precedence)
+              "threadpoolexecutor.java"
+            function*
+              "run"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "java.util.concurrent.ThreadPoolExecutor"
+            filename (module takes precedence)
+              "threadpoolexecutor.java"
+            function*
+              "runWorker"
+          frame*
+            module*
+              "org.apache.tomcat.util.net.SocketProcessorBase"
+            filename (module takes precedence)
+              "socketprocessorbase.java"
+            function*
+              "run"
+          frame*
+            module*
+              "org.apache.tomcat.util.net.NioEndpoint$SocketProcessor"
+            filename (module takes precedence)
+              "nioendpoint.java"
+            function*
+              "doRun"
+          frame*
+            module*
+              "org.apache.coyote.AbstractProtocol$ConnectionHandler"
+            filename (module takes precedence)
+              "abstractprotocol.java"
+            function*
+              "process"
+          frame*
+            module*
+              "org.apache.coyote.AbstractProcessorLight"
+            filename (module takes precedence)
+              "abstractprocessorlight.java"
+            function*
+              "process"
+          frame*
+            module*
+              "org.apache.coyote.http11.Http11Processor"
+            filename (module takes precedence)
+              "http11processor.java"
+            function*
+              "service"
+          frame*
+            module*
+              "org.apache.catalina.connector.CoyoteAdapter"
+            filename (module takes precedence)
+              "coyoteadapter.java"
+            function*
+              "service"
+          frame*
+            module*
+              "org.apache.catalina.core.StandardEngineValve"
+            filename (module takes precedence)
+              "standardenginevalve.java"
+            function*
+              "invoke"
+          frame*
+            module*
+              "org.apache.catalina.valves.ErrorReportValve"
+            filename (module takes precedence)
+              "errorreportvalve.java"
+            function*
+              "invoke"
+          frame*
+            module*
+              "org.apache.catalina.core.StandardHostValve"
+            filename (module takes precedence)
+              "standardhostvalve.java"
+            function*
+              "invoke"
+          frame*
+            module*
+              "org.apache.catalina.authenticator.AuthenticatorBase"
+            filename (module takes precedence)
+              "authenticatorbase.java"
+            function*
+              "invoke"
+          frame*
+            module*
+              "org.apache.catalina.core.StandardContextValve"
+            filename (module takes precedence)
+              "standardcontextvalve.java"
+            function*
+              "invoke"
+          frame*
+            module*
+              "org.apache.catalina.core.StandardWrapperValve"
+            filename (module takes precedence)
+              "standardwrappervalve.java"
+            function*
+              "invoke"
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "applicationfilterchain.java"
+            function*
+              "doFilter"
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "applicationfilterchain.java"
+            function*
+              "internalDoFilter"
+          frame*
+            module*
+              "org.springframework.web.filter.OncePerRequestFilter"
+            filename (module takes precedence)
+              "onceperrequestfilter.java"
+            function*
+              "doFilter"
+          frame*
+            module*
+              "org.springframework.web.filter.CharacterEncodingFilter"
+            filename (module takes precedence)
+              "characterencodingfilter.java"
+            function*
+              "doFilterInternal"
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "applicationfilterchain.java"
+            function*
+              "doFilter"
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "applicationfilterchain.java"
+            function*
+              "internalDoFilter"
+          frame*
+            module*
+              "org.springframework.web.filter.OncePerRequestFilter"
+            filename (module takes precedence)
+              "onceperrequestfilter.java"
+            function*
+              "doFilter"
+          frame*
+            module*
+              "org.springframework.web.filter.HiddenHttpMethodFilter"
+            filename (module takes precedence)
+              "hiddenhttpmethodfilter.java"
+            function*
+              "doFilterInternal"
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "applicationfilterchain.java"
+            function*
+              "doFilter"
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "applicationfilterchain.java"
+            function*
+              "internalDoFilter"
+          frame*
+            module*
+              "org.springframework.web.filter.OncePerRequestFilter"
+            filename (module takes precedence)
+              "onceperrequestfilter.java"
+            function*
+              "doFilter"
+          frame*
+            module*
+              "org.springframework.web.filter.HttpPutFormContentFilter"
+            filename (module takes precedence)
+              "httpputformcontentfilter.java"
+            function*
+              "doFilterInternal"
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "applicationfilterchain.java"
+            function*
+              "doFilter"
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "applicationfilterchain.java"
+            function*
+              "internalDoFilter"
+          frame*
+            module*
+              "org.springframework.web.filter.OncePerRequestFilter"
+            filename (module takes precedence)
+              "onceperrequestfilter.java"
+            function*
+              "doFilter"
+          frame*
+            module*
+              "org.springframework.web.filter.RequestContextFilter"
+            filename (module takes precedence)
+              "requestcontextfilter.java"
+            function*
+              "doFilterInternal"
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "applicationfilterchain.java"
+            function*
+              "doFilter"
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "applicationfilterchain.java"
+            function*
+              "internalDoFilter"
+          frame*
+            module*
+              "org.apache.tomcat.websocket.server.WsFilter"
+            filename (module takes precedence)
+              "wsfilter.java"
+            function*
+              "doFilter"
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "applicationfilterchain.java"
+            function*
+              "doFilter"
+          frame*
+            module*
+              "org.apache.catalina.core.ApplicationFilterChain"
+            filename (module takes precedence)
+              "applicationfilterchain.java"
+            function*
+              "internalDoFilter"
+          frame*
+            module*
+              "javax.servlet.http.HttpServlet"
+            filename (module takes precedence)
+              "httpservlet.java"
+            function*
+              "service"
+          frame*
+            module*
+              "org.springframework.web.servlet.FrameworkServlet"
+            filename (module takes precedence)
+              "frameworkservlet.java"
+            function*
+              "service"
+          frame*
+            module*
+              "javax.servlet.http.HttpServlet"
+            filename (module takes precedence)
+              "httpservlet.java"
+            function*
+              "service"
+          frame*
+            module*
+              "org.springframework.web.servlet.FrameworkServlet"
+            filename (module takes precedence)
+              "frameworkservlet.java"
+            function*
+              "doGet"
+          frame*
+            module*
+              "org.springframework.web.servlet.FrameworkServlet"
+            filename (module takes precedence)
+              "frameworkservlet.java"
+            function*
+              "processRequest"
+          frame*
+            module*
+              "org.springframework.web.servlet.DispatcherServlet"
+            filename (module takes precedence)
+              "dispatcherservlet.java"
+            function*
+              "doService"
+          frame*
+            module*
+              "org.springframework.web.servlet.DispatcherServlet"
+            filename (module takes precedence)
+              "dispatcherservlet.java"
+            function*
+              "doDispatch"
+          frame*
+            module*
+              "org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter"
+            filename (module takes precedence)
+              "abstracthandlermethodadapter.java"
+            function*
+              "handle"
+          frame*
+            module*
+              "org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter"
+            filename (module takes precedence)
+              "requestmappinghandleradapter.java"
+            function*
+              "handleInternal"
+          frame*
+            module*
+              "org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter"
+            filename (module takes precedence)
+              "requestmappinghandleradapter.java"
+            function*
+              "invokeHandlerMethod"
+          frame*
+            module*
+              "org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod"
+            filename (module takes precedence)
+              "servletinvocablehandlermethod.java"
+            function*
+              "invokeAndHandle"
+          frame*
+            module*
+              "org.springframework.web.method.support.InvocableHandlerMethod"
+            filename (module takes precedence)
+              "invocablehandlermethod.java"
+            function*
+              "invokeForRequest"
+          frame*
+            module*
+              "org.springframework.web.method.support.InvocableHandlerMethod"
+            filename (module takes precedence)
+              "invocablehandlermethod.java"
+            function*
+              "doInvoke"
+          frame (ignored by stack trace rule (category:indirection -group))
+            module*
+              "java.lang.reflect.Method"
+            filename (module takes precedence)
+              "method.java"
+            function*
+              "invoke"
+          frame*
+            module*
+              "jdk.internal.reflect.DelegatingMethodAccessorImpl"
+            filename (module takes precedence)
+              "delegatingmethodaccessorimpl.java"
+            function*
+              "invoke"
+          frame*
+            module*
+              "jdk.internal.reflect.NativeMethodAccessorImpl"
+            filename (module takes precedence)
+              "nativemethodaccessorimpl.java"
+            function*
+              "invoke"
+          frame*
+            module*
+              "jdk.internal.reflect.NativeMethodAccessorImpl"
+            filename (module takes precedence)
+              "nativemethodaccessorimpl.java"
+            function*
+              "invoke0"
+          frame*
+            module*
+              "io.sentry.example.Application"
+            filename (module takes precedence)
+              "application.java"
+            function*
+              "home"
+        type*
+          "ArithmeticException"
+        value (ignored because stacktrace takes precedence)
+          "/ by zero"

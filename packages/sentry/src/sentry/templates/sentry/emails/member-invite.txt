@@ -1,0 +1,9 @@
+You've been invited to Sentry
+
+Your teammates at {{ organization.name }} are using Sentry to track and debug software errors.
+
+Join your team by visiting the following url:
+
+    {{ url }}
+
+Check out the Sentry website (https://sentry.io) if you'd like to learn more before diving in.

@@ -1,0 +1,35 @@
+{% extends "sentry/emails/activity/generic.html" %}
+
+{% load sentry_avatars %}
+{% load sentry_helpers %}
+{% load sentry_assets %}
+
+{% block action %}
+  <a href="{{ activity_link }}" class="btn">View on Sentry</a>
+{% endblock %}
+
+{% block activity %}
+
+  <h3>{{ title }}</h3>
+
+  <table class="note">
+    <tr>
+      <td class="avatar-column">
+        {% if author.get_avatar_type == 'upload' %}
+          <img class="avatar" src="{% profile_photo_url author.id 48 %}">
+        {% elif author.get_avatar_type == 'letter_avatar' %}
+          {% email_avatar author.get_display_name author.get_label 48 False %}
+        {% else %}
+          {% email_avatar author.get_display_name author.get_label 48 %}
+        {% endif %}
+      </td>
+      <td class="notch-column">
+        <img width="7" height="48" src="{% absolute_asset_url 'sentry' 'images/email/avatar-notch.png' %}">
+      </td>
+      <td>
+        <div class="note-body">{{ data.text|urlize|linebreaks }}</div>
+      </td>
+    </tr>
+  </table>
+
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends "sentry/emails/base.html" %}
+
+{% block main %}
+  <h3>Unable to Fetch Commits</h3>
+  <p>We were unable to fetch the commit log for your release (<em>{{ release.version }}</em>) for repository <em>{{ repo.name }}</em> in the <em>{{ release.organization.slug }}</em> organization due to the following error:</p>
+  <p>{{ error_message }}</p>
+  <p><strong>Troubleshooting &amp; References</strong></p>
+  <ul>
+    <li><a href="https://help.sentry.io/product-features/integrations/why-am-i-receiving-the-email-unable-to-fetch-commits/">Why am I receiving the email "Unable to Fetch Commits"?</a></li>
+    <li><a href="https://docs.sentry.io/product/releases/setup/">Associate Commits with a Release</a></li>
+  </ul>
+{% endblock %}
+
+{% block footer %}{% endblock %}

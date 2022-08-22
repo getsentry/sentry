@@ -1,0 +1,15 @@
+{
+  "stacktrace": {
+    "frames": [
+      {
+        "function": "_asyncStartSync",
+        "filename": "org-dartlang-sdk:///lib/_internal/js_runtime/lib/async_patch.dart",
+        "abs_path": "org-dartlang-sdk:///lib/_internal/js_runtime/lib/async_patch.dart",
+        "lineno": 342,
+        "colno": 23,
+        "in_app": true
+      }
+    ]
+  },
+  "platform": "javascript"
+}

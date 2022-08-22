@@ -1,0 +1,141 @@
+{
+  "event_id": "f39102d537e044049ee871339af4c85f",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "RtlUserThreadStart",
+              "package": "C:\\windows\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "BaseThreadInitThunk",
+              "package": "C:\\windows\\System32\\KERNEL32.DLL"
+            },
+            {
+              "function": "TppWorkerThread",
+              "package": "C:\\windows\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "RtlpTpWorkCallback",
+              "package": "C:\\windows\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "filename": "function_template.hpp",
+              "function": "boost::function0<T>::operator()"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "filename": "function_template.hpp",
+              "function": "boost::function0<T>::operator()"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xtree",
+              "filename": "xtree",
+              "function": "std::_Tree<T>::insert<T>"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xtree",
+              "filename": "xtree",
+              "function": "std::_Tree<T>::_Emplace"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "filename": "function_template.hpp",
+              "function": "boost::function0<T>::operator()"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "abort",
+              "package": "C:\\windows\\System32\\ucrtbase.dll"
+            },
+            {
+              "function": "raise",
+              "package": "C:\\windows\\System32\\ucrtbase.dll"
+            },
+            {
+              "filename": "crashpad_client_win.cc",
+              "function": "crashpad::`anonymous namespace'::HandleAbortSignal"
+            }
+          ]
+        },
+        "type": "0x40000015 / 0x00000001",
+        "value": "Fatal Error: 0x40000015 / 0x00000001"
+      }
+    ]
+  },
+  "platform": "native"
+}

@@ -1,0 +1,389 @@
+[
+  {
+    "query": "user.email:[test@test.com] test:[hello]",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "textIn",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "user.email", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueTextList",
+          "items": [
+            {
+              "separator": "",
+              "value": {"type": "valueText", "value": "test@test.com", "quoted": false}
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": " "},
+      {
+        "type": "filter",
+        "filter": "textIn",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "test", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueTextList",
+          "items": [
+            {
+              "separator": "",
+              "value": {"type": "valueText", "value": "hello", "quoted": false}
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "user.email:[test@test.com,test2@test.com,test3@test.com] test:[hello]",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "textIn",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "user.email", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueTextList",
+          "items": [
+            {
+              "separator": "",
+              "value": {"type": "valueText", "value": "test@test.com", "quoted": false}
+            },
+            {
+              "separator": ",",
+              "value": {"type": "valueText", "value": "test2@test.com", "quoted": false}
+            },
+            {
+              "separator": ",",
+              "value": {"type": "valueText", "value": "test3@test.com", "quoted": false}
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": " "},
+      {
+        "type": "filter",
+        "filter": "textIn",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "test", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueTextList",
+          "items": [
+            {
+              "separator": "",
+              "value": {"type": "valueText", "value": "hello", "quoted": false}
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "!user.email:[test@test.com, test@test2.com,     test@test3.com] test:[hello]",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "textIn",
+        "negated": true,
+        "key": {"type": "keySimple", "value": "user.email", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueTextList",
+          "items": [
+            {
+              "separator": "",
+              "value": {"type": "valueText", "value": "test@test.com", "quoted": false}
+            },
+            {
+              "separator": ", ",
+              "value": {"type": "valueText", "value": "test@test2.com", "quoted": false}
+            },
+            {
+              "separator": ",     ",
+              "value": {"type": "valueText", "value": "test@test3.com", "quoted": false}
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": " "},
+      {
+        "type": "filter",
+        "filter": "textIn",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "test", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueTextList",
+          "items": [
+            {
+              "separator": "",
+              "value": {"type": "valueText", "value": "hello", "quoted": false}
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "test:h[e]llo]",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "test", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "h[e]llo]", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "test:[h[e]llo",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "test", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "[h[e]llo", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "test:\"[h]\"",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "test", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "[h]", "quoted": true}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "test:[h]*",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "test", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "[h]*", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "test:[h e]",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "test", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "[h", "quoted": false}
+      },
+      {"type": "spaces", "value": " "},
+      {"type": "freeText", "value": "e]", "quoted": false},
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "test:[]",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "test", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "[]", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "user.email:[test@test.com, \"hi\", 1]",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "textIn",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "user.email", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueTextList",
+          "items": [
+            {
+              "separator": "",
+              "value": {"type": "valueText", "value": "test@test.com", "quoted": false}
+            },
+            {
+              "separator": ", ",
+              "value": {"type": "valueText", "value": "hi", "quoted": true}
+            },
+            {
+              "separator": ", ",
+              "value": {"type": "valueText", "value": "1", "quoted": false}
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "user.email:[test@test.com, \"hi\", 1.0]",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "textIn",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "user.email", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueTextList",
+          "items": [
+            {
+              "separator": "",
+              "value": {"type": "valueText", "value": "test@test.com", "quoted": false}
+            },
+            {
+              "separator": ", ",
+              "value": {"type": "valueText", "value": "hi", "quoted": true}
+            },
+            {
+              "separator": ", ",
+              "value": {"type": "valueText", "value": "1.0", "quoted": false}
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "test:[[h]]",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "textIn",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "test", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueTextList",
+          "items": [
+            {
+              "separator": "",
+              "value": {"type": "valueText", "value": "[h]", "quoted": false}
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "test:[a, [h]]",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "textIn",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "test", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueTextList",
+          "items": [
+            {
+              "separator": "",
+              "value": {"type": "valueText", "value": "a", "quoted": false}
+            },
+            {
+              "separator": ", ",
+              "value": {"type": "valueText", "value": "[h]", "quoted": false}
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "user.email:[test@test.com]user.email:hello@hello.com",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "user.email", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueText",
+          "value": "[test@test.com]user.email:hello@hello.com",
+          "quoted": false
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "user.email:[test@test.com, ]",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "textIn",
+        "invalid": {"reason": "Lists should not have empty values"},
+        "negated": false,
+        "key": {"type": "keySimple", "value": "user.email", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueTextList",
+          "items": [
+            {
+              "separator": "",
+              "value": {"type": "valueText", "value": "test@test.com", "quoted": false}
+            },
+            {
+              "separator": ", ",
+              "value": null
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

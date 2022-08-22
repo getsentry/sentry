@@ -1,0 +1,21 @@
+---
+created: '2021-08-03T15:05:53.126150Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+SIGSEGV:Segfault (thread_id:_, crashed:_)
+              /system/framework/arm/boot.oat  oatexec category=system
+                /system/lib/libopenjdkjvm.so  JVM_NativeLoad category=internals
+                       /system/lib/libart.so  art::JavaVMExt::LoadNativeLibrary category=internals
+              /system/lib/libnativeloader.so  android::OpenNativeLibrary category=load
+                          /system/bin/linker  ??? category=internals
+                          /system/bin/linker  ??? category=internals
+                          /system/bin/linker  ??? category=internals
+                          /system/bin/linker  ??? category=internals
+                          /system/bin/linker  ??? category=internals
+                                              stripped_application_code
+                                              std::__ndk1::basic_regex<T>::__parse_ecma_exp<T> category=internals
+                                              std::__ndk1::basic_regex<T>::__parse_term<T> category=internals
+                                              stripped_application_code

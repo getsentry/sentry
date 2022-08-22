@@ -1,0 +1,17 @@
+[
+  {
+    "query": "user.id:500s",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "user.id", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "500s", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

@@ -1,0 +1,29 @@
+{% extends "sentry/twofactor.html" %}
+
+{% load sentry_helpers %}
+{% load sentry_assets %}
+
+{% block twofactor_form_body %}
+  <div id="u2f-container">
+    <div class="loading">
+      <div class="loading-mask"></div>
+      <div class="loading-indicator" data-test-id="loading-indicator"></div>
+    </div>
+  </div>
+  {% script %}
+  <script>
+    window.__onSentryInit = window.__onSentryInit || [];
+    window.__onSentryInit.push({
+      name: 'renderReact',
+      component: 'U2fSign',
+      container: '#u2f-container',
+      props: {
+        challengeData: {{ activation.challenge|to_json|safe }},
+      },
+    });
+  </script>
+  {% endscript %}
+{% endblock %}
+{% block twofactor_submit %}
+  {# get rid of submit button #}
+{% endblock %}

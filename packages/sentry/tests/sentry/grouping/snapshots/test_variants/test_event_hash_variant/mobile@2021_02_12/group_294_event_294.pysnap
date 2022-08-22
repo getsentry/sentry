@@ -1,0 +1,315 @@
+---
+created: '2021-08-04T15:53:48.106373Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "aeed765d29d1a60cb094f66d2cd8efb2"
+  tree_label: "stripped_application_code"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+        type (ignored because exception is synthetic)
+          "0x00000000 / 0x00000000"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "93142e733eede833a5cf69b302f43941"
+  tree_label: "std::terminate | stripped_application_code | std::__1::allocator_traits<T>::destroy<T> | stripped_application_code"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+          frame* (marked as prefix frame by stack trace rule (category:malloc +prefix))
+            filename (discarded native filename for grouping stability)
+              "memory"
+            function*
+              "std::__1::allocator_traits<T>::destroy<T>"
+          frame*
+            function*
+              "stripped_application_code"
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "std::terminate"
+            package (ignored because function takes precedence)
+              "libc++abi.dylib"
+        type (ignored because exception is synthetic)
+          "0x00000000 / 0x00000000"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "e2d054b3c180378b8c1d14f638acac94"
+  tree_label: "std::terminate | stripped_application_code | std::__1::allocator_traits<T>::destroy<T> | stripped_application_code | stripped_application_code"
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame* (marked as prefix frame by stack trace rule (category:malloc +prefix))
+            filename (discarded native filename for grouping stability)
+              "memory"
+            function*
+              "std::__1::allocator_traits<T>::destroy<T>"
+          frame*
+            function*
+              "stripped_application_code"
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "std::terminate"
+            package (ignored because function takes precedence)
+              "libc++abi.dylib"
+        type (ignored because exception is synthetic)
+          "0x00000000 / 0x00000000"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"
+--------------------------------------------------------------------------
+app-depth-4:
+  hash: "a3681449b8f66e38697bba72bab32569"
+  tree_label: "std::terminate | stripped_application_code | std::__1::allocator_traits<T>::destroy<T> | stripped_application_code | stripped_application_code | stripped_application_code"
+  component:
+    app-depth-4*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame* (marked as prefix frame by stack trace rule (category:malloc +prefix))
+            filename (discarded native filename for grouping stability)
+              "memory"
+            function*
+              "std::__1::allocator_traits<T>::destroy<T>"
+          frame*
+            function*
+              "stripped_application_code"
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "std::terminate"
+            package (ignored because function takes precedence)
+              "libc++abi.dylib"
+        type (ignored because exception is synthetic)
+          "0x00000000 / 0x00000000"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "a3681449b8f66e38697bba72bab32569"
+  tree_label: "std::terminate | stripped_application_code | std::__1::allocator_traits<T>::destroy<T> | stripped_application_code | stripped_application_code | stripped_application_code"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame* (marked as prefix frame by stack trace rule (category:malloc +prefix))
+            filename (discarded native filename for grouping stability)
+              "memory"
+            function*
+              "std::__1::allocator_traits<T>::destroy<T>"
+          frame*
+            function*
+              "stripped_application_code"
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "std::terminate"
+            package (ignored because function takes precedence)
+              "libc++abi.dylib"
+        type (ignored because exception is synthetic)
+          "0x00000000 / 0x00000000"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"
+--------------------------------------------------------------------------
+system:
+  hash: "f015c2afd879c0988173d4acfcf47a9d"
+  tree_label: "std::terminate | stripped_application_code | std::__1::allocator_traits<T>::destroy<T> | stripped_application_code | stripped_application_code | stripped_application_code"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            package* (used as fallback because function name is not available)
+              "libdispatch.dylib"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "start_wqthread"
+            package (ignored because function takes precedence)
+              "libsystem_pthread.dylib"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "_pthread_wqthread"
+            package (ignored because function takes precedence)
+              "libsystem_pthread.dylib"
+          frame (ignored by stack trace rule (category:internals -group))
+            package* (used as fallback because function name is not available)
+              "libdispatch.dylib"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            package* (used as fallback because function name is not available)
+              "libdispatch.dylib"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            package* (used as fallback because function name is not available)
+              "libdispatch.dylib"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename (discarded native filename for grouping stability)
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename (discarded native filename for grouping stability)
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "mac"
+            function*
+              "std::__1::map<T>::~map"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "map"
+            function*
+              "std::__1::map<T>::~map"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "__tree"
+            function*
+              "std::__1::__tree<T>::~__tree"
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+            filename (discarded native filename for grouping stability)
+              "__tree"
+            function*
+              "std::__1::__tree<T>::~__tree"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "__tree"
+            function*
+              "std::__1::__tree<T>::destroy"
+          frame* (marked as prefix frame by stack trace rule (category:malloc +prefix))
+            filename (discarded native filename for grouping stability)
+              "memory"
+            function*
+              "std::__1::allocator_traits<T>::destroy<T>"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "memory"
+            function*
+              "std::__1::allocator_traits<T>::__destroy<T>"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "mac"
+            function*
+              "std::__1::pair<T>::~pair"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "utility"
+            function*
+              "std::__1::pair<T>::~pair"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "std::__1::thread::~thread"
+            package (ignored because function takes precedence)
+              "libc++.1.dylib"
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "std::terminate"
+            package (ignored because function takes precedence)
+              "libc++abi.dylib"
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "std::__terminate"
+            package (ignored because function takes precedence)
+              "libc++abi.dylib"
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "default_terminate_handler"
+            package (ignored because function takes precedence)
+              "libc++abi.dylib"
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "abort_message"
+            package (ignored because function takes precedence)
+              "libc++abi.dylib"
+          frame (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "abort"
+            package (ignored because function takes precedence)
+              "libsystem_c.dylib"
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "__abort"
+            package (ignored because function takes precedence)
+              "libsystem_c.dylib"
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
+            package* (used as fallback because function name is not available)
+              "libsystem_kernel.dylib"
+        type*
+          "0x00000000 / 0x00000000"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"

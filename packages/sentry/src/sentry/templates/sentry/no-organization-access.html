@@ -1,0 +1,23 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "No Organization Access" %} | {{ block.super }}{% endblock %}
+
+{% block wrapperclass %}windowed-small{% endblock %}
+
+{% block main %}
+  <section class="body">
+    <div class="page-header">
+      <h2>{% trans "No Organization Access" %}</h2>
+    </div>
+
+    <p>{% trans "You do not have access to any organizations within Sentry." %}</p>
+
+    <p>{% trans "If you were expecting otherwise, this may be due to a configuration change in the organization. Please check your email inbox for an invite link to rejoin the organization." %}</p>
+
+    <p>{% trans "Alternatively, reach out to an admin in your organization to re-invite you using " %}<a class="secondary" href="https://help.sentry.io/account/account-settings/how-do-i-add-members-to-my-organization/">{% trans "this guide" %}</a></p>
+
+    <p>{% trans "If you need to make changes to your user account, " %}<a class="secondary" href="{% url 'sentry-account-settings' %}">{% trans "please click here." %}</a></p>
+  </section>
+{% endblock %}

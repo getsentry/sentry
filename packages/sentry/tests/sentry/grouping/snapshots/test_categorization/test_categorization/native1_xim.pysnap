@@ -1,0 +1,67 @@
+---
+created: '2021-07-08T17:53:00.031281Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+EXC_BAD_INSTRUCTION / EXC_I386_INVOP:Fatal Error: EXC_BAD_INSTRUCTION / EXC_I386_INVOP (thread_id:_, crashed:_)
+               /usr/lib/system/libdyld.dylib  start category=threadbase
+               /usr/lib/system/libdyld.dylib  start category=threadbase
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+  /System/Library/Frameworks/AppKit.framewor  -[NSApplication run] category=system
+  /System/Library/Frameworks/AppKit.framewor  -[NSApplication(NSEvent) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] category=internals
+  /System/Library/Frameworks/AppKit.framewor  _DPSNextEvent category=internals
+  /System/Library/Frameworks/Carbon.framewor  _BlockUntilNextEventMatchingListInModeWithFilter category=internals
+  /System/Library/Frameworks/Carbon.framewor  ReceiveNextEventCommon category=internals
+  /System/Library/Frameworks/Carbon.framewor  RunCurrentEventLoopInMode category=internals
+  /System/Library/Frameworks/CoreFoundation.  CFRunLoopRunSpecific category=internals
+  /System/Library/Frameworks/CoreFoundation.  __CFRunLoopRun category=internals
+  /System/Library/Frameworks/CoreFoundation.  __CFRunLoopDoBlocks category=internals
+  /System/Library/Frameworks/CoreFoundation.  __CFRUNLOOP_IS_CALLING_OUT_TO_A_BLOCK__ category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+      Frontend.framework/Versions/A/Frontend  boost::function0<T>::operator() category=indirection
+                                              stripped_application_code
+        abccore.framework/Versions/A/abccore  boost::function0<T>::operator() category=indirection
+                                              stripped_application_code
+                                              stripped_application_code
+        abccore.framework/Versions/A/abccore  boost::function0<T>::operator() category=indirection
+  AudioSupport.framework/Versions/A/AudioSup  boost::detail::function::void_function_obj_invoker0<T>::invoke category=std
+  AudioSupport.framework/Versions/A/AudioSup  boost::_bi::bind_t<T>::operator() category=indirection
+  AudioSupport.framework/Versions/A/AudioSup  boost::_bi::list4<T>::operator()<T> category=indirection
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+  abcaudiofilterhost.framework/Versions/A/ab  std::__1::vector<T>::vector category=internals
+  abcaudiofilterhost.framework/Versions/A/ab  std::__1::vector<T>::vector category=internals
+  abcaudiofilterhost.framework/Versions/A/ab  std::__1::vector<T>::__vallocate category=internals
+  abcaudiofilterhost.framework/Versions/A/ab  std::__1::allocator_traits<T>::allocate category=malloc
+  abcaudiofilterhost.framework/Versions/A/ab  std::__1::allocator<T>::allocate category=internals
+  abcaudiofilterhost.framework/Versions/A/ab  std::__1::__libcpp_allocate category=internals
+                                              stripped_application_code
+      /usr/lib/system/libsystem_malloc.dylib  malloc category=malloc
+      /usr/lib/system/libsystem_malloc.dylib  malloc_zone_malloc category=internals
+      /usr/lib/system/libsystem_malloc.dylib  nanov2_malloc category=internals
+      /usr/lib/system/libsystem_malloc.dylib  nanov2_allocate category=internals
+      /usr/lib/system/libsystem_malloc.dylib  nanov2_allocate_from_block category=internals
+      /usr/lib/system/libsystem_malloc.dylib  nanov2_allocate_from_block.cold.1 category=indirection

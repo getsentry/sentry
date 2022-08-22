@@ -1,0 +1,18 @@
+{
+  "changelog": {
+    "items": [
+      {
+        "field": "assignee",
+        "from": null,
+        "fromString": null,
+        "fieldtype": "jira",
+        "fieldId": "assignee"
+      }
+    ],
+    "id": "10172"
+  },
+  "issue": {
+    "fields": {},
+    "key": "APP-123"
+  }
+}

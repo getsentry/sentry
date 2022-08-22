@@ -1,0 +1,108 @@
+{
+  "event_id": "a3d8784189ce4b2d78dc54cd550b79a4",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": {
+            "signal": {
+              "name": "SIGSEGV",
+              "number": 11
+            }
+          },
+          "synthetic": true,
+          "type": "signalhandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "__start_thread",
+              "package": "/apex/com.android.runtime/lib64/bionic/libc.so"
+            },
+            {
+              "function": "__pthread_start",
+              "package": "/apex/com.android.runtime/lib64/bionic/libc.so"
+            },
+            {
+              "function": "std::__ndk1::__thread_proxy<T>"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "std::__ndk1::__function::__func<T>::operator()"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "__memcpy",
+              "package": "/apex/com.android.runtime/lib64/bionic/libc.so"
+            }
+          ]
+        },
+        "type": "SIGSEGV",
+        "value": "Segfault"
+      }
+    ]
+  },
+  "platform": "native"
+}

@@ -1,0 +1,8 @@
+{% load i18n %}
+
+{% include "sentry/partial/_form.html" %}
+
+{% if plugin_test_results %}
+<h4>Test Results</h4>
+<pre>{{ plugin_test_results }}</pre>
+{% endif %}

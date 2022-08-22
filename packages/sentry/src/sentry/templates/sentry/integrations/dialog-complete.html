@@ -1,0 +1,22 @@
+{% extends "sentry/bases/modal.html" %}
+{% load i18n %}
+{% load sentry_assets %}
+{% load sentry_helpers %}
+
+{% block wrapperclass %} narrow auth {% endblock %}
+{% block modal_header_signout %} {% endblock %}
+
+{% block title %} {% trans "Integration Setup Complete" %} | {{ block.super }} {% endblock %}
+
+{% block main %}
+{% script %}
+<script>
+  if (window.opener) {
+    window.opener.postMessage({{ payload|to_json }}, document.origin);
+  }
+  window.close();
+</script>
+{% endscript %}
+
+<p>{% trans "You can safely close this window now." %}</p>
+{% endblock %}

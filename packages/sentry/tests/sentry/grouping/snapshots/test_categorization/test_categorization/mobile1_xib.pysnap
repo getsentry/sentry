@@ -1,0 +1,36 @@
+---
+created: '2021-08-03T17:17:29.273103Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+NSInvalidArgumentException:*** -[__NSArrayM insertObject:atIndex:]: object cannot be nil (thread_id:_, crashed:_)
+                                              stripped_application_code
+                                              stripped_application_code
+                                   UIKitCore  UIApplicationMain category=threadbase
+                                   UIKitCore  -[UIApplication _run] category=ui
+                                              stripped_application_code
+                              CoreFoundation  CFRunLoopRunSpecific category=indirection
+                              CoreFoundation  __CFRunLoopRun category=internals
+                              CoreFoundation  __CFRunLoopDoSources0 category=internals
+                              CoreFoundation  __CFRunLoopDoSource0 category=internals
+                              CoreFoundation  __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__ category=internals
+                                   UIKitCore  __eventFetcherSourceCallback category=internals
+                                   UIKitCore  __processEventQueue category=internals
+                                   UIKitCore  __dispatchPreprocessedEventFromEventQueue category=internals
+                                   UIKitCore  -[UIApplication sendEvent:] category=internals
+                                   UIKitCore  -[UIWindow sendEvent:] category=internals
+                                   UIKitCore  -[UIGestureEnvironment _updateForEvent:window:] category=internals
+                                   UIKitCore  _UIGestureEnvironmentUpdate category=internals
+                                   UIKitCore  -[UIGestureRecognizer _updateGestureForActiveEvents] category=internals
+                                   UIKitCore  _UIGestureRecognizerSendActions category=internals
+                                   UIKitCore  _UIGestureRecognizerSendTargetActions category=internals
+                                   UIKitCore  -[UIGestureRecognizerTarget _sendActionWithGestureRecognizer:] category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+                              CoreFoundation  -[__NSArrayM insertObject:atIndex:] category=indirection
+                              CoreFoundation  -[__NSArrayM insertObject:atIndex:].cold.1 category=indirection
+                              CoreFoundation  _CFThrowFormattedException category=throw
+                             libobjc.A.dylib  objc_exception_throw category=internals
+                              CoreFoundation  __exceptionPreprocess category=internals

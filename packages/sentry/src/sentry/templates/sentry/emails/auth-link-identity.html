@@ -1,0 +1,16 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+
+{% block main %}
+  <h3>{{ provider.name }} SSO Enabled</h3>
+
+  <p>
+    <strong>{{ provider.name }}</strong> Single Sign-On has been configured for the
+    <strong>{{ organization.name }}</strong> organization. Link your Sentry account to enable
+    signing on with your <strong>{{ provider.name }}</strong> account.
+  </p>
+
+  <p><a href="{{ url|safe }}" class="btn">Link Account</a></p>
+  <p><small>SSO link request invoked by <strong>{{ actor.email }}</strong></small></p>
+{% endblock %}

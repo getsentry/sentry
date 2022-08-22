@@ -1,0 +1,182 @@
+---
+created: '2021-04-02T10:31:51.728862Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
+            filename*
+              "thread.cpp"
+            function*
+              "boost::thread::start_thread_noexcept"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "thread_start"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_pthread_start"
+          frame (non app frame)
+            filename*
+              "thread.cpp"
+            function*
+              "boost::`anonymous namespace'::thread_proxy"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            filename*
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            filename*
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "glDeleteTextures_Exec"
+          frame (non app frame)
+            function*
+              "gleUnbindDeleteHashNamesAndObjects"
+          frame (non app frame)
+            function*
+              "gleUnbindTextureObject"
+          frame (non app frame)
+            function*
+              "gldUpdateDispatch"
+          frame (non app frame)
+            function*
+              "gldUpdateDispatch"
+          frame (non app frame)
+            function*
+              "gpusSubmitDataBuffers"
+          frame (non app frame)
+            function*
+              "gldCreateDevice"
+          frame (non app frame)
+            function*
+              "gpusGenerateCrashLog"
+          frame (non app frame)
+            function*
+              "gpusGenerateCrashLog.cold.1"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "abort"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "__abort"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "__pthread_kill"
+        type (ignored because exception is synthetic)
+          "0x00000000 / 0x00000000"
+--------------------------------------------------------------------------
+system:
+  hash: "94d5c188bc82790c397f7f97d5239ee0"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "thread.cpp"
+            function*
+              "boost::thread::start_thread_noexcept"
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "thread_start"
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_pthread_start"
+          frame*
+            filename*
+              "thread.cpp"
+            function*
+              "boost::`anonymous namespace'::thread_proxy"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            filename*
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            filename*
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "glDeleteTextures_Exec"
+          frame*
+            function*
+              "gleUnbindDeleteHashNamesAndObjects"
+          frame*
+            function*
+              "gleUnbindTextureObject"
+          frame*
+            function*
+              "gldUpdateDispatch"
+          frame (ignored due to recursion)
+            function*
+              "gldUpdateDispatch"
+          frame*
+            function*
+              "gpusSubmitDataBuffers"
+          frame*
+            function*
+              "gldCreateDevice"
+          frame*
+            function*
+              "gpusGenerateCrashLog"
+          frame*
+            function*
+              "gpusGenerateCrashLog.cold.1"
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "abort"
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "__abort"
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "__pthread_kill"
+        type (ignored because exception is synthetic)
+          "0x00000000 / 0x00000000"

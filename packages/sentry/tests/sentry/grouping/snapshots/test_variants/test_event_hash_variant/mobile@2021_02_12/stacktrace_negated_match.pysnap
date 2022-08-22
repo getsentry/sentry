@@ -1,0 +1,81 @@
+---
+created: '2021-08-04T15:53:48.473074Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "eb87c1031dba55b67df86fb9fff59dc6"
+  tree_label: "log_demo::main"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "log_demo::main"
+            package (ignored because function takes precedence)
+              "log_demo"
+        type*
+          "log_demo"
+        value (ignored because stacktrace takes precedence)
+          "Holy shit everything is on fire!"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "eb87c1031dba55b67df86fb9fff59dc6"
+  tree_label: "log_demo::main"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "log_demo::main"
+            package (ignored because function takes precedence)
+              "log_demo"
+        type*
+          "log_demo"
+        value (ignored because stacktrace takes precedence)
+          "Holy shit everything is on fire!"
+--------------------------------------------------------------------------
+system:
+  hash: "eb87c1031dba55b67df86fb9fff59dc6"
+  tree_label: "log_demo::main"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame (ignored by stack trace rule (function:log_demo::* -group))
+            function*
+              "_main"
+          frame (ignored by stack trace rule (function:log_demo::* -group))
+            function*
+              "std::rt::lang_start_internal"
+            package (ignored because function takes precedence)
+              "std"
+          frame (ignored by stack trace rule (function:log_demo::* -group))
+            function*
+              "___rust_maybe_catch_panic"
+          frame (ignored by stack trace rule (function:log_demo::* -group))
+            function*
+              "std::panicking::try::do_call"
+            package (ignored because function takes precedence)
+              "std"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "std::rt::lang_start::{{closure}}"
+            package (ignored because function takes precedence)
+              "std"
+          frame*
+            function*
+              "log_demo::main"
+            package (ignored because function takes precedence)
+              "log_demo"
+          frame (ignored by stack trace rule (function:log_demo::* -group))
+            function*
+              "log::__private_api_log"
+            package (ignored because function takes precedence)
+              "log"
+        type*
+          "log_demo"
+        value (ignored because stacktrace takes precedence)
+          "Holy shit everything is on fire!"

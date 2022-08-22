@@ -1,0 +1,242 @@
+---
+created: '2021-08-04T15:53:48.979617Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "b7e1e5ef711f75f419c749ffb19efb39"
+  tree_label: "throwError"
+  component:
+    app-depth-1*
+      stacktrace*
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "throwError"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "9840fdc749627fbfacae7e58f325326a"
+  tree_label: "throwError | recurFunc"
+  component:
+    app-depth-2*
+      stacktrace*
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "throwError"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "e40eae807d6005ad95f045fcccaeb0a4"
+  tree_label: "throwError | recurFunc | recurFunc"
+  component:
+    app-depth-3*
+      stacktrace*
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "throwError"
+--------------------------------------------------------------------------
+app-depth-4:
+  hash: "3fb69ce71efee7c559762478ce1981bc"
+  tree_label: "throwError | recurFunc | recurFunc | normalFunc"
+  component:
+    app-depth-4*
+      stacktrace*
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "normalFunc"
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "throwError"
+--------------------------------------------------------------------------
+app-depth-5:
+  hash: "894c3489e2ade384dc107bca6829d134"
+  tree_label: "throwError | recurFunc | recurFunc | normalFunc | main"
+  component:
+    app-depth-5*
+      stacktrace*
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "main"
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "normalFunc"
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "throwError"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "894c3489e2ade384dc107bca6829d134"
+  tree_label: "throwError | recurFunc | recurFunc | normalFunc | main"
+  component:
+    app-depth-max*
+      stacktrace*
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "main"
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "normalFunc"
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "throwError"
+--------------------------------------------------------------------------
+system:
+  hash: "894c3489e2ade384dc107bca6829d134"
+  tree_label: "throwError | recurFunc | recurFunc | normalFunc | main"
+  component:
+    system*
+      stacktrace*
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "main"
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "normalFunc"
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame (ignored due to recursion)
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame (ignored due to recursion)
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame*
+          module*
+            "io.sentry.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "throwError"

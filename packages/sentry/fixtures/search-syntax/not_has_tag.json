@@ -1,0 +1,34 @@
+[
+  {
+    "desc": "unquoted key",
+    "query": "!has:release",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "has",
+        "negated": true,
+        "key": {"type": "keySimple", "value": "has", "quoted": false},
+        "operator": "",
+        "value": {"type": "keySimple", "value": "release", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "desc": "quoted key",
+    "query": "!has:\"hi:there\"",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "has",
+        "negated": true,
+        "key": {"type": "keySimple", "value": "has", "quoted": false},
+        "operator": "",
+        "value": {"type": "keySimple", "value": "hi:there", "quoted": true}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

@@ -1,0 +1,8 @@
+Your data is ready.
+-------------------
+
+See, that wasn't so bad. We're all done assembling your download. Now have at it.
+
+{{url|safe}}
+
+The download file expires at {{expiration}}. So don't get attached.

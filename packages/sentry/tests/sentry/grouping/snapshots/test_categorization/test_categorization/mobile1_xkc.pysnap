@@ -1,0 +1,44 @@
+---
+created: '2021-08-06T16:17:00.166424Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+OutOfMemoryError:Could not allocate JNI Env (thread_id:_, crashed:_)
+                            java.lang.Thread  run category=std
+  java.util.concurrent.ThreadPoolExecutor$Wo  run category=internals
+     java.util.concurrent.ThreadPoolExecutor  runWorker category=threadbase
+             java.util.concurrent.FutureTask  run category=std
+                      android.os.AsyncTask$2  call category=threadbase
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                        android.os.AsyncTask  executeOnExecutor category=indirection
+  java.util.concurrent.Executors$DelegatedEx  execute category=std
+     java.util.concurrent.ThreadPoolExecutor  execute category=internals
+     java.util.concurrent.ThreadPoolExecutor  addWorker category=internals
+                            java.lang.Thread  start category=internals
+                            java.lang.Thread  nativeCreate category=internals
+
+
+RuntimeException:An error occurred while executing doInBackground() (thread_id:_, crashed:_)
+                            java.lang.Thread  run category=std
+  java.util.concurrent.ThreadPoolExecutor$Wo  run category=internals
+     java.util.concurrent.ThreadPoolExecutor  runWorker category=threadbase
+             java.util.concurrent.FutureTask  run category=std
+             java.util.concurrent.FutureTask  setException category=internals
+             java.util.concurrent.FutureTask  finishCompletion category=internals
+                      android.os.AsyncTask$3  done category=internals

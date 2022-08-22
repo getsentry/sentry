@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<samlp:LogoutRequest xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" Version="2.0" IssueInstant="2017-10-04T21:53:53" ID="_6f99ca80-8b7c-0135-3652-02d733713b04">
+  <saml:Issuer xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">https://example.com/saml/metadata/1234</saml:Issuer>
+  <saml:NameID xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">rick@onehundredyears.com</saml:NameID>
+</samlp:LogoutRequest>

@@ -1,0 +1,59 @@
+[
+  {
+    "query": "stack.in_app:lol",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "invalid": {
+          "reason": "Invalid boolean. Expected true, 1, false, or 0.",
+          "expectedType": ["boolean"]
+        },
+        "key": {"type": "keySimple", "value": "stack.in_app", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "lol", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "stack.in_app:123",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "invalid": {
+          "reason": "Invalid boolean. Expected true, 1, false, or 0.",
+          "expectedType": ["boolean"]
+        },
+        "key": {"type": "keySimple", "value": "stack.in_app", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "123", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "stack.in_app:>true",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "invalid": {
+          "reason": "Invalid boolean. Expected true, 1, false, or 0.",
+          "expectedType": ["boolean"]
+        },
+        "key": {"type": "keySimple", "value": "stack.in_app", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": ">true", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

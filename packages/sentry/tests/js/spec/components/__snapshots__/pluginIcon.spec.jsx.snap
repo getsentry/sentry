@@ -1,0 +1,8 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`PluginIcon renders with default icon with invalid plugin id 1`] = `
+<IntegrationIcon
+  image="github"
+  size={20}
+/>
+`;

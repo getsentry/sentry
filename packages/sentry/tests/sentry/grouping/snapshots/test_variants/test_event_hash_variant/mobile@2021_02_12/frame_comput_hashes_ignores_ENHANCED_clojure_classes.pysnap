@@ -1,0 +1,40 @@
+---
+created: '2021-08-23T08:27:22.045058Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "526b64456c48836a46ec1a89544fd412"
+  tree_label: "sentry_clojure_example.invoke"
+  component:
+    app-depth-1*
+      stacktrace*
+        frame*
+          module* (removed codegen marker)
+            "sentry_clojure_example.core$_main$fn__<auto>"
+          function*
+            "invoke"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "526b64456c48836a46ec1a89544fd412"
+  tree_label: "sentry_clojure_example.invoke"
+  component:
+    app-depth-max*
+      stacktrace*
+        frame*
+          module* (removed codegen marker)
+            "sentry_clojure_example.core$_main$fn__<auto>"
+          function*
+            "invoke"
+--------------------------------------------------------------------------
+system:
+  hash: "526b64456c48836a46ec1a89544fd412"
+  tree_label: "sentry_clojure_example.invoke"
+  component:
+    system*
+      stacktrace*
+        frame*
+          module* (removed codegen marker)
+            "sentry_clojure_example.core$_main$fn__<auto>"
+          function*
+            "invoke"

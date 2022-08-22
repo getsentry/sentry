@@ -1,0 +1,26 @@
+---
+created: '2020-02-26T19:54:27.008523Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace (ignored because hash matches system variant)
+        frame* (frame considered in-app because no frame is in-app)
+          filename*
+            "foo.html.erb"
+          function* (trimmed integer suffix)
+            "_foo_html_erb__<anon>_<anon>"
+--------------------------------------------------------------------------
+system:
+  hash: "140d61119ffa316766cf0f710bf1e7f1"
+  component:
+    system*
+      stacktrace*
+        frame*
+          filename*
+            "foo.html.erb"
+          function* (trimmed integer suffix)
+            "_foo_html_erb__<anon>_<anon>"

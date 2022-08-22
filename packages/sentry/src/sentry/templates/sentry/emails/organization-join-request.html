@@ -1,0 +1,16 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+
+{% block main %}
+  <h3>Request for Access</h3>
+
+  <p><strong>{{ email }}</strong> is requesting to join the {{ organization_name }} organization.</p>
+
+  <a href="{{ pending_requests_link }}" class="btn">View access requests</a>
+
+  <p class="via">
+    You are receiving this email because you're listed as an organization Owner or Manager.
+    Requests to join your organization can be disabled in <a href="{{ settings_link }}">Organization Settings</a>.
+  </p>
+{% endblock %}

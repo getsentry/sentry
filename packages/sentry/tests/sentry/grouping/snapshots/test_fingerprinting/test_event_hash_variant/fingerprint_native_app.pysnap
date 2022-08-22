@@ -1,0 +1,37 @@
+---
+created: '2020-12-08T17:25:04.277740Z'
+creator: sentry
+source: tests/sentry/grouping/test_fingerprinting.py
+---
+config:
+  rules:
+  - attributes: {}
+    fingerprint:
+    - symcache-error
+    matchers:
+    - - function
+      - symbolicator::actors::symcaches::*
+    - - app
+      - 'true'
+  version: 1
+fingerprint:
+- symcache-error
+title: 'SymCacheError: failed to parse symcache'
+variants:
+  app:
+    component:
+      contributes: false
+      contributes_to_similarity: true
+      hint: custom fingerprint takes precedence
+    type: component
+  custom-fingerprint:
+    matched_rule: function:"symbolicator::actors::symcaches::*" app:"true" -> "symcache-error"
+    type: custom-fingerprint
+    values:
+    - symcache-error
+  system:
+    component:
+      contributes: false
+      contributes_to_similarity: true
+      hint: custom fingerprint takes precedence
+    type: component

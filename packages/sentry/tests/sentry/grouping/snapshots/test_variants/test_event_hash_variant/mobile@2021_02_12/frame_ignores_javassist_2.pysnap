@@ -1,0 +1,40 @@
+---
+created: '2021-08-23T08:27:21.813184Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "538bdfd8d7bb2495d0d6429c3689a420"
+  tree_label: "entry.fn"
+  component:
+    app-depth-1*
+      stacktrace*
+        frame*
+          module* (removed codegen marker)
+            "com.example.api.entry.EntriesResource_$$_javassist<auto>"
+          function*
+            "fn"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "538bdfd8d7bb2495d0d6429c3689a420"
+  tree_label: "entry.fn"
+  component:
+    app-depth-max*
+      stacktrace*
+        frame*
+          module* (removed codegen marker)
+            "com.example.api.entry.EntriesResource_$$_javassist<auto>"
+          function*
+            "fn"
+--------------------------------------------------------------------------
+system:
+  hash: "538bdfd8d7bb2495d0d6429c3689a420"
+  tree_label: "entry.fn"
+  component:
+    system*
+      stacktrace*
+        frame*
+          module* (removed codegen marker)
+            "com.example.api.entry.EntriesResource_$$_javassist<auto>"
+          function*
+            "fn"

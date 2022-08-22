@@ -1,0 +1,374 @@
+---
+created: '2021-08-04T15:53:48.075437Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "2c93c07fa1d6e07a4de03fb5c4d3876a"
+  tree_label: "call_script"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "sentry.utils.redis"
+            filename (module takes precedence)
+              "redis.py"
+            function*
+              "call_script"
+            context-line*
+              "return script(keys, args, client)"
+        type*
+          "ConnectionError"
+        value (ignored because stacktrace takes precedence)
+          "Error while reading from socket: ('Connection closed by server.',)"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "1266d500012e00a6c5ffd30faea2b43a"
+  tree_label: "call_script | is_rate_limited"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "sentry.quotas.redis"
+            filename (module takes precedence)
+              "redis.py"
+            function*
+              "is_rate_limited"
+            context-line*
+              "rejections = is_rate_limited(client, keys, args)"
+          frame*
+            module*
+              "sentry.utils.redis"
+            filename (module takes precedence)
+              "redis.py"
+            function*
+              "call_script"
+            context-line*
+              "return script(keys, args, client)"
+        type*
+          "ConnectionError"
+        value (ignored because stacktrace takes precedence)
+          "Error while reading from socket: ('Connection closed by server.',)"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "b4f26653d1931cbad5820cdcae76f44f"
+  tree_label: "call_script | is_rate_limited | is_rate_limited"
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "getsentry.quotas"
+            filename (module takes precedence)
+              "quotas.py"
+            function*
+              "is_rate_limited"
+            context-line*
+              "return super(SubscriptionQuota, self).is_rate_limited(project, key=key)"
+          frame*
+            module*
+              "sentry.quotas.redis"
+            filename (module takes precedence)
+              "redis.py"
+            function*
+              "is_rate_limited"
+            context-line*
+              "rejections = is_rate_limited(client, keys, args)"
+          frame*
+            module*
+              "sentry.utils.redis"
+            filename (module takes precedence)
+              "redis.py"
+            function*
+              "call_script"
+            context-line*
+              "return script(keys, args, client)"
+        type*
+          "ConnectionError"
+        value (ignored because stacktrace takes precedence)
+          "Error while reading from socket: ('Connection closed by server.',)"
+--------------------------------------------------------------------------
+app-depth-4:
+  hash: "a1e0d912554c02ca099f24e2f208b2ed"
+  tree_label: "call_script | is_rate_limited | is_rate_limited | <lambda>"
+  component:
+    app-depth-4*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "sentry.utils.services"
+            filename (module takes precedence)
+              "services.py"
+            function*
+              "<lambda>"
+            context-line*
+              "context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)"
+          frame*
+            module*
+              "getsentry.quotas"
+            filename (module takes precedence)
+              "quotas.py"
+            function*
+              "is_rate_limited"
+            context-line*
+              "return super(SubscriptionQuota, self).is_rate_limited(project, key=key)"
+          frame*
+            module*
+              "sentry.quotas.redis"
+            filename (module takes precedence)
+              "redis.py"
+            function*
+              "is_rate_limited"
+            context-line*
+              "rejections = is_rate_limited(client, keys, args)"
+          frame*
+            module*
+              "sentry.utils.redis"
+            filename (module takes precedence)
+              "redis.py"
+            function*
+              "call_script"
+            context-line*
+              "return script(keys, args, client)"
+        type*
+          "ConnectionError"
+        value (ignored because stacktrace takes precedence)
+          "Error while reading from socket: ('Connection closed by server.',)"
+--------------------------------------------------------------------------
+app-depth-5:
+  hash: "6b059b9febc815ac18ac4d2082e38a9b"
+  tree_label: "call_script | is_rate_limited | is_rate_limited | <lambda> | safe_execute"
+  component:
+    app-depth-5*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "sentry.utils.safe"
+            filename (module takes precedence)
+              "safe.py"
+            function*
+              "safe_execute"
+            context-line*
+              "result = func(*args, **kwargs)"
+          frame*
+            module*
+              "sentry.utils.services"
+            filename (module takes precedence)
+              "services.py"
+            function*
+              "<lambda>"
+            context-line*
+              "context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)"
+          frame*
+            module*
+              "getsentry.quotas"
+            filename (module takes precedence)
+              "quotas.py"
+            function*
+              "is_rate_limited"
+            context-line*
+              "return super(SubscriptionQuota, self).is_rate_limited(project, key=key)"
+          frame*
+            module*
+              "sentry.quotas.redis"
+            filename (module takes precedence)
+              "redis.py"
+            function*
+              "is_rate_limited"
+            context-line*
+              "rejections = is_rate_limited(client, keys, args)"
+          frame*
+            module*
+              "sentry.utils.redis"
+            filename (module takes precedence)
+              "redis.py"
+            function*
+              "call_script"
+            context-line*
+              "return script(keys, args, client)"
+        type*
+          "ConnectionError"
+        value (ignored because stacktrace takes precedence)
+          "Error while reading from socket: ('Connection closed by server.',)"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "6b059b9febc815ac18ac4d2082e38a9b"
+  tree_label: "call_script | is_rate_limited | is_rate_limited | <lambda> | safe_execute"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "sentry.utils.safe"
+            filename (module takes precedence)
+              "safe.py"
+            function*
+              "safe_execute"
+            context-line*
+              "result = func(*args, **kwargs)"
+          frame*
+            module*
+              "sentry.utils.services"
+            filename (module takes precedence)
+              "services.py"
+            function*
+              "<lambda>"
+            context-line*
+              "context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)"
+          frame*
+            module*
+              "getsentry.quotas"
+            filename (module takes precedence)
+              "quotas.py"
+            function*
+              "is_rate_limited"
+            context-line*
+              "return super(SubscriptionQuota, self).is_rate_limited(project, key=key)"
+          frame*
+            module*
+              "sentry.quotas.redis"
+            filename (module takes precedence)
+              "redis.py"
+            function*
+              "is_rate_limited"
+            context-line*
+              "rejections = is_rate_limited(client, keys, args)"
+          frame*
+            module*
+              "sentry.utils.redis"
+            filename (module takes precedence)
+              "redis.py"
+            function*
+              "call_script"
+            context-line*
+              "return script(keys, args, client)"
+        type*
+          "ConnectionError"
+        value (ignored because stacktrace takes precedence)
+          "Error while reading from socket: ('Connection closed by server.',)"
+--------------------------------------------------------------------------
+default:
+  hash: null
+  component:
+    default (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
+      message (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
+        "%s.process_error"
+--------------------------------------------------------------------------
+system:
+  hash: "013d3477a774fe20c468dc8accd516f1"
+  tree_label: "read_response | read_response | parse_response | execute_command | evalsha | __call__ | call_script | is_rate_limited | is_rate_limited | <lambda> | safe_execute"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "sentry.utils.safe"
+            filename (module takes precedence)
+              "safe.py"
+            function*
+              "safe_execute"
+            context-line*
+              "result = func(*args, **kwargs)"
+          frame*
+            module*
+              "sentry.utils.services"
+            filename (module takes precedence)
+              "services.py"
+            function*
+              "<lambda>"
+            context-line*
+              "context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)"
+          frame*
+            module*
+              "getsentry.quotas"
+            filename (module takes precedence)
+              "quotas.py"
+            function*
+              "is_rate_limited"
+            context-line*
+              "return super(SubscriptionQuota, self).is_rate_limited(project, key=key)"
+          frame*
+            module*
+              "sentry.quotas.redis"
+            filename (module takes precedence)
+              "redis.py"
+            function*
+              "is_rate_limited"
+            context-line*
+              "rejections = is_rate_limited(client, keys, args)"
+          frame*
+            module*
+              "sentry.utils.redis"
+            filename (module takes precedence)
+              "redis.py"
+            function*
+              "call_script"
+            context-line*
+              "return script(keys, args, client)"
+          frame*
+            module*
+              "redis.client"
+            filename (module takes precedence)
+              "client.py"
+            function*
+              "__call__"
+            context-line*
+              "return client.evalsha(self.sha, len(keys), *args)"
+          frame*
+            module*
+              "redis.client"
+            filename (module takes precedence)
+              "client.py"
+            function*
+              "evalsha"
+            context-line*
+              "return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"
+          frame*
+            module*
+              "redis.client"
+            filename (module takes precedence)
+              "client.py"
+            function*
+              "execute_command"
+            context-line*
+              "return self.parse_response(connection, command_name, **options)"
+          frame*
+            module*
+              "redis.client"
+            filename (module takes precedence)
+              "client.py"
+            function*
+              "parse_response"
+            context-line*
+              "response = connection.read_response()"
+          frame*
+            module*
+              "redis.connection"
+            filename (module takes precedence)
+              "connection.py"
+            function*
+              "read_response"
+            context-line*
+              "response = self._parser.read_response()"
+          frame*
+            module*
+              "redis.connection"
+            filename (module takes precedence)
+              "connection.py"
+            function*
+              "read_response"
+            context-line*
+              "(e.args,))"
+        type*
+          "ConnectionError"
+        value (ignored because stacktrace takes precedence)
+          "Error while reading from socket: ('Connection closed by server.',)"

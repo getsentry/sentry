@@ -1,0 +1,382 @@
+---
+created: '2021-04-02T10:31:51.784743Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "start"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "-[NSApplication run]"
+          frame (non app frame)
+            function*
+              "-[NSApplication(NSEvent) _nextEventMatchingEventMask:untilDate:inMode:dequeue:]"
+          frame (non app frame)
+            function*
+              "_DPSNextEvent"
+          frame (non app frame)
+            function*
+              "_BlockUntilNextEventMatchingListInModeWithFilter"
+          frame (non app frame)
+            function*
+              "ReceiveNextEventCommon"
+          frame (non app frame)
+            function*
+              "RunCurrentEventLoopInMode"
+          frame (non app frame)
+            function*
+              "CFRunLoopRunSpecific"
+          frame (non app frame)
+            function*
+              "__CFRunLoopRun"
+          frame (non app frame)
+            function*
+              "__CFRunLoopDoSources0"
+          frame (non app frame)
+            function*
+              "__CFRunLoopDoSource0"
+          frame (non app frame)
+            function*
+              "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__"
+          frame (non app frame)
+            function*
+              "__NSThreadPerformPerform"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "-[NSView displayIfNeeded]"
+          frame (non app frame)
+            function*
+              "-[_NSOpenGLViewBackingLayer display]"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "-[NSOpenGLContext flushBuffer]"
+          frame (non app frame)
+            function*
+              "CGLFlushDrawable"
+          frame (non app frame)
+            function*
+              "glSwap_Exec"
+          frame (non app frame)
+            function*
+              "gldPresentFramebufferData"
+          frame (non app frame)
+            function*
+              "SwapFlush"
+          frame (non app frame)
+            function*
+              "intelSubmitCommands"
+          frame (non app frame)
+            function*
+              "IntelCommandBuffer::getNew"
+          frame (non app frame)
+            function*
+              "gpusSubmitDataBuffers"
+          frame (non app frame)
+            function*
+              "gpusKillClientExt"
+          frame (non app frame)
+            function*
+              "gpusGenerateCrashLog"
+          frame (non app frame)
+            function*
+              "gpusGenerateCrashLog.cold.1"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "abort"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_sigtramp"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "NSRunAlertPanel"
+          frame (non app frame)
+            function*
+              "_NSTryRunModal"
+          frame (non app frame)
+            function*
+              "CA::Transaction::commit"
+          frame (non app frame)
+            function*
+              "CA::Context::commit_transaction"
+          frame (non app frame)
+            function*
+              "CA::Layer::display_if_needed"
+          frame (non app frame)
+            function*
+              "-[_NSOpenGLViewBackingLayer display]"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "CGLTexImageIOSurface2D"
+          frame (non app frame)
+            function*
+              "CGLDescribeRenderer"
+          frame (non app frame)
+            function*
+              "gliSetInteger"
+          frame (non app frame)
+            function*
+              "gldFlushObject"
+          frame (non app frame)
+            function*
+              "intelSubmitCommands"
+          frame (non app frame)
+            function*
+              "IntelCommandBuffer::getNew"
+          frame (non app frame)
+            function*
+              "gpusSubmitDataBuffers"
+          frame (non app frame)
+            function*
+              "gpusKillClientExt"
+          frame (non app frame)
+            function*
+              "gpusGenerateCrashLog"
+          frame (non app frame)
+            function*
+              "gpusGenerateCrashLog.cold.1"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "abort"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "__pthread_kill"
+        type (ignored because exception is synthetic)
+          "0x00000000 / 0x00000000"
+--------------------------------------------------------------------------
+system:
+  hash: "e4714f9479fea40111888ca143e02d8f"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "start"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "-[NSApplication run]"
+          frame*
+            function*
+              "-[NSApplication(NSEvent) _nextEventMatchingEventMask:untilDate:inMode:dequeue:]"
+          frame*
+            function*
+              "_DPSNextEvent"
+          frame*
+            function*
+              "_BlockUntilNextEventMatchingListInModeWithFilter"
+          frame*
+            function*
+              "ReceiveNextEventCommon"
+          frame*
+            function*
+              "RunCurrentEventLoopInMode"
+          frame*
+            function*
+              "CFRunLoopRunSpecific"
+          frame*
+            function*
+              "__CFRunLoopRun"
+          frame*
+            function*
+              "__CFRunLoopDoSources0"
+          frame*
+            function*
+              "__CFRunLoopDoSource0"
+          frame*
+            function*
+              "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__"
+          frame*
+            function*
+              "__NSThreadPerformPerform"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "-[NSView displayIfNeeded]"
+          frame*
+            function*
+              "-[_NSOpenGLViewBackingLayer display]"
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "-[NSOpenGLContext flushBuffer]"
+          frame*
+            function*
+              "CGLFlushDrawable"
+          frame*
+            function*
+              "glSwap_Exec"
+          frame*
+            function*
+              "gldPresentFramebufferData"
+          frame*
+            function*
+              "SwapFlush"
+          frame*
+            function*
+              "intelSubmitCommands"
+          frame*
+            function*
+              "IntelCommandBuffer::getNew"
+          frame*
+            function*
+              "gpusSubmitDataBuffers"
+          frame*
+            function*
+              "gpusKillClientExt"
+          frame*
+            function*
+              "gpusGenerateCrashLog"
+          frame*
+            function*
+              "gpusGenerateCrashLog.cold.1"
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "abort"
+          frame*
+            function*
+              "stripped_application_code"
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_sigtramp"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "NSRunAlertPanel"
+          frame*
+            function*
+              "_NSTryRunModal"
+          frame*
+            function*
+              "CA::Transaction::commit"
+          frame*
+            function*
+              "CA::Context::commit_transaction"
+          frame*
+            function*
+              "CA::Layer::display_if_needed"
+          frame*
+            function*
+              "-[_NSOpenGLViewBackingLayer display]"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "CGLTexImageIOSurface2D"
+          frame*
+            function*
+              "CGLDescribeRenderer"
+          frame*
+            function*
+              "gliSetInteger"
+          frame*
+            function*
+              "gldFlushObject"
+          frame*
+            function*
+              "intelSubmitCommands"
+          frame*
+            function*
+              "IntelCommandBuffer::getNew"
+          frame*
+            function*
+              "gpusSubmitDataBuffers"
+          frame*
+            function*
+              "gpusKillClientExt"
+          frame*
+            function*
+              "gpusGenerateCrashLog"
+          frame*
+            function*
+              "gpusGenerateCrashLog.cold.1"
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "abort"
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "__pthread_kill"
+        type (ignored because exception is synthetic)
+          "0x00000000 / 0x00000000"

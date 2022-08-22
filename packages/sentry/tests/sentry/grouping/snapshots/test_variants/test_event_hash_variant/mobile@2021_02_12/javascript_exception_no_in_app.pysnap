@@ -1,0 +1,283 @@
+---
+created: '2021-08-04T15:53:49.056910Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "5652852c2e0f030ff2aab75531859300"
+  tree_label: "callCallback"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "react-dom.development.js"
+            function* (trimmed javascript function)
+              "callCallback"
+        type*
+          "ReferenceError"
+        value (ignored because stacktrace takes precedence)
+          "varant is not defined"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "dec9099448c6b933bd8f19a81eaca1bd"
+  tree_label: "callCallback | sentryWrapped"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "index.js"
+            function* (trimmed javascript function)
+              "sentryWrapped"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function* (trimmed javascript function)
+              "callCallback"
+        type*
+          "ReferenceError"
+        value (ignored because stacktrace takes precedence)
+          "varant is not defined"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "aaae5958b3c09511bd5201fdfc436667"
+  tree_label: "callCallback | sentryWrapped | invokeGuardedCallbackDev"
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "react-dom.development.js"
+            function* (trimmed javascript function)
+              "invokeGuardedCallbackDev"
+          frame*
+            filename*
+              "index.js"
+            function* (trimmed javascript function)
+              "sentryWrapped"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function* (trimmed javascript function)
+              "callCallback"
+        type*
+          "ReferenceError"
+        value (ignored because stacktrace takes precedence)
+          "varant is not defined"
+--------------------------------------------------------------------------
+app-depth-4:
+  hash: "b32646fc84b4b6b67d079fbc0618820e"
+  tree_label: "callCallback | sentryWrapped | invokeGuardedCallbackDev | invokeGuardedCallback"
+  component:
+    app-depth-4*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "react-dom.development.js"
+            function*
+              "invokeGuardedCallback"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function* (trimmed javascript function)
+              "invokeGuardedCallbackDev"
+          frame*
+            filename*
+              "index.js"
+            function* (trimmed javascript function)
+              "sentryWrapped"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function* (trimmed javascript function)
+              "callCallback"
+        type*
+          "ReferenceError"
+        value (ignored because stacktrace takes precedence)
+          "varant is not defined"
+--------------------------------------------------------------------------
+app-depth-5:
+  hash: "a179ca629ea4296d1a975c061b84da97"
+  tree_label: "callCallback | sentryWrapped | invokeGuardedCallbackDev | invokeGuardedCallback | replayUnitOfWork"
+  component:
+    app-depth-5*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "react-dom.development.js"
+            function*
+              "replayUnitOfWork"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function*
+              "invokeGuardedCallback"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function* (trimmed javascript function)
+              "invokeGuardedCallbackDev"
+          frame*
+            filename*
+              "index.js"
+            function* (trimmed javascript function)
+              "sentryWrapped"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function* (trimmed javascript function)
+              "callCallback"
+        type*
+          "ReferenceError"
+        value (ignored because stacktrace takes precedence)
+          "varant is not defined"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "c0f3f7d6deb17aec9d07259ac684fad0"
+  tree_label: "callCallback | sentryWrapped | invokeGuardedCallbackDev | invokeGuardedCallback | replayUnitOfWork | renderRoot | performWorkOnRoot | performWork | performSyncWork | interactiveUpdates$1 | interactiveUpdates | dispatchInteractiveEvent"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "react-dom.development.js"
+            function*
+              "dispatchInteractiveEvent"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function*
+              "interactiveUpdates"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function*
+              "interactiveUpdates$1"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function*
+              "performSyncWork"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function*
+              "performWork"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function*
+              "performWorkOnRoot"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function*
+              "renderRoot"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function*
+              "replayUnitOfWork"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function*
+              "invokeGuardedCallback"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function* (trimmed javascript function)
+              "invokeGuardedCallbackDev"
+          frame*
+            filename*
+              "index.js"
+            function* (trimmed javascript function)
+              "sentryWrapped"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function* (trimmed javascript function)
+              "callCallback"
+        type*
+          "ReferenceError"
+        value (ignored because stacktrace takes precedence)
+          "varant is not defined"
+--------------------------------------------------------------------------
+system:
+  hash: "c0f3f7d6deb17aec9d07259ac684fad0"
+  tree_label: "callCallback | sentryWrapped | invokeGuardedCallbackDev | invokeGuardedCallback | replayUnitOfWork | renderRoot | performWorkOnRoot | performWork | performSyncWork | interactiveUpdates$1 | interactiveUpdates | dispatchInteractiveEvent"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "react-dom.development.js"
+            function*
+              "dispatchInteractiveEvent"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function*
+              "interactiveUpdates"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function*
+              "interactiveUpdates$1"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function*
+              "performSyncWork"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function*
+              "performWork"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function*
+              "performWorkOnRoot"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function*
+              "renderRoot"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function*
+              "replayUnitOfWork"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function*
+              "invokeGuardedCallback"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function* (trimmed javascript function)
+              "invokeGuardedCallbackDev"
+          frame*
+            filename*
+              "index.js"
+            function* (trimmed javascript function)
+              "sentryWrapped"
+          frame*
+            filename*
+              "react-dom.development.js"
+            function* (trimmed javascript function)
+              "callCallback"
+        type*
+          "ReferenceError"
+        value (ignored because stacktrace takes precedence)
+          "varant is not defined"

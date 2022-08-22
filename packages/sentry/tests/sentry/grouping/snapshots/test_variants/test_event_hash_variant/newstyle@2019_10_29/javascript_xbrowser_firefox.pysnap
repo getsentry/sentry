@@ -1,0 +1,112 @@
+---
+created: '2020-02-26T19:54:42.207014Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
+            filename*
+              "test.html"
+          frame (non app frame)
+            filename*
+              "test.html"
+            function*
+              "testMethod"
+          frame (non app frame)
+            filename*
+              "test.html"
+            function*
+              "aha"
+          frame (non app frame)
+            filename*
+              "test.html"
+            function*
+              "eval"
+          frame (non app frame)
+            filename*
+              "test.html"
+            function*
+              "test"
+          frame (non app frame)
+            filename*
+              "test.html"
+            function (ignored unknown function name)
+              "test/<"
+          frame (non app frame)
+            filename*
+              "test.html"
+            function*
+              "callback"
+          frame (non app frame)
+            filename*
+              "test.html"
+            function*
+              "callAnotherThing"
+          frame (non app frame)
+            filename*
+              "test.html"
+            function*
+              "aha"
+        type*
+          "Error"
+        value*
+          "bad"
+--------------------------------------------------------------------------
+system:
+  hash: "c63e8727af1a8fe75872b6a762797113"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "test.html"
+          frame*
+            filename*
+              "test.html"
+            function*
+              "testMethod"
+          frame*
+            filename*
+              "test.html"
+            function*
+              "aha"
+          frame (ignored low quality javascript frame)
+            filename*
+              "test.html"
+            function*
+              "eval"
+          frame*
+            filename*
+              "test.html"
+            function*
+              "test"
+          frame*
+            filename*
+              "test.html"
+            function (ignored unknown function name)
+              "test/<"
+          frame*
+            filename*
+              "test.html"
+            function*
+              "callback"
+          frame*
+            filename*
+              "test.html"
+            function*
+              "callAnotherThing"
+          frame*
+            filename*
+              "test.html"
+            function*
+              "aha"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"

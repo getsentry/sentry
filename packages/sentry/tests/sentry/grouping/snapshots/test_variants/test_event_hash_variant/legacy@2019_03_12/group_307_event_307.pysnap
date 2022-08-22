@@ -1,0 +1,122 @@
+---
+created: '2021-03-26T18:53:36.859040Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "thread_start"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "_pthread_start"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "__dynamic_cast"
+        type*
+          "EXC_BAD_ACCESS / EXC_I386_GPFLT"
+        value*
+          "Fatal Error: EXC_BAD_ACCESS / EXC_I386_GPFLT"
+--------------------------------------------------------------------------
+system:
+  hash: "2b6e7c38169cdf8db932529529331be5"
+  component:
+    system*
+      exception*
+        stacktrace
+          frame
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "thread_start"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "_pthread_start"
+          frame
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "__dynamic_cast"
+        type*
+          "EXC_BAD_ACCESS / EXC_I386_GPFLT"
+        value*
+          "Fatal Error: EXC_BAD_ACCESS / EXC_I386_GPFLT"

@@ -1,0 +1,6 @@
+---
+created: '2020-08-11T11:59:11.229525Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:stacktrace:frames-ident: [["function","invoke"],["module","sentry_clojure_example.core$_main$fn__<auto>$fn__<auto>"]]

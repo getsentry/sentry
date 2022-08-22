@@ -1,0 +1,40 @@
+---
+created: '2021-08-04T15:53:48.614390Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "27eed4125fc13d42163ddb0b8f357b48"
+  tree_label: "block"
+  component:
+    app-depth-1*
+      stacktrace*
+        frame*
+          filename*
+            "foo.py"
+          function* (ruby block)
+            "block"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "27eed4125fc13d42163ddb0b8f357b48"
+  tree_label: "block"
+  component:
+    app-depth-max*
+      stacktrace*
+        frame*
+          filename*
+            "foo.py"
+          function* (ruby block)
+            "block"
+--------------------------------------------------------------------------
+system:
+  hash: "27eed4125fc13d42163ddb0b8f357b48"
+  tree_label: "block"
+  component:
+    system*
+      stacktrace*
+        frame*
+          filename*
+            "foo.py"
+          function* (ruby block)
+            "block"

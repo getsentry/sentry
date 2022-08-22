@@ -1,0 +1,34 @@
+---
+created: '2021-03-29T20:24:22.822514Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+EXC_BAD_ACCESS / KERN_INVALID_ADDRESS:Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS (thread_id:_, crashed:_)
+  boost_threads.framework/Versions/A/boost_t  boost::thread::start_thread_noexcept category=std
+     /usr/lib/system/libsystem_pthread.dylib  thread_start category=threadbase
+     /usr/lib/system/libsystem_pthread.dylib  _pthread_start category=threadbase
+  boost_threads.framework/Versions/A/boost_t  boost::`anonymous namespace'::thread_proxy category=threadbase
+                                              stripped_application_code
+        abccore.framework/Versions/A/abccore  boost::function0<T>::operator() category=indirection
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+        abccore.framework/Versions/A/abccore  boost::get_system_time category=std
+        abccore.framework/Versions/A/abccore  boost::date_time::microsec_clock<T>::universal_time category=internals
+        abccore.framework/Versions/A/abccore  boost::date_time::microsec_clock<T>::create_time category=internals
+        abccore.framework/Versions/A/abccore  boost::date_time::c_time::gmtime category=internals
+           /usr/lib/system/libsystem_c.dylib  gmtsub category=internals
+           /usr/lib/system/libsystem_c.dylib  notify_check_tz category=internals
+      /usr/lib/system/libsystem_notify.dylib  notify_check category=internals
+      /usr/lib/system/libsystem_notify.dylib  notify_monitor_file category=internals
+                                              stripped_application_code
+    /usr/lib/system/libsystem_platform.dylib  _sigtramp category=handler
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+    /usr/lib/system/libsystem_platform.dylib  OSAtomicDequeue category=system

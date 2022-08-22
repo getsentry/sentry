@@ -1,0 +1,53 @@
+---
+created: '2020-02-26T19:54:29.043130Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app
+      stacktrace
+        frame (frame considered in-app because no frame is in-app)
+          filename (anonymous filename discarded)
+            "<anonymous>"
+        frame (frame considered in-app because no frame is in-app)
+          filename (ignored because filename is a URL)
+            "/C:/Users/redacted/AppData/Local/redacted/app-2.4.1/resources/app.asar/dojo/dojo.js"
+          function (function name is not used if module or filename are available)
+            "c"
+          lineno (line number is not used if module or filename are available)
+            1188
+        frame (frame considered in-app because no frame is in-app)
+          filename (ignored because filename is a URL)
+            "/C:/Users/redacted/AppData/Local/redacted/app-2.4.1/resources/app.asar/dojo/dojo.js"
+          function (function name is not used if module or filename are available)
+            "Object._createDocumentViewModel"
+          lineno (line number is not used if module or filename are available)
+            1184
+--------------------------------------------------------------------------
+fallback:
+  hash: "d41d8cd98f00b204e9800998ecf8427e"
+--------------------------------------------------------------------------
+system:
+  hash: null
+  component:
+    system
+      stacktrace
+        frame
+          filename (anonymous filename discarded)
+            "<anonymous>"
+        frame
+          filename (ignored because filename is a URL)
+            "/C:/Users/redacted/AppData/Local/redacted/app-2.4.1/resources/app.asar/dojo/dojo.js"
+          function (function name is not used if module or filename are available)
+            "c"
+          lineno (line number is not used if module or filename are available)
+            1188
+        frame
+          filename (ignored because filename is a URL)
+            "/C:/Users/redacted/AppData/Local/redacted/app-2.4.1/resources/app.asar/dojo/dojo.js"
+          function (function name is not used if module or filename are available)
+            "Object._createDocumentViewModel"
+          lineno (line number is not used if module or filename are available)
+            1184

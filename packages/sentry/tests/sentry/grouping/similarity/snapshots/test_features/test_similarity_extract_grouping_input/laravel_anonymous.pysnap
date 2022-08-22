@@ -1,0 +1,17 @@
+---
+created: '2020-08-21T21:07:52.119152Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:stacktrace:frames-ident: [["context-line","require_once __DIR__.'/public/index.php';"],["filename","server.php"]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","require_once __DIR__.'/public/index.php';"],["filename","server.php"]],[["context-line","return $callable($passable);"],["filename","pipeline.php"],["function","run"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","return $callable($passable);"],["filename","pipeline.php"],["function","run"]],[["context-line","? $pipe->{$this->method}(...$parameters)"],["filename","pipeline.php"],["function","Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"]]]
+similarity:2020-07-23:type:ident-shingle: "Exception"
+similarity:2020-07-23:value:character-5-shingle: " TEST"
+similarity:2020-07-23:value:character-5-shingle: "ARAVE"
+similarity:2020-07-23:value:character-5-shingle: "AVEL "
+similarity:2020-07-23:value:character-5-shingle: "EL TE"
+similarity:2020-07-23:value:character-5-shingle: "L TES"
+similarity:2020-07-23:value:character-5-shingle: "LARAV"
+similarity:2020-07-23:value:character-5-shingle: "RAVEL"
+similarity:2020-07-23:value:character-5-shingle: "VEL T"

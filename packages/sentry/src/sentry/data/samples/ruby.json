@@ -1,0 +1,71 @@
+{
+    "sentry.interfaces.Exception": {
+        "exc_omitted": null,
+        "values": [
+            {
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "function": "<main>",
+                            "abs_path": "bin/raven",
+                            "pre_context": [
+                                "    if !dsn\n",
+                                "      puts \"Usage: raven test <dsn>\"\n",
+                                "    else\n"
+                            ],
+                            "post_context": [
+                                "    end\n",
+                                "  else\n",
+                                "    puts parser\n"
+                            ],
+                            "in_app": true,
+                            "lineno": 36,
+                            "filename": "bin/raven",
+                            "context_line": "      Raven::CLI::test(dsn)\n"
+                        },
+                        {
+                            "function": "test",
+                            "abs_path": "/Users/User/Development/raven-ruby/lib/raven/cli.rb",
+                            "pre_context": [
+                                "      puts \"\"\n",
+                                "\n",
+                                "      begin\n"
+                            ],
+                            "post_context": [
+                                "      rescue ZeroDivisionError => exception\n",
+                                "        evt = Raven.capture_exception(exception)\n",
+                                "      end\n"
+                            ],
+                            "in_app": false,
+                            "lineno": 31,
+                            "filename": "raven/cli.rb",
+                            "context_line": "        1 / 0\n"
+                        },
+                        {
+                            "function": "/",
+                            "abs_path": "/Users/User/Development/raven-ruby/lib/raven/cli.rb",
+                            "pre_context": [
+                                "      puts \"\"\n",
+                                "\n",
+                                "      begin\n"
+                            ],
+                            "post_context": [
+                                "      rescue ZeroDivisionError => exception\n",
+                                "        evt = Raven.capture_exception(exception)\n",
+                                "      end\n"
+                            ],
+                            "in_app": false,
+                            "lineno": 31,
+                            "filename": "raven/cli.rb",
+                            "context_line": "        1 / 0\n"
+                        }
+                    ],
+                    "frames_omitted": null
+                },
+                "type": "ZeroDivisionError",
+                "module": "",
+                "value": "divided by 0"
+            }
+        ]
+    }
+}

@@ -1,0 +1,69 @@
+---
+created: '2021-08-31T10:25:51.187344Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "a728cdf5d62c8e017c35c3fe04051b6e"
+  tree_label: "server.php"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "server.php"
+            context-line*
+              "require_once __DIR__.'/public/index.php';"
+        type*
+          "Exception"
+        value (ignored because stacktrace takes precedence)
+          "LARAVEL TEST"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "a728cdf5d62c8e017c35c3fe04051b6e"
+  tree_label: "server.php"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "server.php"
+            context-line*
+              "require_once __DIR__.'/public/index.php';"
+        type*
+          "Exception"
+        value (ignored because stacktrace takes precedence)
+          "LARAVEL TEST"
+--------------------------------------------------------------------------
+system:
+  hash: "63c67781779781d9b0a442a5b2bdb976"
+  tree_label: "Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure} | run | server.php"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "server.php"
+            context-line*
+              "require_once __DIR__.'/public/index.php';"
+          frame*
+            filename*
+              "pipeline.php"
+            function* (anonymous class method)
+              "run"
+            context-line*
+              "return $callable($passable);"
+          frame*
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+            context-line*
+              "? $pipe->{$this->method}(...$parameters)"
+        type*
+          "Exception"
+        value (ignored because stacktrace takes precedence)
+          "LARAVEL TEST"

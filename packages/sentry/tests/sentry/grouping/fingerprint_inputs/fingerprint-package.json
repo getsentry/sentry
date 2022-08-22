@@ -1,0 +1,32 @@
+{
+  "_fingerprinting_rules": [
+    {
+      "matchers": [
+        ["type", "DatabaseUnavailable"]
+      ],
+      "fingerprint": ["{{ package }}"]
+    }
+  ],
+  "transaction": "my-transaction",
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "main",
+              "abs_path": "Application.cpp",
+              "package": "/usr/lib/foo.dylib",
+              "filename": "Application.cpp",
+              "lineno": 13,
+              "in_app": false
+            }
+          ]
+        },
+        "type": "DatabaseUnavailable",
+        "value": "For some reason the database went away"
+      }
+    ]
+  },
+  "platform": "native"
+}

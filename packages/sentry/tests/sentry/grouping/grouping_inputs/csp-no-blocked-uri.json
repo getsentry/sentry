@@ -1,0 +1,7 @@
+{
+  "csp": {
+    "document_uri": "http://example.com/foo",
+    "effective_directive": "script-src",
+    "blocked_uri": ""
+  }
+}

@@ -1,0 +1,11 @@
+---
+created: '2019-03-14T17:12:36.795773Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_user.py
+---
+errors:
+- name: user.email
+  reason: expected a string
+  type: invalid_data
+  value: 1
+to_json: {}

@@ -1,0 +1,26 @@
+{% extends "sentry/bases/forceauth_modal.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Unsubscribe" %}{% endblock %}
+
+{% block main %}
+    <form action="" method="post" class="">
+        {% csrf_token %}
+
+        <p>
+          {% trans "You are about to unsubscribe from project notifications for the following project:" %}
+        </p>
+        <p><strong>{{ project.organization.slug }} / {{ project.slug }}</strong></p>
+        <p>
+          {% trans "You can subscribe to it again by going to your account settings." %}
+        </p>
+
+        <fieldset class="form-actions">
+            <button type="submit" name="unsubscribe" class="btn btn-primary">{% trans "Unsubscribe" %}</button>
+            <button type="submit" name="cancel" class="btn btn-default">{% trans "Cancel" %}</button>
+        </fieldset>
+    </form>
+{% endblock %}

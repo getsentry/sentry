@@ -1,0 +1,120 @@
+---
+created: '2021-07-14T12:39:41.542601Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "99c9ddaf52b5ae7eebc8965606c28328"
+  tree_label: "nvwgf2umx.dll | NOutermost::CDeviceChild::LUCBeginLayerDestruction"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "NOutermost::CDeviceChild::LUCBeginLayerDestruction"
+            package (ignored because function takes precedence)
+              "d3d11.dll"
+          frame* (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+            package* (used as fallback because function name is not available)
+              "nvwgf2umx.dll"
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_READ"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "f7257ec144c61a9da89b30a65eaa616e"
+  tree_label: "nvwgf2umx.dll | NOutermost::CDeviceChild::LUCBeginLayerDestruction | destructor' | CUseCountedObject<T>::UCDestroy"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "CUseCountedObject<T>::UCDestroy"
+            package (ignored because function takes precedence)
+              "d3d11.dll"
+          frame*
+            function*
+              "destructor'"
+            package (ignored because function takes precedence)
+              "d3d11.dll"
+          frame*
+            function*
+              "NOutermost::CDeviceChild::LUCBeginLayerDestruction"
+            package (ignored because function takes precedence)
+              "d3d11.dll"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "CContext::LUCBeginLayerDestruction"
+            package (ignored because function takes precedence)
+              "d3d11.dll"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "NDXGI::CDevice::DestroyDriverInstance"
+            package (ignored because function takes precedence)
+              "d3d11.dll"
+          frame (ignored by stack trace rule (category:internals -group))
+            package* (used as fallback because function name is not available)
+              "nvwgf2umx.dll"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "OpenAdapter12"
+            package (ignored because function takes precedence)
+              "nvwgf2umx.dll"
+          frame* (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+            package* (used as fallback because function name is not available)
+              "nvwgf2umx.dll"
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_READ"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
+--------------------------------------------------------------------------
+system:
+  hash: "4236678d0966dc8f76f7a5a7ebfc4550"
+  tree_label: "nvwgf2umx.dll | NOutermost::CDeviceChild::LUCBeginLayerDestruction | destructor' | CUseCountedObject<T>::UCDestroy"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "CUseCountedObject<T>::UCDestroy"
+            package (ignored because function takes precedence)
+              "d3d11.dll"
+          frame*
+            function*
+              "destructor'"
+            package (ignored because function takes precedence)
+              "d3d11.dll"
+          frame*
+            function*
+              "NOutermost::CDeviceChild::LUCBeginLayerDestruction"
+            package (ignored because function takes precedence)
+              "d3d11.dll"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "CContext::LUCBeginLayerDestruction"
+            package (ignored because function takes precedence)
+              "d3d11.dll"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "NDXGI::CDevice::DestroyDriverInstance"
+            package (ignored because function takes precedence)
+              "d3d11.dll"
+          frame (ignored by stack trace rule (category:internals -group))
+            package* (used as fallback because function name is not available)
+              "nvwgf2umx.dll"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "OpenAdapter12"
+            package (ignored because function takes precedence)
+              "nvwgf2umx.dll"
+          frame* (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+            package* (used as fallback because function name is not available)
+              "nvwgf2umx.dll"
+        type*
+          "EXCEPTION_ACCESS_VIOLATION_READ"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"

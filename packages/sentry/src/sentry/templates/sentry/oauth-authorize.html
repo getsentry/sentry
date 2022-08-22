@@ -1,0 +1,39 @@
+{% extends "sentry/bases/auth.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_avatars %}
+
+{% block title %}{% trans "Authorize Application" %} | {{ block.super }}{% endblock %}
+
+{% block auth_main %}
+  <form class="form-stacked" action="." method="post" autocomplete="off">
+    {% csrf_token %}
+
+    <div>
+      <p><strong>{{ application.name }}</strong> is requesting access to your Sentry account ({{ user.username }}):</p>
+      <ul>
+        <li>Access to your account details, including your name and email address.</li>
+        {% for permission in permissions %}
+          <li>{{ permission }}</li>
+        {% endfor %}
+      </ul>
+      {% if application.terms_url or application.privacy_url %}
+        <p><small>
+          {% if application.terms_url %}
+            <a href="{{ application.terms_url }}">Terms of Use</a>
+            {% if application.privacy_url %} &mdash; {% endif %}
+          {% endif %}
+          {% if application.privacy_url %}
+            <a href="{{ application.privacy_url }}">Privacy Policy</a>
+          {% endif %}
+        </small></p>
+      {% endif %}
+    </div>
+
+    <div class="auth-footer">
+      <button type="submit" class="btn btn-primary" name="op" value="approve">{% trans "Approve" %}</button>
+      <button type="submit" class="btn btn-danger" name="op" value="deny">{% trans "Deny" %}</button>
+    </div>
+  </form>
+{% endblock %}

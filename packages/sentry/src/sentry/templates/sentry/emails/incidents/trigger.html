@@ -1,0 +1,76 @@
+{% extends "sentry/emails/activity/generic.html" %}
+
+{% load sentry_avatars %}
+{% load sentry_helpers %}
+{% load sentry_assets %}
+
+{% block activity %}
+  <div class="alert-title">
+    <div class="alert-badge">
+      {% if status_key == "resolved" %}
+      <!-- IconCheckmark -->
+      <img src="{% absolute_asset_url 'sentry' 'images/email/alert-badge-resolved.png' %}" width="36" height="36" alt="Alert Status: Resolved" />
+      {% elif status_key == "warning" %}
+      <!-- IconExclamation -->
+      <img src="{% absolute_asset_url 'sentry' 'images/email/alert-badge-warning.png' %}" width="36" height="36" alt="Alert Status: Warning" />
+      {% elif status_key == "critical" %}
+      <!-- IconFire -->
+      <img src="{% absolute_asset_url 'sentry' 'images/email/alert-badge-critical.png' %}" width="36" height="36" alt="Alert Status: Critical" />
+      {% endif %}
+    </div>
+    <div style="display: inline-block;">
+      <h3>
+        <a class="alert-title-link" href="{{ link }}">{{ status }}: {{ incident_name }}</a>
+      </h3>
+      <p>Triggered {{ triggered_at }}</p>
+    </div>
+  </div>
+
+  {% if enhanced_privacy %}
+    <div class="notice">
+      Details about this alert are not shown in this email since enhanced privacy
+      controls are enabled. For more details about this alert, <a href="{{ link }}">view on Sentry.</a>
+    </div>
+  {% else %}
+    {% if chart_url %}
+      <div class="align-center" style="margin-bottom: 16px;">
+        <img height="200" src="{{ chart_url }}" alt="{{ incident_name }} chart" />
+      </div>
+    {% endif %}
+    <div>
+      <h5 style="margin-bottom: 12px;">Alert Rule Details</h5>
+      <table class="alert-details">
+        <tr>
+          <td width="25%">Project</td>
+          <td>{{ project_slug }}</td>
+        </tr>
+        <tr>
+          <td width="25%">Environment</td>
+          <td>{{ environment }}</td>
+        </tr>
+        <tr>
+          <td width="25%">Threshold</td>
+          <td>
+            {{ threshold_direction_string }} {{ threshold }}{% if 'percentage' in aggregate %}%{% endif %}
+          </td>
+        </tr>
+        <tr>
+          <td width="25%">Time Interval</td>
+          <td>{{ time_window }}</td>
+        </tr>
+        <tr>
+          <td width="25%">Metric</td>
+          <td>{{ aggregate }}</td>
+        </tr>
+        <tr>
+          <td width="25%">Filter</td>
+          <td>{{ query }}</td>
+        </tr>
+        <tr>
+          <td width="25%">Date Created</td>
+          <td>{{ alert_date_added }}</td>
+        </tr>
+      </table>
+    </div>
+  {% endif %}
+{% endblock %}

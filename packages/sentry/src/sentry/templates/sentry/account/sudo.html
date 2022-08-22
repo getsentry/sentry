@@ -1,0 +1,77 @@
+{% extends "sentry/bases/auth.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_helpers %}
+{% load sentry_assets %}
+
+{% block title %}{% trans "Confirm Password" %} | {{ block.super }}{% endblock %}
+
+{% block wrapperclass %}{{block.super }} narrow auth{% endblock %}
+
+{% block scripts %}
+
+  {{ block.super }}
+
+  {% script type="text/javascript" %}
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(function() {
+          document.querySelector("#id_password").focus();
+      }, 0);
+    });
+  </script>
+  {% endscript %}
+{% endblock %}
+
+{% block auth_main %}
+
+          <h4>{% blocktrans %}Confirm your Identity{% endblocktrans %}</h4>
+
+          <p>
+            {% blocktrans %}Help us keep your account safe by confirming your identity.{% endblocktrans %}
+          </p>
+            <form class="form-stacked" action="" method="post" autocomplete="off">
+                {% csrf_token %}
+
+                {% if form.password.errors %}
+                    <div class="help-block error">{% trans "Your password was not valid." %}</div>
+                {% endif %}
+
+                <div class="control-group required">
+                  <div class="controls">
+                    <label class="control-label" for="id_password">Password</label>
+                    <input type="password" name="password" placeholder="Password" id="id_password" class="form-control">
+                  </div>
+                </div>
+
+                {% if u2f_challenge %}
+                    <div id="u2f-challenge">
+                      <div class="loading">
+                        <div class="loading-mask"></div>
+                        <div class="loading-indicator" data-test-id="loading-indicator"></div>
+                      </div>
+                    </div>
+                    {% script %}
+                    <script>
+                      window.__onSentryInit = window.__onSentryInit || [];
+                      window.__onSentryInit.push({
+                        name: 'renderReact',
+                        component: 'U2fSign',
+                        container: '#u2f-challenge',
+                        props: {
+                          challengeData: {{ u2f_challenge|to_json|safe }},
+                          displayMode: 'sudo'
+                        },
+                      });
+                    </script>
+                    {% endscript %}
+                {% endif %}
+
+                <div class="auth-footer">
+                   <button type="submit" class="btn btn-primary">{% trans "Continue" %}</button>
+                   <a class="secondary" href="{% url 'sentry-account-recover' %}">{% trans "Lost your password?" %}</a>
+                </div>
+            </form>
+
+{% endblock %}

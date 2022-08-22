@@ -1,0 +1,59 @@
+[
+  {
+    "query": "timestamp:hello",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "invalid": {
+          "reason": "Invalid date format. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. 2017-10-17 or 2017-10-17T02:41:00.000Z)",
+          "expectedType": ["date", "specificDate", "relativeDate"]
+        },
+        "key": {"type": "keySimple", "value": "timestamp", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "hello", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "timestamp:123",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "invalid": {
+          "reason": "Invalid date format. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. 2017-10-17 or 2017-10-17T02:41:00.000Z)",
+          "expectedType": ["date", "specificDate", "relativeDate"]
+        },
+        "key": {"type": "keySimple", "value": "timestamp", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "123", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "timestamp:2018-01-01T00:01ZZ",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "invalid": {
+          "reason": "Invalid date format. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. 2017-10-17 or 2017-10-17T02:41:00.000Z)",
+          "expectedType": ["date", "specificDate", "relativeDate"]
+        },
+        "key": {"type": "keySimple", "value": "timestamp", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "2018-01-01T00:01ZZ", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

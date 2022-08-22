@@ -1,0 +1,64 @@
+{% extends "sentry/emails/activity/generic.html" %}
+
+{% load sentry_avatars %}
+{% load sentry_helpers %}
+
+{% block action %}
+{% endblock %}
+
+{% block activity %}
+    <h2 style="margin-bottom: 10px">
+      Failed to Process Events
+    </h2>
+
+    <p class="muted">
+      Some events failed to process in your project "<a href="{{ project.get_absolute_url }}">{{ project.slug }}</a>".
+      {% if reprocessing_active %}
+        Since reprocessing is enabled, these events will not show up in Sentry until the processing issues are resolved.
+      {% endif %}
+    </p>
+    <hr>
+
+    <h6>Project Affected</h6>
+    <div class="table-border">
+      <table class="table projects">
+        <tbody>
+          <tr>
+            <td>
+              <h5 style="margin-bottom: 0">
+                <a href="{{ project.get_absolute_url }}">{{ project.slug }}</a>
+              </h5>
+              <p class="muted" style="margin-bottom: 0">
+                {% if issues|length == 1 %}1 issue{% else %}{{ issues|length }} issues{% endif %}
+              </p>
+            </td>
+            <td style="text-align: right">
+              {% if reprocessing_active %}
+              <a href="{{ info_url }}" class="btn btn-sm btn-primary">Fix Issues</a>
+              {% endif %}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h6>Issues</h6>
+    <div class="table-border">
+      <table class="table issues">
+        <tbody>
+          {% for issue in issues %}
+          <tr>
+            <td>
+              <p style="margin-bottom: 0">
+                <strong>{{ issue.message }}</strong>
+              </p>
+              {% if issue.extra_info %}
+                <p class="muted" style="margin-bottom: 0">{{ issue.extra_info }}</p>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+{% endblock %}

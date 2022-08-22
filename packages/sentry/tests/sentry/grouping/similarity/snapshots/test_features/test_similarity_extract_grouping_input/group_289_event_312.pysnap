@@ -1,0 +1,42 @@
+---
+created: '2021-04-08T09:39:08.019073Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","function_template.hpp"],["function","boost::function0<T>::operator()"]],[["function","stripped_application_code"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","thread.cpp"],["function","boost::`anonymous namespace'::thread_proxy"]],[["function","stripped_application_code"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","thread.cpp"],["function","boost::thread::start_thread_noexcept"]],[["function","thread_start"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","__abort"]],[["function","__pthread_kill"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","_pthread_start"]],[["filename","thread.cpp"],["function","boost::`anonymous namespace'::thread_proxy"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","abort"]],[["function","__abort"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","glDeleteTextures_Exec"]],[["function","gleUnbindDeleteHashNamesAndObjects"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","gldCreateDevice"]],[["function","gpusGenerateCrashLog"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","gldUpdateDispatch"]],[["function","gpusSubmitDataBuffers"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","gleUnbindDeleteHashNamesAndObjects"]],[["function","gleUnbindTextureObject"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","gleUnbindTextureObject"]],[["function","gldUpdateDispatch"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","gpusGenerateCrashLog"]],[["function","gpusGenerateCrashLog.cold.1"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","gpusGenerateCrashLog.cold.1"]],[["function","abort"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","gpusSubmitDataBuffers"]],[["function","gldCreateDevice"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","stripped_application_code"]],[["filename","function_template.hpp"],["function","boost::function0<T>::operator()"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","stripped_application_code"]],[["function","glDeleteTextures_Exec"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","thread_start"]],[["function","_pthread_start"]]]
+similarity:2020-07-23:value:character-5-shingle: " / <h"
+similarity:2020-07-23:value:character-5-shingle: " <hex"
+similarity:2020-07-23:value:character-5-shingle: " Erro"
+similarity:2020-07-23:value:character-5-shingle: "/ <he"
+similarity:2020-07-23:value:character-5-shingle: ": <he"
+similarity:2020-07-23:value:character-5-shingle: "<hex>"
+similarity:2020-07-23:value:character-5-shingle: "> / <"
+similarity:2020-07-23:value:character-5-shingle: "Error"
+similarity:2020-07-23:value:character-5-shingle: "Fatal"
+similarity:2020-07-23:value:character-5-shingle: "al Er"
+similarity:2020-07-23:value:character-5-shingle: "atal "
+similarity:2020-07-23:value:character-5-shingle: "ex> /"
+similarity:2020-07-23:value:character-5-shingle: "hex> "
+similarity:2020-07-23:value:character-5-shingle: "l Err"
+similarity:2020-07-23:value:character-5-shingle: "or: <"
+similarity:2020-07-23:value:character-5-shingle: "r: <h"
+similarity:2020-07-23:value:character-5-shingle: "ror: "
+similarity:2020-07-23:value:character-5-shingle: "rror:"
+similarity:2020-07-23:value:character-5-shingle: "tal E"
+similarity:2020-07-23:value:character-5-shingle: "x> / "

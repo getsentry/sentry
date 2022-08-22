@@ -1,0 +1,40 @@
+version: 1
+
+product: snuba
+
+destination:
+    type: directory
+    options:
+        location: '/tmp/cdc-snapshots/'
+
+tables:
+    -   table: sentry_groupedmessage
+        zip: True
+        columns:
+            -   name: 'project_id'
+            -   name: 'id'
+            -   name: 'status'
+            -   name: 'last_seen'
+                formatter:
+                    type: 'datetime'
+                    precision: 'second'
+            -   name: 'first_seen'
+                formatter:
+                    type: 'datetime'
+                    precision: 'second'
+            -   name: 'active_at'
+                formatter:
+                    type: 'datetime'
+                    precision: 'second'
+            -   name: 'first_release_id'
+    -   table: sentry_groupasignee
+        zip: True
+        columns:
+            -   name: 'project_id'
+            -   name: 'group_id'
+            -   name: 'date_added'
+                formatter:
+                    type: 'datetime'
+                    precision: 'second'
+            -   name: 'user_id'
+            -   name: 'team_id'

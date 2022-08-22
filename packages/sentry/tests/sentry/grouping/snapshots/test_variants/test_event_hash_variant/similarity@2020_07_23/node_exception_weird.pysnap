@@ -1,0 +1,198 @@
+---
+created: '2020-07-23T17:38:22.534036Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "a20509269752c9a1bea6078851e4d39c"
+  component:
+    app*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "hub"
+            filename (module takes precedence)
+              "hub.js"
+            function* (trimmed javascript function)
+              "withScope"
+            context-line*
+              "*/"
+          frame*
+            module*
+              "onunhandledrejection.ts"
+            filename (module takes precedence)
+              "onunhandledrejection.ts"
+            function (ignored unknown function name)
+              "<anonymous>"
+          frame (non app frame)
+            module*
+              "jest-mock.build:index"
+            filename (module takes precedence)
+              "index.js"
+            function* (trimmed javascript function)
+              "mockConstructor [as captureException]"
+            context-line*
+              "return fn.apply(this, arguments);"
+          frame (non app frame)
+            module*
+              "jest-mock.build:index"
+            filename (module takes precedence)
+              "index.js"
+            function (ignored unknown function name)
+              "<anonymous>"
+            context-line*
+              "})();"
+          frame (non app frame)
+            module*
+              "jest-mock.build:index"
+            filename (module takes precedence)
+              "index.js"
+            function*
+              "finalReturnValue"
+            context-line*
+              "return specificMockImpl.apply(this, arguments);"
+          frame (non app frame)
+            module*
+              "jest-mock.build:index"
+            filename (module takes precedence)
+              "index.js"
+            function (ignored unknown function name)
+              "<anonymous>"
+            context-line*
+              "return original.apply(this, arguments);"
+          frame*
+            module*
+              "hub.ts"
+            filename (module takes precedence)
+              "hub.ts"
+            function* (trimmed javascript function)
+              "captureException"
+            context-line*
+              "if (maxBreadcrumbs <= 0) {"
+          frame*
+            module*
+              "hub"
+            filename (module takes precedence)
+              "hub.js"
+            function* (trimmed javascript function)
+              "invokeClient"
+            context-line*
+              "* @returns Scope, the new cloned scope"
+          frame*
+            module*
+              "baseclient.ts"
+            filename (module takes precedence)
+              "baseclient.ts"
+            function* (trimmed javascript function)
+              "captureException"
+            context-line*
+              "promisedEvent"
+          frame*
+            module*
+              "backend.ts"
+            filename (module takes precedence)
+              "backend.ts"
+            function* (trimmed javascript function)
+              "eventFromException"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bla"
+--------------------------------------------------------------------------
+system:
+  hash: "252dc79eb5653bf822e2684d90734cb8"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "hub"
+            filename (module takes precedence)
+              "hub.js"
+            function* (trimmed javascript function)
+              "withScope"
+            context-line*
+              "*/"
+          frame*
+            module*
+              "onunhandledrejection.ts"
+            filename (module takes precedence)
+              "onunhandledrejection.ts"
+            function (ignored unknown function name)
+              "<anonymous>"
+          frame*
+            module*
+              "jest-mock.build:index"
+            filename (module takes precedence)
+              "index.js"
+            function* (trimmed javascript function)
+              "mockConstructor [as captureException]"
+            context-line*
+              "return fn.apply(this, arguments);"
+          frame*
+            module*
+              "jest-mock.build:index"
+            filename (module takes precedence)
+              "index.js"
+            function (ignored unknown function name)
+              "<anonymous>"
+            context-line*
+              "})();"
+          frame*
+            module*
+              "jest-mock.build:index"
+            filename (module takes precedence)
+              "index.js"
+            function*
+              "finalReturnValue"
+            context-line*
+              "return specificMockImpl.apply(this, arguments);"
+          frame*
+            module*
+              "jest-mock.build:index"
+            filename (module takes precedence)
+              "index.js"
+            function (ignored unknown function name)
+              "<anonymous>"
+            context-line*
+              "return original.apply(this, arguments);"
+          frame*
+            module*
+              "hub.ts"
+            filename (module takes precedence)
+              "hub.ts"
+            function* (trimmed javascript function)
+              "captureException"
+            context-line*
+              "if (maxBreadcrumbs <= 0) {"
+          frame*
+            module*
+              "hub"
+            filename (module takes precedence)
+              "hub.js"
+            function* (trimmed javascript function)
+              "invokeClient"
+            context-line*
+              "* @returns Scope, the new cloned scope"
+          frame*
+            module*
+              "baseclient.ts"
+            filename (module takes precedence)
+              "baseclient.ts"
+            function* (trimmed javascript function)
+              "captureException"
+            context-line*
+              "promisedEvent"
+          frame*
+            module*
+              "backend.ts"
+            filename (module takes precedence)
+              "backend.ts"
+            function* (trimmed javascript function)
+              "eventFromException"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bla"

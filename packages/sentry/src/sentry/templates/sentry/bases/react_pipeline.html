@@ -1,0 +1,19 @@
+{% extends "sentry/base-react.html" %}
+{% load sentry_assets %}
+
+{% block initial_data %}
+  {{ block.super }}
+  {% script %}
+  <script>
+    window.__pipelineInitialData = {
+      name: "{{ pipelineName }}",
+      props: {{ props | safe }},
+    };
+  </script>
+  {% endscript %}
+{% endblock %}
+
+{% block scripts_main_entrypoint %}
+    {% frontend_app_asset_url "sentry" "entrypoints/pipeline.js" as asset_url %}
+    {% script src=asset_url data-entry="true" %}{% endscript %}
+{% endblock %}

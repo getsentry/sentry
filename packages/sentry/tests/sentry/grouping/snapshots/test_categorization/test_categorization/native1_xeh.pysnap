@@ -1,0 +1,91 @@
+---
+created: '2021-07-08T17:52:58.623531Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+0x00000000 / 0x00000000:Fatal Error: 0x00000000 / 0x00000000 (thread_id:_, crashed:_)
+    /usr/lib/system/libsystem_platform.dylib  _sigtramp category=handler
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+  /System/Library/Frameworks/AppKit.framewor  NSRunAlertPanel category=indirection
+  /System/Library/Frameworks/AppKit.framewor  _NSTryRunModal category=internals
+  /System/Library/Frameworks/QuartzCore.fram  CA::Transaction::commit category=internals
+  /System/Library/Frameworks/QuartzCore.fram  CA::Context::commit_transaction category=internals
+  /System/Library/Frameworks/QuartzCore.fram  CA::Layer::display_if_needed category=internals
+  /System/Library/Frameworks/AppKit.framewor  -[_NSViewBackingLayer display] category=internals
+  /System/Library/Frameworks/AppKit.framewor  -[_NSBackingLayer display] category=internals
+  /System/Library/Frameworks/QuartzCore.fram  -[CALayer _display] category=internals
+  /System/Library/Frameworks/QuartzCore.fram  CA::Layer::display_ category=internals
+  /System/Library/Frameworks/QuartzCore.fram  CABackingStoreUpdate_ category=internals
+  /System/Library/Frameworks/AppKit.framewor  -[NSView(NSLayerKitGlue) _drawViewBackingLayer:inContext:drawingHandler:] category=internals
+  /System/Library/Frameworks/AppKit.framewor  -[NSView _recursive:displayRectIgnoringOpacity:inContext:stopAtLayerBackedViews:] category=internals
+  /System/Library/Frameworks/AppKit.framewor  -[NSView _recursive:displayRectIgnoringOpacity:inContext:stopAtLayerBackedViews:] category=internals
+  /System/Library/Frameworks/AppKit.framewor  -[NSView _recursive:displayRectIgnoringOpacity:inContext:stopAtLayerBackedViews:] category=internals
+  /System/Library/Frameworks/AppKit.framewor  -[NSView _recursive:displayRectIgnoringOpacity:inContext:stopAtLayerBackedViews:] category=internals
+  /System/Library/Frameworks/AppKit.framewor  _NSViewDrawRect category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+      Frontend.framework/Versions/A/Frontend  boost::function0<T>::operator() category=indirection
+                                              stripped_application_code
+        abccore.framework/Versions/A/abccore  boost::function0<T>::operator() category=indirection
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+            abcui.framework/Versions/A/abcui  std::__1::const_mem_fun1_ref_t<T>::operator() category=indirection
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+            abcui.framework/Versions/A/abcui  boost::shared_ptr<T>::reset<T> category=std
+            abcui.framework/Versions/A/abcui  boost::shared_ptr<T>::shared_ptr<T> category=internals
+            abcui.framework/Versions/A/abcui  boost::shared_ptr<T>::shared_ptr<T> category=internals
+            abcui.framework/Versions/A/abcui  boost::detail::sp_pointer_construct<T> category=internals
+            abcui.framework/Versions/A/abcui  boost::detail::shared_count::shared_count<T> category=internals
+            abcui.framework/Versions/A/abcui  boost::detail::shared_count::shared_count<T> category=internals
+                                              stripped_application_code
+      /usr/lib/system/libsystem_malloc.dylib  _malloc_zone_malloc category=malloc
+      /usr/lib/system/libsystem_malloc.dylib  nanov2_malloc category=internals
+      /usr/lib/system/libsystem_malloc.dylib  nanov2_allocate category=internals
+      /usr/lib/system/libsystem_malloc.dylib  nanov2_allocate_from_block category=internals
+      /usr/lib/system/libsystem_malloc.dylib  nanov2_allocate_from_block.cold.1 category=indirection
+      /usr/lib/system/libsystem_malloc.dylib  malloc_zone_error category=internals
+      /usr/lib/system/libsystem_malloc.dylib  malloc_vreport category=internals
+           /usr/lib/system/libsystem_c.dylib  abort category=throw
+      /usr/lib/system/libsystem_kernel.dylib  __pthread_kill category=internals

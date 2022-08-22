@@ -1,0 +1,32 @@
+{
+  "_fingerprinting_rules": [
+    {
+      "matchers": [
+        ["type", "DatabaseUnavailable"],
+        ["module", "io.sentry.example.*"]
+      ],
+      "fingerprint": ["database-unavailable",  "{{ function }}"]
+    }
+  ],
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "main",
+              "abs_path": "Application.java",
+              "module": "io.sentry.example.Application",
+              "filename": "Application.java",
+              "lineno": 13,
+              "in_app": false
+            }
+          ]
+        },
+        "type": "DatabaseUnavailable",
+        "value": "For some reason the database went away"
+      }
+    ]
+  },
+  "platform": "java"
+}

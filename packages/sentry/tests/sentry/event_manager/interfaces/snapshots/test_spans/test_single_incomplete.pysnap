@@ -1,0 +1,11 @@
+---
+created: '2019-07-11T19:30:21.308502Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_spans.py
+---
+errors: null
+to_json:
+- span_id: 8c931f4740435fb8
+  start_timestamp: 1562873192.624
+  timestamp: 1562873194.624
+  trace_id: a0fa8803753e40fd8124b21eeb2986b5

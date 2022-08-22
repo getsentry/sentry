@@ -1,0 +1,44 @@
+---
+created: '2021-02-15T10:11:59.552171Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "92816681b15788a8230e065fa299dc88"
+  component:
+    app*
+      chained-exception*
+        exception*
+          stacktrace*
+            frame*
+              filename*
+                "baz.py"
+          type*
+            "ValueError"
+        exception*
+          stacktrace
+            frame (non app frame)
+              filename*
+                "baz.py"
+          type*
+            "ValueError"
+--------------------------------------------------------------------------
+system:
+  hash: "669cb6664e0f5fed38665da04e464f7e"
+  component:
+    system*
+      chained-exception*
+        exception*
+          stacktrace*
+            frame*
+              filename*
+                "baz.py"
+          type*
+            "ValueError"
+        exception*
+          stacktrace*
+            frame*
+              filename*
+                "baz.py"
+          type*
+            "ValueError"

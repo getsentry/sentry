@@ -1,0 +1,486 @@
+---
+created: '2021-07-14T12:39:42.706890Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "b7de92d39e823772baa9a88863c07cab"
+  tree_label: "dlopen | stripped_application_code"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+          frame* (marked as prefix frame by stack trace rule (category:load +sentinel +prefix))
+            function*
+              "dlopen"
+            package (ignored because function takes precedence)
+              "libdyld.dylib"
+        type (ignored because exception is synthetic)
+          "0x00000000 / 0x00000000"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "8be5979a334287a1b47457228f1d4612"
+  tree_label: "abort | dlopen | stripped_application_code | stripped_application_code | stripped_application_code"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "start"
+            package (ignored because function takes precedence)
+              "libdyld.dylib"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "start"
+            package (ignored because function takes precedence)
+              "libdyld.dylib"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename (discarded native filename for grouping stability)
+              "functional"
+            function*
+              "std::__1::function<T>::operator()"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename (discarded native filename for grouping stability)
+              "functional"
+            function*
+              "std::__1::__function::__value_func<T>::operator()"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename (discarded native filename for grouping stability)
+              "functional"
+            function*
+              "std::__1::__function::__func<T>::operator()"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename (discarded native filename for grouping stability)
+              "functional"
+            function*
+              "std::__1::__function::__alloc_func<T>::operator()"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "__functional_base"
+            function*
+              "std::__1::__invoke_void_return_wrapper<T>::__call<T>"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "type_traits"
+            function*
+              "std::__1::__invoke<T>"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename (discarded native filename for grouping stability)
+              "initialize.cpp"
+            function*
+              "MZ::`anonymous namespace'::lambda::operator()"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "_objc_msgSend_uncached"
+            package (ignored because function takes precedence)
+              "libobjc.a.dylib"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "lookUpImpOrForward"
+            package (ignored because function takes precedence)
+              "libobjc.a.dylib"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "initializeAndMaybeRelock"
+            package (ignored because function takes precedence)
+              "libobjc.a.dylib"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "initializeNonMetaClass"
+            package (ignored because function takes precedence)
+              "libobjc.a.dylib"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "CALLING_SOME_+initialize_METHOD"
+            package (ignored because function takes precedence)
+              "libobjc.a.dylib"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame* (marked as prefix frame by stack trace rule (category:load +sentinel +prefix))
+            function*
+              "dlopen"
+            package (ignored because function takes precedence)
+              "libdyld.dylib"
+          frame (ignored by stack trace rule (category:indirection -group))
+            function*
+              "dlopen_internal"
+            package (ignored because function takes precedence)
+              "libdyld.dylib"
+          frame (ignored by stack trace rule (category:internals -group))
+            package* (used as fallback because function name is not available)
+              "dyld"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            package* (used as fallback because function name is not available)
+              "dyld"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            package* (used as fallback because function name is not available)
+              "dyld"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            package* (used as fallback because function name is not available)
+              "dyld"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            package* (used as fallback because function name is not available)
+              "dyld"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            package* (used as fallback because function name is not available)
+              "dyld"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            package* (used as fallback because function name is not available)
+              "dyld"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "__report_load"
+            package (ignored because function takes precedence)
+              "libcrypto.dylib"
+          frame (ignored by stack trace rule (category:indirection -group))
+            function*
+              "__report_load.cold.1"
+            package (ignored because function takes precedence)
+              "libcrypto.dylib"
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "abort"
+            package (ignored because function takes precedence)
+              "libsystem_c.dylib"
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "__abort"
+            package (ignored because function takes precedence)
+              "libsystem_c.dylib"
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "__pthread_kill"
+            package (ignored because function takes precedence)
+              "libsystem_kernel.dylib"
+        type (ignored because exception is synthetic)
+          "0x00000000 / 0x00000000"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"
+--------------------------------------------------------------------------
+system:
+  hash: "9537ce3f27493f603bc706069c99ae2d"
+  tree_label: "abort | dlopen | stripped_application_code | stripped_application_code | stripped_application_code"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "start"
+            package (ignored because function takes precedence)
+              "libdyld.dylib"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "start"
+            package (ignored because function takes precedence)
+              "libdyld.dylib"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename (discarded native filename for grouping stability)
+              "functional"
+            function*
+              "std::__1::function<T>::operator()"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename (discarded native filename for grouping stability)
+              "functional"
+            function*
+              "std::__1::__function::__value_func<T>::operator()"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename (discarded native filename for grouping stability)
+              "functional"
+            function*
+              "std::__1::__function::__func<T>::operator()"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename (discarded native filename for grouping stability)
+              "functional"
+            function*
+              "std::__1::__function::__alloc_func<T>::operator()"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "__functional_base"
+            function*
+              "std::__1::__invoke_void_return_wrapper<T>::__call<T>"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "type_traits"
+            function*
+              "std::__1::__invoke<T>"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename (discarded native filename for grouping stability)
+              "initialize.cpp"
+            function*
+              "MZ::`anonymous namespace'::lambda::operator()"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "_objc_msgSend_uncached"
+            package (ignored because function takes precedence)
+              "libobjc.a.dylib"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "lookUpImpOrForward"
+            package (ignored because function takes precedence)
+              "libobjc.a.dylib"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "initializeAndMaybeRelock"
+            package (ignored because function takes precedence)
+              "libobjc.a.dylib"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "initializeNonMetaClass"
+            package (ignored because function takes precedence)
+              "libobjc.a.dylib"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "CALLING_SOME_+initialize_METHOD"
+            package (ignored because function takes precedence)
+              "libobjc.a.dylib"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame* (marked as prefix frame by stack trace rule (category:load +sentinel +prefix))
+            function*
+              "dlopen"
+            package (ignored because function takes precedence)
+              "libdyld.dylib"
+          frame (ignored by stack trace rule (category:indirection -group))
+            function*
+              "dlopen_internal"
+            package (ignored because function takes precedence)
+              "libdyld.dylib"
+          frame (ignored by stack trace rule (category:internals -group))
+            package* (used as fallback because function name is not available)
+              "dyld"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            package* (used as fallback because function name is not available)
+              "dyld"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            package* (used as fallback because function name is not available)
+              "dyld"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            package* (used as fallback because function name is not available)
+              "dyld"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            package* (used as fallback because function name is not available)
+              "dyld"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            package* (used as fallback because function name is not available)
+              "dyld"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            package* (used as fallback because function name is not available)
+              "dyld"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "__report_load"
+            package (ignored because function takes precedence)
+              "libcrypto.dylib"
+          frame (ignored by stack trace rule (category:indirection -group))
+            function*
+              "__report_load.cold.1"
+            package (ignored because function takes precedence)
+              "libcrypto.dylib"
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "abort"
+            package (ignored because function takes precedence)
+              "libsystem_c.dylib"
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "__abort"
+            package (ignored because function takes precedence)
+              "libsystem_c.dylib"
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "__pthread_kill"
+            package (ignored because function takes precedence)
+              "libsystem_kernel.dylib"
+        type*
+          "0x00000000 / 0x00000000"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"

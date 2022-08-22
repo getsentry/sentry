@@ -1,0 +1,32 @@
+---
+created: '2021-07-08T18:20:25.202164Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+SIGABRT:<redacted> (thread_id:_, crashed:_)
+                     libsystem_pthread.dylib  _pthread_start category=threadbase
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                              libc++.1.dylib  std::__1::basic_string<T>::~basic_string category=internals
+                      libsystem_malloc.dylib  free category=free
+                      libsystem_malloc.dylib  malloc_report category=malloc
+                      libsystem_malloc.dylib  malloc_vreport category=internals
+                           libsystem_c.dylib  abort category=throw
+                     libsystem_pthread.dylib  pthread_kill category=indirection
+                      libsystem_kernel.dylib  __pthread_kill category=internals

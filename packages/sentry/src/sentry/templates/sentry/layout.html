@@ -1,0 +1,95 @@
+{% load i18n %}
+{% load sentry_avatars %}
+{% load sentry_assets %}
+{% load sentry_features %}
+{% load sentry_helpers %}
+{% load sentry_react %}
+
+{% load sentry_status %}
+{% get_sentry_version %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <!-- The "none" directive is equivalent to using both the noindex and nofollow tags simultaneously -->
+  <meta name="robots" content="none, noarchive">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link rel="icon" type="image/png" href="{% absolute_asset_url "sentry" "images/favicon.png" %}">
+
+  <link rel="apple-touch-icon" href="{% absolute_asset_url "sentry" "images/logos/apple-touch-icon.png" %}">
+  <link rel="apple-touch-icon" sizes="76x76" href="{% absolute_asset_url "sentry" "images/logos/apple-touch-icon-76x76.png" %}">
+  <link rel="apple-touch-icon" sizes="120x120" href="{% absolute_asset_url "sentry" "images/logos/apple-touch-icon-120x120.png" %}">
+  <link rel="apple-touch-icon" sizes="152x152" href="{% absolute_asset_url "sentry" "images/logos/apple-touch-icon-152x152.png" %}">
+  {% for tag in meta_tags %}
+  <meta property="{{ tag.property }}" content="{{ tag.content }}" />
+  {% endfor %}
+
+  <link rel="mask-icon" sizes="any" href="{% absolute_asset_url "sentry" "images/logos/logo-sentry.svg" %}" color="#FB4226">
+
+  <link href="{% frontend_app_asset_url "sentry" "entrypoints/sentry.css" %}" rel="stylesheet"/>
+
+  {% block css %}{% endblock %}
+
+  <title>{% block title %}Sentry{% endblock %}</title>
+
+  {% block initial_data %}
+    {% script %}
+    <script>
+      window.__initialData = {% get_react_config %};
+    </script>
+    {% endscript %}
+  {% endblock %}
+
+  {% script %}
+  <script>
+    // if the ads.js file loads below it will mark this variable as false
+    window.adblockSuspected = true;
+    // Initialize this so that we can queue up tasks when Sentry SPA is initialized
+    window.__onSentryInit = window.__onSentryInit || [];
+  </script>
+  {% endscript %}
+
+  {% script %}
+    {% include "sentry/partial/preload-data.html" %}
+  {% endscript %}
+
+  {% block scripts %}
+  {% block scripts_main_entrypoint %}
+    {% frontend_app_asset_url "sentry" "entrypoints/app.js" as asset_url %}
+    {% script src=asset_url data-entry="true" %}{% endscript %}
+  {% endblock %}
+
+  {% injected_script_assets as injected_assets %}
+  {% for asset_url in injected_assets %}
+    {% script src=asset_url %}{% endscript %}
+  {% endfor %}
+
+  {% asset_url 'sentry' 'js/ads.js' as asset_url %}
+  {% script src=asset_url %}{% endscript %}
+  {% endblock %}
+</head>
+
+<body class="{% block wrapperclass %}{% endblock %}">
+  {% block body %}
+  <div class="app">
+    {% if request.is_superuser %}
+        {% show_system_status %}
+    {% endif %}
+
+    {% block alerts %}
+    {% include "sentry/partial/alerts.html" %}
+    {% endblock %}
+
+    <div class="container">
+      <div class="content">
+        {% block content %}{% endblock %}
+      </div>
+    </div>
+  </div>
+  {% endblock %}
+
+  {% block scripts_bottom %}{% endblock %}
+</body>
+</html>

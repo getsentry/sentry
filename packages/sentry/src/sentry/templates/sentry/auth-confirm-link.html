@@ -1,0 +1,61 @@
+{% extends "sentry/bases/auth.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_avatars %}
+
+{% block title %}{% trans "Confirm Identity" %} | {{ block.super }}{% endblock %}
+
+{% block auth_main %}
+  <form class="form-stacked" action="" method="post">
+    {% csrf_token %}
+
+    <div class="sso-link">
+      <div class="sso-grid">
+        <div class="column left-column">
+          <div class="avatar-row">
+            <span class="avatar">
+              <img src="{% gravatar_url identity.email 36 'blank' %}">
+            </span>
+            <span class="avatar">
+              {% letter_avatar_svg identity_display_name identity_identifier %}
+            </span>
+            <span class="icon-arrow-right"></span>
+          </div>
+          <div><strong>{{ provider }}</strong></div>
+          <div>{{ identity.email }}</div>
+        </div>
+
+        <div class="column right-column">
+          <div class="avatar-row">
+            <span class="icon-arrow-left"></span>
+            <span class="avatar">{% avatar existing_user %}</span>
+          </div>
+          <div><strong>Sentry</strong></div>
+          <div class="email-truncate">{{ existing_user.email }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="align-center">
+      {% if force_link or existing_user.email == identity.email %}
+        <p>We're going to associate this {{ provider }} account with your Sentry account, which means all of your existing settings will stay intact.</p>
+
+        <p>
+          <button class="btn btn-primary" name="op" value="confirm" type="submit">Continue</button>
+        </p>
+      {% else %}
+        <p>Would you like to associate this {{ provider }} account with your Sentry account? If not, we'll go ahead and create a new account for you.</p>
+
+        <div class="sso-grid">
+          <div class="column">
+            <button class="btn btn-default" name="op" value="newuser" type="submit">No thanks</button>
+          </div>
+          <div class="column">
+            <button class="btn btn-primary" name="op" value="confirm" type="submit">Merge accounts</button>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </form>
+{% endblock %}

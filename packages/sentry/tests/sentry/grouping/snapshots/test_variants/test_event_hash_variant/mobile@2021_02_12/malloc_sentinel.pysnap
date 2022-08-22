@@ -1,0 +1,208 @@
+---
+created: '2021-08-04T15:53:49.960637Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "aeed765d29d1a60cb094f66d2cd8efb2"
+  tree_label: "stripped_application_code"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+        type (ignored because exception is synthetic)
+          "SIGABRT"
+        value (ignored because stacktrace takes precedence)
+          "<redacted>"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "03195849378c2d0057736e05eb9226af"
+  tree_label: "abort | malloc_report | free | stripped_application_code | stripped_application_code"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            filename (discarded native filename for grouping stability)
+              "stripped_application_code"
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame* (marked as prefix frame by stack trace rule (category:free +prefix))
+            function*
+              "free"
+          frame* (marked as prefix frame by stack trace rule (category:malloc +prefix))
+            function*
+              "malloc_report"
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "abort"
+        type (ignored because exception is synthetic)
+          "SIGABRT"
+        value (ignored because stacktrace takes precedence)
+          "<redacted>"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "aef58de07534b583f7a4bbc9c5201ebf"
+  tree_label: "abort | malloc_report | free | stripped_application_code | stripped_application_code | stripped_application_code"
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "stripped_application_code"
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame* (marked as prefix frame by stack trace rule (category:free +prefix))
+            function*
+              "free"
+          frame* (marked as prefix frame by stack trace rule (category:malloc +prefix))
+            function*
+              "malloc_report"
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "abort"
+        type (ignored because exception is synthetic)
+          "SIGABRT"
+        value (ignored because stacktrace takes precedence)
+          "<redacted>"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "aef58de07534b583f7a4bbc9c5201ebf"
+  tree_label: "abort | malloc_report | free | stripped_application_code | stripped_application_code | stripped_application_code"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "stripped_application_code"
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame* (marked as prefix frame by stack trace rule (category:free +prefix))
+            function*
+              "free"
+          frame* (marked as prefix frame by stack trace rule (category:malloc +prefix))
+            function*
+              "malloc_report"
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "abort"
+        type (ignored because exception is synthetic)
+          "SIGABRT"
+        value (ignored because stacktrace takes precedence)
+          "<redacted>"
+--------------------------------------------------------------------------
+system:
+  hash: "804f08432027d0246c7e7bda086f6c15"
+  tree_label: "abort | malloc_report | free | stripped_application_code | stripped_application_code | stripped_application_code"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "_pthread_start"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "stripped_application_code"
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            filename (discarded native filename for grouping stability)
+              "stripped_application_code"
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            filename (discarded native filename for grouping stability)
+              "stripped_application_code"
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            filename (discarded native filename for grouping stability)
+              "stripped_application_code"
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            filename (discarded native filename for grouping stability)
+              "stripped_application_code"
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            filename (discarded native filename for grouping stability)
+              "stripped_application_code"
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "std::__1::basic_string<T>::~basic_string"
+          frame* (marked as prefix frame by stack trace rule (category:free +prefix))
+            function*
+              "free"
+          frame* (marked as prefix frame by stack trace rule (category:malloc +prefix))
+            function*
+              "malloc_report"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "malloc_vreport"
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "abort"
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "pthread_kill"
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
+            function*
+              "__pthread_kill"
+        type*
+          "SIGABRT"
+        value (ignored because stacktrace takes precedence)
+          "<redacted>"

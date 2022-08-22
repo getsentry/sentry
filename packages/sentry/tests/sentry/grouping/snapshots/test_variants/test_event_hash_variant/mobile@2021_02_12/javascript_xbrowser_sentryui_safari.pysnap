@@ -1,0 +1,333 @@
+---
+created: '2021-09-01T10:07:53.232413Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "37431f5f13e61c1a604e54d097c98cc5"
+  tree_label: "fetchGroupEventAndMarkSeen"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "app/api"
+            filename (module takes precedence)
+              "api.jsx"
+            function (ignored because sourcemap used and context line available)
+              "fetchGroupEventAndMarkSeen"
+            context-line*
+              "const preservedError = new Error();"
+        type*
+          "NotFoundError"
+        value (ignored because stacktrace takes precedence)
+          "GET /issues/<int>/events/latest/ <int>"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "caa5df29a33af87ed50ebc242e35178d"
+  tree_label: "fetchGroupEventAndMarkSeen | fetchData"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "app/views/groupDetails/shared/groupEventDetails"
+            filename (module takes precedence)
+              "groupeventdetails.jsx"
+            function (ignored because sourcemap used and context line available)
+              "fetchData"
+            context-line*
+              "fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)"
+          frame*
+            module*
+              "app/api"
+            filename (module takes precedence)
+              "api.jsx"
+            function (ignored because sourcemap used and context line available)
+              "fetchGroupEventAndMarkSeen"
+            context-line*
+              "const preservedError = new Error();"
+        type*
+          "NotFoundError"
+        value (ignored because stacktrace takes precedence)
+          "GET /issues/<int>/events/latest/ <int>"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "0d2903c79166b4f45dce1a21dd5bca2a"
+  tree_label: "fetchGroupEventAndMarkSeen | fetchData | q"
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "app/views/groupDetails/shared/groupEventDetails"
+            filename (module takes precedence)
+              "groupeventdetails.jsx"
+            function (ignored because sourcemap used and context line available)
+              "q"
+            context-line*
+              "this.fetchData();"
+          frame*
+            module*
+              "app/views/groupDetails/shared/groupEventDetails"
+            filename (module takes precedence)
+              "groupeventdetails.jsx"
+            function (ignored because sourcemap used and context line available)
+              "fetchData"
+            context-line*
+              "fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)"
+          frame*
+            module*
+              "app/api"
+            filename (module takes precedence)
+              "api.jsx"
+            function (ignored because sourcemap used and context line available)
+              "fetchGroupEventAndMarkSeen"
+            context-line*
+              "const preservedError = new Error();"
+        type*
+          "NotFoundError"
+        value (ignored because stacktrace takes precedence)
+          "GET /issues/<int>/events/latest/ <int>"
+--------------------------------------------------------------------------
+app-depth-4:
+  hash: "4a3cf3893b6485428dd02da116c8370e"
+  tree_label: "fetchGroupEventAndMarkSeen | fetchData | q | call"
+  component:
+    app-depth-4*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "app/components/lazyLoad"
+            filename (module takes precedence)
+              "lazyload.jsx"
+            function (ignored because sourcemap used and context line available)
+              "call"
+            context-line*
+              "this.setState({"
+          frame*
+            module*
+              "app/views/groupDetails/shared/groupEventDetails"
+            filename (module takes precedence)
+              "groupeventdetails.jsx"
+            function (ignored because sourcemap used and context line available)
+              "q"
+            context-line*
+              "this.fetchData();"
+          frame*
+            module*
+              "app/views/groupDetails/shared/groupEventDetails"
+            filename (module takes precedence)
+              "groupeventdetails.jsx"
+            function (ignored because sourcemap used and context line available)
+              "fetchData"
+            context-line*
+              "fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)"
+          frame*
+            module*
+              "app/api"
+            filename (module takes precedence)
+              "api.jsx"
+            function (ignored because sourcemap used and context line available)
+              "fetchGroupEventAndMarkSeen"
+            context-line*
+              "const preservedError = new Error();"
+        type*
+          "NotFoundError"
+        value (ignored because stacktrace takes precedence)
+          "GET /issues/<int>/events/latest/ <int>"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "4a3cf3893b6485428dd02da116c8370e"
+  tree_label: "fetchGroupEventAndMarkSeen | fetchData | q | call"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "app/components/lazyLoad"
+            filename (module takes precedence)
+              "lazyload.jsx"
+            function (ignored because sourcemap used and context line available)
+              "call"
+            context-line*
+              "this.setState({"
+          frame*
+            module*
+              "app/views/groupDetails/shared/groupEventDetails"
+            filename (module takes precedence)
+              "groupeventdetails.jsx"
+            function (ignored because sourcemap used and context line available)
+              "q"
+            context-line*
+              "this.fetchData();"
+          frame*
+            module*
+              "app/views/groupDetails/shared/groupEventDetails"
+            filename (module takes precedence)
+              "groupeventdetails.jsx"
+            function (ignored because sourcemap used and context line available)
+              "fetchData"
+            context-line*
+              "fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)"
+          frame*
+            module*
+              "app/api"
+            filename (module takes precedence)
+              "api.jsx"
+            function (ignored because sourcemap used and context line available)
+              "fetchGroupEventAndMarkSeen"
+            context-line*
+              "const preservedError = new Error();"
+        type*
+          "NotFoundError"
+        value (ignored because stacktrace takes precedence)
+          "GET /issues/<int>/events/latest/ <int>"
+--------------------------------------------------------------------------
+system:
+  hash: "0b81da6ea3d7cc82b1d4825b7aac0b8d"
+  tree_label: "fetchGroupEventAndMarkSeen | fetchData | q | ih | Xg | Yg | tag | enqueueSetState | setState | call | tryCatch | key | asyncGeneratorStep | _next"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame (ignored low quality javascript frame)
+            filename (native code indicated by filename)
+              "[native code]"
+            function*
+              "promiseReactionJob"
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator"
+            filename (module takes precedence)
+              "asynctogenerator.js"
+            function (ignored because sourcemap used and context line available)
+              "_next"
+            context-line*
+              "asyncGeneratorStep(gen, resolve, reject, _next, _throw, \"next\", value);"
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator"
+            filename (module takes precedence)
+              "asynctogenerator.js"
+            function (ignored because sourcemap used and context line available)
+              "asyncGeneratorStep"
+            context-line*
+              "var info = gen[key](arg);"
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"
+            filename (module takes precedence)
+              "runtime.js"
+            function (ignored because sourcemap used and context line available)
+              "key"
+            context-line*
+              "var record = tryCatch(innerFn, self, context);"
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"
+            filename (module takes precedence)
+              "runtime.js"
+            function (ignored because sourcemap used and context line available)
+              "tryCatch"
+            context-line*
+              "return { type: \"normal\", arg: fn.call(obj, arg) };"
+          frame*
+            module*
+              "app/components/lazyLoad"
+            filename (module takes precedence)
+              "lazyload.jsx"
+            function (ignored because sourcemap used and context line available)
+              "call"
+            context-line*
+              "this.setState({"
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/react/cjs/react.production"
+            filename (module takes precedence)
+              "react.production.min.js"
+            function*
+              "setState"
+            context-line (discarded because line too long)
+              "{snip} ructor=G;m(H,E.prototype);H.isPureReactComponent=!0;var I={current:null,currentDispatcher:null},J=Object.prototype.hasOwnProperty,K={key:!0, {snip}"
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
+            filename (module takes precedence)
+              "react-dom.production.min.js"
+            function*
+              "enqueueSetState"
+            context-line (discarded because line too long)
+              "{snip} &(e.callback=c);ff(a,e);If(a,d)},enqueueForceUpdate:function(a,b){a=a._reactInternalFiber;var c=Gf();c=Hf(c,a);var d=df(c);d.tag=2;void 0!=="
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
+            filename (module takes precedence)
+              "react-dom.production.min.js"
+            function*
+              "tag"
+            context-line (discarded because line too long)
+              "var U=null,T=null,ch=0,dh=void 0,V=!1,Y=null,Z=0,Vg=0,eh=!1,fh=!1,gh=null,hh=null,W=!1,Wg=!1,Ug=!1,ih=null,jh=ba.unstable_now(),kh=(jh/10|0) {snip}"
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
+            filename (module takes precedence)
+              "react-dom.production.min.js"
+            function*
+              "Yg"
+            context-line (discarded because line too long)
+              "function Xg(a,b,c){V?t(\"245\"):void 0;V=!0;if(null===hh||c){var d=a.finishedWork;null!==d?rh(a,d,b):(a.finishedWork=null,Sg(a,!1,c),d=a.finis {snip}"
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
+            filename (module takes precedence)
+              "react-dom.production.min.js"
+            function*
+              "Xg"
+            context-line (discarded because line too long)
+              "function rh(a,b,c){var d=a.firstBatch;if(null!==d&&d._expirationTime<=c&&(null===ih?ih=[d]:ih.push(d),d._defer)){a.finishedWork=b;a.expirati {snip}"
+          frame*
+            module*
+              "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
+            filename (module takes precedence)
+              "react-dom.production.min.js"
+            function*
+              "ih"
+            context-line (discarded because line too long)
+              "{snip} .__reactInternalSnapshotBeforeUpdate)}var kg=q.updateQueue;null!==kg&&(X.props=q.memoizedProps,X.state=q.memoizedState,lf(q,kg,X,p));break;c {snip}"
+          frame*
+            module*
+              "app/views/groupDetails/shared/groupEventDetails"
+            filename (module takes precedence)
+              "groupeventdetails.jsx"
+            function (ignored because sourcemap used and context line available)
+              "q"
+            context-line*
+              "this.fetchData();"
+          frame*
+            module*
+              "app/views/groupDetails/shared/groupEventDetails"
+            filename (module takes precedence)
+              "groupeventdetails.jsx"
+            function (ignored because sourcemap used and context line available)
+              "fetchData"
+            context-line*
+              "fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)"
+          frame*
+            module*
+              "app/api"
+            filename (module takes precedence)
+              "api.jsx"
+            function (ignored because sourcemap used and context line available)
+              "fetchGroupEventAndMarkSeen"
+            context-line*
+              "const preservedError = new Error();"
+        type*
+          "NotFoundError"
+        value (ignored because stacktrace takes precedence)
+          "GET /issues/<int>/events/latest/ <int>"

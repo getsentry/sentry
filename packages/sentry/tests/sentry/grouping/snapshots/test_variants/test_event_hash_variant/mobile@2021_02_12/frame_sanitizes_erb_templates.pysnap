@@ -1,0 +1,40 @@
+---
+created: '2021-08-04T15:53:48.625581Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "4067a71d7098866f87c746a57a77b2bb"
+  tree_label: "_foo_html_erb"
+  component:
+    app-depth-1*
+      stacktrace*
+        frame*
+          filename*
+            "foo.html.erb"
+          function* (removed generated erb template suffix)
+            "_foo_html_erb"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "4067a71d7098866f87c746a57a77b2bb"
+  tree_label: "_foo_html_erb"
+  component:
+    app-depth-max*
+      stacktrace*
+        frame*
+          filename*
+            "foo.html.erb"
+          function* (removed generated erb template suffix)
+            "_foo_html_erb"
+--------------------------------------------------------------------------
+system:
+  hash: "4067a71d7098866f87c746a57a77b2bb"
+  tree_label: "_foo_html_erb"
+  component:
+    system*
+      stacktrace*
+        frame*
+          filename*
+            "foo.html.erb"
+          function* (removed generated erb template suffix)
+            "_foo_html_erb"

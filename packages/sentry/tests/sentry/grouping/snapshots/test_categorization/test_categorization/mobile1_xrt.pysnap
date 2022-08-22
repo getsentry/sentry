@@ -1,0 +1,14 @@
+---
+created: '2021-03-29T22:02:39.883995Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+SIGSEGV:Segfault (thread_id:_, crashed:_)
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+               external/libcxx/src/mutex.cpp  std::__ndk1::mutex::lock category=internals
+  external/libcxx/include/__threading_suppor  std::__ndk1::__libcpp_mutex_lock category=internals
+                       /system/lib64/libc.so  pthread_mutex_lock category=lock

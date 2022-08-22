@@ -1,0 +1,98 @@
+{
+  "culprit": "Object.aha(/tmp/test.html)",
+  "event_id": "6b8b408a6efa4d95955e51f2b3c9a168",
+  "platform": "javascript",
+  "logger": "",
+  "fingerprint": [
+    "{{ default }}"
+  ],
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "file:///tmp/test.html",
+              "filename": "/tmp/test.html",
+              "lineno": 49,
+              "colno": 19,
+              "in_app": false
+            },
+            {
+              "function": "Foo.testMethod",
+              "abs_path": "file:///tmp/test.html",
+              "filename": "/tmp/test.html",
+              "lineno": 43,
+              "colno": 7,
+              "in_app": false
+            },
+            {
+              "function": "aha",
+              "abs_path": "file:///tmp/test.html",
+              "filename": "/tmp/test.html",
+              "lineno": 38,
+              "colno": 5,
+              "in_app": false
+            },
+            {
+              "function": "eval",
+              "abs_path": "file:///tmp/test.html",
+              "filename": "/tmp/test.html",
+              "lineno": 1,
+              "colno": 1,
+              "in_app": false
+            },
+            {
+              "function": "test",
+              "abs_path": "file:///tmp/test.html",
+              "filename": "/tmp/test.html",
+              "lineno": 32,
+              "colno": 23,
+              "in_app": false
+            },
+            {
+              "function": "Array.map",
+              "abs_path": "<anonymous>",
+              "in_app": false,
+              "filename": "<anonymous>"
+            },
+            {
+              "abs_path": "file:///tmp/test.html",
+              "filename": "/tmp/test.html",
+              "lineno": 33,
+              "colno": 17,
+              "in_app": false
+            },
+            {
+              "function": "Object.callback",
+              "abs_path": "file:///tmp/test.html",
+              "filename": "/tmp/test.html",
+              "lineno": 24,
+              "colno": 7,
+              "in_app": false
+            },
+            {
+              "function": "callAnotherThing",
+              "abs_path": "file:///tmp/test.html",
+              "filename": "/tmp/test.html",
+              "lineno": 19,
+              "colno": 16,
+              "in_app": false
+            },
+            {
+              "function": "Object.aha",
+              "abs_path": "file:///tmp/test.html",
+              "filename": "/tmp/test.html",
+              "lineno": 18,
+              "colno": 13,
+              "in_app": false
+            }
+          ]
+        },
+        "type": "Error",
+        "value": "bad"
+      }
+    ]
+  },
+  "release": null
+}

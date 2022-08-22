@@ -1,0 +1,180 @@
+[
+  {
+    "query": "release:\"a release\"",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "release", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "a release", "quoted": true}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "!release:\"a release\"",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": true,
+        "key": {"type": "keySimple", "value": "release", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "a release", "quoted": true}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "release:[\"a release\"]",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "textIn",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "release", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueTextList",
+          "items": [
+            {
+              "separator": "",
+              "value": {"type": "valueText", "value": "a release", "quoted": true}
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "release:[\"a release\",\"b release\"]",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "textIn",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "release", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueTextList",
+          "items": [
+            {
+              "separator": "",
+              "value": {"type": "valueText", "value": "a release", "quoted": true}
+            },
+            {
+              "separator": ",",
+              "value": {"type": "valueText", "value": "b release", "quoted": true}
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "release:[\"a release\",    \"b release\", \"c release\"]",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "textIn",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "release", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueTextList",
+          "items": [
+            {
+              "separator": "",
+              "value": {"type": "valueText", "value": "a release", "quoted": true}
+            },
+            {
+              "separator": ",    ",
+              "value": {"type": "valueText", "value": "b release", "quoted": true}
+            },
+            {
+              "separator": ", ",
+              "value": {"type": "valueText", "value": "c release", "quoted": true}
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "!release:[\"a release\",\"b release\"]",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "textIn",
+        "negated": true,
+        "key": {"type": "keySimple", "value": "release", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueTextList",
+          "items": [
+            {
+              "separator": "",
+              "value": {"type": "valueText", "value": "a release", "quoted": true}
+            },
+            {
+              "separator": ",",
+              "value": {"type": "valueText", "value": "b release", "quoted": true}
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "release:[\"a release\"] hello:[\"123\"]",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "textIn",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "release", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueTextList",
+          "items": [
+            {
+              "separator": "",
+              "value": {"type": "valueText", "value": "a release", "quoted": true}
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": " "},
+      {
+        "type": "filter",
+        "filter": "textIn",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "hello", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueTextList",
+          "items": [
+            {
+              "separator": "",
+              "value": {"type": "valueText", "value": "123", "quoted": true}
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

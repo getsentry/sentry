@@ -1,0 +1,232 @@
+{
+  "_fingerprinting_rules": [
+    {
+      "matchers": [
+        ["type", "ReadTimeout"],
+        ["path", "**/requests/adapters.py"]
+      ],
+      "fingerprint": ["timeout-in-requests"]
+    }
+  ],
+  "platform": "python",
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "safe_execute",
+              "abs_path": "/usr/src/getsentry/src/sentry/src/sentry/utils/safe.py",
+              "pre_context": [
+                "    _with_transaction = kwargs.pop('_with_transaction', True)",
+                "    expected_errors = kwargs.pop('expected_errors', None)",
+                "    try:",
+                "        if _with_transaction:",
+                "            with transaction.atomic():"
+              ],
+              "module": "sentry.utils.safe",
+              "filename": "sentry/utils/safe.py",
+              "post_context": [
+                "        else:",
+                "            result = func(*args, **kwargs)",
+                "    except Exception as e:",
+                "        if hasattr(func, 'im_class'):",
+                "            cls = func.im_class"
+              ],
+              "in_app": true,
+              "context_line": "                result = func(*args, **kwargs)",
+              "lineno": 30
+            },
+            {
+              "function": "rule_notify",
+              "abs_path": "/usr/src/getsentry/src/sentry/src/sentry/plugins/bases/notify.py",
+              "pre_context": [
+                "        else:",
+                "            notification = Notification(",
+                "                event=event,",
+                "                rules=rules,",
+                "            )"
+              ],
+              "module": "sentry.plugins.bases.notify",
+              "filename": "sentry/plugins/bases/notify.py",
+              "post_context": [
+                "",
+                "        self.logger.info('notification.%s' % log_event, extra=extra)",
+                "",
+                "    def notify_users(self, group, event, triggering_rules, fail_silently=False, **kwargs):",
+                "        raise NotImplementedError"
+              ],
+              "in_app": true,
+              "context_line": "            self.notify(notification)",
+              "lineno": 129
+            },
+            {
+              "function": "notify",
+              "abs_path": "/usr/src/getsentry/src/sentry/src/sentry/plugins/bases/notify.py",
+              "pre_context": [
+                "",
+                "    def notify(self, notification):",
+                "        event = notification.event",
+                "        try:",
+                "            return self.notify_users(event.group, event, triggering_rules=["
+              ],
+              "module": "sentry.plugins.bases.notify",
+              "filename": "sentry/plugins/bases/notify.py",
+              "post_context": [
+                "        except (SSLError, HTTPError, ApiError, PluginError, urllib2.HTTPError) as err:",
+                "            self.logger.info('notification-plugin.notify-failed.', extra={",
+                "                'error': six.text_type(err),",
+                "                'plugin': self.slug",
+                "            })"
+              ],
+              "in_app": true,
+              "context_line": "                                     r.label for r in notification.rules])",
+              "lineno": 76
+            },
+            {
+              "function": "notify_users",
+              "abs_path": "/usr/src/getsentry/src/sentry-opsgenie/src/sentry_opsgenie/plugin.py",
+              "pre_context": [
+                "        headers = {'Authorization': 'GenieKey ' + api_key}",
+                "",
+                "        if recipients:",
+                "            payload['recipients'] = recipients",
+                ""
+              ],
+              "module": "sentry_opsgenie.plugin",
+              "filename": "sentry_opsgenie/plugin.py",
+              "post_context": [
+                "        if not resp.ok:",
+                "            raise HTTPError('Unsuccessful response from OpsGenie: %s' % resp.json())"
+              ],
+              "in_app": false,
+              "context_line": "        resp = http.safe_urlopen(alert_url, json=payload, headers=headers)",
+              "lineno": 107
+            },
+            {
+              "function": "safe_urlopen",
+              "abs_path": "/usr/src/getsentry/src/sentry/src/sentry/http.py",
+              "pre_context": [
+                "        method=method,",
+                "        url=url,",
+                "        allow_redirects=allow_redirects,",
+                "        timeout=timeout,",
+                "        verify=verify_ssl,"
+              ],
+              "module": "sentry.http",
+              "filename": "sentry/http.py",
+              "post_context": [
+                "    )",
+                "",
+                "    return response",
+                "",
+                ""
+              ],
+              "in_app": true,
+              "context_line": "        **kwargs",
+              "lineno": 124
+            },
+            {
+              "function": "request",
+              "abs_path": "/usr/src/getsentry/src/sentry/src/sentry/net/http.py",
+              "pre_context": [
+                "",
+                "",
+                "class Session(_Session):",
+                "    def request(self, *args, **kwargs):",
+                "        kwargs.setdefault('timeout', 30)"
+              ],
+              "module": "sentry.net.http",
+              "filename": "sentry/net/http.py",
+              "post_context": [
+                "        # requests' attempts to use chardet internally when no encoding is found",
+                "        # and we want to avoid that slow behavior",
+                "        if not response.encoding:",
+                "            response.encoding = 'utf-8'",
+                "        return response"
+              ],
+              "in_app": true,
+              "context_line": "        response = _Session.request(self, *args, **kwargs)",
+              "lineno": 154
+            },
+            {
+              "function": "request",
+              "abs_path": "/usr/local/lib/python2.7/site-packages/requests/sessions.py",
+              "pre_context": [
+                "        send_kwargs = {",
+                "            'timeout': timeout,",
+                "            'allow_redirects': allow_redirects,",
+                "        }",
+                "        send_kwargs.update(settings)"
+              ],
+              "module": "requests.sessions",
+              "filename": "requests/sessions.py",
+              "post_context": [
+                "",
+                "        return resp",
+                "",
+                "    def get(self, url, **kwargs):",
+                "        r\"\"\"Sends a GET request. Returns :class:`Response` object."
+              ],
+              "in_app": false,
+              "context_line": "        resp = self.send(prep, **send_kwargs)",
+              "lineno": 533
+            },
+            {
+              "function": "send",
+              "abs_path": "/usr/local/lib/python2.7/site-packages/requests/sessions.py",
+              "pre_context": [
+                "",
+                "        # Start time (approximately) of the request",
+                "        start = preferred_clock()",
+                "",
+                "        # Send the request"
+              ],
+              "module": "requests.sessions",
+              "filename": "requests/sessions.py",
+              "post_context": [
+                "",
+                "        # Total elapsed time of the request (approximately)",
+                "        elapsed = preferred_clock() - start",
+                "        r.elapsed = timedelta(seconds=elapsed)",
+                ""
+              ],
+              "in_app": false,
+              "context_line": "        r = adapter.send(request, **kwargs)",
+              "lineno": 646
+            },
+            {
+              "function": "send",
+              "abs_path": "/usr/local/lib/python2.7/site-packages/requests/adapters.py",
+              "pre_context": [
+                "        except (_SSLError, _HTTPError) as e:",
+                "            if isinstance(e, _SSLError):",
+                "                # This branch is for urllib3 versions earlier than v1.22",
+                "                raise SSLError(e, request=request)",
+                "            elif isinstance(e, ReadTimeoutError):"
+              ],
+              "module": "requests.adapters",
+              "filename": "requests/adapters.py",
+              "post_context": [
+                "            else:",
+                "                raise",
+                "",
+                "        return self.build_response(request, resp)"
+              ],
+              "in_app": false,
+              "context_line": "                raise ReadTimeout(e, request=request)",
+              "lineno": 529
+            }
+          ]
+        },
+        "type": "ReadTimeout",
+        "value": "SafeHTTPSConnectionPool(host='api.opsgenie.com', port=443): Read timed out. (read timeout=30)",
+        "module": "requests.exceptions",
+        "mechanism": {
+          "type": "logging",
+          "handled": true
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "changelog": {
+    "items": [
+      {
+        "from": "10101",
+        "field": "status",
+        "fromString": "Done",
+        "to": "3",
+        "toString": "In Progress",
+        "fieldtype": "jira",
+        "fieldId": "status"
+      }
+    ],
+    "id": "10196"
+  },
+  "issue": {
+    "fields": {
+      "project": {
+        "id": "10000",
+        "key": "APP"
+      }
+    },
+    "key": "APP-123"
+  }
+}

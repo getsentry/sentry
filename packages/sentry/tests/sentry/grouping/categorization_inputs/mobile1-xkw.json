@@ -1,0 +1,169 @@
+{
+  "event_id": "756cc5b95a30438e9f92bfc3688db147",
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "Thread.java",
+              "filename": "Thread.java",
+              "function": "run",
+              "module": "java.lang.Thread"
+            },
+            {
+              "abs_path": "ThreadPoolExecutor.java",
+              "filename": "ThreadPoolExecutor.java",
+              "function": "run",
+              "module": "java.util.concurrent.ThreadPoolExecutor$Worker"
+            },
+            {
+              "abs_path": "ThreadPoolExecutor.java",
+              "filename": "ThreadPoolExecutor.java",
+              "function": "runWorker",
+              "module": "java.util.concurrent.ThreadPoolExecutor"
+            },
+            {
+              "abs_path": "AsyncTask.java",
+              "filename": "AsyncTask.java",
+              "function": "run",
+              "module": "android.os.AsyncTask$SerialExecutor$1"
+            },
+            {
+              "abs_path": "FutureTask.java",
+              "filename": "FutureTask.java",
+              "function": "run",
+              "module": "java.util.concurrent.FutureTask"
+            },
+            {
+              "abs_path": "AsyncTask.java",
+              "filename": "AsyncTask.java",
+              "function": "call",
+              "module": "android.os.AsyncTask$3"
+            },
+            {
+              "function": "doInBackground",
+              "module": "com.lenovo.payplus.analytics.GameAnalyticsBiz$1"
+            },
+            {
+              "function": "\u0873\u0865\u086d",
+              "module": "com.lenovo.payplus.analytics.GameAnalyticsBiz$1"
+            },
+            {
+              "function": "doInBackground",
+              "module": "com.lenovo.payplus.analytics.GameAnalyticsBiz$1"
+            },
+            {
+              "function": "\u0873\u0865\u086d",
+              "module": "com.lenovo.payplus.analytics.GameAnalyticsBiz$1"
+            },
+            {
+              "function": "getStData",
+              "module": "com.lenovo.lsf.lenovoid.LenovoIDApi"
+            },
+            {
+              "function": "\u086f\u1aca\u086d",
+              "module": "com.lenovo.lsf.lenovoid.LenovoIDApi"
+            },
+            {
+              "function": "getInstance",
+              "module": "com.lenovo.lsf.lenovoid.userauth.UserAuthManager"
+            },
+            {
+              "function": "\u0867\u1ad9\u086d",
+              "module": "com.lenovo.lsf.lenovoid.userauth.UserAuthManager"
+            },
+            {
+              "function": "<init>",
+              "module": "com.lenovo.lsf.lenovoid.userauth.UserAuthManager"
+            },
+            {
+              "function": "<init>",
+              "module": "com.lenovo.lsf.lenovoid.userauth.r"
+            },
+            {
+              "abs_path": "Handler.java",
+              "filename": "Handler.java",
+              "function": "<init>",
+              "module": "android.os.Handler"
+            },
+            {
+              "abs_path": "Handler.java",
+              "filename": "Handler.java",
+              "function": "<init>",
+              "module": "android.os.Handler"
+            }
+          ]
+        },
+        "type": "RuntimeException",
+        "value": "Can't create handler inside thread Thread[AsyncTask #1,5,main] that has not called Looper.prepare()"
+      },
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": null,
+          "type": "UncaughtExceptionHandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "Thread.java",
+              "filename": "Thread.java",
+              "function": "run",
+              "module": "java.lang.Thread"
+            },
+            {
+              "abs_path": "ThreadPoolExecutor.java",
+              "filename": "ThreadPoolExecutor.java",
+              "function": "run",
+              "module": "java.util.concurrent.ThreadPoolExecutor$Worker"
+            },
+            {
+              "abs_path": "ThreadPoolExecutor.java",
+              "filename": "ThreadPoolExecutor.java",
+              "function": "runWorker",
+              "module": "java.util.concurrent.ThreadPoolExecutor"
+            },
+            {
+              "abs_path": "AsyncTask.java",
+              "filename": "AsyncTask.java",
+              "function": "run",
+              "module": "android.os.AsyncTask$SerialExecutor$1"
+            },
+            {
+              "abs_path": "FutureTask.java",
+              "filename": "FutureTask.java",
+              "function": "run",
+              "module": "java.util.concurrent.FutureTask"
+            },
+            {
+              "abs_path": "FutureTask.java",
+              "filename": "FutureTask.java",
+              "function": "setException",
+              "module": "java.util.concurrent.FutureTask"
+            },
+            {
+              "abs_path": "FutureTask.java",
+              "filename": "FutureTask.java",
+              "function": "finishCompletion",
+              "module": "java.util.concurrent.FutureTask"
+            },
+            {
+              "abs_path": "AsyncTask.java",
+              "filename": "AsyncTask.java",
+              "function": "done",
+              "module": "android.os.AsyncTask$4"
+            }
+          ]
+        },
+        "type": "RuntimeException",
+        "value": "An error occurred while executing doInBackground()"
+      }
+    ]
+  },
+  "platform": "java"
+}

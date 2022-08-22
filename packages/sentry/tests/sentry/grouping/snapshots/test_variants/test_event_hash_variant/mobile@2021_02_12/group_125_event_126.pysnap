@@ -1,0 +1,348 @@
+---
+created: '2021-07-14T12:39:39.776234Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "b7de92d39e823772baa9a88863c07cab"
+  tree_label: "dlopen | stripped_application_code"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+          frame* (marked as prefix frame by stack trace rule (category:load +sentinel +prefix))
+            function*
+              "dlopen"
+            package (ignored because function takes precedence)
+              "libdyld.dylib"
+        type (ignored because exception is synthetic)
+          "EXC_BAD_ACCESS / 0x00000032"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXC_BAD_ACCESS / <hex>"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "3da34e8c72dbcd4a490ac36eb7130638"
+  tree_label: "dlopen | stripped_application_code | stripped_application_code"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "start"
+            package (ignored because function takes precedence)
+              "libdyld.dylib"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "start"
+            package (ignored because function takes precedence)
+              "libdyld.dylib"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename (discarded native filename for grouping stability)
+              "functional"
+            function*
+              "std::__1::function<T>::operator()"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename (discarded native filename for grouping stability)
+              "functional"
+            function*
+              "std::__1::__function::__value_func<T>::operator()"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename (discarded native filename for grouping stability)
+              "functional"
+            function*
+              "std::__1::__function::__func<T>::operator()"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename (discarded native filename for grouping stability)
+              "functional"
+            function*
+              "std::__1::__function::__alloc_func<T>::operator()"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "__functional_base"
+            function*
+              "std::__1::__invoke_void_return_wrapper<T>::__call<T>"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "type_traits"
+            function*
+              "std::__1::__invoke<T>"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename (discarded native filename for grouping stability)
+              "initialize.cpp"
+            function*
+              "MZ::`anonymous namespace'::lambda::operator()"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:indirection -group))
+            function*
+              "CFBundleGetFunctionPointerForName"
+            package (ignored because function takes precedence)
+              "corefoundation"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "_CFBundleLoadExecutableAndReturnError"
+            package (ignored because function takes precedence)
+              "corefoundation"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "_CFBundleDlfcnLoadBundle"
+            package (ignored because function takes precedence)
+              "corefoundation"
+          frame* (marked as prefix frame by stack trace rule (category:load +sentinel +prefix))
+            function*
+              "dlopen"
+            package (ignored because function takes precedence)
+              "libdyld.dylib"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "dlopen_internal"
+            package (ignored because function takes precedence)
+              "dyld"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "dyld::link"
+            package (ignored because function takes precedence)
+              "dyld"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "ImageLoader::link"
+            package (ignored because function takes precedence)
+              "dyld"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "ImageLoader::recursiveRebase"
+            package (ignored because function takes precedence)
+              "dyld"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "ImageLoaderMachOCompressed::rebase"
+            package (ignored because function takes precedence)
+              "dyld"
+        type (ignored because exception is synthetic)
+          "EXC_BAD_ACCESS / 0x00000032"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXC_BAD_ACCESS / <hex>"
+--------------------------------------------------------------------------
+system:
+  hash: "ce2c54a64a92925680d18a24c0c88bda"
+  tree_label: "dlopen | stripped_application_code | stripped_application_code"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "start"
+            package (ignored because function takes precedence)
+              "libdyld.dylib"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "start"
+            package (ignored because function takes precedence)
+              "libdyld.dylib"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename (discarded native filename for grouping stability)
+              "functional"
+            function*
+              "std::__1::function<T>::operator()"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename (discarded native filename for grouping stability)
+              "functional"
+            function*
+              "std::__1::__function::__value_func<T>::operator()"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename (discarded native filename for grouping stability)
+              "functional"
+            function*
+              "std::__1::__function::__func<T>::operator()"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename (discarded native filename for grouping stability)
+              "functional"
+            function*
+              "std::__1::__function::__alloc_func<T>::operator()"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "__functional_base"
+            function*
+              "std::__1::__invoke_void_return_wrapper<T>::__call<T>"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename (discarded native filename for grouping stability)
+              "type_traits"
+            function*
+              "std::__1::__invoke<T>"
+          frame (ignored by stack trace rule (category:indirection -group))
+            filename (discarded native filename for grouping stability)
+              "initialize.cpp"
+            function*
+              "MZ::`anonymous namespace'::lambda::operator()"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:indirection -group))
+            function*
+              "CFBundleGetFunctionPointerForName"
+            package (ignored because function takes precedence)
+              "corefoundation"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "_CFBundleLoadExecutableAndReturnError"
+            package (ignored because function takes precedence)
+              "corefoundation"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "_CFBundleDlfcnLoadBundle"
+            package (ignored because function takes precedence)
+              "corefoundation"
+          frame* (marked as prefix frame by stack trace rule (category:load +sentinel +prefix))
+            function*
+              "dlopen"
+            package (ignored because function takes precedence)
+              "libdyld.dylib"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "dlopen_internal"
+            package (ignored because function takes precedence)
+              "dyld"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "dyld::link"
+            package (ignored because function takes precedence)
+              "dyld"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "ImageLoader::link"
+            package (ignored because function takes precedence)
+              "dyld"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "ImageLoader::recursiveRebase"
+            package (ignored because function takes precedence)
+              "dyld"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "ImageLoaderMachOCompressed::rebase"
+            package (ignored because function takes precedence)
+              "dyld"
+        type*
+          "EXC_BAD_ACCESS / 0x00000032"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXC_BAD_ACCESS / <hex>"

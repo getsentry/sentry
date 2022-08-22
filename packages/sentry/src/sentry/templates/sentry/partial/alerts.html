@@ -1,0 +1,43 @@
+{% load sentry_helpers %}
+{% load sentry_assets %}
+
+<div id="blk_alerts" class="messages-container"></div>
+<div id="blk_indicators"></div>
+
+{% script %}
+<script>
+  window.__onSentryInit = window.__onSentryInit || [];
+  window.__onSentryInit.push({
+    name: 'renderReact',
+    component: 'SystemAlerts',
+    container: '#blk_alerts',
+    props: {
+      className: 'alert-list',
+    },
+  });
+  window.__onSentryInit.push({
+    name: 'renderReact ',
+    component: 'Indicators',
+    container: '#blk_indicators',
+    props: {
+      className: 'indicators-container',
+    },
+  });
+</script>
+{% endscript %}
+
+{% if messages %}
+  <div id="messages" class="messages-container">
+    {% for message in messages %}
+        {% with message.tags|split:" " as message_tags %}
+          <div class="alert{% if message.tags %}{% for tag in message_tags %} alert-{{ tag }}{% endfor %}{% endif %}">
+            <div class="container">
+              <a class="close" data-dismiss="alert">×</a>
+              <span class="icon"></span>
+              {{ message|linebreaks }}
+            </div>
+          </div>
+      {% endwith %}
+    {% endfor %}
+  </div>
+{% endif %}

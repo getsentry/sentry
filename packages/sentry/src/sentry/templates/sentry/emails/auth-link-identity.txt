@@ -1,0 +1,7 @@
+{{ provider.name }} Single Sign-On has been configured for the {{ organization.name }} organization.
+
+Link your Sentry account to enable signing on with your {{ provider.name }} account by visiting the following url:
+
+{{ url }}
+
+SSO link request invoked by {{ actor.email }}

@@ -1,0 +1,22 @@
+---
+created: '2021-07-08T15:46:42.382863Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","stripped_application_code"],["function","stripped_application_code"]],[["function","stripped_application_code"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","_pthread_start"]],[["function","stripped_application_code"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","abort"]],[["function","pthread_kill"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","free"]],[["function","malloc_report"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","malloc_report"]],[["function","malloc_vreport"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","malloc_vreport"]],[["function","abort"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","pthread_kill"]],[["function","__pthread_kill"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","std::__1::basic_string<T>::~basic_string"]],[["function","free"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","stripped_application_code"]],[["filename","stripped_application_code"],["function","stripped_application_code"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","stripped_application_code"]],[["function","std::__1::basic_string<T>::~basic_string"]]]
+similarity:2020-07-23:type:ident-shingle: "SIGABRT"
+similarity:2020-07-23:value:character-5-shingle: "<reda"
+similarity:2020-07-23:value:character-5-shingle: "acted"
+similarity:2020-07-23:value:character-5-shingle: "cted>"
+similarity:2020-07-23:value:character-5-shingle: "dacte"
+similarity:2020-07-23:value:character-5-shingle: "edact"
+similarity:2020-07-23:value:character-5-shingle: "redac"

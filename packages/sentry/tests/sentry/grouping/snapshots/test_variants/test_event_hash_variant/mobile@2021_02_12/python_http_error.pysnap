@@ -1,0 +1,131 @@
+---
+created: '2021-08-04T15:53:48.208895Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "92dfcda18050570bb1aabce4f35dc0a1"
+  tree_label: "send_notification"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "sentry.integrations.slack.notify_action"
+            filename (module takes precedence)
+              "notify_action.py"
+            function*
+              "send_notification"
+            context-line*
+              "resp.raise_for_status()"
+        type*
+          "HTTPError"
+        value (ignored because stacktrace takes precedence)
+          "<int> Client Error: Too Many Requests for url: <url>"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "d59239f5aad3304d60beb1fde3369b78"
+  tree_label: "send_notification | safe_execute"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "sentry.utils.safe"
+            filename (module takes precedence)
+              "safe.py"
+            function*
+              "safe_execute"
+            context-line*
+              "result = func(*args, **kwargs)"
+          frame*
+            module*
+              "sentry.integrations.slack.notify_action"
+            filename (module takes precedence)
+              "notify_action.py"
+            function*
+              "send_notification"
+            context-line*
+              "resp.raise_for_status()"
+        type*
+          "HTTPError"
+        value (ignored because stacktrace takes precedence)
+          "<int> Client Error: Too Many Requests for url: <url>"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "d59239f5aad3304d60beb1fde3369b78"
+  tree_label: "send_notification | safe_execute"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "sentry.utils.safe"
+            filename (module takes precedence)
+              "safe.py"
+            function*
+              "safe_execute"
+            context-line*
+              "result = func(*args, **kwargs)"
+          frame*
+            module*
+              "sentry.integrations.slack.notify_action"
+            filename (module takes precedence)
+              "notify_action.py"
+            function*
+              "send_notification"
+            context-line*
+              "resp.raise_for_status()"
+        type*
+          "HTTPError"
+        value (ignored because stacktrace takes precedence)
+          "<int> Client Error: Too Many Requests for url: <url>"
+--------------------------------------------------------------------------
+default:
+  hash: null
+  component:
+    default (exception of app-depth-1/app-depth-2/app-depth-max/system takes precedence)
+      message (exception of app-depth-1/app-depth-2/app-depth-max/system takes precedence)
+        "%s.process_error"
+--------------------------------------------------------------------------
+system:
+  hash: "133db3f366b1327dab4e661f66dfb961"
+  tree_label: "raise_for_status | send_notification | safe_execute"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "sentry.utils.safe"
+            filename (module takes precedence)
+              "safe.py"
+            function*
+              "safe_execute"
+            context-line*
+              "result = func(*args, **kwargs)"
+          frame*
+            module*
+              "sentry.integrations.slack.notify_action"
+            filename (module takes precedence)
+              "notify_action.py"
+            function*
+              "send_notification"
+            context-line*
+              "resp.raise_for_status()"
+          frame*
+            module*
+              "requests.models"
+            filename (module takes precedence)
+              "models.py"
+            function*
+              "raise_for_status"
+            context-line*
+              "raise HTTPError(http_error_msg, response=self)"
+        type*
+          "HTTPError"
+        value (ignored because stacktrace takes precedence)
+          "<int> Client Error: Too Many Requests for url: <url>"

@@ -1,0 +1,62 @@
+[
+  {
+    "query": "release.version:>1.2.3",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "filter": "text",
+        "key": {"quoted": false, "type": "keySimple", "value": "release.version"},
+        "negated": false,
+        "operator": ">",
+        "type": "filter",
+        "value": {"quoted": false, "type": "valueText", "value": "1.2.3"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "release.version:>1.2.3-hi",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "key": {"quoted": false, "type": "keySimple", "value": "release.version"},
+        "negated": false,
+        "operator": ">",
+        "value": {"quoted": false, "type": "valueText", "value": "1.2.3-hi"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "release.version:>=1.2.3-hi",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "key": {"quoted": false, "type": "keySimple", "value": "release.version"},
+        "negated": false,
+        "operator": ">=",
+        "value": {"quoted": false, "type": "valueText", "value": "1.2.3-hi"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "release.version:1.2.3-hi",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "key": {"quoted": false, "type": "keySimple", "value": "release.version"},
+        "negated": false,
+        "operator": "",
+        "value": {"quoted": false, "type": "valueText", "value": "1.2.3-hi"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

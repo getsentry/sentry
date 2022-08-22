@@ -1,0 +1,107 @@
+[
+  {
+    "query": "stack.in_app:true",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "boolean",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "stack.in_app", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueBoolean", "value": true}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "stack.in_app:TRUE",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "boolean",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "stack.in_app", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueBoolean", "value": true}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "stack.in_app:1",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "boolean",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "stack.in_app", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueBoolean", "value": true}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "stack.in_app:false",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "boolean",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "stack.in_app", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueBoolean", "value": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "stack.in_app:FALSE",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "boolean",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "stack.in_app", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueBoolean", "value": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "stack.in_app:0",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "boolean",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "stack.in_app", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueBoolean", "value": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "!stack.in_app:false",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "boolean",
+        "negated": true,
+        "key": {"type": "keySimple", "value": "stack.in_app", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueBoolean", "value": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

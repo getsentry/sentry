@@ -1,0 +1,290 @@
+---
+created: '2021-07-08T15:46:20.880500Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace*
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "_pthread_start"
+            function (function name is not used if module or filename are available)
+              "_pthread_start"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "stripped_application_code"
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            symbol (symbol is not used if module or filename are available)
+              "stripped_application_code"
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            symbol (symbol is not used if module or filename are available)
+              "stripped_application_code"
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame* (frame considered in-app because no frame is in-app)
+            filename* (stripped to basename)
+              "stripped_application_code"
+            symbol*
+              "stripped_application_code"
+            function (symbol takes precedence)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            filename* (stripped to basename)
+              "stripped_application_code"
+            symbol*
+              "stripped_application_code"
+            function (symbol takes precedence)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            filename* (stripped to basename)
+              "stripped_application_code"
+            symbol*
+              "stripped_application_code"
+            function (symbol takes precedence)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            filename* (stripped to basename)
+              "stripped_application_code"
+            symbol*
+              "stripped_application_code"
+            function (symbol takes precedence)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            filename* (stripped to basename)
+              "stripped_application_code"
+            symbol*
+              "stripped_application_code"
+            function (symbol takes precedence)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            filename* (stripped to basename)
+              "stripped_application_code"
+            symbol*
+              "stripped_application_code"
+            function (symbol takes precedence)
+              "stripped_application_code"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "stripped_application_code"
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            symbol (symbol is not used if module or filename are available)
+              "stripped_application_code"
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            symbol (symbol is not used if module or filename are available)
+              "stripped_application_code"
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            symbol (symbol is not used if module or filename are available)
+              "stripped_application_code"
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            symbol (symbol is not used if module or filename are available)
+              "stripped_application_code"
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            symbol (symbol is not used if module or filename are available)
+              "stripped_application_code"
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            symbol (symbol is not used if module or filename are available)
+              "stripped_application_code"
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "_ZNSt3__112basic_stringIcNS_11char_traitsIcEENS_9allocatorIcEEED2Ev"
+            function (function name is not used if module or filename are available)
+              "std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >::~basic_string()"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "free"
+            function (function name is not used if module or filename are available)
+              "free"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "malloc_report"
+            function (function name is not used if module or filename are available)
+              "malloc_report"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "malloc_vreport"
+            function (function name is not used if module or filename are available)
+              "malloc_vreport"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "abort"
+            function (function name is not used if module or filename are available)
+              "abort"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "pthread_kill"
+            function (function name is not used if module or filename are available)
+              "pthread_kill"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "__pthread_kill"
+            function (function name is not used if module or filename are available)
+              "__pthread_kill"
+        type*
+          "SIGABRT"
+        value (stacktrace and type take precedence)
+          "<redacted>"
+--------------------------------------------------------------------------
+system:
+  hash: "d63ee001e5f5763d56b6e25284bd480e"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "_pthread_start"
+            function (function name is not used if module or filename are available)
+              "_pthread_start"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "stripped_application_code"
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            symbol (symbol is not used if module or filename are available)
+              "stripped_application_code"
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            symbol (symbol is not used if module or filename are available)
+              "stripped_application_code"
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame*
+            filename* (stripped to basename)
+              "stripped_application_code"
+            symbol*
+              "stripped_application_code"
+            function (symbol takes precedence)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            filename* (stripped to basename)
+              "stripped_application_code"
+            symbol*
+              "stripped_application_code"
+            function (symbol takes precedence)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            filename* (stripped to basename)
+              "stripped_application_code"
+            symbol*
+              "stripped_application_code"
+            function (symbol takes precedence)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            filename* (stripped to basename)
+              "stripped_application_code"
+            symbol*
+              "stripped_application_code"
+            function (symbol takes precedence)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            filename* (stripped to basename)
+              "stripped_application_code"
+            symbol*
+              "stripped_application_code"
+            function (symbol takes precedence)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            filename* (stripped to basename)
+              "stripped_application_code"
+            symbol*
+              "stripped_application_code"
+            function (symbol takes precedence)
+              "stripped_application_code"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "stripped_application_code"
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            symbol (symbol is not used if module or filename are available)
+              "stripped_application_code"
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            symbol (symbol is not used if module or filename are available)
+              "stripped_application_code"
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            symbol (symbol is not used if module or filename are available)
+              "stripped_application_code"
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            symbol (symbol is not used if module or filename are available)
+              "stripped_application_code"
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            symbol (symbol is not used if module or filename are available)
+              "stripped_application_code"
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            symbol (symbol is not used if module or filename are available)
+              "stripped_application_code"
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "_ZNSt3__112basic_stringIcNS_11char_traitsIcEENS_9allocatorIcEEED2Ev"
+            function (function name is not used if module or filename are available)
+              "std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >::~basic_string()"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "free"
+            function (function name is not used if module or filename are available)
+              "free"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "malloc_report"
+            function (function name is not used if module or filename are available)
+              "malloc_report"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "malloc_vreport"
+            function (function name is not used if module or filename are available)
+              "malloc_vreport"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "abort"
+            function (function name is not used if module or filename are available)
+              "abort"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "pthread_kill"
+            function (function name is not used if module or filename are available)
+              "pthread_kill"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "__pthread_kill"
+            function (function name is not used if module or filename are available)
+              "__pthread_kill"
+        type*
+          "SIGABRT"
+        value (stacktrace and type take precedence)
+          "<redacted>"
