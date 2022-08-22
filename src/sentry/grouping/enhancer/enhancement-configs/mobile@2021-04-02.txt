@@ -60,12 +60,12 @@ family:native function:kscm_*                                     -app -group
 family:native function:sentrycrashcm_*                            -app -group
 family:native function:kscrash_*                                  -app -group
 family:native function:*sentrycrash_*                             -app -group
-family:native function:"?[[]KSCrash*"                             -app -group
-family:native function:"?[[]RNSentry*"                            -app -group
+family:native function:"?[KSCrash*"                             -app -group
+family:native function:"?[RNSentry*"                            -app -group
 
 # Projects shipping their own class called "SentryFoo" can then easily override this in their
 # own grouping enhancers.
-family:native function:"?[[]Sentry*"                              -app -group
+family:native function:"?[Sentry*"                              -app -group
 
 # Android ANR: Exception stack is a snapshot of the UI/main thread. The
 # *outermost* in-app frame is most indicative of which user action has led to ANR,

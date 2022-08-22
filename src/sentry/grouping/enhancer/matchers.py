@@ -268,6 +268,7 @@ class CategoryMatch(FrameFieldMatch):
 class ExceptionFieldMatch(FrameMatch):
     def _positive_frame_match(self, frame_data, platform, exception_data, cache):
         field = get_path(exception_data, *self.field_path) or "<unknown>"
+        field = field.encode()
         return cached(cache, glob_match, field, self._encoded_pattern)
 
 
