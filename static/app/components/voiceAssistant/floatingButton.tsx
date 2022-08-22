@@ -9,7 +9,7 @@ import {
 } from 'sentry/bootstrap/voiceAssistant';
 
 interface VoiceAssistantState {
-  isToggleOn: boolean;
+  isListening: boolean;
 }
 
 interface VoiceButtonProps {
@@ -142,33 +142,35 @@ const VoiceButton = styled('button')<VoiceButtonProps>`
 export class VoiceAssistantButton extends React.Component<{}, VoiceAssistantState> {
   constructor(props) {
     super(props);
-    this.state = {isToggleOn: false};
+    this.state = {isListening: false};
 
     // This binding is necessary to make `this` work in the callback
     this.handleClick = this.handleClick.bind(this);
   }
 
   handleClick() {
-    if (!this.state.isToggleOn) {
-      startVoiceRecognition(_ => {
-        // ugly hack
-        this.setState(_prevState => ({
-          isToggleOn: false,
-        }));
-      });
+    const eventuallyDisableCallback = _ => {
+      // ugly hack
+      this.setState(_prevState => ({
+        isListening: false,
+      }));
+    };
+
+    if (!this.state.isListening) {
+      startVoiceRecognition(eventuallyDisableCallback);
     } else {
       stopVoiceRecognition();
     }
 
     this.setState(prevState => ({
-      isToggleOn: !prevState.isToggleOn,
+      isListening: !prevState.isListening,
     }));
   }
 
   render() {
     return (
       <Wrapper>
-        <VoiceButton active={this.state.isToggleOn} onClick={this.handleClick}>
+        <VoiceButton active={this.state.isListening} onClick={this.handleClick}>
           <Ripple1 />
           <Ripple2 />
           <Logo
