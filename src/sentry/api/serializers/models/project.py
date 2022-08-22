@@ -739,6 +739,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:fingerprinting_rules",
             "sentry:relay_pii_config",
             "sentry:dynamic_sampling",
+            "sentry:feature_flags",
             "sentry:breakdowns",
             "sentry:span_attributes",
             "feedback:branding",
@@ -880,6 +881,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
                 "builtinSymbolSources": get_value_with_default("sentry:builtin_symbol_sources"),
                 "dynamicSampling": get_value_with_default("sentry:dynamic_sampling"),
+                "featureFlags": attrs["options"].get("sentry:feature_flags") or {},
                 "eventProcessing": {
                     "symbolicationDegraded": False,
                 },
