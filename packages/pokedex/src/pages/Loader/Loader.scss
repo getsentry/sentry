@@ -1,0 +1,12 @@
+@use "../../styles/layout.scss" as *;
+
+.loading {
+  @include flex-col;
+  background-color: #ebedec;
+  height: 100%;
+
+  .spinner-root .pokeball {
+    width: 150px;
+    height: 150px;
+  }
+}

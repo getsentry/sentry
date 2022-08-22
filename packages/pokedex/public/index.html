@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link rel="icon" href="favicon.ico" type="image/ico" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pokédex</title>
+    <meta
+      name="description"
+      content="Pokédex with infinite scrolling of pokemon cards and their details"
+    />
+    <meta name="author" content="Shanmughapriyan S" />
+
+    <!--  Open Graph  -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://pokedex.shanpriyan.in/" />
+    <meta property="og:title" content="Pokédex" />
+    <meta
+      property="og:description"
+      content="Pokédex with infinite scrolling of pokemon cards and their details"
+    />
+    <meta property="og:image" content="https://pokedex.shanpriyan.in/og.png" />
+
+    <!-- Twitter  -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Pokédex" />
+    <meta
+      name="twitter:description"
+      content="Pokédex with infinite scrolling of pokemon cards and their details"
+    />
+    <meta name="twitter:image" content="https://pokedex.shanpriyan.in/og.png" />
+    <meta name="twitter:site" content="@_shanpriyan" />
+    <meta name="twitter:creator" content="@_shanpriyan" />
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-2STFB7TQNP"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+
+      gtag("config", "G-2STFB7TQNP", { path: window.location.pathname });
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

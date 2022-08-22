@@ -1,0 +1,66 @@
+@use "../../styles/layout" as *;
+
+:root {
+  --header-height: 60px;
+}
+
+.card-list {
+  margin-top: calc(15px + var(--header-height));
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px;
+}
+
+.app-root {
+  height: 100%;
+  width: 100%;
+
+  .header {
+    button {
+      margin-right: auto;
+      color: #fff;
+      font-size: inherit;
+      font-family: inherit;
+      font-weight: inherit;
+    }
+
+    a {
+      opacity: 0.8;
+      &:hover {
+        opacity: 1;
+        transform: translateY(-1px);
+        transition: transform 500ms ease-in-out;
+      }
+    }
+  }
+
+  .loading {
+    height: calc(100% - var(--header-height));
+  }
+
+  .hidden-load-more {
+    opacity: 0;
+    height: 10px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .card-list {
+    padding: 0 256px;
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .card-list {
+    padding: 0 200px;
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 767px) {
+  .card-list {
+    padding: 0 60px;
+    grid-template-columns: 1fr;
+  }
+}

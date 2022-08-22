@@ -1,0 +1,25 @@
+@use "../../styles/layout" as *;
+
+.button {
+  --button-hover-bg-clr: #00afc1;
+  --button-hover-txt-clr: #fff;
+  --button-border-clr: #0093ab;
+
+  @include sub-heading;
+  background-color: unset;
+  border: 2px solid black;
+  border-radius: 4px;
+  height: 40px;
+  padding: 8px;
+
+  &:active {
+    height: 35px;
+    transition: all 150ms;
+  }
+
+  &:hover {
+    background-color: var(--button-hover-bg-clr);
+    color: var(--button-hover-txt-clr);
+    border: 2px solid var(--button-border-clr);
+  }
+}

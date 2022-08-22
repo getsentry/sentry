@@ -1,0 +1,23 @@
+@use "../../../styles//layout" as *;
+
+.stats {
+  .border {
+    border: 1px solid black;
+  }
+  th {
+    @include sub-heading;
+    @extend .border;
+  }
+  td,
+  tr,
+  table {
+    @extend .border;
+  }
+  table {
+    width: 100%;
+  }
+  td {
+    text-align: center;
+    width: 1%;
+  }
+}

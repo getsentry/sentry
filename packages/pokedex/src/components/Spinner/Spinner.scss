@@ -1,0 +1,55 @@
+@use "../../styles/layout" as *;
+
+.spinner-root {
+  @include flex-row;
+  width: 100%;
+  padding: 15px;
+
+  $pokeball-width: 50px;
+  $pokeball-height: 50px;
+
+  .pokeball {
+    position: relative;
+    width: $pokeball-width;
+    height: $pokeball-height;
+    border-radius: 50%;
+    border: 4px solid #383b4f;
+    background: linear-gradient(#f51939 50%, #fff 50%);
+    animation: spin 1.5s infinite;
+
+    @keyframes spin {
+      50% {
+        transform: scale(0.6);
+      }
+    }
+
+    &::before {
+      content: "";
+      position: absolute;
+      height: 10%;
+      background-color: #383b4f;
+      width: 100%;
+      top: 50%;
+      left: 0;
+      transform: translateY(-50%);
+    }
+
+    &::after {
+      content: "";
+      position: absolute;
+      width: 30%;
+      height: 30%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(
+        #383b4f 0%,
+        #383b4f 10%,
+        #fff 15%,
+        #fff 25%,
+        #383b4f 30%
+      );
+      border-radius: 50%;
+    }
+  }
+}

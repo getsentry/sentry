@@ -1,0 +1,113 @@
+@use "../../styles/layout" as *;
+
+.details {
+  @mixin flex-space-around {
+    @include flex-col(unset, space-around);
+  }
+
+  .header {
+    padding-left: 15px;
+    button {
+      padding-right: 15px;
+      svg {
+        height: 30px;
+        width: 30px;
+      }
+    }
+  }
+
+  $line-height: 2;
+
+  .grid-row {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    padding: 10px 15px 15px 15px;
+    gap: 15px;
+  }
+
+  .grid-row-2 {
+    @extend .grid-row;
+    grid-template-columns: 1fr 1fr;
+    padding: 0 20px 20px 20px;
+  }
+
+  .card-wrapper {
+    height: 100%;
+    align-self: flex-start;
+    .card {
+      &:hover {
+        transform: none;
+      }
+      cursor: unset;
+    }
+  }
+
+  .bio-container {
+    @include content;
+    @include flex-space-around;
+    font-size: 16px;
+    line-height: $line-height;
+    height: 100%;
+  }
+
+  .species-col,
+  .training-col {
+    @include flex-space-around;
+    line-height: $line-height;
+    height: 100%;
+    width: 100%;
+  }
+
+  .abilities-col {
+    @include flex-col(unset);
+  }
+
+  .button-container {
+    @include flex-row(center, space-between);
+    padding: calc(10px + var(--header-height)) 15px 0 15px;
+  }
+
+  @media (max-width: 600px) {
+    .grid-row {
+      grid-template-columns: unset;
+    }
+
+    .grid-row-2 {
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      .row {
+        line-height: 1.6;
+      }
+    }
+  }
+
+  .button {
+    border-radius: 50%;
+    width: 40px;
+    padding: 0;
+    font-size: 18px;
+    @include flex-row;
+
+    &:hover {
+      svg > polyline {
+        stroke: #fff;
+      }
+    }
+  }
+
+  .details-header {
+    @include flex-col(flex-start);
+
+    :first-child {
+      font-size: 14px;
+    }
+    :last-child {
+      font-size: 25px;
+    }
+  }
+}
+
+.title {
+  @include heading;
+  padding-bottom: 10px;
+}

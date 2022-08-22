@@ -1,0 +1,21 @@
+@use "../../styles/layout" as *;
+
+.header {
+  height: var(--header-height);
+  background: #000;
+  padding: 0 20px;
+  color: #ffffff;
+  transition: all 0.3s ease-in;
+  @include flex-row(center, start);
+  @include heading;
+  font-size: 28px;
+  z-index: 5;
+  top: 0;
+  position: fixed;
+  width: 100%;
+  button {
+    background: transparent;
+    border: unset;
+    cursor: pointer;
+  }
+}

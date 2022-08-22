@@ -1,0 +1,56 @@
+@use "../../styles/layout" as *;
+
+.card {
+  $padding: 10px;
+  @include flex-col(center, space-between);
+  border: 5px solid grey;
+  box-shadow: 6px 6px 4px #c9c7c7;
+  cursor: pointer;
+  border-radius: 15px;
+  overflow: hidden;
+  padding-bottom: $padding;
+  background-color: #fff;
+  width: 100%;
+  min-width: 170px;
+
+  img {
+    width: 180px;
+    height: 180px;
+    position: absolute;
+    bottom: 0;
+  }
+
+  b {
+    font-size: 56px;
+    color: rgba(0, 0, 0, 0.3);
+    letter-spacing: 0.1em;
+    position: absolute;
+    top: 0;
+  }
+
+  strong {
+    font-size: 24px;
+    text-align: center;
+  }
+
+  .types {
+    small {
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+  }
+
+  &:hover {
+    transform: scale(1.1);
+    transition: transform 0.2s ease-in-out;
+  }
+
+  .pokemon-image-container {
+    @include flex-col;
+    padding: $padding 25px 0 $padding;
+    width: 100%;
+    position: relative;
+    height: 220px;
+  }
+}
