@@ -11,6 +11,7 @@ import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboardin
 import {
   IconChevron,
   IconDashboard,
+  IconFire,
   IconIssues,
   IconLab,
   IconLightning,
@@ -300,6 +301,16 @@ function Sidebar({location, organization}: Props) {
     />
   );
 
+  const pokedex = hasOrganization && (
+    <SidebarItem
+      {...sidebarItemProps}
+      icon={<IconFire size="md" />}
+      label={t('Pokedex')}
+      to={`/organizations/${organization.slug}/pokedex`}
+      id="pokedex"
+    />
+  );
+
   return (
     <SidebarWrapper collapsed={collapsed}>
       <SidebarSectionGroupPrimary>
@@ -326,6 +337,7 @@ function Sidebar({location, organization}: Props) {
                 {discover2}
                 {dashboards}
                 {profiling}
+                {pokedex}
               </SidebarSection>
 
               <SidebarSection>

@@ -1115,10 +1115,6 @@ function buildRoutes() {
           )}
         />
       </Route>
-      <Route
-        path="foobar/"
-        component={make(() => import('sentry/views/organizationStats/foobar'))}
-      />
 
       <Redirect from="team/" to="/organizations/:orgId/stats/issues/" />
     </Route>
@@ -1722,11 +1718,19 @@ function buildRoutes() {
     </Route>
   );
 
+  const pokemonRoutes = (
+    <Route
+      path="/organizations/:orgId/pokedex/"
+      component={make(() => import('sentry/views/pokemon'))}
+    />
+  );
+
   const organizationRoutes = (
     <Route component={errorHandler(OrganizationDetails)}>
       {settingsRoutes}
       {projectsRoutes}
       {dashboardRoutes}
+      {pokemonRoutes}
       {userFeedbackRoutes}
       {issueListRoutes}
       {issueDetailsRoutes}
