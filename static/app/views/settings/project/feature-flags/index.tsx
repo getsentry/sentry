@@ -18,10 +18,12 @@ import {Panel, PanelBody, PanelFooter, PanelHeader} from 'sentry/components/pane
 import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import Tag from 'sentry/components/tag';
 import {IconDownload, IconEllipsis} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -29,6 +31,10 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {rateToPercentage} from '../server-side-sampling/utils';
 
 import flags from './flags.json';
+
+type Props = {
+  project: Project;
+};
 
 type Tags = Record<string, string | boolean>;
 
@@ -48,7 +54,8 @@ type FeatureFlag = Record<
   }
 >;
 
-export default function FeatureFlags() {
+export default function FeatureFlags({project}: Props) {
+  console.log({project});
   const [state, setState] = useState<FeatureFlag>(
     Object.keys(flags).reduce((acc, flag) => {
       acc[flag] = {
@@ -87,7 +94,7 @@ export default function FeatureFlags() {
               <Column>{t('Name')}</Column>
               <TagsColumn>{t('Tags')}</TagsColumn>
               <RolloutColumn>{t('Rollout')}</RolloutColumn>
-              <DefaultColumn>{t('Active')}</DefaultColumn>
+              <DefaultColumn>{t('Status')}</DefaultColumn>
               <Column />
             </FlagsPanelLayout>
           </FlagsPanelHeader>
