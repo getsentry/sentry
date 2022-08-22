@@ -27,6 +27,7 @@ import ProjectEventRedirect from 'sentry/views/projectEventRedirect';
 import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprecatedProjectRoute';
 import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
+import SwaggerUIDocs from 'sentry/views/swagger-ui';
 
 type CustomProps = {
   name?: string;
@@ -1120,10 +1121,6 @@ function buildRoutes() {
     </Route>
   );
 
-  const apiDocsRoutes = (
-    <Route path="docs/" component={make(() => import('sentry/views/swagger-ui'))} />
-  );
-
   // TODO(mark) Long term this /queries route should go away and /discover
   // should be the canonical route for discover2. We have a redirect right now
   // as /discover was for discover 1 and most of the application is linking to
@@ -1737,7 +1734,6 @@ function buildRoutes() {
       {activityRoutes}
       {statsRoutes}
       {discoverRoutes}
-      {apiDocsRoutes}
       {performanceRoutes}
       {profilingRoutes}
       {adminManageRoutes}
@@ -1883,6 +1879,7 @@ function buildRoutes() {
   const appRoutes = (
     <Route>
       {experimentalSpaRoutes}
+      <Route path="/docs" component={SwaggerUIDocs} />
       <Route path="/" component={errorHandler(App)}>
         {rootRoutes}
         {organizationRoutes}
