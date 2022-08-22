@@ -1,0 +1,14 @@
+{
+  "Avatar": {
+    "type": "object",
+    "properties": {
+      "avatarType": {
+        "type": "string"
+      },
+      "avatarUuid": {
+        "type": "string",
+        "nullable": true
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "MinimalCommit": {
+    "type": "object",
+    "required": ["dateCreated", "id", "message"],
+    "properties": {
+      "dateCreated": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "id": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string",
+        "nullable": true
+      }
+    }
+  }
+}
