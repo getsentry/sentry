@@ -3,8 +3,16 @@ import {Fragment} from 'react';
 import {assignToActor, assignToUser} from 'sentry/actionCreators/group';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import AsyncComponent from 'sentry/components/asyncComponent';
-import {Actor, CodeOwner, Committer, Group, Organization, Project} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {
+  Actor,
+  CodeOwner,
+  Committer,
+  Group,
+  Organization,
+  Project,
+  ReleaseCommitter,
+} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import useCommitters from 'sentry/utils/useCommitters';
@@ -22,11 +30,12 @@ type Props = {
   organization: Organization;
   project: Project;
   committers?: Committer[];
+  releaseCommitters?: ReleaseCommitter[];
 } & AsyncComponent['props'];
 
 type State = {
   codeowners: CodeOwner[];
-  event_owners: {owners: Array<Actor>; rules: Rules};
+  eventOwners: {owners: Array<Actor>; rules: Rules};
   isDismissed: boolean;
 } & AsyncComponent['state'];
 
@@ -44,7 +53,7 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
     const {project, organization, event} = this.props;
     const endpoints = [
       [
-        'event_owners',
+        'eventOwners',
         `/projects/${organization.slug}/${project.slug}/events/${event.id}/owners/`,
       ],
     ];
@@ -147,15 +156,17 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
    */
   getOwnerList() {
     const committers = this.props.committers ?? [];
-    const owners: OwnerList = committers.map(commiter => ({
+    const releaseCommitters = this.props.releaseCommitters ?? [];
+    const owners: OwnerList = [...committers, ...releaseCommitters].map(commiter => ({
       actor: {...commiter.author, type: 'user'},
       commits: commiter.commits,
+      release: (commiter as ReleaseCommitter).release,
     }));
 
-    this.state.event_owners.owners.forEach(owner => {
+    this.state.eventOwners.owners.forEach(owner => {
       const normalizedOwner = {
         actor: owner,
-        rules: findMatchedRules(this.state.event_owners.rules || [], owner),
+        rules: findMatchedRules(this.state.eventOwners.rules || [], owner),
       };
 
       const existingIdx =
@@ -206,7 +217,12 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
     return (
       <Fragment>
         {owners.length > 0 && (
-          <SuggestedAssignees owners={owners} onAssign={this.handleAssign} />
+          <SuggestedAssignees
+            organization={organization}
+            owners={owners}
+            projectId={group.project.id}
+            onAssign={this.handleAssign}
+          />
         )}
         <OwnershipRules
           issueId={group.id}
@@ -223,14 +239,19 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
 
 function SuggestedOwnersWrapper(props: Omit<Props, 'committers' | 'organization'>) {
   const organization = useOrganization();
-  const {committers} = useCommitters({
+  const {committers, releaseCommitters} = useCommitters({
     group: props.group,
     eventId: props.event.id,
     projectSlug: props.project.slug,
   });
 
   return (
-    <SuggestedOwners organization={organization} committers={committers} {...props} />
+    <SuggestedOwners
+      organization={organization}
+      committers={committers}
+      releaseCommitters={releaseCommitters}
+      {...props}
+    />
   );
 }
 

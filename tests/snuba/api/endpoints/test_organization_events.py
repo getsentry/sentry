@@ -189,7 +189,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["id"] == "a" * 32
 
-        query = {"field": ["id"], "query": "has:trace.parent_span_id"}
+        query = {"field": ["id"], "query": "has:trace.parent_span"}
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 0
@@ -215,7 +215,30 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 0
 
-        query = {"field": ["id"], "query": "!has:trace.parent_span_id"}
+        query = {"field": ["id"], "query": "!has:trace.parent_span"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["id"] == "a" * 32
+
+    def test_parent_span_id_in_context(self):
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "how to make fast",
+                "timestamp": self.ten_mins_ago,
+                "contexts": {
+                    "trace": {
+                        "span_id": "a" * 16,
+                        "trace_id": "b" * 32,
+                        "parent_span_id": "c" * 16,
+                    },
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        query = {"field": ["id"], "query": f"trace.parent_span:{'c' * 16}"}
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
