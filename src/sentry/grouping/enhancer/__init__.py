@@ -6,19 +6,17 @@ import msgpack
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar, NodeVisitor
 
-from sentry import projectoptions
 from sentry.grouping.component import GroupingComponent
-from sentry.grouping.matchers import (  # TODO: Better directory structure
+from sentry.grouping.enhancer.rule import Rule
+from sentry.grouping.matchers import (  # TODO: Better directory structure; ExceptionFieldMatch,; Match,
     CalleeMatch,
     CallerMatch,
-    ExceptionFieldMatch,
     FrameMatch,
-    Match,
     create_match_frame,
 )
 from sentry.utils.strings import unescape_string
 
-from .actions import Action, FlagAction, VarAction
+from .actions import FlagAction, VarAction
 from .exceptions import InvalidEnhancerConfig
 
 # Grammar is defined in EBNF syntax.
@@ -202,18 +200,18 @@ class Enhancements:
 
         return component, inverted_hierarchy
 
-    def as_dict(self, with_rules=False):
-        rv = {
-            "id": self.id,
-            "bases": self.bases,
-            "latest": projectoptions.lookup_well_known_key(
-                "sentry:grouping_enhancements_base"
-            ).get_default(epoch=projectoptions.LATEST_EPOCH)
-            == self.id,
-        }
-        if with_rules:
-            rv["rules"] = [x.as_dict() for x in self.rules]
-        return rv
+    # def as_dict(self, with_rules=False):
+    #     rv = {
+    #         "id": self.id,
+    #         "bases": self.bases,
+    #         "latest": projectoptions.lookup_well_known_key(
+    #             "sentry:grouping_enhancements_base"
+    #         ).get_default(epoch=projectoptions.LATEST_EPOCH)
+    #         == self.id,
+    #     }
+    #     if with_rules:
+    #         rv["rules"] = [x.as_dict() for x in self.rules]
+    #     return rv
 
     def _to_config_structure(self):
         return [
@@ -271,84 +269,6 @@ class Enhancements:
                 f'Invalid syntax near "{context}" (line {e.line()}, column {e.column()})'
             )
         return EnhancmentsVisitor(bases, id).visit(tree)
-
-
-class Rule:
-    def __init__(self, matchers, actions):
-        self.matchers = matchers
-
-        self._exception_matchers = []
-        self._other_matchers = []
-        for matcher in matchers:
-            if isinstance(matcher, ExceptionFieldMatch):
-                self._exception_matchers.append(matcher)
-            else:
-                self._other_matchers.append(matcher)
-
-        self.actions = actions
-        self._is_updater = any(action.is_updater for action in actions)
-        self._is_modifier = any(action.is_modifier for action in actions)
-
-    @property
-    def matcher_description(self):
-        rv = " ".join(x.description for x in self.matchers)
-        for action in self.actions:
-            rv = f"{rv} {action}"
-        return rv
-
-    @property
-    def is_modifier(self):
-        """Does this rule modify the frame?"""
-        return self._is_modifier
-
-    @property
-    def is_updater(self):
-        """Does this rule update grouping components?"""
-        return self._is_updater
-
-    def as_dict(self):
-        matchers = {}
-        for matcher in self.matchers:
-            matchers[matcher.key] = matcher.pattern
-        return {"match": matchers, "actions": [str(x) for x in self.actions]}
-
-    def get_matching_frame_actions(self, frames, platform, exception_data=None, cache=None):
-        """Given a frame returns all the matching actions based on this rule.
-        If the rule does not match `None` is returned.
-        """
-        if not self.matchers:
-            return []
-
-        # 1 - Check if exception matchers match
-        for m in self._exception_matchers:
-            if not m.matches_frame(frames, -1, platform, exception_data, cache):
-                return []
-
-        rv = []
-
-        # 2 - Check if frame matchers match
-        for idx, frame in enumerate(frames):
-            if all(
-                m.matches_frame(frames, idx, platform, exception_data, cache)
-                for m in self._other_matchers
-            ):
-                for action in self.actions:
-                    rv.append((idx, action))
-
-        return rv
-
-    def _to_config_structure(self, version):
-        return [
-            [x._to_config_structure(version) for x in self.matchers],
-            [x._to_config_structure(version) for x in self.actions],
-        ]
-
-    @classmethod
-    def _from_config_structure(cls, tuple, version):
-        return Rule(
-            [Match._from_config_structure(x, version) for x in tuple[0]],
-            [Action._from_config_structure(x, version) for x in tuple[1]],
-        )
 
 
 class EnhancmentsVisitor(NodeVisitor):

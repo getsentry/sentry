@@ -1,3 +1,5 @@
+from typing import List, Union
+
 from sentry.grouping.utils import get_rule_bool
 from sentry.stacktraces.functions import set_in_app
 from sentry.utils.safe import get_path, set_path
@@ -22,11 +24,10 @@ ACTION_FLAGS = {
 REVERSE_ACTION_FLAGS = {v: k for k, v in ACTION_FLAGS.items()}
 
 
+ActionConfigStructure = Union[int, List[str]]
+
+
 class Action:
-
-    is_modifier = False
-    is_updater = False
-
     def apply_modifications_to_frame(self, frames, match_frames, idx, rule=None):
         pass
 
@@ -47,11 +48,14 @@ class Action:
         return self._is_updater
 
     @classmethod
-    def _from_config_structure(cls, val, version):
+    def _from_config_structure(cls, val: ActionConfigStructure, version: int) -> "Action":
         if isinstance(val, list):
             return VarAction(val[0], val[1])
         flag, range = REVERSE_ACTION_FLAGS[val >> ACTION_BITSIZE[version]]
         return FlagAction(ACTIONS[val & 0xF], flag, range)
+
+    def _to_config_structure(self, version: int) -> int:
+        raise NotImplementedError()
 
 
 class FlagAction(Action):
@@ -69,7 +73,7 @@ class FlagAction(Action):
             self.key,
         )
 
-    def _to_config_structure(self, version):
+    def _to_config_structure(self, version: int) -> int:
         return ACTIONS.index(self.key) | (
             ACTION_FLAGS[self.flag, self.range] << ACTION_BITSIZE[version]
         )
@@ -164,7 +168,7 @@ class VarAction(Action):
     def __str__(self):
         return f"{self.var}={self.value}"
 
-    def _to_config_structure(self, version):
+    def _to_config_structure(self, version: int) -> List[str]:
         return [self.var, self.value]
 
     def modify_stacktrace_state(self, state, rule):
