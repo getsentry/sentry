@@ -92,6 +92,7 @@ from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.neo4j import neo4j_driver
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 
@@ -1881,6 +1882,65 @@ def _calculate_span_grouping(jobs, projects):
 
 
 @metrics.wraps("event_manager.save_transaction_events")
+def _insert_transaction_neo4j(jobs):
+    for job in jobs:
+
+        def create_spans(tx, data):
+            create_nodes = []
+            create_relations = []
+            create_kwargs = {
+                "trace_id": data["contexts"]["trace"]["trace_id"],
+            }
+
+            root_span = {
+                "root": True,
+                "timestamp": data["timestamp"],
+                "start_timestamp": data["start_timestamp"],
+                "span_id": data["contexts"]["trace"]["span_id"],
+            }
+            if "parent_span_id" in data["contexts"]["trace"] is None:
+                root_span["parent_span_id"] = data["contexts"]["trace"].get("parent_span_id")
+
+            for span in [root_span] + data["spans"]:
+                span_id = span["span_id"]
+                for k in ["span_id", "parent_span_id", "timestamp", "start_timestamp"]:
+                    if k in span:
+                        create_kwargs[f"{k}_{span_id}"] = span[k]
+
+                props = ["trace_id: $trace_id"] + [
+                    f"{k}: ${k}_{span_id}"
+                    for k in ["span_id", "parent_span_id", "timestamp", "start_timestamp"]
+                    if k in span
+                ]
+
+                create_nodes.append(
+                    "CREATE (span_{}:Span{} {})".format(
+                        span_id,
+                        ":Transaction" if "parent_span_id" in span else "",
+                        "{" + ", ".join(props) + "}",
+                    )
+                )
+
+                if span.get("root"):
+                    pass
+                else:
+                    create_relations.append(
+                        "CREATE (span_{})-[:PARENT_OF]->(span_{})".format(
+                            span["parent_span_id"],
+                            span["span_id"],
+                        )
+                    )
+
+            tx.run(
+                " ".join(create_nodes + create_relations),
+                **create_kwargs,
+            )
+
+        with neo4j_driver.session() as session:
+            session.write_transaction(create_spans, data=job["data"])
+
+
+@metrics.wraps("event_manager.save_transaction_events")
 def save_transaction_events(jobs, projects):
     with metrics.timer("event_manager.save_transactions.collect_organization_ids"):
         organization_ids = {project.organization_id for project in projects.values()}
@@ -1922,4 +1982,8 @@ def save_transaction_events(jobs, projects):
     _nodestore_save_many(jobs)
     _eventstream_insert_many(jobs)
     _track_outcome_accepted_many(jobs)
+    try:
+        _insert_transaction_neo4j(jobs)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
     return jobs
