@@ -515,7 +515,6 @@ class SnubaQueryBuilder:
                     # lists of metric_mris as values representing all the entities and
                     # metric_mris combination that this metric_object is composed of, or rather
                     # the instances of SingleEntityDerivedMetric that it is composed of
-                    # breakpoint()
                     metric_mri_to_obj_dict = self.__update_query_dicts_with_component_entities(
                         component_entities=component_entities,
                         metric_mri_to_obj_dict=metric_mri_to_obj_dict,
