@@ -167,6 +167,164 @@ class GroupSerializerBase(Serializer):
         self.collapse = collapse
         self.expand = expand
 
+    def get_attrs(self, item_list, user):
+        GroupMeta.objects.populate_cache(item_list)
+
+        # Note that organization is necessary here for use in `_get_permalink` to avoid
+        # making unnecessary queries.
+        prefetch_related_objects(item_list, "project__organization")
+
+        if user.is_authenticated and item_list:
+            bookmarks = set(
+                GroupBookmark.objects.filter(user=user, group__in=item_list).values_list(
+                    "group_id", flat=True
+                )
+            )
+            seen_groups = dict(
+                GroupSeen.objects.filter(user=user, group__in=item_list).values_list(
+                    "group_id", "last_seen"
+                )
+            )
+            subscriptions = self._get_subscriptions(item_list, user)
+        else:
+            bookmarks = set()
+            seen_groups = {}
+            subscriptions = defaultdict(lambda: (False, False, None))
+
+        assignees = {
+            a.group_id: a.assigned_actor()
+            for a in GroupAssignee.objects.filter(group__in=item_list)
+        }
+        resolved_assignees = ActorTuple.resolve_dict(assignees)
+
+        ignore_items = {g.group_id: g for g in GroupSnooze.objects.filter(group__in=item_list)}
+
+        release_resolutions, commit_resolutions = self._resolve_resolutions(item_list, user)
+
+        actor_ids = {r[-1] for r in release_resolutions.values()}
+        actor_ids.update(r.actor_id for r in ignore_items.values())
+        if actor_ids:
+            users = list(User.objects.filter(id__in=actor_ids, is_active=True))
+            actors = {u.id: d for u, d in zip(users, serialize(users, user))}
+        else:
+            actors = {}
+
+        share_ids = dict(
+            GroupShare.objects.filter(group__in=item_list).values_list("group_id", "uuid")
+        )
+
+        seen_stats = self._get_seen_stats(item_list, user)
+
+        organization_id_list = list({item.project.organization_id for item in item_list})
+        # if no groups, then we can't proceed but this seems to be a valid use case
+        if not item_list:
+            return {}
+        if len(organization_id_list) > 1:
+            # this should never happen but if it does we should know about it
+            logger.warning(
+                "Found multiple organizations for groups: %s, with orgs: %s"
+                % ([item.id for item in item_list], organization_id_list)
+            )
+
+        # should only have 1 org at this point
+        organization_id = organization_id_list[0]
+
+        authorized = self._is_authorized(user, organization_id)
+
+        annotations_by_group_id: MutableMapping[int, List[Any]] = defaultdict(list)
+        for annotations_by_group in itertools.chain.from_iterable(
+            [
+                self._resolve_integration_annotations(organization_id, item_list),
+                [self._resolve_external_issue_annotations(item_list)],
+            ]
+        ):
+            merge_list_dictionaries(annotations_by_group_id, annotations_by_group)
+
+        snuba_stats = self._get_group_snuba_stats(item_list, seen_stats)
+
+        result = {}
+        for item in item_list:
+            active_date = item.active_at or item.first_seen
+
+            resolution_actor = None
+            resolution_type = None
+            resolution = release_resolutions.get(item.id)
+            if resolution:
+                resolution_type = "release"
+                resolution_actor = actors.get(resolution[-1])
+            if not resolution:
+                resolution = commit_resolutions.get(item.id)
+                if resolution:
+                    resolution_type = "commit"
+
+            ignore_item = ignore_items.get(item.id)
+
+            result[item] = {
+                "id": item.id,
+                "assigned_to": resolved_assignees.get(item.id),
+                "is_bookmarked": item.id in bookmarks,
+                "subscription": subscriptions[item.id],
+                "has_seen": seen_groups.get(item.id, active_date) > active_date,
+                "annotations": self._resolve_and_extend_plugin_annotation(
+                    item, annotations_by_group_id[item.id]
+                ),
+                "ignore_until": ignore_item,
+                "ignore_actor": actors.get(ignore_item.actor_id) if ignore_item else None,
+                "resolution": resolution,
+                "resolution_type": resolution_type,
+                "resolution_actor": resolution_actor,
+                "share_id": share_ids.get(item.id),
+                "authorized": authorized,
+            }
+
+            result[item]["is_unhandled"] = bool(snuba_stats.get(item.id, {}).get("unhandled"))
+
+            if seen_stats:
+                result[item].update(seen_stats.get(item, {}))
+        return result
+
+    def serialize(self, obj, attrs, user) -> BaseGroupSerializerResponse:
+        status_details, status_label = self._get_status(attrs, obj)
+        permalink = self._get_permalink(attrs, obj)
+        is_subscribed, subscription_details = get_subscription_from_attributes(attrs)
+        share_id = attrs["share_id"]
+        group_dict = {
+            "id": str(obj.id),
+            "shareId": share_id,
+            "shortId": obj.qualified_short_id,
+            "title": obj.title,
+            "culprit": obj.culprit,
+            "permalink": permalink,
+            "logger": obj.logger or None,
+            "level": LOG_LEVELS.get(obj.level, "unknown"),
+            "status": status_label,
+            "statusDetails": status_details,
+            "isPublic": share_id is not None,
+            "platform": obj.platform,
+            "project": {
+                "id": str(obj.project.id),
+                "name": obj.project.name,
+                "slug": obj.project.slug,
+                "platform": obj.project.platform,
+            },
+            "type": obj.get_event_type(),
+            "metadata": obj.get_event_metadata(),
+            "numComments": obj.num_comments,
+            "assignedTo": serialize(attrs["assigned_to"], user, ActorSerializer()),
+            "isBookmarked": attrs["is_bookmarked"],
+            "isSubscribed": is_subscribed,
+            "subscriptionDetails": subscription_details,
+            "hasSeen": attrs["has_seen"],
+            "annotations": attrs["annotations"],
+        }
+
+        # This attribute is currently feature gated
+        if "is_unhandled" in attrs:
+            group_dict["isUnhandled"] = attrs["is_unhandled"]
+        if "times_seen" in attrs:
+            group_dict.update(self._convert_seen_stats(attrs))
+        return group_dict
+
     def _expand(self, key):
         if self.expand is None:
             return False
@@ -178,6 +336,62 @@ class GroupSerializerBase(Serializer):
             return False
         return key in self.collapse
 
+    def _get_status(self, attrs, obj):
+        status = obj.status
+        status_details = {}
+        if attrs["ignore_until"]:
+            snooze = attrs["ignore_until"]
+            if snooze.is_valid(group=obj):
+                # counts return the delta remaining when window is not set
+                status_details.update(
+                    {
+                        "ignoreCount": (
+                            snooze.count - (obj.times_seen - snooze.state["times_seen"])
+                            if snooze.count and not snooze.window
+                            else snooze.count
+                        ),
+                        "ignoreUntil": snooze.until,
+                        "ignoreUserCount": (
+                            snooze.user_count - (attrs["user_count"] - snooze.state["users_seen"])
+                            if snooze.user_count
+                            and not snooze.user_window
+                            and not self._collapse("stats")
+                            else snooze.user_count
+                        ),
+                        "ignoreUserWindow": snooze.user_window,
+                        "ignoreWindow": snooze.window,
+                        "actor": attrs["ignore_actor"],
+                    }
+                )
+            else:
+                status = GroupStatus.UNRESOLVED
+        if status == GroupStatus.UNRESOLVED and obj.is_over_resolve_age():
+            status = GroupStatus.RESOLVED
+            status_details["autoResolved"] = True
+        if status == GroupStatus.RESOLVED:
+            status_label = "resolved"
+            if attrs["resolution_type"] == "release":
+                res_type, res_version, _ = attrs["resolution"]
+                if res_type in (GroupResolution.Type.in_next_release, None):
+                    status_details["inNextRelease"] = True
+                elif res_type == GroupResolution.Type.in_release:
+                    status_details["inRelease"] = res_version
+                status_details["actor"] = attrs["resolution_actor"]
+            elif attrs["resolution_type"] == "commit":
+                status_details["inCommit"] = attrs["resolution"]
+        elif status == GroupStatus.IGNORED:
+            status_label = "ignored"
+        elif status in [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]:
+            status_label = "pending_deletion"
+        elif status == GroupStatus.PENDING_MERGE:
+            status_label = "pending_merge"
+        elif status == GroupStatus.REPROCESSING:
+            status_label = "reprocessing"
+            status_details["pendingEvents"], status_details["info"] = get_progress(attrs["id"])
+        else:
+            status_label = "unresolved"
+        return status_details, status_label
+
     def _get_seen_stats(self, item_list, user):
         """
         Returns a dictionary keyed by item that includes:
@@ -187,26 +401,6 @@ class GroupSerializerBase(Serializer):
             - user_count
         """
         raise NotImplementedError
-
-    @staticmethod
-    def _get_start_from_seen_stats(seen_stats):
-        # Try to figure out what is a reasonable time frame to look into stats,
-        # based on a given "seen stats".  We try to pick a day prior to the earliest last seen,
-        # but it has to be at least 14 days, and not more than 90 days ago.
-        # Fallback to the 30 days ago if we are not able to calculate the value.
-        last_seen = None
-        if seen_stats:
-            for item in seen_stats.values():
-                if last_seen is None or (item["last_seen"] and last_seen > item["last_seen"]):
-                    last_seen = item["last_seen"]
-
-        if last_seen is None:
-            return datetime.now(pytz.utc) - timedelta(days=30)
-
-        return max(
-            min(last_seen - timedelta(days=1), datetime.now(pytz.utc) - timedelta(days=14)),
-            datetime.now(pytz.utc) - timedelta(days=90),
-        )
 
     def _get_group_snuba_stats(self, item_list, seen_stats):
         start = self._get_start_from_seen_stats(seen_stats)
@@ -253,6 +447,26 @@ class GroupSerializerBase(Serializer):
                 cache.set("group-mechanism-handled:%d" % x["group_id"], x["unhandled"], 60)
 
         return {group_id: {"unhandled": unhandled} for group_id, unhandled in unhandled.items()}
+
+    @staticmethod
+    def _get_start_from_seen_stats(seen_stats):
+        # Try to figure out what is a reasonable time frame to look into stats,
+        # based on a given "seen stats".  We try to pick a day prior to the earliest last seen,
+        # but it has to be at least 14 days, and not more than 90 days ago.
+        # Fallback to the 30 days ago if we are not able to calculate the value.
+        last_seen = None
+        if seen_stats:
+            for item in seen_stats.values():
+                if last_seen is None or (item["last_seen"] and last_seen > item["last_seen"]):
+                    last_seen = item["last_seen"]
+
+        if last_seen is None:
+            return datetime.now(pytz.utc) - timedelta(days=30)
+
+        return max(
+            min(last_seen - timedelta(days=1), datetime.now(pytz.utc) - timedelta(days=14)),
+            datetime.now(pytz.utc) - timedelta(days=90),
+        )
 
     @staticmethod
     def _get_subscriptions(
@@ -386,179 +600,8 @@ class GroupSerializerBase(Serializer):
 
         return annotations_for_group
 
-    def get_attrs(self, item_list, user):
-        GroupMeta.objects.populate_cache(item_list)
-
-        # Note that organization is necessary here for use in `_get_permalink` to avoid
-        # making unnecessary queries.
-        prefetch_related_objects(item_list, "project__organization")
-
-        if user.is_authenticated and item_list:
-            bookmarks = set(
-                GroupBookmark.objects.filter(user=user, group__in=item_list).values_list(
-                    "group_id", flat=True
-                )
-            )
-            seen_groups = dict(
-                GroupSeen.objects.filter(user=user, group__in=item_list).values_list(
-                    "group_id", "last_seen"
-                )
-            )
-            subscriptions = self._get_subscriptions(item_list, user)
-        else:
-            bookmarks = set()
-            seen_groups = {}
-            subscriptions = defaultdict(lambda: (False, False, None))
-
-        assignees = {
-            a.group_id: a.assigned_actor()
-            for a in GroupAssignee.objects.filter(group__in=item_list)
-        }
-        resolved_assignees = ActorTuple.resolve_dict(assignees)
-
-        ignore_items = {g.group_id: g for g in GroupSnooze.objects.filter(group__in=item_list)}
-
-        release_resolutions, commit_resolutions = self._resolve_resolutions(item_list, user)
-
-        actor_ids = {r[-1] for r in release_resolutions.values()}
-        actor_ids.update(r.actor_id for r in ignore_items.values())
-        if actor_ids:
-            users = list(User.objects.filter(id__in=actor_ids, is_active=True))
-            actors = {u.id: d for u, d in zip(users, serialize(users, user))}
-        else:
-            actors = {}
-
-        share_ids = dict(
-            GroupShare.objects.filter(group__in=item_list).values_list("group_id", "uuid")
-        )
-
-        seen_stats = self._get_seen_stats(item_list, user)
-
-        organization_id_list = list({item.project.organization_id for item in item_list})
-        # if no groups, then we can't proceed but this seems to be a valid use case
-        if not item_list:
-            return {}
-        if len(organization_id_list) > 1:
-            # this should never happen but if it does we should know about it
-            logger.warning(
-                "Found multiple organizations for groups: %s, with orgs: %s"
-                % ([item.id for item in item_list], organization_id_list)
-            )
-
-        # should only have 1 org at this point
-        organization_id = organization_id_list[0]
-
-        authorized = self._is_authorized(user, organization_id)
-
-        annotations_by_group_id: MutableMapping[int, List[Any]] = defaultdict(list)
-        for annotations_by_group in itertools.chain.from_iterable(
-            [
-                self._resolve_integration_annotations(organization_id, item_list),
-                [self._resolve_external_issue_annotations(item_list)],
-            ]
-        ):
-            merge_list_dictionaries(annotations_by_group_id, annotations_by_group)
-
-        snuba_stats = self._get_group_snuba_stats(item_list, seen_stats)
-
-        result = {}
-        for item in item_list:
-            active_date = item.active_at or item.first_seen
-
-            resolution_actor = None
-            resolution_type = None
-            resolution = release_resolutions.get(item.id)
-            if resolution:
-                resolution_type = "release"
-                resolution_actor = actors.get(resolution[-1])
-            if not resolution:
-                resolution = commit_resolutions.get(item.id)
-                if resolution:
-                    resolution_type = "commit"
-
-            ignore_item = ignore_items.get(item.id)
-
-            result[item] = {
-                "id": item.id,
-                "assigned_to": resolved_assignees.get(item.id),
-                "is_bookmarked": item.id in bookmarks,
-                "subscription": subscriptions[item.id],
-                "has_seen": seen_groups.get(item.id, active_date) > active_date,
-                "annotations": self._resolve_and_extend_plugin_annotation(
-                    item, annotations_by_group_id[item.id]
-                ),
-                "ignore_until": ignore_item,
-                "ignore_actor": actors.get(ignore_item.actor_id) if ignore_item else None,
-                "resolution": resolution,
-                "resolution_type": resolution_type,
-                "resolution_actor": resolution_actor,
-                "share_id": share_ids.get(item.id),
-                "authorized": authorized,
-            }
-
-            result[item]["is_unhandled"] = bool(snuba_stats.get(item.id, {}).get("unhandled"))
-
-            if seen_stats:
-                result[item].update(seen_stats.get(item, {}))
-        return result
-
-    def _get_status(self, attrs, obj):
-        status = obj.status
-        status_details = {}
-        if attrs["ignore_until"]:
-            snooze = attrs["ignore_until"]
-            if snooze.is_valid(group=obj):
-                # counts return the delta remaining when window is not set
-                status_details.update(
-                    {
-                        "ignoreCount": (
-                            snooze.count - (obj.times_seen - snooze.state["times_seen"])
-                            if snooze.count and not snooze.window
-                            else snooze.count
-                        ),
-                        "ignoreUntil": snooze.until,
-                        "ignoreUserCount": (
-                            snooze.user_count - (attrs["user_count"] - snooze.state["users_seen"])
-                            if snooze.user_count
-                            and not snooze.user_window
-                            and not self._collapse("stats")
-                            else snooze.user_count
-                        ),
-                        "ignoreUserWindow": snooze.user_window,
-                        "ignoreWindow": snooze.window,
-                        "actor": attrs["ignore_actor"],
-                    }
-                )
-            else:
-                status = GroupStatus.UNRESOLVED
-        if status == GroupStatus.UNRESOLVED and obj.is_over_resolve_age():
-            status = GroupStatus.RESOLVED
-            status_details["autoResolved"] = True
-        if status == GroupStatus.RESOLVED:
-            status_label = "resolved"
-            if attrs["resolution_type"] == "release":
-                res_type, res_version, _ = attrs["resolution"]
-                if res_type in (GroupResolution.Type.in_next_release, None):
-                    status_details["inNextRelease"] = True
-                elif res_type == GroupResolution.Type.in_release:
-                    status_details["inRelease"] = res_version
-                status_details["actor"] = attrs["resolution_actor"]
-            elif attrs["resolution_type"] == "commit":
-                status_details["inCommit"] = attrs["resolution"]
-        elif status == GroupStatus.IGNORED:
-            status_label = "ignored"
-        elif status in [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]:
-            status_label = "pending_deletion"
-        elif status == GroupStatus.PENDING_MERGE:
-            status_label = "pending_merge"
-        elif status == GroupStatus.REPROCESSING:
-            status_label = "reprocessing"
-            status_details["pendingEvents"], status_details["info"] = get_progress(attrs["id"])
-        else:
-            status_label = "unresolved"
-        return status_details, status_label
-
-    def _is_authorized(self, user, organization_id):
+    @staticmethod
+    def _is_authorized(user, organization_id):
         # If user is not logged in and member of the organization,
         # do not return the permalink which contains private information i.e. org name.
         request = env.request
@@ -580,56 +623,16 @@ class GroupSerializerBase(Serializer):
 
         return user.is_authenticated and user.get_orgs().filter(id=organization_id).exists()
 
-    def _get_permalink(self, attrs, obj):
+    @staticmethod
+    def _get_permalink(attrs, obj):
         if attrs["authorized"]:
             with sentry_sdk.start_span(op="GroupSerializerBase.serialize.permalink.build"):
                 return obj.get_absolute_url()
         else:
             return None
 
-    def serialize(self, obj, attrs, user) -> BaseGroupSerializerResponse:
-        status_details, status_label = self._get_status(attrs, obj)
-        permalink = self._get_permalink(attrs, obj)
-        is_subscribed, subscription_details = get_subscription_from_attributes(attrs)
-        share_id = attrs["share_id"]
-        group_dict = {
-            "id": str(obj.id),
-            "shareId": share_id,
-            "shortId": obj.qualified_short_id,
-            "title": obj.title,
-            "culprit": obj.culprit,
-            "permalink": permalink,
-            "logger": obj.logger or None,
-            "level": LOG_LEVELS.get(obj.level, "unknown"),
-            "status": status_label,
-            "statusDetails": status_details,
-            "isPublic": share_id is not None,
-            "platform": obj.platform,
-            "project": {
-                "id": str(obj.project.id),
-                "name": obj.project.name,
-                "slug": obj.project.slug,
-                "platform": obj.project.platform,
-            },
-            "type": obj.get_event_type(),
-            "metadata": obj.get_event_metadata(),
-            "numComments": obj.num_comments,
-            "assignedTo": serialize(attrs["assigned_to"], user, ActorSerializer()),
-            "isBookmarked": attrs["is_bookmarked"],
-            "isSubscribed": is_subscribed,
-            "subscriptionDetails": subscription_details,
-            "hasSeen": attrs["has_seen"],
-            "annotations": attrs["annotations"],
-        }
-
-        # This attribute is currently feature gated
-        if "is_unhandled" in attrs:
-            group_dict["isUnhandled"] = attrs["is_unhandled"]
-        if "times_seen" in attrs:
-            group_dict.update(self._convert_seen_stats(attrs))
-        return group_dict
-
-    def _convert_seen_stats(self, stats):
+    @staticmethod
+    def _convert_seen_stats(stats):
         return {
             "count": str(stats["times_seen"]),
             "userCount": stats["user_count"],
