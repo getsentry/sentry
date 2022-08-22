@@ -1,0 +1,101 @@
+{
+  "post": {
+    "tags": ["Integration"],
+    "description": "Create an external issue from an integration platform integration.",
+    "operationId": "Create an External Issue",
+    "parameters": [
+      {
+        "name": "uuid",
+        "in": "path",
+        "description": "The uuid of the integration platform integration.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": {
+      "content": {
+        "application/json": {
+          "schema": {
+            "required": ["issueId", "webUrl", "project", "identifier"],
+            "type": "object",
+            "properties": {
+              "issueId": {
+                "type": "integer",
+                "description": "The ID of the Sentry issue to link the external issue to."
+              },
+              "webUrl": {
+                "type": "string",
+                "description": "The URL of the external service to link the issue to."
+              },
+              "project": {
+                "type": "string",
+                "description": "The external service's project."
+              },
+              "identifier": {
+                "type": "string",
+                "description": "A unique identifier of the external issue."
+              }
+            }
+          },
+          "example": {
+            "issueId": 1,
+            "webUrl": "https://somerandom.io/project/issue-id",
+            "project": "ExternalProj",
+            "identifier": "issue-1"
+          }
+        }
+      },
+      "required": true
+    },
+    "responses": {
+      "200": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": ["id", "issueId", "serviceType", "displayName", "webUrl"],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "issueId": {
+                  "type": "string"
+                },
+                "serviceType": {
+                  "type": "string"
+                },
+                "displayName": {
+                  "type": "string"
+                },
+                "webUrl": {
+                  "type": "string"
+                }
+              }
+            },
+            "example": {
+              "id": "1",
+              "issueId": "1",
+              "serviceType": "testing",
+              "displayName": "ExternalProj#issue-1",
+              "webUrl": "https://somerandom.io/project/issue-id"
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "Not Found"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["event:write"]
+      }
+    ]
+  }
+}
