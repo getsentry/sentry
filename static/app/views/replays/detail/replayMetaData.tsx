@@ -51,11 +51,7 @@ function ReplayMetaData({replayRecord}: Props) {
         {replayRecord ? (
           <React.Fragment>
             <IconClock color="gray300" />
-            <Duration
-              seconds={Math.floor(msToSec(replayRecord?.duration || 0)) || 1}
-              abbreviation
-              exact
-            />
+            <Duration seconds={replayRecord?.duration} abbreviation exact />
           </React.Fragment>
         ) : (
           <HeaderPlaceholder />
@@ -73,10 +69,6 @@ function ReplayMetaData({replayRecord}: Props) {
       </KeyMetricData>
     </KeyMetrics>
   );
-}
-
-function msToSec(ms: number) {
-  return ms / 1000;
 }
 
 export const HeaderPlaceholder = styled(function HeaderPlaceholder(
