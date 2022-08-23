@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
@@ -22,6 +22,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 interface Props {}
 
 interface Session {
+  'count(session_id)': number;
+  'last_seen()': string;
   session_id: string;
 }
 
@@ -85,14 +87,18 @@ function Breadcrumbs({}: Props) {
         <PanelTable
           isLoading={isLoading}
           isEmpty={sessions.length === 0}
-          headers={[t('Session')]}
+          headers={[t('Session'), t('Last Activity'), t('Number of Events')]}
         >
           {sessions.map(session => (
-            <Item key={session.session_id}>
-              <Link to={`/organizations/${org.slug}/breadcrumbs/${session.session_id}`}>
-                {session.session_id}
-              </Link>
-            </Item>
+            <Fragment key={session.session_id}>
+              <Item>
+                <Link to={`/organizations/${org.slug}/breadcrumbs/${session.session_id}`}>
+                  {session.session_id}
+                </Link>
+              </Item>
+              <Item>{session['last_seen()']}</Item>
+              <Item>{session['count(session_id)']}</Item>
+            </Fragment>
           ))}
         </PanelTable>
       </PageContent>
