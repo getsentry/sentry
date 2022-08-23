@@ -182,8 +182,10 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     infiniteBreadcrumbs = [];
   }
 
-  const sid = getSession() || setSession(uuid4());
-  const did = getDid() || setDid(uuid4());
+  const maybeDid = getDid();
+  const did = maybeDid || setDid(uuid4());
+  const sid =
+    maybeDid === null ? setSession(uuid4()) : getSession() || setSession(uuid4());
 
   const scope = hub.getScope();
   if (scope) {
