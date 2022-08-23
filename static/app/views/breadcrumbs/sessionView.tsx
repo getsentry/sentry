@@ -41,8 +41,8 @@ function SessionView({params: {sessionId}}: Props) {
     const query = decodeScalar(location.query.query, '');
     const conditions = new MutableSearch(query);
 
-    conditions.addStringFilter('has:session_id');
-    conditions.addStringFilter(`session_id:${sessionId}`);
+    conditions.addStringFilter('has:sid');
+    conditions.addStringFilter(`sid:${sessionId}`);
     // conditions.addStringFilter(`title:"Breadcrumb Event"`);
 
     return EventView.fromNewQueryWithLocation(
@@ -60,7 +60,7 @@ function SessionView({params: {sessionId}}: Props) {
         ],
         projects: [],
         orderby: '-timestamp',
-        // TODO: Filter based on incoming session_id and Breadcrumb Event title
+        // TODO: Filter based on incoming sid and Breadcrumb Event title
         query: conditions.formatString(),
       },
       location

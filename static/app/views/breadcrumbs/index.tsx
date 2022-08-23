@@ -24,9 +24,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 interface Props {}
 
 interface Session {
-  'count(session_id)': number;
+  'count(sid)': number;
   'last_seen()': string;
-  session_id: string;
+  sid: string;
 }
 
 function Breadcrumbs({}: Props) {
@@ -40,14 +40,14 @@ function Breadcrumbs({}: Props) {
     const query = decodeScalar(location.query.query, '');
     const conditions = new MutableSearch(query);
 
-    conditions.addStringFilter('has:session_id');
+    conditions.addStringFilter('has:sid');
 
     return EventView.fromNewQueryWithLocation(
       {
         id: '',
         name: '',
         version: 2,
-        fields: ['session_id', 'count(session_id)', 'last_seen()'],
+        fields: ['sid', 'count(sid)', 'last_seen()'],
         projects: [],
         orderby: '-last_seen',
         query: conditions.formatString(),
@@ -68,7 +68,7 @@ function Breadcrumbs({}: Props) {
         method: 'GET',
       });
 
-      setSessions(res.data.filter(session => session.session_id !== ''));
+      setSessions(res.data.filter(session => session.sid !== ''));
       setLoading(false);
     }
     fetchEvents();
@@ -99,13 +99,13 @@ function Breadcrumbs({}: Props) {
           headers={[t('Session'), t('Number of Events'), lastActivity]}
         >
           {sessions.map(session => (
-            <Fragment key={session.session_id}>
+            <Fragment key={session.sid}>
               <Item>
-                <Link to={`/organizations/${org.slug}/breadcrumbs/${session.session_id}`}>
-                  {session.session_id}
+                <Link to={`/organizations/${org.slug}/breadcrumbs/${session.sid}`}>
+                  {session.sid}
                 </Link>
               </Item>
-              <Item>{session['count(session_id)']}</Item>
+              <Item>{session['count(sid)']}</Item>
               <Item>
                 {FIELD_FORMATTERS.date.renderFunc('last_seen()', {
                   ['last_seen()']: session['last_seen()'],

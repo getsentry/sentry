@@ -100,6 +100,34 @@ function getSession(): string | null {
   return null;
 }
 
+function setDid(sessionId: string): string {
+  const hasSessionStorage = 'sessionStorage' in window;
+  if (hasSessionStorage) {
+    try {
+      window.localStorage.setItem('sentry.infinite.breadcrumb.did', sessionId);
+    } catch {
+      // this shouldn't happen
+    }
+  }
+
+  return sessionId;
+}
+
+function getDid(): string | null {
+  const hasSessionStorage = 'sessionStorage' in window;
+  if (!hasSessionStorage) {
+    return null;
+  }
+
+  try {
+    return window.localStorage.getItem('sentry.infinite.breadcrumb.did');
+  } catch {
+    // this shouldn't happen
+  }
+
+  return null;
+}
+
 /**
  * Initialize the Sentry SDK
  *
@@ -141,20 +169,21 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
 
   const hub = getCurrentHub();
 
-  function flushBreadcrumbs(session_id: string) {
+  function flushBreadcrumbs(sid: string, did: string) {
     const client = hub.getClient();
     if (client && infiniteBreadcrumbs.length) {
       client.sendEvent({
         message: 'Breadcrumb Event',
         event_id: uuid4(),
-        tags: {session_id},
+        tags: {sid, did},
         breadcrumbs: infiniteBreadcrumbs,
       });
     }
     infiniteBreadcrumbs = [];
   }
 
-  const sessionId = getSession() || setSession(uuid4());
+  const sid = getSession() || setSession(uuid4());
+  const did = getDid() || setDid(uuid4());
 
   const scope = hub.getScope();
   if (scope) {
@@ -169,21 +198,21 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
       infiniteBreadcrumbs.push(updatedScope._breadcrumbs[len]);
 
       if (infiniteBreadcrumbs.length >= 100) {
-        flushBreadcrumbs(sessionId);
+        flushBreadcrumbs(sid, did);
       }
     });
   }
 
   setInterval(() => {
-    flushBreadcrumbs(sessionId);
+    flushBreadcrumbs(sid, did);
   }, 5000);
 
   // Track timeOrigin Selection by the SDK to see if it improves transaction durations
   addGlobalEventProcessor((event: SentryEvent, _hint?: EventHint) => {
     event.tags = event.tags || {};
     event.tags['timeOrigin.mode'] = _browserPerformanceTimeOriginMode;
-    event.tags.session_id = sessionId;
-    // flushBreadcrumbs(sessionId);
+    event.tags.sid = sid;
+    event.tags.did = did;
     return event;
   });
 
