@@ -182,7 +182,6 @@ export default function render(
   }
 
   if (exception) {
-    console.log('there is excpection');
     frames.unshift(getPreamble(exception, platform));
   }
 

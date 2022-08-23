@@ -81,15 +81,15 @@ const Clippy = ({event}: any) => {
           src={staticImage}
         />
       )}
-      {/* {content && !loading && ( */}
+      {content && !loading && (
         <Wrapper>
           <p>{content}</p>
           <ButtonWrapper>
             <Button>Yes</Button>
-            <Button>No</Button>
+            <Button>YES!</Button>
           </ButtonWrapper>
         </Wrapper>
-      {/* )} */}
+      )}
     </ClippyWrapper>
   );
 };
@@ -131,16 +131,3 @@ const ButtonWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
 `;
-
-// const LoadingWrapper = styled('div')`
-//   left: 50%;
-//   width: 400px;
-//   height: 200px;
-//   background-color: #fbf1c7;
-//   border: 1px solid black;
-//   border-radius: 4px;
-//   padding: 5px 8px;
-//   display: flex;
-//   align-items: center;
-//   justify-content: center;
-// `;
