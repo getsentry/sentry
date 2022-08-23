@@ -10765,6 +10765,11 @@ nested-error-stacks@^2.0.0, nested-error-stacks@^2.1.0:
   resolved "https://registry.yarnpkg.com/nested-error-stacks/-/nested-error-stacks-2.1.0.tgz#0fbdcf3e13fe4994781280524f8b96b0cdff9c61"
   integrity sha512-AO81vsIO1k1sM4Zrd6Hu7regmJN1NSiAja10gc4bX3F0wd+9rQmcuHQaHVQCYIEC8iFXnE+mavh23GOt7wBgug==
 
+nhsieh-testlib@^1.0.2:
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/nhsieh-testlib/-/nhsieh-testlib-1.0.2.tgz#a4431a55403b2544633e4855ed3f72e36d6bac61"
+  integrity sha512-bIjKY+nBF+K3k10pLBMXWfVYa+3P8XBxMVVrgEL3FWdrpq7Cmo8pWG+DphwVkQ97zNUjpgb9tOrkogIt/x77OQ==
+
 nice-try@^1.0.4:
   version "1.0.5"
   resolved "https://registry.yarnpkg.com/nice-try/-/nice-try-1.0.5.tgz#a3378a7696ce7d223e88fc9b764bd7ef1089e366"

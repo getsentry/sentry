@@ -7,6 +7,7 @@ import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
 import uniqBy from 'lodash/uniqBy';
 
+// import {Button as LibButton} from 'nhsieh-testlib';
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -127,6 +128,15 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
                 >
                   {t('Join a Team')}
                 </Button>
+                {/* <LibButton
+                  label={
+                    <span>
+                      <IconAdd size="xs" isCircled /> Create Project
+                    </span>
+                  }
+                  onClick={() => console.log('CLICK')}
+                  primary
+                /> */}
                 <Button
                   priority="primary"
                   disabled={!canCreateProjects}
@@ -139,7 +149,7 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
                   icon={<IconAdd size="xs" isCircled />}
                   data-test-id="create-project"
                 >
-                  {t('Create Project')}
+                  {t('Create foobar Project')}
                 </Button>
               </ButtonContainer>
             </Layout.HeaderActions>
