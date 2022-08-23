@@ -35,9 +35,6 @@ export function Card({
   onDeleteSegment,
   description,
 }: Props) {
-  const hasEvaluations = evaluations.length > 0;
-  const activeResult = evaluations.some(({result}) => result);
-
   return (
     <Wrapper>
       <Header>
@@ -45,17 +42,7 @@ export function Card({
           <Key>{flagKey}</Key>
           {description && <Description>{description}</Description>}
         </div>
-        {hasEvaluations ? (
-          enabled && activeResult ? (
-            <Tag type="success">{t('Active')}</Tag>
-          ) : (
-            <Tag>{t('Inactive')}</Tag>
-          )
-        ) : enabled ? (
-          <Tag type="success">{t('Active')}</Tag>
-        ) : (
-          <Tag>{t('Inactive')}</Tag>
-        )}
+        {enabled ? <Tag type="success">{t('Active')}</Tag> : <Tag>{t('Inactive')}</Tag>}
         <Actions>
           <ActiveToggle
             inline={false}

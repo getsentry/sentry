@@ -7,11 +7,12 @@ import {formatCreateTagLabel} from '../../server-side-sampling/modals/specificCo
 type Props = {
   name: string;
   onChange: (value: any) => void;
+  options: {label: string; value: string}[];
   placeholder: string;
-  options?: {label: string; value: string}[];
+  value: string;
 };
 
-export function AutoCompleteField({name, onChange, options, placeholder}: Props) {
+export function AutoCompleteField({name, onChange, value, options, placeholder}: Props) {
   return (
     <StyledSelectField
       name={name}
@@ -34,6 +35,7 @@ export function AutoCompleteField({name, onChange, options, placeholder}: Props)
           inputValue.trim().length <= 200
         );
       }}
+      value={value}
       filterOption={(option, filterText) => option.data.value.indexOf(filterText) > -1}
       inline={false}
       hideControlState

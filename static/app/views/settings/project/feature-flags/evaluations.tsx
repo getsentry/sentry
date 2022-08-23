@@ -31,6 +31,7 @@ export function Evaluations({evaluations, onDeleteSegment, onEditSegment}: Props
           <Column />
           <TypeColumn>{t('Type')}</TypeColumn>
           <TagsColumn>{t('Tags')}</TagsColumn>
+          <ResultColumn>{t('Result')}</ResultColumn>
           <RolloutColumn>{t('Rollout')}</RolloutColumn>
           <ActionsColumn />
         </EvaluationsLayout>
@@ -57,12 +58,11 @@ export function Evaluations({evaluations, onDeleteSegment, onEditSegment}: Props
                 <NotAvailable />
               )}
             </TagsColumn>
+            <ResultColumn>test</ResultColumn>
             <RolloutColumn>
-              {evaluation.type === 'rollout' && defined(evaluation.percentage) ? (
-                `${rateToPercentage(evaluation.percentage)}%`
-              ) : (
-                <NotAvailable />
-              )}
+              {evaluation.type === 'rollout' && defined(evaluation.percentage)
+                ? `${rateToPercentage(evaluation.percentage)}%`
+                : `100%`}
             </RolloutColumn>
             <ActionsColumn>
               <DropdownMenuControl
@@ -121,7 +121,7 @@ const EvaluationsLayout = styled('div')<{isContent?: boolean}>`
   grid-template-columns: 90px 1fr 74px;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 48px 90px 1fr 0.5fr 74px;
+    grid-template-columns: 48px 90px 1fr 0.5fr 90px 74px;
   }
 
   ${p =>
@@ -158,6 +158,11 @@ const RolloutColumn = styled(Column)`
 `;
 
 const ActionsColumn = styled(Column)`
+  justify-content: flex-end;
+`;
+
+const ResultColumn = styled(Column)`
+  text-align: right;
   justify-content: flex-end;
 `;
 

@@ -64,8 +64,9 @@ export function SegmentModal({
         }, [] as Record<string, string>[])
       : []
   );
+
   const [percentage, setPercentage] = useState(
-    segment?.type === 'rollout' ? segment.percentage : undefined
+    segment?.type === 'rollout' ? segment.percentage ?? 0 : 0
   );
 
   const [isSaving, setIsSaving] = useState(false);
@@ -197,6 +198,14 @@ export function SegmentModal({
     setTags(newTags);
   }
 
+  const tagValueOptions = tags.reduce((acc, tag) => {
+    const tagValue = Object.values(tag)[0];
+    if (!acc.some(value => value.value === tagValue)) {
+      acc.push({value: tagValue, label: tagValue});
+    }
+    return acc;
+  }, [] as {label: string; value: string}[]);
+
   return (
     <Fragment>
       <Header closeButton>
@@ -206,7 +215,7 @@ export function SegmentModal({
         <Fields>
           <StyledSelectField
             name="type"
-            label={t('Segment Type')}
+            label={t('Type')}
             value={type}
             choices={segmentTypeChoices}
             onChange={setType}
@@ -234,12 +243,13 @@ export function SegmentModal({
                   description={t('Click on the button above to add (+) a tag')}
                 />
               ) : (
-                tags.map((_tag, index) => {
+                tags.map((tag, index) => {
                   return (
                     <TagFields key={index}>
                       <LeftCell>
                         <AutoCompleteField
                           name="tag-key"
+                          value={Object.keys(tag)[0]}
                           options={tagKeyOptions}
                           onChange={v => handleChangeTag(index, 'key', v)}
                           placeholder={t('ex. isEarlyAdopter')}
@@ -248,6 +258,8 @@ export function SegmentModal({
                       <CenterCell>
                         <AutoCompleteField
                           name="tag-value"
+                          options={tagValueOptions}
+                          value={Object.values(tag)[0]}
                           onChange={v => handleChangeTag(index, 'value', v)}
                           placeholder={t('ex. true')}
                         />
@@ -267,7 +279,7 @@ export function SegmentModal({
           </StyledPanel>
           {type === 'rollout' && (
             <StyledField
-              label={`${t('Percentage')} \u0025`}
+              label={`${t('Rollout')} \u0025`}
               inline={false}
               flexibleControlStateSize
               hideControlState
@@ -283,6 +295,7 @@ export function SegmentModal({
                 />
                 {'100%'}
               </SliderWrapper>
+              <SliderPercentage>{`${percentage}%`}</SliderPercentage>
             </StyledField>
           )}
         </Fields>
@@ -419,4 +432,11 @@ const CenterCell = styled(Cell)`
 const RightCell = styled(Cell)`
   justify-content: flex-end;
   padding-left: ${space(1)};
+`;
+
+const SliderPercentage = styled('div')`
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
