@@ -87,7 +87,6 @@ class Action:
 
     @classmethod
     def _from_config_structure(cls, val: ActionConfigStructure, version: int) -> "Action":
-        print("ACTION", val)
         if isinstance(val, list):
             return VarAction(val[0], val[1])
         flag, range = REVERSE_ACTION_FLAGS[val >> ACTION_BITSIZE[version]]

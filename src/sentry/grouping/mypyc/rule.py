@@ -91,7 +91,6 @@ class Rule:
 
     @classmethod
     def _from_config_structure(cls, tuple: RuleConfigStructure, version: int) -> "Rule":
-        print("RULE", tuple)
         matchers, actions = tuple
         return Rule(
             [Match._from_config_structure(x, version) for x in matchers],  # type: ignore  # TODO

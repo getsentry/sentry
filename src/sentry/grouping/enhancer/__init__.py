@@ -217,9 +217,7 @@ class Enhancements:
 
         ruless = []
         for x in ruless:
-            print("-- RULE", x)
             rule = Rule._from_config_structure(x, version=version)
-            print(rule)
             ruless.append(rule)
 
         return cls(
