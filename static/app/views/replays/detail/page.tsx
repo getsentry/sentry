@@ -8,21 +8,20 @@ import {CrumbWalker} from 'sentry/components/replays/walker/urlWalker';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import space from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
-import EventMetaData, {
-  HeaderPlaceholder,
-} from 'sentry/views/replays/detail/eventMetaData';
 import ChooseLayout from 'sentry/views/replays/detail/layout/chooseLayout';
+import ReplayMetaData, {
+  HeaderPlaceholder,
+} from 'sentry/views/replays/detail/replayMetaData';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
   children: ReactNode;
   orgSlug: string;
   crumbs?: Crumb[];
-  durationMs?: number;
   replayRecord?: ReplayRecord;
 };
 
-function Page({children, crumbs, durationMs, orgSlug, replayRecord}: Props) {
+function Page({children, crumbs, orgSlug, replayRecord}: Props) {
   const title = replayRecord
     ? `${replayRecord.id} - Replays - ${orgSlug}`
     : `Replays - ${orgSlug}`;
@@ -44,11 +43,7 @@ function Page({children, crumbs, durationMs, orgSlug, replayRecord}: Props) {
       )}
 
       <MetaDataColumn>
-        <EventMetaData
-          crumbs={crumbs}
-          durationMs={durationMs}
-          replayRecord={replayRecord}
-        />
+        <ReplayMetaData replayRecord={replayRecord} />
       </MetaDataColumn>
     </Header>
   );

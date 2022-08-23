@@ -734,9 +734,9 @@ describe('TraceView', () => {
     generateSampleSpan('browser', 'test5', 'f000000000000000', 'a000000000000000', event);
 
     event.measurements = {
-      'mark.fcp': {value: 1000},
-      'mark.fp': {value: 1050},
-      'mark.lcp': {value: 1100},
+      fcp: {value: 1000},
+      fp: {value: 1050},
+      lcp: {value: 1100},
     };
 
     const waterfallModel = new WaterfallModel(event);
@@ -758,9 +758,12 @@ describe('TraceView', () => {
     const event = generateSampleEvent();
     generateSampleSpan('browser', 'test1', 'b000000000000000', 'a000000000000000', event);
 
+    event.startTimestamp = 1;
+    event.endTimestamp = 100;
+
     event.measurements = {
-      'mark.fcp': {value: 1000},
-      'mark.lcp': {value: 200000000},
+      fcp: {value: 858.3002090454102, unit: 'millisecond'},
+      lcp: {value: 1000363.800048828125, unit: 'millisecond'},
     };
 
     const waterfallModel = new WaterfallModel(event);

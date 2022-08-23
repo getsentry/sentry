@@ -15,7 +15,7 @@ from sentry.api.helpers.group_index import (
     update_groups,
 )
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group import StreamGroupSerializer
+from sentry.api.serializers.models.group_stream import StreamGroupSerializer
 from sentry.models import QUERY_STATUS_LOOKUP, Environment, Group, GroupStatus
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.signals import advanced_search

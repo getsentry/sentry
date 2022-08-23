@@ -6,22 +6,25 @@ import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import SuggestedOwnerHovercard from 'sentry/components/group/suggestedOwnerHovercard';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Actor, Commit} from 'sentry/types';
+import type {Actor, Commit, Organization, Release} from 'sentry/types';
 
 import SidebarSection from '../sidebarSection';
 
 type Owner = {
   actor: Actor;
   commits?: Array<Commit>;
+  release?: Release;
   rules?: Array<any> | null;
 };
 
 type Props = {
   onAssign: (actor: Actor) => () => void;
+  organization: Organization;
   owners: Array<Owner>;
+  projectId?: string;
 };
 
-const SuggestedAssignees = ({owners, onAssign}: Props) => (
+const SuggestedAssignees = ({owners, projectId, organization, onAssign}: Props) => (
   <SidebarSection
     title={
       <Fragment>
@@ -34,6 +37,8 @@ const SuggestedAssignees = ({owners, onAssign}: Props) => (
       {owners.map((owner, i) => (
         <SuggestedOwnerHovercard
           key={`${owner.actor.id}:${owner.actor.email}:${owner.actor.name}:${i}`}
+          projectId={projectId}
+          organization={organization}
           {...owner}
         >
           <ActorAvatar
