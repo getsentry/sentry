@@ -223,6 +223,9 @@ const babelLoaderConfig = {
  */
 const appConfig: Configuration = {
   mode: WEBPACK_MODE,
+  // watchOptions: {
+  //   ignored: ['**/swagger-ui/openapi.yml'],
+  // },
   entry: {
     /**
      * Main Sentry SPA
@@ -294,7 +297,7 @@ const appConfig: Configuration = {
       },
       {
         test: /\.yml/,
-        type: 'asset',
+        type: 'asset/resource',
       },
     ],
     noParse: [
@@ -387,6 +390,17 @@ const appConfig: Configuration = {
       /moment\/locale/,
       new RegExp(`(${supportedLanguages.join('|')})\\.js$`)
     ),
+    // new WatchExternalFilesPlugin({
+    //   files: ['./api-docs/**'],
+    // }),
+    // {
+    //   apply: compiler => {
+    //     compiler.hooks.compile.tap('api-docs compile', () => {
+    //       console.log('Regenerating api-docs');
+    //       execSync('yarn combine-docs');
+    //     });
+    //   },
+    // },
   ],
 
   resolve: {
