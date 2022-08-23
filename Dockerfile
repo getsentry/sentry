@@ -112,4 +112,10 @@ RUN set -x \
 RUN sentry help | sed '1,/Commands:/d' | awk '{print $1}' >  /sentry-commands.txt
 
 COPY ./docker/sentry.conf.py ./docker/config.yml $SENTRY_CONF/
+COPY ./docker/docker-entrypoint.sh /
+
+EXPOSE 9000
+VOLUME /data
+
+ENTRYPOINT exec /docker-entrypoint.sh "$0" "$@"
 CMD ["run", "web"]
