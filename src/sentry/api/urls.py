@@ -161,6 +161,7 @@ from .endpoints.group_user_reports import GroupUserReportsEndpoint
 from .endpoints.grouping_configs import GroupingConfigsEndpoint
 from .endpoints.grouping_level_new_issues import GroupingLevelNewIssuesEndpoint
 from .endpoints.grouping_levels import GroupingLevelsEndpoint
+from .endpoints.hackweek import TeamMemberIntersectionEndpoint
 from .endpoints.index import IndexEndpoint
 from .endpoints.integrations import (
     DocIntegrationDetailsEndpoint,
@@ -1511,6 +1512,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/user-teams/$",
                     OrganizationUserTeamsEndpoint.as_view(),
                     name="sentry-api-0-organization-user-teams",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/hackweek/$",
+                    TeamMemberIntersectionEndpoint.as_view(),
+                    name="sentry-hackweek",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/users/$",
