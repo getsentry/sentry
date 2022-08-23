@@ -1,1 +1,6 @@
+# This file is used by Heroku's Apt buildpack
+# Needed for xmlsec
 libxmlsec1-dev
+# Needed for uwsgi; see Docker file
+gcc
+wget
