@@ -28,6 +28,7 @@ import SeenByList from 'sentry/components/seenByList';
 import ShortId from 'sentry/components/shortId';
 import Tooltip from 'sentry/components/tooltip';
 import {IconChat} from 'sentry/icons';
+import Clippy from 'sentry/icons/clippy/clippy';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
@@ -247,6 +248,7 @@ class GroupHeader extends Component<Props, State> {
             </div>
 
             <StatsWrapper>
+              <Clippy event={event} />
               <div className="count align-right m-l-1">
                 <h6 className="nav-header">{t('Events')}</h6>
                 {disableActions ? (
@@ -409,6 +411,7 @@ const StyledShortId = styled(ShortId)`
 `;
 
 const StatsWrapper = styled('div')`
+  position: relative;
   display: grid;
   justify-content: flex-end;
   grid-template-columns: repeat(3, min-content);
