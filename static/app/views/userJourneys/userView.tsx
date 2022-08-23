@@ -1,17 +1,20 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import Breadcrumbs from 'sentry/components/events/interfaces/breadcrumbs/breadcrumbs';
+import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageHeading from 'sentry/components/pageHeading';
-import {PanelTable} from 'sentry/components/panels';
-import {IconArrow} from 'sentry/icons';
+// import {PanelTable} from 'sentry/components/panels';
+// import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import {RawCrumb} from 'sentry/types/breadcrumbs';
 import {EntryBreadcrumbs, EntryType, Event} from 'sentry/types/event';
 import EventView from 'sentry/utils/discover/eventView';
-import {FIELD_FORMATTERS} from 'sentry/utils/discover/fieldRenderers';
+// import {FIELD_FORMATTERS} from 'sentry/utils/discover/fieldRenderers';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
@@ -33,13 +36,14 @@ interface BreadcrumbEvent {
 
 interface Props extends RouteComponentProps<{userId: string}, {}, any, {t: number}> {}
 
-function UserView({params: {userId}}: Props) {
+function UserView({params: {userId}, router, route}: Props) {
   const org = useOrganization();
   // const {projects} = useProjects();
   const api = useApi();
   const location = useLocation();
   const [isLoading, setLoading] = useState(false);
   const [breadcrumbEvents, setBreadcrumbEvents] = useState<Array<BreadcrumbEvent>>([]);
+  const [sampleEvent, setSampleEvent] = useState<Event>();
   const [crumbs, setCrumbs] = useState<RawCrumb[]>([]);
 
   const eventView = useMemo(() => {
@@ -100,6 +104,7 @@ function UserView({params: {userId}}: Props) {
       // eslint-disable-next-line no-console
       console.log(events);
       if (events) {
+        setSampleEvent(events[0]);
         const breadcrumbs: RawCrumb[] = events.reduce((acc, event) => {
           const breadcrumbEntries = event.entries.filter(
             entry => entry.type === EntryType.BREADCRUMBS
@@ -116,12 +121,15 @@ function UserView({params: {userId}}: Props) {
     fetchEvent();
   }, [api, breadcrumbEvents, org.slug]);
 
-  const timestampTitle = (
-    <div style={{display: 'flex'}}>
-      <span>{t('Timestamp')}</span>
-      <IconArrow direction="down" size="xs" />
-    </div>
-  );
+  // const timestampTitle = (
+  //   <div style={{display: 'flex'}}>
+  //     <span>{t('Timestamp')}</span>
+  //     <IconArrow direction="down" size="xs" />
+  //   </div>
+  // );
+
+  const transformedCrumbs = transformCrumbs(crumbs);
+  const relativeTime = transformedCrumbs[transformedCrumbs.length - 1]?.timestamp;
 
   return (
     <StyledPageContent>
@@ -138,7 +146,24 @@ function UserView({params: {userId}}: Props) {
       </Layout.Header>
       <Layout.Body>
         <Layout.Main fullWidth>
-          <PanelTable
+          {isLoading && <LoadingIndicator />}
+          {!isLoading && crumbs.length > 0 && (
+            <Breadcrumbs
+              breadcrumbs={transformCrumbs(crumbs)}
+              displayRelativeTime
+              onSwitchTimeFormat={() => {}}
+              organization={org}
+              searchTerm=""
+              event={sampleEvent}
+              relativeTime={relativeTime || ''}
+              emptyMessage={
+                (<div>{t('There are no breadcrumbs to display')}</div>) as any
+              }
+              route={route}
+              router={router}
+            />
+          )}
+          {/* <PanelTable
             isLoading={isLoading}
             isEmpty={crumbs.length === 0}
             headers={[
@@ -164,7 +189,7 @@ function UserView({params: {userId}}: Props) {
                 </Item>
               </Fragment>
             ))}
-          </PanelTable>
+          </PanelTable> */}
         </Layout.Main>
       </Layout.Body>
     </StyledPageContent>
@@ -183,9 +208,9 @@ const StyledPageContent = styled(PageContent)`
 //   margin-bottom: ${space(2)};
 // `;
 
-const Item = styled('div')`
-  display: flex;
-  align-items: center;
-`;
+// const Item = styled('div')`
+//   display: flex;
+//   align-items: center;
+// `;
 
 export default UserView;

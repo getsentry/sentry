@@ -220,7 +220,7 @@ type EntryDebugMeta = {
   type: EntryType.DEBUGMETA;
 };
 
-type EntryBreadcrumbs = {
+export type EntryBreadcrumbs = {
   data: {
     values: Array<RawCrumb>;
   };
