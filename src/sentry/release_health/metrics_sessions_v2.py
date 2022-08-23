@@ -75,7 +75,16 @@ Scalar = Union[int, float, None]
 #: Group key as featured in output format
 GroupKeyDict = TypedDict(
     "GroupKeyDict",
-    {"project": int, "release": str, "environment": str, "session.status": str, "os": str},
+    {
+        "project": int,
+        "release": str,
+        "environment": str,
+        "session.status": str,
+        "os": str,
+        "os.name": str,
+        "device.manufacturer": str,
+        "device.family": str,
+    },
     total=False,
 )
 
@@ -86,6 +95,9 @@ class MetricsGroupKeyDict(TypedDict, total=False):
     release: str
     environment: str
     os: str
+    osname: str
+    devicemanufacturer: str
+    devicefamily: str
 
 
 class SessionStatus(Enum):
@@ -113,6 +125,9 @@ class GroupKey:
     environment: Optional[str] = None
     session_status: Optional[SessionStatus] = None
     os: Optional[str] = None
+    osname: Optional[str] = None
+    devicemanufacturer: Optional[str] = None
+    devicefamily: Optional[str] = None
 
     @staticmethod
     def from_input_dict(dct: MetricsGroupKeyDict) -> "GroupKey":
@@ -122,6 +137,9 @@ class GroupKey:
             release=dct.get("release", None),
             environment=dct.get("environment", None),
             os=dct.get("os", None),
+            osname=dct.get("osname", None),
+            devicemanufacturer=dct.get("devicemanufacturer", None),
+            devicefamily=dct.get("devicefamily", None),
         )
 
     def to_output_dict(self) -> GroupKeyDict:
@@ -136,6 +154,12 @@ class GroupKey:
             dct["session.status"] = self.session_status.value
         if self.os is not None:
             dct["os"] = self.os
+        if self.osname is not None:
+            dct["os.name"] = self.osname
+        if self.devicemanufacturer is not None:
+            dct["device.manufacturer"] = self.devicemanufacturer
+        if self.devicefamily is not None:
+            dct["device.family"] = self.devicefamily
 
         return dct
 

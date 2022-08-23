@@ -219,9 +219,21 @@ GROUPBY_MAP = {
     "release": SimpleGroupBy("release"),
     "session.status": SessionStatusGroupBy(),
     "os": SimpleGroupBy("os"),
+    "os.name": SimpleGroupBy("os.name"),
+    "device.manufacturer": SimpleGroupBy("device.manufacturer"),
+    "device.family": SimpleGroupBy("device.family"),
 }
 
-CONDITION_COLUMNS = ["project", "project_id", "environment", "release", "os"]
+CONDITION_COLUMNS = [
+    "project",
+    "project_id",
+    "environment",
+    "release",
+    "os",
+    "os.name",
+    "device.manufacturer",
+    "device.family",
+]
 FILTER_KEY_COLUMNS = ["project_id"]
 
 
