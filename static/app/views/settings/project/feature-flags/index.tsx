@@ -1,6 +1,11 @@
 import {Fragment, useEffect, useState} from 'react';
 import isEqual from 'lodash/isEqual';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
@@ -8,8 +13,11 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {t, tct} from 'sentry/locale';
+import ProjectStore from 'sentry/stores/projectsStore';
 import {Project} from 'sentry/types';
 import {FeatureFlags} from 'sentry/types/featureFlags';
+import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -66,6 +74,7 @@ type Props = ModalRenderProps & {
 };
 
 export default function ProjectFeatureFlags({project}: Props) {
+  const api = useApi();
   const organization = useOrganization();
 
   const currentFlags = project.featureFlags;
@@ -105,12 +114,49 @@ export default function ProjectFeatureFlags({project}: Props) {
     ));
   }
 
-  function handleDeleteFlag(flagKey: string) {
-    // todo
+  async function handleDeleteFlag(flagKey: string) {
+    const newFeatureFlags = {...flags};
+    delete newFeatureFlags[flagKey];
+
+    try {
+      const result = await api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/`,
+        {
+          method: 'PUT',
+          data: {featureFlags: newFeatureFlags},
+        }
+      );
+      ProjectStore.onUpdateSuccess(result);
+      addSuccessMessage(t('Successfully deleted feature flag'));
+    } catch (error) {
+      const message = t('Unable to delete feature flag');
+      handleXhrErrorResponse(message)(error);
+      addErrorMessage(message);
+    }
   }
 
-  function handleEnableFlag(flagKey: string) {
-    // todo
+  async function handleActivateToggle(flagKey: string) {
+    const newFeatureFlags = {...flags};
+    newFeatureFlags[flagKey].enabled = !newFeatureFlags[flagKey].enabled;
+
+    addLoadingMessage();
+
+    try {
+      const result = await api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/`,
+        {
+          method: 'PUT',
+          data: {featureFlags: newFeatureFlags},
+        }
+      );
+
+      ProjectStore.onUpdateSuccess(result);
+      addSuccessMessage(t('Successfully updated the feature flag'));
+    } catch (error) {
+      const message = t('Unable to update the feature flag');
+      handleXhrErrorResponse(message)(error);
+      addErrorMessage(message);
+    }
   }
 
   return (
@@ -160,7 +206,7 @@ export default function ProjectFeatureFlags({project}: Props) {
               {...flags[flagKey]}
               onDelete={() => handleDeleteFlag(flagKey)}
               onEdit={() => handleEditFlag(flagKey)}
-              onEnable={() => handleEnableFlag(flagKey)}
+              onActivateToggle={() => handleActivateToggle(flagKey)}
             />
           ))
         )}

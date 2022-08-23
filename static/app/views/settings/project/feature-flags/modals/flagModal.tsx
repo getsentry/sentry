@@ -46,17 +46,20 @@ export function FlagModal({
 
     setIsSaving(true);
 
-    const newFeatureFlags = flagKey
-      ? Object.keys(flags).reduce((acc, flag) => {
-          if (flag === flagKey) {
-            acc[key] = {
-              ...flags[key],
-              description,
-            };
-          }
-          return acc;
-        }, {})
-      : {...flags, [key]: {description, evaluations: []}};
+    const newFlags = {...flags};
+
+    let newFeatureFlags = {
+      ...flags,
+      [key]: {description, enabled: false, evaluations: []},
+    };
+
+    if (flagKey) {
+      delete newFlags[flagKey];
+      newFeatureFlags = {
+        ...newFlags,
+        [key]: {...flags[flagKey], description},
+      };
+    }
 
     try {
       const response = await api.requestPromise(
@@ -103,6 +106,11 @@ export function FlagModal({
 
             if (value.includes(' ')) {
               setError(t('Key cannot contain spaces'));
+              return;
+            }
+
+            if (flags[value]) {
+              setError(t('This key is already in use'));
               return;
             }
 
@@ -161,6 +169,9 @@ export function FlagModal({
 
 export const KeyField = styled(TextField)`
   width: 100%;
+  input {
+    padding-left: ${space(1)};
+  }
 `;
 
 export const DescriptionField = styled(TextareaField)`

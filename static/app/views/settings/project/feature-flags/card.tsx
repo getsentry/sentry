@@ -15,20 +15,21 @@ import {Evaluations} from './evaluations';
 
 type Props = FeatureFlag & {
   flagKey: string;
+  onActivateToggle: () => void;
   onDelete: () => void;
   onEdit: () => void;
-  onEnable: () => void;
 };
 
 export function Card({
   flagKey,
   enabled,
-  evaluations = [],
-  onEnable,
+  evaluations,
+  onActivateToggle,
   onEdit,
   onDelete,
   description,
 }: Props) {
+  const hasEvaluations = evaluations.length > 0;
   const activeResult = evaluations.some(({result}) => result);
 
   return (
@@ -38,7 +39,13 @@ export function Card({
           <Key>{flagKey}</Key>
           {description && <Description>{description}</Description>}
         </div>
-        {enabled && activeResult ? (
+        {hasEvaluations ? (
+          enabled && activeResult ? (
+            <Tag type="success">{t('Active')}</Tag>
+          ) : (
+            <Tag>{t('Inactive')}</Tag>
+          )
+        ) : enabled ? (
           <Tag type="success">{t('Active')}</Tag>
         ) : (
           <Tag>{t('Inactive')}</Tag>
@@ -48,7 +55,7 @@ export function Card({
             inline={false}
             hideControlState
             aria-label={enabled ? t('Disable Flag') : t('Enable Flag')}
-            onClick={onEnable}
+            onClick={onActivateToggle}
             name="active"
             value={enabled}
           />
@@ -123,6 +130,7 @@ const Key = styled('div')`
 const Description = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.subText};
+  line-height: 1;
 `;
 
 const ActiveToggle = styled(NewBooleanField)`
