@@ -1,7 +1,6 @@
 FROM python:3.8.13-slim-bullseye
 # The Cloud build uses /dist as a place to cache wheels and others
-# For building locally you can use --build-arg DIST_DIR=. from the checkout
-ARG DIST_DIR=/dist
+ARG DIST_DIR=.
 
 LABEL maintainer="oss@sentry.io"
 LABEL org.opencontainers.image.title="Sentry"
