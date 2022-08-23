@@ -15,6 +15,7 @@ import {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import useProjects from 'sentry/utils/useProjects';
 
+import IssueHotSpots from './hotspots';
 import SavedSearchTab from './savedSearchTab';
 import {getTabs, IssueSortOptions, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
 
@@ -90,6 +91,7 @@ function IssueListHeader({
         />
       </Layout.HeaderActions>
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
+      <IssueHotSpots />
       <Layout.HeaderNavTabs underlined>
         {visibleTabs.map(
           ([tabQuery, {name: queryName, tooltipTitle, tooltipHoverable}]) => {
