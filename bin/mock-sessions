@@ -5,6 +5,7 @@ configure()
 
 import datetime
 import random
+from uuid import uuid4
 
 import click
 from confluent_kafka import Producer
@@ -12,6 +13,7 @@ from django.conf import settings
 from django.utils import timezone
 
 from sentry.models import Organization, Project, Release
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.utils import json
 
 os_choices = (
@@ -38,6 +40,12 @@ manufacturer_choices = {
 session_status = ["ok", "exited", "crashed", "abnormal"]
 session_status_weights = [0.9, 0.03, 0.03, 0.03]
 
+type_map = {
+    "set": "s",
+    "counter": "c",
+    "distribution": "d",
+}
+
 topic = settings.KAFKA_INGEST_METRICS
 
 
@@ -48,32 +56,86 @@ def create_producer():
     return producer
 
 
-def generate_session_counter(
+def generate_session(
     time: datetime.datetime,
-    project: Project,
-    organization: Organization,
     env: str,
-    release: Release,
+    release: str,
 ):
     os = random.choice(os_choices)
+    status = random.choices(session_status, session_status_weights)[0]
     return {
-        "org_id": organization.id,
-        "project_id": project.id,
-        "name": "c:sessions/session@none",
-        "type": "c",
-        "value": random.randrange(5, 30),
-        "timestamp": int(time.timestamp()),
-        "tags": {
+        "sid": str(uuid4()),
+        "init": True,
+        "started": int(time.timestamp()),
+        "duration": random.randrange(10, 90),
+        "error": random.randrange(1, 5) if random.random() > 0.95 else 0,
+        "status": status,
+        "attrs": {
             "environment": env,
-            "release": release.version,
-            "sdk": "sentry.python",
-            "session.status": random.choices(session_status, session_status_weights)[0],
+            "release": release,
+            "session.status": status,
             "os": os,
             "os.name": os,
             "device.family": random.choice(family_choices[os]),
             "device.manufacturer": random.choice(manufacturer_choices[os]),
         },
     }
+
+
+def convert_session_to_metrics(organization: Organization, project: Project, session):
+    """
+    Convert a session to metrics
+    Shamelessly stolen from sentry.testutils.cases.BaseMetricsTestCase::store_session
+
+    Mimic relays behavior of always emitting a metric for a started session,
+    and emitting an additional one if the session is fatal
+
+    See https://github.com/getsentry/relay/blob/e3c064e213281c36bde5d2b6f3032c6d36e22520/relay-server/src/actors/envelopes.rs#L357
+    """
+    user = session.get("distinct_id")
+    base_tags = session.get("attrs")
+
+    # This check is not yet reflected in relay, see https://getsentry.atlassian.net/browse/INGEST-464
+    user_is_nil = user is None or user == "00000000-0000-0000-0000-000000000000"
+
+    def generate_metric(type, mri: str, tags, value):
+        short_type = type_map[type]
+        return {
+            "org_id": organization.id,
+            "project_id": project.id,
+            "type": short_type,
+            "name": mri,
+            "value": value,
+            "timestamp": session.get("started"),
+            "tags": {**tags, **base_tags},
+        }
+
+    if session["init"] is True:  # init
+        yield generate_metric("counter", SessionMRI.SESSION.value, {"session.status": "init"}, +1)
+
+    status = session["status"]
+
+    # Mark the session as errored, which includes fatal sessions.
+    if session.get("errors", 0) > 0 or status not in ("ok", "exited"):
+        yield generate_metric("set", SessionMRI.ERROR.value, {}, session["sid"])
+        if not user_is_nil:
+            yield generate_metric("set", SessionMRI.USER.value, {"session.status": "errored"}, user)
+    elif not user_is_nil:
+        yield generate_metric("set", SessionMRI.USER.value, {}, user)
+
+    if status in ("abnormal", "crashed"):  # fatal
+        yield generate_metric("counter", SessionMRI.SESSION.value, {"session.status": status}, +1)
+        if not user_is_nil:
+            yield generate_metric("set", SessionMRI.USER.value, {"session.status": status}, user)
+
+    if status == "exited":
+        if session["duration"] is not None:
+            yield generate_metric(
+                "distribution",
+                SessionMRI.RAW_DURATION.value,
+                {"session.status": status},
+                session["duration"],
+            )
 
 
 @click.command()
@@ -95,13 +157,15 @@ def main(project, org, env, days, release=None):
     except Project.DoesNotExist:
         raise RuntimeError("! Project does not exist")
     if release is None:
-        release = Release.objects.filter(projects=project, organization=organization).order_by(
-            "-date_added"
-        )[0]
+        release = (
+            Release.objects.filter(projects=project, organization=organization)
+            .order_by("-date_added")[0]
+            .version
+        )
     if not release:
         release = Release.objects.create(
             projects=project, organization=organization, version="session-data"
-        )
+        ).version
 
     producer = create_producer()
 
@@ -111,10 +175,13 @@ def main(project, org, env, days, release=None):
     current = start
     count = 0
     while current >= end:
+        current = current - datetime.timedelta(seconds=15)
+        session = generate_session(current, env, release)
         count += 1
-        current = current - datetime.timedelta(minutes=2)
-        session = generate_session_counter(current, project, organization, env, release)
-        producer.produce(topic, json.dumps(session))
+        for metric in convert_session_to_metrics(organization, project, session):
+            producer.produce(topic, json.dumps(metric))
+            if count % 100 == 0:
+                producer.flush()
     producer.flush()
     click.echo(f"> Complete! generated {count} session records")
 
