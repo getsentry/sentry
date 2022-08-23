@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /* eslint-disable no-alert */
 import React from 'react';
 import {css, keyframes} from '@emotion/react';
@@ -7,6 +8,12 @@ import {
   startVoiceRecognition,
   stopVoiceRecognition,
 } from 'sentry/bootstrap/voiceAssistant';
+
+declare global {
+  interface Window {
+    _voiceAssistantButton: VoiceAssistantButton;
+  }
+}
 
 interface VoiceAssistantState {
   isListening: boolean;
@@ -144,6 +151,9 @@ export class VoiceAssistantButton extends React.Component<{}, VoiceAssistantStat
     super(props);
     this.state = {isListening: false};
 
+    // Hack to access the button later from other places
+    window._voiceAssistantButton = this;
+
     // This binding is necessary to make `this` work in the callback
     this.handleClick = this.handleClick.bind(this);
   }
@@ -157,8 +167,10 @@ export class VoiceAssistantButton extends React.Component<{}, VoiceAssistantStat
     };
 
     if (!this.state.isListening) {
+      console.log('Starting speech recognition...');
       startVoiceRecognition(eventuallyDisableCallback);
     } else {
+      console.log('Terminating speech recognition...');
       stopVoiceRecognition();
     }
 

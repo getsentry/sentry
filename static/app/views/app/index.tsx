@@ -66,6 +66,22 @@ function App({children}: Props) {
     [config.theme]
   );
 
+  // Voice assistant
+  useHotkeys(
+    [
+      {
+        match: ['command+j', 'ctrl+j', 'command+shift+j', 'ctrl+shift+j'],
+        callback: e => {
+          if ('_voiceAssistantButton' in window) {
+            window._voiceAssistantButton.handleClick();
+          }
+          e.preventDefault();
+        },
+      },
+    ],
+    []
+  );
+
   /**
    * Loads the users organization list into the OrganizationsStore
    */
