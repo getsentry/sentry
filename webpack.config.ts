@@ -302,7 +302,9 @@ const appConfig: Configuration = {
     ],
   },
   plugins: [
-    new HackweekPlugin(),
+    new HackweekPlugin({
+      outPath: path.resolve('./mock_chunk_data.json'),
+    }),
     // Do not bundle moment's locale files as we will lazy load them using
     // dynamic imports in the application code
     new webpack.IgnorePlugin({

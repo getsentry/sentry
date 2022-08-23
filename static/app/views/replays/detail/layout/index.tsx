@@ -34,7 +34,7 @@ function ReplayLayout({
   layout = LayoutKey.topbar,
   showCrumbs = true,
   showTimeline = true,
-  showVideo = true,
+  showVideo = false,
 }: Props) {
   const {ref: fullscreenRef, toggle: toggleFullscreen} = useFullscreen();
 
