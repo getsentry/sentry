@@ -1,12 +1,7 @@
 from typing import List, Sequence, Tuple, Union, cast
 
-from sentry.grouping.mypyc.matchers import (
-    ExceptionData,
-    ExceptionFieldMatch,
-    FrameData,
-    Match,
-    MatchingCache,
-)
+from sentry.grouping.mypyc.matchers import ExceptionFieldMatch, Match
+from sentry.grouping.mypyc.utils import ExceptionData, MatchFrame, MatchingCache
 
 from .actions import Action, ActionConfigStructure
 
@@ -46,15 +41,9 @@ class Rule:
         """Does this rule update grouping components?"""
         return self._is_updater
 
-    # def as_dict(self) -> RuleDict:
-    #     matchers = {}
-    #     for matcher in self.matchers:
-    #         matchers[matcher.key] = matcher.pattern
-    #     return {"match": matchers, "actions": [str(x) for x in self.actions]}
-
     def get_matching_frame_actions(
         self,
-        frames: Sequence[FrameData],
+        frames: Sequence[MatchFrame],
         platform: str,
         exception_data: ExceptionData,  # TODO: move these types to a common module
         cache: MatchingCache,

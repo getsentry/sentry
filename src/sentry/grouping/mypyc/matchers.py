@@ -1,13 +1,11 @@
-from typing import Any, ClassVar, Mapping, MutableMapping, Optional, Sequence, Tuple, Type, cast
+from typing import ClassVar, MutableMapping, Sequence, Tuple, Type, cast
 
 from sentry.grouping.mypyc.exceptions import InvalidEnhancerConfig
 from sentry.grouping.utils import get_rule_bool
-from sentry.stacktraces.functions import get_function_name_for_frame
-from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
 
-from .utils import cached
+from .utils import ExceptionData, MatchFrame, MatchingCache, cached
 
 # from .enhancers import InvalidEnhancerConfig
 
@@ -52,46 +50,6 @@ MATCHERS = {
 }
 
 
-FrameData = Mapping[str, Any]
-MatchFrame = MutableMapping[str, Any]  # TODO
-
-
-def _get_function_name(frame_data: FrameData, platform: Optional[str]) -> str:
-
-    function_name = get_function_name_for_frame(frame_data, platform)
-
-    return function_name or "<unknown>"
-
-
-def create_match_frame(frame_data: FrameData, platform: Optional[str]) -> MatchFrame:
-    """Create flat dict of values relevant to matchers"""
-    match_frame = dict(
-        category=get_path(frame_data, "data", "category"),
-        family=get_behavior_family_for_platform(frame_data.get("platform") or platform),
-        function=_get_function_name(frame_data, platform),
-        in_app=frame_data.get("in_app"),
-        module=get_path(frame_data, "module"),
-        package=frame_data.get("package"),
-        path=frame_data.get("abs_path") or frame_data.get("filename"),
-    )
-
-    for key in list(match_frame.keys()):
-        value = match_frame[key]
-        if isinstance(value, (bytes, str)):
-            if key in ("package", "path"):
-                value = match_frame[key] = value.lower()
-
-            if isinstance(value, str):
-                match_frame[key] = value.encode("utf-8")
-
-    return match_frame
-
-
-Frame = Any  # TODO
-ExceptionData = Any  # TODO
-MatchingCache = MutableMapping[str, Any]  # TODO
-
-
 class Match:
     @property
     def description(self) -> str:
@@ -99,7 +57,7 @@ class Match:
 
     def matches_frame(
         self,
-        frames: Sequence[Frame],
+        frames: Sequence[MatchFrame],
         idx: int,
         platform: str,
         exception_data: ExceptionData,
@@ -188,7 +146,7 @@ class FrameMatch(Match):
 
     def matches_frame(
         self,
-        frames: Sequence[Frame],
+        frames: Sequence[MatchFrame],
         idx: int,
         platform: str,
         exception_data: ExceptionData,
@@ -380,7 +338,7 @@ class CallerMatch(Match):
 
     def matches_frame(
         self,
-        frames: Sequence[Frame],
+        frames: Sequence[MatchFrame],
         idx: int,
         platform: str,
         exception_data: ExceptionData,
@@ -404,7 +362,7 @@ class CalleeMatch(Match):
 
     def matches_frame(
         self,
-        frames: Sequence[Frame],
+        frames: Sequence[MatchFrame],
         idx: int,
         platform: str,
         exception_data: ExceptionData,

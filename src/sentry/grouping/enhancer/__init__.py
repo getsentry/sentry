@@ -13,10 +13,10 @@ from sentry.grouping.mypyc.matchers import (  # TODO: Better directory structure
     CalleeMatch,
     CallerMatch,
     FrameMatch,
-    create_match_frame,
 )
 from sentry.grouping.mypyc.rule import Rule
 from sentry.grouping.mypyc.stacktrace import StacktraceState
+from sentry.grouping.mypyc.utils import apply_modifications_to_frame, create_match_frame
 from sentry.utils.strings import unescape_string
 
 # Grammar is defined in EBNF syntax.
@@ -90,19 +90,7 @@ class Enhancements:
         self._updater_rules = [rule for rule in self.iter_rules() if rule.is_updater]
 
     def apply_modifications_to_frame(self, frames, platform, exception_data):
-        """This applies the frame modifications to the frames itself.  This
-        does not affect grouping.
-        """
-
-        cache = {}
-
-        match_frames = [create_match_frame(frame, platform) for frame in frames]
-
-        for rule in self._modifier_rules:
-            for idx, action in rule.get_matching_frame_actions(
-                match_frames, platform, exception_data, cache
-            ):
-                action.apply_modifications_to_frame(frames, match_frames, idx, rule=rule)
+        apply_modifications_to_frame(self._modifier_rules, frames, platform, exception_data)
 
     def update_frame_components_contributions(self, components, frames, platform, exception_data):
 
