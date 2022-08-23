@@ -1,4 +1,4 @@
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.incidents.logic import subscribe_to_incident
 from sentry.incidents.models import IncidentSubscription

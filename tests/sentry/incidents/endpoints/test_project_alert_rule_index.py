@@ -5,7 +5,7 @@ import pytz
 import requests
 import responses
 from django.test.utils import override_settings
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 from freezegun import freeze_time
 
 from sentry import audit_log

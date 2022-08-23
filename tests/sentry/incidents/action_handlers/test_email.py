@@ -4,7 +4,7 @@ import responses
 from django.core import mail
 from django.urls import reverse
 from django.utils import timezone
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 from freezegun import freeze_time
 
 from sentry.incidents.action_handlers import (

@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 import responses
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.models import Activity, ExternalIssue, Group, GroupLink, Integration
 from sentry.testutils import APITestCase

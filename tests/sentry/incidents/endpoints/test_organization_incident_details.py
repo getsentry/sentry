@@ -2,7 +2,7 @@ from datetime import datetime
 from unittest import mock
 
 import pytz
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.api.serializers import serialize
 from sentry.incidents.models import Incident, IncidentActivity, IncidentStatus

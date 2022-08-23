@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 from django.test import RequestFactory
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.middleware.health import HealthCheck
 from sentry.status_checks import Problem

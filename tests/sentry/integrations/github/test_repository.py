@@ -3,7 +3,7 @@ from unittest import mock
 
 import pytest
 import responses
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from fixtures.github import COMPARE_COMMITS_EXAMPLE, GET_COMMIT_EXAMPLE, GET_LAST_COMMITS_EXAMPLE
 from sentry.integrations.github.repository import GitHubRepositoryProvider

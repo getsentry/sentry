@@ -3,7 +3,7 @@ from time import time
 import pytest
 import responses
 from django.test import RequestFactory
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 from responses.matchers import query_string_matcher
 
 from fixtures.vsts import (

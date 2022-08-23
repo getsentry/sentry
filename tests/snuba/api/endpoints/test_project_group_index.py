@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.utils import timezone
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.models import (
     Activity,

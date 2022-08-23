@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 from botocore.client import ClientError
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.testutils import PluginTestCase
 from sentry.utils import json

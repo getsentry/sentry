@@ -1,4 +1,4 @@
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 from rest_framework import status
 
 from sentry.auth import access

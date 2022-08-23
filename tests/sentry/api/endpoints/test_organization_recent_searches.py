@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 
 from django.utils import timezone
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 from freezegun import freeze_time
 
 from sentry.api.serializers import serialize

@@ -5,7 +5,8 @@ import pytest
 import pytz
 from django.urls import reverse
 from django.utils import timezone
-from exam import fixture, patcher
+from django.utils.functional import cached_property as fixture
+from django.utils.functional import patcher
 from freezegun import freeze_time
 
 from sentry.incidents.logic import (

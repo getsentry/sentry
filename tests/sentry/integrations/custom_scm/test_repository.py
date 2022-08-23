@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.integrations.custom_scm.repository import CustomSCMRepositoryProvider
 from sentry.models import Integration, Repository

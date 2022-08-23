@@ -3,7 +3,7 @@ from datetime import datetime
 
 import pytz
 import requests
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 from freezegun import freeze_time
 
 from sentry import audit_log

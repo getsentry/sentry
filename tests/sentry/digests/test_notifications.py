@@ -1,7 +1,7 @@
 from collections import defaultdict
 from functools import reduce
 
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.digests import Record
 from sentry.digests.notifications import (

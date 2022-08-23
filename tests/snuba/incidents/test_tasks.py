@@ -4,8 +4,7 @@ from uuid import uuid4
 from confluent_kafka import Producer
 from django.conf import settings
 from django.core import mail
-from django.test.utils import override_settings
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 from freezegun import freeze_time
 
 from sentry.incidents.action_handlers import (
@@ -27,6 +26,7 @@ from sentry.incidents.models import (
 from sentry.incidents.tasks import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.snuba.query_subscription_consumer import QuerySubscriptionConsumer, subscriber_registry
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.django import override_settings
 from sentry.utils import json
 
 

@@ -2,7 +2,7 @@ from urllib.parse import parse_qs
 
 import pytest
 import responses
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR
 from sentry.models import Rule

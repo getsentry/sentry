@@ -1,6 +1,6 @@
 import pytest
 import responses
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from fixtures.gitlab import COMMIT_DIFF_RESPONSE, COMMIT_LIST_RESPONSE, COMPARE_RESPONSE
 from sentry.integrations.gitlab.repository import GitlabRepositoryProvider

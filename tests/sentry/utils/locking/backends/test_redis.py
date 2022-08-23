@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 import pytest
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.utils.locking.backends.redis import RedisLockBackend
 from sentry.utils.redis import clusters

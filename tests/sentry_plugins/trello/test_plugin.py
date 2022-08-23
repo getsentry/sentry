@@ -2,7 +2,7 @@ from urllib.parse import parse_qsl, urlparse
 
 import responses
 from django.test import RequestFactory
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.testutils import PluginTestCase
 from sentry.utils import json

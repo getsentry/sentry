@@ -2,7 +2,7 @@ from datetime import datetime
 from unittest.mock import Mock
 
 import msgpack
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.profiles.consumer import ProfilesConsumer
 from sentry.testutils.cases import SnubaTestCase, TestCase

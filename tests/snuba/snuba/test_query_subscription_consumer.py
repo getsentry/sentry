@@ -10,7 +10,7 @@ from confluent_kafka import Producer
 from dateutil.parser import parse as parse_date
 from django.conf import settings
 from django.test.utils import override_settings
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery

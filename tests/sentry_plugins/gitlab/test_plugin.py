@@ -1,7 +1,7 @@
 import responses
 from django.test import RequestFactory
 from django.urls import reverse
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.testutils import PluginTestCase
 from sentry.utils import json

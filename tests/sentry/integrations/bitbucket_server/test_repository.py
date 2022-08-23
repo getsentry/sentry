@@ -3,7 +3,7 @@ import datetime
 import pytest
 import responses
 from django.utils import timezone
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from fixtures.bitbucket_server import (
     COMMIT_CHANGELIST_EXAMPLE,

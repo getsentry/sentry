@@ -1,7 +1,7 @@
 from typing import Any, Mapping
 
 import pytest
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.providers.oauth2 import OAuth2Provider

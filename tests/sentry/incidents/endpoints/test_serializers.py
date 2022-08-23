@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 import responses
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
 

@@ -3,7 +3,7 @@ from urllib.parse import parse_qs
 from uuid import uuid4
 
 import responses
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.incidents.models import AlertRule, AlertRuleTriggerAction
 from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE, RedisRuleStatus

@@ -1,7 +1,7 @@
 import base64
 
 from django.test import RequestFactory
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.middleware.auth import AuthenticationMiddleware
 from sentry.models import ApiKey, ApiToken, UserIP
