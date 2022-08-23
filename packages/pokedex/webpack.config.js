@@ -72,7 +72,7 @@ const baseConfig = ({ analyze, mode, compress }) => ({
       filename: "remotePokedex.js",
       remotes: {},
       exposes: {
-        "./pokeRoot": "./src/index.jsx",  
+        "./pokeRoot": "./src/index.jsx",
         "./pokedex": "./src/routes/Router.jsx",
         "./pokeHome": "./src/pages/Home/Home.jsx",
         "./pokeProvider": "./src/contexts/PokemonProvider.jsx",
@@ -83,7 +83,7 @@ const baseConfig = ({ analyze, mode, compress }) => ({
           singleton: true,
           eager: true,
           requiredVersion: deps.react,
-        }, 
+        },
         "react-dom": {
           singleton: true,
           requiredVersion: deps["react-dom"],
