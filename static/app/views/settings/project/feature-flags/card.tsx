@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -11,22 +12,25 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {FeatureFlag} from 'sentry/types/featureFlags';
 
+import {DraggableRuleListUpdateItemsProps} from '../server-side-sampling/draggableRuleList';
+
 import {Evaluations} from './evaluations';
 
 type Props = FeatureFlag & {
   flagKey: string;
+  hasAccess: boolean;
   onActivateToggle: () => void;
   onAddSegment: () => void;
   onDelete: () => void;
   onDeleteSegment: (index: number) => void;
   onEdit: () => void;
   onEditSegment: (index: number) => void;
+  onSortEvaluations: (props: DraggableRuleListUpdateItemsProps) => void;
 };
 
 export function Card({
   flagKey,
   enabled,
-  evaluations,
   onActivateToggle,
   onEdit,
   onDelete,
@@ -34,9 +38,12 @@ export function Card({
   onEditSegment,
   onDeleteSegment,
   description,
+  hasAccess,
+  evaluations,
+  onSortEvaluations,
 }: Props) {
   return (
-    <Wrapper>
+    <Wrapper hasEvaluation={!!evaluations.length}>
       <Header>
         <div>
           <Key>{flagKey}</Key>
@@ -100,15 +107,23 @@ export function Card({
           evaluations={evaluations}
           onDeleteSegment={onDeleteSegment}
           onEditSegment={onEditSegment}
+          hasAccess={hasAccess}
+          onSort={onSortEvaluations}
+          showGrab={evaluations.length > 1}
         />
       )}
     </Wrapper>
   );
 }
 
-const Wrapper = styled(Panel)`
+const Wrapper = styled(Panel)<{hasEvaluation: boolean}>`
   display: grid;
   gap: ${space(2)};
+  ${p =>
+    p.hasEvaluation &&
+    css`
+      border-bottom: none;
+    `}
 `;
 
 const Header = styled('div')`

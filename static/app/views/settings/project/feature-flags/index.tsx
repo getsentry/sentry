@@ -15,6 +15,7 @@ import {IconAdd} from 'sentry/icons/iconAdd';
 import {t, tct} from 'sentry/locale';
 import ProjectStore from 'sentry/stores/projectsStore';
 import {Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -168,6 +169,38 @@ export default function ProjectFeatureFlags({project}: Props) {
     }
   }
 
+  async function handleSortEvaluations(flagKey: string, evaluationIds: string[]) {
+    const sortedEvaluations = evaluationIds
+      .map(evaluationId =>
+        flags[flagKey].evaluations.find(
+          evaluation => String(evaluation.id) === evaluationId
+        )
+      )
+      .filter(defined);
+
+    const newFeatureFlags = {...flags};
+    newFeatureFlags[flagKey].evaluations = sortedEvaluations;
+
+    setFlags(newFeatureFlags);
+
+    try {
+      const result = await api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/`,
+        {
+          method: 'PUT',
+          data: {featureFlags: newFeatureFlags},
+        }
+      );
+      ProjectStore.onUpdateSuccess(result);
+      addSuccessMessage(t('Successfully sorted segments'));
+    } catch (error) {
+      setFlags(previousFlags ?? []);
+      const message = t('Unable to sort segments');
+      handleXhrErrorResponse(message)(error);
+      addErrorMessage(message);
+    }
+  }
+
   return (
     <SentryDocumentTitle title={t('Feature Flags')}>
       <Fragment>
@@ -217,8 +250,12 @@ export default function ProjectFeatureFlags({project}: Props) {
               onEdit={() => handleEditFlag(flagKey)}
               onActivateToggle={() => handleActivateToggle(flagKey)}
               onAddSegment={() => handleAddSegment(flagKey)}
-              onDeleteSegment={index => handleDeleteSegment(flagKey, index)}
-              onEditSegment={index => handleEditSegment(flagKey, index)}
+              onDeleteSegment={id => handleDeleteSegment(flagKey, id)}
+              onEditSegment={id => handleEditSegment(flagKey, id)}
+              hasAccess={hasAccess}
+              onSortEvaluations={({reorderedItems}) =>
+                handleSortEvaluations(flagKey, reorderedItems)
+              }
             />
           ))
         )}

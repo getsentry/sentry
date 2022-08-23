@@ -1,4 +1,5 @@
 type RolloutEvaluation = {
+  id: number;
   result: boolean;
   type: 'rollout';
   percentage?: number;
@@ -6,6 +7,7 @@ type RolloutEvaluation = {
 };
 
 type MatchEvaluation = {
+  id: number;
   result: boolean;
   type: 'match';
   tags?: Record<string, string>;

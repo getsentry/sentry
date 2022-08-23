@@ -20,7 +20,7 @@ import {defined} from 'sentry/utils';
 import useApi from 'sentry/utils/useApi';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
-import {percentageToRate} from '../../server-side-sampling/utils';
+import {percentageToRate, rateToPercentage} from '../../server-side-sampling/utils';
 
 import {AutoCompleteField, StyledSelectField} from './autoCompleteField';
 import {FooterActions} from './flagModal';
@@ -66,7 +66,7 @@ export function SegmentModal({
   );
 
   const [percentage, setPercentage] = useState(
-    segment?.type === 'rollout' ? segment.percentage ?? 0 : 0
+    segment?.type === 'rollout' ? rateToPercentage(segment.percentage ?? 0) : 0
   );
 
   const [isSaving, setIsSaving] = useState(false);
@@ -86,6 +86,7 @@ export function SegmentModal({
     if (defined(segmentIndex)) {
       if (type === 'rollout') {
         newEvaluations[segmentIndex] = {
+          id: newEvaluations[segmentIndex].id,
           result: newEvaluations[segmentIndex].result,
           type,
           percentage: percentageToRate(percentage),
@@ -93,6 +94,7 @@ export function SegmentModal({
         };
       } else {
         newEvaluations[segmentIndex] = {
+          id: newEvaluations[segmentIndex].id,
           result: newEvaluations[segmentIndex].result,
           type,
           tags: newTags,
@@ -101,6 +103,7 @@ export function SegmentModal({
     } else {
       if (type === 'rollout') {
         newEvaluations.push({
+          id: newEvaluations.length + 1,
           type,
           percentage: percentageToRate(percentage),
           tags: newTags,
@@ -108,6 +111,7 @@ export function SegmentModal({
         });
       } else {
         newEvaluations.push({
+          id: newEvaluations.length + 1,
           type,
           tags: newTags,
           result: true,
@@ -161,15 +165,6 @@ export function SegmentModal({
     ]
   );
 
-  const tagKeyOptions = flags[flagKey].evaluations.reduce((acc, evaluation) => {
-    Object.keys(evaluation.tags ?? {}).forEach(key => {
-      if (!acc.some(value => value.value === key)) {
-        acc.push({value: key, label: key});
-      }
-    });
-    return acc;
-  }, [] as {label: string; value: string}[]);
-
   function handleAddTag() {
     setTags([...tags, {}]);
   }
@@ -198,9 +193,26 @@ export function SegmentModal({
     setTags(newTags);
   }
 
+  // const tagKeyOptions = Object.keys(flags).reduce((acc, evaluation) => {
+  //   Object.keys(evaluation.tags ?? {}).forEach(key => {
+  //     if (!acc.some(value => value.value === key)) {
+  //       acc.push({value: key, label: key});
+  //     }
+  //   });
+  //   return acc;
+  // }, [] as {label: string; value: string}[]);
+
+  const tagKeyOptions = tags.reduce((acc, tag) => {
+    const tagValue = Object.keys(tag)[0];
+    if (!!tagValue && !acc.some(value => value.value === tagValue)) {
+      acc.push({value: tagValue, label: tagValue});
+    }
+    return acc;
+  }, [] as {label: string; value: string}[]);
+
   const tagValueOptions = tags.reduce((acc, tag) => {
     const tagValue = Object.values(tag)[0];
-    if (!acc.some(value => value.value === tagValue)) {
+    if (!!tagValue && !acc.some(value => value.value === tagValue)) {
       acc.push({value: tagValue, label: tagValue});
     }
     return acc;
