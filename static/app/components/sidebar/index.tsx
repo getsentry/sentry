@@ -11,6 +11,7 @@ import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboardin
 import {
   IconChevron,
   IconDashboard,
+  IconGroup,
   IconIssues,
   IconLab,
   IconLightning,
@@ -251,6 +252,16 @@ function Sidebar({location, organization}: Props) {
     </Feature>
   );
 
+  const workspaces = hasOrganization && (
+    <SidebarItem
+      {...sidebarItemProps}
+      icon={<IconGroup size="md" />}
+      label={t('Workspaces')}
+      to={`/organizations/${organization.slug}/workspaces/`}
+      id="workspaces"
+    />
+  );
+
   const profiling = hasOrganization && (
     <Feature
       hookName="feature-disabled:profiling-sidebar-item"
@@ -327,6 +338,8 @@ function Sidebar({location, organization}: Props) {
                 {dashboards}
                 {profiling}
               </SidebarSection>
+
+              <SidebarSection>{workspaces}</SidebarSection>
 
               <SidebarSection>
                 {replays}

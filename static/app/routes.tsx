@@ -1120,6 +1120,13 @@ function buildRoutes() {
     </Route>
   );
 
+  const workspaceRoutes = (
+    <Route path="/organizations/:orgId/workspaces/">
+      <IndexRoute component={make(() => import('sentry/views/workspaces'))} />
+      <Route path=":teamId/" component={make(() => import('sentry/views/workspaces'))} />
+    </Route>
+  );
+
   // TODO(mark) Long term this /queries route should go away and /discover
   // should be the canonical route for discover2. We have a redirect right now
   // as /discover was for discover 1 and most of the application is linking to
@@ -1537,7 +1544,6 @@ function buildRoutes() {
       <Redirect from="/organizations/:orgId/teams/new/" to="/settings/:orgId/teams/" />
       <Route path="/organizations/:orgId/">
         {hook('routes:organization')}
-        <Redirect from="/organizations/:orgId/teams/" to="/settings/:orgId/teams/" />
         <Redirect
           from="/organizations/:orgId/teams/your-teams/"
           to="/settings/:orgId/teams/"
@@ -1545,10 +1551,6 @@ function buildRoutes() {
         <Redirect
           from="/organizations/:orgId/teams/all-teams/"
           to="/settings/:orgId/teams/"
-        />
-        <Redirect
-          from="/organizations/:orgId/teams/:teamId/"
-          to="/settings/:orgId/teams/:teamId/"
         />
         <Redirect
           from="/organizations/:orgId/teams/:teamId/members/"
@@ -1732,6 +1734,7 @@ function buildRoutes() {
       {releasesRoutes}
       {activityRoutes}
       {statsRoutes}
+      {workspaceRoutes}
       {discoverRoutes}
       {performanceRoutes}
       {profilingRoutes}
