@@ -1,12 +1,16 @@
 import 'swagger-ui-react/swagger-ui.css';
 
+import {OpenAPIV3} from 'openapi-types';
 import SwaggerUI from 'swagger-ui-react';
 
 import {EXPERIMENTAL_SPA} from 'sentry/constants';
 
-const swagger = require('../../../../tests/apidocs/openapi-derefed.json');
+type OpenApiDoc = OpenAPIV3.Document;
+type ServerObject = OpenAPIV3.ServerObject;
 
-let servers: {url: string}[];
+const swagger: OpenApiDoc = require('../../../../tests/apidocs/openapi-derefed.json');
+
+let servers: ServerObject[];
 
 const {hostname} = window.location;
 const isLocalHost = hostname === 'localhost';
@@ -21,6 +25,7 @@ if (isRunningOnDevUI) {
 }
 
 swagger.servers = servers;
+swagger.components = {};
 
 const SwaggerUIDocs = () => <SwaggerUI spec={swagger} />;
 
