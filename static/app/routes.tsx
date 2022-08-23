@@ -1236,8 +1236,8 @@ function buildRoutes() {
     <Route path="/organizations/:orgId/breadcrumbs/">
       <IndexRoute component={make(() => import('sentry/views/breadcrumbs'))} />
       <Route
-        path=":sessionId/"
-        component={make(() => import('sentry/views/breadcrumbs/sessionView'))}
+        path=":userId/"
+        component={make(() => import('sentry/views/breadcrumbs/userView'))}
       />
     </Route>
   );

@@ -8,7 +8,6 @@ import {PanelTable} from 'sentry/components/panels';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
-import space from 'sentry/styles/space';
 import EventView from 'sentry/utils/discover/eventView';
 import {FIELD_FORMATTERS} from 'sentry/utils/discover/fieldRenderers';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -28,9 +27,9 @@ type BreadcrumbEvent = {
   'user.display': string | undefined;
 };
 
-interface Props extends RouteComponentProps<{sessionId: string}, {}, any, {t: number}> {}
+interface Props extends RouteComponentProps<{userId: string}, {}, any, {t: number}> {}
 
-function SessionView({params: {sessionId}}: Props) {
+function UserView({params: {userId}}: Props) {
   const org = useOrganization();
   const api = useApi();
   const location = useLocation();
@@ -41,8 +40,8 @@ function SessionView({params: {sessionId}}: Props) {
     const query = decodeScalar(location.query.query, '');
     const conditions = new MutableSearch(query);
 
-    conditions.addStringFilter('has:sid');
-    conditions.addStringFilter(`sid:${sessionId}`);
+    conditions.addStringFilter('has:did');
+    conditions.addStringFilter(`did:${userId}`);
     // conditions.addStringFilter(`title:"Breadcrumb Event"`);
 
     return EventView.fromNewQueryWithLocation(
@@ -65,7 +64,7 @@ function SessionView({params: {sessionId}}: Props) {
       },
       location
     );
-  }, [location, sessionId]);
+  }, [location, userId]);
 
   useEffect(() => {
     api.clear();
@@ -101,9 +100,9 @@ function SessionView({params: {sessionId}}: Props) {
             organization={org}
             eventView={eventView}
             location={location}
-            sessionId={sessionId}
+            userId={userId}
           />
-          <PageHeading>{t(`Session: ${sessionId}`)}</PageHeading>
+          <PageHeading>{t(`User: ${userId}`)}</PageHeading>
         </Layout.HeaderContent>
       </Layout.Header>
       <Layout.Body>
@@ -146,16 +145,16 @@ const StyledPageContent = styled(PageContent)`
 `;
 
 // TODO: keep?
-const _Header = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: ${space(2)};
-`;
+// const _Header = styled('div')`
+//   display: flex;
+//   align-items: center;
+//   justify-content: space-between;
+//   margin-bottom: ${space(2)};
+// `;
 
 const Item = styled('div')`
   display: flex;
   align-items: center;
 `;
 
-export default SessionView;
+export default UserView;

@@ -23,31 +23,31 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {}
 
-interface Session {
-  'count(sid)': number;
+interface User {
+  'count(did)': number;
+  did: string;
   'last_seen()': string;
-  sid: string;
 }
 
 function Breadcrumbs({}: Props) {
   const org = useOrganization();
   const api = useApi();
   const location = useLocation();
-  const [sessions, setSessions] = useState<Array<Session>>([]);
+  const [sessions, setSessions] = useState<Array<User>>([]);
   const [isLoading, setLoading] = useState(false);
 
   const eventView = useMemo(() => {
     const query = decodeScalar(location.query.query, '');
     const conditions = new MutableSearch(query);
 
-    conditions.addStringFilter('has:sid');
+    conditions.addStringFilter('has:did');
 
     return EventView.fromNewQueryWithLocation(
       {
         id: '',
         name: '',
         version: 2,
-        fields: ['sid', 'count(sid)', 'last_seen()'],
+        fields: ['did', 'count(did)', 'last_seen()'],
         projects: [],
         orderby: '-last_seen',
         query: conditions.formatString(),
@@ -68,7 +68,7 @@ function Breadcrumbs({}: Props) {
         method: 'GET',
       });
 
-      setSessions(res.data.filter(session => session.sid !== ''));
+      setSessions(res.data.filter(session => session.did !== ''));
       setLoading(false);
     }
     fetchEvents();
@@ -85,7 +85,7 @@ function Breadcrumbs({}: Props) {
     <PageFiltersContainer>
       <PageContent>
         <Header>
-          <PageHeading>{t('Breadcrumbs')}</PageHeading>
+          <PageHeading>{t('User Journeys')}</PageHeading>
         </Header>
         <PageFilterBar>
           <ProjectPageFilter />
@@ -96,16 +96,16 @@ function Breadcrumbs({}: Props) {
         <PanelTable
           isLoading={isLoading}
           isEmpty={sessions.length === 0}
-          headers={[t('Session'), t('Number of Events'), lastActivity]}
+          headers={[t('User'), t('Number of Events'), lastActivity]}
         >
           {sessions.map(session => (
-            <Fragment key={session.sid}>
+            <Fragment key={session.did}>
               <Item>
-                <Link to={`/organizations/${org.slug}/breadcrumbs/${session.sid}`}>
-                  {session.sid}
+                <Link to={`/organizations/${org.slug}/breadcrumbs/${session.did}`}>
+                  {session.did}
                 </Link>
               </Item>
-              <Item>{session['count(sid)']}</Item>
+              <Item>{session['count(did)']}</Item>
               <Item>
                 {FIELD_FORMATTERS.date.renderFunc('last_seen()', {
                   ['last_seen()']: session['last_seen()'],

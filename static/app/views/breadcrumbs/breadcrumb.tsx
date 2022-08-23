@@ -9,10 +9,10 @@ type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
-  sessionId?: string;
+  userId?: string;
 };
 
-function Breadcrumb({eventView, sessionId, organization, location}: Props) {
+function Breadcrumb({eventView, userId, organization, location}: Props) {
   const crumbs: Crumb[] = [];
   const breadcrumbLandingPageTarget = {
     pathname: `/organizations/${organization.slug}/breadcrumbs/`,
@@ -28,9 +28,9 @@ function Breadcrumb({eventView, sessionId, organization, location}: Props) {
     label: t('Breadcrumbs'),
   });
 
-  if (sessionId) {
+  if (userId) {
     crumbs.push({
-      label: `Session: ${sessionId}`,
+      label: `User: ${userId}`,
     });
   }
 
