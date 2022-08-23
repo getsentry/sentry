@@ -1,0 +1,185 @@
+.btn {
+  font-size: 14px;
+  font-weight: bold;
+
+  padding: 5px 23px;
+
+  transition: all 0.3s;
+
+  border: 2px solid @btn-border-color;
+  border-radius: 4px;
+  background: transparent;
+  box-shadow: 0 1px 2px rgba(@btn-box-shadow-color, 0.1);
+
+  .text_headline();
+
+  &.btn-sm {
+    font-size: 12px;
+    padding: 4px 23px;
+  }
+
+  &[disabled] {
+    cursor: not-allowed;
+
+    opacity: 0.3;
+  }
+
+  &:hover {
+    box-shadow: 0 0 5px rgba(@btn-box-shadow-color, 0.3);
+  }
+
+  &.cancel {
+    border-color: @btn-cancel-border-color;
+    background-color: @btn-cancel-background-color;
+    .text_headline(@btn-cancel-font-color);
+  }
+
+  &.authorize {
+    line-height: 1;
+
+    display: inline;
+
+    color: @btn-authorize-font-color;
+    border-color: @btn-authorize-border-color;
+    background-color: @btn-authorize-background-color;
+
+    span {
+      float: left;
+
+      padding: 4px 20px 0 0;
+    }
+
+    svg {
+      fill: @btn-authorize-svg-fill-color;
+    }
+  }
+
+  &.execute {
+    background-color: @btn-execute-background-color-alt;
+    color: @btn-execute-font-color;
+    border-color: @btn-execute-border-color;
+  }
+}
+
+.btn-group {
+  display: flex;
+
+  padding: 30px;
+
+  .btn {
+    flex: 1;
+
+    &:first-child {
+      border-radius: 4px 0 0 4px;
+    }
+
+    &:last-child {
+      border-radius: 0 4px 4px 0;
+    }
+  }
+}
+
+.authorization__btn {
+  padding: 0 0 0 10px;
+
+  border: none;
+  background: none;
+
+  &.locked {
+    opacity: 1;
+  }
+
+  &.unlocked {
+    opacity: 0.4;
+  }
+}
+
+.opblock-summary-control,
+.models-control,
+.model-box-control {
+  all: inherit;
+  flex: 1;
+  border-bottom: 0;
+  padding: 0;
+  cursor: pointer;
+
+  &:focus {
+    outline: auto;
+  }
+}
+
+.expand-methods,
+.expand-operation {
+  border: none;
+  background: none;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.expand-methods {
+  padding: 0 10px;
+
+  &:hover {
+    svg {
+      fill: @expand-methods-svg-fill-color-hover;
+    }
+  }
+
+  svg {
+    transition: all 0.3s;
+
+    fill: @expand-methods-svg-fill-color;
+  }
+}
+
+button {
+  cursor: pointer;
+
+  &.invalid {
+    .invalidFormElement();
+  }
+}
+
+.copy-to-clipboard {
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  bottom: 10px;
+  right: 100px;
+  width: 30px;
+  height: 30px;
+  background: #7d8293;
+  border-radius: 4px;
+  border: none;
+
+  button {
+    flex-grow: 1;
+    flex-shrink: 1;
+    border: none;
+    height: 25px;
+    background: url("data:image/svg+xml, <svg xmlns='http://www.w3.org/2000/svg' width='16' height='15' aria-hidden='true'><g transform='translate(2, -1)'><path fill='#ffffff' fill-rule='evenodd' d='M2 13h4v1H2v-1zm5-6H2v1h5V7zm2 3V8l-3 3 3 3v-2h5v-2H9zM4.5 9H2v1h2.5V9zM2 12h2.5v-1H2v1zm9 1h1v2c-.02.28-.11.52-.3.7-.19.18-.42.28-.7.3H1c-.55 0-1-.45-1-1V4c0-.55.45-1 1-1h3c0-1.11.89-2 2-2 1.11 0 2 .89 2 2h3c.55 0 1 .45 1 1v5h-1V6H1v9h10v-2zM2 5h8c0-.55-.45-1-1-1H8c-.55 0-1-.45-1-1s-.45-1-1-1-1 .45-1 1-.45 1-1 1H3c-.55 0-1 .45-1 1z'></path></g></svg>")
+      center center no-repeat;
+  }
+}
+
+// overrides for smaller copy button for curl command
+.curl-command .copy-to-clipboard {
+  bottom: 5px;
+  right: 10px;
+  width: 20px;
+  height: 20px;
+
+  button {
+    height: 18px;
+  }
+}
+
+// overrides for copy to clipboard button
+.opblock .opblock-summary .view-line-link.copy-to-clipboard {
+  height: 26px;
+  position: unset;
+}

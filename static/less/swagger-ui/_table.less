@@ -1,0 +1,166 @@
+table {
+  width: 100%;
+  padding: 0 10px;
+
+  border-collapse: collapse;
+
+  &.model {
+    tbody {
+      tr {
+        td {
+          padding: 0;
+
+          vertical-align: top;
+
+          &:first-of-type {
+            width: 174px;
+            padding: 0 0 0 2em;
+          }
+        }
+      }
+    }
+  }
+
+  &.headers {
+    td {
+      font-size: 12px;
+      font-weight: 300;
+
+      vertical-align: middle;
+
+      .text_code();
+    }
+
+    .header-example {
+      color: #999;
+      font-style: italic;
+    }
+  }
+
+  tbody {
+    tr {
+      td {
+        padding: 10px 0 0 0;
+
+        vertical-align: top;
+
+        &:first-of-type {
+          min-width: 6em;
+          padding: 10px 0;
+        }
+      }
+    }
+  }
+
+  thead {
+    tr {
+      th,
+      td {
+        font-size: 12px;
+        font-weight: bold;
+
+        padding: 12px 0;
+
+        text-align: left;
+
+        border-bottom: 1px solid rgba(@table-thead-td-border-bottom-color, 0.2);
+
+        .text_body();
+      }
+    }
+  }
+}
+
+.parameters-col_description {
+  width: 99%; // forces other columns to shrink to their content widths
+  margin-bottom: 2em;
+  input {
+    width: 100%;
+    max-width: 340px;
+  }
+
+  select {
+    border-width: 1px;
+  }
+}
+
+.parameter__name {
+  font-size: 16px;
+  font-weight: normal;
+
+  // hack to give breathing room to the name column
+  // TODO: refactor all of this to flexbox
+  margin-right: 0.75em;
+
+  .text_headline();
+
+  &.required {
+    font-weight: bold;
+
+    span {
+      color: red;
+    }
+
+    &:after {
+      font-size: 10px;
+
+      position: relative;
+      top: -6px;
+
+      padding: 5px;
+
+      content: 'required';
+
+      color: rgba(@table-parameter-name-required-font-color, 0.6);
+    }
+  }
+}
+
+.parameter__in,
+.parameter__extension {
+  font-size: 12px;
+  font-style: italic;
+
+  .text_code(@table-parameter-in-font-color);
+}
+
+.parameter__deprecated {
+  font-size: 12px;
+  font-style: italic;
+
+  .text_code(@table-parameter-deprecated-font-color);
+}
+
+.parameter__empty_value_toggle {
+  display: block;
+  font-size: 13px;
+  padding-top: 5px;
+  padding-bottom: 12px;
+
+  input {
+    margin-right: 7px;
+  }
+
+  &.disabled {
+    opacity: 0.7;
+  }
+}
+
+.table-container {
+  padding: 20px;
+}
+
+.response-col_description {
+  width: 99%; // forces other columns to shrink to their content widths
+}
+
+.response-col_links {
+  min-width: 6em;
+}
+
+.response__extension {
+  font-size: 12px;
+  font-style: italic;
+
+  .text_code(@table-parameter-in-font-color);
+}

@@ -1,9 +1,10 @@
-import 'swagger-ui-react/swagger-ui.css';
-
 import {OpenAPIV3} from 'openapi-types';
 import SwaggerUI from 'swagger-ui-react';
 
+import SentryLayoutPlugin from 'sentry/components/swagger-ui/sentryLayoutPlugin';
 import {EXPERIMENTAL_SPA} from 'sentry/constants';
+
+import '../../../less/swagger-ui/main.less';
 
 const swagger: OpenApiDoc = require('../../../../tests/apidocs/openapi-derefed.json');
 
@@ -21,6 +22,6 @@ if (isRunningOnDevUI) {
   swagger.servers = [{url: 'https://sentry.io/'}];
 }
 
-const SwaggerUIDocs = () => <SwaggerUI spec={swagger} />;
+const SwaggerUIDocs = () => <SwaggerUI spec={swagger} plugins={[SentryLayoutPlugin]} layout="SentryLayout" />;
 
 export default SwaggerUIDocs;

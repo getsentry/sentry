@@ -1,0 +1,63 @@
+// - - - - - - - - - - - - - - - - - - -
+// - - _mixins.scss module
+// styles for the _mixins.scss module
+.calculateRem(@size) {
+  @remSize: @size / 16px;
+  @return @remSize * 1rem;
+}
+
+.font-size(@size) {
+  font-size: @size;
+  font-size: calculateRem(@size);
+}
+
+.clearfix {
+  &:before,
+  &:after {
+    display: table;
+
+    content: ' ';
+  }
+  &:after {
+    clear: both;
+  }
+}
+
+.size(@width, @height: @width) {
+  width: @width;
+  height: @height;
+}
+
+.text-truncate {
+  overflow: hidden;
+
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.aspect-ratio(@width, @height) {
+  position: relative;
+  &:before {
+    display: block;
+
+    width: 100%;
+    padding-top: (@height / @width) * 100%;
+
+    content: '';
+  }
+  > iframe {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+  }
+}
+
+@browser-context: 16;
+
+.invalidFormElement() {
+  animation: shake 0.4s 1;
+  border-color: @_color-delete;
+  background: lighten(@_color-delete, 35%);
+}

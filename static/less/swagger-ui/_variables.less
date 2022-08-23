@@ -1,0 +1,228 @@
+// Base Colours
+@black: #000;
+@white: #fff;
+@gray-50: lighten(@black, 92%); //ebebeb
+@gray-200: lighten(@black, 62.75%); // #a0a0a0
+@gray-300: lighten(@black, 56.5%); // #909090
+@gray-400: lighten(@black, 50%); // #808080
+@gray-500: lighten(@black, 43.75%); // #707070
+@gray-600: lighten(@black, 37.5%); // #606060
+@gray-650: lighten(@black, 33.3%); // #555555
+@gray-700: lighten(@black, 31.25%); // #505050
+@gray-800: lighten(@black, 25%); // #404040
+@gray-900: lighten(@black, 18.75%); // #303030
+
+@cod-gray: #1b1b1b;
+@agate-gray: #333333;
+@bright-gray: #3b4151;
+@mako-gray: #41444e;
+@waterloo-gray: #7d8492;
+@alto-gray: #d9d9d9;
+@mercury-gray: #e4e4e4;
+@concrete-gray: #e8e8e8;
+@alabaster: #f7f7f7;
+@apple-green: #62a03f;
+@green-haze: #009d77;
+@japanese-laurel: #008000;
+@persian-green: #00a0a7;
+@geyser-blue: #d8dde7;
+@dodger-blue: #1391ff;
+@endeavour-blue: #005dae;
+@scampi-purple: #55a;
+@electric-violet: #7300e5;
+@persian-red: #cf3030;
+@mango-tango: #e97500;
+
+// Theme
+
+@color-primary: #89bf04;
+@color-secondary: #9012fe;
+@color-info: #4990e2;
+@color-warning: #ff6060;
+@color-danger: #f00;
+
+@color-primary-hover: lighten(@color-primary, 0.5%);
+
+@_color-post: #49cc90;
+@_color-get: #61affe;
+@_color-put: #fca130;
+@_color-delete: #f93e3e;
+@_color-head: #9012fe;
+@_color-patch: #50e3c2;
+@_color-disabled: #ebebeb;
+@_color-options: #0d5aa7;
+
+// Authorize
+
+@auth-container-border-color: @gray-50;
+@auth-select-all-none-link-font-color: @color-info;
+// Buttons
+
+@btn-background-color: transparent;
+@btn-border-color: @gray-400;
+@btn-font-color: inherit;
+@btn-box-shadow-color: @black;
+
+@btn-authorize-background-color: transparent;
+@btn-authorize-border-color: @_color-post;
+@btn-authorize-font-color: @_color-post;
+@btn-authorize-svg-fill-color: @_color-post;
+
+@btn-cancel-background-color: transparent;
+@btn-cancel-border-color: @color-warning;
+@btn-cancel-font-color: @color-warning;
+
+@btn-execute-background-color: transparent;
+@btn-execute-border-color: @color-info;
+@btn-execute-font-color: @white;
+@btn-execute-background-color-alt: @color-info;
+
+@expand-methods-svg-fill-color: @gray-500;
+@expand-methods-svg-fill-color-hover: @gray-800;
+
+// Errors
+
+@errors-wrapper-background-color: @_color-delete;
+@errors-wrapper-border-color: @_color-delete;
+
+@errors-wrapper-errors-small-font-color: @gray-600;
+
+// Form
+
+@form-select-background-color: @alabaster;
+@form-select-border-color: @mako-gray;
+@form-select-box-shadow-color: @black;
+
+@form-input-border-color: @alto-gray;
+@form-input-background-color: @white;
+
+@form-textarea-background-color: @white;
+@form-textarea-focus-border-color: @_color-get;
+
+@form-textarea-curl-background-color: @mako-gray;
+@form-textarea-curl-font-color: @white;
+
+@form-checkbox-label-font-color: @gray-900;
+@form-checkbox-background-color: @concrete-gray;
+@form-checkbox-box-shadow-color: @concrete-gray;
+
+// Information
+
+@info-code-background-color: @black;
+@info-code-font-color: @_color-head;
+
+@info-link-font-color: @color-info;
+@info-link-font-color-hover: @info-link-font-color;
+
+@info-title-small-background-color: @waterloo-gray;
+
+@info-title-small-pre-font-color: @white;
+
+// Layout
+
+@opblock-border-color: @black;
+@opblock-box-shadow-color: @black;
+
+@opblock-tag-border-bottom-color: @bright-gray;
+@opblock-tag-background-color-hover: @black;
+
+@opblock-tab-header-tab-item-active-h4-span-after-background-color: @gray-400;
+
+@opblock-isopen-summary-border-bottom-color: @black;
+
+@opblock-isopen-section-header-background-color: @white;
+@opblock-isopen-section-header-box-shadow-color: @black;
+
+@opblock-summary-method-background-color: @black;
+@opblock-summary-method-font-color: @white;
+@opblock-summary-method-text-shadow-color: @black;
+
+@operational-filter-input-border-color: @geyser-blue;
+
+@tab-list-item-first-background-color: @black;
+
+@response-col-status-undocumented-font-color: @gray-300;
+
+@response-col-links-font-color: @gray-300;
+
+@opblock-body-background-color: @agate-gray;
+@opblock-body-font-color: @white;
+
+@scheme-container-background-color: @white;
+@scheme-container-box-shadow-color: @black;
+
+@server-container-background-color: @white;
+@server-container-box-shadow-color: @black;
+
+@server-container-computed-url-code-font-color: @gray-400;
+
+@loading-container-before-border-color: @gray-650;
+@loading-container-before-border-top-color: @black;
+
+@response-content-type-controls-accept-header-select-border-color: @japanese-laurel;
+@response-content-type-controls-accept-header-small-font-color: @japanese-laurel;
+
+// Modal
+
+@dialog-ux-backdrop-background-color: @black;
+
+@dialog-ux-modal-background-color: @white;
+@dialog-ux-modal-border-color: @gray-50;
+@dialog-ux-modal-box-shadow-color: @black;
+
+@dialog-ux-modal-content-font-color: @mako-gray;
+
+@dialog-ux-modal-header-border-bottom-color: @gray-50;
+
+// Models
+
+@model-deprecated-font-color: @gray-200;
+
+@model-hint-font-color: @gray-50;
+@model-hint-background-color: @black;
+
+@section-models-border-color: @bright-gray;
+
+@section-models-isopen-h4-border-bottom-color: @section-models-border-color;
+
+@section-models-h4-font-color: @gray-600;
+@section-models-h4-background-color-hover: @black;
+
+@section-models-h5-font-color: @gray-500;
+
+@section-models-model-container-background-color: @black;
+
+@section-models-model-box-background-color: @black;
+
+@section-models-model-title-font-color: @gray-700;
+
+@prop-type-font-color: @scampi-purple;
+
+@prop-format-font-color: @gray-600;
+
+// Tables
+
+@table-thead-td-border-bottom-color: @bright-gray;
+
+@table-parameter-name-required-font-color: @color-danger;
+
+@table-parameter-in-font-color: @gray-400;
+
+@table-parameter-deprecated-font-color: @color-danger;
+
+// Topbar
+
+@topbar-background-color: @cod-gray;
+
+@topbar-link-font-color: @white;
+
+@topbar-download-url-wrapper-element-border-color: @apple-green;
+
+@topbar-download-url-button-background-color: @apple-green;
+@topbar-download-url-button-font-color: @white;
+
+// Type
+
+@text-body-default-font-color: @bright-gray;
+@text-code-default-font-color: @bright-gray;
+@text-headline-default-font-color: @bright-gray;
