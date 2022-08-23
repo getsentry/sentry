@@ -27,7 +27,7 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
           clearAllHighlights();
           highlight({nodeId: item.data.nodeId, annotation: item.data.label});
         }
-      }, 50),
+      }, 200),
     [setCurrentHoverTime, startTimestampMs, highlight, clearAllHighlights]
   );
 
@@ -39,7 +39,7 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
         if (item.data && 'nodeId' in item.data) {
           removeHighlight({nodeId: item.data.nodeId});
         }
-      }, 50),
+      }, 200),
     [setCurrentHoverTime, removeHighlight]
   );
 
