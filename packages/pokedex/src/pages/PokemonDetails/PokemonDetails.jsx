@@ -1,5 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { Button as LibButton } from 'nhsieh-testlib';
 import { capitalize, documentTitle, COLOR, formatId } from "../../utils/utils";
 import Header from "../../components/Header/Header";
 import Button from "../../components/Button/Button";
@@ -17,6 +18,7 @@ const POKEMON_ID = {
 };
 
 const PokemonDetails = ({ path }) => {
+  const [move, setMove] = useState();
   const routeParams = useParams();
   const id = +routeParams.id;
   const navigate = useNavigate();
@@ -47,6 +49,7 @@ const PokemonDetails = ({ path }) => {
 
   useEffect(() => {
     setPokemonId(id);
+    setMove('');
   }, [id]);
 
   useEffect(() => {
@@ -63,6 +66,12 @@ const PokemonDetails = ({ path }) => {
     "--button-hover-bg-clr": COLOR.RGBA(pokemonType),
     "--button-border-clr": COLOR.TYPE(pokemonType),
   };
+
+  const getMove = () => {
+    const { moves } = pokemonData;
+    const randMove = moves[Math.floor(Math.random()*moves.length)];
+    setMove(randMove);
+  }
 
   return !pokemonData && !pokemonSpeciesData ? (
     <Loader />
@@ -114,6 +123,17 @@ const PokemonDetails = ({ path }) => {
       <div className="grid-row-2">
         <TrainingCard />
         <SpeciesCard />
+      </div>
+      <div>
+        <LibButton
+          label="Get Move"
+          onClick={getMove}
+          primary
+        />
+        {/* <button type="button" onClick={getMove}>Get Move</button> */}
+        {
+          move && <div>Name: {move.move.name}</div>
+        }
       </div>
     </main>
   );

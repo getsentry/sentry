@@ -1,3 +1,4 @@
+import { Button } from 'nhsieh-testlib';
 import { useMemo } from "react";
 import PokemonCard from "../../components/PokemonCard/PokemonCard";
 import Header from "../../components/Header/Header";
@@ -18,7 +19,7 @@ const Nav = () => (
     <button type="button" onClick={() => scrollToTop(true)}>
       Pokédex
     </button>
-    <ExternalLink href="https://github.com/shanpriyan/pokedex">
+    <ExternalLink href="https://github.com/nhsiehgit/pokedex">
       <GithubIcon />
     </ExternalLink>
   </Header>
