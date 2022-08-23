@@ -72,8 +72,8 @@ function App({children}: Props) {
       {
         match: ['command+j', 'ctrl+j', 'command+shift+j', 'ctrl+shift+j'],
         callback: e => {
-          if ('_voiceAssistantButton' in window) {
-            window._voiceAssistantButton.handleClick();
+          if ('_voiceAssistantPanel' in window) {
+            window._voiceAssistantPanel.handleToggle();
           }
           e.preventDefault();
         },

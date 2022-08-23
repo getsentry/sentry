@@ -3,23 +3,13 @@ import React from 'react';
 import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {
-  startVoiceRecognition,
-  stopVoiceRecognition,
-} from 'sentry/bootstrap/voiceAssistant';
-
-declare global {
-  interface Window {
-    _voiceAssistantButton: VoiceAssistantButton;
-  }
-}
-
-interface VoiceAssistantState {
-  isListening: boolean;
-}
-
 interface VoiceButtonProps {
   active: boolean;
+}
+
+interface VoiceAssistantButtonProps {
+  handleToggle: any;
+  isListening: boolean;
 }
 
 const Wrapper = styled('div')`
@@ -145,43 +135,15 @@ const VoiceButton = styled('button')<VoiceButtonProps>`
     `}
 `;
 
-export class VoiceAssistantButton extends React.Component<{}, VoiceAssistantState> {
+export class VoiceAssistantButton extends React.Component<VoiceAssistantButtonProps, {}> {
   constructor(props) {
     super(props);
-    this.state = {isListening: false};
-
-    // Hack to access the button later from other places
-    window._voiceAssistantButton = this;
-
-    // This binding is necessary to make `this` work in the callback
-    this.handleClick = this.handleClick.bind(this);
-  }
-
-  handleClick() {
-    const eventuallyDisableCallback = _ => {
-      // ugly hack
-      this.setState(_prevState => ({
-        isListening: false,
-      }));
-    };
-
-    if (!this.state.isListening) {
-      console.log('>>> Starting speech recognition...');
-      startVoiceRecognition(eventuallyDisableCallback);
-    } else {
-      console.log('>>> Terminating speech recognition...');
-      stopVoiceRecognition();
-    }
-
-    this.setState(prevState => ({
-      isListening: !prevState.isListening,
-    }));
   }
 
   render() {
     return (
       <Wrapper>
-        <VoiceButton active={this.state.isListening} onClick={this.handleClick}>
+        <VoiceButton active={this.props.isListening} onClick={this.props.handleToggle}>
           <Ripple1 />
           <Ripple2 />
           <Logo

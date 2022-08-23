@@ -10,7 +10,6 @@ import {initializeSdk} from './initializeSdk';
 import {processInitQueue} from './processInitQueue';
 import {renderMain} from './renderMain';
 import {renderOnDomReady} from './renderOnDomReady';
-import {initializeVoiceAssistant} from './voiceAssistant';
 
 export function initializeApp(config: Config) {
   commonInitialization(config);
@@ -21,5 +20,4 @@ export function initializeApp(config: Config) {
   metric.mark({name: 'sentry-app-init'});
   renderOnDomReady(renderMain);
   processInitQueue();
-  initializeVoiceAssistant();
 }
