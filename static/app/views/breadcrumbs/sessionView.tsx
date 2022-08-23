@@ -22,6 +22,7 @@ function SessionView({params: {sessionId}}: Props) {
   const org = useOrganization();
   const api = useApi();
   const location = useLocation();
+  const [isLoading, setLoading] = useState(false);
 
   const eventView = useMemo(() => {
     const query = decodeScalar(location.query.query, '');
@@ -54,6 +55,7 @@ function SessionView({params: {sessionId}}: Props) {
 
   useEffect(() => {
     api.clear();
+    setLoading(true);
 
     async function fetchEvents() {
       const res = await api.requestPromise(`/organizations/${org.slug}/events/`, {
@@ -64,6 +66,7 @@ function SessionView({params: {sessionId}}: Props) {
       });
       // eslint-disable-next-line no-console
       console.log(res);
+      setLoading(false);
     }
     fetchEvents();
   }, [api, org, location, eventView]);
