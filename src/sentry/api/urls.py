@@ -472,6 +472,7 @@ from .endpoints.team_alerts_triggered import (
 )
 from .endpoints.team_all_unresolved_issues import TeamAllUnresolvedIssuesEndpoint
 from .endpoints.team_details import TeamDetailsEndpoint
+from .endpoints.team_flows import IssueSetDetailsEndpoint, IssueSetsEndpoint
 from .endpoints.team_groups_old import TeamGroupsOldEndpoint
 from .endpoints.team_issue_breakdown import TeamIssueBreakdownEndpoint
 from .endpoints.team_members import TeamMembersEndpoint
@@ -1711,6 +1712,17 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^/]+)/vitals-overview/$",
                     OrganizationVitalsOverviewEndpoint.as_view(),
                     name="sentry-api-0-organization-vitals-overview",
+                ),
+                # Team-flows
+                url(
+                    r"^(?P<organization_slug>[^/]+)/issue-sets/$",
+                    IssueSetsEndpoint.as_view(),
+                    name="sentry-api-0-issue-sets",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/issue-sets/(?P<issue_set_id>[^/]+)/$",
+                    IssueSetDetailsEndpoint.as_view(),
+                    name="sentry-api-0-issue-set-details",
                 ),
             ]
         ),
