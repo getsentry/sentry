@@ -35,12 +35,14 @@ export interface GroupEventDetailsProps
 export function GroupEventDetailsContainer(props: GroupEventDetailsProps) {
   const state = useLegacyStore(OrganizationEnvironmentsStore);
 
+  const {api, organization} = props;
+  const needsEnvironments = !state.environments && !state.error;
+
   useEffect(() => {
-    if (!state.environments && !state.error) {
-      fetchOrganizationEnvironments(props.api, props.organization.slug);
+    if (needsEnvironments) {
+      fetchOrganizationEnvironments(api, organization.slug);
     }
-    // XXX: Missing dependencies, but it reflects the old of componentDidMount
-  }, [props.api]);
+  }, [api, needsEnvironments, organization.slug]);
 
   if (state.error) {
     return (
