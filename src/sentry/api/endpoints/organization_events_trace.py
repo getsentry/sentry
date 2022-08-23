@@ -30,6 +30,7 @@ from sentry.eventstore.models import Event
 from sentry.models import Organization
 from sentry.search.events.builder import QueryBuilder
 from sentry.snuba import discover
+from sentry.utils.neo4j import neo4j_driver
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.sdk import set_measurement
 from sentry.utils.snuba import Dataset, bulk_snql_query
@@ -515,6 +516,79 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
 
 
 class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
+    def get(self, request: HttpRequest, organization: Organization, trace_id: str) -> HttpResponse:
+        with sentry_sdk.start_span(op="neo4j", description="session"):
+            with neo4j_driver.session() as session:
+                trace = session.read_transaction(self.get_trace, trace_id)
+                return Response(trace)
+
+        return super().get(request, organization, trace_id)
+
+    def get_trace(self, tx, trace_id: str):
+        query = " ".join(
+            [
+                "MATCH path = (pt:Transaction)-[:PARENT_OF*]->(leaf:Transaction)",
+                "WHERE NOT (leaf)-->(:Transaction)",
+                "AND pt.parent_span_id is NULL",
+                "AND pt.trace_id = $trace_id",
+                "AND leaf.trace_id = $trace_id",
+                "RETURN path",
+            ]
+        )
+
+        with sentry_sdk.start_span(op="neo4j", description="query"):
+            result = tx.run(query, trace_id=trace_id)
+
+        with sentry_sdk.start_span(op="building.trace", description="extract nodes"):
+            edges = []
+            nodes = {}
+            props = {
+                "event_id": "event_id",
+                "span_id": "span_id",
+                "transaction": "description",
+                "project_id": "project_id",
+                "project_slug": "project_slug",
+                "parent_span_id": "parent_span_id",
+                "timestamp": "timestamp",
+                "start_timestamp": "start_timestamp",
+                "transaction.status": "status",
+            }
+            # "generation"
+
+            for r in result:
+                path = r["path"]
+                edges.append((path.start_node.id, path.end_node.id))
+                for node in [path.start_node, path.end_node]:
+                    if node.id not in nodes:
+                        nodes[node.id] = {name: node[key] for name, key in props.items()}
+                        nodes[node.id]["transaction.duration"] = (
+                            nodes[node.id]["timestamp"] - nodes[node.id]["start_timestamp"]
+                        )
+                        nodes[node.id]["errors"] = []
+                        nodes[node.id]["children"] = []
+                        nodes[node.id]["measurements"] = {}
+                        nodes[node.id]["tags"] = []
+                        nodes[node.id]["_meta"] = {}
+
+        with sentry_sdk.start_span(op="building.trace", description="connect nodes"):
+            for start, end in edges:
+                end_node = nodes[end]
+                end_node["_has_parent"] = True
+                nodes[start]["children"].append(end_node)
+
+            roots = [node for node in nodes.values() if not node.get("_has_parent", False)]
+
+        with sentry_sdk.start_span(op="building.trace", description="label generations"):
+            ns = [(root, 0) for root in roots]
+            for (n, g) in ns:
+                n["generation"] = g
+                ns.extend([(c, g + 1) for c in n["children"]])
+
+        return roots
+
+    def mark_generations(node, generation=0):
+        node["generation"] = generation
+
     @staticmethod
     def update_children(event: TraceEvent) -> None:
         """Updates the children of subtraces

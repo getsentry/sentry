@@ -1882,7 +1882,7 @@ def _calculate_span_grouping(jobs, projects):
 
 
 @metrics.wraps("event_manager.save_transaction_events")
-def _insert_transaction_neo4j(jobs):
+def _insert_transaction_neo4j(jobs, projects):
     for job in jobs:
         data = job["data"]
 
@@ -1897,16 +1897,22 @@ def _insert_transaction_neo4j(jobs):
             root_span["parent_span_id"] = data["contexts"]["trace"]["parent_span_id"]
         if "op" in data["contexts"]["trace"]:
             root_span["op"] = data["contexts"]["trace"]["op"]
+        if "status" in data["contexts"]["trace"]:
+            root_span["status"] = data["contexts"]["trace"]["status"]
 
         spans = [root_span] + data["spans"]
 
         def create_spans(tx, data, spans):
             create_nodes = []
 
-            kwargs = {
-                "project": data["project"],
+            base_kwargs = {
+                "event_id": data["event_id"],
+                "project_id": data["project"],
+                "project_slug": projects[data["project"]].slug,
                 "trace_id": data["contexts"]["trace"]["trace_id"],
             }
+
+            kwargs = dict(base_kwargs)
 
             for span in spans:
                 is_root = span.get("root")
@@ -1918,13 +1924,14 @@ def _insert_transaction_neo4j(jobs):
                     "start_timestamp",
                     "op",
                     "description",
+                    "status",
                 ]
 
                 for k in keys:
                     if k in span:
                         kwargs[f"{k}_{span_id}"] = span[k]
 
-                props = ["trace_id: $trace_id"] + [
+                props = [f"{k}: ${k}" for k in base_kwargs] + [
                     f"{k}: ${k}_{span_id}" for k in keys if k in span
                 ]
 
@@ -2006,5 +2013,5 @@ def save_transaction_events(jobs, projects):
     _nodestore_save_many(jobs)
     _eventstream_insert_many(jobs)
     _track_outcome_accepted_many(jobs)
-    _insert_transaction_neo4j(jobs)
+    _insert_transaction_neo4j(jobs, projects)
     return jobs
