@@ -26,7 +26,9 @@ function SessionView({params: {sessionId}}: Props) {
   const eventView = useMemo(() => {
     const query = decodeScalar(location.query.query, '');
     const conditions = new MutableSearch(query);
-    // conditions.addStringFilter(`session_id:${sessionId}`);
+
+    conditions.addStringFilter('has:session_id');
+    conditions.addStringFilter(`session_id:${sessionId}`);
     // conditions.addStringFilter(`title:"Breadcrumb Event"`);
 
     return EventView.fromNewQueryWithLocation(
@@ -34,7 +36,14 @@ function SessionView({params: {sessionId}}: Props) {
         id: '',
         name: '',
         version: 2,
-        fields: ['id'],
+        fields: [
+          'id',
+          'timestamp',
+          'title',
+          'transaction.op',
+          'transaction.status',
+          'user.email',
+        ],
         projects: [],
         // TODO: Filter based on incoming session_id and Breadcrumb Event title
         query: conditions.formatString(),
