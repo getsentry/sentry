@@ -147,10 +147,10 @@ function UserView({params: {userId}, router, route}: Props) {
       <Layout.Body>
         <Layout.Main fullWidth>
           {isLoading && <LoadingIndicator />}
-          {!isLoading && crumbs.length > 0 && (
+          {!isLoading && crumbs.length > 0 && sampleEvent && (
             <Breadcrumbs
               breadcrumbs={transformCrumbs(crumbs)}
-              displayRelativeTime
+              displayRelativeTime={false}
               onSwitchTimeFormat={() => {}}
               organization={org}
               searchTerm=""
