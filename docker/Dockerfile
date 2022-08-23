@@ -50,8 +50,7 @@ ENV \
   GRPC_POLL_STRATEGY=epoll1
 
 COPY requirements-frozen.txt /tmp/requirements-frozen.txt
-# Install dependencies first to leverage Docker layer caching.
-# COPY ${DIST_DIR}/requirements-frozen.txt /tmp/requirements-frozen.txt
+
 RUN set -x \
   && buildDeps="" \
   # uwsgi
