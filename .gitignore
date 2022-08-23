@@ -57,3 +57,5 @@ Brewfile.lock.json
 import-graph.txt
 import-graph.dot
 bin/rrweb-output
+
+/static/app/icons/clippy/api_key.ts

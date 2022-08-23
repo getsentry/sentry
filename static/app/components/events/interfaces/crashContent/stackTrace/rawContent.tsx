@@ -128,7 +128,10 @@ export function getJavaPreamble(exception: ExceptionValue): string {
   return result;
 }
 
-function getPreamble(exception: ExceptionValue, platform: string | undefined): string {
+export function getPreamble(
+  exception: ExceptionValue,
+  platform: string | undefined
+): string {
   switch (platform) {
     case 'java':
       return getJavaPreamble(exception);
@@ -179,6 +182,7 @@ export default function render(
   }
 
   if (exception) {
+    console.log('there is excpection');
     frames.unshift(getPreamble(exception, platform));
   }
 

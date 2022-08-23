@@ -25,6 +25,8 @@ function Exception({
   hasHierarchicalGrouping,
   groupingCurrentLevel,
 }: Props) {
+  console.log('pew')
+  console.log(data)
   const eventHasThreads = !!event.entries.some(entry => entry.type === 'threads');
 
   /* in case there are threads in the event data, we don't render the
