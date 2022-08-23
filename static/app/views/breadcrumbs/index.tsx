@@ -77,6 +77,7 @@ function Breadcrumbs({}: Props) {
           <EnvironmentPageFilter />
           <DatePageFilter alignDropdown="right" />
         </PageFilterBar>
+        <br />
         <PanelTable
           isLoading={isLoading}
           isEmpty={sessions.length === 0}
