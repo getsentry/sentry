@@ -1,6 +1,8 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
 
+import fs from 'fs';
+
 import {RuntimeModule, Template} from 'webpack';
 
 class SentryRuntimeModule extends RuntimeModule {
@@ -146,7 +148,11 @@ class SentryRuntimeModule extends RuntimeModule {
 }
 
 class HackweekPlugin {
-  constructor() {}
+  outPath: string;
+
+  constructor({outPath}) {
+    this.outPath = outPath;
+  }
 
   apply(compiler) {
     compiler.hooks.compilation.tap('RuntimePlugin', compilation => {
@@ -158,30 +164,30 @@ class HackweekPlugin {
       );
     });
 
-    // compiler.hooks.compilation.tap('RuntimePlugin', compilation => {
-    //   compilation.hooks.runtimeRequirementInModule
-    //     .for(RuntimeGlobals.require)
-    //     .tap('RuntimePlugin', (module, set) => {
-    //       // set.add(RuntimeGlobals.requireScope);
-    //       console.log('runtimeplugin', module);
-    //     });
-    //
-    //   // compilation.hooks.runtimeRequirementInTree
-    //   //   .for(RuntimeGlobals.getChunkScriptFilename)
-    //   //   .tap('RuntimePlugin', (chunk, set) => {
-    //   //     console.log('runtime plugin', chunk);
-    //   //   });
-    // });
+    compiler.hooks.emit.tapAsync('RuntimePlugin', (compilation, callback) => {
+      const emitted: unknown[] = [];
 
-    // compiler.hooks.normalModuleFactory.tap('MyPlugin', factory => {
-    //   factory.hooks.parser.for('javascript/auto').tap('MyPlugin', (parser, options) => {
-    // parser.hooks.exportDeclaration.tap('MyPlugin', (statement, declaration) => {
-    //   // console.log({statement, declaration});
-    //
-    //   return statement;
-    // });
-    //   });
-    // });
+      compilation.chunks.forEach(chunk => {
+        const modules: unknown[] = [];
+        try {
+          compilation.chunkGraph.getChunkModules(chunk).forEach(module => {
+            modules.push(module.id);
+          });
+        } catch (err) {
+          // The `runtime` chunk throws because it has no modules
+          // Error: Module.id: There was no ChunkGraph assigned to the Module for backward-compat (Use the new API)
+        }
+
+        emitted.push({
+          chunkId: chunk.id,
+          modules,
+        });
+      });
+
+      fs.writeFileSync(this.outPath, JSON.stringify(emitted, null, '\t'));
+
+      callback();
+    });
   }
 }
 
