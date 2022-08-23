@@ -2,6 +2,7 @@ import pytest
 
 from sentry.grouping.api import get_default_grouping_config_dict
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
+from tests.sentry.grouping import GroupingInput
 from tests.sentry.grouping import grouping_input as grouping_inputs
 
 CONFIGS = {key: get_default_grouping_config_dict(key) for key in sorted(CONFIGURATIONS.keys())}
@@ -37,3 +38,12 @@ def run_configuration(grouping_input, config):
     event.project = None
 
     event.get_hashes()
+
+
+@pytest.mark.parametrize(
+    "config_name", sorted(CONFIGURATIONS.keys()), ids=lambda x: x.replace("-", "_")
+)
+def test_benchmark_hackweek(config_name, benchmark):
+    config = CONFIGS[config_name]
+    grouping_input = GroupingInput("hackweek_event01.json")
+    benchmark(run_configuration, grouping_input, config)
