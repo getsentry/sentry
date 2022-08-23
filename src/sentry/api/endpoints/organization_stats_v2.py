@@ -1,3 +1,4 @@
+import functools
 from contextlib import contextmanager
 from typing import Any, Dict, List
 
@@ -112,6 +113,11 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
     )
 
 
+class DummySerializer(serializers.Serializer):
+
+    dummy = serializers.CharField(help_text="This is a dummy param to test schemas", required=False)
+
+
 class _StatsGroup(TypedDict):  # this response is pretty dynamic, leaving generic
     by: Dict[str, Any]
     totals: Dict[str, Any]
@@ -123,6 +129,19 @@ class StatsApiResponse(TypedDict):
     end: str
     intervals: List[str]
     groups: List[_StatsGroup]
+
+
+def use_kwargs(params: List[serializers.Serializer]):
+    def inner(f):
+        f.serializer_params = params
+
+        @functools.wraps(f)
+        def view(*args, **kwargs):
+            f(*args, **kwargs)
+
+        return view
+
+    return inner
 
 
 @extend_schema(tags=["Organizations"])
@@ -139,7 +158,7 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
 
     @extend_schema(
         operation_id="Retrieve Event Counts for an Organization (v2)",
-        parameters=[GLOBAL_PARAMS.ORG_SLUG, OrgStatsQueryParamsSerializer],
+        parameters=[GLOBAL_PARAMS.ORG_SLUG],
         request=None,
         responses={
             200: inline_sentry_response_serializer("OutcomesResponse", StatsApiResponse),
@@ -165,6 +184,7 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
             ),
         ],
     )
+    @use_kwargs([OrgStatsQueryParamsSerializer, DummySerializer])
     def get(self, request: Request, organization) -> Response:
         """
         Query event counts for your Organization.

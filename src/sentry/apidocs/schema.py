@@ -1,10 +1,4 @@
 from drf_spectacular.openapi import AutoSchema
-from rest_framework import serializers
-
-
-class DummySerializer(serializers.Serializer):
-
-    dummy = serializers.CharField(help_text="This is a dummy param to test schemas", required=False)
 
 
 class SentryDocSchema(AutoSchema):
@@ -12,4 +6,7 @@ class SentryDocSchema(AutoSchema):
         """
         we need to extract
         """
-        return [DummySerializer]
+        view_func = getattr(self.view, self.method.lower(), None)
+        if view_func is not None:
+            return getattr(view_func, "serializer_params", [])
+        return []
