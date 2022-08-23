@@ -1,4 +1,5 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
+import debounce from 'lodash/debounce';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
@@ -13,30 +14,32 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
     setCurrentTime,
   } = useReplayContext();
 
-  const handleMouseEnter = useCallback(
-    (item: Crumb) => {
-      if (startTimestampMs) {
-        setCurrentHoverTime(relativeTimeInMs(item.timestamp ?? '', startTimestampMs));
-      }
+  const handleMouseEnter = useMemo(
+    () =>
+      debounce((item: Crumb) => {
+        if (startTimestampMs) {
+          setCurrentHoverTime(relativeTimeInMs(item.timestamp ?? '', startTimestampMs));
+        }
 
-      if (item.data && 'nodeId' in item.data) {
-        // XXX: Kind of hacky, but mouseLeave does not fire if you move from a
-        // crumb to a tooltip
-        clearAllHighlights();
-        highlight({nodeId: item.data.nodeId, annotation: item.data.label});
-      }
-    },
+        if (item.data && 'nodeId' in item.data) {
+          // XXX: Kind of hacky, but mouseLeave does not fire if you move from a
+          // crumb to a tooltip
+          clearAllHighlights();
+          highlight({nodeId: item.data.nodeId, annotation: item.data.label});
+        }
+      }, 50),
     [setCurrentHoverTime, startTimestampMs, highlight, clearAllHighlights]
   );
 
-  const handleMouseLeave = useCallback(
-    (item: Crumb) => {
-      setCurrentHoverTime(undefined);
+  const handleMouseLeave = useMemo(
+    () =>
+      debounce((item: Crumb) => {
+        setCurrentHoverTime(undefined);
 
-      if (item.data && 'nodeId' in item.data) {
-        removeHighlight({nodeId: item.data.nodeId});
-      }
-    },
+        if (item.data && 'nodeId' in item.data) {
+          removeHighlight({nodeId: item.data.nodeId});
+        }
+      }, 50),
     [setCurrentHoverTime, removeHighlight]
   );
 
