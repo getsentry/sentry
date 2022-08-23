@@ -14,25 +14,11 @@ import {IconEllipsis} from 'sentry/icons';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {FeatureFlagEvaluation} from 'sentry/types/featureFlags';
 import {defined} from 'sentry/utils';
 
-type RolloutEvaluation = {
-  result: boolean;
-  type: 'rollout';
-  percentage?: number;
-  tags?: Record<string, string>;
-};
-
-type MatchEvaluation = {
-  result: boolean;
-  type: 'match';
-  tags?: Record<string, string>;
-};
-
-export type Evaluation = RolloutEvaluation | MatchEvaluation;
-
 type Props = {
-  evaluations: Evaluation[];
+  evaluations: FeatureFlagEvaluation[];
 };
 
 export function Evaluations({evaluations}: Props) {

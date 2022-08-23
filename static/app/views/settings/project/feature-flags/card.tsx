@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import startCase from 'lodash/startCase';
 
 import Button from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -10,24 +9,33 @@ import Tag from 'sentry/components/tag';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {FeatureFlag} from 'sentry/types/featureFlags';
 
-import {Evaluation, Evaluations} from './evaluations';
+import {Evaluations} from './evaluations';
 
-type Props = {
-  enabled: boolean;
-  evaluations: Evaluation[];
-  name: string;
+type Props = FeatureFlag & {
+  flagKey: string;
+  onDelete: () => void;
+  onEdit: () => void;
   onEnable: () => void;
-  description?: string;
 };
 
-export function Card({name, enabled, evaluations, onEnable, description}: Props) {
+export function Card({
+  flagKey,
+  enabled,
+  evaluations = [],
+  onEnable,
+  onEdit,
+  onDelete,
+  description,
+}: Props) {
   const activeResult = evaluations.some(({result}) => result);
+
   return (
     <Wrapper>
       <Header>
         <div>
-          <Name>{startCase(name)}</Name>
+          <Key>{flagKey}</Key>
           {description && <Description>{description}</Description>}
         </div>
         {enabled && activeResult ? (
@@ -52,7 +60,7 @@ export function Card({name, enabled, evaluations, onEnable, description}: Props)
               {
                 key: 'feature-flag-edit',
                 label: t('Edit'),
-                onAction: () => {},
+                onAction: onEdit,
               },
               {
                 key: 'feature-flag-delete',
@@ -62,7 +70,7 @@ export function Card({name, enabled, evaluations, onEnable, description}: Props)
                   openConfirmModal({
                     message: t('Are you sure you want to delete this feature flag?'),
                     priority: 'danger',
-                    onConfirm: () => {},
+                    onConfirm: onDelete,
                   });
                 },
               },
@@ -87,9 +95,7 @@ export function Card({name, enabled, evaluations, onEnable, description}: Props)
           />
         </Actions>
       </Header>
-      <Content>
-        {!!evaluations.length && <Evaluations evaluations={evaluations} />}
-      </Content>
+      {!!evaluations.length && <Evaluations evaluations={evaluations} />}
     </Wrapper>
   );
 }
@@ -105,15 +111,11 @@ const Header = styled('div')`
   padding: ${space(1.5)} ${space(2)};
   gap: ${space(1)};
   > * {
-    line-height: 24px;
+    line-height: 28px;
   }
 `;
 
-const Content = styled('div')`
-  display: grid;
-`;
-
-const Name = styled('div')`
+const Key = styled('div')`
   font-weight: bold;
   font-size: ${p => p.theme.fontSizeLarge};
 `;
@@ -135,4 +137,5 @@ const Actions = styled('div')`
   grid-template-columns: max-content max-content max-content;
   gap: ${space(1.5)};
   justify-content: flex-end;
+  align-items: center;
 `;

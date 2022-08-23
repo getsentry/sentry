@@ -1,5 +1,7 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
+import isEqual from 'lodash/isEqual';
 
+import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -7,13 +9,18 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {t, tct} from 'sentry/locale';
 import {Project} from 'sentry/types';
+import {FeatureFlags} from 'sentry/types/featureFlags';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePrevious from 'sentry/utils/usePrevious';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
 
+import {FlagModal} from './modals/flagModal';
 import {Card} from './card';
+import {FeatureFlagsPromo} from './featureFlagsPromo';
 
-const initalState = {
+const initalState: FeatureFlags = {
   accessToProfiling: {
     enabled: true,
     description: 'This is a description',
@@ -54,16 +61,57 @@ const initalState = {
   },
 };
 
-type Props = {
+type Props = ModalRenderProps & {
   project: Project;
 };
 
-export default function FeatureFlags({project}: Props) {
-  const [state, setState] = useState<typeof initalState>(initalState);
+export default function ProjectFeatureFlags({project}: Props) {
   const organization = useOrganization();
 
-  const flags = Object.keys(state);
-  const disabled = !organization.access.includes('project:write');
+  const currentFlags = project.featureFlags;
+  const hasAccess = organization.access.includes('project:write');
+  const disabled = !hasAccess;
+  const previousFlags = usePrevious(currentFlags);
+
+  const [flags, setFlags] = useState(currentFlags ?? {});
+  const showPromo = Object.keys(flags).length === 0;
+
+  useEffect(() => {
+    if (!isEqual(currentFlags, previousFlags)) {
+      setFlags(currentFlags ?? {});
+    }
+  }, [currentFlags, previousFlags]);
+
+  function handleAddFlag() {
+    openModal(modalProps => (
+      <FlagModal
+        {...modalProps}
+        organization={organization}
+        project={project}
+        flags={flags}
+      />
+    ));
+  }
+
+  function handleEditFlag(flagKey: string) {
+    openModal(modalProps => (
+      <FlagModal
+        {...modalProps}
+        organization={organization}
+        project={project}
+        flags={flags}
+        flagKey={flagKey}
+      />
+    ));
+  }
+
+  function handleDeleteFlag(flagKey: string) {
+    // todo
+  }
+
+  function handleEnableFlag(flagKey: string) {
+    // todo
+  }
 
   return (
     <SentryDocumentTitle title={t('Feature Flags')}>
@@ -75,16 +123,20 @@ export default function FeatureFlags({project}: Props) {
             </Fragment>
           }
           action={
-            <Button
-              title={disabled ? t('You do not have permission to add flags') : undefined}
-              priority="primary"
-              size="sm"
-              icon={<IconAdd size="xs" isCircled />}
-              onClick={() => {}}
-              disabled={disabled}
-            >
-              {t('Add Flag')}
-            </Button>
+            !showPromo && (
+              <Button
+                title={
+                  disabled ? t('You do not have permission to add flags') : undefined
+                }
+                priority="primary"
+                size="sm"
+                icon={<IconAdd size="xs" isCircled />}
+                onClick={handleAddFlag}
+                disabled={disabled}
+              >
+                {t('Add Flag')}
+              </Button>
+            )
           }
         />
         <TextBlock>
@@ -95,11 +147,21 @@ export default function FeatureFlags({project}: Props) {
             }
           )}
         </TextBlock>
-        {!flags.length ? (
-          <div>oi</div>
+
+        <PermissionAlert access={['project:write']} />
+
+        {showPromo ? (
+          <FeatureFlagsPromo hasAccess={hasAccess} onGetStarted={handleAddFlag} />
         ) : (
-          flags.map(flag => (
-            <Card key={flag} name={flag} {...state[flag]} onEnable={() => {}} />
+          Object.keys(flags).map(flagKey => (
+            <Card
+              key={flagKey}
+              flagKey={flagKey}
+              {...flags[flagKey]}
+              onDelete={() => handleDeleteFlag(flagKey)}
+              onEdit={() => handleEditFlag(flagKey)}
+              onEnable={() => handleEnableFlag(flagKey)}
+            />
           ))
         )}
       </Fragment>

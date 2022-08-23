@@ -239,4 +239,5 @@ export default MenuControl;
 
 const MenuControlWrap = styled('div')`
   list-style-type: none;
+  display: flex;
 `;

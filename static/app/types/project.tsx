@@ -2,6 +2,7 @@ import type {PlatformKey} from 'sentry/data/platformCategories';
 
 import type {TimeseriesValue} from './core';
 import type {SDKUpdatesSuggestion} from './event';
+import type {FeatureFlags} from './featureFlags';
 import type {Plugin} from './integrations';
 import type {Organization, Team} from './organization';
 import type {Deploy, Release} from './release';
@@ -28,6 +29,7 @@ export type Project = {
     symbolicationDegraded: boolean;
   };
 
+  featureFlags: FeatureFlags;
   features: string[];
   firstEvent: 'string' | null;
   firstTransactionEvent: boolean;
