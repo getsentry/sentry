@@ -8,7 +8,7 @@ import pytest
 import pytz
 from django.utils import timezone
 from django.utils.functional import cached_property as fixture
-from django.utils.functional import patcher
+from exam import patcher
 from freezegun import freeze_time
 
 from sentry.incidents.logic import (

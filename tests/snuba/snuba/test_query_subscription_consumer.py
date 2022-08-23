@@ -9,7 +9,6 @@ import pytz
 from confluent_kafka import Producer
 from dateutil.parser import parse as parse_date
 from django.conf import settings
-from django.test.utils import override_settings
 from django.utils.functional import cached_property as fixture
 
 from sentry.snuba.dataset import Dataset
@@ -21,6 +20,7 @@ from sentry.snuba.query_subscription_consumer import (
 )
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.helpers.django import override_settings
 from sentry.utils import json
 
 

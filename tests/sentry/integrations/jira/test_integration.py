@@ -4,7 +4,6 @@ from unittest.mock import patch
 
 import pytest
 import responses
-from django.test.utils import override_settings
 from django.urls import reverse
 from django.utils.functional import cached_property as fixture
 
@@ -23,6 +22,7 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import APITestCase, IntegrationTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.django import override_settings
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign

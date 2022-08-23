@@ -3,7 +3,7 @@ __all__ = ["override_options"]
 from contextlib import contextmanager
 from unittest.mock import patch
 
-from django.test.utils import override_settings
+from sentry.testutils.helpers.django import override_settings
 
 
 @contextmanager

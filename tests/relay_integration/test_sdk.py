@@ -3,12 +3,12 @@ from unittest import mock
 
 import pytest
 import sentry_sdk
-from django.test.utils import override_settings
 from sentry_sdk import Hub, push_scope
 
 from sentry import eventstore
 from sentry.eventstore.models import Event
 from sentry.testutils import assert_mock_called_once_with_partial
+from sentry.testutils.helpers.django import override_settings
 from sentry.utils.pytest.relay import adjust_settings_for_relay_tests
 from sentry.utils.sdk import bind_organization_context, configure_sdk
 

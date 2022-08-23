@@ -1,6 +1,5 @@
 from datetime import timedelta
 
-from django.test.utils import override_settings
 from django.utils import timezone
 
 from sentry.models import ExternalActor, Integration, NotificationSetting, Team, User
@@ -10,6 +9,7 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.testutils.cases import TestMigrations
+from sentry.testutils.helpers.django import override_settings
 from sentry.types.integrations import ExternalProviders
 
 SETTINGS_TO_BACKFILL = [

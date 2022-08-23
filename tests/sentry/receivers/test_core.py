@@ -1,10 +1,10 @@
 from django.apps import apps
 from django.conf import settings
-from django.test.utils import override_settings
 
 from sentry.models import Organization, Project, ProjectKey, Team, User
 from sentry.receivers.core import DEFAULT_SENTRY_PROJECT_ID, create_default_projects
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.django import override_settings
 
 
 class CreateDefaultProjectsTest(TestCase):

@@ -7,7 +7,6 @@ from unittest import mock
 import pytest
 import responses
 from django.core.cache import cache
-from django.test.utils import override_settings
 from django.utils import timezone
 from rest_framework.status import HTTP_404_NOT_FOUND
 
@@ -59,6 +58,7 @@ from sentry.models import (
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.spans.grouping.utils import hash_values
 from sentry.testutils import TestCase, assert_mock_called_once_with_partial
+from sentry.testutils.helpers.django import override_settings
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 from sentry.utils.cache import cache_key_for_event

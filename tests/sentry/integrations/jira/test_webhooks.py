@@ -1,12 +1,12 @@
 from unittest.mock import patch
 
 import responses
-from django.test.utils import override_settings
 
 from fixtures.integrations.mock_service import StubService
 from sentry.integrations.mixins import IssueSyncMixin
 from sentry.models import Integration
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers.django import override_settings
 
 TOKEN = "JWT anexampletoken"
 
