@@ -53,6 +53,7 @@ function Breadcrumbs({}: Props) {
 
   useEffect(() => {
     api.clear();
+    setLoading(true);
 
     async function fetchEvents() {
       const res = await api.requestPromise(`/organizations/${org.slug}/events/`, {
