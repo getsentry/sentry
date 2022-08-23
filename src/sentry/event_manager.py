@@ -518,6 +518,7 @@ class EventManager:
 
         # XXX: DO NOT MUTATE THE EVENT PAYLOAD AFTER THIS POINT
         _materialize_event_metrics(jobs)
+        _insert_error_neo4j(jobs, projects)
 
         for attachment in attachments:
             key = f"bytes.stored.{attachment.type}"
@@ -1881,6 +1882,66 @@ def _calculate_span_grouping(jobs, projects):
             sentry_sdk.capture_exception()
 
 
+def _link_spans(tx, span_id):
+    kwargs = {"span_id": span_id}
+
+    statements = [
+        "MATCH (parent)",
+        "WHERE parent.span_id = $span_id",
+        "MATCH (child)",
+        "WHERE child.parent_span_id = $span_id",
+        "CREATE (parent)-[:PARENT_OF]->(child)",
+    ]
+
+    tx.run(" ".join(statements), **kwargs)
+
+
+def _create_spans(tx, data, spans, projects):
+    create_nodes = []
+
+    base_kwargs = {
+        "event_id": data["event_id"],
+        "project_id": data["project"],
+        "project_slug": projects[data["project"]].slug,
+        "trace_id": data["contexts"]["trace"]["trace_id"],
+    }
+
+    kwargs = dict(base_kwargs)
+
+    for span in spans:
+        is_root = span.get("root")
+        span_id = span["span_id"]
+        keys = [
+            "span_id",
+            "parent_span_id",
+            "timestamp",
+            "start_timestamp",
+            "op",
+            "description",
+            "status",
+        ]
+
+        for k in keys:
+            if k in span:
+                kwargs[f"{k}_{span_id}"] = span[k]
+
+        props = [f"{k}: ${k}" for k in base_kwargs] + [
+            f"{k}: ${k}_{span_id}" for k in keys if k in span
+        ]
+
+        create_nodes.append(
+            "CREATE (span_{}:Span{} {})".format(
+                span_id,
+                ":Transaction" if is_root else "",
+                "{" + ", ".join(props) + "}",
+            ),
+        )
+
+    statements = create_nodes
+
+    tx.run(" ".join(statements), **kwargs)
+
+
 @metrics.wraps("event_manager.save_transaction_events")
 def _insert_transaction_neo4j(jobs, projects):
     for job in jobs:
@@ -1902,73 +1963,44 @@ def _insert_transaction_neo4j(jobs, projects):
 
         spans = [root_span] + data["spans"]
 
-        def create_spans(tx, data, spans):
-            create_nodes = []
-
-            base_kwargs = {
-                "event_id": data["event_id"],
-                "project_id": data["project"],
-                "project_slug": projects[data["project"]].slug,
-                "trace_id": data["contexts"]["trace"]["trace_id"],
-            }
-
-            kwargs = dict(base_kwargs)
-
-            for span in spans:
-                is_root = span.get("root")
-                span_id = span["span_id"]
-                keys = [
-                    "span_id",
-                    "parent_span_id",
-                    "timestamp",
-                    "start_timestamp",
-                    "op",
-                    "description",
-                    "status",
-                ]
-
-                for k in keys:
-                    if k in span:
-                        kwargs[f"{k}_{span_id}"] = span[k]
-
-                props = [f"{k}: ${k}" for k in base_kwargs] + [
-                    f"{k}: ${k}_{span_id}" for k in keys if k in span
-                ]
-
-                create_nodes.append(
-                    "CREATE (span_{}:Span{} {})".format(
-                        span_id,
-                        ":Transaction" if is_root else "",
-                        "{" + ", ".join(props) + "}",
-                    ),
-                )
-
-            statements = create_nodes
-
-            tx.run(" ".join(statements), **kwargs)
-
-        def link_spans(tx, span_id):
-            kwargs = {"span_id": span_id}
-
-            statements = [
-                "MATCH (parent)",
-                "WHERE parent.span_id = $span_id",
-                "MATCH (child)",
-                "WHERE child.parent_span_id = $span_id",
-                "CREATE (parent)-[:PARENT_OF]->(child)",
-            ]
-
-            tx.run(" ".join(statements), **kwargs)
-
         with neo4j_driver.session() as session:
-            session.write_transaction(create_spans, data=job["data"], spans=spans)
+            session.write_transaction(
+                _create_spans, data=job["data"], spans=spans, projects=projects
+            )
 
         with neo4j_driver.session() as session:
             if "parent_span_id" in root_span:
-                session.write_transaction(link_spans, span_id=root_span["parent_span_id"])
+                session.write_transaction(_link_spans, span_id=root_span["parent_span_id"])
 
             for span in spans:
-                session.write_transaction(link_spans, span_id=span["span_id"])
+                session.write_transaction(_link_spans, span_id=span["span_id"])
+
+
+def _insert_error_neo4j(jobs, projects):
+    for job in jobs:
+        data = job["data"]
+
+        root_span = {
+            "root": True,
+            "timestamp": data["timestamp"],
+            "span_id": data["contexts"]["trace"]["span_id"],
+            "description": data["transaction"],
+        }
+        if "parent_span_id" in data["contexts"]["trace"]:
+            root_span["parent_span_id"] = data["contexts"]["trace"]["parent_span_id"]
+        if "op" in data["contexts"]["trace"]:
+            root_span["op"] = data["contexts"]["trace"]["op"]
+
+        spans = [root_span]
+
+        with neo4j_driver.session() as session:
+            session.write_transaction(
+                _create_spans, data=job["data"], spans=spans, projects=projects
+            )
+
+        with neo4j_driver.session() as session:
+            if "parent_span_id" in root_span:
+                session.write_transaction(_link_spans, span_id=root_span["parent_span_id"])
 
 
 @metrics.wraps("event_manager.save_transaction_events")
