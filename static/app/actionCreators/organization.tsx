@@ -7,10 +7,10 @@ import * as Sentry from '@sentry/react';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {setActiveOrganization} from 'sentry/actionCreators/organizations';
 import OrganizationActions from 'sentry/actions/organizationActions';
-import PageFiltersActions from 'sentry/actions/pageFiltersActions';
 import ProjectActions from 'sentry/actions/projectActions';
 import TeamActions from 'sentry/actions/teamActions';
 import {Client, ResponseMeta} from 'sentry/api';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {Organization, Project, Team} from 'sentry/types';
 import {getPreloadedDataPromise} from 'sentry/utils/getPreloadedData';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
@@ -120,7 +120,7 @@ export function fetchOrganizationDetails(
     OrganizationActions.reset();
     ProjectActions.reset();
     TeamActions.reset();
-    PageFiltersActions.reset();
+    PageFiltersStore.onReset();
   }
 
   const loadOrganization = async () => {
