@@ -553,11 +553,18 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 "start_timestamp": "start_timestamp",
                 "transaction.status": "status",
             }
-            # "generation"
 
             for r in result:
                 path = r["path"]
-                edges.append((path.start_node.id, path.end_node.id))
+                edge = []
+                for node in reversed(path.nodes):
+                    if "Transaction" in node.labels:
+                        edge.append(node.id)
+                        if len(edge) == 2:
+                            break
+                # we should have found 2 transactions starting from the end of the path
+                assert len(edge) == 2, path.nodes
+                edges.append((edge[1], edge[0]))
                 for node in [path.start_node, path.end_node]:
                     if node.id not in nodes:
                         nodes[node.id] = {name: node[key] for name, key in props.items()}
@@ -582,6 +589,9 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             ns = [(root, 0) for root in roots]
             for (n, g) in ns:
                 n["generation"] = g
+                n["children"] = sorted(
+                    n["children"], key=lambda node: (node["start_timestamp"], node["timestamp"])
+                )
                 ns.extend([(c, g + 1) for c in n["children"]])
 
         return roots
