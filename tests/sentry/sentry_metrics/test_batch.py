@@ -648,3 +648,58 @@ def test_one_org_limited(caplog, settings):
             [("mapping_sources", b"ch"), ("metric_type", "d")],
         ),
     ]
+
+
+def benchmark_available():
+    try:
+        import pytest_benchmark  # NOQA
+    except ModuleNotFoundError:
+        return False
+    else:
+        return True
+
+
+@pytest.mark.skipif(not benchmark_available(), reason="requires pytest-benchmark")
+def test_benchmark(settings, benchmark):
+    settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
+    outer_message = _construct_outer_message(
+        [
+            (counter_payload, []),
+            (distribution_payload, []),
+            (set_payload, []),
+        ]
+    )
+
+    def run():
+        batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message)
+        batch.extract_strings()
+        batch.reconstruct_messages(
+            {
+                1: {
+                    "c:sessions/session@none": 1,
+                    "d:sessions/duration@second": 2,
+                    "environment": 3,
+                    "errored": 4,
+                    "healthy": 5,
+                    "init": 6,
+                    "production": 7,
+                    "s:sessions/error@none": 8,
+                    "session.status": 9,
+                }
+            },
+            {
+                1: {
+                    "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
+                    "d:sessions/duration@second": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
+                    "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
+                    "errored": Metadata(id=4, fetch_type=FetchType.DB_READ),
+                    "healthy": Metadata(id=5, fetch_type=FetchType.HARDCODED),
+                    "init": Metadata(id=6, fetch_type=FetchType.HARDCODED),
+                    "production": Metadata(id=7, fetch_type=FetchType.CACHE_HIT),
+                    "s:sessions/error@none": Metadata(id=8, fetch_type=FetchType.CACHE_HIT),
+                    "session.status": Metadata(id=9, fetch_type=FetchType.CACHE_HIT),
+                }
+            },
+        )
+
+    benchmark(run)
