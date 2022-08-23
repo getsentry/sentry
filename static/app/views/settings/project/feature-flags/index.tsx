@@ -15,7 +15,6 @@ import {IconAdd} from 'sentry/icons/iconAdd';
 import {t, tct} from 'sentry/locale';
 import ProjectStore from 'sentry/stores/projectsStore';
 import {Project} from 'sentry/types';
-import {FeatureFlags} from 'sentry/types/featureFlags';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -25,49 +24,9 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
 
 import {FlagModal} from './modals/flagModal';
+import {SegmentModal} from './modals/segmentModal';
 import {Card} from './card';
 import {FeatureFlagsPromo} from './featureFlagsPromo';
-
-const initalState: FeatureFlags = {
-  accessToProfiling: {
-    enabled: true,
-    description: 'This is a description',
-    evaluations: [
-      {
-        type: 'rollout',
-        percentage: 0.5,
-        result: true,
-        tags: {
-          userSegment: 'slow',
-        },
-      },
-      {
-        type: 'match',
-        result: true,
-        tags: {
-          isSentryDev: 'true',
-        },
-      },
-    ],
-  },
-  profilingEnabled: {
-    enabled: false,
-    evaluations: [
-      {
-        type: 'rollout',
-        percentage: 0.05,
-        result: true,
-      },
-      {
-        type: 'match',
-        result: true,
-        tags: {
-          isSentryDev: 'true',
-        },
-      },
-    ],
-  },
-};
 
 type Props = ModalRenderProps & {
   project: Project;
@@ -159,6 +118,56 @@ export default function ProjectFeatureFlags({project}: Props) {
     }
   }
 
+  function handleAddSegment(flagKey: string) {
+    openModal(modalProps => (
+      <SegmentModal
+        {...modalProps}
+        organization={organization}
+        project={project}
+        flags={flags}
+        flagKey={flagKey}
+      />
+    ));
+  }
+
+  function handleEditSegment(flagKey: string, index: number) {
+    openModal(modalProps => (
+      <SegmentModal
+        {...modalProps}
+        organization={organization}
+        project={project}
+        flags={flags}
+        flagKey={flagKey}
+        segmentIndex={index}
+      />
+    ));
+  }
+
+  async function handleDeleteSegment(flagKey: string, index: number) {
+    const newEvaluations = [...flags[flagKey].evaluations];
+    newEvaluations.splice(index, 1);
+
+    const newFeatureFlags = {...flags};
+    newFeatureFlags[flagKey].evaluations = newEvaluations;
+
+    try {
+      const result = await api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/`,
+        {
+          method: 'PUT',
+          data: {featureFlags: newFeatureFlags},
+        }
+      );
+
+      ProjectStore.onUpdateSuccess(result);
+      addSuccessMessage(t('Successfully deleted segment'));
+    } catch (error) {
+      const message = t('Unable to delete segment');
+      handleXhrErrorResponse(message)(error);
+      addErrorMessage(message);
+    }
+  }
+
   return (
     <SentryDocumentTitle title={t('Feature Flags')}>
       <Fragment>
@@ -207,6 +216,9 @@ export default function ProjectFeatureFlags({project}: Props) {
               onDelete={() => handleDeleteFlag(flagKey)}
               onEdit={() => handleEditFlag(flagKey)}
               onActivateToggle={() => handleActivateToggle(flagKey)}
+              onAddSegment={() => handleAddSegment(flagKey)}
+              onDeleteSegment={index => handleDeleteSegment(flagKey, index)}
+              onEditSegment={index => handleEditSegment(flagKey, index)}
             />
           ))
         )}

@@ -167,14 +167,14 @@ export function FlagModal({
   );
 }
 
-export const KeyField = styled(TextField)`
+const KeyField = styled(TextField)`
   width: 100%;
   input {
     padding-left: ${space(1)};
   }
 `;
 
-export const DescriptionField = styled(TextareaField)`
+const DescriptionField = styled(TextareaField)`
   width: 100%;
 `;
 

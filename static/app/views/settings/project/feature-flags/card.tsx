@@ -16,8 +16,11 @@ import {Evaluations} from './evaluations';
 type Props = FeatureFlag & {
   flagKey: string;
   onActivateToggle: () => void;
+  onAddSegment: () => void;
   onDelete: () => void;
+  onDeleteSegment: (index: number) => void;
   onEdit: () => void;
+  onEditSegment: (index: number) => void;
 };
 
 export function Card({
@@ -27,6 +30,9 @@ export function Card({
   onActivateToggle,
   onEdit,
   onDelete,
+  onAddSegment,
+  onEditSegment,
+  onDeleteSegment,
   description,
 }: Props) {
   const hasEvaluations = evaluations.length > 0;
@@ -59,7 +65,7 @@ export function Card({
             name="active"
             value={enabled}
           />
-          <Button size="xs" onClick={() => {}}>
+          <Button size="xs" onClick={onAddSegment}>
             {t('Add Segment')}
           </Button>
           <DropdownMenuControl
@@ -102,7 +108,13 @@ export function Card({
           />
         </Actions>
       </Header>
-      {!!evaluations.length && <Evaluations evaluations={evaluations} />}
+      {!!evaluations.length && (
+        <Evaluations
+          evaluations={evaluations}
+          onDeleteSegment={onDeleteSegment}
+          onEditSegment={onEditSegment}
+        />
+      )}
     </Wrapper>
   );
 }

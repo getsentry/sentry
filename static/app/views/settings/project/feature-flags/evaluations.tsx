@@ -4,8 +4,6 @@ import styled from '@emotion/styled';
 import Button from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
-import Slider from 'sentry/components/forms/controls/rangeSlider/slider';
 import NotAvailable from 'sentry/components/notAvailable';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import Pill from 'sentry/components/pill';
@@ -17,11 +15,15 @@ import space from 'sentry/styles/space';
 import {FeatureFlagEvaluation} from 'sentry/types/featureFlags';
 import {defined} from 'sentry/utils';
 
+import {rateToPercentage} from '../server-side-sampling/utils';
+
 type Props = {
   evaluations: FeatureFlagEvaluation[];
+  onDeleteSegment: (index: number) => void;
+  onEditSegment: (index: number) => void;
 };
 
-export function Evaluations({evaluations}: Props) {
+export function Evaluations({evaluations, onDeleteSegment, onEditSegment}: Props) {
   return (
     <Wrapper>
       <EvaluationsPanelHeader>
@@ -57,16 +59,7 @@ export function Evaluations({evaluations}: Props) {
             </TagsColumn>
             <RolloutColumn>
               {evaluation.type === 'rollout' && defined(evaluation.percentage) ? (
-                <SliderWrapper>
-                  {'0%'}
-                  <StyledRangeSlider
-                    name="rollout"
-                    value={evaluation.percentage}
-                    onChange={() => {}}
-                    showLabel={false}
-                  />
-                  {'100%'}
-                </SliderWrapper>
+                `${rateToPercentage(evaluation.percentage)}%`
               ) : (
                 <NotAvailable />
               )}
@@ -77,7 +70,7 @@ export function Evaluations({evaluations}: Props) {
                   {
                     key: 'feature-flag-edit',
                     label: t('Edit'),
-                    onAction: () => {},
+                    onAction: () => onEditSegment(index),
                   },
                   {
                     key: 'feature-flag-delete',
@@ -85,9 +78,9 @@ export function Evaluations({evaluations}: Props) {
                     priority: 'danger',
                     onAction: () => {
                       openConfirmModal({
-                        message: t('Are you sure you want to delete this feature flag?'),
+                        message: t('Are you sure you want to delete this segment?'),
                         priority: 'danger',
-                        onConfirm: () => {},
+                        onConfirm: () => onDeleteSegment(index),
                       });
                     },
                   },
@@ -128,7 +121,7 @@ const EvaluationsLayout = styled('div')<{isContent?: boolean}>`
   grid-template-columns: 90px 1fr 74px;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 48px 90px 1fr 300px 74px;
+    grid-template-columns: 48px 90px 1fr 0.5fr 74px;
   }
 
   ${p =>
@@ -191,55 +184,4 @@ const Tags = styled(Pills)`
 
 const Tag = styled(Pill)`
   margin-bottom: 0;
-`;
-
-const SliderWrapper = styled('div')`
-  width: 100%;
-  display: grid;
-  gap: ${space(1.5)};
-  grid-template-columns: max-content max-content;
-  justify-content: space-between;
-  align-items: flex-start;
-  position: relative;
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.subText};
-  padding-bottom: ${space(2)};
-
-  @media (min-width: 700px) {
-    grid-template-columns: max-content 1fr max-content;
-    align-items: center;
-    justify-content: flex-start;
-    padding-bottom: 0;
-  }
-`;
-
-const StyledRangeSlider = styled(RangeSlider)`
-  ${Slider} {
-    background: transparent;
-    margin-top: 0;
-    margin-bottom: 0;
-
-    ::-ms-thumb {
-      box-shadow: 0 0 0 3px ${p => p.theme.backgroundSecondary};
-    }
-
-    ::-moz-range-thumb {
-      box-shadow: 0 0 0 3px ${p => p.theme.backgroundSecondary};
-    }
-
-    ::-webkit-slider-thumb {
-      box-shadow: 0 0 0 3px ${p => p.theme.backgroundSecondary};
-    }
-  }
-
-  position: absolute;
-  bottom: 0;
-  left: ${space(1.5)};
-  right: ${space(1.5)};
-
-  @media (min-width: 700px) {
-    position: static;
-    left: auto;
-    right: auto;
-  }
 `;
