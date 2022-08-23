@@ -1,10 +1,10 @@
 import pytest
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
-from django.test import override_settings
 from django_zero_downtime_migrations.backends.postgres.schema import UnsafeOperationException
 
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.django import override_settings
 
 
 class BaseSafeMigrationTest(TestCase):

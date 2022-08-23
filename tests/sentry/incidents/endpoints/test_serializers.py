@@ -2,7 +2,6 @@ from unittest.mock import patch
 
 import pytest
 import responses
-from django.test import override_settings
 from exam import fixture
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
@@ -28,6 +27,7 @@ from sentry.models import ACTOR_TYPES, Environment, Integration
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.django import override_settings
 from sentry.utils import json
 
 pytestmark = pytest.mark.sentry_metrics

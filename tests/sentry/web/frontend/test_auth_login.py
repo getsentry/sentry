@@ -3,7 +3,6 @@ from urllib.parse import urlencode
 
 import pytest
 from django.conf import settings
-from django.test import override_settings
 from django.urls import reverse
 from django.utils.http import urlquote
 from exam import fixture
@@ -12,6 +11,7 @@ from sentry import newsletter, options
 from sentry.auth.authenticators import RecoveryCodeInterface, TotpInterface
 from sentry.models import OrganizationMember, User
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.django import override_settings
 from sentry.utils import json
 from sentry.utils.client_state import get_client_state_key, get_redis_client
 

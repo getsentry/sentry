@@ -1,5 +1,4 @@
 from django.conf.urls import url
-from django.test import override_settings
 from freezegun import freeze_time
 from rest_framework import status
 from rest_framework.permissions import AllowAny
@@ -7,6 +6,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers.django import override_settings
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 

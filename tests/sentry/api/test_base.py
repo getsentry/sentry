@@ -1,7 +1,6 @@
 import base64
 
 from django.http import HttpRequest
-from django.test import override_settings
 from pytest import raises
 from rest_framework.response import Response
 
@@ -10,6 +9,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models import ApiKey
 from sentry.servermode import ServerComponentMode
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers.django import override_settings
 
 
 class DummyEndpoint(Endpoint):

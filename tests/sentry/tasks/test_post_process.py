@@ -2,7 +2,6 @@ from datetime import timedelta
 from unittest import mock
 from unittest.mock import Mock, patch
 
-from django.test import override_settings
 from django.utils import timezone
 
 from sentry import buffer
@@ -28,6 +27,7 @@ from sentry.tasks.post_process import post_process_group
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.django import override_settings
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.types.activity import ActivityType
 from sentry.utils.cache import cache

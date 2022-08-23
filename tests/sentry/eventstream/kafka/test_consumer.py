@@ -8,10 +8,10 @@ from unittest.mock import patch
 
 import pytest
 from confluent_kafka.admin import AdminClient
-from django.test import override_settings
 
 from sentry.eventstream.kafka import KafkaEventStream
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.django import override_settings
 from sentry.utils import json, kafka_config
 from sentry.utils.batching_kafka_consumer import wait_for_topics
 

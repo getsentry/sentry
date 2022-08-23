@@ -5,12 +5,12 @@ from typing import Any, Mapping, Sequence
 from unittest.mock import patch
 
 import responses
-from django.test import override_settings
 from rest_framework import status
 
 from sentry.models import Environment, Rule, RuleActivity, RuleActivityType, RuleStatus
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import install_slack
+from sentry.testutils.helpers.django import override_settings
 from sentry.utils import json
 
 

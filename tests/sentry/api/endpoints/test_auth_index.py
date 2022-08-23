@@ -1,12 +1,11 @@
 from base64 import b64encode
 from unittest import mock
 
-from django.test import override_settings
-
 from sentry.models import Authenticator, AuthProvider
 from sentry.models.authidentity import AuthIdentity
 from sentry.testutils import APITestCase
 from sentry.testutils.cases import AuthProviderTestCase
+from sentry.testutils.helpers.django import override_settings
 
 
 class AuthDetailsEndpointTest(APITestCase):

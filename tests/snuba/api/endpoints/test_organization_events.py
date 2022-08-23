@@ -4,7 +4,6 @@ from datetime import timedelta
 from unittest import mock
 
 import pytest
-from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 from freezegun import freeze_time
@@ -22,6 +21,7 @@ from sentry.search.events import constants
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.django import override_settings
 from sentry.testutils.skips import requires_not_arm64
 from sentry.utils import json
 from sentry.utils.samples import load_data

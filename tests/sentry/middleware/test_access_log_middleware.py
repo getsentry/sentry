@@ -2,7 +2,6 @@ import logging
 
 import pytest
 from django.conf.urls import url
-from django.test import override_settings
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
@@ -11,6 +10,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models import ApiToken
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers.django import override_settings
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 

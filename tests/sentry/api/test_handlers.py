@@ -1,11 +1,11 @@
 import math
 
 from django.conf.urls import url
-from django.test import override_settings
 from rest_framework.permissions import AllowAny
 
 from sentry.api.base import Endpoint
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers.django import override_settings
 from sentry.utils.snuba import RateLimitExceeded
 
 

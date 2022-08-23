@@ -1,7 +1,7 @@
-from django.test import override_settings
 from django.test.client import RequestFactory
 
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.django import override_settings
 from sentry.utils import linksign
 
 
