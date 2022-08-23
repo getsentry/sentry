@@ -167,10 +167,10 @@ export class VoiceAssistantButton extends React.Component<{}, VoiceAssistantStat
     };
 
     if (!this.state.isListening) {
-      console.log('Starting speech recognition...');
+      console.log('>>> Starting speech recognition...');
       startVoiceRecognition(eventuallyDisableCallback);
     } else {
-      console.log('Terminating speech recognition...');
+      console.log('>>> Terminating speech recognition...');
       stopVoiceRecognition();
     }
 

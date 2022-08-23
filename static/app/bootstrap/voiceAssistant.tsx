@@ -18,22 +18,24 @@ public <phrase> = <navigationCommand>;
 // e.g. Select issues, resolve issues, etc.
 `;
 
-export function initializeVoiceAssistant() {
-  console.log('Initializing Voice Assistant...');
-}
-
 let recognition: SpeechRecognition;
 
-export function startVoiceRecognition(finalizeCallback: CallableFunction) {
+export function initializeVoiceAssistant() {
   if (!SpeechRecognition) {
     console.log('Speech recognition not supported');
     return;
   }
-
+  console.log('Initializing Voice Assistant...');
   recognition = new SpeechRecognition();
-
   if (!recognition) {
-    console.log('Speech recognition API cannot be initialized');
+    console.log('Speech recognition API could not be initialized');
+    return;
+  }
+}
+
+export function startVoiceRecognition(finalizeCallback: CallableFunction) {
+  if (!recognition) {
+    console.log('Speech recognition API is not initialized!');
     return;
   }
 
@@ -42,9 +44,11 @@ export function startVoiceRecognition(finalizeCallback: CallableFunction) {
   recognition.grammars = speechRecognitionList;
   recognition.lang = 'en-US';
   recognition.interimResults = false;
+  recognition.continuous = false;
   recognition.maxAlternatives = 10;
 
   recognition.start();
+  let speechResult = '';
 
   recognition.onresult = function (event: SpeechRecognitionEvent) {
     // The SpeechRecognitionEvent results property returns a SpeechRecognitionResultList object
@@ -55,18 +59,22 @@ export function startVoiceRecognition(finalizeCallback: CallableFunction) {
     // These also have getters so they can be accessed like arrays.
     // The second [0] returns the SpeechRecognitionAlternative at position 0.
     // We then return the transcript property of the SpeechRecognitionAlternative object
-    const speechResult = event.results[0][0].transcript.toLowerCase();
+    speechResult = event.results[0][0].transcript.toLowerCase();
     console.log(`Phrase recognized: "${speechResult}"`);
 
-    console.log(serializeSpeechRecognitionResultList(event.results));
+    console.log(
+      JSON.stringify(speechRecognitionResultListToJSON(event.results), null, 2)
+    );
   };
 
   recognition.onspeechend = function () {
+    console.log('SpeechRecognition.onspeechend');
     recognition.stop();
     finalizeCallback();
   };
 
   recognition.onerror = function (event) {
+    console.log('SpeechRecognition.onerror');
     console.log('Error occurred in recognition: ' + event.error);
     finalizeCallback();
   };
@@ -84,6 +92,9 @@ export function startVoiceRecognition(finalizeCallback: CallableFunction) {
   recognition.onend = function (_) {
     // Fired when the speech recognition service has disconnected.
     console.log('SpeechRecognition.onend');
+    if (!speechResult) {
+      console.log('No result received!');
+    }
   };
 
   recognition.onnomatch = function (_) {
@@ -119,26 +130,24 @@ export function stopVoiceRecognition() {
 
 // Helpers
 
-function serializeSpeechRecognitionAlternative(obj: SpeechRecognitionAlternative) {
-  return `SpeechRecognitionAlternative<transcript: "${obj.transcript}", confidence: ${obj.confidence}>`;
+function speechRecognitionAlternativeToJSON(obj: SpeechRecognitionAlternative): Object {
+  return {transcript: obj.transcript, confidence: obj.confidence};
 }
 
-function serializeSpeechRecognitionResult(obj: SpeechRecognitionResult) {
-  const len = obj.length;
-  let res = `SpeechRecognitionResult<length: ${len}, isFinal: ${obj.isFinal}>`;
-  for (let index = 0; index < len; index++) {
+function speechRecognitionResultToJSON(obj: SpeechRecognitionResult): Object {
+  const items: Object[] = [];
+  for (let index = 0; index < obj.length; index++) {
     const element = obj[index];
-    res += `\n    ${serializeSpeechRecognitionAlternative(element)}`;
+    items.push(speechRecognitionAlternativeToJSON(element));
   }
-  return res;
+  return {length: obj.length, items, isFinal: obj.isFinal};
 }
 
-function serializeSpeechRecognitionResultList(obj: SpeechRecognitionResultList) {
-  const len = obj.length;
-  let res = `SpeechRecognitionResultList<length: ${len}>`;
-  for (let index = 0; index < len; index++) {
+function speechRecognitionResultListToJSON(obj: SpeechRecognitionResultList): Object {
+  const items: Object[] = [];
+  for (let index = 0; index < obj.length; index++) {
     const element = obj[index];
-    res += `\n  ${serializeSpeechRecognitionResult(element)}`;
+    items.push(speechRecognitionResultToJSON(element));
   }
-  return res;
+  return {length: obj.length, items};
 }
