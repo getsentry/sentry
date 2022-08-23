@@ -13,6 +13,14 @@ import {Organization, Project} from 'sentry/types';
 import {FeatureFlags} from 'sentry/types/featureFlags';
 import useApi from 'sentry/utils/useApi';
 
+import {StyledSelectField} from './autoCompleteField';
+
+const resultTypes = [
+  ['string', 'String'],
+  ['boolean', 'Boolean'],
+  ['number', 'Number'],
+];
+
 type Props = ModalRenderProps & {
   flags: FeatureFlags;
   organization: Organization;
@@ -36,6 +44,7 @@ export function FlagModal({
   const [description, setDescription] = useState(
     flagKey ? flags[flagKey].description : ''
   );
+  const [resultType, setResultType] = useState<string>('string');
   const [error, setError] = useState<string | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -50,7 +59,12 @@ export function FlagModal({
 
     let newFeatureFlags = {
       ...flags,
-      [key]: {description, enabled: false, evaluations: []},
+      [key]: {
+        description,
+        enabled: false,
+        resultType,
+        evaluations: [],
+      },
     };
 
     if (flagKey) {
@@ -143,6 +157,16 @@ export function FlagModal({
           autosize
           hideControlState
           stacked
+        />
+        <StyledSelectField
+          name="result-type"
+          label={t('Result Type')}
+          value={resultType}
+          choices={resultTypes}
+          onChange={setResultType}
+          inline={false}
+          hideControlState
+          required
         />
       </Body>
       <Footer>
