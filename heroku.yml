@@ -1,0 +1,5 @@
+build:
+  docker:
+    web: docker/Dockerfile
+run:
+  web: sentry run web
