@@ -201,7 +201,7 @@ function Sidebar({location, organization}: Props) {
   const breadcrumbs = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
-      icon={<IconSupport size="md" />}
+      icon={<IconSpan size="md" />}
       label={t('Breadcrumbs')}
       to={`/organizations/${organization.slug}/breadcrumbs/`}
       id="user-feedback"
