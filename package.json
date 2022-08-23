@@ -10,7 +10,7 @@
     "lerna": "^5.4.3"
   },
   "scripts": {
-    "start": "lerna run --parallel start",
+    "start": "lerna run --stream --parallel start",
     "nx-graph": "nx graph"
   },
   "browserslist": {
