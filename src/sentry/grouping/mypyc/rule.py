@@ -1,4 +1,4 @@
-from typing import List, Sequence, Tuple, Union
+from typing import List, Sequence, Tuple, Union, cast
 
 from sentry.grouping.mypyc.matchers import (
     ExceptionData,
@@ -91,8 +91,9 @@ class Rule:
 
     @classmethod
     def _from_config_structure(cls, tuple: RuleConfigStructure, version: int) -> "Rule":
-        matchers, actions = tuple
+        matchers = cast(List[str], tuple[0])
+        actions = cast(List[ActionConfigStructure], tuple[1])
         return Rule(
-            [Match._from_config_structure(x, version) for x in matchers],  # type: ignore  # TODO
-            [Action._from_config_structure(x, version) for x in actions],  # type: ignore  # TODO
+            [Match._from_config_structure(x, version) for x in matchers],
+            [Action._from_config_structure(x, version) for x in actions],
         )
