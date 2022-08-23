@@ -18,7 +18,7 @@ from google.protobuf.field_mask_pb2 import FieldMask
 from sentry.utils import json
 
 WRAPPER_JS = """
-const userFunc = require('./user.js');
+const userFunc = require('./function.js');
 Object.assign(process.env, require('./env.json'));
 """
 
@@ -43,9 +43,9 @@ def project_location_function_name(
     if include_proj:
         return_value += f"projects/{settings.SENTRY_FUNCTIONS_PROJECT_NAME}/"
     if include_loc:
-        return_value += f"locations/{settings.SENTRY_FUNCTIONS_REGION}/"
+        return_value += f"locations/{settings.SENTRY_FUNCTIONS_REGION}"
     if include_func:
-        return_value += f"functions/fn-{funcId}"
+        return_value += f"/functions/fn-{funcId}"
     return return_value
 
 
@@ -60,7 +60,7 @@ def upload_function_files(client, code, env_variables):
     f = BytesIO()
     with ZipFile(f, "w") as codezip:
         codezip.writestr("function.js", code)
-        codezip.writestr("index.js", WRAPPER_JS)
+        # codezip.writestr("index.js", WRAPPER_JS)
         codezip.writestr("package.json", json.dumps(PACKAGE_JSON))
         codezip.writestr("env.json", json.dumps(env_variables))
     f.seek(0)
@@ -70,7 +70,7 @@ def upload_function_files(client, code, env_variables):
 
     upload_url = client.generate_upload_url(
         request=GenerateUploadUrlRequest(
-            parent=project_location_function_name(include_proj=True, include_loc=True),
+            parent=project_location_function_name(include_proj=True, include_loc=True)
         )
     ).upload_url
     requests.put(
@@ -124,7 +124,7 @@ def delete_function(funcId):
         request=DeleteFunctionRequest(
             name=project_location_function_name(
                 include_proj=True, include_loc=True, include_func=True, funcId=funcId
-            ),
+            )
         ),
     )
 
