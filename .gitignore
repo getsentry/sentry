@@ -58,4 +58,4 @@ import-graph.txt
 import-graph.dot
 bin/rrweb-output
 
-/static/app/icons/clippy/api_key.ts
+/static/app/icons/clippy/keys.ts

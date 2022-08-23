@@ -2,16 +2,20 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import image from 'sentry-images/clippy.gif';
+import staticImage from 'sentry-images/static-clippy.gif';
 
 import {
   getPreamble,
   getPythonFrame,
 } from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 
-import API_KEY from './api_key';
+import {openai} from '../../main';
+
+import {STOP_SEQ, TRAINING_PROMPT} from './trainingPrompt';
 
 const Clippy = ({event}: any) => {
   const [content, setContent] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const exceptions =
     event?.entries?.find(x => x.type === 'exception')?.data?.values || [];
@@ -19,7 +23,7 @@ const Clippy = ({event}: any) => {
 
   function getRawStacktrace() {
     const traces = exceptions.map(exc => rawStacktraceContent(exc.stacktrace, exc));
-    return traces.join('\n');
+    return traces[0];
   }
 
   function rawStacktraceContent(data, exception) {
@@ -37,15 +41,55 @@ const Clippy = ({event}: any) => {
   }
 
   async function handleClick() {
-    // get stack trace
+    try {
+      setLoading(true);
+      setContent('');
+      const {data} = await openai.createCompletion({
+        model: 'text-davinci-002',
+        prompt: `${TRAINING_PROMPT}\n${stacktrace}${STOP_SEQ}`,
+        temperature: 0,
+        max_tokens: 500,
+        top_p: 1,
+        frequency_penalty: 0,
+        presence_penalty: 0,
+        stop: [`\"\"\"`, 'END'],
+      });
+      const _content = data.choices ? data?.choices[0]?.text : '';
 
-    const result = await fetch('');
+      // Summary:
+      // Resultion:
+      if (_content) {
+        setContent(_content);
+      }
+    } catch (e) {
+      setContent("Clippy couldn't find anything 💩");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
     <ClippyWrapper>
-      <img onClick={handleClick} height={200} alt="clippy assistant" src={image} />
-      {content && <Wrapper>{content}</Wrapper>}
+      {loading && (
+        <img onClick={handleClick} height={200} alt="clippy assistant" src={image} />
+      )}
+      {!loading && (
+        <img
+          onClick={handleClick}
+          height={200}
+          alt="clippy assistant"
+          src={staticImage}
+        />
+      )}
+      {/* {content && !loading && ( */}
+        <Wrapper>
+          <p>{content}</p>
+          <ButtonWrapper>
+            <Button>Yes</Button>
+            <Button>No</Button>
+          </ButtonWrapper>
+        </Wrapper>
+      {/* )} */}
     </ClippyWrapper>
   );
 };
@@ -59,15 +103,44 @@ const ClippyWrapper = styled('div')`
   bottom: 0;
   z-index: 1000;
   cursor: pointer;
+  font-family: monospace;
 `;
 
 const Wrapper = styled('div')`
-  position: relative;
   left: 50%;
-  width: 200px;
-  height: 200px;
+  width: 400px;
+  max-height: 500px;
+  height: fit-content;
   background-color: #fbf1c7;
   border: 1px solid black;
   border-radius: 4px;
   padding: 5px 8px;
 `;
+
+const Button = styled('button')`
+  background-color: transparent;
+  border: 1px solid #bfbfbf;
+  border-radius: 4px;
+  width: 60px;
+  :hover {
+    text-decoration: underline;
+  }
+`;
+
+const ButtonWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
+`;
+
+// const LoadingWrapper = styled('div')`
+//   left: 50%;
+//   width: 400px;
+//   height: 200px;
+//   background-color: #fbf1c7;
+//   border: 1px solid black;
+//   border-radius: 4px;
+//   padding: 5px 8px;
+//   display: flex;
+//   align-items: center;
+//   justify-content: center;
+// `;

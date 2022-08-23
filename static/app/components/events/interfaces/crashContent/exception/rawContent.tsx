@@ -167,8 +167,8 @@ class RawContent extends Component<Props, State> {
       <Fragment>
         {values.map((exc, excIdx) => {
           const {downloadButton, content} = this.getContent(isNative, exc);
-          console.log('content', content)
-          console.log('exc', exc)
+          console.log('content', content);
+          console.log('exc', exc);
           if (!downloadButton && !content) {
             return null;
           }

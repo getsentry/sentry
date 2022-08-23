@@ -5,6 +5,7 @@ type Props = {
   children?: React.ReactNode;
   className?: string;
   dark?: boolean;
+  hasSpecialStyle?: boolean;
   hideMessage?: boolean;
   hideSpinner?: boolean;
   mini?: boolean;
@@ -26,6 +27,7 @@ function LoadingIndicator(props: Props) {
     relative,
     size,
     hideSpinner,
+    hasSpecialStyle,
   } = props;
   const cx = classNames(className, {
     overlay,
@@ -45,6 +47,10 @@ function LoadingIndicator(props: Props) {
       width: size,
       height: size,
     };
+  }
+
+  if (hasSpecialStyle) {
+    loadingStyle = {...loadingStyle, borderLeftColor: 'black'};
   }
 
   return (
