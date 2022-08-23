@@ -1,13 +1,13 @@
 import logging
 import random
 from collections import defaultdict
-from typing import List, Mapping, MutableMapping, NamedTuple, Optional, Sequence, Set
+from typing import List, Mapping, MutableMapping, Optional, Sequence, Set
 
-import rapidjson
+import rapidjson  # type: ignore
 import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import Message
-from django.conf import settings
+from django.conf import settings  # type: ignore
 
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.consumers.indexer.common import MessageBatch
@@ -23,9 +23,17 @@ MAX_TAG_VALUE_LENGTH = 200
 ACCEPTED_METRIC_TYPES = {"s", "c", "d"}  # set, counter, distribution
 
 
-class PartitionIdxOffset(NamedTuple):
-    partition_idx: int
-    offset: int
+class PartitionIdxOffset:
+    def __init__(self, partition_idx: int, offset: int) -> None:
+        self.partition_idx = partition_idx
+        self.offset = offset
+
+    def __eq__(self, other: object) -> bool:
+        assert type(other) == PartitionIdxOffset
+        return self.partition_idx == other.partition_idx and self.offset == other.offset
+
+    def __hash__(self):
+        return hash((self.partition_idx, self.offset))
 
 
 def valid_metric_name(name: Optional[str]) -> bool:
@@ -80,7 +88,7 @@ class IndexerBatch:
                 continue
 
         for partition_offset, message in self.parsed_payloads_by_offset.items():
-            partition_idx, offset = partition_offset
+            partition_idx, offset = partition_offset.partition_idx, partition_offset.offset
             metric_name = message["name"]
             metric_type = message["type"]
             org_id = message["org_id"]
