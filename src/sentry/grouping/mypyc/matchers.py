@@ -4,9 +4,10 @@ from sentry.grouping.mypyc.exceptions import InvalidEnhancerConfig
 from sentry.grouping.utils import get_rule_bool
 from sentry.stacktraces.functions import get_function_name_for_frame
 from sentry.stacktraces.platform import get_behavior_family_for_platform
-from sentry.utils.functional import cached
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
+
+from .utils import cached
 
 # from .enhancers import InvalidEnhancerConfig
 
