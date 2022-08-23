@@ -1,0 +1,123 @@
+#!/usr/bin/env python
+from sentry.runner import configure
+
+configure()
+
+import datetime
+import random
+
+import click
+from confluent_kafka import Producer
+from django.conf import settings
+from django.utils import timezone
+
+from sentry.models import Organization, Project, Release
+from sentry.utils import json
+
+os_choices = (
+    "iOS 13",
+    "iOS 14",
+    "iOS 15",
+    "Android 7",
+    "Android 8",
+)
+family_choices = {
+    "iOS 13": ("Apple iPhone X", "Apple iPhone 12", "Apple iPhone 13"),
+    "iOS 14": ("Apple iPhone X", "Apple iPhone 12", "Apple iPhone 13"),
+    "iOS 15": ("Apple iPhone X", "Apple iPhone 12", "Apple iPhone 13"),
+    "Android 7": ("SM-G955F", "HTC 10", "Pixel 4"),
+    "Android 8": ("SM-T510", "OnePlus Nord2 5G", "Pixel 6", "Moto x4"),
+}
+manufacturer_choices = {
+    "iOS 13": ("Apple",),
+    "iOS 14": ("Apple",),
+    "iOS 15": ("Apple",),
+    "Android 7": ("Samsung", "OnePlus", "Xiaomi", "HTC", "Google"),
+    "Android 8": ("Samsung", "Xiaomi", "Moto", "Google"),
+}
+session_status = ["ok", "exited", "crashed", "abnormal"]
+session_status_weights = [0.9, 0.03, 0.03, 0.03]
+
+topic = settings.KAFKA_INGEST_METRICS
+
+
+def create_producer():
+    cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
+    cluster = settings.KAFKA_CLUSTERS[cluster_name]
+    producer = Producer({"bootstrap.servers": cluster["common"]["bootstrap.servers"]})
+    return producer
+
+
+def generate_session_counter(
+    time: datetime.datetime,
+    project: Project,
+    organization: Organization,
+    env: str,
+    release: Release,
+):
+    os = random.choice(os_choices)
+    return {
+        "org_id": organization.id,
+        "project_id": project.id,
+        "name": "c:sessions/session@none",
+        "type": "c",
+        "value": random.randrange(5, 30),
+        "timestamp": int(time.timestamp()),
+        "tags": {
+            "environment": env,
+            "release": release.version,
+            "sdk": "sentry.python",
+            "session.status": random.choices(session_status, session_status_weights)[0],
+            "os": os,
+            "os.name": os,
+            "device.family": random.choice(family_choices[os]),
+            "device.manufacturer": random.choice(manufacturer_choices[os]),
+        },
+    }
+
+
+@click.command()
+@click.option("--project", type=str, help="Project slug to insert data into", default="internal")
+@click.option("--org", type=str, help="Organization slug to insert data into", default="sentry")
+@click.option(
+    "--release", type=str, help="Release name. Defaults to the most recent release in the project."
+)
+@click.option("--env", type=str, help="Environment to generate sessions for", default="dev")
+@click.option("--days", type=int, help="Number of days to generate data for", default=14)
+def main(project, org, env, days, release=None):
+    click.echo("Mocking sessions for {project} in {org}")
+    try:
+        organization = Organization.objects.get(slug=org)
+    except Organization.DoesNotExist:
+        raise RuntimeError("! Organization does not exist")
+    try:
+        project = Project.objects.get(slug=project, organization=organization)
+    except Project.DoesNotExist:
+        raise RuntimeError("! Project does not exist")
+    if release is None:
+        release = Release.objects.filter(projects=project, organization=organization).order_by(
+            "-date_added"
+        )[0]
+    if not release:
+        release = Release.objects.create(
+            projects=project, organization=organization, version="session-data"
+        )
+
+    producer = create_producer()
+
+    click.echo(f"> Generating sessions for {days} day(s)")
+    start = timezone.now()
+    end = start - datetime.timedelta(days=days)
+    current = start
+    count = 0
+    while current >= end:
+        count += 1
+        current = current - datetime.timedelta(minutes=2)
+        session = generate_session_counter(current, project, organization, env, release)
+        producer.produce(topic, json.dumps(session))
+    producer.flush()
+    click.echo(f"> Complete! generated {count} session records")
+
+
+if __name__ == "__main__":
+    main()
