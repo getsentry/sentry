@@ -185,7 +185,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
   const maybeDid = getDid();
   const did = maybeDid || setDid(uuid4());
   const sid =
-    maybeDid === null ? setSession(uuid4()) : getSession() || setSession(uuid4());
+    maybeDid === null ? setSession(uuid4()) : getSession() ?? setSession(uuid4());
 
   const scope = hub.getScope();
   if (scope) {
