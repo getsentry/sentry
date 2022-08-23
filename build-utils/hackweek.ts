@@ -41,7 +41,7 @@ class SentryRuntimeModule extends RuntimeModule {
     // });
 
     return Template.asString([
-      'globalThis["__sentry_calls__"] = globalThis["__sentry_calls__"] || [];',
+      'globalThis["__sentry_calls__"] = globalThis["__sentry_calls__"] || {};',
       'globalThis["__sentry_imports__"] = globalThis["__sentry_imports__"] || [];',
       'globalThis["__debug"] = globalThis["__debug"] || {};',
       'globalThis["__debug2"] = globalThis["__debug2"] || {};',
@@ -74,14 +74,19 @@ class SentryRuntimeModule extends RuntimeModule {
             '        var _sentry_hub = typeof Sentry !== "undefined" && Sentry.getCurrentHub();',
             '        var _sentry_scope = _sentry_hub && _sentry_hub.getScope();',
             '        var _sentry_transaction = _sentry_scope && _sentry_scope.getTransaction();',
+            '        var _sentry_transaction_name = _sentry_transaction && _sentry_transaction.name;',
 
             '__debug[_module] = __debug[_module] || {};',
             '__debug[_module][prop]= (__debug[_module][prop] || 0) + 1;',
 
             Template.indent([
               'var prim = Reflect.get(target, prop);',
-              '        var _sentry_instr = {file: _module, fn: prim && prim.name || prop, transaction: _sentry_transaction && _sentry_transaction.name, startTimestamp: (performance.timeOrigin + performance.now())/1000};',
-              '        __sentry_calls__.push(_sentry_instr);',
+              'var _fn_name = prim && prim.name || prop;',
+              "__sentry_calls__[_sentry_transaction_name || ''] = __sentry_calls__[_sentry_transaction_name] || {};",
+              "__sentry_calls__[_sentry_transaction_name || ''][_module] = __sentry_calls__[_sentry_transaction_name || ''][_module] || {};",
+              "__sentry_calls__[_sentry_transaction_name || ''][_module][_fn_name] = (__sentry_calls__[_sentry_transaction_name || ''][_module][_fn_name] || 0) + 1;",
+              // '        var _sentry_instr = {file: _module, fn: prim && prim.name || prop, transaction: _sentry_transaction_name};',
+              // '        __sentry_calls__.push(_sentry_instr);',
 
               // "if (typeof prim !== 'function') {",
               '    return prim;',
