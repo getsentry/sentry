@@ -230,9 +230,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
         {location, organization, unit}
       );
 
-      const isModalWidget = !!!(widget.id || widget.tempId);
+      const isModalWidget = !(widget.id || widget.tempId);
       if (
-        !!!organization.features.includes('dashboard-grid-layout') ||
+        !organization.features.includes('dashboard-grid-layout') ||
         isModalWidget ||
         isMobile
       ) {
@@ -240,7 +240,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       }
 
       // The font size is the container height, minus the top and bottom padding
-      const fontSize = !!!expandNumbers
+      const fontSize = !expandNumbers
         ? containerHeight - parseInt(space(1), 10) - parseInt(space(3), 10)
         : `max(min(8vw, 90px), ${space(4)})`;
 
@@ -249,9 +249,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
           key={`big_number:${result.title}`}
           style={{
             fontSize,
-            ...(!!expandNumbers
-              ? {padding: `${space(1)} ${space(3)} 0 ${space(3)}`}
-              : {}),
+            ...(expandNumbers ? {padding: `${space(1)} ${space(3)} 0 ${space(3)}`} : {}),
           }}
         >
           <Tooltip title={rendered} showOnlyOnOverflow>
@@ -318,7 +316,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
           <LoadingScreen loading={loading} />
           <BigNumberResizeWrapper
             ref={el => {
-              if (el !== null && !!!expandNumbers) {
+              if (el !== null && !expandNumbers) {
                 const {height} = el.getBoundingClientRect();
                 if (height !== this.state.containerHeight) {
                   this.setState({containerHeight: height});
@@ -568,7 +566,7 @@ const BigNumber = styled('div')`
 
 const ChartWrapper = styled('div')<{autoHeightResize: boolean; noPadding?: boolean}>`
   ${p => p.autoHeightResize && 'height: 100%;'}
-  padding: ${p => (!!p.noPadding ? `0` : `0 ${space(3)} ${space(3)}`)};
+  padding: ${p => (p.noPadding ? `0` : `0 ${space(3)} ${space(3)}`)};
 `;
 
 const StyledSimpleTableChart = styled(SimpleTableChart)`
