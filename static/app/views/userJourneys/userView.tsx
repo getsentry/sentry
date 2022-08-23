@@ -8,6 +8,8 @@ import {PanelTable} from 'sentry/components/panels';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
+import {RawCrumb} from 'sentry/types/breadcrumbs';
+import {EntryBreadcrumbs, EntryType, Event} from 'sentry/types/event';
 import EventView from 'sentry/utils/discover/eventView';
 import {FIELD_FORMATTERS} from 'sentry/utils/discover/fieldRenderers';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -16,25 +18,29 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
+// import useProjects from 'sentry/utils/useProjects';
 import Breadcrumb from './breadcrumb';
 
-type BreadcrumbEvent = {
+interface BreadcrumbEvent {
   id: string;
+  project: string;
   timestamp: string;
   title: string | undefined;
   'transaction.op': string | undefined;
   'transaction.status': string | undefined;
   'user.display': string | undefined;
-};
+}
 
 interface Props extends RouteComponentProps<{userId: string}, {}, any, {t: number}> {}
 
 function UserView({params: {userId}}: Props) {
   const org = useOrganization();
+  // const {projects} = useProjects();
   const api = useApi();
   const location = useLocation();
   const [isLoading, setLoading] = useState(false);
   const [breadcrumbEvents, setBreadcrumbEvents] = useState<Array<BreadcrumbEvent>>([]);
+  const [crumbs, setCrumbs] = useState<RawCrumb[]>([]);
 
   const eventView = useMemo(() => {
     const query = decodeScalar(location.query.query, '');
@@ -49,8 +55,8 @@ function UserView({params: {userId}}: Props) {
         id: '',
         name: '',
         version: 2,
-        fields: ['id', 'timestamp', 'title', 'user.display'],
-        projects: [],
+        fields: ['id', 'timestamp', 'title', 'user.display', 'project'],
+        projects: [-1],
         orderby: '-timestamp',
         query: conditions.formatString(),
       },
@@ -69,13 +75,46 @@ function UserView({params: {userId}}: Props) {
         },
         method: 'GET',
       });
-      // eslint-disable-next-line no-console
-      console.log(res);
+
       setBreadcrumbEvents(res.data);
-      setLoading(false);
     }
     fetchEvents();
-  }, [api, org, location, eventView]);
+  }, [api, org.slug, location, eventView]);
+
+  useEffect(() => {
+    if (breadcrumbEvents.length === 0) {
+      return;
+    }
+    async function fetchEvent() {
+      const res = await Promise.all(
+        breadcrumbEvents
+          .filter(e => e.title === 'Breadcrumb Event')
+          .map(async e => {
+            return await api.requestPromise(
+              `/projects/${org.slug}/${e.project}/events/${e.id}/`
+            );
+          })
+      );
+
+      const events = res as Event[];
+      // eslint-disable-next-line no-console
+      console.log(events);
+      if (events) {
+        const breadcrumbs: RawCrumb[] = events.reduce((acc, event) => {
+          const breadcrumbEntries = event.entries.filter(
+            entry => entry.type === EntryType.BREADCRUMBS
+          ) as EntryBreadcrumbs[];
+          const rawCrumbVals = breadcrumbEntries.flatMap(entry => entry.data.values);
+          return [...acc, ...rawCrumbVals];
+        }, [] as RawCrumb[]);
+        setCrumbs(breadcrumbs);
+        // eslint-disable-next-line no-console
+        console.log(breadcrumbs);
+      }
+      setLoading(false);
+    }
+    fetchEvent();
+  }, [api, breadcrumbEvents, org.slug]);
 
   const timestampTitle = (
     <div style={{display: 'flex'}}>
@@ -101,17 +140,26 @@ function UserView({params: {userId}}: Props) {
         <Layout.Main fullWidth>
           <PanelTable
             isLoading={isLoading}
-            isEmpty={breadcrumbEvents.length === 0}
-            headers={[t('Event Id'), t('Title'), t('user'), timestampTitle]}
+            isEmpty={crumbs.length === 0}
+            headers={[
+              t('Category'),
+              t('Type'),
+              t('Level'),
+              t('Data'),
+              t('Message'),
+              timestampTitle,
+            ]}
           >
-            {breadcrumbEvents.map(event => (
-              <Fragment key={event.id}>
-                <Item>{event.id}</Item>
-                <Item>{event.title}</Item>
-                <Item>{event['user.display']}</Item>
+            {crumbs.map(crumb => (
+              <Fragment key={crumb.timestamp}>
+                <Item>{crumb.category}</Item>
+                <Item>{crumb.type}</Item>
+                <Item>{crumb.level}</Item>
+                <Item>{JSON.stringify(crumb.data)}</Item>
+                <Item>{crumb.message}</Item>
                 <Item>
                   {FIELD_FORMATTERS.date.renderFunc('timestamp', {
-                    ['timestamp']: event.timestamp,
+                    ['timestamp']: crumb.timestamp,
                   })}
                 </Item>
               </Fragment>
