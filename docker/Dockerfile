@@ -1,4 +1,7 @@
 FROM python:3.8.13-slim-bullseye
+# The Cloud build uses /dist as a place to cache wheels and others
+# For building locally you can use --build-arg DIST_DIR=. from the checkout
+ARG DIST_DIR=/dist
 
 LABEL maintainer="oss@sentry.io"
 LABEL org.opencontainers.image.title="Sentry"
@@ -48,7 +51,7 @@ ENV \
   GRPC_POLL_STRATEGY=epoll1
 
 # Install dependencies first to leverage Docker layer caching.
-COPY /dist/requirements-frozen.txt /tmp/requirements-frozen.txt
+COPY ${DIST_DIR}/requirements-frozen.txt /tmp/requirements-frozen.txt
 RUN set -x \
   && buildDeps="" \
   # uwsgi
@@ -103,7 +106,7 @@ RUN set -x \
   && python -c 'import maxminddb.extension; maxminddb.extension.Reader' \
   && mkdir -p $SENTRY_CONF
 
-COPY /dist/*.whl /tmp/dist/
+COPY ${DIST_DIR}/*.whl /tmp/dist/
 RUN pip install /tmp/dist/*.whl --no-deps && pip check && rm -rf /tmp/dist
 RUN sentry help | sed '1,/Commands:/d' | awk '{print $1}' >  /sentry-commands.txt
 
