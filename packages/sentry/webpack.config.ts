@@ -540,7 +540,7 @@ if (
     hot: 'only',
     port: Number(SENTRY_WEBPACK_PROXY_PORT),
     devMiddleware: {
-      stats: 'errors-only',
+      stats: 'minimal',
     },
     client: {
       overlay: false,

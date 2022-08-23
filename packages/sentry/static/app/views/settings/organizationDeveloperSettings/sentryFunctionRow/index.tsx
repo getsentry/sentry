@@ -6,7 +6,7 @@ import {IconInput} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Organization, SentryFunction} from 'sentry/types';
 
-import ActionButtons from '../sentryFunctionRow/actionButtons';
+import ActionButtons from './actionButtons';
 
 type Props = {
   onRemoveFunction: (org: Organization, sentryFn: SentryFunction) => void;

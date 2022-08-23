@@ -1,25 +1,27 @@
 /* eslint-env node */
-import path from 'path';
 import fs from 'fs';
+import path from 'path';
 
 import prettier from 'prettier';
 
-//joining path of directory
+// joining path of directory
 const tmpOutputPath = path.join(
   __dirname,
   '../static/app/constants/ios-device-list.tmp.tsx'
 );
 const outputPath = path.join(__dirname, '../static/app/constants/ios-device-list.tsx');
-const directoryPath = path.join(__dirname, '../node_modules/ios-device-list/');
+const directoryPath = path.join(__dirname, '../../../node_modules/ios-device-list/');
 
 async function getDefinitionFiles(): Promise<string[]> {
   const files: string[] = [];
 
   const maybeJSONFiles = await fs.readdirSync(directoryPath);
 
-  //listing all files using forEach
+  // listing all files using forEach
   maybeJSONFiles.forEach(file => {
-    if (!file.endsWith('.json') || file === 'package.json') return;
+    if (!file.endsWith('.json') || file === 'package.json') {
+      return;
+    }
 
     files.push(path.join(path.resolve(directoryPath), file));
   });

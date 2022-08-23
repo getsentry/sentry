@@ -1,7 +1,8 @@
 import {lastOfArray} from 'sentry/utils';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 
-import {Frame} from './../frame';
+import {Frame} from '../frame';
+
 import {Profile} from './profile';
 import {createFrameIndex} from './utils';
 
