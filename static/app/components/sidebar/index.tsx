@@ -202,9 +202,9 @@ function Sidebar({location, organization}: Props) {
     <SidebarItem
       {...sidebarItemProps}
       icon={<IconSpan size="md" />}
-      label={t('Breadcrumbs')}
-      to={`/organizations/${organization.slug}/breadcrumbs/`}
-      id="user-feedback"
+      label={t('User Journeys')}
+      to={`/organizations/${organization.slug}/user-journeys/`}
+      id="user-journeys"
     />
   );
 

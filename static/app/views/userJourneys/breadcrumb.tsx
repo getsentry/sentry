@@ -15,7 +15,7 @@ type Props = {
 function Breadcrumb({eventView, userId, organization, location}: Props) {
   const crumbs: Crumb[] = [];
   const breadcrumbLandingPageTarget = {
-    pathname: `/organizations/${organization.slug}/breadcrumbs/`,
+    pathname: `/organizations/${organization.slug}/user-journeys/`,
     query: {
       ...location.query,
       ...eventView.generateBlankQueryStringObject(),
@@ -25,7 +25,7 @@ function Breadcrumb({eventView, userId, organization, location}: Props) {
 
   crumbs.push({
     to: breadcrumbLandingPageTarget,
-    label: t('Breadcrumbs'),
+    label: t('User Journeys'),
   });
 
   if (userId) {

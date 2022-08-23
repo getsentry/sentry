@@ -49,17 +49,9 @@ function UserView({params: {userId}}: Props) {
         id: '',
         name: '',
         version: 2,
-        fields: [
-          'id',
-          'timestamp',
-          'title',
-          'transaction.op',
-          'transaction.status',
-          'user.display',
-        ],
+        fields: ['id', 'timestamp', 'title', 'user.display'],
         projects: [],
         orderby: '-timestamp',
-        // TODO: Filter based on incoming sid and Breadcrumb Event title
         query: conditions.formatString(),
       },
       location
@@ -110,21 +102,12 @@ function UserView({params: {userId}}: Props) {
           <PanelTable
             isLoading={isLoading}
             isEmpty={breadcrumbEvents.length === 0}
-            headers={[
-              t('Event Id'),
-              t('Title'),
-              t('Txn Operation'),
-              t('Txn Status'),
-              t('user'),
-              timestampTitle,
-            ]}
+            headers={[t('Event Id'), t('Title'), t('user'), timestampTitle]}
           >
             {breadcrumbEvents.map(event => (
               <Fragment key={event.id}>
                 <Item>{event.id}</Item>
                 <Item>{event.title}</Item>
-                <Item>{event['transaction.op']}</Item>
-                <Item>{event['transaction.status']}</Item>
                 <Item>{event['user.display']}</Item>
                 <Item>
                   {FIELD_FORMATTERS.date.renderFunc('timestamp', {

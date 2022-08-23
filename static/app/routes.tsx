@@ -1233,11 +1233,11 @@ function buildRoutes() {
   );
 
   const breadcrumbRoutes = (
-    <Route path="/organizations/:orgId/breadcrumbs/">
-      <IndexRoute component={make(() => import('sentry/views/breadcrumbs'))} />
+    <Route path="/organizations/:orgId/user-journeys/">
+      <IndexRoute component={make(() => import('sentry/views/userJourneys'))} />
       <Route
         path=":userId/"
-        component={make(() => import('sentry/views/breadcrumbs/userView'))}
+        component={make(() => import('sentry/views/userJourneys/userView'))}
       />
     </Route>
   );

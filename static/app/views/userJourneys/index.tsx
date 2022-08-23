@@ -33,7 +33,7 @@ function Breadcrumbs({}: Props) {
   const org = useOrganization();
   const api = useApi();
   const location = useLocation();
-  const [sessions, setSessions] = useState<Array<User>>([]);
+  const [users, setUsers] = useState<Array<User>>([]);
   const [isLoading, setLoading] = useState(false);
 
   const eventView = useMemo(() => {
@@ -68,7 +68,7 @@ function Breadcrumbs({}: Props) {
         method: 'GET',
       });
 
-      setSessions(res.data.filter(session => session.did !== ''));
+      setUsers(res.data.filter(user => user.did !== ''));
       setLoading(false);
     }
     fetchEvents();
@@ -95,20 +95,20 @@ function Breadcrumbs({}: Props) {
         <br />
         <PanelTable
           isLoading={isLoading}
-          isEmpty={sessions.length === 0}
+          isEmpty={users.length === 0}
           headers={[t('User'), t('Number of Events'), lastActivity]}
         >
-          {sessions.map(session => (
-            <Fragment key={session.did}>
+          {users.map(user => (
+            <Fragment key={user.did}>
               <Item>
-                <Link to={`/organizations/${org.slug}/breadcrumbs/${session.did}`}>
-                  {session.did}
+                <Link to={`/organizations/${org.slug}/user-journeys/${user.did}`}>
+                  {user.did}
                 </Link>
               </Item>
-              <Item>{session['count(did)']}</Item>
+              <Item>{user['count(did)']}</Item>
               <Item>
                 {FIELD_FORMATTERS.date.renderFunc('last_seen()', {
-                  ['last_seen()']: session['last_seen()'],
+                  ['last_seen()']: user['last_seen()'],
                 })}
               </Item>
             </Fragment>
