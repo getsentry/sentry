@@ -124,6 +124,20 @@ export const HeaderNavTabs = styled(NavTabs)`
 `;
 
 /**
+ * HotSpots container
+ */
+export const HotSpots = styled('div')<{noActionWrap?: boolean}>`
+  grid-column: 1/-1;
+  margin-top: ${space(1)};
+  margin-bottom: ${space(1)};
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    margin-top: ${space(2)};
+    margin-bottom: ${space(1)};
+  }
+`;
+
+/**
  * Containers for two column 66/33 layout.
  */
 export const Main = styled('section')<{fullWidth?: boolean}>`
