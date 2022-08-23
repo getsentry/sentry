@@ -41,6 +41,8 @@ class SentryRuntimeModule extends RuntimeModule {
     return Template.asString([
       'globalThis["__sentry_calls__"] = globalThis["__sentry_calls__"] || [];',
       'globalThis["__sentry_imports__"] = globalThis["__sentry_imports__"] || [];',
+      'globalThis["__debug"] = globalThis["__debug"] || {};',
+      'globalThis["__debug2"] = globalThis["__debug2"] || {};',
       // 'globalThis["__sentry_calls__2"] = globalThis["__sentry_calls__2"] || [[]];',
       "if (typeof __webpack_require__ === 'undefined') { return; }",
       '__webpack_require__ = new Proxy(__webpack_require__, {',
@@ -56,27 +58,38 @@ class SentryRuntimeModule extends RuntimeModule {
           'var result = target.apply(thisArg, argumentsList);',
           // WIP: Ignore node_modules and only include app/views for now
           'if (_is_node_modules) { return result; }',
-          `var _ignores = [
-            './app/components/tooltip.tsx'
-
-
-          ]`,
-          "if (_module.indexOf('./app/views') === -1) { return result; }",
+          // `var _ignores = [
+          //   './app/components/tooltip.tsx'
+          //
+          //
+          // ]`,
+          // "if (_module.indexOf('./app/views') === -1) { return result; }",
           "if (typeof result !== 'object') { return result; }",
           'try {',
           'var proxy = new Proxy(result, {',
           Template.indent([
             'get(target, prop, receiver) {',
+            '        var _sentry_hub = typeof Sentry !== "undefined" && Sentry.getCurrentHub();',
+            '        var _sentry_scope = _sentry_hub && _sentry_hub.getScope();',
+            '        var _sentry_transaction = _sentry_scope && _sentry_scope.getTransaction();',
+
+            '__debug[_module] = __debug[_module] || {};',
+            '__debug[_module][prop]= (__debug[_module][prop] || 0) + 1;',
+
             Template.indent([
               'var prim = Reflect.get(target, prop);',
+              '        var _sentry_instr = {file: _module, fn: prim && prim.name || prop, transaction: _sentry_transaction && _sentry_transaction.name, startTimestamp: (performance.timeOrigin + performance.now())/1000};',
+              '        __sentry_calls__.push(_sentry_instr);',
 
-              "if (typeof prim !== 'function') {",
+              // "if (typeof prim !== 'function') {",
               '    return prim;',
-              '}',
+              // '}',
 
               'try {',
               'return new Proxy(prim, {',
               '    apply: function(tgt, thisArg, args) {',
+              '          __debug2[_module] = __debug2[_module] || {};',
+              '          __debug2[_module][prop]= (__debug2[_module][prop] || 0) + 1;',
               '        var _sentry_hub = Sentry && Sentry.getCurrentHub();',
               '        var _sentry_scope = _sentry_hub && _sentry_hub.getScope();',
               '        var _sentry_transaction = _sentry_scope.getTransaction();',
