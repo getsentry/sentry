@@ -10,6 +10,7 @@ import ReplayReader from 'sentry/utils/replays/replayReader';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import type {
+  Codecov,
   RecordingEvent,
   ReplayCrumb,
   ReplayError,
@@ -20,6 +21,8 @@ import type {
 
 type State = {
   breadcrumbs: undefined | ReplayCrumb[];
+
+  codecov: undefined | Codecov[];
 
   /**
    * List of errors that occurred during replay
@@ -71,6 +74,7 @@ type Options = {
 // See https://github.com/microsoft/TypeScript/issues/15300
 type ReplayAttachment = {
   breadcrumbs: ReplayCrumb[];
+  codecov: Codecov[];
   recording: RecordingEvent[];
   replaySpans: ReplaySpan[];
 };
@@ -85,6 +89,7 @@ export function mapRRWebAttachments(unsortedReplayAttachments): ReplayAttachment
     breadcrumbs: [],
     replaySpans: [],
     recording: [],
+    codecov: [],
   };
 
   unsortedReplayAttachments.forEach(attachment => {
@@ -92,6 +97,8 @@ export function mapRRWebAttachments(unsortedReplayAttachments): ReplayAttachment
       replayAttachments.replaySpans.push(attachment.data.payload);
     } else if (attachment?.data?.tag === 'breadcrumb') {
       replayAttachments.breadcrumbs.push(attachment.data.payload);
+    } else if (attachment?.data?.tag === 'hotcodecov') {
+      replayAttachments.codecov.push(attachment.data.payload);
     } else {
       replayAttachments.recording.push(attachment);
     }
@@ -109,6 +116,7 @@ const INITIAL_STATE: State = Object.freeze({
   replayRecord: undefined,
   rrwebEvents: undefined,
   spans: undefined,
+  codecov: undefined,
 });
 
 async function decompressSegmentData(
@@ -230,6 +238,7 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
         rrwebEvents: attachments.recording,
         spans: attachments.replaySpans,
         breadcrumbs: attachments.breadcrumbs,
+        codecov: attachments.codecov,
       }));
     } catch (error) {
       Sentry.captureException(error);
@@ -251,6 +260,7 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
       errors: state.errors,
       rrwebEvents: state.rrwebEvents,
       breadcrumbs: state.breadcrumbs,
+      codecov: state.codecov,
       spans: state.spans,
     });
   }, [
@@ -258,6 +268,7 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
     state.rrwebEvents,
     state.breadcrumbs,
     state.spans,
+    state.codecov,
     state.errors,
   ]);
 

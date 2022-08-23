@@ -6,6 +6,7 @@ import {
   spansFactory,
 } from 'sentry/utils/replays/replayDataUtils';
 import type {
+  Codecov,
   MemorySpanType,
   RecordingEvent,
   ReplayCrumb,
@@ -16,6 +17,8 @@ import type {
 
 interface ReplayReaderParams {
   breadcrumbs: ReplayCrumb[] | undefined;
+  codecov: Codecov[] | undefined;
+
   errors: ReplayError[] | undefined;
 
   /**
@@ -43,12 +46,20 @@ export default class ReplayReader {
     errors,
     rrwebEvents,
     spans,
+    codecov,
   }: ReplayReaderParams) {
-    if (!breadcrumbs || !replayRecord || !rrwebEvents || !spans || !errors) {
+    if (!breadcrumbs || !replayRecord || !rrwebEvents || !spans || !errors || !codecov) {
       return null;
     }
 
-    return new ReplayReader({breadcrumbs, replayRecord, errors, rrwebEvents, spans});
+    return new ReplayReader({
+      breadcrumbs,
+      replayRecord,
+      errors,
+      rrwebEvents,
+      spans,
+      codecov,
+    });
   }
 
   private constructor({
@@ -57,6 +68,7 @@ export default class ReplayReader {
     errors,
     rrwebEvents,
     spans,
+    codecov,
   }: RequiredNotNull<ReplayReaderParams>) {
     // TODO(replays): We should get correct timestamps from the backend instead
     // of having to fix them up here.
@@ -74,12 +86,16 @@ export default class ReplayReader {
     this.rrwebEvents = rrwebEventListFactory(replayRecord, rrwebEvents);
 
     this.replayRecord = replayRecord;
+    this.imports = codecov.filter(({type}) => type === 'imports');
+    this.moduleCalls = codecov.filter(({type}) => type === 'modulecalls');
   }
 
   private replayRecord: ReplayRecord;
   private rrwebEvents: RecordingEvent[];
   private breadcrumbs: Crumb[];
   private spans: ReplaySpan[];
+  private moduleCalls: Codecov[];
+  private imports: Codecov[];
 
   /**
    * @returns Duration of Replay (milliseonds)
@@ -102,6 +118,14 @@ export default class ReplayReader {
 
   getRawSpans = () => {
     return this.spans;
+  };
+
+  getImports = () => {
+    return this.imports;
+  };
+
+  getModuleCalls = () => {
+    return this.moduleCalls;
   };
 
   isMemorySpan = (span: ReplaySpan): span is MemorySpanType => {

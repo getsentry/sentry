@@ -136,6 +136,18 @@ export type MemorySpanType = ReplaySpan<{
   };
 }>;
 
+export interface Codecov {
+  modules: Array<{
+    endTimestamp: number;
+    fn: undefined | string;
+    module: string;
+    startTimestamp: number;
+    transaction: undefined | string;
+  }>;
+  type: 'modulecalls' | 'imports';
+  url: string;
+}
+
 export type ReplayCrumb = RawCrumb & {
   /**
    * Replay crumbs are unprocessed and come in as unix timestamp in seconds
