@@ -76,6 +76,7 @@ const NO_DEV_SERVER = !!env.NO_DEV_SERVER; // Do not run webpack dev server
 const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK; // Do not run fork-ts plugin (or if not dev env)
 const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
 const SHOULD_LAZY_LOAD = DEV_MODE && !!env.SENTRY_UI_LAZY_LOAD;
+const SHOULD_EXTRACT_TRANSLATIONS = env.SENTRY_EXTRACT_TRANSLATIONS === '1';
 
 // Deploy previews are built using vercel. We can check if we're in vercel's
 // build process by checking the existence of the PULL_REQUEST env var.
@@ -104,7 +105,7 @@ const distPath = env.SENTRY_STATIC_DIST_PATH || path.join(sentryDjangoAppPath, '
 const staticPrefix = path.join(__dirname, 'static');
 
 // Locale file extraction build step
-if (env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
+if (SHOULD_EXTRACT_TRANSLATIONS) {
   babelConfig.plugins?.push([
     'module:babel-gettext-extractor',
     {
@@ -254,9 +255,11 @@ const appConfig: Configuration = {
         test: /\.[tj]sx?$/,
         include: [staticPrefix],
         exclude: /(vendor|node_modules|dist)/,
-        use: {
-          loader: 'swc-loader',
-        },
+        use: SHOULD_EXTRACT_TRANSLATIONS
+          ? babelLoaderConfig
+          : {
+              loader: 'swc-loader',
+            },
       },
       {
         test: /\.po$/,
