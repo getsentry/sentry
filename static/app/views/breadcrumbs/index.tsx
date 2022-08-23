@@ -36,12 +36,14 @@ function Breadcrumbs({}: Props) {
     const query = decodeScalar(location.query.query, '');
     const conditions = new MutableSearch(query);
 
+    conditions.addStringFilter('has:session_id');
+
     return EventView.fromNewQueryWithLocation(
       {
         id: '',
         name: '',
         version: 2,
-        fields: ['session_id', 'count_unique(session_id)'],
+        fields: ['session_id', 'count(session_id)', 'last_seen()'],
         projects: [],
         query: conditions.formatString(),
       },
@@ -60,6 +62,7 @@ function Breadcrumbs({}: Props) {
         method: 'GET',
       });
 
+      console.log('res.data', res.data);
       setSessions(res.data.filter(session => session.session_id !== ''));
       setLoading(false);
     }
