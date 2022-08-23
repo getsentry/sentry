@@ -3,6 +3,7 @@ import React from 'react';
 
 import {VoiceAssistantButton} from './floatingButton';
 import {grammar} from './grammars';
+import {VoiceAssistantTextbox} from './textBox';
 import {speechRecognitionResultListToJSON} from './utils';
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -118,7 +119,7 @@ export class VoiceAssistantPanel extends React.Component<{}, VoiceAssistantState
       // Fired when the speech recognition service has disconnected.
       console.log('SpeechRecognition.onend');
       if (!speechResult) {
-        console.log('No result received!');
+        console.log('Speech recognition: no result received!');
       }
     };
 
@@ -170,6 +171,7 @@ export class VoiceAssistantPanel extends React.Component<{}, VoiceAssistantState
   render() {
     return (
       <div>
+        <VoiceAssistantTextbox />
         <VoiceAssistantButton
           handleToggle={this.handleToggle}
           isListening={this.state.isListening}
