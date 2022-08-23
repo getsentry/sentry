@@ -11,7 +11,6 @@ import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import webpack from 'webpack';
 import {Configuration as DevServerConfig} from 'webpack-dev-server';
 import FixStyleOnlyEntriesPlugin from 'webpack-remove-empty-scripts';
-import WatchExternalFilesPlugin from 'webpack-watch-files-plugin';
 
 import IntegrationDocsFetchPlugin from './build-utils/integration-docs-fetch-plugin';
 import LastBuiltPlugin from './build-utils/last-built-plugin';
@@ -296,10 +295,6 @@ const appConfig: Configuration = {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg|mp4)($|\?)/,
         type: 'asset',
       },
-      {
-        test: /\.yml/,
-        type: 'asset/resource',
-      },
     ],
     noParse: [
       // don't parse known, pre-built javascript files (improves webpack perf)
@@ -391,17 +386,6 @@ const appConfig: Configuration = {
       /moment\/locale/,
       new RegExp(`(${supportedLanguages.join('|')})\\.js$`)
     ),
-    new WatchExternalFilesPlugin({
-      files: ['./swagger-ui/**'],
-    }),
-    // {
-    //   apply: compiler => {
-    //     compiler.hooks.compile.tap('api-docs compile', () => {
-    //       console.log('Regenerating api-docs');
-    //       execSync('yarn combine-docs');
-    //     });
-    //   },
-    // },
   ],
 
   resolve: {

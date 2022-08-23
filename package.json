@@ -152,7 +152,6 @@
     "rrweb-player": "^0.7.13",
     "screenfull": "^6.0.2",
     "scroll-to-element": "^2.0.0",
-    "speccy": "^0.11.0",
     "sprintf-js": "1.0.3",
     "style-loader": "^3.3.1",
     "swagger-ui-react": "^4.14.0",
@@ -211,8 +210,7 @@
     "tsconfig-paths": "^4.0.0",
     "typescript-styled-plugin": "^0.18.2",
     "url-loader": "^4.1.0",
-    "webpack-dev-server": "^4.9.2",
-    "webpack-watch-files-plugin": "^1.2.1"
+    "webpack-dev-server": "^4.9.2"
   },
   "optionalDependencies": {
     "fsevents": "^2.3.2"
@@ -234,7 +232,7 @@
   "proxyURL": "http://localhost:8000",
   "scripts": {
     "test-wrap": "node scripts/test.js",
-    "pre-build": "yarn combine-docs && sed -i '' 's@- url: https://sentry.io/@- url: http://localhost:8000/@' swagger-ui/openapi.yml",
+    "pre-build": "yarn combine-docs && sed -i '' 's@- \"url\": \"https://sentry.io/\"@- \"url\": \"http://localhost:8000/\"@' tests/apidocs/openapi-derefed.json",
     "test": "yarn test-wrap --watch",
     "test-ci": "yarn test-wrap --ci --coverage --runInBand",
     "test-debug": "node --inspect-brk scripts/test.js --runInBand",
@@ -257,7 +255,7 @@
     "build-acceptance": "yarn pre-build && IS_ACCEPTANCE_TEST=1 NODE_ENV=production yarn webpack --mode development",
     "build-production": "yarn pre-build && NODE_ENV=production yarn webpack --mode production",
     "build": "NODE_OPTIONS=--max-old-space-size=4096 yarn webpack",
-    "combine-docs": "make build-api-docs && speccy resolve tests/apidocs/openapi-derefed.json -o swagger-ui/openapi.yml",
+    "combine-docs": "make build-api-docs",
     "validate-api-examples": "cd api-docs && yarn openapi-examples-validator ../tests/apidocs/openapi-derefed.json --no-additional-properties",
     "mkcert-localhost": "mkcert -key-file config/localhost-key.pem -cert-file config/localhost.pem localhost 127.0.0.1 dev.getsentry.net && mkcert -install"
   },
