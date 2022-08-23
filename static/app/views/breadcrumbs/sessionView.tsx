@@ -2,6 +2,7 @@ import {useEffect, useMemo} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import * as Layout from 'sentry/components/layouts/thirds';
 import PageHeading from 'sentry/components/pageHeading';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
@@ -12,6 +13,8 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+
+import Breadcrumb from './breadcrumb';
 
 interface Props extends RouteComponentProps<{sessionId: string}, {}, any, {t: number}> {}
 
@@ -57,15 +60,31 @@ function SessionView({params: {sessionId}}: Props) {
   }, [api, org, location, eventView]);
 
   return (
-    <PageContent>
-      <Header>
-        <PageHeading>{t(`Session: ${sessionId}`)}</PageHeading>
-      </Header>
-    </PageContent>
+    <StyledPageContent>
+      <Layout.Header>
+        <Layout.HeaderContent>
+          <Breadcrumb
+            organization={org}
+            eventView={eventView}
+            location={location}
+            sessionId={sessionId}
+          />
+          <PageHeading>{t(`Session: ${sessionId}`)}</PageHeading>
+        </Layout.HeaderContent>
+      </Layout.Header>
+      <Layout.Body>
+        <Layout.Main fullWidth>Session View here</Layout.Main>
+      </Layout.Body>
+    </StyledPageContent>
   );
 }
 
-const Header = styled('div')`
+const StyledPageContent = styled(PageContent)`
+  padding: 0;
+`;
+
+// TODO: keep?
+const _Header = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
