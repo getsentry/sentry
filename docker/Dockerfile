@@ -58,6 +58,10 @@ RUN set -x \
   gcc \
   wget \
   " \
+  # psycopg2-binary
+  && buildDeps="$buildDeps \
+  libpq-dev \
+  " \
   # maxminddb
   && buildDeps="$buildDeps \
   libmaxminddb-dev \
