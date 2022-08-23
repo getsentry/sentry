@@ -347,7 +347,6 @@ const Sticky = styled('div')`
 
 const StyledFlex = styled('div')`
   display: flex;
-  box-sizing: border-box;
   min-height: 45px;
   padding-top: ${space(1)};
   padding-bottom: ${space(1)};
