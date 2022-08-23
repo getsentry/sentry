@@ -9,10 +9,12 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import PageHeading from 'sentry/components/pageHeading';
 import {PanelTable} from 'sentry/components/panels';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
+import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import EventView from 'sentry/utils/discover/eventView';
+import {FIELD_FORMATTERS} from 'sentry/utils/discover/fieldRenderers';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
@@ -47,6 +49,7 @@ function Breadcrumbs({}: Props) {
         version: 2,
         fields: ['session_id', 'count(session_id)', 'last_seen()'],
         projects: [],
+        orderby: '-last_seen',
         query: conditions.formatString(),
       },
       location
@@ -65,12 +68,18 @@ function Breadcrumbs({}: Props) {
         method: 'GET',
       });
 
-      console.log('res.data', res.data);
       setSessions(res.data.filter(session => session.session_id !== ''));
       setLoading(false);
     }
     fetchEvents();
   }, [api, org, location, eventView]);
+
+  const lastActivity = (
+    <div style={{display: 'flex'}}>
+      <span>{t('Last Activity')}</span>
+      <IconArrow direction="down" size="xs" />
+    </div>
+  );
 
   return (
     <PageFiltersContainer>
@@ -87,7 +96,7 @@ function Breadcrumbs({}: Props) {
         <PanelTable
           isLoading={isLoading}
           isEmpty={sessions.length === 0}
-          headers={[t('Session'), t('Last Activity'), t('Number of Events')]}
+          headers={[t('Session'), t('Number of Events'), lastActivity]}
         >
           {sessions.map(session => (
             <Fragment key={session.session_id}>
@@ -96,8 +105,12 @@ function Breadcrumbs({}: Props) {
                   {session.session_id}
                 </Link>
               </Item>
-              <Item>{session['last_seen()']}</Item>
               <Item>{session['count(session_id)']}</Item>
+              <Item>
+                {FIELD_FORMATTERS.date.renderFunc('last_seen()', {
+                  ['last_seen()']: session['last_seen()'],
+                })}
+              </Item>
             </Fragment>
           ))}
         </PanelTable>
