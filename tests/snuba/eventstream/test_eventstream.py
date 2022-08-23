@@ -58,7 +58,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
             self.project.id,
             "insert",
             (payload1, payload2),
-            is_transaction_event=insert_kwargs["event"].group_id is None,
+            is_transaction_event=insert_kwargs["event"].get_event_type() == "transaction",
         )
 
     @patch("sentry.eventstream.insert")
