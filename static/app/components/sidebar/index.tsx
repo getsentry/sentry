@@ -375,6 +375,7 @@ function Sidebar({location, organization}: Props) {
               collapsed={collapsed}
               hidePanel={hidePanel}
               organization={organization}
+              location={location}
             />
             <Broadcasts
               orientation={orientation}
