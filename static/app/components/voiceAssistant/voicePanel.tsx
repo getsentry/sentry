@@ -171,7 +171,7 @@ export class VoiceAssistantPanel extends React.Component<{}, VoiceAssistantState
   render() {
     return (
       <div>
-        <VoiceAssistantTextbox />
+        <VoiceAssistantTextbox resultText="" textStyle="" />
         <VoiceAssistantButton
           handleToggle={this.handleToggle}
           isListening={this.state.isListening}

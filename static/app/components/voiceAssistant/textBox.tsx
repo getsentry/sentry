@@ -2,7 +2,12 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-const StyledWrapper = styled('div')`
+interface VoiceAssistantTextboxProps {
+  resultText?: string;
+  textStyle?: string;
+}
+
+const StyledWrapper = styled('div')<VoiceAssistantTextboxProps>`
   position: fixed;
   bottom: 3.3em;
   right: 3.5em;
@@ -11,15 +16,18 @@ const StyledWrapper = styled('div')`
   height: 50px;
   max-height: 50px;
   background-color: yellow;
-  opacity: 0;
+  opacity: ${props => (props.resultText ? '1.0' : '0.0')};
 `;
 
-export class VoiceAssistantTextbox extends React.Component {
+export class VoiceAssistantTextbox extends React.Component<
+  VoiceAssistantTextboxProps,
+  {}
+> {
   constructor(props) {
     super(props);
   }
 
   render() {
-    return <StyledWrapper />;
+    return <StyledWrapper {...this.props}>{this.props.resultText}</StyledWrapper>;
   }
 }
