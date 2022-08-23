@@ -59,6 +59,7 @@ export function startVoiceRecognition(finalizeCallback: CallableFunction) {
     // These also have getters so they can be accessed like arrays.
     // The second [0] returns the SpeechRecognitionAlternative at position 0.
     // We then return the transcript property of the SpeechRecognitionAlternative object
+    console.log('SpeechRecognition.onresult');
     speechResult = event.results[0][0].transcript.toLowerCase();
     console.log(`Phrase recognized: "${speechResult}"`);
 
