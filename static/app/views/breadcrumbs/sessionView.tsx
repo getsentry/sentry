@@ -1,13 +1,16 @@
-import {useEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageHeading from 'sentry/components/pageHeading';
+import {PanelTable} from 'sentry/components/panels';
+import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import EventView from 'sentry/utils/discover/eventView';
+import {FIELD_FORMATTERS} from 'sentry/utils/discover/fieldRenderers';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
@@ -16,6 +19,15 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import Breadcrumb from './breadcrumb';
 
+type BreadcrumbEvent = {
+  id: string;
+  timestamp: string;
+  title: string | undefined;
+  'transaction.op': string | undefined;
+  'transaction.status': string | undefined;
+  'user.display': string | undefined;
+};
+
 interface Props extends RouteComponentProps<{sessionId: string}, {}, any, {t: number}> {}
 
 function SessionView({params: {sessionId}}: Props) {
@@ -23,6 +35,7 @@ function SessionView({params: {sessionId}}: Props) {
   const api = useApi();
   const location = useLocation();
   const [isLoading, setLoading] = useState(false);
+  const [breadcrumbEvents, setBreadcrumbEvents] = useState<Array<BreadcrumbEvent>>([]);
 
   const eventView = useMemo(() => {
     const query = decodeScalar(location.query.query, '');
@@ -43,15 +56,16 @@ function SessionView({params: {sessionId}}: Props) {
           'title',
           'transaction.op',
           'transaction.status',
-          'user.email',
+          'user.display',
         ],
         projects: [],
+        orderby: '-timestamp',
         // TODO: Filter based on incoming session_id and Breadcrumb Event title
         query: conditions.formatString(),
       },
       location
     );
-  }, [location]);
+  }, [location, sessionId]);
 
   useEffect(() => {
     api.clear();
@@ -66,10 +80,18 @@ function SessionView({params: {sessionId}}: Props) {
       });
       // eslint-disable-next-line no-console
       console.log(res);
+      setBreadcrumbEvents(res.data);
       setLoading(false);
     }
     fetchEvents();
   }, [api, org, location, eventView]);
+
+  const timestampTitle = (
+    <div style={{display: 'flex'}}>
+      <span>{t('Timestamp')}</span>
+      <IconArrow direction="down" size="xs" />
+    </div>
+  );
 
   return (
     <StyledPageContent>
@@ -85,7 +107,35 @@ function SessionView({params: {sessionId}}: Props) {
         </Layout.HeaderContent>
       </Layout.Header>
       <Layout.Body>
-        <Layout.Main fullWidth>Session View here</Layout.Main>
+        <Layout.Main fullWidth>
+          <PanelTable
+            isLoading={isLoading}
+            isEmpty={breadcrumbEvents.length === 0}
+            headers={[
+              t('Event Id'),
+              t('Title'),
+              t('Txn Operation'),
+              t('Txn Status'),
+              t('user'),
+              timestampTitle,
+            ]}
+          >
+            {breadcrumbEvents.map(event => (
+              <Fragment key={event.id}>
+                <Item>{event.id}</Item>
+                <Item>{event.title}</Item>
+                <Item>{event['transaction.op']}</Item>
+                <Item>{event['transaction.status']}</Item>
+                <Item>{event['user.display']}</Item>
+                <Item>
+                  {FIELD_FORMATTERS.date.renderFunc('timestamp', {
+                    ['timestamp']: event.timestamp,
+                  })}
+                </Item>
+              </Fragment>
+            ))}
+          </PanelTable>
+        </Layout.Main>
       </Layout.Body>
     </StyledPageContent>
   );
@@ -101,6 +151,11 @@ const _Header = styled('div')`
   align-items: center;
   justify-content: space-between;
   margin-bottom: ${space(2)};
+`;
+
+const Item = styled('div')`
+  display: flex;
+  align-items: center;
 `;
 
 export default SessionView;
