@@ -1,5 +1,4 @@
 /* eslint-disable no-console */
-/* eslint-disable no-alert */
 import React from 'react';
 import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
