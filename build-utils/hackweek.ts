@@ -56,6 +56,11 @@ class SentryRuntimeModule extends RuntimeModule {
           'var result = target.apply(thisArg, argumentsList);',
           // WIP: Ignore node_modules and only include app/views for now
           'if (_is_node_modules) { return result; }',
+          `var _ignores = [
+            './app/components/tooltip.tsx'
+
+
+          ]`,
           "if (_module.indexOf('./app/views') === -1) { return result; }",
           "if (typeof result !== 'object') { return result; }",
           'try {',
@@ -134,7 +139,7 @@ class HackweekPlugin {
     compiler.hooks.compilation.tap('RuntimePlugin', compilation => {
       compilation.hooks.additionalTreeRuntimeRequirements.tap(
         'RuntimePlugin',
-        (chunk, set) => {
+        (chunk, _set) => {
           compilation.addRuntimeModule(chunk, new SentryRuntimeModule());
         }
       );
