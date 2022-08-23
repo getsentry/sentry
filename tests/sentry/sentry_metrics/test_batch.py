@@ -663,7 +663,8 @@ def benchmark_available():
 def test_benchmark(settings, benchmark):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
-        [
+        1000
+        * [
             (counter_payload, []),
             (distribution_payload, []),
             (set_payload, []),
