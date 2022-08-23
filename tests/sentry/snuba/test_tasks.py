@@ -46,7 +46,7 @@ perf_indexer_record = partial(indexer_record, UseCaseKey.PERFORMANCE)
 rh_indexer_record = partial(indexer_record, UseCaseKey.RELEASE_HEALTH)
 
 
-class BaseSnubaTaskTest(metaclass=abc.ABCMeta):
+class SnubaTaskTestBase(metaclass=abc.ABCMeta):
     metrics = patcher("sentry.snuba.tasks.metrics")
 
     status_translations = {
@@ -118,7 +118,7 @@ class BaseSnubaTaskTest(metaclass=abc.ABCMeta):
         )
 
 
-class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
+class CreateSubscriptionInSnubaTest(SnubaTaskTestBase, TestCase):
     expected_status = QuerySubscription.Status.CREATING
     task = create_subscription_in_snuba
 
@@ -201,7 +201,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
                     assert request_body["granularity"] == expected_granularity
 
 
-class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
+class UpdateSubscriptionInSnubaTest(SnubaTaskTestBase, TestCase):
     expected_status = QuerySubscription.Status.UPDATING
     task = update_subscription_in_snuba
 
@@ -225,7 +225,7 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
         assert sub.subscription_id is not None
 
 
-class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest, TestCase):
+class DeleteSubscriptionFromSnubaTest(SnubaTaskTestBase, TestCase):
     expected_status = QuerySubscription.Status.DELETING
     task = delete_subscription_from_snuba
 
