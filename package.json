@@ -232,7 +232,7 @@
   "proxyURL": "http://localhost:8000",
   "scripts": {
     "test-wrap": "node scripts/test.js",
-    "pre-build": "yarn combine-docs && sed -i '' 's@- \"url\": \"https://sentry.io/\"@- \"url\": \"http://localhost:8000/\"@' tests/apidocs/openapi-derefed.json",
+    "pre-build": "yarn combine-docs",
     "test": "yarn test-wrap --watch",
     "test-ci": "yarn test-wrap --ci --coverage --runInBand",
     "test-debug": "node --inspect-brk scripts/test.js --runInBand",
