@@ -1,5 +1,6 @@
 import re
 from functools import lru_cache
+from typing import Union
 
 
 @lru_cache(maxsize=500)
@@ -44,14 +45,20 @@ def _translate(pat, doublestar=False):
     return re.compile("".join(res), re.MULTILINE | re.DOTALL)
 
 
-def glob_match(value_b: bytes, pat_b, doublestar=False, ignorecase=False, path_normalize=False):
+def glob_match(
+    value: Union[bytes, str],
+    pat: Union[bytes, str],
+    doublestar: bool = False,
+    ignorecase: bool = False,
+    path_normalize: bool = False,
+) -> bool:
     """A beefed up version of fnmatch.fnmatch"""
-    value = value_b.decode()
-    pat = pat_b.decode()
+    value_str = value if isinstance(value, str) else value.decode()
+    pat_str = pat if isinstance(pat, str) else pat.decode()
     if ignorecase:
-        value = value.lower()
-        pat = pat.lower()
+        value_str = value_str.lower()
+        pat_str = pat_str.lower()
     if path_normalize:
-        value = value.replace("\\", "/")
-        pat = pat.replace("\\", "/")
-    return _translate(pat, doublestar=doublestar).match(value) is not None
+        value_str = value_str.replace("\\", "/")
+        pat_str = pat_str.replace("\\", "/")
+    return _translate(pat_str, doublestar=doublestar).match(value_str) is not None
