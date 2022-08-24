@@ -530,12 +530,12 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
     def get_trace(self, tx, trace_id: str):
         query = " ".join(
             [
-                "MATCH path = (pt:Transaction)-[:PARENT_OF*]->(leaf:Transaction)",
-                "WHERE NOT (leaf)-->(:Transaction)",
+                "MATCH path = (pt:Event)-[:PARENT_OF*]->(leaf:Event)",
+                "WHERE NOT (leaf)-->(:Event)",
                 "AND pt.parent_span_id is NULL",
                 "AND pt.trace_id = $trace_id",
                 "AND leaf.trace_id = $trace_id",
-                "RETURN REDUCE(p = [], n IN nodes(path) | CASE WHEN n:Transaction THEN p + n ELSE p END)[-2..] AS edge",
+                "RETURN REDUCE(p = [], n IN nodes(path) | CASE WHEN n:Event THEN p + n ELSE p END)[-2..] AS edge",
             ]
         )
 
@@ -544,17 +544,28 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
 
         with sentry_sdk.start_span(op="building.trace", description="extract nodes"):
             edges = []
-            nodes = {}
-            props = {
+            transactions = {}
+            transaction_props = {
                 "event_id": "event_id",
                 "span_id": "span_id",
                 "transaction": "description",
+                "transaction.op": "op",
                 "project_id": "project_id",
                 "project_slug": "project_slug",
                 "parent_span_id": "parent_span_id",
                 "timestamp": "timestamp",
                 "start_timestamp": "start_timestamp",
                 "transaction.status": "status",
+            }
+            errors = {}
+            error_props = {
+                "event_id": "event_id",
+                "issue_id": "group",
+                "span": "parent_span_id",
+                "project_id": "project_id",
+                "project_slug": "project_slug",
+                "title": "title",
+                "level": "level",
             }
 
             for r in result:
@@ -564,33 +575,50 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
 
                 with sentry_sdk.start_span(op="building.trace", description="finding nodes"):
                     for node in edge:
-                        if node.id not in nodes:
-                            nodes[node.id] = {name: node[key] for name, key in props.items()}
-                            nodes[node.id]["transaction.duration"] = (
-                                nodes[node.id]["timestamp"] - nodes[node.id]["start_timestamp"]
-                            )
-                            nodes[node.id]["errors"] = []
-                            nodes[node.id]["children"] = []
-                            nodes[node.id]["measurements"] = {}
-                            nodes[node.id]["tags"] = []
-                            nodes[node.id]["_meta"] = {}
+                        if "Transaction" in node.labels:
+                            if node.id not in transactions:
+                                transactions[node.id] = {
+                                    name: node[key] for name, key in transaction_props.items()
+                                }
+                                transactions[node.id]["transaction.duration"] = (
+                                    transactions[node.id]["timestamp"]
+                                    - transactions[node.id]["start_timestamp"]
+                                )
+                                transactions[node.id]["errors"] = []
+                                transactions[node.id]["children"] = []
+                                transactions[node.id]["measurements"] = {}
+                                transactions[node.id]["tags"] = []
+                                transactions[node.id]["_meta"] = {}
+                        elif "Error" in node.labels:
+                            if node.id not in errors:
+                                errors[node.id] = {
+                                    name: node[key] for name, key in error_props.items()
+                                }
+                        else:
+                            raise ValueError(f"Unknown Event type: {node.labels}")
 
         with sentry_sdk.start_span(op="building.trace", description="connect nodes"):
             for start, end in edges:
-                end_node = nodes[end]
-                end_node["_has_parent"] = True
-                nodes[start]["children"].append(end_node)
+                if end in transactions:
+                    end_node = transactions[end]
+                    end_node["_has_parent"] = True
+                    transactions[start]["children"].append(end_node)
+                elif end in errors:
+                    end_node = errors[end]
+                    transactions[start]["errors"].append(end_node)
+                else:
+                    raise ValueError(f"Unknown end node: {end}")
 
-            roots = [node for node in nodes.values() if not node.get("_has_parent", False)]
+            roots = [node for node in transactions.values() if not node.get("_has_parent", False)]
 
         with sentry_sdk.start_span(op="building.trace", description="label generations"):
-            ns = [(root, 0) for root in roots]
-            for (n, g) in ns:
+            ns = [(root, None, 0) for root in roots]
+            for (n, p, g) in ns:
                 n["generation"] = g
                 n["children"] = sorted(
                     n["children"], key=lambda node: (node["start_timestamp"], node["timestamp"])
                 )
-                ns.extend([(c, g + 1) for c in n["children"]])
+                ns.extend([(c, n["event_id"], g + 1) for c in n["children"]])
 
         return roots
 
