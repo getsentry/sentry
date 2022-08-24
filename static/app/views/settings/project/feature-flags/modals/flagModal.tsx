@@ -6,7 +6,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {TextareaField, TextField} from 'sentry/components/forms';
+import {TextareaField} from 'sentry/components/forms';
 import SelectField from 'sentry/components/forms/selectField';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
@@ -100,6 +100,12 @@ export function FlagModal({
   const submitDisabled = !key || !!error;
   const canUpdateKind = defined(flagKey) ? flags[flagKey].evaluation.length === 0 : true;
 
+  const nameChoices = Object.keys(flags).map(value => [value, value]);
+
+  if (!nameChoices.some(nameChoice => nameChoice[0] === key)) {
+    nameChoices.push([key, key]);
+  }
+
   return (
     <Fragment>
       <Header closeButton>
@@ -112,7 +118,7 @@ export function FlagModal({
             label={t('Name')}
             placeholder={t('Enter a name')}
             value={key}
-            choices={Object.keys(flags).map(value => [value, value])}
+            choices={nameChoices}
             onKeyDown={(_value: string, e: KeyboardEvent) => {
               if (e.key === 'Enter') {
                 handleSubmit();

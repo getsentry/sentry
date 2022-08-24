@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
+import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
 import {
@@ -10,10 +11,12 @@ import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
+import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {t, tct} from 'sentry/locale';
 import ProjectStore from 'sentry/stores/projectsStore';
+import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
@@ -43,6 +46,8 @@ export default function ProjectFeatureFlags({project}: Props) {
   const previousFlags = usePrevious(currentFlags);
 
   const [flags, setFlags] = useState(currentFlags ?? {});
+  const [query, setQuery] = useState('');
+
   const showPromo = Object.keys(flags).length === 0;
 
   useEffect(() => {
@@ -199,6 +204,10 @@ export default function ProjectFeatureFlags({project}: Props) {
     }
   }
 
+  const filteredFlags = Object.keys(flags).filter(key =>
+    key.toLowerCase().includes(query.toLowerCase())
+  );
+
   return (
     <SentryDocumentTitle title={t('Feature Flags')}>
       <Fragment>
@@ -239,28 +248,40 @@ export default function ProjectFeatureFlags({project}: Props) {
         {showPromo ? (
           <Promo hasAccess={hasAccess} onGetStarted={handleAddFlag} />
         ) : (
-          Object.keys(flags).map(flagKey => (
-            <Card
-              key={flagKey}
-              flagKey={flagKey}
-              kind={flags[flagKey].kind}
-              enabled={flags[flagKey].enabled}
-              description={flags[flagKey].description}
-              segments={flags[flagKey].evaluation}
-              onDelete={() => handleDeleteFlag(flagKey)}
-              onEdit={() => handleEditFlag(flagKey)}
-              onActivateToggle={() => handleActivateToggle(flagKey)}
-              onAddSegment={() => handleAddSegment(flagKey)}
-              onDeleteSegment={id => handleDeleteSegment(flagKey, id)}
-              onEditSegment={id => handleEditSegment(flagKey, id)}
-              hasAccess={hasAccess}
-              onSortSegments={({reorderedItems}) =>
-                handleSortSegments(flagKey, reorderedItems)
-              }
+          <Fragment>
+            <StyledSearchBar
+              size="sm"
+              onChange={setQuery}
+              query={query}
+              placeholder={t('Search by flag name')}
             />
-          ))
+            {filteredFlags.map(filteredFlag => (
+              <Card
+                key={filteredFlag}
+                flagKey={filteredFlag}
+                kind={flags[filteredFlag].kind}
+                enabled={flags[filteredFlag].enabled}
+                description={flags[filteredFlag].description}
+                segments={flags[filteredFlag].evaluation}
+                onDelete={() => handleDeleteFlag(filteredFlag)}
+                onEdit={() => handleEditFlag(filteredFlag)}
+                onActivateToggle={() => handleActivateToggle(filteredFlag)}
+                onAddSegment={() => handleAddSegment(filteredFlag)}
+                onDeleteSegment={id => handleDeleteSegment(filteredFlag, id)}
+                onEditSegment={id => handleEditSegment(filteredFlag, id)}
+                hasAccess={hasAccess}
+                onSortSegments={({reorderedItems}) =>
+                  handleSortSegments(filteredFlag, reorderedItems)
+                }
+              />
+            ))}
+          </Fragment>
         )}
       </Fragment>
     </SentryDocumentTitle>
   );
 }
+
+const StyledSearchBar = styled(SearchBar)`
+  margin-bottom: ${space(2)};
+`;
