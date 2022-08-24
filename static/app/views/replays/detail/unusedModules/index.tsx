@@ -26,40 +26,36 @@ function adder(objValue, srcValue) {
   }
 }
 
-function modulesByUrl(all: Codecov[], targetUrl?: string) {
-  return (
-    all
-      // .filter(({url}) => url === targetUrl)
-      .reduce(
-        (acc, {url, timestamp, modules}) => {
-          const [prevUrl, accData] = acc;
+function modulesByUrl(all: Codecov[]) {
+  return all.reduce(
+    (acc, {url, timestamp, modules}) => {
+      const [prevUrl, accData] = acc;
 
-          const mergedModules = Object.values(modules).reduce((acc, module) => {
-            if (!acc) {
-              return module;
-            }
+      const mergedModules = Object.values(modules).reduce((acc, module) => {
+        if (!acc) {
+          return module;
+        }
 
-            return mergeWith(acc, module, adder);
-          }, null);
+        return mergeWith(acc, module, adder);
+      }, null);
 
-          if (url == prevUrl && accData?.length) {
-            accData[accData.length - 1].modules = mergeWith(
-              accData[accData.length - 1].modules,
-              mergedModules,
-              adder
-            );
-          } else {
-            accData.push({
-              timestamp,
-              url,
-              modules: mergedModules,
-            });
-          }
+      if (url === prevUrl && accData?.length) {
+        accData[accData.length - 1].modules = mergeWith(
+          accData[accData.length - 1].modules,
+          mergedModules,
+          adder
+        );
+      } else {
+        accData.push({
+          timestamp,
+          url,
+          modules: mergedModules,
+        });
+      }
 
-          return [url, accData];
-        },
-        [null, []]
-      )
+      return [url, accData];
+    },
+    [null, []]
   );
 }
 
@@ -69,8 +65,8 @@ function UnusedModules({replayRecord, imports, accessed}: Props) {
     return null;
   }
 
-  const startTimestampMs = replayRecord.startedAt.getTime();
-  const currentTimeMs = startTimestampMs + Math.floor(currentTime);
+  // const startTimestampMs = replayRecord.startedAt.getTime();
+  // const currentTimeMs = startTimestampMs + Math.floor(currentTime);
   const currentUrl = getCurrentUrl(replayRecord, replay.getRawCrumbs(), currentTime);
 
   const columns = [
@@ -79,13 +75,9 @@ function UnusedModules({replayRecord, imports, accessed}: Props) {
   ];
 
   const accessedByUrl = last(
-    modulesByUrl(accessed)[1].filter(
-      ({url}) => url === currentUrl
-    )
+    modulesByUrl(accessed)[1].filter(({url}) => url === currentUrl)
   );
-  const importsByUrl = last(
-    imports.filter(({url, }) => url === currentUrl )
-  );
+  const importsByUrl = last(imports.filter(({url}) => url === currentUrl));
 
   const isEmpty = !accessedByUrl;
 
@@ -137,7 +129,9 @@ function UnusedModules({replayRecord, imports, accessed}: Props) {
           disablePadding
           stickyHeaders
         >
-          {importedModulesNotAccessed.map((module, i) => renderTransaction([module, {}], i))}
+          {importedModulesNotAccessed.map((module, i) =>
+            renderTransaction([module, {}], i)
+          )}
         </StyledPanelTable>
       </details>
       <details>
