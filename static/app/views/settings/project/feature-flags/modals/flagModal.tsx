@@ -106,80 +106,81 @@ export function FlagModal({
         <h4>{flagKey ? t('Edit Flag') : t('Add Flag')}</h4>
       </Header>
       <Body>
-        <KeyField
-          label={t('Key')}
-          name="key"
-          onChange={value => {
-            setKey(value);
-
-            if (!value) {
-              setError(t('Key is required'));
-              return;
-            }
-
-            if (value.includes(' ')) {
-              setError(t('Key cannot contain spaces'));
-              return;
-            }
-
-            if (flags[value]) {
-              setError(t('This key is already in use'));
-              return;
-            }
-
-            setError(undefined);
-          }}
-          onKeyDown={(_value: string, e: KeyboardEvent) => {
-            if (e.key === 'Enter') {
-              handleSubmit();
-            }
-          }}
-          value={key}
-          inline={false}
-          hideControlState={!error}
-          error={error}
-          stacked
-          required
-        />
-        <DescriptionField
-          label={t('Description')}
-          name="description"
-          onChange={setDescription}
-          onKeyDown={(_value: string, e: KeyboardEvent) => {
-            if (e.key === 'Enter') {
-              handleSubmit();
-            }
-          }}
-          value={description}
-          inline={false}
-          rows={2}
-          autosize
-          hideControlState
-          stacked
-        />
-        <StyledTooltip
-          title={
-            !canUpdateKind
-              ? t('You cannot change the kind of a flag with segments')
-              : undefined
-          }
-          disabled={canUpdateKind}
-        >
+        <Fields>
           <StyledSelectField
-            name="result-type"
-            label={t('Result Type')}
-            value={kind}
-            choices={Object.values(FeatureFlagKind).map(value => [
-              value,
-              startCase(value),
-            ])}
-            onChange={setKind}
+            name="name"
+            label={t('Name')}
+            placeholder={t('Enter a name')}
+            value={key}
+            choices={Object.keys(flags).map(value => [value, value])}
+            onKeyDown={(_value: string, e: KeyboardEvent) => {
+              if (e.key === 'Enter') {
+                handleSubmit();
+              }
+            }}
+            onChange={value => {
+              setKey(value);
+
+              if (!value) {
+                setError(t('Name is required'));
+                return;
+              }
+
+              if (value.includes(' ')) {
+                setError(t('Name cannot contain spaces'));
+                return;
+              }
+
+              setError(undefined);
+            }}
             inline={false}
             hideControlState
             required
-            disabled={!canUpdateKind}
+            creatable
           />
-        </StyledTooltip>
+          <StyledTooltip
+            title={
+              !canUpdateKind
+                ? t('You cannot change the kind of a flag with segments')
+                : undefined
+            }
+            disabled={canUpdateKind}
+          >
+            <StyledSelectField
+              name="kind"
+              label={t('Kind')}
+              value={kind}
+              choices={Object.values(FeatureFlagKind).map(value => [
+                value,
+                startCase(value),
+              ])}
+              onChange={setKind}
+              inline={false}
+              hideControlState
+              required
+              disabled={!canUpdateKind}
+            />
+          </StyledTooltip>
+          <DescriptionField
+            label={t('Description')}
+            placeholder={t(
+              'What this feature flag does if active? Help other users understand why this feature is important by describing it.'
+            )}
+            name="description"
+            onChange={setDescription}
+            onKeyDown={(_value: string, e: KeyboardEvent) => {
+              if (e.key === 'Enter') {
+                handleSubmit();
+              }
+            }}
+            value={description}
+            inline={false}
+            rows={4}
+            autosize
+            hideControlState
+            stacked
+          />
+        </Fields>
       </Body>
       <Footer>
         <FooterActions>
@@ -203,15 +204,14 @@ export function FlagModal({
   );
 }
 
-const KeyField = styled(TextField)`
-  width: 100%;
-  input {
-    padding-left: ${space(1)};
-  }
+const Fields = styled('div')`
+  display: grid;
+  gap: ${space(2)};
 `;
 
 const DescriptionField = styled(TextareaField)`
   width: 100%;
+  padding: 0;
 `;
 
 const StyledSelectField = styled(SelectField)`
