@@ -46,6 +46,7 @@ const Clippy = ({event}: any) => {
     try {
       setLoading(true);
       setContent('');
+      toggleIsFinalStep(false);
       const response = await openai.createCompletion({
         model: 'text-davinci-002',
         prompt: `${TRAINING_PROMPT}\n${stacktrace}${STOP_SEQ}`,
@@ -86,6 +87,12 @@ const Clippy = ({event}: any) => {
     }
   }
 
+  function killClippy() {
+    toggleIsFinalStep(false);
+    setContent('');
+    setResolutionSteps([]);
+  }
+
   return (
     <ClippyWrapper>
       {loading && <img height={200} alt="clippy assistant" src={image} />}
@@ -99,7 +106,7 @@ const Clippy = ({event}: any) => {
       )}
       {content && !loading && (
         <Wrapper>
-          {!isFinalStep && <p>{content}</p>}
+          {!isFinalStep && <p style={{padding: '2px'}}>{content}</p>}
           {isFinalStep && (
             <ListWrapper>
               {resolutionSteps.map((step, index) => (
@@ -107,10 +114,23 @@ const Clippy = ({event}: any) => {
               ))}
             </ListWrapper>
           )}
-          <ButtonWrapper>
-            <Button onClick={() => toggleIsFinalStep(true)}>Yes</Button>
-            <Button onClick={() => toggleIsFinalStep(true)}>YES!</Button>
-          </ButtonWrapper>
+          <HR />
+          {!isFinalStep && (
+            <Title>Would you like Clippy to tell you how to fix it?</Title>
+          )}
+          {!isFinalStep && (
+            <ButtonWrapper>
+              <Button onClick={() => toggleIsFinalStep(true)}>Yes</Button>
+              <Button onClick={() => toggleIsFinalStep(true)}>YES!</Button>
+            </ButtonWrapper>
+          )}
+          {isFinalStep && <Title>Was that helpful?</Title>}
+          {isFinalStep && (
+            <ButtonWrapper>
+              <Button onClick={killClippy}>❤️</Button>
+              <Button onClick={killClippy}>💩</Button>
+            </ButtonWrapper>
+          )}
         </Wrapper>
       )}
     </ClippyWrapper>
@@ -129,6 +149,19 @@ const ClippyWrapper = styled('div')`
   font-family: monospace;
 `;
 
+const HR = styled('div')`
+  height: 1px;
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.25);
+`;
+
+const Title = styled('h4')`
+  font-weight: 600;
+  font-size: 16px;
+  padding: 20px 4px 6px;
+  margin: 0;
+`;
+
 const Wrapper = styled('div')`
   left: 50%;
   width: 400px;
@@ -136,17 +169,17 @@ const Wrapper = styled('div')`
   height: fit-content;
   background-color: #fbf1c7;
   border: 1px solid black;
-  border-radius: 4px;
-  padding: 5px 8px;
+  border-radius: 2px;
+  padding: 16px 12px;
   font-weight: 600;
   font-size: 14px;
 `;
 
 const Button = styled('button')`
   background-color: transparent;
-  border: 1px solid #bfbfbf;
-  border-radius: 4px;
-  width: 60px;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  border-radius: 2px;
+  width: 100px;
   :hover {
     text-decoration: underline;
   }
@@ -155,20 +188,24 @@ const Button = styled('button')`
 const ButtonWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
+  padding: 6px 0 0 0;
 `;
 
 const ListWrapper = styled('ul')`
   list-style: none;
+  padding: 0;
 `;
 
 const ListItem = styled('li')`
+  padding: 4px 8px;
+
   :before {
     border-style: solid;
-    border-width: 4px 4px 0 0;
+    border-width: 3px 3px 0 0;
     content: '';
     display: inline-block;
     height: 8px;
-    left: -12px;
+    left: -8px;
     position: relative;
     top: 6px;
     transform: rotate(45deg);
