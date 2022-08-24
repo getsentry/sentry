@@ -609,41 +609,41 @@ class Event(BaseEvent):
             node_id, data=value, wrapper=EventDict, ref_version=2, ref_func=ref_func
         )
 
-    @property
-    def group_id(self) -> int | None:
-        # TODO: `group_id` and `group` are deprecated properties on `Event`. We will remove them
-        # going forward. Since events may now be associated with multiple `Group` models, we will
-        # require `GroupEvent` to be passed around. The `group_events` property should be used to
-        # iterate through all `Groups` associated with an `Event`
-        if self._group_id:
-            return self._group_id
-
-        column = self._get_column_name(Columns.GROUP_ID)
-
-        return self._snuba_data.get(column)
-
-    @group_id.setter
-    def group_id(self, value: int | None) -> None:
-        self._group_id = value
-
-    # TODO We need a better way to cache these properties. functools
-    # doesn't quite do the trick as there is a reference bug with unsaved
-    # models. But the current _group_cache thing is also clunky because these
-    # properties need to be stripped out in __getstate__.
-    @property
-    def group(self) -> Group | None:
-        from sentry.models import Group
-
-        if not self.group_id:
-            return None
-        if not hasattr(self, "_group_cache"):
-            self._group_cache = Group.objects.get(id=self.group_id)
-        return self._group_cache
-
-    @group.setter
-    def group(self, group: Group) -> None:
-        self.group_id = group.id
-        self._group_cache = group
+    # @property
+    # def group_id(self) -> int | None:
+    #     # TODO: `group_id` and `group` are deprecated properties on `Event`. We will remove them
+    #     # going forward. Since events may now be associated with multiple `Group` models, we will
+    #     # require `GroupEvent` to be passed around. The `group_events` property should be used to
+    #     # iterate through all `Groups` associated with an `Event`
+    #     if self._group_id:
+    #         return self._group_id
+    #
+    #     column = self._get_column_name(Columns.GROUP_ID)
+    #
+    #     return self._snuba_data.get(column)
+    #
+    # @group_id.setter
+    # def group_id(self, value: int | None) -> None:
+    #     self._group_id = value
+    #
+    # # TODO We need a better way to cache these properties. functools
+    # # doesn't quite do the trick as there is a reference bug with unsaved
+    # # models. But the current _group_cache thing is also clunky because these
+    # # properties need to be stripped out in __getstate__.
+    # @property
+    # def group(self) -> Group | None:
+    #     from sentry.models import Group
+    #
+    #     if not self.group_id:
+    #         return None
+    #     if not hasattr(self, "_group_cache"):
+    #         self._group_cache = Group.objects.get(id=self.group_id)
+    #     return self._group_cache
+    #
+    # @group.setter
+    # def group(self, group: Group) -> None:
+    #     self.group_id = group.id
+    #     self._group_cache = group
 
     @property
     def group_ids(self) -> Sequence[int]:
