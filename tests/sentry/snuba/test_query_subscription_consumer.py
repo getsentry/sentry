@@ -2,13 +2,13 @@ import unittest
 from copy import deepcopy
 from datetime import timedelta
 from unittest import mock
+from unittest.mock import patch
 
 import pytest
 import pytz
 from dateutil.parser import parse as parse_date
 from django.conf import settings
 from django.utils.functional import cached_property as fixture
-from django.utils.functional import patcher
 
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.models import QuerySubscription, SnubaQuery
@@ -66,7 +66,12 @@ class BaseQuerySubscriptionTest:
 
 
 class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
-    metrics = patcher("sentry.snuba.query_subscription_consumer.metrics")
+    def setUp(self):
+        self.metrics_patcher = patch("sentry.snuba.query_subscription_consumer.metrics")
+        self.metrics = self.metrics_patcher.start()
+
+    def tearDown(self):
+        self.metrics_patcher.stop()
 
     def test_no_subscription(self):
         with mock.patch("sentry.snuba.tasks._snuba_pool") as pool:
