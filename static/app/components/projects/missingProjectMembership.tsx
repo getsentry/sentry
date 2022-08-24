@@ -11,7 +11,7 @@ import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
 import space from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 

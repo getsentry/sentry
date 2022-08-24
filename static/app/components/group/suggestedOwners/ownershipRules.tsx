@@ -13,7 +13,7 @@ import {Panel} from 'sentry/components/panels';
 import {IconClose, IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {CodeOwner, Organization, Project} from 'sentry/types';
+import {CodeOwner, Organization, Project} from 'sentry/types';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
 import SidebarSection from '../sidebarSection';

@@ -14,7 +14,7 @@ import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
-import type {AvatarProject, Group, Organization, Project} from 'sentry/types';
+import {AvatarProject, Group, Organization, Project} from 'sentry/types';
 import {EntrySpanTree, EntryType, Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {callIfFunction} from 'sentry/utils/callIfFunction';

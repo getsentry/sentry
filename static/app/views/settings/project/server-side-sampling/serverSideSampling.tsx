@@ -24,7 +24,7 @@ import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ProjectStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
+import {Project} from 'sentry/types';
 import {
   SamplingConditionOperator,
   SamplingRule,

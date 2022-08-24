@@ -1,4 +1,4 @@
-import type {SeriesApi} from 'sentry/types';
+import {SeriesApi} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 import {quantityField} from '.';

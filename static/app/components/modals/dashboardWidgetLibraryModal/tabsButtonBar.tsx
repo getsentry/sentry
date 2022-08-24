@@ -7,7 +7,7 @@ import {
 import FeatureBadge from 'sentry/components/featureBadge';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {

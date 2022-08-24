@@ -4,7 +4,7 @@ import Button from 'sentry/components/button';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import type {Organization, Project} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';

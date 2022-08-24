@@ -1,7 +1,7 @@
 import {createStore} from 'reflux';
 
 import EnvironmentActions from 'sentry/actions/environmentActions';
-import type {Environment} from 'sentry/types';
+import {Environment} from 'sentry/types';
 import {getDisplayName, getUrlRoutingName} from 'sentry/utils/environment';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 

@@ -12,7 +12,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import PluginList from 'sentry/components/pluginList';
 import {t, tct} from 'sentry/locale';
-import type {Organization, Plugin, Project} from 'sentry/types';
+import {Organization, Plugin, Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withPlugins from 'sentry/utils/withPlugins';

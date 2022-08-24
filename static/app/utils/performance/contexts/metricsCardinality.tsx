@@ -1,7 +1,7 @@
 import {Fragment, ReactNode} from 'react';
 import {Location} from 'history';
 
-import type {Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';

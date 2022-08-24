@@ -17,9 +17,10 @@ function getCurrentUrl(
   ) as BreadcrumbTypeNavigation[];
 
   const initialUrl = replayRecord.urls[0] ?? '';
+  const origin = initialUrl ? new URL(initialUrl).origin : '';
 
   const mostRecentNavigation = last(
-    navigationCrumbs.filter(({timestamp}) => +new Date(timestamp || 0) <= currentTimeMs)
+    navigationCrumbs.filter(({timestamp}) => +new Date(timestamp || 0) < currentTimeMs)
   )?.data?.to;
 
   if (!mostRecentNavigation) {
@@ -32,7 +33,7 @@ function getCurrentUrl(
     return String(url);
   } catch {
     // Otherwise we need to add the origin manually and hope the suffix makes sense.
-    return new URL(initialUrl).origin + mostRecentNavigation;
+    return origin + mostRecentNavigation;
   }
 }
 

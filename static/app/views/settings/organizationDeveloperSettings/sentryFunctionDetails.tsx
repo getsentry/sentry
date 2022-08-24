@@ -15,7 +15,7 @@ import FormModel from 'sentry/components/forms/model';
 import {Field} from 'sentry/components/forms/type';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import type {SentryFunction} from 'sentry/types';
+import {SentryFunction} from 'sentry/types';
 
 import SentryFunctionEnvironmentVariables from './sentryFunctionsEnvironmentVariables';
 import SentryFunctionSubscriptions from './sentryFunctionSubscriptions';

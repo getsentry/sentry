@@ -19,7 +19,7 @@ import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {
+import {
   AppOrProviderOrPlugin,
   DocIntegration,
   Integration,
@@ -28,7 +28,7 @@ import type {
   PluginWithProjectList,
   SentryApp,
   SentryAppInstallation,
-} from 'sentry/types'
+} from 'sentry/types';
 import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 import {
   getAlertText,

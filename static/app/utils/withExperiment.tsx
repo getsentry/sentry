@@ -2,7 +2,7 @@ import {Component} from 'react';
 
 import {experimentConfig, unassignedValue} from 'sentry/data/experimentConfig';
 import ConfigStore from 'sentry/stores/configStore';
-import type {Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {
   ExperimentAssignment,
   ExperimentKey,

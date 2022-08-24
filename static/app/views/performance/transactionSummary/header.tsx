@@ -14,7 +14,7 @@ import NavTabs from 'sentry/components/navTabs';
 import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';

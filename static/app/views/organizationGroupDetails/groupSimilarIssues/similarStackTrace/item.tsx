@@ -17,7 +17,7 @@ import SimilarScoreCard from 'sentry/components/similarScoreCard';
 import {t} from 'sentry/locale';
 import GroupingStore from 'sentry/stores/groupingStore';
 import space from 'sentry/styles/space';
-import type {Group, Organization, Project} from 'sentry/types';
+import {Group, Organization, Project} from 'sentry/types';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 
 type Props = {

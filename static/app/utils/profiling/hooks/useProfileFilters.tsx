@@ -2,7 +2,7 @@ import {useEffect, useState} from 'react';
 
 import {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import type {Organization, PageFilters, Tag} from 'sentry/types';
+import {Organization, PageFilters, Tag} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 

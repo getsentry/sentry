@@ -8,7 +8,7 @@ import Alert from 'sentry/components/alert';
 import {Form, SelectField, TextField} from 'sentry/components/forms';
 import {OnSubmitCallback} from 'sentry/components/forms/type';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
 import {getSortLabel, IssueSortOptions} from './utils';

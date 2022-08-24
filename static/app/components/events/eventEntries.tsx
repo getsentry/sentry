@@ -27,7 +27,7 @@ import EventUserFeedback from 'sentry/components/events/userFeedback';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {
+import {
   Entry,
   EntryType,
   Event,
@@ -38,7 +38,7 @@ import type {
   Project,
   SharedViewOrganization,
   Thread,
-} from 'sentry/types'
+} from 'sentry/types';
 import {DebugFile} from 'sentry/types/debugFiles';
 import {Image} from 'sentry/types/debugImage';
 import {isNotSharedOrganization} from 'sentry/types/utils';

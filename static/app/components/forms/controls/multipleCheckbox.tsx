@@ -1,7 +1,7 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import type {Choices} from 'sentry/types';
+import {Choices} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 const MultipleCheckboxWrapper = styled('div')`

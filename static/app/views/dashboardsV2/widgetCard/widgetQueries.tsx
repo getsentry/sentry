@@ -3,12 +3,12 @@ import omit from 'lodash/omit';
 
 import {Client} from 'sentry/api';
 import {isMultiSeriesStats} from 'sentry/components/charts/utils';
-import type {
+import {
   EventsStats,
   MultiSeriesEventsStats,
   Organization,
   PageFilters,
-} from 'sentry/types'
+} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';

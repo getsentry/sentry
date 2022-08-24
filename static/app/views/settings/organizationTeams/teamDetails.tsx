@@ -13,7 +13,7 @@ import NavTabs from 'sentry/components/navTabs';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
-import type {Team} from 'sentry/types';
+import {Team} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import useApi from 'sentry/utils/useApi';
 import useTeams from 'sentry/utils/useTeams';

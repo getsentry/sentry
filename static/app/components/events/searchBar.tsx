@@ -7,7 +7,7 @@ import omit from 'lodash/omit';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
-import type {Organization, SavedSearchType, Tag, TagCollection} from 'sentry/types';
+import {Organization, SavedSearchType, Tag, TagCollection} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {
   Field,

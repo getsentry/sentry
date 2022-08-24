@@ -11,7 +11,7 @@ import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Organization, PageFilters, SelectValue} from 'sentry/types';
+import {Organization, PageFilters, SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {
   explodeField,

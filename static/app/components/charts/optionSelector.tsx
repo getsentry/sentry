@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import FeatureBadge from 'sentry/components/featureBadge';
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import Truncate from 'sentry/components/truncate';
-import type {SelectValue} from 'sentry/types';
+import {SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 type BaseProps = React.ComponentProps<typeof CompactSelect> & {

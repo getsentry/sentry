@@ -1,9 +1,29 @@
 import {RouteContextInterface} from 'react-router';
 
-import type {Organization, Project} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import {OnboardingState} from 'sentry/views/onboarding/targetedOnboarding/types';
 
 import type {AvatarUser} from './user';
+
+export enum OnboardingTaskKey {
+  FIRST_PROJECT = 'create_project',
+  FIRST_EVENT = 'send_first_event',
+  INVITE_MEMBER = 'invite_member',
+  SECOND_PLATFORM = 'setup_second_platform',
+  USER_CONTEXT = 'setup_user_context',
+  RELEASE_TRACKING = 'setup_release_tracking',
+  SOURCEMAPS = 'setup_sourcemaps',
+  USER_REPORTS = 'setup_user_reports',
+  ISSUE_TRACKER = 'setup_issue_tracker',
+  ALERT_RULE = 'setup_alert_rules',
+  FIRST_TRANSACTION = 'setup_transactions',
+  METRIC_ALERT = 'setup_metric_alert_rules',
+  USER_SELECTED_PROJECTS = 'setup_userselected_projects',
+  /// Customized card that shows the selected integrations during onboarding
+  INTEGRATIONS = 'integrations',
+  /// Regular card that tells the user to setup integrations if no integrations were selected during onboarding
+  FIRST_INTEGRATION = 'setup_integrations',
+}
 
 export type OnboardingSupplementComponentProps = {
   onCompleteTask: () => void;

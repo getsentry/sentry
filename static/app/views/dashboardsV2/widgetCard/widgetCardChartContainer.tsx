@@ -8,7 +8,7 @@ import {LegendComponentOption} from 'echarts';
 import {Client} from 'sentry/api';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import type {Organization, PageFilters} from 'sentry/types';
+import {Organization, PageFilters} from 'sentry/types';
 import {EChartEventHandler, Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 

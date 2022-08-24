@@ -6,7 +6,7 @@ import {ControlProps, GeneralSelectValue} from 'sentry/components/forms/selectCo
 import {IconList} from 'sentry/icons';
 import {tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {SelectValue} from 'sentry/types';
+import {SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/index';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';

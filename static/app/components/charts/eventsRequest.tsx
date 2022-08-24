@@ -12,7 +12,7 @@ import {
   isMultiSeriesStats,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
-import type {
+import {
   DateString,
   EventsStats,
   EventsStatsData,

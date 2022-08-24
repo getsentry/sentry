@@ -6,7 +6,7 @@ import {
   openAddDashboardWidgetModal,
   openAddToDashboardModal,
 } from 'sentry/actionCreators/modal';
-import type {NewQuery} from 'sentry/types';
+import {NewQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import {DashboardWidgetSource, DisplayType} from 'sentry/views/dashboardsV2/types';

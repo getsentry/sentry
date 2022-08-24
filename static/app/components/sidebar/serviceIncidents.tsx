@@ -22,7 +22,7 @@ import {
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {SentryServiceStatus} from 'sentry/types';
+import {SentryServiceStatus} from 'sentry/types';
 import marked from 'sentry/utils/marked';
 
 import TimeSince from '../timeSince';

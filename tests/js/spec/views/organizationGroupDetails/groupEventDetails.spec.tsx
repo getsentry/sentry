@@ -5,7 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import CommitterStore from 'sentry/stores/committerStore';
-import type {Event, Group} from 'sentry/types';
+import {Event, Group} from 'sentry/types';
 import {Organization} from 'sentry/types/organization';
 import {Project} from 'sentry/types/project';
 import GroupEventDetails, {

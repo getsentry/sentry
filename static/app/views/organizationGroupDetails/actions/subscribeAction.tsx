@@ -1,7 +1,7 @@
 import ActionButton from 'sentry/components/actions/button';
 import {IconBell} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Group} from 'sentry/types';
+import {Group} from 'sentry/types';
 
 import {getSubscriptionReason} from '../utils';
 

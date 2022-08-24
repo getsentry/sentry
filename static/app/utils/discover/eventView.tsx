@@ -13,7 +13,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {DEFAULT_PER_PAGE} from 'sentry/constants';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import type {NewQuery, PageFilters, SavedQuery, SelectValue, User} from 'sentry/types';
+import {NewQuery, PageFilters, SavedQuery, SelectValue, User} from 'sentry/types';
 import {
   aggregateOutputType,
   Column,

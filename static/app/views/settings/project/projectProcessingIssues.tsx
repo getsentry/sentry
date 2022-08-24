@@ -27,7 +27,7 @@ import formGroups from 'sentry/data/forms/processingIssues';
 import {IconQuestion} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {inputStyles} from 'sentry/styles/input';
-import type {Organization, ProcessingIssue, ProcessingIssueItem} from 'sentry/types';
+import {Organization, ProcessingIssue, ProcessingIssueItem} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';

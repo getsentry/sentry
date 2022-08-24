@@ -3,7 +3,7 @@ import {ReactElement, useMemo} from 'react';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
-import type {PageFilters} from 'sentry/types';
+import {PageFilters} from 'sentry/types';
 import {useProfiles} from 'sentry/utils/profiling/hooks/useProfiles';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 

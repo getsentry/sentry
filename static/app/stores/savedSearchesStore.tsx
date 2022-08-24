@@ -2,7 +2,7 @@ import findIndex from 'lodash/findIndex';
 import {createStore, StoreDefinition} from 'reflux';
 
 import SavedSearchesActions from 'sentry/actions/savedSearchesActions';
-import type {SavedSearch, SavedSearchType} from 'sentry/types';
+import {SavedSearch, SavedSearchType} from 'sentry/types';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type State = {

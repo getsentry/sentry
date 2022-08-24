@@ -4,7 +4,7 @@ import AnnotatedText from 'sentry/components/events/meta/annotatedText';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Event} from 'sentry/types';
+import {Event} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';

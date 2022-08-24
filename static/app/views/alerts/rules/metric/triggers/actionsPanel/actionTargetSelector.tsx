@@ -2,7 +2,7 @@ import SelectControl from 'sentry/components/forms/selectControl';
 import TeamSelector from 'sentry/components/forms/teamSelector';
 import Input from 'sentry/components/input';
 import SelectMembers from 'sentry/components/selectMembers';
-import type {Organization, Project, SelectValue} from 'sentry/types';
+import {Organization, Project, SelectValue} from 'sentry/types';
 import {
   Action,
   ActionType,

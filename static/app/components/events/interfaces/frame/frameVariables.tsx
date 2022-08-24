@@ -1,4 +1,4 @@
-import type {KeyValueListData} from 'sentry/types';
+import {KeyValueListData} from 'sentry/types';
 
 import AnnotatedText from '../../meta/annotatedText';
 import KeyValueList from '../keyValueList';

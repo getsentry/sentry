@@ -7,7 +7,7 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import LoadingError from 'sentry/components/loadingError';
 import {Panel} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
-import type {Group, Organization, Project} from 'sentry/types';
+import {Group, Organization, Project} from 'sentry/types';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type ErrorCode =

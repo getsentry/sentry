@@ -1,8 +1,8 @@
 import {useEffect} from 'react';
 
-import type {Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 
-export async function initSentryReplays() {
+async function initSentryReplays() {
   const {SentryReplay} = await import('@sentry/replay');
 
   const replays = new SentryReplay({
@@ -29,7 +29,7 @@ export function SentryReplayInit({organization}: {organization: Organization | n
       return;
     }
 
-    // initSentryReplays();
+    initSentryReplays();
   }, [organization]);
 
   return null;

@@ -13,7 +13,7 @@ import {Hovercard} from 'sentry/components/hovercard';
 import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {getConfigureTracingDocsLink} from 'sentry/utils/docs';

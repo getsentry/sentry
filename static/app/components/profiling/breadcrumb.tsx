@@ -4,7 +4,7 @@ import {Location} from 'history';
 
 import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
-import type {Organization, Project} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import {
   generateProfileDetailsRouteWithQuery,
   generateProfileFlamechartRouteWithQuery,

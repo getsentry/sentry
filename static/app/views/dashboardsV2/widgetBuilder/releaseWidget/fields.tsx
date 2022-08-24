@@ -1,11 +1,12 @@
 import invert from 'lodash/invert';
 
-import {SessionField, SessionStatus} from 'sentry/enum';
-import type {
+import {
   SelectValue,
   SessionAggregationColumn,
+  SessionField,
   SessionsMeta,
   SessionsOperation,
+  SessionStatus,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {SessionMetric} from 'sentry/utils/metrics/fields';

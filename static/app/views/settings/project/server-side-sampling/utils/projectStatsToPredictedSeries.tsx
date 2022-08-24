@@ -1,7 +1,7 @@
 import moment from 'moment';
 
 import {t} from 'sentry/locale';
-import type {SeriesApi} from 'sentry/types';
+import {SeriesApi} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import commonTheme from 'sentry/utils/theme';

@@ -10,7 +10,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 
 type Props = {
   activeTab: 'stream' | 'rules';

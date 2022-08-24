@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import ToolbarHeader from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {PageFilters} from 'sentry/types';
+import {PageFilters} from 'sentry/types';
 
 type Props = {
   isReprocessingQuery: boolean;

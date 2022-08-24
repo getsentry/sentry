@@ -7,7 +7,7 @@ import flatten from 'lodash/flatten';
 
 import {Client, ResponseMeta} from 'sentry/api';
 import {t} from 'sentry/locale';
-import type {
+import {
   DocIntegration,
   EventIdResponse,
   IntegrationProvider,
@@ -18,7 +18,7 @@ import type {
   SentryApp,
   ShortIdResponse,
   Team,
-} from 'sentry/types'
+} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 import {singleLineRenderer as markedSingleLine} from 'sentry/utils/marked';

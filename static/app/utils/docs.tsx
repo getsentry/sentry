@@ -1,4 +1,4 @@
-import type {AvatarProject} from 'sentry/types';
+import {AvatarProject} from 'sentry/types';
 
 const platforms = [
   'dotnet',

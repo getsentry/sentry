@@ -5,13 +5,13 @@ import {FieldFromConfig} from 'sentry/components/forms';
 import Form from 'sentry/components/forms/form';
 import {Field} from 'sentry/components/forms/type';
 import {t} from 'sentry/locale';
-import type {
+import {
   Integration,
   Organization,
   Project,
   Repository,
   RepositoryProjectPathConfig,
-} from 'sentry/types'
+} from 'sentry/types';
 import {
   sentryNameToOption,
   trackIntegrationAnalytics,

@@ -1,7 +1,7 @@
 import {Component} from 'react';
 
 import SentryTypes from 'sentry/sentryTypes';
-import type {Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
 type InjectedOrganizationProps = {

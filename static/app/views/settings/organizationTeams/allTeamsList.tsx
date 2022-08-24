@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import {t, tct} from 'sentry/locale';
-import type {Organization, Team} from 'sentry/types';
+import {Organization, Team} from 'sentry/types';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 

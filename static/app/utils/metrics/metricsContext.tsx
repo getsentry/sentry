@@ -1,6 +1,6 @@
 import {createContext} from 'react';
 
-import type {MetricsMetaCollection, MetricsTagCollection} from 'sentry/types';
+import {MetricsMetaCollection, MetricsTagCollection} from 'sentry/types';
 
 export interface MetricsContextValue {
   metas: MetricsMetaCollection;

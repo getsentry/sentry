@@ -1,4 +1,4 @@
-import type {Choices, SelectValue} from 'sentry/types';
+import {Choices, SelectValue} from 'sentry/types';
 
 type Input = number | string | undefined | Record<any, any> | string[] | Choices;
 

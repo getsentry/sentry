@@ -1,6 +1,6 @@
 import AsyncComponent from 'sentry/components/asyncComponent';
 import AvatarList from 'sentry/components/avatar/avatarList';
-import type {Member} from 'sentry/types';
+import {Member} from 'sentry/types';
 
 type Props = AsyncComponent['props'] & {
   orgId: string;

@@ -19,7 +19,7 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {SelectValue} from 'sentry/types';
+import {SelectValue} from 'sentry/types';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {getNextBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
 import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';

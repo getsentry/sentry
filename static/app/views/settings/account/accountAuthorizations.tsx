@@ -9,7 +9,7 @@ import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {ApiApplication} from 'sentry/types';
+import {ApiApplication} from 'sentry/types';
 import AsyncView from 'sentry/views/asyncView';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';

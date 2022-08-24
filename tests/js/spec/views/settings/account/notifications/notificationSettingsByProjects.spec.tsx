@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import type {Project} from 'sentry/types';
+import {Project} from 'sentry/types';
 import NotificationSettingsByProjects from 'sentry/views/settings/account/notifications/notificationSettingsByProjects';
 
 const createWrapper = (projects: Project[]) => {

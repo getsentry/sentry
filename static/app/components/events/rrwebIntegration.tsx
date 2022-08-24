@@ -1,6 +1,6 @@
 import AsyncComponent from 'sentry/components/asyncComponent';
 import LazyLoad from 'sentry/components/lazyLoad';
-import type {IssueAttachment, Organization, Project} from 'sentry/types';
+import {IssueAttachment, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 
 type Props = {

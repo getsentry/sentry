@@ -22,13 +22,13 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {
+import {
   Integration,
   Organization,
   Project,
   Repository,
   RepositoryProjectPathConfig,
-} from 'sentry/types'
+} from 'sentry/types';
 import {
   getIntegrationIcon,
   trackIntegrationAnalytics,

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Group} from 'sentry/types';
+import {Group} from 'sentry/types';
 
 import SidebarSection from './sidebarSection';
 

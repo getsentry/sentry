@@ -7,7 +7,7 @@ import TextField from 'sentry/components/forms/textField';
 import ListItem from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Project, Team} from 'sentry/types';
+import {Project, Team} from 'sentry/types';
 
 type Props = {
   disabled: boolean;

@@ -9,7 +9,7 @@ import TextField from 'sentry/components/forms/textField';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {API_ACCESS_SCOPES} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import type {Choices, Organization} from 'sentry/types';
+import {Choices, Organization} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';

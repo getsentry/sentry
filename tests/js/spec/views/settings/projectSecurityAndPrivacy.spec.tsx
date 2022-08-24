@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import type {Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import ProjectSecurityAndPrivacy from 'sentry/views/settings/projectSecurityAndPrivacy';
 
 const org = TestStubs.Organization();

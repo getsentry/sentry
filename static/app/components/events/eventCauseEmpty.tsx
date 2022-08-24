@@ -12,7 +12,7 @@ import {DataSection} from 'sentry/components/events/styles';
 import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Commit, Organization, Project, RepositoryStatus} from 'sentry/types';
+import {Commit, Organization, Project, RepositoryStatus} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {IssueEventKey} from 'sentry/utils/analytics/issueAnalyticsEvents';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';

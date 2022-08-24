@@ -1,4 +1,4 @@
-import type {Config} from 'sentry/types';
+import {Config} from 'sentry/types';
 
 import {initializeLocale} from './initializeLocale';
 

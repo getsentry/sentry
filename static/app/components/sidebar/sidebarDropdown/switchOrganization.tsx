@@ -9,7 +9,7 @@ import SidebarOrgSummary from 'sentry/components/sidebar/sidebarOrgSummary';
 import {IconAdd, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {OrganizationSummary} from 'sentry/types';
+import {OrganizationSummary} from 'sentry/types';
 import withOrganizations from 'sentry/utils/withOrganizations';
 
 import Divider from './divider.styled';

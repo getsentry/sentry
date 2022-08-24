@@ -6,14 +6,14 @@ import {isMultiSeriesStats} from 'sentry/components/charts/utils';
 import Link from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import type {
+import {
   EventsStats,
   MultiSeriesEventsStats,
   Organization,
   PageFilters,
   SelectValue,
   TagCollection,
-} from 'sentry/types'
+} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';

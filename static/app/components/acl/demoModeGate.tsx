@@ -1,5 +1,5 @@
 import ConfigStore from 'sentry/stores/configStore';
-import type {Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {

@@ -2,7 +2,7 @@ import {Component} from 'react';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
 import SentryTypes from 'sentry/sentryTypes';
-import type {Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import withLatestContext from 'sentry/utils/withLatestContext';
 import AccountSettingsNavigation from 'sentry/views/settings/account/accountSettingsNavigation';
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';

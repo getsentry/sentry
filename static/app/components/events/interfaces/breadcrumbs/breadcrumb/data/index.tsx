@@ -1,4 +1,4 @@
-import type {Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {BreadcrumbType, RawCrumb} from 'sentry/types/breadcrumbs';
 import {Event} from 'sentry/types/event';
 

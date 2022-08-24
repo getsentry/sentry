@@ -1,4 +1,4 @@
-import type {ExceptionType, ExceptionValue, PlatformType} from 'sentry/types';
+import {ExceptionType, ExceptionValue, PlatformType} from 'sentry/types';
 
 import Exception from './exception';
 import Stacktrace from './stackTrace';

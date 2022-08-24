@@ -1,7 +1,7 @@
 import {createStore} from 'reflux';
 
 import TeamActions from 'sentry/actions/teamActions';
-import type {Team} from 'sentry/types';
+import {Team} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 

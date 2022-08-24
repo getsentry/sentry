@@ -11,7 +11,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelItem} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
-import type {Organization, Project, Scope} from 'sentry/types';
+import {Organization, Project, Scope} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';

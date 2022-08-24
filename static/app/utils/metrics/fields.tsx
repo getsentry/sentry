@@ -1,4 +1,4 @@
-import type {MetricsOperation, MetricsType} from 'sentry/types';
+import {MetricsOperation, MetricsType} from 'sentry/types';
 
 import {ColumnType} from '../discover/fields';
 

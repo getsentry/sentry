@@ -1,7 +1,7 @@
 import {Component} from 'react';
 
 import SentryAppComponentsStore from 'sentry/stores/sentryAppComponentsStore';
-import type {SentryAppComponent} from 'sentry/types';
+import {SentryAppComponent} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
 type InjectedAppComponentsProps = {

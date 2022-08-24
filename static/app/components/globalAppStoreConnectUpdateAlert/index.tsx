@@ -1,5 +1,5 @@
 import * as AppStoreConnectContext from 'sentry/components/projects/appStoreConnectContext';
-import type {Organization, Project} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 
 import UpdateAlert from './updateAlert';
 

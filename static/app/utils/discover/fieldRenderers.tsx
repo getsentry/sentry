@@ -15,7 +15,7 @@ import Tooltip from 'sentry/components/tooltip';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
-import type {AvatarProject, Organization, Project} from 'sentry/types';
+import {AvatarProject, Organization, Project} from 'sentry/types';
 import {defined, isUrl} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView, {EventData, MetaType} from 'sentry/utils/discover/eventView';

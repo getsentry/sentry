@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {EventError, Group, Organization} from 'sentry/types';
+import {EventError, Group, Organization} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import {DurationChart} from './durationChart';

@@ -2,7 +2,7 @@ import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
-import type {Group} from 'sentry/types';
+import {Group} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import GroupReplays from './groupReplays';

@@ -20,7 +20,7 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
 import {DashboardListItem, DisplayType} from 'sentry/views/dashboardsV2/types';

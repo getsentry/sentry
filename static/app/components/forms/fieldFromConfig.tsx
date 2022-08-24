@@ -1,4 +1,4 @@
-import type {Scope} from 'sentry/types';
+import {Scope} from 'sentry/types';
 
 import BlankField from './blankField';
 import BooleanField, {BooleanFieldProps} from './booleanField';

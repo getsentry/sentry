@@ -17,7 +17,7 @@ import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconCopy, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Organization, Release, ReleaseMeta, ReleaseProject} from 'sentry/types';
+import {Organization, Release, ReleaseMeta, ReleaseProject} from 'sentry/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
 import ReleaseActions from './releaseActions';

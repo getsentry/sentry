@@ -5,7 +5,7 @@ import {
   ScrollbarManagerChildrenProps,
   withScrollbarManager,
 } from 'sentry/components/events/interfaces/spans/scrollbarManager';
-import type {Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 
 import TransactionBar from './transactionBar';

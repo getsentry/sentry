@@ -22,14 +22,13 @@ import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {
+import {
   NewQuery,
   Organization,
   PageFilters,
   ReleaseProject,
-} from 'sentry/types'
-  import {SessionFieldWithOperation} from 'sentry/enum'
-
+  SessionFieldWithOperation,
+} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';

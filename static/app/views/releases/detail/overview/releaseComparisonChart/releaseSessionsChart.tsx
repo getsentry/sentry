@@ -13,14 +13,14 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import type {
+import {
   ReleaseComparisonChartType,
   ReleaseProject,
   ReleaseWithHealth,
   SessionApiResponse,
-} from 'sentry/types'
-  import {SessionFieldWithOperation,
-  SessionStatus,} from 'sentry/enum';
+  SessionFieldWithOperation,
+  SessionStatus,
+} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getDuration, getExactDuration} from 'sentry/utils/formatters';
 import {

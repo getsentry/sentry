@@ -137,9 +137,7 @@ function UnusedModules({replayRecord, imports, accessed}: Props) {
           disablePadding
           stickyHeaders
         >
-          {importedModulesNotAccessed.map((module, i) =>
-            renderTransaction([module, {}], i)
-          )}
+          {importedModulesNotAccessed.map((module, i) => renderTransaction([module, {}], i))}
         </StyledPanelTable>
       </details>
       <details>

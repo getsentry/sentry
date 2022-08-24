@@ -1,6 +1,6 @@
 import {Location} from 'history';
 
-import type {Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {getMEPAlertsDataset} from 'sentry/views/alerts/wizard/options';
 

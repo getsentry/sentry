@@ -1,6 +1,6 @@
 import {Location, Query} from 'history';
 
-import type {Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 

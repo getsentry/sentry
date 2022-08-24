@@ -9,7 +9,7 @@ import {PanelHeader} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
 import GroupingStore from 'sentry/stores/groupingStore';
 import space from 'sentry/styles/space';
-import type {Group, Organization, Project} from 'sentry/types';
+import {Group, Organization, Project} from 'sentry/types';
 
 type Props = {
   groupId: Group['id'];

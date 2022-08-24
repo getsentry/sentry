@@ -5,7 +5,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import type {Organization, PageFilters} from 'sentry/types';
+import {Organization, PageFilters} from 'sentry/types';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';

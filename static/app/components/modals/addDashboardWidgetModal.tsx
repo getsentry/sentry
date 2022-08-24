@@ -23,14 +23,14 @@ import Input from 'sentry/components/input';
 import {PanelAlert} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {
+import {
   DateString,
   Organization,
   PageFilters,
   SelectValue,
   SessionField,
   TagCollection,
-} from 'sentry/types'
+} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {

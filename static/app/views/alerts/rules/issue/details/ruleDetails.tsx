@@ -20,7 +20,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconCopy, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {DateString, Member, Organization, Project} from 'sentry/types';
+import {DateString, Member, Organization, Project} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {ALERT_DEFAULT_CHART_PERIOD} from 'sentry/views/alerts/rules/metric/details/constants';

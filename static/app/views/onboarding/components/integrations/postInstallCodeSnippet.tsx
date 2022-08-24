@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import type {IntegrationProvider} from 'sentry/types';
+import {IntegrationProvider} from 'sentry/types';
 
 type Props = {
   provider: IntegrationProvider;

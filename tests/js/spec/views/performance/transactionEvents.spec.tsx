@@ -4,7 +4,7 @@ import {act} from 'sentry-test/reactTestingLibrary';
 
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {WebVital} from 'sentry/utils/fields';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import TransactionEvents from 'sentry/views/performance/transactionSummary/transactionEvents';

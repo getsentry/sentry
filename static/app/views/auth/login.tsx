@@ -7,7 +7,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NavTabs from 'sentry/components/navTabs';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {AuthConfig} from 'sentry/types';
+import {AuthConfig} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
 import LoginForm from './loginForm';

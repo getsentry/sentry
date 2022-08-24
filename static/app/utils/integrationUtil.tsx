@@ -13,7 +13,7 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
-import type {
+import {
   AppOrProviderOrPlugin,
   DocIntegration,
   ExternalActorMapping,

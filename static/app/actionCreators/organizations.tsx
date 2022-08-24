@@ -8,7 +8,7 @@ import {Client} from 'sentry/api';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import type {Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 
 type RedirectRemainingOrganizationParams = {
   /**

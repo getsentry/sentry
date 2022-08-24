@@ -1,6 +1,6 @@
 import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {Organization, Project} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import useProjects from 'sentry/utils/useProjects';
 

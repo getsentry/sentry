@@ -6,7 +6,7 @@ import {Location} from 'history';
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Repository} from 'sentry/types';
+import {Repository} from 'sentry/types';
 
 type Props = {
   location: Location;

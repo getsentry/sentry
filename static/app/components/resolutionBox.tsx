@@ -9,12 +9,12 @@ import Version from 'sentry/components/version';
 import {IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {
+import {
   GroupActivity,
   GroupActivitySetByResolvedInRelease,
   GroupActivityType,
   ResolutionStatusDetails,
-} from 'sentry/types'
+} from 'sentry/types';
 
 type Props = {
   projectId: string;

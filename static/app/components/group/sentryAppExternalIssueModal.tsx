@@ -5,12 +5,12 @@ import {Client} from 'sentry/api';
 import SentryAppExternalIssueForm from 'sentry/components/group/sentryAppExternalIssueForm';
 import NavTabs from 'sentry/components/navTabs';
 import {t, tct} from 'sentry/locale';
-import type {
+import {
   Group,
   PlatformExternalIssue,
   SentryAppComponent,
   SentryAppInstallation,
-} from 'sentry/types'
+} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import withApi from 'sentry/utils/withApi';
 

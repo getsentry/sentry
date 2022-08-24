@@ -7,7 +7,7 @@ import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {
   platformEventLinkMap,
   PlatformEvents,

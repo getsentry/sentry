@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types';
+import {SelectValue} from 'sentry/types';
 
 export type FineTuneField = {
   description: string;

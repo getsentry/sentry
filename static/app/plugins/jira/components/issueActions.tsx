@@ -1,6 +1,6 @@
 import {Form, FormState} from 'sentry/components/deprecatedforms';
 import DefaultIssueActions from 'sentry/plugins/components/issueActions';
-import type {Writable} from 'sentry/types';
+import {Writable} from 'sentry/types';
 
 class IssueActions extends DefaultIssueActions {
   changeField = (

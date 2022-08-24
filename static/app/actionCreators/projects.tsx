@@ -12,7 +12,7 @@ import {Client} from 'sentry/api';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
-import type {Project, Team} from 'sentry/types';
+import {Project, Team} from 'sentry/types';
 
 type UpdateParams = {
   orgId: string;

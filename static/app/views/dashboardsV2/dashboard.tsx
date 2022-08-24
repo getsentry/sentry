@@ -23,7 +23,7 @@ import Button from 'sentry/components/button';
 import {IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Organization, PageFilters} from 'sentry/types';
+import {Organization, PageFilters} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';

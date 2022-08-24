@@ -1,4 +1,3 @@
-import { merge } from 'lodash';
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import {
   breadcrumbFactory,
@@ -88,7 +87,6 @@ export default class ReplayReader {
     this.rrwebEvents = rrwebEventListFactory(replayRecord, rrwebEvents);
 
     this.replayRecord = replayRecord;
-    console.log({codecov});
     this.imports = codecov.filter(({type}) => type === 'imports');
     this.moduleCalls = codecov.filter(({type}) => type === 'modulecalls');
   }

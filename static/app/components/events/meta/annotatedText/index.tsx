@@ -7,7 +7,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {MetaError} from 'sentry/types';
+import {MetaError} from 'sentry/types';
 
 import Chunks from './chunks';
 import {getTooltipText} from './utils';

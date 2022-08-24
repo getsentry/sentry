@@ -10,7 +10,7 @@ import TextCopyInput from 'sentry/components/forms/textCopyInput';
 import TextField from 'sentry/components/forms/textField';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
-import type {PageFilters, Project, SelectValue} from 'sentry/types';
+import {PageFilters, Project, SelectValue} from 'sentry/types';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 

@@ -98,10 +98,7 @@ export function mapRRWebAttachments(unsortedReplayAttachments): ReplayAttachment
     } else if (attachment?.data?.tag === 'breadcrumb') {
       replayAttachments.breadcrumbs.push(attachment.data.payload);
     } else if (attachment?.data?.tag === 'hotcodecov') {
-      replayAttachments.codecov.push({
-      timestamp: attachment.timestamp,
-        ...attachment.data.payload,
-      });
+      replayAttachments.codecov.push(attachment.data.payload);
     } else {
       replayAttachments.recording.push(attachment);
     }

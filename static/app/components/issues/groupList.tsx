@@ -19,7 +19,7 @@ import StreamGroup, {
 } from 'sentry/components/stream/group';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import type {Group} from 'sentry/types';
+import {Group} from 'sentry/types';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import StreamManager from 'sentry/utils/streamManager';
 import withApi from 'sentry/utils/withApi';

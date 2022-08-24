@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import Tooltip from 'sentry/components/tooltip';
-import type {AvatarUser} from 'sentry/types';
+import {AvatarUser} from 'sentry/types';
 
 const defaultProps = {
   avatarSize: 28,

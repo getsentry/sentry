@@ -2,7 +2,7 @@ import {cloneElement, isValidElement} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import * as AppStoreConnectContext from 'sentry/components/projects/appStoreConnectContext';
-import type {Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import ProjectContext from 'sentry/views/projects/projectContext';
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';

@@ -2,7 +2,7 @@ import 'focus-visible';
 
 import {NODE_ENV} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
-import type {Config} from 'sentry/types';
+import {Config} from 'sentry/types';
 import {setupColorScheme} from 'sentry/utils/matchMedia';
 
 export function commonInitialization(config: Config) {

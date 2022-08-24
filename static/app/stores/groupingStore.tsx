@@ -9,7 +9,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import GroupingActions from 'sentry/actions/groupingActions';
 import {Client} from 'sentry/api';
-import type {Group, Organization, Project} from 'sentry/types';
+import {Group, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 

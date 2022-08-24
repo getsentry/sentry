@@ -12,7 +12,7 @@ import {Panel, PanelBody, PanelFooter} from 'sentry/components/panels';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {EventAttachment, Organization, Project} from 'sentry/types';
+import {EventAttachment, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 
 import DataSection from '../dataSection';

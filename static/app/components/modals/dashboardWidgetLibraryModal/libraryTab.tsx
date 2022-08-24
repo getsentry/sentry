@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import Alert from 'sentry/components/alert';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {WidgetType} from 'sentry/views/dashboardsV2/types';
 import {
   DEFAULT_WIDGETS,

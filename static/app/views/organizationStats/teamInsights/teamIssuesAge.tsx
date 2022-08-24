@@ -14,7 +14,7 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Group, Organization} from 'sentry/types';
+import {Group, Organization} from 'sentry/types';
 import {getTitle} from 'sentry/utils/events';
 
 type Props = AsyncComponent['props'] & {

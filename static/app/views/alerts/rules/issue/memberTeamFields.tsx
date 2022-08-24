@@ -6,7 +6,7 @@ import TeamSelector from 'sentry/components/forms/teamSelector';
 import {PanelItem} from 'sentry/components/panels';
 import SelectMembers from 'sentry/components/selectMembers';
 import space from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import {IssueAlertRuleAction, IssueAlertRuleCondition} from 'sentry/types/alerts';
 
 interface OptionRecord {

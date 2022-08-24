@@ -14,7 +14,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconChat} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Group} from 'sentry/types';
+import {Group} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 
 type Props = WithRouterProps<{orgId: string}> & {

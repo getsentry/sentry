@@ -12,7 +12,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconAdd, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 import {UNSAVED_FILTERS_MESSAGE} from './detail';

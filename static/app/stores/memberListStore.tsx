@@ -1,6 +1,6 @@
 import {createStore, StoreDefinition} from 'reflux';
 
-import type {User} from 'sentry/types';
+import {User} from 'sentry/types';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 interface MemberListStoreDefinition extends StoreDefinition {

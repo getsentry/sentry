@@ -6,7 +6,7 @@ import Field from 'sentry/components/forms/field';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {
   aggregateFunctionOutputType,
   isLegalYAxisType,

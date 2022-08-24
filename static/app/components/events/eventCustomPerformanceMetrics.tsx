@@ -6,7 +6,7 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {
   DURATION_UNITS,

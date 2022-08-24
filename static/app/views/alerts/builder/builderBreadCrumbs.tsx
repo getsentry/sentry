@@ -4,7 +4,7 @@ import type {Location} from 'history';
 import Breadcrumbs, {Crumb, CrumbDropdown} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import type {RouteWithName} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 
 interface Props {

@@ -4,7 +4,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import type {Group, Organization, Plugin, Project} from 'sentry/types';
+import {Group, Organization, Plugin, Project} from 'sentry/types';
 
 type Field = {
   depends?: string[];

@@ -9,7 +9,7 @@ import {FieldObject} from 'sentry/components/forms/type';
 import Link from 'sentry/components/links/link';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import withOrganizations from 'sentry/utils/withOrganizations';
 import {

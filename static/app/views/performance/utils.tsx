@@ -4,14 +4,14 @@ import {Location} from 'history';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {backend, frontend, mobile} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import type {
+import {
   NewQuery,
   Organization,
   OrganizationSummary,
   PageFilters,
   Project,
   ReleaseProject,
-} from 'sentry/types'
+} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {statsPeriodToDays} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';

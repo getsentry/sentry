@@ -6,7 +6,7 @@ import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import Form from 'sentry/components/forms/form';
 import {Field} from 'sentry/components/forms/type';
 import {t, tct} from 'sentry/locale';
-import type {Organization, Project} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 
 export type CreateReleaseIntegrationModalOptions = {

@@ -8,7 +8,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import IssueSyncListElement from 'sentry/components/issueSyncListElement';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Group, GroupIntegration} from 'sentry/types';
+import {Group, GroupIntegration} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import IntegrationItem from 'sentry/views/organizationIntegrations/integrationItem';
 

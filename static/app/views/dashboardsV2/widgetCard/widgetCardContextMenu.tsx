@@ -14,7 +14,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconEllipsis, IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Organization, PageFilters} from 'sentry/types';
+import {Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';

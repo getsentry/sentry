@@ -12,7 +12,7 @@ import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels
 import Tag from 'sentry/components/tag';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {UserIdentityCategory, UserIdentityConfig, UserIdentityStatus} from 'sentry/types';
+import {UserIdentityCategory, UserIdentityConfig, UserIdentityStatus} from 'sentry/types';
 import AsyncView from 'sentry/views/asyncView';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import IdentityIcon from 'sentry/views/settings/components/identityIcon';

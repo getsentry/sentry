@@ -6,13 +6,13 @@ import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import SentryAppAvatar from 'sentry/components/avatar/sentryAppAvatar';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
-import type {
+import {
   AvatarProject,
   AvatarSentryApp,
   DocIntegration,
   OrganizationSummary,
   Team,
-} from 'sentry/types'
+} from 'sentry/types';
 
 type Props = {
   docIntegration?: DocIntegration;

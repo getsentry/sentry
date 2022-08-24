@@ -12,7 +12,7 @@ import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {DateString, TeamWithProjects} from 'sentry/types';
+import {DateString, TeamWithProjects} from 'sentry/types';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import localStorage from 'sentry/utils/localStorage';
 import useOrganization from 'sentry/utils/useOrganization';

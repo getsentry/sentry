@@ -10,7 +10,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import InputField from 'sentry/components/forms/inputField';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Integration, Organization, Project} from 'sentry/types';
+import {Integration, Organization, Project} from 'sentry/types';
 import {
   getIntegrationIcon,
   trackIntegrationAnalytics,

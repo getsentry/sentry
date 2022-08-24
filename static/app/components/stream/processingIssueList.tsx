@@ -4,7 +4,7 @@ import isEqual from 'lodash/isEqual';
 import {fetchProcessingIssues} from 'sentry/actionCreators/processingIssues';
 import {Client} from 'sentry/api';
 import ProcessingIssueHint from 'sentry/components/stream/processingIssueHint';
-import type {Organization, ProcessingIssue} from 'sentry/types';
+import {Organization, ProcessingIssue} from 'sentry/types';
 
 const defaultProps = {
   showProject: false,

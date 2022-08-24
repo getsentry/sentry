@@ -5,7 +5,7 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 
 import FirstEventIndicator from './firstEventIndicator';

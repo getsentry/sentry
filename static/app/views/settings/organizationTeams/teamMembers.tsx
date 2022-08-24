@@ -22,7 +22,7 @@ import {Panel, PanelHeader} from 'sentry/components/panels';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Config, Member, Organization, TeamMember} from 'sentry/types';
+import {Config, Member, Organization, TeamMember} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';

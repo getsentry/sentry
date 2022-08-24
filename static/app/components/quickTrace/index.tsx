@@ -15,7 +15,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {backend, frontend, mobile, serverless} from 'sentry/data/platformCategories';
 import {IconFire} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import type {OrganizationSummary} from 'sentry/types';
+import {OrganizationSummary} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {getDocsPlatform} from 'sentry/utils/docs';

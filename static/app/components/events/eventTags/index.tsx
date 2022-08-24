@@ -1,7 +1,7 @@
 import {Location} from 'history';
 
 import Pills from 'sentry/components/pills';
-import type {Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 

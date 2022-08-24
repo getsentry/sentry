@@ -10,11 +10,11 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {
+import {
   EventGroupComponent,
   EventGroupVariant,
   EventGroupVariantType,
-} from 'sentry/types'
+} from 'sentry/types';
 
 import GroupingComponent from './groupingComponent';
 import {hasNonContributingComponent} from './utils';

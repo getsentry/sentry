@@ -9,7 +9,7 @@ import ReleaseActions from 'sentry/actions/releaseActions';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import ReleaseStore, {getReleaseStoreKey} from 'sentry/stores/releaseStore';
-import type {Deploy, Release, ReleaseStatus} from 'sentry/types';
+import {Deploy, Release, ReleaseStatus} from 'sentry/types';
 
 type ParamsGet = {
   orgSlug: string;

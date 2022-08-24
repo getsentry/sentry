@@ -9,7 +9,7 @@ import Link from 'sentry/components/links/link';
 import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
-import type {Organization, Plugin, Project} from 'sentry/types';
+import {Organization, Plugin, Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import recreateRoute from 'sentry/utils/recreateRoute';

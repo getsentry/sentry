@@ -1,7 +1,7 @@
 import {useContext} from 'react';
 
 import AppStoreConnectContext from 'sentry/components/projects/appStoreConnectContext';
-import type {Organization, Project} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import withProject from 'sentry/utils/withProject';
 import SettingsNavigation from 'sentry/views/settings/components/settingsNavigation';
 import getConfiguration from 'sentry/views/settings/project/navigationConfiguration';

@@ -3,7 +3,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {CommitRow} from 'sentry/components/commitRow';
-import type {Commit, Repository, User} from 'sentry/types';
+import {Commit, Repository, User} from 'sentry/types';
 
 jest.mock('sentry/components/hovercard', () => {
   return {

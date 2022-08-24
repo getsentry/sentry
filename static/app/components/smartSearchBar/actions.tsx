@@ -9,7 +9,7 @@ import Button from 'sentry/components/button';
 import MenuItem from 'sentry/components/menuItem';
 import {IconAdd, IconPin, IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {SavedSearch, SavedSearchType} from 'sentry/types';
+import {SavedSearch, SavedSearchType} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import CreateSavedSearchModal from 'sentry/views/issueList/createSavedSearchModal';
 

@@ -17,7 +17,7 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {inputStyles} from 'sentry/styles/input';
 import space from 'sentry/styles/space';
-import type {Organization, Team} from 'sentry/types';
+import {Organization, Team} from 'sentry/types';
 import {logExperiment} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getPlatformName from 'sentry/utils/getPlatformName';

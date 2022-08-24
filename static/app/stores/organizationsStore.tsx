@@ -1,7 +1,7 @@
 import {createStore, StoreDefinition} from 'reflux';
 
 import OrganizationsActions from 'sentry/actions/organizationsActions';
-import type {Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 interface OrganizationsStoreDefinition extends StoreDefinition {

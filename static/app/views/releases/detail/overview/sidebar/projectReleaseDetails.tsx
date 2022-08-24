@@ -9,7 +9,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {t, tn} from 'sentry/locale';
-import type {ReleaseMeta, ReleaseWithHealth} from 'sentry/types';
+import {ReleaseMeta, ReleaseWithHealth} from 'sentry/types';
 
 type Props = {
   orgSlug: string;

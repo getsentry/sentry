@@ -1,5 +1,5 @@
 import Tooltip from 'sentry/components/tooltip';
-import type {ChunkType} from 'sentry/types';
+import {ChunkType} from 'sentry/types';
 
 import Redaction from './redaction';
 import {getTooltipText} from './utils';

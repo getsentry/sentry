@@ -1,4 +1,4 @@
-import type {Project} from 'sentry/types';
+import {Project} from 'sentry/types';
 import GenericDiscoverQuery, {
   DiscoverQueryProps,
   GenericChildrenProps,

@@ -1,7 +1,7 @@
 import {Component} from 'react';
 
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-import type {OrganizationSummary} from 'sentry/types';
+import {OrganizationSummary} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
 type InjectedOrganizationsProps = {

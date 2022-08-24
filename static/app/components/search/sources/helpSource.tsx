@@ -9,7 +9,7 @@ import {
 import dompurify from 'dompurify';
 import debounce from 'lodash/debounce';
 
-import type {Organization, Project} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import parseHtmlMarks from 'sentry/utils/parseHtmlMarks';
 import withLatestContext from 'sentry/utils/withLatestContext';
 

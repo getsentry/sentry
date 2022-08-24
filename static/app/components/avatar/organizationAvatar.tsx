@@ -1,5 +1,5 @@
 import BaseAvatar from 'sentry/components/avatar/baseAvatar';
-import type {OrganizationSummary} from 'sentry/types';
+import {OrganizationSummary} from 'sentry/types';
 import {explodeSlug} from 'sentry/utils';
 
 type Props = {

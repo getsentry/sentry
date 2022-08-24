@@ -11,12 +11,12 @@ import Duration from 'sentry/components/duration';
 import Tooltip from 'sentry/components/tooltip';
 import {IconChevron, IconMute} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import type {
+import {
   GroupStatusResolution,
   ResolutionStatus,
   ResolutionStatusDetails,
   SelectValue,
-} from 'sentry/types'
+} from 'sentry/types';
 
 const IGNORE_DURATIONS = [30, 120, 360, 60 * 24, 60 * 24 * 7];
 const IGNORE_COUNTS = [1, 10, 100, 1000, 10000, 100000];

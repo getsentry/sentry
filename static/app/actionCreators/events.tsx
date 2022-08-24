@@ -3,7 +3,7 @@ import pick from 'lodash/pick';
 
 import {Client, ResponseMeta} from 'sentry/api';
 import {canIncludePreviousPeriod} from 'sentry/components/charts/utils';
-import type {
+import {
   DateString,
   EventsStats,
   MultiSeriesEventsStats,

@@ -10,7 +10,7 @@ import NotFound from 'sentry/components/errors/notFound';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
-import type {Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 

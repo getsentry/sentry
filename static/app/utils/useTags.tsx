@@ -1,6 +1,6 @@
 import TagStore from 'sentry/stores/tagStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {TagCollection} from 'sentry/types';
+import {TagCollection} from 'sentry/types';
 
 type Result = {
   tags: TagCollection;

@@ -16,7 +16,7 @@ import {IconDocs, IconLock, IconStack, IconSupport} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {Theme} from 'sentry/utils/theme';
 import withLatestContext from 'sentry/utils/withLatestContext';
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';

@@ -11,7 +11,7 @@ import PageFiltersActions from 'sentry/actions/pageFiltersActions';
 import ProjectActions from 'sentry/actions/projectActions';
 import TeamActions from 'sentry/actions/teamActions';
 import {Client, ResponseMeta} from 'sentry/api';
-import type {Organization, Project, Team} from 'sentry/types';
+import {Organization, Project, Team} from 'sentry/types';
 import {getPreloadedDataPromise} from 'sentry/utils/getPreloadedData';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 

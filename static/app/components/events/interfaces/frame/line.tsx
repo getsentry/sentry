@@ -10,7 +10,7 @@ import {IconChevron, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DebugMetaActions} from 'sentry/stores/debugMetaStore';
 import space from 'sentry/styles/space';
-import type {Frame, Organization, PlatformType, SentryAppComponent} from 'sentry/types';
+import {Frame, Organization, PlatformType, SentryAppComponent} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import withOrganization from 'sentry/utils/withOrganization';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';

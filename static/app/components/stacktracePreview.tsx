@@ -9,7 +9,7 @@ import {Body, Hovercard} from 'sentry/components/hovercard';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Organization, PlatformType} from 'sentry/types';
+import {Organization, PlatformType} from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
 import {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';

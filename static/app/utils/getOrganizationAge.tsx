@@ -1,4 +1,4 @@
-import type {Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 
 import getDaysSinceDate from './getDaysSinceDate';
 

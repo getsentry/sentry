@@ -279,3 +279,15 @@ export interface SessionApiResponse extends SeriesApi {
   start: string;
 }
 
+export enum SessionFieldWithOperation {
+  SESSIONS = 'sum(session)',
+  USERS = 'count_unique(user)',
+  DURATION = 'p50(session.duration)',
+}
+
+export enum SessionStatus {
+  HEALTHY = 'healthy',
+  ABNORMAL = 'abnormal',
+  ERRORED = 'errored',
+  CRASHED = 'crashed',
+}

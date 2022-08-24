@@ -6,7 +6,7 @@ import {
   makeSaveSearchAction,
   makeSearchBuilderAction,
 } from 'sentry/components/smartSearchBar/actions';
-import type {SavedSearch, SavedSearchType, Tag} from 'sentry/types';
+import {SavedSearch, SavedSearchType, Tag} from 'sentry/types';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 
 import {TagValueLoader} from './types';

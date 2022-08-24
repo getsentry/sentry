@@ -2,7 +2,7 @@ import {disablePlugin, enablePlugin} from 'sentry/actionCreators/plugins';
 import InactivePlugins from 'sentry/components/inactivePlugins';
 import PluginConfig from 'sentry/components/pluginConfig';
 import {t} from 'sentry/locale';
-import type {Organization, Plugin, Project} from 'sentry/types';
+import {Organization, Plugin, Project} from 'sentry/types';
 
 import {Panel, PanelItem} from './panels';
 

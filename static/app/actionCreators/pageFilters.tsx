@@ -7,7 +7,7 @@ import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
 import PageFiltersActions from 'sentry/actions/pageFiltersActions';
-import type {
+import {
   getDatetimeFromState,
   getStateFromQuery,
 } from 'sentry/components/organizations/pageFilters/parse';
@@ -20,7 +20,7 @@ import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/u
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import type {
+import {
   DateString,
   Environment,
   MinimalProject,
@@ -28,7 +28,7 @@ import type {
   PageFilters,
   PinnedPageFilter,
   Project,
-} from 'sentry/types'
+} from 'sentry/types';
 import {defined, valueIsEqual} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 

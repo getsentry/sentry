@@ -9,7 +9,7 @@ import {
   SIXTY_DAYS,
   THIRTY_DAYS,
 } from 'sentry/components/charts/utils';
-import type {SessionApiResponse, SessionFieldWithOperation, SessionStatus} from 'sentry/types';
+import {SessionApiResponse, SessionFieldWithOperation, SessionStatus} from 'sentry/types';
 import {SeriesDataUnit} from 'sentry/types/echarts';
 import {defined, percent} from 'sentry/utils';
 import {Theme} from 'sentry/utils/theme';

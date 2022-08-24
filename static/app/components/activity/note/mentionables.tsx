@@ -2,7 +2,7 @@ import {PureComponent} from 'react';
 import uniqBy from 'lodash/uniqBy';
 
 import MemberListStore from 'sentry/stores/memberListStore';
-import type {Organization, Project, User} from 'sentry/types';
+import {Organization, Project, User} from 'sentry/types';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 import Projects from 'sentry/utils/projects';

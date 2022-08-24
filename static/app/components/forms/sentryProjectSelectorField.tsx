@@ -5,7 +5,7 @@ import InputField, {InputFieldProps} from 'sentry/components/forms/inputField';
 import SelectControl from 'sentry/components/forms/selectControl';
 import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types';
+import {Project} from 'sentry/types';
 
 const defaultProps = {
   avatarSize: 20,

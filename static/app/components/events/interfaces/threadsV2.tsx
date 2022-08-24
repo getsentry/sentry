@@ -4,7 +4,7 @@ import isNil from 'lodash/isNil';
 import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
 import {t} from 'sentry/locale';
-import type {
+import {
   EntryType,
   Event,
   Frame,
@@ -13,7 +13,7 @@ import type {
   STACK_TYPE,
   STACK_VIEW,
   Thread,
-} from 'sentry/types'
+} from 'sentry/types';
 
 import {PermalinkTitle, TraceEventDataSection} from '../traceEventDataSection';
 

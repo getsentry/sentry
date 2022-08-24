@@ -9,7 +9,7 @@ import Truncate from 'sentry/components/truncate';
 import {IconOpen, IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Frame, Meta, PlatformType} from 'sentry/types';
+import {Frame, Meta, PlatformType} from 'sentry/types';
 import {defined, isUrl} from 'sentry/utils';
 
 import {FunctionName} from '../functionName';

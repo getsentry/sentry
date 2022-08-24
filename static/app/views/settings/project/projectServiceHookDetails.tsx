@@ -14,7 +14,7 @@ import Field from 'sentry/components/forms/field';
 import TextCopyInput from 'sentry/components/forms/textCopyInput';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import type {ServiceHook} from 'sentry/types';
+import {ServiceHook} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import AsyncView from 'sentry/views/asyncView';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';

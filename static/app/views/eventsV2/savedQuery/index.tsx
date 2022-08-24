@@ -21,7 +21,7 @@ import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconDelete, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Organization, Project, SavedQuery} from 'sentry/types';
+import {Organization, Project, SavedQuery} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';

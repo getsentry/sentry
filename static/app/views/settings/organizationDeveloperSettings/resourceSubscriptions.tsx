@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Context} from 'sentry/components/deprecatedforms/form';
 import FormContext from 'sentry/components/forms/formContext';
-import type {Permissions, WebhookEvent} from 'sentry/types';
+import {Permissions, WebhookEvent} from 'sentry/types';
 import {
   EVENT_CHOICES,
   PERMISSIONS_MAP,

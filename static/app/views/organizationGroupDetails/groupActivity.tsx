@@ -21,7 +21,7 @@ import ReprocessedBox from 'sentry/components/reprocessedBox';
 import {DEFAULT_ERROR_JSON} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {
+import {
   Group,
   GroupActivityAssigned,
   GroupActivityReprocess,

@@ -3,7 +3,7 @@ import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
 import PanelAlert from 'sentry/components/panels/panelAlert';
-import type {Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import theme from 'sentry/utils/theme';
 import withOrganization from 'sentry/utils/withOrganization';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';

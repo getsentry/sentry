@@ -5,7 +5,7 @@ import Form from 'sentry/components/forms/form';
 import RangeField from 'sentry/components/forms/rangeField';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 

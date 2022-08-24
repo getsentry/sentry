@@ -1,6 +1,6 @@
 import {ReactElement} from 'react';
 
-import type {Organization, Project, Scope} from 'sentry/types';
+import {Organization, Project, Scope} from 'sentry/types';
 
 export type NavigationProps = {
   access?: Set<Scope>;

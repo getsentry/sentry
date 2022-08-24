@@ -2,7 +2,7 @@ import {Component} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Client} from 'sentry/api';
-import type {Group, Organization, Project} from 'sentry/types';
+import {Group, Organization, Project} from 'sentry/types';
 import {analytics} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
 

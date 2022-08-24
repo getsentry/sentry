@@ -8,7 +8,7 @@ import {
   withPerformanceOnboarding,
 } from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
-import type {Project} from 'sentry/types';
+import {Project} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 

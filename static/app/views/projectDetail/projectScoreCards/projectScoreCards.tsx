@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
-import type {Organization, PageFilters, SessionFieldWithOperation} from 'sentry/types';
+import {Organization, PageFilters, SessionFieldWithOperation} from 'sentry/types';
 
 import ProjectApdexScoreCard from './projectApdexScoreCard';
 import ProjectStabilityScoreCard from './projectStabilityScoreCard';

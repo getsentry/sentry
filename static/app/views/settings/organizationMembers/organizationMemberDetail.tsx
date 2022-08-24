@@ -23,7 +23,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {inputStyles} from 'sentry/styles/input';
 import space from 'sentry/styles/space';
-import type {Member, Organization, Team} from 'sentry/types';
+import {Member, Organization, Team} from 'sentry/types';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import Teams from 'sentry/utils/teams';

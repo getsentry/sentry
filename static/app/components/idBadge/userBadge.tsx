@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import space from 'sentry/styles/space';
-import type {AvatarUser} from 'sentry/types';
+import {AvatarUser} from 'sentry/types';
 
 type Props = {
   avatarSize?: UserAvatar['props']['size'];
