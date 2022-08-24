@@ -39,6 +39,7 @@ import useMedia from 'sentry/utils/useMedia';
 
 import Broadcasts from './broadcasts';
 import SidebarHelp from './help';
+import SidebarLearn from './learn';
 import OnboardingStatus from './onboardingStatus';
 import ServiceIncidents from './serviceIncidents';
 import SidebarDropdown from './sidebarDropdown';
@@ -370,12 +371,18 @@ function Sidebar({location, organization}: Props) {
                 hasPanel,
                 organization,
               })}
-            <SidebarHelp
+            <SidebarLearn
               orientation={orientation}
               collapsed={collapsed}
               hidePanel={hidePanel}
               organization={organization}
               location={location}
+            />
+            <SidebarHelp
+              orientation={orientation}
+              collapsed={collapsed}
+              hidePanel={hidePanel}
+              organization={organization}
             />
             <Broadcasts
               orientation={orientation}
