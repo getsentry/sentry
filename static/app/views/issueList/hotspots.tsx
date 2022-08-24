@@ -307,7 +307,8 @@ function IssueHotSpots({}: Props) {
           .split(/(?=[A-Z][^A-Z])/g)
           .join('\n')
       : '';
-    const z2 = api.value(2) * 2;
+
+    const z2 = api.value('depth') * 2;
 
     const output = {
       type: 'circle',
@@ -324,7 +325,7 @@ function IssueHotSpots({}: Props) {
         style: {
           // transition: isLeaf ? 'fontSize' : null,
           text: nodeName,
-          fontFamily: 'Arial',
+          fontFamily: "'Rubik', 'Avenir Next', 'Helvetica Neue', sans-serif",
           width: node.r * 1.3,
           overflow: 'truncate',
           fontSize: node.r / 3,
