@@ -16,6 +16,8 @@ import type {HookName} from 'sentry/types/hooks';
 import errorHandler from 'sentry/utils/errorHandler';
 import App from 'sentry/views/app';
 import AuthLayout from 'sentry/views/auth/layout';
+import IssueListContainer from 'sentry/views/issueList/container';
+import IssueListOverview from 'sentry/views/issueList/overview';
 import OrganizationContextContainer from 'sentry/views/organizationContextContainer';
 import OrganizationDetails from 'sentry/views/organizationDetails';
 import {Tab} from 'sentry/views/organizationGroupDetails/types';
@@ -1232,14 +1234,11 @@ function buildRoutes() {
   const issueListRoutes = (
     <Route
       path="/organizations/:orgId/issues/"
-      component={make(() => import('sentry/views/issueList/container'))}
+      component={errorHandler(IssueListContainer)}
     >
       <Redirect from="/organizations/:orgId/" to="/organizations/:orgId/issues/" />
-      <IndexRoute component={make(() => import('sentry/views/issueList/overview'))} />
-      <Route
-        path="searches/:searchId/"
-        component={make(() => import('sentry/views/issueList/overview'))}
-      />
+      <IndexRoute component={errorHandler(IssueListOverview)} />
+      <Route path="searches/:searchId/" component={errorHandler(IssueListOverview)} />
     </Route>
   );
 
