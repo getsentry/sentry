@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+import * as Sentry from '@sentry/react';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingError from 'sentry/components/loadingError';
@@ -95,7 +96,7 @@ export default function Trace({replayRecord, organization}: Props) {
         const traceIds = data.data.map(({trace}) => trace).filter(trace => trace);
 
         // TODO(replays): Potential performance concerns here if number of traceIds is large
-        const traceDetails = await Promise.all(
+        const traceDetails = await Promise.allSettled(
           traceIds.map(traceId =>
             doDiscoverQuery(
               api,
@@ -108,12 +109,25 @@ export default function Trace({replayRecord, organization}: Props) {
           )
         );
 
+        const successfulTraceDetails = traceDetails
+          .map(settled => (settled.status === 'fulfilled' ? settled.value[0] : undefined))
+          .filter(Boolean);
+
+        if (successfulTraceDetails.length !== traceDetails.length) {
+          traceDetails.forEach(trace => {
+            if (trace.status === 'rejected') {
+              Sentry.captureMessage(trace.reason);
+            }
+          });
+        }
+
         setState(prevState => ({
           isLoading: false,
           error: null,
           traceEventView: eventView,
           pageLinks: resp?.getResponseHeader('Link') ?? prevState.pageLinks,
-          traces: traceDetails.flatMap(([trace]) => trace as TraceFullDetailed[]) || [],
+          traces:
+            successfulTraceDetails.flatMap(trace => trace as TraceFullDetailed[]) || [],
         }));
       } catch (err) {
         setState({
