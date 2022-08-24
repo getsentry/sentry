@@ -176,7 +176,10 @@ class HackweekPlugin {
         const modules: unknown[] = [];
         try {
           compilation.chunkGraph.getChunkModules(chunk).forEach(module => {
-            modules.push(module.id);
+            modules.push({
+              id: module.id,
+              size: 0,
+            });
           });
         } catch (err) {
           // The `runtime` chunk throws because it has no modules
@@ -184,7 +187,7 @@ class HackweekPlugin {
         }
 
         emitted.push({
-          chunkId: chunk.id,
+          id: chunk.id,
           modules,
         });
       });

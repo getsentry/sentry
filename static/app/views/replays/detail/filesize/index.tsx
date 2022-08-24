@@ -35,7 +35,7 @@ function NetworkList({invocations}: Props) {
 
   return (
     <Fragment>
-      <ChunkList chunks={mockChunkData} invocations={invocations} />
+      <ChunkList chunks={mockChunkData as WebpackChunk[]} invocations={invocations} />
       <StyledPanelTable
         columns={columns.length}
         isEmpty={Object.keys(invocations).length === 0}
@@ -50,7 +50,20 @@ function NetworkList({invocations}: Props) {
   );
 }
 
-function ChunkList({chunks, invocations}) {
+type WebpackModule = {
+  id: string;
+  size: number;
+};
+type WebpackChunk = {
+  id: string;
+  modules: WebpackModule[];
+};
+
+type ChunkListProps = {
+  chunks: WebpackChunk[];
+  invocations: ChunkInvocation[];
+};
+function ChunkList({chunks, invocations}: ChunkListProps) {
   const invokedFilenames = invocations.map(invocation => invocation.filename);
 
   const hasInvokedFile = (modules: string[]) => {
@@ -60,16 +73,17 @@ function ChunkList({chunks, invocations}) {
   return (
     <ul>
       {chunks.map(chunk => {
-        const open = hasInvokedFile(chunk.modules);
+        const moduleIds = chunk.modules.map(module => module.id);
+        const open = hasInvokedFile(moduleIds);
 
         return (
-          <li key={chunk}>
+          <li key={chunk.id}>
             <details open={open}>
-              <summary>{chunk.chunkId}</summary>
+              <summary>{chunk.id}</summary>
               <ul>
                 {chunk.modules.map(module => (
-                  <Module key={module} invoked={hasInvokedFile([module])}>
-                    {module}
+                  <Module key={module.id} invoked={hasInvokedFile([module.id])}>
+                    {module.id}
                   </Module>
                 ))}
               </ul>
