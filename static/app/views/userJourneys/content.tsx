@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumb} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb';
@@ -47,10 +47,14 @@ function Breadcrumbs({
   const entryIndex = event.entries.findIndex(
     entry => entry.type === EntryType.BREADCRUMBS
   );
+  const [activeCrumb, setActiveCrumb] = useState<Crumb>();
 
   return (
     <Fragment>
-      <Timeline breadcrumbs={breadcrumbs} />
+      <Timeline
+        breadcrumbs={breadcrumbs}
+        onActivateCrumb={(crumb: Crumb) => setActiveCrumb(crumb)}
+      />
       <StyledPanelTable
         scrollbarSize={scrollbarSize}
         headers={[
@@ -78,6 +82,11 @@ function Breadcrumbs({
         <Content>
           {breadcrumbs.map((breadcrumb, index) => {
             const isLastItem = breadcrumbs[breadcrumbs.length - 1].id === breadcrumb.id;
+            const isActive =
+              activeCrumb &&
+              activeCrumb.timestamp === breadcrumb.timestamp &&
+              activeCrumb.category === breadcrumb.category &&
+              activeCrumb.message === breadcrumb.message;
             return (
               <Fragment key={breadcrumb.id}>
                 <Breadcrumb
@@ -95,6 +104,7 @@ function Breadcrumbs({
                   scrollbarSize={scrollbarSize}
                   router={router}
                   route={route}
+                  scrollIntoView={isActive}
                 />
               </Fragment>
             );

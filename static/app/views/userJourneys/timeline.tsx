@@ -14,21 +14,25 @@ const NOTABLE_CATEGORIES = [
 
 type Props = {
   breadcrumbs: Array<Crumb>;
+  onActivateCrumb: (crumb: Crumb) => void;
 };
 
-function Timeline({breadcrumbs}: Props) {
+function Timeline({breadcrumbs, onActivateCrumb}: Props) {
   // Assume crumbs are ordered by time.
   // const maxTime = moment(breadcrumbs[0].timestamp);
   // const minTime = moment(breadcrumbs[breadcrumbs.length -1].timestamp);
   // const spread = maxTime - minTime;
   const notable = extractHighlights(breadcrumbs);
-
   return (
     <ScrollContainer>
       <ItemRow>
-        {notable.map((crumb, idx) => (
-          <CrumbItem key={idx} crumb={crumb} />
-        ))}
+        {notable.map((crumb, idx) => {
+          const handleClick = (event: React.MouseEvent) => {
+            event.preventDefault();
+            onActivateCrumb(crumb);
+          };
+          return <CrumbItem key={idx} crumb={crumb} onClick={handleClick} />;
+        })}
       </ItemRow>
     </ScrollContainer>
   );
@@ -36,11 +40,12 @@ function Timeline({breadcrumbs}: Props) {
 
 type ItemProps = {
   crumb: Crumb;
+  onClick: (event: React.MouseEvent) => void;
 };
 
-function CrumbItem({crumb}: ItemProps) {
+function CrumbItem({crumb, onClick}: ItemProps) {
   return (
-    <ItemContainer>
+    <ItemContainer onClick={onClick}>
       <AxisLine />
       <IconWrapper color={crumb.color}>
         <CrumbIcon type={crumb.type} size="md" />
