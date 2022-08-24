@@ -53,7 +53,7 @@ export const Breadcrumb = memo(function Breadcrumb({
     if (scrollIntoView && elRef.current) {
       const rect = elRef.current.getBoundingClientRect();
       window.scrollTo({
-        top: rect.top - 10,
+        top: rect.top - 90,
         left: 0,
         behavior: 'smooth',
       });

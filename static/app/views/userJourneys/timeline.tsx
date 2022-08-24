@@ -81,10 +81,13 @@ const ItemRow = styled('div')`
 `;
 
 const ScrollContainer = styled('div')`
-  position: relative;
+  position: sticky;
+  top: 10px;
+  background: #fff;
   width: 100%;
   overflow-x: scroll;
   margin-bottom: ${space(3)};
+  z-index: 11;
 `;
 
 const ItemContainer = styled('div')`
@@ -94,6 +97,7 @@ const ItemContainer = styled('div')`
   align-items: center;
   gap: ${space(1)};
   padding: ${space(1)} 0;
+  cursor: pointer;
 `;
 
 const IconWrapper = styled('div')<Pick<Crumb, 'color'>>`

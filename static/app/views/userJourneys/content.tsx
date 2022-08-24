@@ -69,6 +69,7 @@ function Breadcrumbs(props: Props) {
         <Content>
           {breadcrumbs.map((breadcrumb, index) => {
             const isLastItem = breadcrumbs[breadcrumbs.length - 1].id === breadcrumb.id;
+            const isActive = activeCrumb && activeCrumb.id === breadcrumb.id;
             return (
               <BreadcrumbItem
                 key={breadcrumb.id}
@@ -76,6 +77,7 @@ function Breadcrumbs(props: Props) {
                 breadcrumb={breadcrumb}
                 isLastItem={isLastItem}
                 index={index}
+                scrollIntoView={isActive}
                 {...props}
               />
             );
