@@ -29,9 +29,18 @@ export function initializeVoiceAssistant(): SpeechRecognition | undefined {
   return recognition;
 }
 
+export enum NotifyStyle {
+  RecognizedResult,
+  UnrecognizedResult,
+  Error,
+  Empty,
+}
+
 interface VoiceAssistantState {
   isListening: boolean;
+  notifyStyle: NotifyStyle;
   recognition: SpeechRecognition | undefined;
+  speechResult: string;
 }
 
 export class VoiceAssistantPanel extends React.Component<{}, VoiceAssistantState> {
@@ -41,6 +50,8 @@ export class VoiceAssistantPanel extends React.Component<{}, VoiceAssistantState
     this.state = {
       isListening: false,
       recognition: initializeVoiceAssistant(),
+      speechResult: '',
+      notifyStyle: NotifyStyle.Empty,
     };
 
     // This binding is necessary to make `this` work in the callback
@@ -67,12 +78,30 @@ export class VoiceAssistantPanel extends React.Component<{}, VoiceAssistantState
     recognition.maxAlternatives = 10;
 
     recognition.start();
-    let speechResult = '';
 
     const setStateNoListen = () => {
       this.setState(_ => ({
         isListening: false,
       }));
+    };
+
+    const setStateSpeechResult = (result: string, style: NotifyStyle) => {
+      this.setState(_ => ({
+        speechResult: result,
+        notifyStyle: style,
+      }));
+    };
+
+    const setStateSpeechResultWithDelay = (result: string, style: NotifyStyle) => {
+      setStateSpeechResult(result, style);
+      const CLOSE_TIMEOUT_MS = 500000;
+      setTimeout(() => {
+        setStateSpeechResult('', NotifyStyle.Empty);
+      }, CLOSE_TIMEOUT_MS);
+    };
+
+    const getSpeechResult = () => {
+      return this.state.speechResult;
     };
 
     recognition.onresult = function (event: SpeechRecognitionEvent) {
@@ -85,8 +114,9 @@ export class VoiceAssistantPanel extends React.Component<{}, VoiceAssistantState
       // The second [0] returns the SpeechRecognitionAlternative at position 0.
       // We then return the transcript property of the SpeechRecognitionAlternative object
       console.log('SpeechRecognition.onresult');
-      speechResult = event.results[0][0].transcript.toLowerCase();
+      const speechResult = event.results[0][0].transcript.toLowerCase();
       console.log(`Phrase recognized: "${speechResult}"`);
+      setStateSpeechResultWithDelay(speechResult, NotifyStyle.RecognizedResult);
 
       console.log(
         JSON.stringify(speechRecognitionResultListToJSON(event.results), null, 2)
@@ -102,6 +132,10 @@ export class VoiceAssistantPanel extends React.Component<{}, VoiceAssistantState
     recognition.onerror = function (event) {
       console.log('SpeechRecognition.onerror');
       console.log('Error occurred in recognition: ' + event.error);
+      setStateSpeechResultWithDelay(
+        `Error occured in recognition: ${event.error}`,
+        NotifyStyle.Error
+      );
       setStateNoListen();
     };
 
@@ -118,8 +152,9 @@ export class VoiceAssistantPanel extends React.Component<{}, VoiceAssistantState
     recognition.onend = function (_) {
       // Fired when the speech recognition service has disconnected.
       console.log('SpeechRecognition.onend');
-      if (!speechResult) {
+      if (!getSpeechResult()) {
         console.log('Speech recognition: no result received!');
+        setStateSpeechResultWithDelay('No result received!', NotifyStyle.Error);
       }
     };
 
@@ -171,7 +206,10 @@ export class VoiceAssistantPanel extends React.Component<{}, VoiceAssistantState
   render() {
     return (
       <div>
-        <VoiceAssistantTextbox resultText="" textStyle="" />
+        <VoiceAssistantTextbox
+          resultText={this.state.speechResult}
+          textStyle={this.state.notifyStyle}
+        />
         <VoiceAssistantButton
           handleToggle={this.handleToggle}
           isListening={this.state.isListening}
