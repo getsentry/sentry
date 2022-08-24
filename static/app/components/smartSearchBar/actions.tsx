@@ -11,7 +11,7 @@ import {IconAdd, IconPin, IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {SavedSearch, SavedSearchType} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import CreateSavedSearchModal from 'sentry/views/issueList/createSavedSearchModal';
+import CreateSavedSearchModal from 'sentry/components/modals/createSavedSearchModal';
 
 import SmartSearchBar from './index';
 import {removeSpace} from './utils';
