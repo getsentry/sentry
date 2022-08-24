@@ -12,6 +12,11 @@ const NOTABLE_CATEGORIES = [
   'sentry.transaction',
 ];
 
+interface CrumbGroup {
+  crumbs: Crumb[];
+  timestamp: string;
+}
+
 type Props = {
   breadcrumbs: Array<Crumb>;
   onActivateCrumb: (crumb: Crumb) => void;
@@ -26,12 +31,12 @@ function Timeline({breadcrumbs, onActivateCrumb}: Props) {
   return (
     <ScrollContainer>
       <ItemRow>
-        {notable.map((crumb, idx) => {
+        {notable.map(group => {
           const handleClick = (event: React.MouseEvent) => {
             event.preventDefault();
-            onActivateCrumb(crumb);
+            onActivateCrumb(group.crumbs[0]);
           };
-          return <CrumbItem key={idx} crumb={crumb} onClick={handleClick} />;
+          return <CrumbItem key={group.timestamp} group={group} onClick={handleClick} />;
         })}
       </ItemRow>
     </ScrollContainer>
@@ -39,34 +44,67 @@ function Timeline({breadcrumbs, onActivateCrumb}: Props) {
 }
 
 type ItemProps = {
-  crumb: Crumb;
+  group: CrumbGroup;
   onClick: (event: React.MouseEvent) => void;
 };
 
-function CrumbItem({crumb, onClick}: ItemProps) {
+function CrumbItem({group, onClick}: ItemProps) {
+  const icons: any[] = [];
+  let i = 0;
+  while (icons.length < 5 || !group.crumbs[i]) {
+    const crumb = group.crumbs[i];
+    if (crumb) {
+      icons.push(
+        <IconWrapper color={crumb.color} offset={icons.length}>
+          <CrumbIcon type={crumb.type} size="md" />
+        </IconWrapper>
+      );
+      i++;
+    } else {
+      break;
+    }
+  }
+
   return (
     <ItemContainer onClick={onClick}>
       <AxisLine />
-      <IconWrapper color={crumb.color}>
-        <CrumbIcon type={crumb.type} size="md" />
-      </IconWrapper>
-      <ItemTime>{moment(crumb.timestamp).format('HH:mm:ss')}</ItemTime>
+      <IconStack>{icons}</IconStack>
+      <ItemTime>{moment(group.timestamp).format('HH:mm:ss')}</ItemTime>
     </ItemContainer>
   );
 }
 
-function extractHighlights(crumbs: Props['breadcrumbs']): Props['breadcrumbs'] {
-  return crumbs.filter(crumb => {
+function extractHighlights(crumbs: Props['breadcrumbs']): CrumbGroup[] {
+  const relevant = crumbs.filter(crumb => {
     if (!crumb.category) {
       return false;
     }
     return NOTABLE_CATEGORIES.includes(crumb.category);
   });
+
+  const mapping: Record<string, Crumb[]> = {};
+  relevant.forEach((crumb: Crumb) => {
+    const timestamp = moment(crumb.timestamp).format('YYYY-MM-DDTHH:mm:ss');
+    if (!timestamp) {
+      return;
+    }
+    if (mapping[timestamp] === undefined) {
+      mapping[timestamp] = [];
+    }
+    mapping[timestamp].push(crumb);
+  });
+
+  const grouped: CrumbGroup[] = [];
+  Object.entries(mapping).forEach(([key, value]) => {
+    grouped.push({timestamp: key, crumbs: value});
+  });
+
+  return grouped;
 }
 
 const AxisLine = styled('div')`
   position: absolute;
-  top: 28px;
+  top: 38px;
   left: -${space(1.5)};
   right: -${space(1.5)};
   border-bottom: 1px solid ${p => p.theme.border};
@@ -92,6 +130,7 @@ const ScrollContainer = styled('div')`
 
 const ItemContainer = styled('div')`
   position: relative;
+  top: -5px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -100,22 +139,34 @@ const ItemContainer = styled('div')`
   cursor: pointer;
 `;
 
-const IconWrapper = styled('div')<Pick<Crumb, 'color'>>`
+const IconWrapper = styled('div')<{color: string; offset: number}>`
+  position: absolute;
+  width: 38px;
+  height: 38px;
+  top: ${p => p.offset * -8 + 20}px;
+  z-index: ${p => 5 - p.offset};
+  opacity: ${p => 1.0 - p.offset * 0.12};
+
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
   border-radius: 50%;
   color: ${p => p.theme.white};
   background: ${p => p.theme[p.color] ?? p.color};
   box-shadow: ${p => p.theme.dropShadowLightest};
-  position: relative;
 `;
 
 const ItemTime = styled('span')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const IconStack = styled('div')`
+  display: flex;
+  flex-direction: column-reverse;
+  position: relative;
+  height: 60px;
+  width: 38px;
 `;
 
 export default Timeline;

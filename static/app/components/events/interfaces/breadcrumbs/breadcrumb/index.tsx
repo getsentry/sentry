@@ -1,4 +1,4 @@
-import {memo, useEffect, useRef} from 'react';
+import {memo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -42,28 +42,12 @@ export const Breadcrumb = memo(function Breadcrumb({
   route,
   router,
   meta,
-  scrollIntoView,
   ['data-test-id']: dataTestId,
 }: Props) {
   const {type, description, color, level, category, timestamp} = breadcrumb;
   const error = breadcrumb.type === BreadcrumbType.ERROR;
-  const elRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (scrollIntoView && elRef.current) {
-      const rect = elRef.current.getBoundingClientRect();
-      window.scrollTo({
-        // TODO this is probably all wrong but it looks cool
-        top: rect.top - 90,
-        left: 0,
-        behavior: 'smooth',
-      });
-    }
-  }, [scrollIntoView]);
-
   return (
     <Wrapper
-      ref={elRef}
       style={style}
       error={error}
       onLoad={onLoad}

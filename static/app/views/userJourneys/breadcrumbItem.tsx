@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useEffect, useRef} from 'react';
 
 import {Breadcrumb} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb';
 import {PanelTable} from 'sentry/components/panels';
@@ -56,11 +56,19 @@ function BreadcrumbItem(props: Props) {
     console.log(`${index} is in view`);
   }
 
-  const isActive =
-    activeCrumb &&
-    activeCrumb.timestamp === breadcrumb.timestamp &&
-    activeCrumb.category === breadcrumb.category &&
-    activeCrumb.message === breadcrumb.message;
+  const isActive = activeCrumb && activeCrumb.id === breadcrumb.id;
+
+  useEffect(() => {
+    if (isActive && breadcrumbRef.current) {
+      const rect = breadcrumbRef.current.getBoundingClientRect();
+      window.scrollTo({
+        // TODO this is probably all wrong but it looks cool
+        top: rect.top - 90,
+        left: 0,
+        behavior: 'smooth',
+      });
+    }
+  }, [isActive]);
 
   return (
     <div key={breadcrumb.id} ref={breadcrumbRef}>
@@ -79,7 +87,6 @@ function BreadcrumbItem(props: Props) {
         scrollbarSize={scrollbarSize}
         router={router}
         route={route}
-        scrollIntoView={isActive}
       />
     </div>
   );
