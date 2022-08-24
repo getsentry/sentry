@@ -11,23 +11,23 @@ interface VoiceAssistantTextboxProps {
 
 const StyledWrapper = styled('div')<VoiceAssistantTextboxProps>`
   position: fixed;
-  bottom: 3.3em;
+  bottom: 2.5em;
   right: 3.5em;
   height: 50px;
   max-height: 50px;
-  padding: 1em;
-  padding-right: 5em;
+  padding: 0.6em;
+  padding-right: 3em;
   opacity: ${props => (props.resultText ? '1.0' : '0.0')};
-  font-size: 14px;
+  font-size: 18px;
   border-radius: 4px;
   border: 1px solid;
 
   ${props =>
     props.textStyle === NotifyStyle.Error
       ? `border-color: rgba(245, 84, 89, 0.5);
-         background: rgba(245, 84, 89, 0.09);`
+         background: rgba(245, 84, 89, 0.3);`
       : `border-color: rgba(60, 116, 221, 0.5);
-         background: rgba(60, 116, 221, 0.15);`}
+         background: rgba(60, 116, 221, 0.3);`}
 `;
 
 export class VoiceAssistantTextbox extends React.Component<
