@@ -39,7 +39,6 @@
       "sentry-test/*": ["tests/js/sentry-test/*"],
       "sentry-images/*": ["static/images/*"],
       "sentry-swagger-ui/*": ["swagger-ui/*"],
-      "sentry-docs/*": ["api-docs/*"],
       "sentry-locale/*": ["src/sentry/locale/*"],
       "sentry-logos/*": ["src/sentry/static/sentry/images/logos/*"],
       "sentry-fonts/*": ["static/fonts/*"],

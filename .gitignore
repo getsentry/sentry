@@ -34,7 +34,7 @@ node_modules
 /src/sentry/loader/_registry.json
 /config/chartcuterie/config.js*
 /config/*.pem
-/tests/apidocs/openapi-derefed.json
+# /tests/apidocs/openapi-derefed.json
 /tests/apidocs/openapi-deprecated.json
 /tests/sentry/utils/appleconnect/*.json
 /tests/apidocs/openapi-spectacular.json
@@ -57,4 +57,3 @@ Brewfile.lock.json
 import-graph.txt
 import-graph.dot
 bin/rrweb-output
-**/openapi.yml
