@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import abc
 import string
 from collections import OrderedDict
+from copy import deepcopy
 from datetime import datetime
 from hashlib import md5
 from typing import (
@@ -51,7 +53,7 @@ def ref_func(x: Event) -> int:
     return x.project_id or x.project.id
 
 
-class Event:
+class BaseEvent(metaclass=abc.ABCMeta):
     """
     Event backed by nodestore and Snuba.
     """
@@ -60,16 +62,10 @@ class Event:
         self,
         project_id: int,
         event_id: str,
-        group_id: int | None = None,
-        data: Mapping[str, Any] | None = None,
         snuba_data: Mapping[str, Any] | None = None,
-        group_ids: Sequence[int] | None = None,
     ):
         self.project_id = project_id
         self.event_id = event_id
-        self.group_id = group_id
-        self.group_ids = group_ids
-        self.data = data
         self._snuba_data = snuba_data or {}
 
     def __getstate__(self) -> Mapping[str, Any]:
@@ -86,42 +82,14 @@ class Event:
         return state
 
     @property
+    @abc.abstractmethod
     def data(self) -> NodeData:
-        return self._data
+        pass
 
     @data.setter
-    def data(self, value: Mapping[str, Any]) -> None:
-        node_id = Event.generate_node_id(self.project_id, self.event_id)
-        self._data = NodeData(
-            node_id, data=value, wrapper=EventDict, ref_version=2, ref_func=ref_func
-        )
-
-    @property
-    def group_id(self) -> int | None:
-        if self._group_id:
-            return self._group_id
-
-        column = self.__get_column_name(Columns.GROUP_ID)
-
-        return self._snuba_data.get(column)
-
-    @group_id.setter
-    def group_id(self, value: int | None) -> None:
-        self._group_id = value
-
-    @property
-    def group_ids(self) -> Sequence[int] | None:
-        if self._group_ids:
-            return self._group_ids
-
-        # TODO: Should attempt to grab data from `Columns.GROUP_ID` as well?
-        column = self.__get_column_name(Columns.GROUP_IDS)
-
-        return self._snuba_data.get(column)
-
-    @group_ids.setter
-    def group_ids(self, values: Sequence[int] | None) -> None:
-        self._group_ids = values
+    @abc.abstractmethod
+    def data(self, value: NodeData | Mapping[str, Any]):
+        pass
 
     @property
     def platform(self) -> str | None:
@@ -306,25 +274,6 @@ class Event:
         same generated id when we only have project_id and event_id.
         """
         return md5(f"{project_id}:{event_id}".encode()).hexdigest()
-
-    # TODO We need a better way to cache these properties. functools
-    # doesn't quite do the trick as there is a reference bug with unsaved
-    # models. But the current _group_cache thing is also clunky because these
-    # properties need to be stripped out in __getstate__.
-    @property
-    def group(self) -> Group | None:
-        from sentry.models import Group
-
-        if not self.group_id:
-            return None
-        if not hasattr(self, "_group_cache"):
-            self._group_cache = Group.objects.get(id=self.group_id)
-        return self._group_cache
-
-    @group.setter
-    def group(self, group: Group) -> None:
-        self.group_id = group.id
-        self._group_cache = group
 
     @property
     def project(self) -> Project:
@@ -626,6 +575,155 @@ class Event:
     def __get_column_name(self, column: Column) -> str:
         # Events are currently populated from the Events dataset
         return cast(str, column.value.event_name)
+
+
+class Event(BaseEvent):
+    def __init__(
+        self,
+        project_id: int,
+        event_id: str,
+        group_id: int | None = None,
+        data: Mapping[str, Any] | None = None,
+        snuba_data: Mapping[str, Any] | None = None,
+        group_ids: Sequence[int] | None = None,
+    ):
+        super().__init__(project_id, event_id, snuba_data=snuba_data)
+        self.group_id = group_id
+        self.group_ids = group_ids
+        self.data = data
+
+    def __getstate__(self) -> Mapping[str, Any]:
+        state = super().__getstate__()
+        state.pop("_group_cache", None)
+        state.pop("_groups_cache", None)
+        return state
+
+    @property
+    def data(self) -> NodeData:
+        return self._data
+
+    @data.setter
+    def data(self, value: Mapping[str, Any]) -> None:
+        node_id = Event.generate_node_id(self.project_id, self.event_id)
+        self._data = NodeData(
+            node_id, data=value, wrapper=EventDict, ref_version=2, ref_func=ref_func
+        )
+
+    @property
+    def group_id(self) -> int | None:
+        # TODO: `group_id` and `group` are deprecated properties on `Event`. We will remove them
+        # going forward. Since events may now be associated with multiple `Group` models, we will
+        # require `GroupEvent` to be passed around. The `group_events` property should be used to
+        # iterate through all `Groups` associated with an `Event`
+        if self._group_id:
+            return self._group_id
+
+        column = self.__get_column_name(Columns.GROUP_ID)
+
+        return self._snuba_data.get(column)
+
+    @group_id.setter
+    def group_id(self, value: int | None) -> None:
+        self._group_id = value
+
+    # TODO We need a better way to cache these properties. functools
+    # doesn't quite do the trick as there is a reference bug with unsaved
+    # models. But the current _group_cache thing is also clunky because these
+    # properties need to be stripped out in __getstate__.
+    @property
+    def group(self) -> Group | None:
+        from sentry.models import Group
+
+        if not self.group_id:
+            return None
+        if not hasattr(self, "_group_cache"):
+            self._group_cache = Group.objects.get(id=self.group_id)
+        return self._group_cache
+
+    @group.setter
+    def group(self, group: Group) -> None:
+        self.group_id = group.id
+        self._group_cache = group
+
+    @property
+    def group_ids(self) -> Sequence[int]:
+        """
+        This property returns all `group_ids` associated with an event. It checks both the
+        `GROUP_ID` and `GROUP_IDS` columns in snuba.
+        """
+        if self._group_ids:
+            return self._group_ids
+
+        snuba_group_id = self.group_id
+        # TODO: Replace `snuba_group_id` with this once we deprecate `group_id`.
+        # snuba_group_id = self._snuba_data.get(self.__get_column_name(Columns.GROUP_ID))
+        snuba_group_ids = self._snuba_data.get(self.__get_column_name(Columns.GROUP_IDS))
+        group_ids = []
+        if snuba_group_id:
+            group_ids.append(snuba_group_id)
+        if snuba_group_ids:
+            group_ids.extend(snuba_group_ids)
+        return group_ids
+
+    @group_ids.setter
+    def group_ids(self, values: Sequence[int] | None) -> None:
+        self._group_ids = values
+
+    @property
+    def groups(self):
+        from sentry.models import Group
+
+        if not self.group_ids:
+            return
+
+        if not hasattr(self, "_group_cache"):
+            self._groups_cache = list(Group.objects.filter(id=self.group_ids))
+        return self._groups_cache
+
+    def build_group_events(self):
+        """
+        Yields a GroupEvent for each Group associated with this Event.
+        """
+        for group in self.groups:
+            yield GroupEvent.from_event(self, group)
+
+    def for_group(self, group: Group):
+        return GroupEvent.from_event(self, group)
+
+
+class GroupEvent(BaseEvent):
+    def __init__(
+        self,
+        project_id: int,
+        event_id: str,
+        group: Group,
+        data: NodeData,
+        snuba_data: Mapping[str, Any] | None = None,
+    ):
+        super().__init__(project_id, event_id, snuba_data=snuba_data)
+        self.group = group
+        self.data = data
+
+    @property
+    def data(self) -> NodeData:
+        return self._data
+
+    @data.setter
+    def data(self, value: NodeData) -> None:
+        self._data = value
+
+    @classmethod
+    def from_event(cls, event: Event, group: Group):
+        if group.id not in event.group_ids:
+            raise ValueError("Group invalid, it is not associated with this Event")
+
+        return cls(
+            project_id=event.project_id,
+            event_id=event.event_id,
+            group=group,
+            data=deepcopy(event.data),
+            snuba_data=deepcopy(event.snuba_data),
+        )
 
 
 class EventSubjectTemplate(string.Template):
