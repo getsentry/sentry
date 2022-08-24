@@ -10,7 +10,7 @@ import {DEFAULT_STREAM_GROUP_STATS_PERIOD} from 'sentry/components/stream/group'
 import GroupChart from 'sentry/components/stream/groupChart';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Group, NewQuery} from 'sentry/types';
+import type {Group, NewQuery} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import theme from 'sentry/utils/theme';

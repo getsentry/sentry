@@ -14,6 +14,7 @@ const ReplayTabs: Record<TabKey, string> = {
   issues: t('Issues'),
   memory: t('Memory'),
   filesize: t('JS Filesize'),
+  modules: t('Modules'),
 };
 
 type Props = {};

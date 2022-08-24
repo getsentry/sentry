@@ -16,6 +16,7 @@ import IssueList from 'sentry/views/replays/detail/issueList';
 import MemoryChart from 'sentry/views/replays/detail/memoryChart';
 import NetworkList from 'sentry/views/replays/detail/network';
 import Trace from 'sentry/views/replays/detail/trace';
+import UnusedModules from 'sentry/views/replays/detail/unusedModules';
 
 type Props = {};
 
@@ -69,6 +70,12 @@ function FocusArea({}: Props) {
           invocations={replay.getChunkInvocationsByTxn()}
         />
       );
+    case 'modules':
+      return <UnusedModules replayRecord={replayRecord}
+          imports={replay?.getImports()}
+          accessed={replay?.getModuleCalls()}
+
+        />;
     case 'trace':
       const features = ['organizations:performance-view'];
 
