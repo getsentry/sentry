@@ -4,30 +4,34 @@
 
 Authentication tokens are passed using an auth header, and are used to authenticate as a user or organization account with the API. In our documentation, we have several placeholders that appear between curly braces or chevrons, such as `{API_KEY}` or `<auth_token>`, which you will need to replace with one of your authentication tokens in order to use the API call effectively.
 
-
 For example, when the documentation says:
 
-```bash
-curl -H 'Authorization: Bearer {TOKEN}' https://sentry.io/api/0/projects/
-```
+<HighlightCode
+  value={`curl -H \'Authorization: Bearer {TOKEN}\' https://sentry.io/api/0/projects/`}
+  language="bash"
+/>
 
 If your authentication token is `1a2b3c`, then the command should be:
-```bash
-curl -H 'Authorization: Bearer 1a2b3c' https://sentry.io/api/0/projects/
-```
+
+<HighlightCode
+  value={`curl -H \'Authorization: Bearer 1a2b3c\' https://sentry.io/api/0/projects/`}
+  language="bash"
+/>
+
 You can create authentication tokens within Sentry by [creating an internal integration](https://docs.sentry.io/product/integrations/integration-platform/#internal-integrations). This is also available for self-hosted Sentry.
 
 ## DSN Authentication
 
 Some API endpoints may allow DSN-based authentication. This is generally very limited and an endpoint will describe if its supported. This works similar to Bearer token authentication, but uses your DSN (Client Key).
 
-```bash
-curl -H 'Authorization: DSN {DSN}' https://sentry.io/api/0/projects/
-```
+<HighlightCode
+  value={`curl -H \'Authorization: DSN {DSN}\' https://sentry.io/api/0/projects/`}
+  language="bash"
+/>
 
 ## API Keys
 
-<Alert level="warning" title="Note">
+<Alert type="error" title="Note">
 
 API keys are a legacy means of authenticating. They will still be supported but are disabled for new accounts. You should use **authentication tokens** wherever possible.
 
@@ -37,9 +41,10 @@ API keys are passed using HTTP Basic auth where the username is your api key, an
 
 As an example, to get information about the project which your key is bound to, you might make a request like so:
 
-```bash
-curl -u {API_KEY}: https://sentry.io/api/0/projects/
-```
+<HighlightCode
+  value={`curl -u {API_KEY}: https://sentry.io/api/0/projects/`}
+  language="bash"
+/>
 
 <Alert>
 

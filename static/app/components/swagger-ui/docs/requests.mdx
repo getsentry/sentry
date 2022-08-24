@@ -1,47 +1,58 @@
-# Requests
+#
 
 All API requests should be made to the `/api/0/` prefix, and will return JSON as the response:
 
-```bash
-curl -i https://sentry.io/api/0/
-```
+###### Bash
 
-```http
-HTTP/1.0 200 OK
+<HighlightCode value={`curl -i https://sentry.io/api/0/`} language="bash" />
+
+###### HTTP
+
+<HighlightCode
+  value={`HTTP/1.0 200 OK
 Date: Sat, 14 Feb 2015 18:47:20 GMT
 Content-Type: application/json
 Content-Language: en
 Allow: GET, HEAD, OPTIONS
 
 {"version": "0"}
-```
+`}
+language="http"
+/>
 
 ## HTTP Verbs
 
 Sentry makes an attempt to stick to appropriate HTTP verbs, but we always prioritize usability over correctness.
 
-| Method    | Description                                                           |
-| --------- | --------------------------------------------------------------------- |
-| `DELETE`  | Used for deleting resources.                                          |
-| `GET`     | Used for retrieving resources.                                        |
-| `OPTIONS` | Describes the given endpoint.                                         |
-| `POST`    | Used for creating resources.                                          |
-| `PUT`     | Used for updating resources. Partial data is accepted where possible. |
+<Table
+  headers={['Method', 'Description']}
+  data={[
+    ['DELETE', 'Used for deleting resources.'],
+    ['GET', 'Used for retrieving resources.'],
+    ['OPTIONS', 'Describes the given endpoint.'],
+    ['POST', 'Used for creating resources.'],
+    ['PUT', 'Used for updating resources. Partial data is accepted where possible.'],
+  ]}
+/>
 
 ## Parameters and Data
 
 Any parameters not included in the URL should be encoded as JSON with a Content-Type of `'application/json'`:
 
-```bash
-curl -i https://sentry.io/api/0/projects/1/groups/ \
-    -d '{"status": "resolved"}' \
+<HighlightCode
+  value={`curl -i https://sentry.io/api/0/projects/1/groups/ \\
+    -d '{"status": "resolved"}' \\
     -H 'Content-Type: application/json'
-```
+`}
+  language="bash"
+/>
 
 Additional parameters are sometimes specified via the querystring, even for `POST`, `PUT`, and `DELETE` requests:
 
-```bash
-curl -i https://sentry.io/api/0/projects/1/groups/?status=unresolved \
-    -d '{"status": "resolved"}' \
+<HighlightCode
+  value={`curl -i https://sentry.io/api/0/projects/1/groups/?status=unresolved \\
+    -d '{"status": "resolved"}' \\
     -H 'Content-Type: application/json'
-```
+`}
+  language="bash"
+/>

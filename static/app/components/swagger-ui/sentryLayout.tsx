@@ -10,6 +10,8 @@ type SentryLayoutProps = {
 
 const SentryLayout = ({getComponent}: SentryLayoutProps) => {
   const BaseLayout = getComponent('BaseLayout', true);
+  const HighlightCode = getComponent('highlightCode');
+
   const [selectedMenuItem, setSelectedMenuItem] = useState<Docs | string>(
     'API REFERENCE'
   );
@@ -59,7 +61,10 @@ const SentryLayout = ({getComponent}: SentryLayoutProps) => {
             </div>
             <div className="content">
               {selectedMenuItem !== 'API REFERENCE' && (
-                <DocsSelector docName={selectedMenuItem as Docs} />
+                <DocsSelector
+                  docName={selectedMenuItem as Docs}
+                  HighlightCode={HighlightCode}
+                />
               )}
               {selectedMenuItem === 'API REFERENCE' && <BaseLayout />}
             </div>

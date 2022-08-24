@@ -205,6 +205,7 @@
     "postcss-syntax": "0.36.2",
     "react-refresh": "0.13.0",
     "react-test-renderer": "17.0.2",
+    "remark-gfm": "^3.0.1",
     "size-limit": "^5.0.5",
     "storybook-dark-mode": "^1.1.0",
     "stylelint": "14.8.2",

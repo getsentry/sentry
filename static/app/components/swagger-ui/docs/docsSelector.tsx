@@ -22,22 +22,54 @@ export enum Docs {
 }
 
 export interface Props {
+  HighlightCode: () => JSX.Element;
   docName: Docs | undefined;
 }
 
-const components = {
-  Alert,
+const Table = ({headers, data}: {data: string[][]; headers: string[]}) => {
+  return (
+    <table className="docs-table">
+      <thead>
+        <tr>
+          {headers.map((header, idx) => (
+            <th key={header || idx} align="center">
+              {header}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {data.map(row => (
+          <tr key={row[0]}>
+            {row.map(col => (
+              <td key={col} align="center">
+                {col}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
 };
 
-const DocsSelector = ({docName}: Props) => {
+const DocsSelector = ({docName, HighlightCode}: Props) => {
+  const components = {
+    Alert,
+    HighlightCode,
+    Table,
+  };
+
   return (
-    <MDXProvider components={components}>
-      {docName === Docs.Auth && <AuthDocs components={components} />}
-      {docName === Docs.Pagination && <PaginationDocs components={components} />}
-      {docName === Docs.Permissions && <PermissionsDocs components={components} />}
-      {docName === Docs.RateLimits && <RateLimitDocs components={components} />}
-      {docName === Docs.Request && <RequestsDocs components={components} />}
-    </MDXProvider>
+    <div style={{padding: '0 20px'}}>
+      <MDXProvider components={components}>
+        {docName === Docs.Auth && <AuthDocs components={components} />}
+        {docName === Docs.Pagination && <PaginationDocs components={components} />}
+        {docName === Docs.Permissions && <PermissionsDocs components={components} />}
+        {docName === Docs.RateLimits && <RateLimitDocs components={components} />}
+        {docName === Docs.Request && <RequestsDocs components={components} />}
+      </MDXProvider>
+    </div>
   );
 };
 

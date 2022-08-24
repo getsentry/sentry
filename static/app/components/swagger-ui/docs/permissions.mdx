@@ -14,19 +14,25 @@ If you're looking for information on membership roles please visit the
 
 ### Organizations
 
-|              |             |
-| :----------: | :---------: |
-|   **GET**    | `org:read`  |
-| **PUT/POST** | `org:write` |
-|  **DELETE**  | `org:admin` |
+<Table
+  headers={[' ', ' ']}
+  data={[
+    ['GET', 'org:read'],
+    ['PUT/POST', 'org:write'],
+    ['DELETE', 'org:admin'],
+  ]}
+/>
 
 ### Projects
 
-|              |                 |
-| :----------: | :-------------: |
-|   **GET**    | `project:read`  |
-| **PUT/POST** | `project:write` |
-|  **DELETE**  | `project:admin` |
+<Table
+  headers={['', '']}
+  data={[
+    ['GET', 'project:read'],
+    ['PUT/POST', 'project:write'],
+    ['DELETE', 'project:admin'],
+  ]}
+/>
 
 <Alert level="warning" title="Note">
 
@@ -38,27 +44,36 @@ and **organization** release endpoints. The available endpoints are listed in th
 
 ### Teams
 
-|              |              |
-| :----------: | :----------: |
-|   **GET**    | `team:read`  |
-| **PUT/POST** | `team:write` |
-|  **DELETE**  | `team:admin` |
+<Table
+  headers={['', '']}
+  data={[
+    ['GET', 'team:read'],
+    ['PUT/POST', 'team:write'],
+    ['DELETE', 'team:admin'],
+  ]}
+/>
 
 ### Members
 
-|              |                |
-| :----------: | :------------: |
-|   **GET**    | `member:read`  |
-| **PUT/POST** | `member:write` |
-|  **DELETE**  | `member:admin` |
+<Table
+  headers={['', '']}
+  data={[
+    ['GET', 'member:read'],
+    ['PUT/POST', 'member:write'],
+    ['DELETE', 'member:admin'],
+  ]}
+/>
 
 ### Issues & Events
 
-|            |               |
-| :--------: | :-----------: |
-|  **GET**   | `event:read`  |
-|  **PUT**   | `event:write` |
-| **DELETE** | `event:admin` |
+<Table
+  headers={['', '']}
+  data={[
+    ['GET', 'event:read'],
+    ['PUT/POST', 'event:write'],
+    ['DELETE', 'event:admin'],
+  ]}
+/>
 
 <Alert level="warning" title="Note">
 
@@ -69,9 +84,7 @@ Events in Sentry are immutable and can only be deleted by deleting the whole iss
 
 ### Releases
 
-|                         |                    |
-| :---------------------: | :----------------: |
-| **GET/PUT/POST/DELETE** | `project:releases` |
+<Table headers={['', '']} data={[['GET/PUT/POST/DELETE', 'project:release']]} />
 
 <Alert level="warning" title="Note">
 

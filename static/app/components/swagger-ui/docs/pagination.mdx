@@ -2,12 +2,17 @@
 
 Pagination in the API is handled via the Link header standard:
 
-```bash
-curl -i https://sentry.io/api/0/projects/1/groups/
-```
+###### Bash
 
-```http
-HTTP/1.0 200 OK
+<HighlightCode
+  value={`curl -i https://sentry.io/api/0/projects/1/groups/`}
+  language="bash"
+/>
+
+###### HTTP
+
+<HighlightCode
+  value={`HTTP/1.0 200 OK
 Date: Sat, 14 Feb 2015 18:47:20 GMT
 Content-Type: application/json
 Content-Language: en
@@ -16,7 +21,9 @@ Link: <https://sentry.io/api/0/projects/1/groups/?&cursor=1420837590:0:1>;
   rel="previous"; results="false",
   <https://sentry.io/api/0/projects/1/groups/?&cursor=1420837533:0:0>;
   rel="next"; results="true"
-```
+  `}
+  language="http"
+/>
 
 When supported, cursors will **always** be returned for both a previous and a next page, even if there are no results on these pages. This allows you to make a query against the API for yet-undiscovered results. An example where this would be used is when you’re implementing polling behavior and you want to see if there is any new data. We return a `results="[true|false]"` indicator to determine if you actually need to paginate.
 
@@ -28,9 +35,10 @@ https://docs.sentry.io/api/events/list-an-issues-events/
 
 The HTTP request in this example returns 100 events for the issue and has the following link header in the response:
 
-```discover {tabTitle:Http}
-<https://sentry.io/api/0/issues/123456/events/?&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", <https://sentry.io/api/0/issues/123456/events/?&cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"
-```
+<HighlightCode
+  value={`<https://sentry.io/api/0/issues/123456/events/?&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", <https://sentry.io/api/0/issues/123456/events/?&cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"`}
+  language="http"
+/>
 
 One of the URLs in the link response has `rel=next`, which indicates the next results page. It also has `results=true`, which means that there are more results.
 
@@ -38,9 +46,11 @@ Based on this, the next request is `GET <https://sentry.io/api/0/issues/123456/e
 
 This request will return the next 100 events for that issue, again, with the following link header:
 
-```discover {tabTitle:Http}
-<https://sentry.io/api/0/issues/123456/events/?&cursor=0:0:1>; rel="previous"; results="true"; cursor="0:0:1", <https://sentry.io/api/0/issues/123456/events/?&cursor=0:200:0>; rel="next"; results="true"; cursor="0:200:0"
-```
+<HighlightCode
+  value={`<https://sentry.io/api/0/issues/123456/events/?&cursor=0:0:1>; rel="previous"; results="true"; cursor="0:0:1", <https://sentry.io/api/0/issues/123456/events/?&cursor=0:200:0>; rel="next"; results="true"; cursor="0:200:0"
+`}
+  language="http"
+/>
 
 The process is repeated until the URL with `rel=next` has the flag `results=false` to indicate the last page.
 
