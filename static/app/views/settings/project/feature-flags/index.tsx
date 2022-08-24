@@ -49,7 +49,7 @@ export default function ProjectFeatureFlags({project}: Props) {
 
   const [flags, setFlags] = useState(currentFlags ?? {});
   const [query, setQuery] = useState('');
-  const [status, setStatus] = useState(true);
+  const [status, setStatus] = useState(null);
 
   const showPromo = Object.keys(flags).length === 0;
 
@@ -209,7 +209,8 @@ export default function ProjectFeatureFlags({project}: Props) {
 
   const filteredFlags = Object.keys(flags).filter(key => {
     return (
-      key.toLowerCase().includes(query.toLowerCase()) && flags[key].enabled === status
+      key.toLowerCase().includes(query.toLowerCase()) &&
+      (status === null || flags[key].enabled === status)
     );
   });
 
@@ -264,6 +265,7 @@ export default function ProjectFeatureFlags({project}: Props) {
               <CompactSelect
                 defaultValue={status}
                 options={[
+                  {value: null, label: t('All')},
                   {value: true, label: t('Active')},
                   {value: false, label: t('Inactive')},
                 ]}
@@ -309,11 +311,11 @@ export default function ProjectFeatureFlags({project}: Props) {
 
 const Content = styled('div')`
   display: grid;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
 `;
 
 const Filters = styled('div')`
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   grid-template-columns: 1fr max-content;
 `;
