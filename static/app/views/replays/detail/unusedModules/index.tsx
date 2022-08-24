@@ -80,11 +80,11 @@ function UnusedModules({replayRecord, imports, accessed}: Props) {
 
   const accessedByUrl = last(
     modulesByUrl(accessed)[1].filter(
-      ({url, timestamp}) => url === currentUrl && currentTimeMs >= timestamp
+      ({url}) => url === currentUrl
     )
   );
   const importsByUrl = last(
-    imports.filter(({url, timestamp}) => url === currentUrl && currentTimeMs >= timestamp)
+    imports.filter(({url, }) => url === currentUrl )
   );
 
   const isEmpty = !accessedByUrl;
