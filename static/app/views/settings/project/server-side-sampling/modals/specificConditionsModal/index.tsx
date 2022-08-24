@@ -7,6 +7,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import FieldRequiredBadge from 'sentry/components/forms/field/fieldRequiredBadge';
 import NumberField from 'sentry/components/forms/numberField';
@@ -27,7 +28,6 @@ import {
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useApi from 'sentry/utils/useApi';
-import EmptyMessage from 'sentry/components/emptyMessage';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {isUniformRule, percentageToRate, rateToPercentage} from '../../utils';
