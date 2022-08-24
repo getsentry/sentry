@@ -87,12 +87,13 @@ function Breadcrumbs({}: Props) {
         <Header>
           <PageHeading>{t('User Journeys')}</PageHeading>
         </Header>
-        <PageFilterBar>
-          <ProjectPageFilter />
-          <EnvironmentPageFilter />
-          <DatePageFilter alignDropdown="right" />
-        </PageFilterBar>
-        <br />
+        <Header>
+          <PageFilterBar>
+            <ProjectPageFilter />
+            <EnvironmentPageFilter />
+            <DatePageFilter alignDropdown="right" />
+          </PageFilterBar>
+        </Header>
         <PanelTable
           isLoading={isLoading}
           isEmpty={users.length === 0}
