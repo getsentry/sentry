@@ -1,0 +1,57 @@
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+env:
+  # TODO: swap these for ghcr ?
+  BUILDER: us.gcr.io/sentryio/sentry-builder
+  IMAGE: us.gcr.io/sentryio/sentry
+  SENTRY_IMAGE: us.gcr.io/sentryio/sentry:${{ github.sha }}
+
+jobs:
+  self-hosted:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - run: docker pull "$BUILDER"
+    - run: |
+        docker build \
+          --cache-from "${BUILDER}:latest" \
+          --build-arg "SOURCE_COMMIT=${{ github.sha }}" \
+          --file docker/builder.dockerfile \
+          --tag "$BUILDER:${{ github.sha }}" \
+          .
+      timeout-minutes: 3
+    - run: |
+        docker run \
+            --rm \
+            --volume "$PWD:/workspace:rw" \
+            "$BUILDER:${{ github.sha }}"
+      timeout-minutes: 10
+    - run: docker pull "$IMAGE"
+    - run: |
+        docker build \
+          --cache-from "${IMAGE}:latest" \
+          --build-arg "SOURCE_COMMIT=${{ github.sha }}" \
+          --file docker/Dockerfile \
+          --tag "${SENTRY_IMAGE}" \
+          .
+      timeout-minutes: 5
+    - uses: actions/checkout@v3
+      with:
+        repository: getsentry/self-hosted
+        path: self-hosted
+    - run: |
+        ./install.sh
+        ./test.sh || (
+            echo 'Test Failed!'
+            docker-compose ps
+            docker-compose logs
+            exit 1
+        )
+      env:
+        CI: 1
+        SENTRY_TEST_HOST: http://nginx
+      working-directory: self-hosted
+    - run: echo TODO PUSH
