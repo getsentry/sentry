@@ -52,6 +52,11 @@ export function TagKeyAutocomplete({onChange, orgSlug, projectSlug, value}: Prop
         hideControlState
         required
         creatable
+        onKeyDown={(val: string, e: KeyboardEvent) => {
+          if (e.key === 'Tab') {
+            onChange(val);
+          }
+        }}
         placeholder={t('tag')}
         onChange={onChange}
         value={value}

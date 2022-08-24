@@ -119,11 +119,6 @@ export function FlagModal({
             placeholder={t('Enter a name')}
             value={key}
             choices={nameChoices}
-            onKeyDown={(_value: string, e: KeyboardEvent) => {
-              if (e.key === 'Enter') {
-                handleSubmit();
-              }
-            }}
             onChange={value => {
               setKey(value);
 
