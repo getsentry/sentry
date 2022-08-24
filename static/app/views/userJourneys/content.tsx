@@ -50,57 +50,57 @@ function Breadcrumbs({
 
   return (
     <Fragment>
-    <Timeline breadcrumbs={transformedCrumbs} />
-    <StyledPanelTable
-      scrollbarSize={scrollbarSize}
-      headers={[
-        t('Type'),
-        t('Category'),
-        t('Description'),
-        t('Level'),
-        <Time key="time" onClick={onSwitchTimeFormat}>
-          <Tooltip
-            containerDisplayMode="inline-flex"
-            title={
-              displayRelativeTime ? t('Switch to absolute') : t('Switch to relative')
-            }
-          >
-            <StyledIconSort size="xs" rotated />
-          </Tooltip>
+      <Timeline breadcrumbs={breadcrumbs} />
+      <StyledPanelTable
+        scrollbarSize={scrollbarSize}
+        headers={[
+          t('Type'),
+          t('Category'),
+          t('Description'),
+          t('Level'),
+          <Time key="time" onClick={onSwitchTimeFormat}>
+            <Tooltip
+              containerDisplayMode="inline-flex"
+              title={
+                displayRelativeTime ? t('Switch to absolute') : t('Switch to relative')
+              }
+            >
+              <StyledIconSort size="xs" rotated />
+            </Tooltip>
 
-          {t('Time')}
-        </Time>,
-        '',
-      ]}
-      isEmpty={!breadcrumbs.length}
-      {...emptyMessage}
-    >
-      <Content>
-        {breadcrumbs.map((breadcrumb, index) => {
-          const isLastItem = breadcrumbs[breadcrumbs.length - 1].id === breadcrumb.id;
-          return (
-            <Fragment key={breadcrumb.id}>
-              <Breadcrumb
-                data-test-id={isLastItem ? 'last-crumb' : 'crumb'}
-                style={{}}
-                onLoad={() => {}}
-                organization={organization}
-                searchTerm={searchTerm}
-                breadcrumb={breadcrumb}
-                meta={event._meta?.entries?.[entryIndex]?.data?.values?.[index]}
-                event={event}
-                relativeTime={relativeTime}
-                displayRelativeTime={displayRelativeTime}
-                height={undefined}
-                scrollbarSize={scrollbarSize}
-                router={router}
-                route={route}
-              />
-            </Fragment>
-          );
-        })}
-      </Content>
-    </StyledPanelTable>
+            {t('Time')}
+          </Time>,
+          '',
+        ]}
+        isEmpty={!breadcrumbs.length}
+        {...emptyMessage}
+      >
+        <Content>
+          {breadcrumbs.map((breadcrumb, index) => {
+            const isLastItem = breadcrumbs[breadcrumbs.length - 1].id === breadcrumb.id;
+            return (
+              <Fragment key={breadcrumb.id}>
+                <Breadcrumb
+                  data-test-id={isLastItem ? 'last-crumb' : 'crumb'}
+                  style={{}}
+                  onLoad={() => {}}
+                  organization={organization}
+                  searchTerm={searchTerm}
+                  breadcrumb={breadcrumb}
+                  meta={event._meta?.entries?.[entryIndex]?.data?.values?.[index]}
+                  event={event}
+                  relativeTime={relativeTime}
+                  displayRelativeTime={displayRelativeTime}
+                  height={undefined}
+                  scrollbarSize={scrollbarSize}
+                  router={router}
+                  route={route}
+                />
+              </Fragment>
+            );
+          })}
+        </Content>
+      </StyledPanelTable>
     </Fragment>
   );
 }

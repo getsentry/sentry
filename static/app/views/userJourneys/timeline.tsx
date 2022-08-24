@@ -62,8 +62,8 @@ function extractHighlights(crumbs: Props['breadcrumbs']): Props['breadcrumbs'] {
 const AxisLine = styled('div')`
   position: absolute;
   top: 28px;
-  left: -${space(1)};
-  right: -${space(1)};
+  left: -${space(1.5)};
+  right: -${space(1.5)};
   border-bottom: 1px solid ${p => p.theme.border};
   z-index: 0;
 `;
@@ -72,7 +72,7 @@ const ItemRow = styled('div')`
   width: 100%;
   display: flex;
   flex-direction: row;
-  gap: ${space(2)};
+  gap: ${space(3)};
 `;
 
 const ScrollContainer = styled('div')`
@@ -87,7 +87,7 @@ const ItemContainer = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${space(1)};
   padding: ${space(1)} 0;
 `;
 
