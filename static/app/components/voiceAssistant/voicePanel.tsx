@@ -208,7 +208,7 @@ export class VoiceAssistantPanel extends React.Component<{}, VoiceAssistantState
       <div>
         <VoiceAssistantTextbox
           resultText={this.state.speechResult}
-          textStyle={this.state.notifyStyle}
+          notifyStyle={this.state.notifyStyle}
         />
         <VoiceAssistantButton
           handleToggle={this.handleToggle}

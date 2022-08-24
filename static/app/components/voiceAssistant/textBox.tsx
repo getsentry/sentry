@@ -5,8 +5,8 @@ import styled from '@emotion/styled';
 import {NotifyStyle} from './voicePanel';
 
 interface VoiceAssistantTextboxProps {
+  notifyStyle?: NotifyStyle;
   resultText?: string;
-  textStyle?: NotifyStyle;
 }
 
 const StyledWrapper = styled('div')<VoiceAssistantTextboxProps>`
@@ -23,7 +23,7 @@ const StyledWrapper = styled('div')<VoiceAssistantTextboxProps>`
   border: 1px solid;
 
   ${props =>
-    props.textStyle === NotifyStyle.Error
+    props.notifyStyle === NotifyStyle.Error
       ? `border-color: rgba(245, 84, 89, 0.5);
          background: rgba(245, 84, 89, 0.3);`
       : `border-color: rgba(60, 116, 221, 0.5);
