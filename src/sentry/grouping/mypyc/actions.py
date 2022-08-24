@@ -214,7 +214,7 @@ class VarAction(Action):
         self._is_updater = self.var not in VarAction._FRAME_VARIABLES
 
         try:
-            self.value = VarAction._VALUE_PARSERS[var](value)  # type: ignore
+            self.value = VarAction._VALUE_PARSERS[var](value)
         except (ValueError, TypeError):
             raise InvalidEnhancerConfig(f"Invalid value '{value}' for '{var}'")
         except KeyError:

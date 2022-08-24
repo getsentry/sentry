@@ -234,7 +234,7 @@ class FamilyMatch(FrameMatch):
         exception_data: ExceptionData,
         cache: MatchingCache,
     ) -> bool:
-        if b"all" in self._flags:
+        if "all" in self._flags:
             return True
 
         return match_frame["family"] in self._flags

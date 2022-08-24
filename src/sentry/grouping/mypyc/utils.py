@@ -1,4 +1,15 @@
-from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Sequence
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
+    TypeVar,
+    cast,
+)
 
 from sentry.stacktraces.functions import get_function_name_for_frame
 from sentry.stacktraces.platform import get_behavior_family_for_platform
@@ -13,23 +24,35 @@ MatchFrame = MutableMapping[str, Any]
 
 
 ExceptionData = Mapping[str, Any]
-MatchingCache = MutableMapping[str, Any]
 
 
-def cached(cache, function, *args, **kwargs):
+CacheKey = Tuple[Callable[..., Any], Tuple[Any, ...], Tuple[Tuple[str, Any], ...]]
+
+MatchingCache = MutableMapping[Tuple[Any, ...], Any]
+
+T = TypeVar("T")
+
+
+def cached(
+    cache: MatchingCache,
+    function: Callable[..., T],
+    *args: Any,
+    **kwargs: Any,
+) -> T:
     """Calls ``function`` or retrieves its return value from the ``cache``.
 
     This is similar to ``functools.cache``, but uses a custom cache instead
     of a global one. The cache can be shared between multiple functions.
     """
-    key = (function, args, tuple(sorted(kwargs.items())))
+    sorted_kwargs = tuple(sorted(kwargs.items()))
+    key = (function, args, sorted_kwargs)
 
     if key in cache:
         rv = cache[key]
     else:
         rv = cache[key] = function(*args, **kwargs)
 
-    return rv
+    return cast(T, rv)
 
 
 def _get_function_name(frame_data: FrameData, platform: Optional[str]) -> str:
