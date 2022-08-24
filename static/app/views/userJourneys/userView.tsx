@@ -2,7 +2,6 @@ import {useEffect, useMemo, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import Breadcrumbs from 'sentry/components/events/interfaces/breadcrumbs/breadcrumbs';
 import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

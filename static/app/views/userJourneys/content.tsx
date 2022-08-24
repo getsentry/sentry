@@ -10,8 +10,6 @@ import space from 'sentry/styles/space';
 import {EntryType} from 'sentry/types';
 import {Crumb} from 'sentry/types/breadcrumbs';
 
-const PANEL_MAX_HEIGHT = 400;
-
 type Props = Pick<
   React.ComponentProps<typeof Breadcrumb>,
   | 'event'
