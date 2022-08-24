@@ -19,7 +19,7 @@ if (isRunningOnDevUI) {
 } else if (isLocalHost) {
   swagger.servers = [{url: 'https://localhost:8000/'}];
 } else {
-  swagger.servers = [{url: 'https://sentry.io/'}];
+  swagger.servers = [{url: `https://${hostname}/`}];
 }
 
 const SwaggerUIDocs = () => (
