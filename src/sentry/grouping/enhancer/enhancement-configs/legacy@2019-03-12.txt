@@ -26,8 +26,8 @@ family:native package:**/Frameworks/Sentry.framework/**              -app
 # Sentry internal functions in Cocoa SDK needed for static libs.
 family:native function:kscm_*                                        -app -group
 family:native function:kscrash_*                                     -app -group
-family:native function:"?[[]KSCrash *"                               -app -group
-family:native function:"?[[]SentryClient *"                          -app -group
-family:native function:"?[[]SentryHub *"                             -app -group
-family:native function:"?[[]RNSentry *"                              -app -group
-family:native function:"?[[]SentrySDK *"                             -app -group
+family:native function:"?[KSCrash *"                               -app -group
+family:native function:"?[SentryClient *"                          -app -group
+family:native function:"?[SentryHub *"                             -app -group
+family:native function:"?[RNSentry *"                              -app -group
+family:native function:"?[SentrySDK *"                             -app -group

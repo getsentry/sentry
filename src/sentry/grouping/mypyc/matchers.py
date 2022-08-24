@@ -1,8 +1,8 @@
-from typing import ClassVar, MutableMapping, Sequence, Tuple, Type, cast
+from typing import ClassVar, MutableMapping, Sequence, Tuple, Type
 
 from sentry.grouping.mypyc.exceptions import InvalidEnhancerConfig
 from sentry.grouping.utils import get_rule_bool
-from sentry.utils.glob import glob_match
+from sentry.utils.glob import glob_match_compiled, translate
 from sentry.utils.safe import get_path
 
 from .utils import ExceptionData, MatchFrame, MatchingCache, cached
@@ -127,7 +127,7 @@ class FrameMatch(Match):
 
         return subclass(key, pattern, negated)
 
-    def __init__(self, key: str, pattern: str, negated: bool = False):
+    def __init__(self, key: str, pattern: str, negated: bool = False, doublestar: bool = False):
         super().__init__()
         try:
             self.key = MATCHERS[key]
@@ -135,6 +135,7 @@ class FrameMatch(Match):
             raise InvalidEnhancerConfig("Unknown matcher '%s'" % key)
         self.pattern = pattern
         self._encoded_pattern = pattern.encode("utf-8")
+        self._compiled_pattern = translate(pattern, doublestar=doublestar)
         self.negated = negated
 
     @property
@@ -180,10 +181,10 @@ class FrameMatch(Match):
 
 def path_like_match(pattern: bytes, value: bytes) -> bool:
     """Stand-alone function for use with ``cached``"""
-    if glob_match(value, pattern, ignorecase=False, doublestar=True, path_normalize=True):
+    if glob_match_compiled(value, pattern, ignorecase=False, path_normalize=True):
         return True
-    if not value.startswith(b"/") and glob_match(
-        b"/" + value, pattern, ignorecase=False, doublestar=True, path_normalize=True
+    if not value.startswith(b"/") and glob_match_compiled(
+        b"/" + value, pattern, ignorecase=False, path_normalize=True
     ):
         return True
 
@@ -195,7 +196,7 @@ class PathLikeMatch(FrameMatch):
     field: str
 
     def __init__(self, key: str, pattern: str, negated: bool = False):
-        super().__init__(key, pattern.lower(), negated)
+        super().__init__(key, pattern.lower(), negated, doublestar=True)
 
     def _positive_frame_match(
         self,
@@ -208,7 +209,7 @@ class PathLikeMatch(FrameMatch):
         if value is None:
             return False
 
-        return cast(bool, cached(cache, path_like_match, self._encoded_pattern, value))
+        return cached(cache, path_like_match, self._compiled_pattern, value)
 
 
 class PackageMatch(PathLikeMatch):
@@ -264,7 +265,7 @@ class FunctionMatch(FrameMatch):
         cache: MatchingCache,
     ) -> bool:
 
-        return cast(bool, cached(cache, glob_match, match_frame["function"], self._encoded_pattern))
+        return cached(cache, glob_match_compiled, match_frame["function"], self._compiled_pattern)
 
 
 class FrameFieldMatch(FrameMatch):
@@ -282,7 +283,7 @@ class FrameFieldMatch(FrameMatch):
         if field is None:
             return False
 
-        return cast(bool, cached(cache, glob_match, field, self._encoded_pattern))
+        return cached(cache, glob_match_compiled, field, self._compiled_pattern)
 
 
 class ModuleMatch(FrameFieldMatch):
@@ -307,7 +308,8 @@ class ExceptionFieldMatch(FrameMatch):
         cache: MatchingCache,
     ) -> bool:
         field = get_path(exception_data, *self.field_path) or "<unknown>"
-        return cast(bool, cached(cache, glob_match, field, self._encoded_pattern))
+
+        return cached(cache, glob_match_compiled, field, self._compiled_pattern)
 
 
 class ExceptionTypeMatch(ExceptionFieldMatch):
