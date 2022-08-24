@@ -104,7 +104,7 @@ function extractHighlights(crumbs: Props['breadcrumbs']): CrumbGroup[] {
 
 const AxisLine = styled('div')`
   position: absolute;
-  top: 38px;
+  top: 60px;
   left: -${space(1.5)};
   right: -${space(1.5)};
   border-bottom: 1px solid ${p => p.theme.border};
@@ -116,6 +116,7 @@ const ItemRow = styled('div')`
   display: flex;
   flex-direction: row;
   gap: ${space(3)};
+  height: 110px;
 `;
 
 const ScrollContainer = styled('div')`
@@ -130,12 +131,10 @@ const ScrollContainer = styled('div')`
 
 const ItemContainer = styled('div')`
   position: relative;
-  top: -5px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: ${space(1)};
-  padding: ${space(1)} 0;
   cursor: pointer;
 `;
 
@@ -143,9 +142,10 @@ const IconWrapper = styled('div')<{color: string; offset: number}>`
   position: absolute;
   width: 38px;
   height: 38px;
-  top: ${p => p.offset * -8 + 20}px;
+  top: ${p => p.offset * -8 + 40}px;
+  left: ${p => p.offset * 4}px;
   z-index: ${p => 5 - p.offset};
-  opacity: ${p => 1.0 - p.offset * 0.12};
+  opacity: ${p => 1.0 - p.offset * 0.15};
 
   display: flex;
   align-items: center;
@@ -165,7 +165,7 @@ const IconStack = styled('div')`
   display: flex;
   flex-direction: column-reverse;
   position: relative;
-  height: 60px;
+  height: 80px;
   width: 38px;
 `;
 

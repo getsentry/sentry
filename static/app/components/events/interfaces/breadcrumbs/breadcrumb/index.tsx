@@ -26,7 +26,6 @@ type Props = Pick<React.ComponentProps<typeof Data>, 'route' | 'router'> & {
   style: React.CSSProperties;
   height?: string;
   meta?: Record<any, any>;
-  scrollIntoView?: boolean;
 };
 
 export const Breadcrumb = memo(function Breadcrumb({

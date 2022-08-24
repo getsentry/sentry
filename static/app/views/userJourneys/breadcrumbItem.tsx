@@ -63,7 +63,7 @@ function BreadcrumbItem(props: Props) {
       const rect = breadcrumbRef.current.getBoundingClientRect();
       window.scrollTo({
         // TODO this is probably all wrong but it looks cool
-        top: rect.top - 90,
+        top: rect.top,
         left: 0,
         behavior: 'smooth',
       });
