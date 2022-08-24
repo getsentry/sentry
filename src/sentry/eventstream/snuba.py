@@ -140,7 +140,7 @@ class SnubaProtocolEventStream(EventStream):
             "insert",
             extra_data=(
                 {
-                    "group_id": event.group_id,
+                    "group_id": event.group_ids[0] if event.group_ids else None,
                     "group_ids": event.group_ids,
                     "event_id": event.event_id,
                     "organization_id": project.organization_id,
@@ -386,7 +386,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
         self._dispatch_post_process_group_task(
             event.event_id,
             event.project_id,
-            event.group_id,
+            event.group_ids[0] if event.group_ids else None,
             is_new,
             is_regression,
             is_new_group_environment,

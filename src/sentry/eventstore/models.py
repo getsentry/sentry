@@ -654,9 +654,9 @@ class Event(BaseEvent):
         if self._group_ids:
             return self._group_ids
 
-        snuba_group_id = self.group_id
+        # snuba_group_id = self.group_id
         # TODO: Replace `snuba_group_id` with this once we deprecate `group_id`.
-        # snuba_group_id = self._snuba_data.get(self._get_column_name(Columns.GROUP_ID))
+        snuba_group_id = self._snuba_data.get(self._get_column_name(Columns.GROUP_ID))
         snuba_group_ids = self._snuba_data.get(self._get_column_name(Columns.GROUP_IDS))
         group_ids = []
         if snuba_group_id:
