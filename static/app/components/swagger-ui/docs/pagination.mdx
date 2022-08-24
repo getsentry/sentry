@@ -1,7 +1,4 @@
----
-title: Paginating Results
-sidebar_order: 1
----
+# Paginating Results
 
 Pagination in the API is handled via the Link header standard:
 
@@ -30,6 +27,7 @@ Here is a pagination example using this API endpoint:
 https://docs.sentry.io/api/events/list-an-issues-events/
 
 The HTTP request in this example returns 100 events for the issue and has the following link header in the response:
+
 ```discover {tabTitle:Http}
 <https://sentry.io/api/0/issues/123456/events/?&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", <https://sentry.io/api/0/issues/123456/events/?&cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"
 ```
@@ -39,6 +37,7 @@ One of the URLs in the link response has `rel=next`, which indicates the next re
 Based on this, the next request is `GET <https://sentry.io/api/0/issues/123456/events/?&cursor=0:100:0>`.
 
 This request will return the next 100 events for that issue, again, with the following link header:
+
 ```discover {tabTitle:Http}
 <https://sentry.io/api/0/issues/123456/events/?&cursor=0:0:1>; rel="previous"; results="true"; cursor="0:0:1", <https://sentry.io/api/0/issues/123456/events/?&cursor=0:200:0>; rel="next"; results="true"; cursor="0:200:0"
 ```
