@@ -178,7 +178,7 @@ class HackweekPlugin {
           compilation.chunkGraph.getChunkModules(chunk).forEach(module => {
             modules.push({
               id: module.id,
-              size: 0,
+              size: module.size(),
             });
           });
         } catch (err) {
@@ -192,7 +192,9 @@ class HackweekPlugin {
         });
       });
 
-      fs.writeFileSync(this.outPath, JSON.stringify(emitted, null, '\t'));
+      if (process.env.NO_HACKWEEK_MOCK_DATA !== 'true') {
+        fs.writeFileSync(this.outPath, JSON.stringify(emitted, null, '\t'));
+      }
 
       callback();
     });

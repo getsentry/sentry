@@ -83,7 +83,7 @@ function ChunkList({chunks, invocations}: ChunkListProps) {
               <ul>
                 {chunk.modules.map(module => (
                   <Module key={module.id} invoked={hasInvokedFile([module.id])}>
-                    {module.id}
+                    {module.id} <FileSize base={2} bytes={module.size} />
                   </Module>
                 ))}
               </ul>
