@@ -10,6 +10,7 @@ export enum TabKey {
   issues = 'issues',
   memory = 'memory',
   filesize = 'filesize',
+  modules = 'modules',
 }
 
 function isReplayTab(tab: string): tab is TabKey {
