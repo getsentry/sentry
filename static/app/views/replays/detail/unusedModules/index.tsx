@@ -87,7 +87,7 @@ function UnusedModules({replayRecord, imports, accessed}: Props) {
     imports.filter(({url, timestamp}) => url === currentUrl && currentTimeMs >= timestamp)
   );
 
-  const isEmpty = !importsByUrl || !accessedByUrl;
+  const isEmpty = !accessedByUrl;
 
   const renderTransaction = (
     [module, exports]: [module: string, exports: Record<string, number>],
