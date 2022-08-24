@@ -16,6 +16,7 @@ class OrganizationIssuesHotspotsEndpoint(OrganizationEventsEndpointBase):
     }
 
     def get(self, request: Request, organization) -> Response:
+
         response = [
             {
                 "id": "<root>",

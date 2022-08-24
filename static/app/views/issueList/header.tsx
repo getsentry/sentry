@@ -91,7 +91,7 @@ function IssueListHeader({
         />
       </Layout.HeaderActions>
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
-      <IssueHotSpots />
+      <IssueHotSpots organizationSlug={organization.slug} projects={selectedProjects} />
       <Layout.HeaderNavTabs underlined>
         {visibleTabs.map(
           ([tabQuery, {name: queryName, tooltipTitle, tooltipHoverable}]) => {
