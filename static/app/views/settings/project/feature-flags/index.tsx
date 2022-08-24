@@ -27,7 +27,7 @@ import PermissionAlert from 'sentry/views/settings/organization/permissionAlert'
 import {FlagModal} from './modals/flagModal';
 import {SegmentModal} from './modals/segmentModal';
 import {Card} from './card';
-import {FeatureFlagsPromo} from './featureFlagsPromo';
+import {Promo} from './promo';
 
 type Props = ModalRenderProps & {
   project: Project;
@@ -145,11 +145,11 @@ export default function ProjectFeatureFlags({project}: Props) {
   }
 
   async function handleDeleteSegment(flagKey: string, index: number) {
-    const newEvaluations = [...flags[flagKey].evaluations];
+    const newEvaluations = [...flags[flagKey].evaluation];
     newEvaluations.splice(index, 1);
 
     const newFeatureFlags = {...flags};
-    newFeatureFlags[flagKey].evaluations = newEvaluations;
+    newFeatureFlags[flagKey].evaluation = newEvaluations;
 
     try {
       const result = await api.requestPromise(
@@ -169,17 +169,15 @@ export default function ProjectFeatureFlags({project}: Props) {
     }
   }
 
-  async function handleSortEvaluations(flagKey: string, evaluationIds: string[]) {
-    const sortedEvaluations = evaluationIds
-      .map(evaluationId =>
-        flags[flagKey].evaluations.find(
-          evaluation => String(evaluation.id) === evaluationId
-        )
+  async function handleSortSegments(flagKey: string, segmentIds: string[]) {
+    const sortedSegments = segmentIds
+      .map(segmentId =>
+        flags[flagKey].evaluation.find(segment => String(segment.id) === segmentId)
       )
       .filter(defined);
 
     const newFeatureFlags = {...flags};
-    newFeatureFlags[flagKey].evaluations = sortedEvaluations;
+    newFeatureFlags[flagKey].evaluation = sortedSegments;
 
     setFlags(newFeatureFlags);
 
@@ -239,13 +237,16 @@ export default function ProjectFeatureFlags({project}: Props) {
         <PermissionAlert access={['project:write']} />
 
         {showPromo ? (
-          <FeatureFlagsPromo hasAccess={hasAccess} onGetStarted={handleAddFlag} />
+          <Promo hasAccess={hasAccess} onGetStarted={handleAddFlag} />
         ) : (
           Object.keys(flags).map(flagKey => (
             <Card
               key={flagKey}
               flagKey={flagKey}
-              {...flags[flagKey]}
+              resultType={flags[flagKey].resultType}
+              enabled={flags[flagKey].enabled}
+              description={flags[flagKey].description}
+              segments={flags[flagKey].evaluation}
               onDelete={() => handleDeleteFlag(flagKey)}
               onEdit={() => handleEditFlag(flagKey)}
               onActivateToggle={() => handleActivateToggle(flagKey)}
@@ -253,8 +254,8 @@ export default function ProjectFeatureFlags({project}: Props) {
               onDeleteSegment={id => handleDeleteSegment(flagKey, id)}
               onEditSegment={id => handleEditSegment(flagKey, id)}
               hasAccess={hasAccess}
-              onSortEvaluations={({reorderedItems}) =>
-                handleSortEvaluations(flagKey, reorderedItems)
+              onSortSegments={({reorderedItems}) =>
+                handleSortSegments(flagKey, reorderedItems)
               }
             />
           ))

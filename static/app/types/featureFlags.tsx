@@ -1,23 +1,26 @@
-type RolloutEvaluation = {
+export enum EvaluationType {
+  Rollout = 'rollout',
+  Match = 'match',
+}
+
+export enum FeatureFlagResultType {
+  BOOLEAN = 'boolean',
+  STRING = 'string',
+  NUMBER = 'number',
+}
+
+export type FeatureFlagSegment = {
   id: number;
-  result: boolean;
-  type: 'rollout';
+  result: number | string | boolean;
+  type: EvaluationType;
   percentage?: number;
   tags?: Record<string, string>;
 };
 
-type MatchEvaluation = {
-  id: number;
-  result: boolean;
-  type: 'match';
-  tags?: Record<string, string>;
-};
-
-export type FeatureFlagEvaluation = RolloutEvaluation | MatchEvaluation;
-
 export type FeatureFlag = {
   enabled: boolean;
-  evaluations: FeatureFlagEvaluation[];
+  evaluation: FeatureFlagSegment[];
+  resultType: FeatureFlagResultType;
   description?: string;
 };
 

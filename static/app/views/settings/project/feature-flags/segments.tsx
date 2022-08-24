@@ -11,7 +11,7 @@ import Pills from 'sentry/components/pills';
 import {IconEllipsis, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {FeatureFlagEvaluation} from 'sentry/types/featureFlags';
+import {FeatureFlagSegment} from 'sentry/types/featureFlags';
 import {defined} from 'sentry/utils';
 
 import {
@@ -21,39 +21,39 @@ import {
 import {rateToPercentage} from '../server-side-sampling/utils';
 
 type Props = {
-  evaluations: FeatureFlagEvaluation[];
   hasAccess: boolean;
   onDeleteSegment: (index: number) => void;
   onEditSegment: (index: number) => void;
   onSort: (props: DraggableRuleListUpdateItemsProps) => void;
+  segments: FeatureFlagSegment[];
   showGrab?: boolean;
 };
 
-export function Evaluations({
+export function Segments({
   onDeleteSegment,
   onEditSegment,
   hasAccess,
   onSort,
-  evaluations,
+  segments,
   showGrab,
 }: Props) {
-  const items = evaluations.map(evaluation => ({
-    ...evaluation,
-    id: String(evaluation.id),
+  const items = segments.map(segment => ({
+    ...segment,
+    id: String(segment.id),
   })) as any[];
 
   return (
     <Wrapper>
-      <EvaluationsPanelHeader>
-        <EvaluationsLayout>
+      <SegmentsPanelHeader>
+        <SegmentsLayout>
           <Column />
           <TypeColumn>{t('Type')}</TypeColumn>
           <TagsColumn>{t('Tags')}</TagsColumn>
           <ResultColumn>{t('Result')}</ResultColumn>
           <RolloutColumn>{t('Rollout')}</RolloutColumn>
           <ActionsColumn />
-        </EvaluationsLayout>
-      </EvaluationsPanelHeader>
+        </SegmentsLayout>
+      </SegmentsPanelHeader>
       <PanelBody>
         <DraggableRuleList
           disabled={!hasAccess}
@@ -75,7 +75,7 @@ export function Evaluations({
               '--box-shadow-picked-up': 'none',
               overflow: 'visible',
               position: 'relative',
-              zIndex: evaluations.length - index,
+              zIndex: segments.length - index,
               cursor: 'default',
             };
           }}
@@ -86,10 +86,10 @@ export function Evaluations({
               return null;
             }
 
-            const evaluation = items[index];
+            const segment = items[index];
 
             return (
-              <EvaluationsLayout isContent>
+              <SegmentsLayout isContent>
                 <GrabColumn disabled={!hasAccess}>
                   {showGrab && (
                     <IconGrabbableWrapper
@@ -103,23 +103,23 @@ export function Evaluations({
                   )}
                 </GrabColumn>
                 <TypeColumn>
-                  <Type>{evaluation.type === 'match' ? t('Match') : t('Rollout')}</Type>
+                  <Type>{segment.type === 'match' ? t('Match') : t('Rollout')}</Type>
                 </TypeColumn>
                 <TagsColumn>
-                  {!!evaluation.tags ? (
+                  {!!segment.tags ? (
                     <Tags>
-                      {Object.keys(evaluation.tags).map(tag => (
-                        <Tag key={tag} name={tag} value={evaluation.tags?.[tag]} />
+                      {Object.keys(segment.tags).map(tag => (
+                        <Tag key={tag} name={tag} value={segment.tags?.[tag]} />
                       ))}
                     </Tags>
                   ) : (
                     <NotAvailable />
                   )}
                 </TagsColumn>
-                <ResultColumn>test</ResultColumn>
+                <ResultColumn>{String(segment.result)}</ResultColumn>
                 <RolloutColumn>
-                  {evaluation.type === 'rollout' && defined(evaluation.percentage)
-                    ? `${rateToPercentage(evaluation.percentage)}%`
+                  {segment.type === 'rollout' && defined(segment.percentage)
+                    ? `${rateToPercentage(segment.percentage)}%`
                     : `100%`}
                 </RolloutColumn>
                 <ActionsColumn>
@@ -162,7 +162,7 @@ export function Evaluations({
                     offset={4}
                   />
                 </ActionsColumn>
-              </EvaluationsLayout>
+              </SegmentsLayout>
             );
           }}
         />
@@ -171,11 +171,11 @@ export function Evaluations({
   );
 }
 
-const EvaluationsPanelHeader = styled(PanelHeader)`
+const SegmentsPanelHeader = styled(PanelHeader)`
   padding: ${space(0.5)} 0;
 `;
 
-const EvaluationsLayout = styled('div')<{isContent?: boolean}>`
+const SegmentsLayout = styled('div')<{isContent?: boolean}>`
   width: 100%;
   display: grid;
   grid-template-columns: 90px 1fr 74px;

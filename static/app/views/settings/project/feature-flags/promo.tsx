@@ -12,7 +12,7 @@ type Props = {
   onGetStarted: () => void;
 };
 
-export function FeatureFlagsPromo({onGetStarted, hasAccess}: Props) {
+export function Promo({onGetStarted, hasAccess}: Props) {
   return (
     <Panel>
       <EmptyMessage

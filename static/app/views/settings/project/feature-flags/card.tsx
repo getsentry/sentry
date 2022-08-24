@@ -10,13 +10,13 @@ import Tag from 'sentry/components/tag';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {FeatureFlag} from 'sentry/types/featureFlags';
+import {FeatureFlag, FeatureFlagSegment} from 'sentry/types/featureFlags';
 
 import {DraggableRuleListUpdateItemsProps} from '../server-side-sampling/draggableRuleList';
 
-import {Evaluations} from './evaluations';
+import {Segments} from './segments';
 
-type Props = FeatureFlag & {
+type Props = Omit<FeatureFlag, 'evaluation'> & {
   flagKey: string;
   hasAccess: boolean;
   onActivateToggle: () => void;
@@ -25,7 +25,8 @@ type Props = FeatureFlag & {
   onDeleteSegment: (index: number) => void;
   onEdit: () => void;
   onEditSegment: (index: number) => void;
-  onSortEvaluations: (props: DraggableRuleListUpdateItemsProps) => void;
+  onSortSegments: (props: DraggableRuleListUpdateItemsProps) => void;
+  segments: FeatureFlagSegment[];
 };
 
 export function Card({
@@ -39,11 +40,11 @@ export function Card({
   onDeleteSegment,
   description,
   hasAccess,
-  evaluations,
-  onSortEvaluations,
+  segments,
+  onSortSegments,
 }: Props) {
   return (
-    <Wrapper hasEvaluation={!!evaluations.length}>
+    <Wrapper hasSegment={!!segments.length}>
       <Header>
         <div>
           <Key>{flagKey}</Key>
@@ -102,25 +103,25 @@ export function Card({
           />
         </Actions>
       </Header>
-      {!!evaluations.length && (
-        <Evaluations
-          evaluations={evaluations}
+      {!!segments.length && (
+        <Segments
+          segments={segments}
           onDeleteSegment={onDeleteSegment}
           onEditSegment={onEditSegment}
           hasAccess={hasAccess}
-          onSort={onSortEvaluations}
-          showGrab={evaluations.length > 1}
+          onSort={onSortSegments}
+          showGrab={segments.length > 1}
         />
       )}
     </Wrapper>
   );
 }
 
-const Wrapper = styled(Panel)<{hasEvaluation: boolean}>`
+const Wrapper = styled(Panel)<{hasSegment: boolean}>`
   display: grid;
   gap: ${space(2)};
   ${p =>
-    p.hasEvaluation &&
+    p.hasSegment &&
     css`
       border-bottom: none;
     `}

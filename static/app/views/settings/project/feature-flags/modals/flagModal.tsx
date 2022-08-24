@@ -1,25 +1,19 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import startCase from 'lodash/startCase';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {TextareaField, TextField} from 'sentry/components/forms';
+import SelectField from 'sentry/components/forms/selectField';
 import {t} from 'sentry/locale';
 import ProjectStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {FeatureFlags} from 'sentry/types/featureFlags';
+import {FeatureFlagResultType, FeatureFlags} from 'sentry/types/featureFlags';
 import useApi from 'sentry/utils/useApi';
-
-import {StyledSelectField} from './autoCompleteField';
-
-const resultTypes = [
-  ['string', 'String'],
-  ['boolean', 'Boolean'],
-  ['number', 'Number'],
-];
 
 type Props = ModalRenderProps & {
   flags: FeatureFlags;
@@ -44,7 +38,9 @@ export function FlagModal({
   const [description, setDescription] = useState(
     flagKey ? flags[flagKey].description : ''
   );
-  const [resultType, setResultType] = useState<string>('string');
+  const [resultType, setResultType] = useState<FeatureFlagResultType>(
+    flagKey ? flags[flagKey].resultType : FeatureFlagResultType.BOOLEAN
+  );
   const [error, setError] = useState<string | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -63,7 +59,7 @@ export function FlagModal({
         description,
         enabled: false,
         resultType,
-        evaluations: [],
+        evaluation: [],
       },
     };
 
@@ -162,7 +158,10 @@ export function FlagModal({
           name="result-type"
           label={t('Result Type')}
           value={resultType}
-          choices={resultTypes}
+          choices={Object.values(FeatureFlagResultType).map(value => [
+            value,
+            startCase(value),
+          ])}
           onChange={setResultType}
           inline={false}
           hideControlState
@@ -199,6 +198,12 @@ const KeyField = styled(TextField)`
 `;
 
 const DescriptionField = styled(TextareaField)`
+  width: 100%;
+`;
+
+const StyledSelectField = styled(SelectField)`
+  padding: 0;
+  border-bottom: none;
   width: 100%;
 `;
 
