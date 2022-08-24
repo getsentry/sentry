@@ -163,16 +163,28 @@ const Title = styled('h4')`
 `;
 
 const Wrapper = styled('div')`
-  left: 50%;
   width: 400px;
   max-height: 500px;
   height: fit-content;
   background-color: #fbf1c7;
-  border: 1px solid black;
+  border: 1px solid transparent;
   border-radius: 2px;
   padding: 16px 12px;
   font-weight: 600;
   font-size: 14px;
+  position: relative;
+
+  :before {
+    content: '';
+    width: 0px;
+    height: 0px;
+    position: absolute;
+    border-left: 14px solid transparent;
+    border-right: 15px solid #fbf1c7;
+    border-top: 18px solid transparent;
+    border-bottom: 18px solid #fbf1c7;
+    top: -36px;
+  }
 `;
 
 const Button = styled('button')`
