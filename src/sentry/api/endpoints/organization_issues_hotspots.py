@@ -30,7 +30,7 @@ class OrganizationIssuesHotspotsEndpoint(OrganizationEventsEndpointBase):
             },
             {
                 "id": "<root>/billiard/pool.py",
-                "errorCount": 3,
+                "errorCount": 30,
                 "depth": 2,
                 "index": 2,
             },
@@ -46,7 +46,7 @@ class OrganizationIssuesHotspotsEndpoint(OrganizationEventsEndpointBase):
             },
             {
                 "id": "<root>/getsentry/utils/flagr.py",
-                "errorCount": 10,
+                "errorCount": 3000,
                 "depth": 3,
                 "index": 5,
             },
@@ -62,7 +62,7 @@ class OrganizationIssuesHotspotsEndpoint(OrganizationEventsEndpointBase):
             },
             {
                 "id": "<root>/sentry/api/client.py",
-                "errorCount": 13,
+                "errorCount": 130,
                 "depth": 3,
                 "index": 8,
             },
@@ -84,7 +84,7 @@ class OrganizationIssuesHotspotsEndpoint(OrganizationEventsEndpointBase):
             },
             {
                 "id": "<root>/sentry/api/fields/avatar.py",
-                "errorCount": 123,
+                "errorCount": 700,
                 "depth": 3,
                 "index": 13,
             },
@@ -105,7 +105,7 @@ class OrganizationIssuesHotspotsEndpoint(OrganizationEventsEndpointBase):
             },
             {
                 "id": "<root>/sentry/db/models/fields/bounded.py",
-                "errorCount": 123,
+                "errorCount": 200,
                 "depth": 4,
                 "index": 17,
             },
@@ -116,7 +116,7 @@ class OrganizationIssuesHotspotsEndpoint(OrganizationEventsEndpointBase):
             },
             {
                 "id": "<root>/sentry/identity/oauth2.py",
-                "errorCount": 123,
+                "errorCount": 200,
                 "depth": 2,
                 "index": 18,
             },
@@ -127,7 +127,7 @@ class OrganizationIssuesHotspotsEndpoint(OrganizationEventsEndpointBase):
             },
             {
                 "id": "<root>/sentry/interfaces/contexts.py",
-                "errorCount": 123,
+                "errorCount": 300,
                 "depth": 2,
                 "index": 20,
             },
@@ -138,13 +138,13 @@ class OrganizationIssuesHotspotsEndpoint(OrganizationEventsEndpointBase):
             },
             {
                 "id": "<root>/sentry/models/organizationmember.py",
-                "errorCount": 123,
+                "errorCount": 100,
                 "depth": 2,
                 "index": 22,
             },
             {
                 "id": "<root>/sentry/models/releasefile.py",
-                "errorCount": 123,
+                "errorCount": 2,
                 "depth": 2,
                 "index": 23,
             },
@@ -155,7 +155,7 @@ class OrganizationIssuesHotspotsEndpoint(OrganizationEventsEndpointBase):
             },
             {
                 "id": "<root>/sentry/net/socket.py",
-                "errorCount": 123,
+                "errorCount": 456,
                 "depth": 2,
                 "index": 25,
             },
@@ -166,7 +166,7 @@ class OrganizationIssuesHotspotsEndpoint(OrganizationEventsEndpointBase):
             },
             {
                 "id": "<root>/sentry/receivers/releases.py",
-                "errorCount": 123,
+                "errorCount": 800,
                 "depth": 2,
                 "index": 27,
             },
@@ -177,7 +177,7 @@ class OrganizationIssuesHotspotsEndpoint(OrganizationEventsEndpointBase):
             },
             {
                 "id": "<root>/sentry/release_health/tasks.py",
-                "errorCount": 123,
+                "errorCount": 100,
                 "depth": 2,
                 "index": 29,
             },
@@ -193,7 +193,7 @@ class OrganizationIssuesHotspotsEndpoint(OrganizationEventsEndpointBase):
             },
             {
                 "id": "<root>/sentry/shared_integrations/client/base.py",
-                "errorCount": 123,
+                "errorCount": 50,
                 "depth": 3,
                 "index": 32,
             },
@@ -204,7 +204,7 @@ class OrganizationIssuesHotspotsEndpoint(OrganizationEventsEndpointBase):
             },
             {
                 "id": "<root>/sentry/utils/json.py",
-                "errorCount": 123,
+                "errorCount": 70,
                 "depth": 2,
                 "index": 34,
             },
@@ -215,13 +215,13 @@ class OrganizationIssuesHotspotsEndpoint(OrganizationEventsEndpointBase):
             },
             {
                 "id": "<root>/sentry/utils/locking/lock.py",
-                "errorCount": 123,
+                "errorCount": 40,
                 "depth": 3,
                 "index": 36,
             },
             {
                 "id": "<root>/sentry/utils/monitors.py",
-                "errorCount": 123,
+                "errorCount": 20,
                 "depth": 2,
                 "index": 38,
             },
