@@ -12,7 +12,7 @@ const SentrySwaggerHeader = () => (
           />
         </g>
       </svg>
-      <h6>Docs</h6>
+      <h6>Sentry API</h6>
     </a>
   </div>
 );

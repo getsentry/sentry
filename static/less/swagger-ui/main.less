@@ -1,25 +1,27 @@
-.swagger-ui {
-  // modified swagger ui imports
-  @import '_mixins';
-  @import '_variables';
-  @import '_type';
-  @import '_layout';
-  @import '_buttons';
-  @import '_form';
-  @import '_modal';
-  @import '_models';
-  @import '_servers';
-  @import '_table';
-  @import '_topbar';
-  @import '_information';
-  @import '_authorize';
-  @import '_errors';
-  .text_body();
-  @import '_split-pane-mode';
-  @import '_markdown';
-  // custom sentry layout imports
-}
-
 .swagger-ui-sentry {
+  // custom sentry css
+  @import '_sentry-docs-variables';
   @import '_sentry';
+
+  .swagger-ui {
+    // modified swagger ui imports
+    @import '_mixins';
+    @import '_variables';
+    @import '_type';
+    @import '_layout';
+    @import '_buttons';
+    @import '_form';
+    @import '_modal';
+    @import '_models';
+    @import '_servers';
+    @import '_table';
+    @import '_topbar';
+    @import '_information';
+    @import '_authorize';
+    @import '_errors';
+    .text_body();
+    @import '_split-pane-mode';
+    @import '_markdown';
+    // custom sentry layout imports
+  }
 }
