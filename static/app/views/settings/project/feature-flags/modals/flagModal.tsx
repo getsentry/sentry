@@ -106,6 +106,22 @@ export function FlagModal({
     nameChoices.push([key, key]);
   }
 
+  function setKeyWithValidation(value: string) {
+    setKey(value);
+
+    if (!value) {
+      setError(t('Name is required'));
+      return;
+    }
+
+    if (value.includes(' ')) {
+      setError(t('Name cannot contain spaces'));
+      return;
+    }
+
+    setError(undefined);
+  }
+
   return (
     <Fragment>
       <Header closeButton>
@@ -119,26 +135,12 @@ export function FlagModal({
             placeholder={t('Enter a name')}
             value={key}
             choices={nameChoices}
-            onKeyDown={(_value: string, e: KeyboardEvent) => {
-              if (e.key === 'Enter') {
-                handleSubmit();
+            onKeyDown={(val: string, e: KeyboardEvent) => {
+              if (e.key === 'Tab') {
+                setKeyWithValidation(val);
               }
             }}
-            onChange={value => {
-              setKey(value);
-
-              if (!value) {
-                setError(t('Name is required'));
-                return;
-              }
-
-              if (value.includes(' ')) {
-                setError(t('Name cannot contain spaces'));
-                return;
-              }
-
-              setError(undefined);
-            }}
+            onChange={setKeyWithValidation}
             inline={false}
             hideControlState
             required
