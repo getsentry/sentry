@@ -2,6 +2,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import image from 'sentry-images/clippy.gif';
+import evilClippy from 'sentry-images/evil-clippy.png';
 import staticImage from 'sentry-images/static-clippy.gif';
 
 import {
@@ -18,6 +19,8 @@ const Clippy = ({event}: any) => {
   const [loading, setLoading] = useState(false);
   const [isFinalStep, toggleIsFinalStep] = useState(false);
   const [resolutionSteps, setResolutionSteps] = useState<String[]>([]);
+  const [isEvil, makeClippyEvil] = useState(false);
+  const [displayWelcomeMessage, setWelcomeMessage] = useState(false);
 
   const exceptions =
     event?.entries?.find(x => x.type === 'exception')?.data?.values || [];
@@ -47,6 +50,9 @@ const Clippy = ({event}: any) => {
       setLoading(true);
       setContent('');
       toggleIsFinalStep(false);
+      makeClippyEvil(false);
+      setWelcomeMessage(false);
+
       const response = await openai.createCompletion({
         model: 'text-davinci-002',
         prompt: `${TRAINING_PROMPT}\n${stacktrace}${STOP_SEQ}`,
@@ -67,6 +73,8 @@ const Clippy = ({event}: any) => {
 
       if (summary) {
         setContent(summary);
+      } else {
+        setResolutionSteps([]);
       }
 
       let resolution = _content
@@ -87,22 +95,48 @@ const Clippy = ({event}: any) => {
     }
   }
 
-  function killClippy() {
+  function killClippy(makeEvil) {
     toggleIsFinalStep(false);
     setContent('');
     setResolutionSteps([]);
+    setWelcomeMessage(false);
+
+    if (makeEvil) {
+      makeClippyEvil(true);
+    }
   }
 
   return (
     <ClippyWrapper>
       {loading && <img height={200} alt="clippy assistant" src={image} />}
-      {!loading && (
+      {!loading && isEvil && (
         <img
-          onClick={handleClick}
+          onClick={() => setWelcomeMessage(true)}
+          height={100}
+          style={{margin: '50px 20px 20px 50px'}}
+          alt="clippy assistant"
+          src={evilClippy}
+        />
+      )}
+      {!isEvil && !loading && (
+        <img
+          onClick={() => setWelcomeMessage(true)}
           height={200}
           alt="clippy assistant"
           src={staticImage}
         />
+      )}
+      {displayWelcomeMessage && (
+        <Wrapper>
+          <FirstTitle>
+            It looks like you're having a production issue, would you like me to summarize
+            the problem?
+          </FirstTitle>
+          <ButtonWrapper>
+            <Button onClick={handleClick}>Yes</Button>
+            <Button onClick={() => killClippy(true)}>Nope 💩</Button>
+          </ButtonWrapper>
+        </Wrapper>
       )}
       {content && !loading && (
         <Wrapper>
@@ -115,20 +149,18 @@ const Clippy = ({event}: any) => {
             </ListWrapper>
           )}
           <HR />
-          {!isFinalStep && (
-            <Title>Would you like Clippy to tell you how to fix it?</Title>
-          )}
+          {!isFinalStep && <Title>Would you like me to tell you how to fix it?</Title>}
           {!isFinalStep && (
             <ButtonWrapper>
               <Button onClick={() => toggleIsFinalStep(true)}>Yes</Button>
               <Button onClick={() => toggleIsFinalStep(true)}>YES!</Button>
             </ButtonWrapper>
           )}
-          {isFinalStep && <Title>Was that helpful?</Title>}
+          {isFinalStep && <Title>Was I helpful?</Title>}
           {isFinalStep && (
             <ButtonWrapper>
-              <Button onClick={killClippy}>❤️</Button>
-              <Button onClick={killClippy}>💩</Button>
+              <Button onClick={() => killClippy(false)}>Yes ❤️</Button>
+              <Button onClick={() => killClippy(true)}>Nope 💩</Button>
             </ButtonWrapper>
           )}
         </Wrapper>
@@ -153,6 +185,13 @@ const HR = styled('div')`
   height: 1px;
   width: 100%;
   background-color: rgba(0, 0, 0, 0.25);
+`;
+
+const FirstTitle = styled('h4')`
+  font-weight: 600;
+  font-size: 16px;
+  padding: 0px 8px 8px;
+  margin: 0;
 `;
 
 const Title = styled('h4')`
