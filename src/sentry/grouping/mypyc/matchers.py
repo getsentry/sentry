@@ -2,9 +2,9 @@ from typing import TYPE_CHECKING, ClassVar, MutableMapping, Sequence, Tuple, Typ
 
 from sentry.grouping.mypyc.exceptions import InvalidEnhancerConfig
 from sentry.grouping.utils import get_rule_bool
-from sentry.utils.glob import glob_match_compiled, translate
 from sentry.utils.safe import get_path
 
+from .glob import glob_match, translate
 from .utils import ExceptionData, MatchFrame, MatchingCache, cached
 
 if TYPE_CHECKING:
@@ -182,9 +182,9 @@ class FrameMatch(Match):
 
 def path_like_match(pattern: "re.Pattern[str]", value: bytes) -> bool:
     """Stand-alone function for use with ``cached``"""
-    if glob_match_compiled(value, pattern, ignorecase=False, path_normalize=True):
+    if glob_match(value, pattern, ignorecase=False, path_normalize=True):
         return True
-    if not value.startswith(b"/") and glob_match_compiled(
+    if not value.startswith(b"/") and glob_match(
         b"/" + value, pattern, ignorecase=False, path_normalize=True
     ):
         return True
@@ -266,7 +266,7 @@ class FunctionMatch(FrameMatch):
         cache: MatchingCache,
     ) -> bool:
 
-        return cached(cache, glob_match_compiled, match_frame["function"], self._compiled_pattern)
+        return cached(cache, glob_match, match_frame["function"], self._compiled_pattern)
 
 
 class FrameFieldMatch(FrameMatch):
@@ -284,7 +284,7 @@ class FrameFieldMatch(FrameMatch):
         if field is None:
             return False
 
-        return cached(cache, glob_match_compiled, field, self._compiled_pattern)
+        return cached(cache, glob_match, field, self._compiled_pattern)
 
 
 class ModuleMatch(FrameFieldMatch):
@@ -310,7 +310,7 @@ class ExceptionFieldMatch(FrameMatch):
     ) -> bool:
         field = get_path(exception_data, *self.field_path) or "<unknown>"
 
-        return cached(cache, glob_match_compiled, field, self._compiled_pattern)
+        return cached(cache, glob_match, field, self._compiled_pattern)
 
 
 class ExceptionTypeMatch(ExceptionFieldMatch):
