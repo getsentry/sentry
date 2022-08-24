@@ -10,7 +10,7 @@ import space from 'sentry/styles/space';
 import type {Tag} from 'sentry/types';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 
-import {TagValueLoader} from '../issueList/types';
+import type {TagValueLoader} from '../issueList/types';
 
 type Props = {
   onSearch: (q: string) => void;

@@ -1,9 +1,10 @@
-import {ChangeEvent, ReactNode} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {ChangeEvent, ReactNode} from 'react';
+import type {RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import {components} from 'react-select';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
-import {Location} from 'history';
+import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import omit from 'lodash/omit';
 import set from 'lodash/set';
@@ -33,10 +34,10 @@ import ListItem from 'sentry/components/list/listItem';
 import LoadingMask from 'sentry/components/loadingMask';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
+import {OnboardingTaskKey} from 'sentry/enum';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-  import {OnboardingTaskKey} from 'sentry/enum';
 import type {
   Environment,
   IssueOwnership,
@@ -44,7 +45,7 @@ import type {
   Project,
   Team,
 } from 'sentry/types';
-import {
+import type {
   IssueAlertRule,
   IssueAlertRuleAction,
   IssueAlertRuleActionTemplate,

@@ -18,7 +18,8 @@ import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import useCommitters from 'sentry/utils/useCommitters';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {findMatchedRules, Rules} from './findMatchedRules';
+import type {Rules} from './findMatchedRules';
+import {findMatchedRules} from './findMatchedRules';
 import {OwnershipRules} from './ownershipRules';
 import {SuggestedAssignees} from './suggestedAssignees';
 

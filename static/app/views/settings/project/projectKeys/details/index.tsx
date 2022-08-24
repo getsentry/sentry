@@ -1,4 +1,5 @@
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 
 import {t} from 'sentry/locale';
 import AsyncView from 'sentry/views/asyncView';
@@ -6,7 +7,7 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 import KeySettings from 'sentry/views/settings/project/projectKeys/details/keySettings';
 import KeyStats from 'sentry/views/settings/project/projectKeys/details/keyStats';
-import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
+import type {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 type Props = RouteComponentProps<
   {

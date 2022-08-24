@@ -1,9 +1,10 @@
 import {Component} from 'react';
 // eslint-disable-next-line no-restricted-imports
-import {Link as RouterLink, withRouter, WithRouterProps} from 'react-router';
+import type {WithRouterProps} from 'react-router';
+import {Link as RouterLink, withRouter} from 'react-router';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
-import {LocationDescriptor} from 'history';
+import type {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
 

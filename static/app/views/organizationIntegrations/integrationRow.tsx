@@ -13,7 +13,7 @@ import type {
   Organization,
   PluginWithProjectList,
   SentryApp,
-} from 'sentry/types'
+} from 'sentry/types';
 import {
   convertIntegrationTypeToSnakeCase,
   trackIntegrationAnalytics,

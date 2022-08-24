@@ -1,10 +1,11 @@
-import {Fragment, KeyboardEvent, useEffect, useState} from 'react';
+import type {KeyboardEvent} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {createFilter} from 'react-select';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CompactSelect from 'sentry/components/forms/compactSelect';
@@ -18,12 +19,8 @@ import {t} from 'sentry/locale';
 import ProjectStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import type {Organization, Project, SelectValue} from 'sentry/types';
-import {
-  SamplingConditionOperator,
-  SamplingInnerName,
-  SamplingRule,
-  SamplingRuleType,
-} from 'sentry/types/sampling';
+import type {SamplingInnerName, SamplingRule} from 'sentry/types/sampling';
+import {SamplingConditionOperator, SamplingRuleType} from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useApi from 'sentry/utils/useApi';
@@ -32,7 +29,8 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {isUniformRule, percentageToRate, rateToPercentage} from '../../utils';
 
-import {Condition, Conditions} from './conditions';
+import type {Condition} from './conditions';
+import {Conditions} from './conditions';
 import {
   distributedTracesConditions,
   generateConditionCategoriesOptions,

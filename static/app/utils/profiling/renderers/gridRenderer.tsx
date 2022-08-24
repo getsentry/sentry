@@ -1,7 +1,8 @@
-import {mat3} from 'gl-matrix';
+import type {mat3} from 'gl-matrix';
 
-import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
-import {getContext, measureText, Rect} from '../gl/utils';
+import type {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
+import type {Rect} from '../gl/utils';
+import {getContext, measureText} from '../gl/utils';
 
 export function getIntervalTimeAtX(logicalSpaceToConfigView: mat3, x: number): number {
   const vector = logicalSpaceToConfigView[0] * x + logicalSpaceToConfigView[6];

@@ -2,9 +2,10 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import WidgetQueriesForm from 'sentry/components/dashboards/widgetQueriesForm';
-import type {SessionField} from 'sentry/types';
-import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
-import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
+import {SessionField} from 'sentry/types';
+import type {WidgetQuery} from 'sentry/views/dashboardsV2/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
+import type {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
 describe('WidgetQueriesForm', function () {
   const {organization} = initializeOrg({

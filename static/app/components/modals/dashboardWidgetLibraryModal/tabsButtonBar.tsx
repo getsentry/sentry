@@ -10,12 +10,9 @@ import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {
-  DashboardDetails,
-  DashboardWidgetSource,
-  Widget,
-} from 'sentry/views/dashboardsV2/types';
-import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
+import type {DashboardDetails, Widget} from 'sentry/views/dashboardsV2/types';
+import {DashboardWidgetSource} from 'sentry/views/dashboardsV2/types';
+import type {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 
 import Button from '../../button';
 import ButtonBar from '../../buttonBar';

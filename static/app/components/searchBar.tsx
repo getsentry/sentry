@@ -3,7 +3,8 @@ import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
-import Input, {InputProps} from 'sentry/components/input';
+import type {InputProps} from 'sentry/components/input';
+import Input from 'sentry/components/input';
 import {IconSearch} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';

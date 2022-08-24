@@ -1,4 +1,5 @@
-import {ComponentProps, useEffect} from 'react';
+import type {ComponentProps} from 'react';
+import {useEffect} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
@@ -8,7 +9,7 @@ import theme from 'sentry/utils/theme';
 import withOrganization from 'sentry/utils/withOrganization';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 
-import {DashboardFilters, Widget} from './types';
+import type {DashboardFilters, Widget} from './types';
 import DnDKitWidgetWrapper from './widgetWrapper';
 
 const TABLE_ITEM_LIMIT = 20;

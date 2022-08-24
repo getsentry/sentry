@@ -1,7 +1,8 @@
 import TeamStore from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
-import Badge, {BadgeProps} from './badge';
+import type {BadgeProps} from './badge';
+import Badge from './badge';
 
 function TeamBadge(props: BadgeProps) {
   const {teams} = useLegacyStore(TeamStore);

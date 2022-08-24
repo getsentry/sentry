@@ -4,7 +4,8 @@ import styled from '@emotion/styled';
 
 import {IconMoon} from 'sentry/icons';
 import space from 'sentry/styles/space';
-import {darkTheme, lightTheme, Theme} from 'sentry/utils/theme';
+import type {Theme} from 'sentry/utils/theme';
+import {darkTheme, lightTheme} from 'sentry/utils/theme';
 
 type ThemeName = 'dark' | 'light';
 

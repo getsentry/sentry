@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import {
   addErrorMessage,
@@ -19,7 +19,7 @@ import AsyncView from 'sentry/views/asyncView';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
+import type {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 import KeyRow from './keyRow';
 

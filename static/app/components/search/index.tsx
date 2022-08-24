@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo} from 'react';
 // eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import type {WithRouterProps} from 'react-router';
+import {withRouter} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -17,7 +18,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 
-import {Result} from './sources/types';
+import type {Result} from './sources/types';
 import List from './list';
 
 type AutoCompleteOpts = Parameters<AutoComplete<Result['item']>['props']['children']>[0];

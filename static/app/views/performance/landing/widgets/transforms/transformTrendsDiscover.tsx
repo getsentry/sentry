@@ -1,4 +1,4 @@
-import {TrendDiscoveryChildrenProps} from 'sentry/utils/performance/trends/trendsDiscoverQuery';
+import type {TrendDiscoveryChildrenProps} from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {normalizeTrends} from 'sentry/views/performance/trends/utils';
 
 export function transformTrendsDiscover(_: any, props: TrendDiscoveryChildrenProps) {

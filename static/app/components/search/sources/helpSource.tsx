@@ -1,11 +1,9 @@
 import {Component} from 'react';
 // eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
-import {
-  Result as SearchResult,
-  SentryGlobalSearch,
-  standardSDKSlug,
-} from '@sentry-internal/global-search';
+import type {WithRouterProps} from 'react-router';
+import {withRouter} from 'react-router';
+import type {Result as SearchResult} from '@sentry-internal/global-search';
+import {SentryGlobalSearch, standardSDKSlug} from '@sentry-internal/global-search';
 import dompurify from 'dompurify';
 import debounce from 'lodash/debounce';
 
@@ -13,7 +11,7 @@ import type {Organization, Project} from 'sentry/types';
 import parseHtmlMarks from 'sentry/utils/parseHtmlMarks';
 import withLatestContext from 'sentry/utils/withLatestContext';
 
-import {ChildProps, Result, ResultItem} from './types';
+import type {ChildProps, Result, ResultItem} from './types';
 
 type Props = WithRouterProps & {
   /**

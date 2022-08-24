@@ -5,7 +5,7 @@ import Duration from 'sentry/components/duration';
 import {PanelBody, PanelItem} from 'sentry/components/panels';
 import TimeSince from 'sentry/components/timeSince';
 import space from 'sentry/styles/space';
-import {Monitor} from 'sentry/views/monitors/types';
+import type {Monitor} from 'sentry/views/monitors/types';
 
 import CheckInIcon from './checkInIcon';
 

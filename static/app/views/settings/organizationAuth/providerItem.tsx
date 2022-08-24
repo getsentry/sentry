@@ -11,7 +11,7 @@ import {IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {AuthProvider} from 'sentry/types';
-import {FeatureDisabledHooks} from 'sentry/types/hooks';
+import type {FeatureDisabledHooks} from 'sentry/types/hooks';
 import {descopeFeatureName} from 'sentry/utils';
 
 type RenderInstallButtonProps = {

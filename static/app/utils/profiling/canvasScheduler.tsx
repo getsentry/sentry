@@ -1,7 +1,7 @@
-import {mat3} from 'gl-matrix';
+import type {mat3} from 'gl-matrix';
 
-import {Rect} from './gl/utils';
-import {FlamegraphFrame} from './flamegraphFrame';
+import type {Rect} from './gl/utils';
+import type {FlamegraphFrame} from './flamegraphFrame';
 
 type DrawFn = () => void;
 type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;

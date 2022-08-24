@@ -1,9 +1,9 @@
 import {useEffect, useRef, useState} from 'react';
-import {Store} from 'reflux';
+import type {Store} from 'reflux';
 
-import {SafeRefluxStore} from '../utils/makeSafeRefluxStore';
+import type {SafeRefluxStore} from '../utils/makeSafeRefluxStore';
 
-import {CommonStoreDefinition} from './types';
+import type {CommonStoreDefinition} from './types';
 
 interface UnsafeStore extends Store, CommonStoreDefinition<any> {}
 interface SafeStore extends SafeRefluxStore, CommonStoreDefinition<any> {}

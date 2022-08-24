@@ -1,6 +1,7 @@
 import {Fragment, isValidElement} from 'react';
 // eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import type {WithRouterProps} from 'react-router';
+import {withRouter} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -12,9 +13,9 @@ import Tooltip from 'sentry/components/tooltip';
 import type {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import localStorage from 'sentry/utils/localStorage';
-import {Theme} from 'sentry/utils/theme';
+import type {Theme} from 'sentry/utils/theme';
 
-import {SidebarOrientation} from './types';
+import type {SidebarOrientation} from './types';
 
 const LabelHook = HookOrDefault({
   hookName: 'sidebar:item-label',

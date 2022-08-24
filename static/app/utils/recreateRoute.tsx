@@ -1,8 +1,8 @@
-import {Location} from 'history';
+import type {Location} from 'history';
 import findLastIndex from 'lodash/findLastIndex';
 
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
-import {RouteWithName} from 'sentry/views/settings/components/settingsBreadcrumb/types';
+import type {RouteWithName} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 
 type Options = {
   // parameters to replace any route string parameters (e.g. if route is `:orgId`,

@@ -1,7 +1,7 @@
 import capitalize from 'lodash/capitalize';
 import * as qs from 'query-string';
 
-import {Result} from 'sentry/components/forms/selectAsyncControl';
+import type {Result} from 'sentry/components/forms/selectAsyncControl';
 import {
   IconAsana,
   IconBitbucket,
@@ -27,11 +27,9 @@ import type {
   SentryApp,
   SentryAppInstallation,
 } from 'sentry/types';
-import {Hooks} from 'sentry/types/hooks';
-import {
-  integrationEventMap,
-  IntegrationEventParameters,
-} from 'sentry/utils/analytics/integrations';
+import type {Hooks} from 'sentry/types/hooks';
+import type {IntegrationEventParameters} from 'sentry/utils/analytics/integrations';
+import {integrationEventMap} from 'sentry/utils/analytics/integrations';
 import makeAnalyticsFunction from 'sentry/utils/analytics/makeAnalyticsFunction';
 
 const mapIntegrationParams = analyticsParams => {

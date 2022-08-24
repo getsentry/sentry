@@ -1,8 +1,9 @@
 import {Component, Fragment} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {openModal} from 'sentry/actionCreators/modal';
+import type {Client} from 'sentry/api';
 import IssueSyncListElement from 'sentry/components/issueSyncListElement';
 import NavTabs from 'sentry/components/navTabs';
 import {t, tct} from 'sentry/locale';

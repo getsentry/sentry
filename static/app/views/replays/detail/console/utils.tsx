@@ -1,4 +1,4 @@
-import {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
+import type {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
 
 export const filterBreadcrumbs = (
   breadcrumbs: Extract<Crumb, BreadcrumbTypeDefault>[],

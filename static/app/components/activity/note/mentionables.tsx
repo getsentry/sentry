@@ -8,7 +8,7 @@ import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 import Projects from 'sentry/utils/projects';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import {Mentionable} from './types';
+import type {Mentionable} from './types';
 
 const buildUserId = (id: string) => `user:${id}`;
 const buildTeamId = (id: string) => `team:${id}`;

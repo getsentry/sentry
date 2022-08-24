@@ -1,14 +1,12 @@
 import {cloneElement, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphPreferences';
-import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import type {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphPreferences';
+import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {useFlamegraphPreferencesValue} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
-import {
-  useResizableDrawer,
-  UseResizableDrawerOptions,
-} from 'sentry/utils/profiling/hooks/useResizableDrawer';
+import type {UseResizableDrawerOptions} from 'sentry/utils/profiling/hooks/useResizableDrawer';
+import {useResizableDrawer} from 'sentry/utils/profiling/hooks/useResizableDrawer';
 
 // 664px is approximately the width where we start to scroll inside
 // 30px is the min height to where the drawer can still be resized

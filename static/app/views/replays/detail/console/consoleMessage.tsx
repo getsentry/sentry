@@ -12,7 +12,7 @@ import {relativeTimeInMs, showPlayerTime} from 'sentry/components/replays/utils'
 import Tooltip from 'sentry/components/tooltip';
 import {IconClose, IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
-import {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
+import type {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
 import {objectIsEmpty} from 'sentry/utils';
 
 interface MessageFormatterProps {

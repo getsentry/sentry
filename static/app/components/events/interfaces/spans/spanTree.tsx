@@ -7,21 +7,22 @@ import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 
-import {DragManagerChildrenProps} from './dragManager';
-import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
+import type {DragManagerChildrenProps} from './dragManager';
+import type {ScrollbarManagerChildrenProps} from './scrollbarManager';
+import {withScrollbarManager} from './scrollbarManager';
 import SpanBar from './spanBar';
 import {SpanDescendantGroupBar} from './spanDescendantGroupBar';
 import SpanSiblingGroupBar from './spanSiblingGroupBar';
-import {
+import type {
   EnhancedProcessedSpanType,
   EnhancedSpan,
   FilterSpans,
-  GroupType,
   ParsedTraceType,
   SpanType,
 } from './types';
+import {GroupType} from './types';
 import {getSpanID, getSpanOperation, setSpansOnTransaction} from './utils';
-import WaterfallModel from './waterfallModel';
+import type WaterfallModel from './waterfallModel';
 
 type PropType = ScrollbarManagerChildrenProps & {
   dragProps: DragManagerChildrenProps;

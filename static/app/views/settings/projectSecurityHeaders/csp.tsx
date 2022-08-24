@@ -1,4 +1,4 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import Access from 'sentry/components/acl/access';
 import Form from 'sentry/components/forms/form';

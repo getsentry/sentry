@@ -1,4 +1,5 @@
-import Field, {FieldProps} from 'sentry/components/forms/field';
+import type {FieldProps} from 'sentry/components/forms/field';
+import Field from 'sentry/components/forms/field';
 
 /**
  * This class is meant to hook into `fieldFromConfig`. Like the FieldSeparator

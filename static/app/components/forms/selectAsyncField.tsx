@@ -1,12 +1,14 @@
 import {Component} from 'react';
 
-import InputField, {InputFieldProps} from 'sentry/components/forms/inputField';
-import SelectAsyncControl, {
+import type {InputFieldProps} from 'sentry/components/forms/inputField';
+import InputField from 'sentry/components/forms/inputField';
+import type {
   Result,
   SelectAsyncControlProps,
 } from 'sentry/components/forms/selectAsyncControl';
+import SelectAsyncControl from 'sentry/components/forms/selectAsyncControl';
 // projects can be passed as a direct prop as well
-import {GeneralSelectValue} from 'sentry/components/forms/selectControl';
+import type {GeneralSelectValue} from 'sentry/components/forms/selectControl';
 
 export interface SelectAsyncFieldProps
   extends Omit<InputFieldProps, 'highlighted' | 'visible' | 'required' | 'value'>,

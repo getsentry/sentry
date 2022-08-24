@@ -16,7 +16,8 @@ import type {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 import {UNSAVED_FILTERS_MESSAGE} from './detail';
-import {DashboardListItem, DashboardState, MAX_WIDGETS} from './types';
+import type {DashboardListItem} from './types';
+import {DashboardState, MAX_WIDGETS} from './types';
 
 type Props = {
   dashboardState: DashboardState;

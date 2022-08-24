@@ -1,9 +1,10 @@
 import {Component, Fragment} from 'react';
 import {findDOMNode} from 'react-dom';
-import {components, StylesConfig} from 'react-select';
+import type {StylesConfig} from 'react-select';
+import {components} from 'react-select';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import SelectControl from 'sentry/components/forms/selectControl';
 import IdBadge from 'sentry/components/idBadge';

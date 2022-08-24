@@ -2,11 +2,11 @@
 /* eslint import/no-nodejs-modules:0 */
 import {TextDecoder, TextEncoder} from 'util';
 
-import {InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import Adapter from '@wojtekmaj/enzyme-adapter-react-17';
 import {configure as configureEnzyme} from 'enzyme'; // eslint-disable-line no-restricted-imports
-import {Location} from 'history';
+import type {Location} from 'history';
 import MockDate from 'mockdate';
 import * as PropTypes from 'prop-types';
 import * as qs from 'query-string';
@@ -15,7 +15,7 @@ import * as qs from 'query-string';
 import type {Client} from 'sentry/__mocks__/api';
 import ConfigStore from 'sentry/stores/configStore';
 
-import TestStubFixtures from '../../fixtures/js-stubs/types';
+import type TestStubFixtures from '../../fixtures/js-stubs/types';
 
 import {loadFixtures} from './sentry-test/loadFixtures';
 

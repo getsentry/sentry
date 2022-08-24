@@ -1,14 +1,13 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import omit from 'lodash/omit';
 
 import Feature from 'sentry/components/acl/feature';
 import DatePageFilter from 'sentry/components/datePageFilter';
-import TransactionsList, {
-  DropdownOption,
-} from 'sentry/components/discover/transactionsList';
+import type {DropdownOption} from 'sentry/components/discover/transactionsList';
+import TransactionsList from 'sentry/components/discover/transactionsList';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -20,7 +19,7 @@ import space from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {
   formatTagKey,
   getAggregateAlias,
@@ -28,12 +27,13 @@ import {
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
-import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
+import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withProjects from 'sentry/utils/withProjects';
-import {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
-import {TableColumn} from 'sentry/views/eventsV2/table/types';
+import type {Actions} from 'sentry/views/eventsV2/table/cellAction';
+import {updateQuery} from 'sentry/views/eventsV2/table/cellAction';
+import type {TableColumn} from 'sentry/views/eventsV2/table/types';
 import Tags from 'sentry/views/eventsV2/tags';
 import {
   PERCENTILE as VITAL_PERCENTILE,

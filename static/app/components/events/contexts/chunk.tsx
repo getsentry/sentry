@@ -4,7 +4,7 @@ import EventDataSection from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
 import plugins from 'sentry/plugins';
 import type {Group} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import {defined, toTitleCase} from 'sentry/utils';
 
 import {getContextComponent, getSourcePlugin} from './utils';

@@ -1,9 +1,10 @@
 import {Fragment} from 'react';
 // eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import type {WithRouterProps} from 'react-router';
+import {withRouter} from 'react-router';
 import {css} from '@emotion/react';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
@@ -12,7 +13,8 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import {getDebugSourceName} from 'sentry/data/debugFileSources';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
-import {AppStoreConnectStatusData, CustomRepoType} from 'sentry/types/debugFiles';
+import type {AppStoreConnectStatusData} from 'sentry/types/debugFiles';
+import {CustomRepoType} from 'sentry/types/debugFiles';
 
 import AppStoreConnect from './appStoreConnect';
 import Http from './http';

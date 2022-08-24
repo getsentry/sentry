@@ -3,7 +3,7 @@ import classNames from 'classnames';
 
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import {IconChevron} from 'sentry/icons';
-import {Theme} from 'sentry/utils/theme';
+import type {Theme} from 'sentry/utils/theme';
 
 const getRootCss = (theme: Theme) => css`
   .dropdown-menu {

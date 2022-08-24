@@ -34,6 +34,7 @@ module.exports = {
       'warn',
       {additionalHooks: ADDITIONAL_HOOKS_TO_CHECK_DEPS_FOR},
     ],
+    '@typescript-eslint/consistent-type-imports': 'error',
     ...(!isRelaxed && !isCi ? strictRulesNotCi : {}),
   },
 

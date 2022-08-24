@@ -1,6 +1,6 @@
 import FormModel from 'sentry/components/forms/model';
 
-import {MonitorConfig} from './types';
+import type {MonitorConfig} from './types';
 
 type TransformedData = {
   config?: Partial<MonitorConfig>;

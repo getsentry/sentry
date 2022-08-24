@@ -1,4 +1,4 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import Field from 'sentry/components/forms/field';
 import Form from 'sentry/components/forms/form';

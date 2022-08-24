@@ -1,6 +1,8 @@
-import {createAction, createStore, Listenable} from 'reflux';
+import type {Listenable} from 'reflux';
+import {createAction, createStore} from 'reflux';
 
-import {makeSafeRefluxStore, SafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+import type {SafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 describe('makeSafeRefluxStore', () => {
   it('cleans up all listeners on teardown', () => {

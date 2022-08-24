@@ -1,14 +1,10 @@
 import {t, tct} from 'sentry/locale';
-import {
-  SamplingConditionLogicalInner,
-  SamplingInnerName,
-  SamplingInnerOperator,
-  SamplingRule,
-} from 'sentry/types/sampling';
+import type {SamplingConditionLogicalInner, SamplingRule} from 'sentry/types/sampling';
+import {SamplingInnerName, SamplingInnerOperator} from 'sentry/types/sampling';
 
 import {getInnerNameLabel} from '../../utils';
 
-import {Conditions} from './conditions';
+import type {Conditions} from './conditions';
 import {TruncatedLabel} from './truncatedLabel';
 
 type Condition = React.ComponentProps<typeof Conditions>['conditions'][0];

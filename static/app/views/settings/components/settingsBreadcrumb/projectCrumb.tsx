@@ -1,4 +1,5 @@
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import IdBadge from 'sentry/components/idBadge';
@@ -13,7 +14,7 @@ import BreadcrumbDropdown from 'sentry/views/settings/components/settingsBreadcr
 import findFirstRouteWithoutRouteParam from 'sentry/views/settings/components/settingsBreadcrumb/findFirstRouteWithoutRouteParam';
 import MenuItem from 'sentry/views/settings/components/settingsBreadcrumb/menuItem';
 
-import {RouteWithName} from './types';
+import type {RouteWithName} from './types';
 import {CrumbLink} from '.';
 
 type Props = RouteComponentProps<{projectId?: string}, {}> & {

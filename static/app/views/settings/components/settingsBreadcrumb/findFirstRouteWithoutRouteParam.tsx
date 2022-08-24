@@ -1,4 +1,4 @@
-import {RouteWithName} from './types';
+import type {RouteWithName} from './types';
 
 /**
  * For all routes with a `path`, find the first route without a route param (e.g. :apiKey)

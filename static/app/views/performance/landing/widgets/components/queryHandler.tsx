@@ -3,8 +3,12 @@ import {Fragment, useEffect} from 'react';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {useMEPDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 
-import {QueryDefinitionWithKey, QueryHandlerProps, WidgetDataConstraint} from '../types';
-import {PerformanceWidgetSetting} from '../widgetDefinitions';
+import type {
+  QueryDefinitionWithKey,
+  QueryHandlerProps,
+  WidgetDataConstraint,
+} from '../types';
+import type {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 /*
   Component to handle switching component-style queries over to state. This should be temporary to make it easier to switch away from waterfall style api components.

@@ -1,7 +1,7 @@
-import {DurationDisplay} from 'sentry/components/performance/waterfall/types';
+import type {DurationDisplay} from 'sentry/components/performance/waterfall/types';
 import CHART_PALETTE from 'sentry/constants/chartPalette';
 import space from 'sentry/styles/space';
-import {Theme} from 'sentry/utils/theme';
+import type {Theme} from 'sentry/utils/theme';
 
 export const getBackgroundColor = ({
   showStriping,

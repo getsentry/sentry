@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {LocationDescriptor} from 'history';
+import type {LocationDescriptor} from 'history';
 
 import MenuHeader from 'sentry/components/actions/menuHeader';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -8,8 +8,8 @@ import Tag, {Background} from 'sentry/components/tag';
 import Truncate from 'sentry/components/truncate';
 import space from 'sentry/styles/space';
 import {getDuration} from 'sentry/utils/formatters';
-import {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
-import {Theme} from 'sentry/utils/theme';
+import type {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
+import type {Theme} from 'sentry/utils/theme';
 
 export const SectionSubtext = styled('div')`
   color: ${p => p.theme.subText};

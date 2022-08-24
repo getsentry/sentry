@@ -1,4 +1,5 @@
-import {components, MultiValueProps} from 'react-select';
+import type {MultiValueProps} from 'react-select';
+import {components} from 'react-select';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 

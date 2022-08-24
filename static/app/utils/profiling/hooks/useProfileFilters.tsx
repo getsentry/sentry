@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {Organization, PageFilters, Tag} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';

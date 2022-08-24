@@ -1,7 +1,7 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Context} from 'sentry/components/deprecatedforms/form';
+import type {Context} from 'sentry/components/deprecatedforms/form';
 import FormContext from 'sentry/components/forms/formContext';
 import type {Permissions, WebhookEvent} from 'sentry/types';
 import {

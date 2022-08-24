@@ -6,9 +6,9 @@ import groupBy from 'lodash/groupBy';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {tct, tn} from 'sentry/locale';
-import {TraceError} from 'sentry/utils/performance/quickTrace/types';
+import type {TraceError} from 'sentry/utils/performance/quickTrace/types';
 
-import {ParsedTraceType, SpanType} from './types';
+import type {ParsedTraceType, SpanType} from './types';
 
 interface TraceErrorListProps {
   errors: TraceError[];

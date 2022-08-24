@@ -1,4 +1,4 @@
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {getInterval} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {DateString, Organization, SessionApiResponse} from 'sentry/types';

@@ -1,7 +1,7 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {EditOwnershipRulesModalOptions} from 'sentry/actionCreators/modal';
+import type {EditOwnershipRulesModalOptions} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import OwnerInput from 'sentry/views/settings/project/projectOwnership/ownerInput';

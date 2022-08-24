@@ -1,7 +1,8 @@
 import {t} from 'sentry/locale';
 
 import formatMemory from './formatMemory';
-import {GPUData, GPUKnownDataType} from './types';
+import type {GPUData} from './types';
+import {GPUKnownDataType} from './types';
 
 type Output = {
   subject: string;

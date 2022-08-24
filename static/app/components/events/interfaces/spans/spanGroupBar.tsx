@@ -1,4 +1,5 @@
-import {Fragment, LegacyRef, useEffect, useRef} from 'react';
+import type {LegacyRef} from 'react';
+import {Fragment, useEffect, useRef} from 'react';
 
 import Count from 'sentry/components/count';
 import {
@@ -22,21 +23,16 @@ import {
   TreeToggleContainer,
 } from 'sentry/components/performance/waterfall/treeConnector';
 import {toPercent} from 'sentry/components/performance/waterfall/utils';
-import {EventTransaction} from 'sentry/types/event';
+import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
 import * as AnchorLinkManager from './anchorLinkManager';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import SpanBarCursorGuide from './spanBarCursorGuide';
 import {MeasurementMarker} from './styles';
-import {EnhancedSpan, ProcessedSpanType} from './types';
-import {
-  getMeasurementBounds,
-  getMeasurements,
-  SpanBoundsType,
-  SpanGeneratedBoundsType,
-  spanTargetHash,
-} from './utils';
+import type {EnhancedSpan, ProcessedSpanType} from './types';
+import type {SpanBoundsType, SpanGeneratedBoundsType} from './utils';
+import {getMeasurementBounds, getMeasurements, spanTargetHash} from './utils';
 
 const MARGIN_LEFT = 0;
 

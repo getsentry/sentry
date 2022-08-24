@@ -1,7 +1,7 @@
 import {useMemo, useState} from 'react';
 
 import CompactSelect from 'sentry/components/forms/compactSelect';
-import {GeneralSelectValue} from 'sentry/components/forms/selectControl';
+import type {GeneralSelectValue} from 'sentry/components/forms/selectControl';
 import {valueIsEqual} from 'sentry/utils';
 
 /**

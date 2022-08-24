@@ -1,5 +1,5 @@
 import OrganizationActions from 'sentry/actions/organizationActions';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
 import type {OnboardingTask, Organization} from 'sentry/types';
 

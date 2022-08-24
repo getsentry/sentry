@@ -6,7 +6,8 @@ import * as modal from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import * as LineChart from 'sentry/components/charts/lineChart';
 import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
-import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
+import type {Widget} from 'sentry/views/dashboardsV2/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 import ReleaseWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/releaseWidgetQueries';
 

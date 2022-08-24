@@ -1,7 +1,7 @@
 import {PureComponent} from 'react';
-import {InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import {t} from 'sentry/locale';

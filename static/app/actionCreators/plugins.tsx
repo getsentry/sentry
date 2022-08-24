@@ -3,7 +3,8 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Client, RequestOptions} from 'sentry/api';
+import type {RequestOptions} from 'sentry/api';
+import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import PluginsStore from 'sentry/stores/pluginsStore';
 import type {Plugin} from 'sentry/types';

@@ -6,7 +6,8 @@ import type {Event} from 'sentry/types';
 import {geKnownData, getUnknownData} from '../utils';
 
 import {getBrowserKnownDataDetails} from './getBrowserKnownDataDetails';
-import {BrowserKnownData, BrowserKnownDataType} from './types';
+import type {BrowserKnownData} from './types';
+import {BrowserKnownDataType} from './types';
 
 type Props = {
   data: BrowserKnownData;

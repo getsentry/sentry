@@ -1,11 +1,11 @@
 import {Component} from 'react';
 
 import DropdownAutoCompleteMenu from 'sentry/components/dropdownAutoComplete/menu';
-import {Item} from 'sentry/components/dropdownAutoComplete/types';
+import type {Item} from 'sentry/components/dropdownAutoComplete/types';
 import Crumb from 'sentry/views/settings/components/settingsBreadcrumb/crumb';
 import Divider from 'sentry/views/settings/components/settingsBreadcrumb/divider';
 
-import {RouteWithName} from './types';
+import type {RouteWithName} from './types';
 
 const EXIT_DELAY = 0;
 

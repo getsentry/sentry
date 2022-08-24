@@ -1,10 +1,11 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import {Location, LocationDescriptor} from 'history';
+import type {Location, LocationDescriptor} from 'history';
 
-import {fetchTagFacets, Tag, TagSegment} from 'sentry/actionCreators/events';
-import {Client} from 'sentry/api';
+import type {Tag, TagSegment} from 'sentry/actionCreators/events';
+import {fetchTagFacets} from 'sentry/actionCreators/events';
+import type {Client} from 'sentry/api';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -15,7 +16,8 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
-import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
+import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
 
 type Props = {

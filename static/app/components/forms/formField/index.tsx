@@ -2,21 +2,23 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
-import Alert from 'sentry/components/alert';
+import type Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
-import Field, {FieldProps} from 'sentry/components/forms/field';
+import type {FieldProps} from 'sentry/components/forms/field';
+import Field from 'sentry/components/forms/field';
 import FieldControl from 'sentry/components/forms/field/fieldControl';
 import FieldErrorReason from 'sentry/components/forms/field/fieldErrorReason';
 import FormContext from 'sentry/components/forms/formContext';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
-import FormModel, {MockModel} from 'sentry/components/forms/model';
+import type FormModel from 'sentry/components/forms/model';
+import {MockModel} from 'sentry/components/forms/model';
 import ReturnButton from 'sentry/components/forms/returnButton';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
-import {FieldValue} from '../type';
+import type {FieldValue} from '../type';
 
 /**
  * Some fields don't need to implement their own onChange handlers, in

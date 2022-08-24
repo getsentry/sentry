@@ -1,9 +1,10 @@
 import {Component, Fragment} from 'react';
 // eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import type {WithRouterProps} from 'react-router';
+import {withRouter} from 'react-router';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import Text from 'sentry/components/text';
 import {t, tct} from 'sentry/locale';

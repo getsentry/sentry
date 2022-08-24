@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import AlertLink from 'sentry/components/alertLink';
 import Button from 'sentry/components/button';

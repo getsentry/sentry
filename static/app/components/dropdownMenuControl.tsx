@@ -1,17 +1,19 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
-import {AriaMenuOptions, useMenuTrigger} from '@react-aria/menu';
-import {AriaPositionProps, OverlayProps} from '@react-aria/overlays';
+import type {AriaMenuOptions} from '@react-aria/menu';
+import {useMenuTrigger} from '@react-aria/menu';
+import type {AriaPositionProps, OverlayProps} from '@react-aria/overlays';
 import {useResizeObserver} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import {useMenuTriggerState} from '@react-stately/menu';
-import {MenuTriggerProps} from '@react-types/menu';
+import type {MenuTriggerProps} from '@react-types/menu';
 
-import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButton';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
+import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
+import DropdownButton from 'sentry/components/dropdownButton';
+import type {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import Menu from 'sentry/components/dropdownMenuV2';
-import {FormSize} from 'sentry/utils/theme';
+import type {FormSize} from 'sentry/utils/theme';
 
 type TriggerProps = {
   props: Omit<React.HTMLAttributes<Element>, 'children'> & {

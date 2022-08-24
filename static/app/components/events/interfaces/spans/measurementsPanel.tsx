@@ -4,17 +4,13 @@ import styled from '@emotion/styled';
 import {toPercent} from 'sentry/components/performance/waterfall/utils';
 import Tooltip from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
-import {EventTransaction} from 'sentry/types/event';
+import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
-import {Vital} from 'sentry/utils/performance/vitals/types';
+import type {Vital} from 'sentry/utils/performance/vitals/types';
 
-import {
-  getMeasurementBounds,
-  getMeasurements,
-  SpanBoundsType,
-  SpanGeneratedBoundsType,
-} from './utils';
+import type {SpanBoundsType, SpanGeneratedBoundsType} from './utils';
+import {getMeasurementBounds, getMeasurements} from './utils';
 
 type Props = {
   dividerPosition: number;

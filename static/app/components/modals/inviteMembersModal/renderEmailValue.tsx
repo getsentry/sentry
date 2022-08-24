@@ -1,4 +1,5 @@
-import {components as selectComponents, MultiValueProps} from 'react-select';
+import type {MultiValueProps} from 'react-select';
+import {components as selectComponents} from 'react-select';
 import styled from '@emotion/styled';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -6,7 +7,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconCheckmark, IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 
-import {InviteStatus} from './types';
+import type {InviteStatus} from './types';
 
 function renderEmailValue<Option>(
   status: InviteStatus[string],

@@ -1,7 +1,8 @@
 // eslint-disable-next-line no-restricted-imports
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
+import type {WithRouterProps} from 'react-router';
+import {browserHistory, withRouter} from 'react-router';
 import styled from '@emotion/styled';
-import {Query} from 'history';
+import type {Query} from 'history';
 
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';

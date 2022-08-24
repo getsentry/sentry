@@ -7,7 +7,7 @@ import type {Organization, Project, SeriesApi} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
-import {RecommendedStepsModalProps} from './modals/recommendedStepsModal';
+import type {RecommendedStepsModalProps} from './modals/recommendedStepsModal';
 import {getClientSampleRates, SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
 
 type Props = Pick<RecommendedStepsModalProps, 'onReadDocs'> & {

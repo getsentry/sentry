@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {BarChart} from 'sentry/components/charts/barChart';
 import BarChartZoom from 'sentry/components/charts/barChartZoom';
@@ -11,14 +11,14 @@ import type {OrganizationSummary} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import Histogram from 'sentry/utils/performance/histogram';
 import HistogramQuery from 'sentry/utils/performance/histogram/histogramQuery';
-import {HistogramData} from 'sentry/utils/performance/histogram/types';
+import type {HistogramData} from 'sentry/utils/performance/histogram/types';
 import {
   computeBuckets,
   formatHistogramData,
 } from 'sentry/utils/performance/histogram/utils';
 import theme from 'sentry/utils/theme';
 
-import {ViewProps} from '../../../types';
+import type {ViewProps} from '../../../types';
 import {filterToColor, filterToField, SpanOperationBreakdownFilter} from '../../filter';
 
 import {decodeHistogramZoom, ZOOM_END, ZOOM_START} from './utils';

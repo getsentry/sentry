@@ -1,6 +1,6 @@
 import React, {useState} from 'react';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import {SelectAsyncField} from 'sentry/components/deprecatedforms';
 import TimeSince from 'sentry/components/timeSince';

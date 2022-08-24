@@ -1,4 +1,5 @@
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import debounce from 'lodash/debounce';
 
 import IdBadge from 'sentry/components/idBadge';
@@ -8,7 +9,7 @@ import useTeams from 'sentry/utils/useTeams';
 import BreadcrumbDropdown from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 import MenuItem from 'sentry/views/settings/components/settingsBreadcrumb/menuItem';
 
-import {RouteWithName} from './types';
+import type {RouteWithName} from './types';
 import {CrumbLink} from '.';
 
 type Props = RouteComponentProps<{teamId: string}, {}> & {

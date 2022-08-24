@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import Tooltip from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
-import {IconSize} from 'sentry/utils/theme';
+import type {IconSize} from 'sentry/utils/theme';
 
 type ContainerProps = {
   size: IconSize | string;

@@ -1,6 +1,6 @@
-import {LocationDescriptorObject} from 'history';
+import type {LocationDescriptorObject} from 'history';
 
-import {GridColumnOrder} from 'sentry/components/gridEditable';
+import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 
 type Sort<K> = {

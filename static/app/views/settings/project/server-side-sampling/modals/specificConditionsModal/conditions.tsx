@@ -11,7 +11,8 @@ import {SamplingInnerName} from 'sentry/types/sampling';
 
 import {getInnerNameLabel} from '../../utils';
 
-import {TagValueAutocomplete, TagValueAutocompleteProps} from './tagValueAutocomplete';
+import type {TagValueAutocompleteProps} from './tagValueAutocomplete';
+import {TagValueAutocomplete} from './tagValueAutocomplete';
 import {getMatchFieldPlaceholder, getTagKey} from './utils';
 
 export type Condition = {

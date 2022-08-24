@@ -14,7 +14,8 @@ import TeamStore from 'sentry/stores/teamStore';
 import space from 'sentry/styles/space';
 import type {Actor, Organization, Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {Incident, IncidentStatus} from 'sentry/views/alerts/types';
+import type {Incident} from 'sentry/views/alerts/types';
+import {IncidentStatus} from 'sentry/views/alerts/types';
 import {alertDetailsLink} from 'sentry/views/alerts/utils';
 
 type Props = {

@@ -1,11 +1,13 @@
 // eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import type {WithRouterProps} from 'react-router';
+import {withRouter} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
-import {LineChart, LineChartProps} from 'sentry/components/charts/lineChart';
+import type {LineChartProps} from 'sentry/components/charts/lineChart';
+import {LineChart} from 'sentry/components/charts/lineChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import NotAvailable from 'sentry/components/notAvailable';
@@ -13,15 +15,11 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import SidebarSection from 'sentry/components/sidebarSection';
 import Tag from 'sentry/components/tag';
 import Tooltip from 'sentry/components/tooltip';
+import {SessionFieldWithOperation} from 'sentry/enum';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {
-  ReleaseProject,
-  ReleaseWithHealth,
-  SessionApiResponse,
-} from 'sentry/types'
-  import {SessionFieldWithOperation} from 'sentry/enum';
+import type {ReleaseProject, ReleaseWithHealth, SessionApiResponse} from 'sentry/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getAdoptionSeries, getCount, getCountAtIndex} from 'sentry/utils/sessions';
 

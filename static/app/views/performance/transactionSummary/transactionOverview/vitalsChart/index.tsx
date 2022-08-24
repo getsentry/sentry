@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 // eslint-disable-next-line no-restricted-imports
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
+import type {WithRouterProps} from 'react-router';
+import {browserHistory, withRouter} from 'react-router';
 import {useTheme} from '@emotion/react';
-import {Location, Query} from 'history';
+import type {Location, Query} from 'history';
 
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
@@ -16,7 +17,7 @@ import {getAggregateArg, getMeasurementSlug} from 'sentry/utils/discover/fields'
 import {WebVital} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
 
-import {ViewProps} from '../../../types';
+import type {ViewProps} from '../../../types';
 
 import Content from './content';
 

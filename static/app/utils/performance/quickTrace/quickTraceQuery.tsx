@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 
-import {Event} from 'sentry/types/event';
-import {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
+import type {Event} from 'sentry/types/event';
+import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
 import {TraceFullQuery} from 'sentry/utils/performance/quickTrace/traceFullQuery';
 import TraceLiteQuery from 'sentry/utils/performance/quickTrace/traceLiteQuery';
-import {QuickTraceQueryChildrenProps} from 'sentry/utils/performance/quickTrace/types';
+import type {QuickTraceQueryChildrenProps} from 'sentry/utils/performance/quickTrace/types';
 import {
   flattenRelevantPaths,
   getTraceTimeRangeFromEvent,

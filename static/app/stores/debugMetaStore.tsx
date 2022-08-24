@@ -1,6 +1,8 @@
-import {createActions, createStore, StoreDefinition} from 'reflux';
+import type {StoreDefinition} from 'reflux';
+import {createActions, createStore} from 'reflux';
 
-import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
+import type {SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 const DebugMetaActions = createActions(['updateFilter']);
 

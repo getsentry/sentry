@@ -1,5 +1,5 @@
 import {css} from '@emotion/react';
-import {Query} from 'history';
+import type {Query} from 'history';
 import * as qs from 'query-string';
 
 import AnnotatedText from 'sentry/components/events/meta/annotatedText';
@@ -9,7 +9,7 @@ import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconOpen} from 'sentry/icons';
 import type {Organization} from 'sentry/types';
-import {EventTag} from 'sentry/types/event';
+import type {EventTag} from 'sentry/types/event';
 import {isUrl} from 'sentry/utils';
 
 import EventTagsPillValue from './eventTagsPillValue';

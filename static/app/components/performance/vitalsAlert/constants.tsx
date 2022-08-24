@@ -1,4 +1,4 @@
-import {VitalsKey} from './types';
+import type {VitalsKey} from './types';
 
 export const VITALS_TYPES = ['FCP', 'LCP', 'appStartCold', 'appStartWarm'] as const;
 

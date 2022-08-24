@@ -1,4 +1,4 @@
-import {Location} from 'history';
+import type {Location} from 'history';
 import moment from 'moment';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
@@ -7,7 +7,7 @@ import type {IntervalPeriod, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 
-import {PageFiltersState} from './types';
+import type {PageFiltersState} from './types';
 
 export type StatsPeriodType = 'h' | 'd' | 's' | 'm' | 'w';
 

@@ -1,14 +1,15 @@
 import {useRef} from 'react';
-import {StylesConfig} from 'react-select';
+import type {StylesConfig} from 'react-select';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import {addTeamToProject} from 'sentry/actionCreators/projects';
 import Button from 'sentry/components/button';
-import SelectControl, {
+import type {
   ControlProps,
   GeneralSelectValue,
 } from 'sentry/components/forms/selectControl';
+import SelectControl from 'sentry/components/forms/selectControl';
 import IdBadge from 'sentry/components/idBadge';
 import Tooltip from 'sentry/components/tooltip';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';

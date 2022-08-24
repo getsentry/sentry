@@ -1,22 +1,17 @@
 import round from 'lodash/round';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
-import type {
+import {
   getDiffInMinutes,
   shouldFetchPreviousPeriod,
 } from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import ScoreCard from 'sentry/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {SessionFieldWithOperation} from 'sentry/enum';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {
-  Organization,
-  PageFilters,
-  SessionApiResponse,
-} from 'sentry/types'
-
-  import {SessionFieldWithOperation} from 'sentry/enum';
+import type {Organization, PageFilters, SessionApiResponse} from 'sentry/types';
 import {defined, percent} from 'sentry/utils';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getPeriod} from 'sentry/utils/getPeriod';

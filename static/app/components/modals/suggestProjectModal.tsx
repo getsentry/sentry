@@ -9,8 +9,8 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';

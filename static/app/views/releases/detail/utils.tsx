@@ -1,4 +1,4 @@
-import {Location} from 'history';
+import type {Location} from 'history';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
@@ -10,14 +10,14 @@ import type {
   Commit,
   CommitFile,
   FilesByRepository,
-  ReleaseComparisonChartType,
   ReleaseProject,
   ReleaseWithHealth,
   Repository,
-} from 'sentry/types'
-import {Series} from 'sentry/types/echarts';
+} from 'sentry/types';
+import {ReleaseComparisonChartType} from 'sentry/types';
+import type {Series} from 'sentry/types/echarts';
 import {decodeList} from 'sentry/utils/queryString';
-import {Theme} from 'sentry/utils/theme';
+import type {Theme} from 'sentry/utils/theme';
 
 import {getReleaseBounds, getReleaseParams, isMobileRelease} from '../utils';
 import {commonTermsDescription, SessionTerm} from '../utils/sessionTerm';

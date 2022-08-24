@@ -4,13 +4,13 @@ import {motion} from 'framer-motion';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import MultiPlatformPicker from 'sentry/components/multiPlatformPicker';
-import {PlatformKey} from 'sentry/data/platformCategories';
+import type {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import testableTransition from 'sentry/utils/testableTransition';
 import StepHeading from 'sentry/views/onboarding/components/stepHeading';
 
 import CreateProjectsFooter from './components/createProjectsFooter';
-import {StepProps} from './types';
+import type {StepProps} from './types';
 import {usePersistedOnboardingState} from './utils';
 
 function OnboardingPlatform(props: StepProps) {

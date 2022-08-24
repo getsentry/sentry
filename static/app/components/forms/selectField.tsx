@@ -1,9 +1,11 @@
 import {Component} from 'react';
-import {OptionsType, ValueType} from 'react-select';
+import type {OptionsType, ValueType} from 'react-select';
 
 import {openConfirmModal} from 'sentry/components/confirm';
-import InputField, {InputFieldProps} from 'sentry/components/forms/inputField';
-import SelectControl, {ControlProps} from 'sentry/components/forms/selectControl';
+import type {InputFieldProps} from 'sentry/components/forms/inputField';
+import InputField from 'sentry/components/forms/inputField';
+import type {ControlProps} from 'sentry/components/forms/selectControl';
+import SelectControl from 'sentry/components/forms/selectControl';
 import {t} from 'sentry/locale';
 import type {Choices, SelectValue} from 'sentry/types';
 

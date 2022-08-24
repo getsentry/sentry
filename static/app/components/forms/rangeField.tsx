@@ -1,5 +1,6 @@
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
-import InputField, {InputFieldProps, onEvent} from 'sentry/components/forms/inputField';
+import type {InputFieldProps, onEvent} from 'sentry/components/forms/inputField';
+import InputField from 'sentry/components/forms/inputField';
 
 interface DefaultProps {
   formatMessageValue?: false | Function;

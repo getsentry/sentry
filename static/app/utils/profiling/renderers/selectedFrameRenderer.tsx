@@ -1,6 +1,7 @@
-import {mat3} from 'gl-matrix';
+import type {mat3} from 'gl-matrix';
 
-import {getContext, Rect} from '../gl/utils';
+import type {Rect} from '../gl/utils';
+import {getContext} from '../gl/utils';
 
 class SelectedFrameRenderer {
   canvas: HTMLCanvasElement;

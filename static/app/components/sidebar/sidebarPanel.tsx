@@ -7,7 +7,7 @@ import {IconClose} from 'sentry/icons';
 import {slideInLeft} from 'sentry/styles/animations';
 import space from 'sentry/styles/space';
 
-import {CommonSidebarProps} from './types';
+import type {CommonSidebarProps} from './types';
 
 type PositionProps = Pick<CommonSidebarProps, 'orientation' | 'collapsed'>;
 

@@ -2,7 +2,7 @@ import {Component, Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import Field from 'sentry/components/forms/field';
 import {IconDiamond} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -14,15 +14,14 @@ import {getThresholdUnits} from 'sentry/views/alerts/rules/metric/constants';
 import ThresholdControl from 'sentry/views/alerts/rules/metric/triggers/thresholdControl';
 
 import {isSessionAggregate} from '../../../utils';
-import {
-  AlertRuleComparisonType,
+import type {
   AlertRuleThresholdType,
-  AlertRuleTriggerType,
   ThresholdControlValue,
   Trigger,
   UnsavedMetricRule,
   UnsavedTrigger,
 } from '../types';
+import {AlertRuleComparisonType, AlertRuleTriggerType} from '../types';
 
 type Props = {
   aggregate: UnsavedMetricRule['aggregate'];

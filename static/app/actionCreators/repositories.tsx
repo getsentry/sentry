@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react';
 
 import RepositoryActions from 'sentry/actions/repositoryActions';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import RepositoryStore from 'sentry/stores/repositoryStore';
 import type {Repository} from 'sentry/types';
 

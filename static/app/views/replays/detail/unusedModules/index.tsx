@@ -8,11 +8,11 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import getCurrentUrl from 'sentry/utils/replays/getCurrentUrl';
-import {ColorOrAlias} from 'sentry/utils/theme';
+import type {ColorOrAlias} from 'sentry/utils/theme';
 import {ChunkInvocation} from 'sentry/views/replays/detail/filesize/utils';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
-import {Codecov, ReplayRecord} from '../../types';
+import type {Codecov, ReplayRecord} from '../../types';
 
 type Props = {
   accessed: Codecov[];

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
-import moment from 'moment-timezone';
+import type moment from 'moment-timezone';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button, {StyledButton} from 'sentry/components/button';
@@ -15,7 +15,11 @@ import Tag from 'sentry/components/tag';
 import {IconChevron, IconFlag, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {SentryApp, SentryAppSchemaIssueLink, SentryAppWebhookRequest} from 'sentry/types';
+import type {
+  SentryApp,
+  SentryAppSchemaIssueLink,
+  SentryAppWebhookRequest,
+} from 'sentry/types';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 

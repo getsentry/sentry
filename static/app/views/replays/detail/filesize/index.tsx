@@ -5,8 +5,8 @@ import FileSize from 'sentry/components/fileSize';
 import {PanelTable, PanelTableHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {ColorOrAlias} from 'sentry/utils/theme';
-import {ChunkInvocation} from 'sentry/views/replays/detail/filesize/utils';
+import type {ColorOrAlias} from 'sentry/utils/theme';
+import type {ChunkInvocation} from 'sentry/views/replays/detail/filesize/utils';
 
 import mockChunkData from '../../../../../../mock_chunk_data.json';
 

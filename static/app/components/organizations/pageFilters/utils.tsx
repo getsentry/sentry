@@ -1,4 +1,4 @@
-import {Location} from 'history';
+import type {Location} from 'history';
 import identity from 'lodash/identity';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';

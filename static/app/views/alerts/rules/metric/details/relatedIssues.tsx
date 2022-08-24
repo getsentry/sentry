@@ -15,10 +15,10 @@ import {
   RelatedIssuesNotAvailable,
 } from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
 import {makeDefaultCta} from 'sentry/views/alerts/rules/metric/metricRulePresets';
-import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {isSessionAggregate} from 'sentry/views/alerts/utils';
 
-import {TimePeriodType} from './constants';
+import type {TimePeriodType} from './constants';
 
 interface Props {
   organization: OrganizationSummary;

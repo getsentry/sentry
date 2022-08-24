@@ -1,7 +1,8 @@
 import {forwardRef} from 'react';
-import ReactSelect from 'react-select';
+import type ReactSelect from 'react-select';
 
-import SelectControl, {ControlProps} from 'sentry/components/forms/selectControl';
+import type {ControlProps} from 'sentry/components/forms/selectControl';
+import SelectControl from 'sentry/components/forms/selectControl';
 import type {SelectValue} from 'sentry/types';
 
 export type MultiControlProps = Omit<ControlProps, 'onChange'> & {

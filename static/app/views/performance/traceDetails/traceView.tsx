@@ -1,5 +1,5 @@
 import React, {createRef, useEffect} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 
 import * as AnchorLinkManager from 'sentry/components/events/interfaces/spans/anchorLinkManager';
@@ -16,8 +16,11 @@ import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/u
 import {tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import EventView from 'sentry/utils/discover/eventView';
-import {TraceFullDetailed, TraceMeta} from 'sentry/utils/performance/quickTrace/types';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {
+  TraceFullDetailed,
+  TraceMeta,
+} from 'sentry/utils/performance/quickTrace/types';
 import {
   TraceDetailBody,
   TracePanel,
@@ -25,7 +28,7 @@ import {
   TraceViewHeaderContainer,
 } from 'sentry/views/performance/traceDetails/styles';
 import TransactionGroup from 'sentry/views/performance/traceDetails/transactionGroup';
-import {TraceInfo, TreeDepth} from 'sentry/views/performance/traceDetails/types';
+import type {TraceInfo, TreeDepth} from 'sentry/views/performance/traceDetails/types';
 import {
   getTraceInfo,
   isRootTransaction,

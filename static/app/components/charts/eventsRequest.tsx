@@ -4,7 +4,7 @@ import omitBy from 'lodash/omitBy';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import {
   canIncludePreviousPeriod,
@@ -19,10 +19,10 @@ import type {
   MultiSeriesEventsStats,
   OrganizationSummary,
 } from 'sentry/types';
-import {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {stripEquationPrefix} from 'sentry/utils/discover/fields';
-import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
+import type {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 
 export type TimeSeriesData = {
   allTimeseriesData?: EventsStatsData;

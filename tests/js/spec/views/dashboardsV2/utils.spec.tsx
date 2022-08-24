@@ -1,9 +1,5 @@
-import {
-  DashboardDetails,
-  DisplayType,
-  Widget,
-  WidgetType,
-} from 'sentry/views/dashboardsV2/types';
+import type {DashboardDetails, Widget} from 'sentry/views/dashboardsV2/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {
   constructWidgetFromQuery,
   eventViewFromWidget,

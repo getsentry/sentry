@@ -6,7 +6,8 @@ import CrashActions from 'sentry/components/events/interfaces/crashHeader/crashA
 import CrashTitle from 'sentry/components/events/interfaces/crashHeader/crashTitle';
 import {t} from 'sentry/locale';
 import type {Group, Project} from 'sentry/types';
-import {EntryType, Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
 
 import NoStackTraceMessage from './noStackTraceMessage';

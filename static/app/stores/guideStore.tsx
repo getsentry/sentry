@@ -1,9 +1,14 @@
 import {browserHistory} from 'react-router';
-import {createStore, StoreDefinition} from 'reflux';
+import type {StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
 import OrganizationsActions from 'sentry/actions/organizationsActions';
 import getGuidesContent from 'sentry/components/assistant/getGuidesContent';
-import {Guide, GuidesContent, GuidesServerData} from 'sentry/components/assistant/types';
+import type {
+  Guide,
+  GuidesContent,
+  GuidesServerData,
+} from 'sentry/components/assistant/types';
 import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';

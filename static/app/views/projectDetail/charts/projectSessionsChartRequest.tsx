@@ -4,18 +4,13 @@ import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {SessionFieldWithOperation, SessionStatus} from 'sentry/enum';
 import {t} from 'sentry/locale';
-import type {
-  Organization,
-  PageFilters,
-  SessionApiResponse,
-} from 'sentry/types'
-  import {SessionFieldWithOperation,
-  SessionStatus, } from 'sentry/enum';
-import {Series} from 'sentry/types/echarts';
+import type {Organization, PageFilters, SessionApiResponse} from 'sentry/types';
+import type {Series} from 'sentry/types/echarts';
 import {percent} from 'sentry/utils';
 import {getPeriod} from 'sentry/utils/getPeriod';
 import {
@@ -25,7 +20,7 @@ import {
   getSessionsInterval,
   initSessionsChart,
 } from 'sentry/utils/sessions';
-import {Theme} from 'sentry/utils/theme';
+import type {Theme} from 'sentry/utils/theme';
 import {getCrashFreePercent} from 'sentry/views/releases/utils';
 
 import {DisplayModes} from '../projectCharts';

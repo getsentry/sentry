@@ -3,8 +3,9 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 
 import ThreadsV2 from 'sentry/components/events/interfaces/threadsV2';
 import {displayOptions} from 'sentry/components/events/traceEventDataSection';
-import type {EventOrGroupType} from 'sentry/types';
-import {EntryType, Event} from 'sentry/types/event';
+import {EventOrGroupType} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 
 describe('ThreadsV2', function () {
   const {project, organization} = initializeOrg();

@@ -1,5 +1,5 @@
 import {browserHistory} from 'react-router';
-import {Location} from 'history';
+import type {Location} from 'history';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
 import maxBy from 'lodash/maxBy';
@@ -11,17 +11,18 @@ import {
   TOGGLE_BUTTON_MAX_WIDTH,
 } from 'sentry/components/performance/waterfall/treeConnector';
 import type {Organization} from 'sentry/types';
-import {EntryType, EventTransaction} from 'sentry/types/event';
+import type {EventTransaction} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {WebVital} from 'sentry/utils/fields';
-import {TraceError} from 'sentry/utils/performance/quickTrace/types';
+import type {TraceError} from 'sentry/utils/performance/quickTrace/types';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {getPerformanceTransaction} from 'sentry/utils/performanceForSentry';
-import {Theme} from 'sentry/utils/theme';
+import type {Theme} from 'sentry/utils/theme';
 
 import {MERGE_LABELS_THRESHOLD_PERCENT} from './constants';
-import {
+import type {
   EnhancedSpan,
   FocusedSpanIDMap,
   GapSpanType,

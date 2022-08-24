@@ -1,4 +1,4 @@
-import {Query} from 'history';
+import type {Query} from 'history';
 import chunk from 'lodash/chunk';
 import debounce from 'lodash/debounce';
 
@@ -8,8 +8,8 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import ProjectActions from 'sentry/actions/projectActions';
-import {Client} from 'sentry/api';
-import {PlatformKey} from 'sentry/data/platformCategories';
+import type {Client} from 'sentry/api';
+import type {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import type {Project, Team} from 'sentry/types';

@@ -2,7 +2,7 @@ import {cloneElement, isValidElement} from 'react';
 import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
-import {Theme} from 'sentry/utils/theme';
+import type {Theme} from 'sentry/utils/theme';
 
 type Props = React.HTMLAttributes<HTMLDivElement> & {
   border?: boolean;

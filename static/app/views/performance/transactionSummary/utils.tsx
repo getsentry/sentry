@@ -1,15 +1,15 @@
 import styled from '@emotion/styled';
-import {LocationDescriptor, Query} from 'history';
+import type {LocationDescriptor, Query} from 'history';
 
 import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
-import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
-import {DisplayModes} from './transactionOverview/charts';
+import type {DisplayModes} from './transactionOverview/charts';
 
 export enum TransactionFilterOptions {
   FASTEST = 'fastest',

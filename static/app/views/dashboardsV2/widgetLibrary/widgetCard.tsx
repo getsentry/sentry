@@ -9,7 +9,7 @@ import space from 'sentry/styles/space';
 
 import {DisplayType} from '../types';
 
-import {WidgetTemplate} from './data';
+import type {WidgetTemplate} from './data';
 
 type Props = {
   selectedWidgets: WidgetTemplate[];

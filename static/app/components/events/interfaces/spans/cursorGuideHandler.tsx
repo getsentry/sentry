@@ -2,8 +2,8 @@ import {Component, createContext} from 'react';
 
 import {clamp, rectOfContent} from 'sentry/components/performance/waterfall/utils';
 
-import {DragManagerChildrenProps} from './dragManager';
-import {ParsedTraceType} from './types';
+import type {DragManagerChildrenProps} from './dragManager';
+import type {ParsedTraceType} from './types';
 
 export type CursorGuideManagerChildrenProps = {
   displayCursorGuide: (mousePageX: number) => void;

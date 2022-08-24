@@ -1,6 +1,6 @@
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 
-import {Context} from '.';
+import type {Context} from '.';
 
 function filterContexts(event: Event, context: Context) {
   // if the operating system is macOS, we want to hide devices called "Mac" which don't have any additional info

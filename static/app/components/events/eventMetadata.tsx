@@ -8,7 +8,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {OrganizationSummary} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import Projects from 'sentry/utils/projects';
 

@@ -1,7 +1,7 @@
 import EditableText from 'sentry/components/editableText';
 import {t} from 'sentry/locale';
 
-import {DashboardDetails} from './types';
+import type {DashboardDetails} from './types';
 
 type Props = {
   dashboard: DashboardDetails | null;

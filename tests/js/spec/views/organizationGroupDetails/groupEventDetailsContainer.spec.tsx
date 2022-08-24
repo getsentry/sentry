@@ -1,9 +1,8 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationEnvironmentsStore from 'sentry/stores/organizationEnvironmentsStore';
-import GroupEventDetailsContainer, {
-  GroupEventDetailsProps,
-} from 'sentry/views/organizationGroupDetails/groupEventDetails';
+import type {GroupEventDetailsProps} from 'sentry/views/organizationGroupDetails/groupEventDetails';
+import GroupEventDetailsContainer from 'sentry/views/organizationGroupDetails/groupEventDetails';
 import {ReprocessingStatus} from 'sentry/views/organizationGroupDetails/utils';
 
 jest.mock(

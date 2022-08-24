@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -22,10 +22,8 @@ import routeTitleGen from 'sentry/utils/routeTitle';
 import theme from 'sentry/utils/theme';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
-import {
-  RenderSearch,
-  SearchWrapper,
-} from 'sentry/views/settings/components/defaultSearchBar';
+import type {RenderSearch} from 'sentry/views/settings/components/defaultSearchBar';
+import {SearchWrapper} from 'sentry/views/settings/components/defaultSearchBar';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 import MembersFilter from './components/membersFilter';

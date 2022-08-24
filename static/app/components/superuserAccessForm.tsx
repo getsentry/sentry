@@ -2,7 +2,7 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {logout} from 'sentry/actionCreators/account';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import Form from 'sentry/components/forms/form';
 import Hook from 'sentry/components/hook';

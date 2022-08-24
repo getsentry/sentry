@@ -2,7 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/featureBadge';
-import RadioGroup, {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
+import type {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
+import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';

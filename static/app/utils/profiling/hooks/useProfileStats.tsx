@@ -1,10 +1,15 @@
 import {useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import type {EventsStatsSeries, Organization, PageFilters, RequestState} from 'sentry/types';
+import type {
+  EventsStatsSeries,
+  Organization,
+  PageFilters,
+  RequestState,
+} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';

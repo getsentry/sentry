@@ -1,4 +1,4 @@
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import SentryAppComponentsStore from 'sentry/stores/sentryAppComponentsStore';
 import type {SentryAppComponent} from 'sentry/types';
 

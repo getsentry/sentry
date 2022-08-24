@@ -1,4 +1,5 @@
-import {Fragment, PureComponent, ReactNode} from 'react';
+import type {ReactNode} from 'react';
+import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 
 import AlertBadge from 'sentry/components/alertBadge';
@@ -14,11 +15,10 @@ import space from 'sentry/styles/space';
 import type {Actor} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
+import type {Action, MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
-  Action,
   AlertRuleThresholdType,
   AlertRuleTriggerType,
-  MetricRule,
 } from 'sentry/views/alerts/rules/metric/types';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';

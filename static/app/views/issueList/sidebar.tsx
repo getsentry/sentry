@@ -5,13 +5,8 @@ import map from 'lodash/map';
 
 import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {
-  joinQuery,
-  ParseResult,
-  parseSearch,
-  Token,
-  TokenResult,
-} from 'sentry/components/searchSyntax/parser';
+import type {ParseResult, TokenResult} from 'sentry/components/searchSyntax/parser';
+import {joinQuery, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import SidebarSection from 'sentry/components/sidebarSection';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
@@ -19,7 +14,7 @@ import space from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types';
 
 import IssueListTagFilter from './tagFilter';
-import {TagValueLoader} from './types';
+import type {TagValueLoader} from './types';
 
 type DefaultProps = {
   onQueryChange: (query: string) => void;

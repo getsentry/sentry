@@ -5,7 +5,7 @@ import {t} from 'sentry/locale';
 import theme from 'sentry/utils/theme';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
-import {Monitor, MonitorStat} from './types';
+import type {Monitor, MonitorStat} from './types';
 
 type Props = AsyncComponent['props'] & {
   monitor: Monitor;

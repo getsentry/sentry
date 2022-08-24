@@ -1,6 +1,6 @@
 import padStart from 'lodash/padStart';
 
-import {Crumb} from 'sentry/types/breadcrumbs';
+import type {Crumb} from 'sentry/types/breadcrumbs';
 import type {ReplaySpan} from 'sentry/views/replays/types';
 
 function padZero(num: number, len = 2): string {

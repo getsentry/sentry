@@ -16,10 +16,12 @@ import {DATA_CATEGORY_NAMES} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {DataCategory, IntervalPeriod, SelectValue} from 'sentry/types';
+import type {IntervalPeriod, SelectValue} from 'sentry/types';
+import {DataCategory} from 'sentry/types';
 import {parsePeriodToHours, statsPeriodToDays} from 'sentry/utils/dates';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import commonTheme, {Theme} from 'sentry/utils/theme';
+import type {Theme} from 'sentry/utils/theme';
+import commonTheme from 'sentry/utils/theme';
 
 import {formatUsageWithUnits, GIGABYTE} from '../utils';
 

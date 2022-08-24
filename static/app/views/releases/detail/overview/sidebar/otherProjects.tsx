@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import Button from 'sentry/components/button';
 import Collapsible from 'sentry/components/collapsible';

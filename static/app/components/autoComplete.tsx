@@ -10,10 +10,8 @@
  */
 import {Component} from 'react';
 
-import DeprecatedDropdownMenu, {
-  GetActorArgs,
-  GetMenuArgs,
-} from 'sentry/components/deprecatedDropdownMenu';
+import type {GetActorArgs, GetMenuArgs} from 'sentry/components/deprecatedDropdownMenu';
+import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 
 const defaultProps = {
   itemToString: () => '',

@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 // eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import type {WithRouterProps} from 'react-router';
+import {withRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {QRCodeCanvas} from 'qrcode.react';
 
@@ -20,7 +21,7 @@ import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
 import TextCopyInput from 'sentry/components/forms/textCopyInput';
-import {FieldObject} from 'sentry/components/forms/type';
+import type {FieldObject} from 'sentry/components/forms/type';
 import {PanelItem} from 'sentry/components/panels';
 import U2fsign from 'sentry/components/u2f/u2fsign';
 import {t} from 'sentry/locale';

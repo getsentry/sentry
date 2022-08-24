@@ -1,11 +1,11 @@
 import {useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {Organization, PageFilters, RequestState} from 'sentry/types';
-import {Trace} from 'sentry/types/profiling/core';
+import type {Trace} from 'sentry/types/profiling/core';
 import {defined} from 'sentry/utils';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';

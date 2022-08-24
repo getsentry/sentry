@@ -1,8 +1,8 @@
 import {Component} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
 import ClippedBox from 'sentry/components/clippedBox';
 import Confirm from 'sentry/components/confirm';
@@ -14,7 +14,7 @@ import space from 'sentry/styles/space';
 import type {Scope} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import ProjectKeyCredentials from 'sentry/views/settings/project/projectKeys/projectKeyCredentials';
-import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
+import type {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 type Props = {
   access: Set<Scope>;

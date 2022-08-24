@@ -12,9 +12,9 @@ import Pills from 'sentry/components/pills';
 import {IconInfo, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {StackTraceMechanism} from 'sentry/types/stacktrace';
+import type {StackTraceMechanism} from 'sentry/types/stacktrace';
 import {isUrl} from 'sentry/utils';
-import {Theme} from 'sentry/utils/theme';
+import type {Theme} from 'sentry/utils/theme';
 
 type Props = {
   data: StackTraceMechanism;

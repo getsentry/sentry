@@ -1,7 +1,7 @@
 import {createContext} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
@@ -13,6 +13,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PickProjectToContinue from 'sentry/components/pickProjectToContinue';
 import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/pageFilters';
+import {SessionFieldWithOperation} from 'sentry/enum';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
@@ -25,9 +26,7 @@ import type {
   ReleaseProject,
   ReleaseWithHealth,
   SessionApiResponse,
-} from 'sentry/types'
-
-  import {SessionFieldWithOperation} from 'sentry/enum';
+} from 'sentry/types';
 import {formatVersion} from 'sentry/utils/formatters';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import {getCount} from 'sentry/utils/sessions';
@@ -35,7 +34,8 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import AsyncView from 'sentry/views/asyncView';
 
-import {getReleaseBounds, ReleaseBounds} from '../utils';
+import type {ReleaseBounds} from '../utils';
+import {getReleaseBounds} from '../utils';
 
 import ReleaseHeader from './header/releaseHeader';
 

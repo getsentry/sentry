@@ -1,9 +1,9 @@
 import {createStore} from 'reflux';
 
-import {SamplingDistribution, SamplingSdkVersion} from 'sentry/types/sampling';
+import type {SamplingDistribution, SamplingSdkVersion} from 'sentry/types/sampling';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-import {CommonStoreDefinition} from './types';
+import type {CommonStoreDefinition} from './types';
 
 type State = {
   fetching: boolean;

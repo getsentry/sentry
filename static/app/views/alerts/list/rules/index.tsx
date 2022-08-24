@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addMessage} from 'sentry/actionCreators/indicator';
@@ -20,7 +20,8 @@ import Teams from 'sentry/utils/teams';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 import FilterBar from '../../filterBar';
-import {AlertRuleType, CombinedMetricIssueAlerts} from '../../types';
+import type {CombinedMetricIssueAlerts} from '../../types';
+import {AlertRuleType} from '../../types';
 import {getTeamParams, isIssueAlert} from '../../utils';
 import AlertHeader from '../header';
 

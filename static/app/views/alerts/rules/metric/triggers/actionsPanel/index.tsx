@@ -22,14 +22,13 @@ import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleMod
 import ActionSpecificTargetSelector from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/actionSpecificTargetSelector';
 import ActionTargetSelector from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/actionTargetSelector';
 import DeleteActionButton from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/deleteActionButton';
-import {
+import type {
   Action,
-  ActionLabel,
   ActionType,
   MetricActionTemplate,
-  TargetLabel,
   Trigger,
 } from 'sentry/views/alerts/rules/metric/types';
+import {ActionLabel, TargetLabel} from 'sentry/views/alerts/rules/metric/types';
 
 type Props = {
   availableActions: MetricActionTemplate[] | null;

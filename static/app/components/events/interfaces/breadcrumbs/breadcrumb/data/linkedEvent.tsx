@@ -1,5 +1,5 @@
 import {useEffect, useState} from 'react';
-import {InjectedRouter, PlainRoute} from 'react-router';
+import type {InjectedRouter, PlainRoute} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';

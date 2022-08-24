@@ -8,7 +8,7 @@ import SuggestedAvatarStack from 'sentry/components/avatar/suggestedAvatarStack'
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
-import {ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
+import type {ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownBubble from 'sentry/components/dropdownBubble';
 import Highlight from 'sentry/components/highlight';
 import ExternalLink from 'sentry/components/links/externalLink';

@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
 
-import {MethodType, RuleType, SourceSuggestion, SourceSuggestionType} from './types';
+import type {SourceSuggestion} from './types';
+import {MethodType, RuleType, SourceSuggestionType} from './types';
 
 function getRuleLabel(type: RuleType) {
   switch (type) {

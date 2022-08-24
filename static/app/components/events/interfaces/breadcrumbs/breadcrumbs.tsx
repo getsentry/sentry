@@ -1,11 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
-import {
-  AutoSizer,
-  CellMeasurer,
-  CellMeasurerCache,
-  List,
-  ListRowProps,
-} from 'react-virtualized';
+import type {ListRowProps} from 'react-virtualized';
+import {AutoSizer, CellMeasurer, CellMeasurerCache, List} from 'react-virtualized';
 import styled from '@emotion/styled';
 
 import {PanelTable} from 'sentry/components/panels';
@@ -13,8 +8,8 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {EntryType} from 'sentry/types';
-import {Crumb} from 'sentry/types/breadcrumbs';
+import {EntryType} from 'sentry/types';
+import type {Crumb} from 'sentry/types/breadcrumbs';
 
 import {Breadcrumb} from './breadcrumb';
 

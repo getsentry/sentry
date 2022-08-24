@@ -1,11 +1,11 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import Button, {ButtonLabel} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';

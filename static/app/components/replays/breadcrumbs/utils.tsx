@@ -1,4 +1,5 @@
-import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
+import type {Crumb} from 'sentry/types/breadcrumbs';
+import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 
 /**
  * Generate breadcrumb descriptions based on type

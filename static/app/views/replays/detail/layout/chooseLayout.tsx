@@ -1,7 +1,8 @@
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import useReplayLayout, {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
+import type {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
+import useReplayLayout from 'sentry/utils/replays/hooks/useReplayLayout';
 
 const layoutToLabel: Record<LayoutKey, string> = {
   topbar: t('Player Top'),

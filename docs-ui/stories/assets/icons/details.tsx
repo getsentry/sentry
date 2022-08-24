@@ -8,7 +8,7 @@ import space from 'sentry/styles/space';
 
 import {iconProps} from './data';
 import IconSample from './sample';
-import {ExtendedIconData} from './searchPanel';
+import type {ExtendedIconData} from './searchPanel';
 
 type Props = {
   icon: ExtendedIconData;

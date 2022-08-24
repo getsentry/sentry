@@ -7,7 +7,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {Organization, Plugin, Project} from 'sentry/types';
 import {parseRepo} from 'sentry/utils';
-import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
+import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
 type Props = {

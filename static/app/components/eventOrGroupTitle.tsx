@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {BaseGroup, GroupTombstone, Organization} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import {getTitle} from 'sentry/utils/events';
 import withOrganization from 'sentry/utils/withOrganization';
 

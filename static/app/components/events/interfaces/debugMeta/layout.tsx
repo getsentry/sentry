@@ -1,4 +1,4 @@
-import {Theme} from 'sentry/utils/theme';
+import type {Theme} from 'sentry/utils/theme';
 
 const layout = (theme: Theme, scrollbarWidth?: number) => `
 display: grid;

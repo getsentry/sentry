@@ -1,4 +1,4 @@
-import {Location, Query} from 'history';
+import type {Location, Query} from 'history';
 
 import type {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';

@@ -2,7 +2,7 @@ import {Component} from 'react';
 
 import {FieldFromConfig} from 'sentry/components/forms';
 import Form from 'sentry/components/forms/form';
-import {Field} from 'sentry/components/forms/type';
+import type {Field} from 'sentry/components/forms/type';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import type {Repository} from 'sentry/types';

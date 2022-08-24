@@ -11,7 +11,8 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
-import {CandidateDownloadStatus, Image, ImageStatus} from 'sentry/types/debugImage';
+import type {Image} from 'sentry/types/debugImage';
+import {CandidateDownloadStatus, ImageStatus} from 'sentry/types/debugImage';
 import {defined} from 'sentry/utils';
 
 import SearchBarAction from '../../searchBarAction';

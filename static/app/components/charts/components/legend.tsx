@@ -4,8 +4,8 @@ import 'echarts/lib/component/legendScroll';
 import type {LegendComponentOption} from 'echarts';
 import merge from 'lodash/merge';
 
-import BaseChart from 'sentry/components/charts/baseChart';
-import {Theme} from 'sentry/utils/theme';
+import type BaseChart from 'sentry/components/charts/baseChart';
+import type {Theme} from 'sentry/utils/theme';
 
 import {truncationFormatter} from '../utils';
 

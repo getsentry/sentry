@@ -1,11 +1,12 @@
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization, Project} from 'sentry/types';
 import {uniqueId} from 'sentry/utils/guid';
 
-import {AlertType} from '../../wizard/options';
+import type {AlertType} from '../../wizard/options';
 
+import type {Trigger} from './types';
 import {
   ActionType,
   AlertRuleComparisonType,
@@ -14,7 +15,6 @@ import {
   Dataset,
   EventTypes,
   TargetType,
-  Trigger,
 } from './types';
 
 export type PresetContext = {

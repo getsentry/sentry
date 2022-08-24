@@ -1,6 +1,6 @@
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 
-import SpanTreeModel from './spanTreeModel';
+import type SpanTreeModel from './spanTreeModel';
 
 export type GapSpanType = {
   isOrphan: boolean;

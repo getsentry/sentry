@@ -1,4 +1,4 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import moment from 'moment';
 
 import ResultGrid from 'sentry/components/resultGrid';

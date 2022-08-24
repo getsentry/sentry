@@ -1,6 +1,6 @@
 import {Component} from 'react';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization, Project, Team, TeamWithProjects} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';

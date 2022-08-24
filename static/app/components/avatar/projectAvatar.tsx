@@ -1,4 +1,4 @@
-import BaseAvatar from 'sentry/components/avatar/baseAvatar';
+import type BaseAvatar from 'sentry/components/avatar/baseAvatar';
 import PlatformList from 'sentry/components/platformList';
 import Tooltip from 'sentry/components/tooltip';
 import type {AvatarProject} from 'sentry/types';

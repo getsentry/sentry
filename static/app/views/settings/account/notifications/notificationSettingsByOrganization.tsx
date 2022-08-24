@@ -5,7 +5,7 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import {t} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types';
 import withOrganizations from 'sentry/utils/withOrganizations';
-import {
+import type {
   NotificationSettingsByProviderObject,
   NotificationSettingsObject,
 } from 'sentry/views/settings/account/notifications/constants';

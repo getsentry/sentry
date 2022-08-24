@@ -1,7 +1,7 @@
 import {Component} from 'react';
 
 import {loadSdkUpdates} from 'sentry/actionCreators/sdkUpdates';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import SdkUpdatesStore from 'sentry/stores/sdkUpdatesStore';
 import type {Organization, ProjectSdkUpdates} from 'sentry/types';
 

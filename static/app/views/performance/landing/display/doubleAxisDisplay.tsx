@@ -1,18 +1,18 @@
 import {useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {Panel} from 'sentry/components/panels';
 import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 
 import _Footer from '../../charts/footer';
-import {AxisOption} from '../../data';
+import type {AxisOption} from '../../data';
 import {getTransactionSearchQuery} from '../../utils';
 
 import {SingleAxisChart} from './singleAxisChart';

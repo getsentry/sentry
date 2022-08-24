@@ -1,6 +1,6 @@
 import {useCallback, useMemo} from 'react';
-import {WithRouterProps} from 'react-router';
-import {Location} from 'history';
+import type {WithRouterProps} from 'react-router';
+import type {Location} from 'history';
 
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import Alert from 'sentry/components/alert';
@@ -11,8 +11,8 @@ import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {t, tct} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import type {Organization, Project} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
-import {MetricDataSwitcherOutcome} from 'sentry/utils/performance/contexts/metricsCardinality';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {MetricDataSwitcherOutcome} from 'sentry/utils/performance/contexts/metricsCardinality';
 
 import {
   areMultipleProjectsSelected,

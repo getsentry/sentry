@@ -19,7 +19,8 @@ import {
   slackChartSize,
   slackGeoChartSize,
 } from './slack';
-import {ChartType, RenderDescriptor} from './types';
+import type {RenderDescriptor} from './types';
+import {ChartType} from './types';
 
 const discoverxAxis = XAxis({
   theme,

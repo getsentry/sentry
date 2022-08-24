@@ -1,4 +1,5 @@
-import { merge } from 'lodash';
+import {merge} from 'lodash';
+
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import {
   breadcrumbFactory,

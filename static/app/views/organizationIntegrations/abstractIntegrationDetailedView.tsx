@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
@@ -19,8 +19,8 @@ import type {
   IntegrationInstallationStatus,
   IntegrationType,
   Organization,
-} from 'sentry/types'
-import {
+} from 'sentry/types';
+import type {
   IntegrationAnalyticsKey,
   IntegrationEventParameters,
 } from 'sentry/utils/analytics/integrations';

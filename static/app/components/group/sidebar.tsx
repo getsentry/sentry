@@ -5,7 +5,7 @@ import isObject from 'lodash/isObject';
 import keyBy from 'lodash/keyBy';
 import pickBy from 'lodash/pickBy';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -25,8 +25,8 @@ import type {
   Organization,
   Project,
   TagWithTopValues,
-} from 'sentry/types'
-import {Event} from 'sentry/types/event';
+} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import withApi from 'sentry/utils/withApi';
 
 import SidebarSection from './sidebarSection';

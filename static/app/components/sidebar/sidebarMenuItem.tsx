@@ -1,7 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Theme} from 'sentry/utils/theme';
+import type {Theme} from 'sentry/utils/theme';
 
 import SidebarMenuItemLink from './sidebarMenuItemLink';
 import SidebarOrgSummary from './sidebarOrgSummary';

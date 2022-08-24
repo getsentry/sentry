@@ -1,4 +1,4 @@
-import {Location} from 'history';
+import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
@@ -9,9 +9,9 @@ import {IconWarning} from 'sentry/icons';
 import type {OrganizationSummary} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
-import {Theme} from 'sentry/utils/theme';
+import type {Theme} from 'sentry/utils/theme';
 
-import {ViewProps} from '../../../types';
+import type {ViewProps} from '../../../types';
 import {QUERY_KEYS} from '../../../utils';
 import {filterToColor, SpanOperationBreakdownFilter} from '../../filter';
 

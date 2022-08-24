@@ -9,7 +9,7 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Color} from 'sentry/utils/theme';
+import type {Color} from 'sentry/utils/theme';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 
 type Props = {

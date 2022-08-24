@@ -1,5 +1,6 @@
 import {useCallback, useMemo} from 'react';
-import {DateRange, DateRangeProps, Range, RangeKeyDict} from 'react-date-range';
+import type {DateRangeProps, Range, RangeKeyDict} from 'react-date-range';
+import {DateRange} from 'react-date-range';
 
 import CalendarStylesWrapper from './calendarStylesWrapper';
 

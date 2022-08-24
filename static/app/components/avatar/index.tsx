@@ -12,7 +12,7 @@ import type {
   DocIntegration,
   OrganizationSummary,
   Team,
-} from 'sentry/types'
+} from 'sentry/types';
 
 type Props = {
   docIntegration?: DocIntegration;

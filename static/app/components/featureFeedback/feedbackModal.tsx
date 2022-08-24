@@ -8,7 +8,7 @@ import {
 } from '@sentry/react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import Textarea from 'sentry/components/forms/controls/textarea';
 import SelectField from 'sentry/components/forms/selectField';

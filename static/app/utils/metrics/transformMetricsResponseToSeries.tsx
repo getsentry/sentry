@@ -1,5 +1,5 @@
 import type {MetricsApiResponse} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
 
 export function transformMetricsResponseToSeries(
   response: MetricsApiResponse | null,

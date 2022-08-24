@@ -1,7 +1,7 @@
 import {Component, Fragment} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import {IconDelete, IconSync} from 'sentry/icons';

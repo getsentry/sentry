@@ -1,8 +1,9 @@
 import extend from 'lodash/extend';
 import isArray from 'lodash/isArray';
-import {createStore, StoreDefinition} from 'reflux';
+import type {StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type InternalDefinition = {

@@ -9,9 +9,9 @@ import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
 import SearchBar from 'sentry/components/searchBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import type {PlatformKey} from 'sentry/data/platformCategories';
 import categoryList, {
   filterAliases,
-  PlatformKey,
   popularPlatformCategories,
 } from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';

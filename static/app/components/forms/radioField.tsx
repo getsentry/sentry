@@ -1,7 +1,9 @@
 import {Component} from 'react';
 
-import RadioGroup, {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
-import InputField, {InputFieldProps, onEvent} from 'sentry/components/forms/inputField';
+import type {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
+import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import type {InputFieldProps, onEvent} from 'sentry/components/forms/inputField';
+import InputField from 'sentry/components/forms/inputField';
 
 export interface RadioFieldProps extends Omit<InputFieldProps, 'type'> {
   choices?: RadioGroupProps<any>['choices'];

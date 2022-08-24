@@ -3,7 +3,7 @@ import {browserHistory} from 'react-router';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import Form from 'sentry/components/deprecatedforms/form';
 import PasswordField from 'sentry/components/deprecatedforms/passwordField';
 import RadioBooleanField from 'sentry/components/deprecatedforms/radioBooleanField';

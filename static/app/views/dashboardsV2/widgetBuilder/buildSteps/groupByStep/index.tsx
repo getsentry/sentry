@@ -1,9 +1,9 @@
 import {t} from 'sentry/locale';
 import type {Organization, TagCollection} from 'sentry/types';
-import {QueryFieldValue} from 'sentry/utils/discover/fields';
+import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {getDatasetConfig} from 'sentry/views/dashboardsV2/datasetConfig/base';
 
-import {DataSet} from '../../utils';
+import type {DataSet} from '../../utils';
 import {DATA_SET_TO_WIDGET_TYPE} from '../../widgetBuilder';
 import {BuildStep} from '../buildStep';
 

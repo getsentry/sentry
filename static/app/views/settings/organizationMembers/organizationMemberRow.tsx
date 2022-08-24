@@ -1,5 +1,5 @@
 import {Fragment, PureComponent} from 'react';
-import {PlainRoute} from 'react-router';
+import type {PlainRoute} from 'react-router';
 import styled from '@emotion/styled';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';

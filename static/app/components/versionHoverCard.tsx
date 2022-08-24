@@ -1,7 +1,7 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import Button from 'sentry/components/button';
 import Clipboard from 'sentry/components/clipboard';

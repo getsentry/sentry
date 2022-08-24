@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {ROW_HEIGHT, ROW_PADDING} from 'sentry/components/performance/waterfall/constants';
-import {DurationDisplay} from 'sentry/components/performance/waterfall/types';
+import type {DurationDisplay} from 'sentry/components/performance/waterfall/types';
 import {
   getDurationPillAlignment,
   getHatchPattern,

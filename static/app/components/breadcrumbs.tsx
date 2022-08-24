@@ -1,16 +1,16 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {LocationDescriptor} from 'history';
+import type {LocationDescriptor} from 'history';
 
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
-import Link, {LinkProps} from 'sentry/components/links/link';
+import type {LinkProps} from 'sentry/components/links/link';
+import Link from 'sentry/components/links/link';
 import {IconChevron} from 'sentry/icons';
 import space from 'sentry/styles/space';
-import {Theme} from 'sentry/utils/theme';
-import BreadcrumbDropdown, {
-  BreadcrumbDropdownProps,
-} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
+import type {Theme} from 'sentry/utils/theme';
+import type {BreadcrumbDropdownProps} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
+import BreadcrumbDropdown from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 
 const BreadcrumbList = styled('div')`
   display: flex;

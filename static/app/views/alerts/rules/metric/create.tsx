@@ -1,14 +1,14 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import type {Organization, Project} from 'sentry/types';
 import {metric} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {
   createDefaultRule,
   createRuleFromEventView,
   createRuleFromWizardTemplate,
 } from 'sentry/views/alerts/rules/metric/constants';
-import {WizardRuleTemplate} from 'sentry/views/alerts/wizard/options';
+import type {WizardRuleTemplate} from 'sentry/views/alerts/wizard/options';
 
 import RuleForm from './ruleForm';
 

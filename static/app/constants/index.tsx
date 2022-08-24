@@ -1,8 +1,8 @@
 /* global process */
 
+import {DataCategory} from 'sentry/enum';
 import {t} from 'sentry/locale';
 import type {OrgRole, PermissionResource, Scope} from 'sentry/types';
-import {DataCategory} from 'sentry/enum';
 /**
  * Common constants here
  */

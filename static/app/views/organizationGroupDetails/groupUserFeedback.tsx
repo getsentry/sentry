@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import isEqual from 'lodash/isEqual';
 
 import EventUserFeedback from 'sentry/components/events/userFeedback';

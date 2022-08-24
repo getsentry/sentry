@@ -1,5 +1,5 @@
 import {updateUser} from 'sentry/actionCreators/account';
-import {APIRequestMethod} from 'sentry/api';
+import type {APIRequestMethod} from 'sentry/api';
 import AvatarChooser from 'sentry/components/avatarChooser';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';

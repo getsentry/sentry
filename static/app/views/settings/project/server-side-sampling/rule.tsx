@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {DraggableSyntheticListeners, UseDraggableArguments} from '@dnd-kit/core';
+import type {DraggableSyntheticListeners, UseDraggableArguments} from '@dnd-kit/core';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -14,7 +14,8 @@ import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Project} from 'sentry/types';
-import {SamplingRule, SamplingRuleOperator} from 'sentry/types/sampling';
+import type {SamplingRule} from 'sentry/types/sampling';
+import {SamplingRuleOperator} from 'sentry/types/sampling';
 import {formatPercentage} from 'sentry/utils/formatters';
 
 import {getInnerNameLabel, isUniformRule} from './utils';

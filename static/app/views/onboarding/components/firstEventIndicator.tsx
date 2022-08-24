@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
-import {AnimatePresence, HTMLMotionProps, motion, Variants} from 'framer-motion';
+import type {HTMLMotionProps, Variants} from 'framer-motion';
+import {AnimatePresence, motion} from 'framer-motion';
 
 import Button from 'sentry/components/button';
 import {IconCheckmark} from 'sentry/icons';
@@ -8,7 +9,8 @@ import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import space from 'sentry/styles/space';
 import type {Group} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import EventWaiter, {EventWaiterProps} from 'sentry/utils/eventWaiter';
+import type {EventWaiterProps} from 'sentry/utils/eventWaiter';
+import EventWaiter from 'sentry/utils/eventWaiter';
 import testableTransition from 'sentry/utils/testableTransition';
 
 type RenderProps = {

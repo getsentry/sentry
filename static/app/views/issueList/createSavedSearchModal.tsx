@@ -1,12 +1,12 @@
 import {Component} from 'react';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {createSavedSearch} from 'sentry/actionCreators/savedSearches';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import {Form, SelectField, TextField} from 'sentry/components/forms';
-import {OnSubmitCallback} from 'sentry/components/forms/type';
+import type {OnSubmitCallback} from 'sentry/components/forms/type';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';

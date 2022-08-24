@@ -1,7 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {DeviceEventContext} from 'sentry/components/events/contexts/device';
-import {DeviceData} from 'sentry/components/events/contexts/device/types';
+import type {DeviceData} from 'sentry/components/events/contexts/device/types';
 
 export const deviceMockData = {
   screen_resolution: '1136x768',

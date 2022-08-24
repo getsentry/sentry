@@ -1,7 +1,7 @@
 import LazyLoad from 'react-lazyload';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
@@ -31,7 +31,7 @@ import {
   isMobileRelease,
 } from '../../utils';
 import {ReleasesDisplayOption} from '../releasesDisplayOptions';
-import {ReleasesRequestRenderProps} from '../releasesRequest';
+import type {ReleasesRequestRenderProps} from '../releasesRequest';
 
 import {
   AdoptionColumn,

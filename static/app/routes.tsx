@@ -1,11 +1,10 @@
 import {Fragment} from 'react';
+import type {IndexRouteProps, RouteProps} from 'react-router';
 import {
   IndexRedirect,
   IndexRoute as BaseIndexRoute,
-  IndexRouteProps,
   Redirect,
   Route as BaseRoute,
-  RouteProps,
 } from 'react-router';
 import memoize from 'lodash/memoize';
 
@@ -13,7 +12,7 @@ import LazyLoad from 'sentry/components/lazyLoad';
 import {EXPERIMENTAL_SPA} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
-import {HookName} from 'sentry/types/hooks';
+import type {HookName} from 'sentry/types/hooks';
 import errorHandler from 'sentry/utils/errorHandler';
 import App from 'sentry/views/app';
 import AuthLayout from 'sentry/views/auth/layout';

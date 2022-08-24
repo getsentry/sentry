@@ -3,7 +3,8 @@ import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TagStore from 'sentry/stores/tagStore';
 import TeamStore from 'sentry/stores/teamStore';
-import withIssueTags, {WithIssueTagsProps} from 'sentry/utils/withIssueTags';
+import type {WithIssueTagsProps} from 'sentry/utils/withIssueTags';
+import withIssueTags from 'sentry/utils/withIssueTags';
 
 interface MyComponentProps extends WithIssueTagsProps {
   forwardedValue: string;

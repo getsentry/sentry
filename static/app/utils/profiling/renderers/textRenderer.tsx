@@ -1,15 +1,16 @@
-import {mat3} from 'gl-matrix';
+import type {mat3} from 'gl-matrix';
 
-import {Flamegraph} from '../flamegraph';
-import {FlamegraphSearch} from '../flamegraph/flamegraphStateProvider/flamegraphSearch';
-import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
-import {FlamegraphFrame, getFlamegraphFrameSearchId} from '../flamegraphFrame';
+import type {Flamegraph} from '../flamegraph';
+import type {FlamegraphSearch} from '../flamegraph/flamegraphStateProvider/flamegraphSearch';
+import type {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
+import type {FlamegraphFrame} from '../flamegraphFrame';
+import {getFlamegraphFrameSearchId} from '../flamegraphFrame';
+import type {Rect} from '../gl/utils';
 import {
   computeHighlightedBounds,
   ELLIPSIS,
   findRangeBinarySearch,
   getContext,
-  Rect,
   resizeCanvasToDisplaySize,
   trimTextCenter,
 } from '../gl/utils';

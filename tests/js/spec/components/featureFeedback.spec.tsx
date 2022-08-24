@@ -7,7 +7,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
-import {FeatureFeedback, FeatureFeedbackProps} from 'sentry/components/featureFeedback';
+import type {FeatureFeedbackProps} from 'sentry/components/featureFeedback';
+import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import GlobalModal from 'sentry/components/globalModal';
 import ModalStore from 'sentry/stores/modalStore';
 import {RouteContext} from 'sentry/views/routeContext';

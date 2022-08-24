@@ -2,8 +2,8 @@ import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {toPercent} from 'sentry/components/performance/waterfall/utils';
 import theme from 'sentry/utils/theme';
 
-import {EnhancedSpan} from './types';
-import {SpanViewBoundsType} from './utils';
+import type {EnhancedSpan} from './types';
+import type {SpanViewBoundsType} from './utils';
 
 export default function SpanRectangle({
   bounds,

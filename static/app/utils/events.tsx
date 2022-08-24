@@ -1,11 +1,6 @@
-import type {
-  BaseGroup,
-  EventMetadata,
-  EventOrGroupType,
-  GroupTombstone,
-  TreeLabelPart,
-} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {BaseGroup, EventMetadata, GroupTombstone, TreeLabelPart} from 'sentry/types';
+import {EventOrGroupType} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 
 function isTombstone(maybe: BaseGroup | Event | GroupTombstone): maybe is GroupTombstone {

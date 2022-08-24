@@ -2,21 +2,18 @@ import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
-import {AriaMenuOptions, useMenu} from '@react-aria/menu';
-import {
-  AriaPositionProps,
-  OverlayProps,
-  PositionAria,
-  useOverlay,
-  useOverlayPosition,
-} from '@react-aria/overlays';
+import type {AriaMenuOptions} from '@react-aria/menu';
+import {useMenu} from '@react-aria/menu';
+import type {AriaPositionProps, OverlayProps, PositionAria} from '@react-aria/overlays';
+import {useOverlay, useOverlayPosition} from '@react-aria/overlays';
 import {useSeparator} from '@react-aria/separator';
 import {mergeProps} from '@react-aria/utils';
 import {useTreeState} from '@react-stately/tree';
-import {Node} from '@react-types/shared';
+import type {Node} from '@react-types/shared';
 
 import MenuControl from 'sentry/components/dropdownMenuControl';
-import MenuItem, {MenuItemProps} from 'sentry/components/dropdownMenuItem';
+import type {MenuItemProps} from 'sentry/components/dropdownMenuItem';
+import MenuItem from 'sentry/components/dropdownMenuItem';
 import MenuSection from 'sentry/components/dropdownMenuSection';
 import space from 'sentry/styles/space';
 

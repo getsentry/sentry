@@ -1,9 +1,11 @@
 import styled from '@emotion/styled';
 
-import SearchBar, {SearchBarProps} from 'sentry/components/events/searchBar';
+import type {SearchBarProps} from 'sentry/components/events/searchBar';
+import SearchBar from 'sentry/components/events/searchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
-import type {Organization, PageFilters, SavedSearchType} from 'sentry/types';
-import {WidgetQuery} from 'sentry/views/dashboardsV2/types';
+import type {Organization, PageFilters} from 'sentry/types';
+import {SavedSearchType} from 'sentry/types';
+import type {WidgetQuery} from 'sentry/views/dashboardsV2/types';
 import {
   MAX_MENU_HEIGHT,
   MAX_SEARCH_ITEMS,

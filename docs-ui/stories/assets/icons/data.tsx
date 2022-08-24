@@ -1,4 +1,4 @@
-import {GeneralSelectValue} from 'sentry/components/forms/selectControl';
+import type {GeneralSelectValue} from 'sentry/components/forms/selectControl';
 
 type IconGroupName =
   | 'product'

@@ -1,22 +1,24 @@
 import {Component} from 'react';
-import {Mention, MentionsInput, MentionsInputProps} from 'react-mentions';
+import type {MentionsInputProps} from 'react-mentions';
+import {Mention, MentionsInput} from 'react-mentions';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Button, {ButtonPropsWithoutAriaLabel} from 'sentry/components/button';
+import type {ButtonPropsWithoutAriaLabel} from 'sentry/components/button';
+import Button from 'sentry/components/button';
 import NavTabs from 'sentry/components/navTabs';
 import {IconMarkdown} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import textStyles from 'sentry/styles/text';
-import {NoteType} from 'sentry/types/alerts';
+import type {NoteType} from 'sentry/types/alerts';
 import marked from 'sentry/utils/marked';
-import {Theme} from 'sentry/utils/theme';
+import type {Theme} from 'sentry/utils/theme';
 
 import Mentionables from './mentionables';
 import mentionStyle from './mentionStyle';
-import {CreateError, Mentionable, MentionChangeEvent, Mentioned} from './types';
+import type {CreateError, Mentionable, MentionChangeEvent, Mentioned} from './types';
 
 const defaultProps = {
   placeholder: t('Add a comment.\nTag users with @, or teams with #'),

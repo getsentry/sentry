@@ -13,11 +13,11 @@ import type {
   GroupActivity,
   GroupActivityAssigned,
   GroupActivitySetIgnored,
-  GroupActivityType,
   Organization,
   Project,
   User,
-} from 'sentry/types'
+} from 'sentry/types';
+import {GroupActivityType} from 'sentry/types';
 
 type Props = {
   activity: GroupActivity;

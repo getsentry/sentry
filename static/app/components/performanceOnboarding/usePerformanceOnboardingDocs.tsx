@@ -2,8 +2,8 @@ import {useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {loadDocs} from 'sentry/actionCreators/projects';
+import type {PlatformKey} from 'sentry/data/platformCategories';
 import {
-  PlatformKey,
   withoutPerformanceSupport,
   withPerformanceOnboarding,
 } from 'sentry/data/platformCategories';

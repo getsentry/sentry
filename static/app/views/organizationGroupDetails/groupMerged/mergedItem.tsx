@@ -6,7 +6,8 @@ import Checkbox from 'sentry/components/checkbox';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import Tooltip from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons';
-import GroupingStore, {Fingerprint} from 'sentry/stores/groupingStore';
+import type {Fingerprint} from 'sentry/stores/groupingStore';
+import GroupingStore from 'sentry/stores/groupingStore';
 import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 

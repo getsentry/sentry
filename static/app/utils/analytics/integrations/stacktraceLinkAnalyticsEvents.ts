@@ -1,7 +1,7 @@
-import {StacktraceErrorMessage} from 'sentry/components/events/interfaces/frame/stacktraceLink';
-import {PlatformType} from 'sentry/types';
+import type {StacktraceErrorMessage} from 'sentry/components/events/interfaces/frame/stacktraceLink';
+import type {PlatformType} from 'sentry/types';
 
-import {IntegrationView} from './index';
+import type {IntegrationView} from './index';
 
 export enum StacktraceLinkEvents {
   RECONFIGURE_SETUP = 'integrations.reconfigure_stacktrace_setup',

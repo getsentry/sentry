@@ -1,4 +1,5 @@
-import {BreadcrumbLevelType, BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
+import type {Crumb} from 'sentry/types/breadcrumbs';
+import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {getNextBreadcrumb, getPrevBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
 
 const START_TIMESTAMP_SEC = 1651693622.951;

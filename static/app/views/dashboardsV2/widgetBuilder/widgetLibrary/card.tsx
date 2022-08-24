@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
-import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
+import type {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 import {getWidgetIcon} from 'sentry/views/dashboardsV2/widgetLibrary/widgetCard';
 
 interface CardProps {

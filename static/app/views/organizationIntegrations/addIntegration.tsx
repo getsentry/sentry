@@ -3,7 +3,11 @@ import * as qs from 'query-string';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import type {IntegrationProvider, IntegrationWithConfig, Organization} from 'sentry/types';
+import type {
+  IntegrationProvider,
+  IntegrationWithConfig,
+  Organization,
+} from 'sentry/types';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
 type Props = {

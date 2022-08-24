@@ -1,5 +1,5 @@
 import {useEffect, useMemo, useState} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 import isEmpty from 'lodash/isEmpty';
@@ -30,16 +30,16 @@ import type {
   PageFilters,
   SelectValue,
   TagCollection,
-} from 'sentry/types'
+} from 'sentry/types';
 import {defined, objectIsEmpty} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
+import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {
   explodeField,
   generateFieldAsString,
   getColumnsAndAggregates,
   getColumnsAndAggregatesAsStrings,
-  QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
@@ -51,13 +51,15 @@ import {
   generateWidgetsAfterCompaction,
   getDefaultWidgetHeight,
 } from 'sentry/views/dashboardsV2/layoutUtils';
-import {
+import type {
   DashboardDetails,
   DashboardListItem,
-  DashboardWidgetSource,
-  DisplayType,
   Widget,
   WidgetQuery,
+} from 'sentry/views/dashboardsV2/types';
+import {
+  DashboardWidgetSource,
+  DisplayType,
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
 import {isCustomMeasurementWidget} from 'sentry/views/dashboardsV2/utils';

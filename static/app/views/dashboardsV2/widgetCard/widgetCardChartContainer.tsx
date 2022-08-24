@@ -1,20 +1,22 @@
 import {Fragment} from 'react';
 // eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import type {WithRouterProps} from 'react-router';
+import {withRouter} from 'react-router';
 import styled from '@emotion/styled';
-import type {DataZoomComponentOption} from 'echarts';
-import {LegendComponentOption} from 'echarts';
+import type {DataZoomComponentOption, LegendComponentOption} from 'echarts';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {Organization, PageFilters} from 'sentry/types';
-import {EChartEventHandler, Series} from 'sentry/types/echarts';
-import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import type {EChartEventHandler, Series} from 'sentry/types/echarts';
+import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 
-import {DashboardFilters, Widget, WidgetType} from '../types';
+import type {DashboardFilters, Widget} from '../types';
+import {WidgetType} from '../types';
 
-import WidgetCardChart, {AugmentedEChartDataZoomHandler} from './chart';
+import type {AugmentedEChartDataZoomHandler} from './chart';
+import WidgetCardChart from './chart';
 import {IssueWidgetCard} from './issueWidgetCard';
 import IssueWidgetQueries from './issueWidgetQueries';
 import ReleaseWidgetQueries from './releaseWidgetQueries';

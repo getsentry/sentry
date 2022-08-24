@@ -1,5 +1,5 @@
 import {useEffect} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import type {PageFilters} from 'sentry/types';
 import {analytics} from 'sentry/utils/analytics';

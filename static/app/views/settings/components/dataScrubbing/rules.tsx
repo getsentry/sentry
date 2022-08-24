@@ -8,7 +8,8 @@ import {IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-import {MethodType, Rule, RuleType} from './types';
+import type {Rule} from './types';
+import {MethodType, RuleType} from './types';
 import {getMethodLabel, getRuleLabel} from './utils';
 
 type Props = {

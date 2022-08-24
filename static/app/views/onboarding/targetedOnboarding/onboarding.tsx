@@ -1,9 +1,12 @@
 import {useEffect, useRef, useState} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
+import type {MotionProps} from 'framer-motion';
+import {AnimatePresence, motion, useAnimation} from 'framer-motion';
 
-import Button, {ButtonProps} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/button';
+import Button from 'sentry/components/button';
 import Hook from 'sentry/components/hook';
 import Link from 'sentry/components/links/link';
 import LogoSentry from 'sentry/components/logoSentry';
@@ -22,7 +25,7 @@ import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 import Stepper from './components/stepper';
 import PlatformSelection from './platform';
 import SetupDocs from './setupDocs';
-import {StepDescriptor} from './types';
+import type {StepDescriptor} from './types';
 import {usePersistedOnboardingState} from './utils';
 import TargetedOnboardingWelcome from './welcome';
 

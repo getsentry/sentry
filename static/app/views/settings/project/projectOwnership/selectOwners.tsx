@@ -1,12 +1,12 @@
 import {Component, createRef} from 'react';
 import {findDOMNode} from 'react-dom';
-import {MultiValueProps} from 'react-select';
+import type {MultiValueProps} from 'react-select';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
 import {addTeamToProject} from 'sentry/actionCreators/projects';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Button from 'sentry/components/button';
 import MultiSelectControl from 'sentry/components/deprecatedforms/multiSelectControl';

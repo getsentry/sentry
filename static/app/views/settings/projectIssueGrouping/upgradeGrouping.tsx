@@ -1,9 +1,9 @@
 import {Fragment, useEffect} from 'react';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import ProjectActions from 'sentry/actions/projectActions';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';

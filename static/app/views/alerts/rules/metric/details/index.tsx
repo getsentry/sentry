@@ -1,10 +1,10 @@
 import {Component, Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
-import {Location} from 'history';
+import type {RouteComponentProps} from 'react-router';
+import type {Location} from 'history';
 import moment from 'moment';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import {Client, ResponseMeta} from 'sentry/api';
+import type {Client, ResponseMeta} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import DateTime from 'sentry/components/dateTime';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -17,7 +17,8 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import {buildMetricGraphDateRange} from 'sentry/views/alerts/rules/details/utils';
-import {MetricRule, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
+import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import {TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import type {Incident} from 'sentry/views/alerts/types';
 import {
   fetchAlertRule,
@@ -26,7 +27,8 @@ import {
 } from 'sentry/views/alerts/utils/apiCalls';
 
 import DetailsBody from './body';
-import {TIME_OPTIONS, TIME_WINDOWS, TimePeriodType} from './constants';
+import type {TimePeriodType} from './constants';
+import {TIME_OPTIONS, TIME_WINDOWS} from './constants';
 import DetailsHeader from './header';
 
 interface Props extends RouteComponentProps<{orgId: string; ruleId: string}, {}> {

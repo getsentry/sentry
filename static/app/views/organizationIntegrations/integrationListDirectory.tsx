@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
@@ -28,8 +29,9 @@ import type {
   PluginWithProjectList,
   SentryApp,
   SentryAppInstallation,
-} from 'sentry/types'
-import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
+} from 'sentry/types';
+import type {Fuse} from 'sentry/utils/fuzzySearch';
+import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {
   getAlertText,
   getCategoriesForIntegration,

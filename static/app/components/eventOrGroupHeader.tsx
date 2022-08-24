@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 // eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import type {WithRouterProps} from 'react-router';
+import {withRouter} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
@@ -13,7 +14,7 @@ import {IconMute, IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Group, GroupTombstone, Level, Organization} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import {getLocation, getMessage} from 'sentry/utils/events';
 import withOrganization from 'sentry/utils/withOrganization';
 import {TagAndMessageWrapper} from 'sentry/views/organizationGroupDetails/unhandledTag';

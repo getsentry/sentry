@@ -3,7 +3,7 @@ import Access from 'sentry/components/acl/access';
 import Button from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
-import {IntegrationView} from 'sentry/utils/analytics/integrations';
+import type {IntegrationView} from 'sentry/utils/analytics/integrations';
 import {PlatformEvents} from 'sentry/utils/analytics/integrations/platformAnalyticsEvents';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';

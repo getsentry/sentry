@@ -1,7 +1,8 @@
 import {Fragment, useState} from 'react';
 import omit from 'lodash/omit';
 
-import InputField, {InputFieldProps} from 'sentry/components/forms/inputField';
+import type {InputFieldProps} from 'sentry/components/forms/inputField';
+import InputField from 'sentry/components/forms/inputField';
 import Input from 'sentry/components/input';
 
 export interface FileFieldProps extends Omit<InputFieldProps, 'type' | 'accept'> {

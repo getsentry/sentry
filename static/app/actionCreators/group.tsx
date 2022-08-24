@@ -1,7 +1,8 @@
 import * as Sentry from '@sentry/react';
 import isNil from 'lodash/isNil';
 
-import {Client, RequestCallbacks, RequestOptions} from 'sentry/api';
+import type {RequestCallbacks, RequestOptions} from 'sentry/api';
+import {Client} from 'sentry/api';
 import GroupStore from 'sentry/stores/groupStore';
 import type {Actor, Group, Member, Note, User} from 'sentry/types';
 import {buildTeamId, buildUserId} from 'sentry/utils';

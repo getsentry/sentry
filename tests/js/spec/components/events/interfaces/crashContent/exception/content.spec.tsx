@@ -1,7 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Content} from 'sentry/components/events/interfaces/crashContent/exception/content';
-import type {EntryType} from 'sentry/types';
+import {EntryType} from 'sentry/types';
 import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
 
 describe('Exception Content', function () {

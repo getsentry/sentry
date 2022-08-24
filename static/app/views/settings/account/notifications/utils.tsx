@@ -1,13 +1,15 @@
 import set from 'lodash/set';
 
-import {FieldObject} from 'sentry/components/forms/type';
+import type {FieldObject} from 'sentry/components/forms/type';
 import {t} from 'sentry/locale';
 import type {OrganizationSummary, Project} from 'sentry/types';
+import type {
+  NotificationSettingsByProviderObject,
+  NotificationSettingsObject,
+} from 'sentry/views/settings/account/notifications/constants';
 import {
   ALL_PROVIDERS,
   MIN_PROJECTS_FOR_CONFIRMATION,
-  NotificationSettingsByProviderObject,
-  NotificationSettingsObject,
   VALUE_MAPPING,
 } from 'sentry/views/settings/account/notifications/constants';
 import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notifications/fields2';

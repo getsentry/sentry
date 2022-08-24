@@ -1,7 +1,5 @@
-import {
-  initializeData as _initializeData,
-  initializeDataSettings,
-} from 'sentry-test/performance/initializePerformanceData';
+import type {initializeDataSettings} from 'sentry-test/performance/initializePerformanceData';
+import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';

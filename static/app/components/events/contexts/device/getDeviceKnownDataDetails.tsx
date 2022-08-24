@@ -1,12 +1,13 @@
 import {DeviceName} from 'sentry/components/deviceName';
 import FileSize from 'sentry/components/fileSize';
 import {t} from 'sentry/locale';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
 import {getFullLanguageDescription, getRelativeTimeFromEventDateCreated} from '../utils';
 
-import {DeviceData, DeviceKnownDataType} from './types';
+import type {DeviceData} from './types';
+import {DeviceKnownDataType} from './types';
 import {formatMemory, formatStorage} from './utils';
 
 type Output = {

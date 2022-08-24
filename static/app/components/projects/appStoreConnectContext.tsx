@@ -1,7 +1,7 @@
 import {createContext, useEffect, useMemo, useState} from 'react';
 
 import type {Organization, Project} from 'sentry/types';
-import {
+import type {
   AppStoreConnectCredentialsStatus,
   AppStoreConnectStatusData,
 } from 'sentry/types/debugFiles';

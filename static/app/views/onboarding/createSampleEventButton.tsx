@@ -7,8 +7,9 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
-import Button, {ButtonProps} from 'sentry/components/button';
+import type {Client} from 'sentry/api';
+import type {ButtonProps} from 'sentry/components/button';
+import Button from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import type {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';

@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import ProjectActions from 'sentry/actions/projectActions';
 import Feature from 'sentry/components/acl/feature';

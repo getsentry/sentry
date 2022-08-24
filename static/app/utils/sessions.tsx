@@ -2,17 +2,18 @@ import compact from 'lodash/compact';
 import mean from 'lodash/mean';
 import moment from 'moment';
 
+import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {
-  DateTimeObject,
   getDiffInMinutes,
   SIX_HOURS,
   SIXTY_DAYS,
   THIRTY_DAYS,
 } from 'sentry/components/charts/utils';
-import type {SessionApiResponse, SessionFieldWithOperation, SessionStatus} from 'sentry/types';
-import {SeriesDataUnit} from 'sentry/types/echarts';
+import type {SessionApiResponse, SessionFieldWithOperation} from 'sentry/types';
+import {SessionStatus} from 'sentry/types';
+import type {SeriesDataUnit} from 'sentry/types/echarts';
 import {defined, percent} from 'sentry/utils';
-import {Theme} from 'sentry/utils/theme';
+import type {Theme} from 'sentry/utils/theme';
 import {getCrashFreePercent, getSessionStatusPercent} from 'sentry/views/releases/utils';
 import {sessionTerm} from 'sentry/views/releases/utils/sessionTerm';
 

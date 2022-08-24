@@ -5,7 +5,7 @@ import type {Team} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-import {CommonStoreDefinition} from './types';
+import type {CommonStoreDefinition} from './types';
 
 type State = {
   cursor: string | null;

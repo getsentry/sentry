@@ -1,4 +1,4 @@
-import {VITALS_TYPES} from './constants';
+import type {VITALS_TYPES} from './constants';
 
 export type VitalsKey = typeof VITALS_TYPES[number];
 

@@ -1,9 +1,10 @@
-import {Location, Query} from 'history';
+import type {Location, Query} from 'history';
 
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
 
-import {filterToField, SpanOperationBreakdownFilter} from '../filter';
+import type {SpanOperationBreakdownFilter} from '../filter';
+import {filterToField} from '../filter';
 import {TransactionFilterOptions} from '../utils';
 
 export enum EventsDisplayFilterName {

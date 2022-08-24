@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import omit from 'lodash/omit';
 
 import Button from 'sentry/components/button';
@@ -15,15 +15,17 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import EventView from 'sentry/utils/discover/eventView';
-import {WebVital} from 'sentry/utils/fields';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {WebVital} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 
-import Filter, {filterToSearchConditions, SpanOperationBreakdownFilter} from '../filter';
-import {SetStateAction} from '../types';
+import type {SpanOperationBreakdownFilter} from '../filter';
+import Filter, {filterToSearchConditions} from '../filter';
+import type {SetStateAction} from '../types';
 
 import EventsTable from './eventsTable';
-import {EventsDisplayFilterName, getEventsFilterOptions} from './utils';
+import type {EventsDisplayFilterName} from './utils';
+import {getEventsFilterOptions} from './utils';
 
 type Props = {
   eventView: EventView;

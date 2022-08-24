@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {NotificationSettingsObject} from 'sentry/views/settings/account/notifications/constants';
+import type {NotificationSettingsObject} from 'sentry/views/settings/account/notifications/constants';
 import NotificationSettingsByOrganization from 'sentry/views/settings/account/notifications/notificationSettingsByOrganization';
 
 const createWrapper = (notificationSettings: NotificationSettingsObject) => {

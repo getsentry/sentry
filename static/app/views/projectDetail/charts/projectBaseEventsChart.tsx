@@ -2,7 +2,8 @@ import {Component} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {fetchTotalCount} from 'sentry/actionCreators/events';
-import EventsChart, {EventsChartProps} from 'sentry/components/charts/eventsChart';
+import type {EventsChartProps} from 'sentry/components/charts/eventsChart';
+import EventsChart from 'sentry/components/charts/eventsChart';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';

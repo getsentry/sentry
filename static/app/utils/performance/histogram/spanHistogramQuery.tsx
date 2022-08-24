@@ -1,13 +1,14 @@
 import omit from 'lodash/omit';
 
-import GenericDiscoverQuery, {
+import type {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
-import {DataFilter, HistogramData} from 'sentry/utils/performance/histogram/types';
+import GenericDiscoverQuery from 'sentry/utils/discover/genericDiscoverQuery';
+import type {DataFilter, HistogramData} from 'sentry/utils/performance/histogram/types';
 import withApi from 'sentry/utils/withApi';
 
-import {SpanSlug} from '../suspectSpans/types';
+import type {SpanSlug} from '../suspectSpans/types';
 
 type HistogramProps = {
   numBuckets: number;

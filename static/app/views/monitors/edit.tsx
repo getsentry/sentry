@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 
 import AsyncView from 'sentry/views/asyncView';
 
 import MonitorForm from './monitorForm';
-import {Monitor} from './types';
+import type {Monitor} from './types';
 
 type Props = AsyncView['props'] &
   RouteComponentProps<{monitorId: string; orgId: string}, {}>;

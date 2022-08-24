@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import Button from 'sentry/components/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

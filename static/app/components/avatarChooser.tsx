@@ -2,7 +2,7 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import Avatar from 'sentry/components/avatar';
 import AvatarCropper from 'sentry/components/avatarCropper';
 import Button from 'sentry/components/button';

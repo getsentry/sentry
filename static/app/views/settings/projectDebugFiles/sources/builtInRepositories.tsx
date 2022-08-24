@@ -2,14 +2,14 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import ProjectActions from 'sentry/actions/projectActions';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import SelectField from 'sentry/components/forms/selectField';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import type {Organization, Project} from 'sentry/types';
-import {BuiltinSymbolSource} from 'sentry/types/debugFiles';
+import type {BuiltinSymbolSource} from 'sentry/types/debugFiles';
 
 const SECTION_TITLE = t('Built-in Repositories');
 

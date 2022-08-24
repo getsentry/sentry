@@ -1,6 +1,6 @@
-import {Query} from 'history';
+import type {Query} from 'history';
 
-import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
+import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 
 export function generateSpanDetailsRoute({
   orgSlug,

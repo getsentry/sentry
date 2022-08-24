@@ -2,7 +2,7 @@ import {useCallback, useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import type {Organization} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';

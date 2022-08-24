@@ -1,6 +1,6 @@
-import {DraggableSyntheticListeners} from '@dnd-kit/core';
-import {useSortable} from '@dnd-kit/sortable';
-import {Transform} from '@dnd-kit/utilities';
+import type {DraggableSyntheticListeners} from '@dnd-kit/core';
+import type {useSortable} from '@dnd-kit/sortable';
+import type {Transform} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
 
 type UseSortableOutputProps = ReturnType<typeof useSortable>;

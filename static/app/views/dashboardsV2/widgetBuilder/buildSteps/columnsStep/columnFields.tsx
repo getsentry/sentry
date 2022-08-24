@@ -3,11 +3,12 @@ import styled from '@emotion/styled';
 import Field from 'sentry/components/forms/field';
 import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
-import {QueryFieldValue} from 'sentry/utils/discover/fields';
-import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
+import type {QueryFieldValue} from 'sentry/utils/discover/fields';
+import type {WidgetType} from 'sentry/views/dashboardsV2/types';
+import {DisplayType} from 'sentry/views/dashboardsV2/types';
 import ColumnEditCollection from 'sentry/views/eventsV2/table/columnEditCollection';
-import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
-import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
+import type {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
+import type {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
 interface Props {
   displayType: DisplayType;

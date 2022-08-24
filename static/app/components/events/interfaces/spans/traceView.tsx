@@ -8,12 +8,13 @@ import {CustomerProfiler} from 'sentry/utils/performanceForSentry';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
-import DragManager, {DragManagerChildrenProps} from './dragManager';
+import type {DragManagerChildrenProps} from './dragManager';
+import DragManager from './dragManager';
 import TraceViewHeader from './header';
 import * as ScrollbarManager from './scrollbarManager';
 import SpanTree from './spanTree';
 import {getTraceContext} from './utils';
-import WaterfallModel from './waterfallModel';
+import type WaterfallModel from './waterfallModel';
 
 type Props = {
   organization: Organization;

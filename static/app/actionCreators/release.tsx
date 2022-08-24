@@ -6,10 +6,11 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import ReleaseActions from 'sentry/actions/releaseActions';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import ReleaseStore, {getReleaseStoreKey} from 'sentry/stores/releaseStore';
-import type {Deploy, Release, ReleaseStatus} from 'sentry/types';
+import type {Deploy, Release} from 'sentry/types';
+import {ReleaseStatus} from 'sentry/types';
 
 type ParamsGet = {
   orgSlug: string;

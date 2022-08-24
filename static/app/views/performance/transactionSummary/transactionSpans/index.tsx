@@ -1,4 +1,4 @@
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {t} from 'sentry/locale';
 import type {Organization, Project} from 'sentry/types';

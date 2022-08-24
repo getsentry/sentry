@@ -1,13 +1,9 @@
 import {createRef, Fragment, PureComponent} from 'react';
 // eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
-import {
-  AutoSizer,
-  CellMeasurer,
-  CellMeasurerCache,
-  List,
-  ListRowProps,
-} from 'react-virtualized';
+import type {WithRouterProps} from 'react-router';
+import {withRouter} from 'react-router';
+import type {ListRowProps} from 'react-virtualized';
+import {AutoSizer, CellMeasurer, CellMeasurerCache, List} from 'react-virtualized';
 import styled from '@emotion/styled';
 
 import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
@@ -21,8 +17,9 @@ import {t} from 'sentry/locale';
 import DebugMetaStore, {DebugMetaActions} from 'sentry/stores/debugMetaStore';
 import space from 'sentry/styles/space';
 import type {Group, Organization, Project} from 'sentry/types';
-import {Image, ImageStatus} from 'sentry/types/debugImage';
-import {Event} from 'sentry/types/event';
+import type {Image} from 'sentry/types/debugImage';
+import {ImageStatus} from 'sentry/types/debugImage';
+import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
 import SearchBarAction from '../searchBarAction';

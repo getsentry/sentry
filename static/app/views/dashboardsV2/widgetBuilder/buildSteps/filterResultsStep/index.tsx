@@ -1,6 +1,6 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
@@ -19,12 +19,12 @@ import {decodeList} from 'sentry/utils/queryString';
 import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
 import {getDatasetConfig} from 'sentry/views/dashboardsV2/datasetConfig/base';
 import ReleasesSelectControl from 'sentry/views/dashboardsV2/releasesSelectControl';
-import {
-  DashboardFilterKeys,
+import type {
   DashboardFilters,
   WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
+import {DashboardFilterKeys} from 'sentry/views/dashboardsV2/types';
 
 import {BuildStep} from '../buildStep';
 

@@ -1,10 +1,14 @@
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {defined} from 'sentry/utils';
-import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import {GenericChildrenProps} from 'sentry/utils/discover/genericDiscoverQuery';
+import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {GenericChildrenProps} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DEFAULT_STATS_PERIOD} from 'sentry/views/performance/data';
 
-import {QueryDefinitionWithKey, WidgetDataConstraint, WidgetPropUnion} from '../types';
+import type {
+  QueryDefinitionWithKey,
+  WidgetDataConstraint,
+  WidgetPropUnion,
+} from '../types';
 
 /**
  * Cleans up lists to remove 'null' transactions rows from metrics-backed data.

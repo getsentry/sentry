@@ -1,8 +1,8 @@
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
 import type {Organization, Project} from 'sentry/types';
-import {SamplingDistribution, SamplingSdkVersion} from 'sentry/types/sampling';
+import type {SamplingDistribution, SamplingSdkVersion} from 'sentry/types/sampling';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 
 export function fetchSamplingSdkVersions({

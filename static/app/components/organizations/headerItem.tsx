@@ -8,7 +8,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconChevron, IconClose, IconInfo, IconLock, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Theme} from 'sentry/utils/theme';
+import type {Theme} from 'sentry/utils/theme';
 
 type DefaultProps = {
   allowClear: boolean;

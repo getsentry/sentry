@@ -1,5 +1,7 @@
-import FormField, {FormFieldProps} from 'sentry/components/forms/formField';
-import Input, {InputProps} from 'sentry/components/input';
+import type {FormFieldProps} from 'sentry/components/forms/formField';
+import FormField from 'sentry/components/forms/formField';
+import type {InputProps} from 'sentry/components/input';
+import Input from 'sentry/components/input';
 
 export interface InputFieldProps
   extends Omit<FormFieldProps, 'children'>,

@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 // eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import type {WithRouterProps} from 'react-router';
+import {withRouter} from 'react-router';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -23,7 +24,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
 import MonitorIcon from './monitorIcon';
-import {Monitor} from './types';
+import type {Monitor} from './types';
 
 type Props = AsyncView['props'] &
   WithRouterProps<{orgId: string}> & {

@@ -1,6 +1,7 @@
 // eslint-disable-next-line no-restricted-imports
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
-import {Location} from 'history';
+import type {WithRouterProps} from 'react-router';
+import {browserHistory, withRouter} from 'react-router';
+import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import OptionSelector from 'sentry/components/charts/optionSelector';
@@ -17,8 +18,8 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import EventView from 'sentry/utils/discover/eventView';
-import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 
 import ExclusiveTimeHistogram from './exclusiveTimeHistogram';

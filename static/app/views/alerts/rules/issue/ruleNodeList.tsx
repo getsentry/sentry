@@ -6,7 +6,7 @@ import SelectControl from 'sentry/components/forms/selectControl';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {IssueOwnership, Organization, Project} from 'sentry/types';
-import {
+import type {
   IssueAlertRuleAction,
   IssueAlertRuleActionTemplate,
   IssueAlertRuleCondition,

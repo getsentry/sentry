@@ -1,10 +1,10 @@
 import {Component, Fragment} from 'react';
-import {InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {BarChart} from 'sentry/components/charts/barChart';
 import EventsChart from 'sentry/components/charts/eventsChart';
 import {getInterval, getPreviousSeriesName} from 'sentry/components/charts/utils';
@@ -16,7 +16,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 import {valueIsEqual} from 'sentry/utils';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {
   DisplayModes,

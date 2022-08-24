@@ -1,9 +1,9 @@
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ProfilingOnboardingModal} from 'sentry/components/profiling/ProfilingOnboarding/profilingOnboardingModal';
 import ProjectStore from 'sentry/stores/projectsStore';
-import {Project} from 'sentry/types/project';
+import type {Project} from 'sentry/types/project';
 
 const MockRenderModalProps: ModalRenderProps = {
   Body: ({children}) => <div>{children}</div>,
