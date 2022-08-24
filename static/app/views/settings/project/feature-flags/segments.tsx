@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import Button from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
+import NewBooleanField from 'sentry/components/forms/booleanField';
 import NotAvailable from 'sentry/components/notAvailable';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import Pill from 'sentry/components/pill';
@@ -116,7 +117,21 @@ export function Segments({
                     <NotAvailable />
                   )}
                 </TagsColumn>
-                <ResultColumn>{String(segment.result)}</ResultColumn>
+                <ResultColumn>
+                  {typeof segment.result === 'boolean' ? (
+                    <ActiveToggle
+                      inline={false}
+                      hideControlState
+                      help="Edit the segment to change this"
+                      showHelpInTooltip
+                      disabled
+                      name="active"
+                      value={segment.result}
+                    />
+                  ) : (
+                    String(segment.result)
+                  )}
+                </ResultColumn>
                 <RolloutColumn>
                   {segment.type === 'rollout' && defined(segment.percentage)
                     ? `${rateToPercentage(segment.percentage)}%`
@@ -267,4 +282,11 @@ const Tags = styled(Pills)`
 
 const Tag = styled(Pill)`
   margin-bottom: 0;
+`;
+
+const ActiveToggle = styled(NewBooleanField)`
+  padding: 0;
+  height: 24px;
+  justify-content: center;
+  border-bottom: none;
 `;

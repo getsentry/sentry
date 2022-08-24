@@ -100,7 +100,7 @@ export function SegmentModal({
     }
 
     return {
-      type: EvaluationType.Rollout,
+      type: EvaluationType.Match,
       tags: [],
       percentage: 0,
       result: flags[flagKey].kind === FeatureFlagKind.BOOLEAN ? true : undefined,
@@ -232,8 +232,8 @@ export function SegmentModal({
       return acc;
     },
     [
-      [EvaluationType.Rollout, t('Rollout')],
       [EvaluationType.Match, t('Match')],
+      [EvaluationType.Rollout, t('Rollout')],
     ]
   );
 
