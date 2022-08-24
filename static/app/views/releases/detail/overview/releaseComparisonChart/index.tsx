@@ -7,6 +7,7 @@ import {Location} from 'history';
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
+import OptionSelector from 'sentry/components/charts/optionSelector';
 import {ChartContainer} from 'sentry/components/charts/styles';
 import Count from 'sentry/components/count';
 import Duration from 'sentry/components/duration';
@@ -19,11 +20,16 @@ import {IconArrow, IconChevron, IconList, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
+  CHART_TYPE_TO_YAXIS_MAP,
   Organization,
+  PageFilters,
   ReleaseComparisonChartType,
   ReleaseProject,
   ReleaseWithHealth,
+  SESSION_DISPLAY_TYPES,
   SessionApiResponse,
+  SessionDisplayTags,
+  SessionDisplayYAxis,
   SessionFieldWithOperation,
   SessionStatus,
 } from 'sentry/types';
@@ -48,9 +54,9 @@ import {
   roundDuration,
 } from 'sentry/views/releases/utils';
 
+import ReleaseChartContainer from './releaseChartContainer';
 import ReleaseComparisonChartRow from './releaseComparisonChartRow';
 import ReleaseEventsChart from './releaseEventsChart';
-import ReleaseSessionsChart from './releaseSessionsChart';
 
 export type ReleaseComparisonRow = {
   allReleases: React.ReactNode;
@@ -97,16 +103,20 @@ function ReleaseComparisonChart({
   project,
   releaseSessions,
   allSessions,
-  platform,
   location,
   loading,
-  reloading,
   errored,
   api,
   organization,
   hasHealthData,
 }: Props) {
   const [issuesTotals, setIssuesTotals] = useState<IssuesTotals>(null);
+  const [selectedDisplay, setSelectedDisplay] = useState<SessionDisplayYAxis>(
+    SessionDisplayYAxis.CRASH_FREE_SESSION_RATE
+  );
+  const [selectedTag, setSelectedTag] = useState<SessionDisplayTags>(
+    SessionDisplayTags.ALL
+  );
   const [eventsTotals, setEventsTotals] = useState<EventsTotals>(null);
   const [eventsLoading, setEventsLoading] = useState(false);
   const [expanded, setExpanded] = useState(new Set());
@@ -131,6 +141,17 @@ function ReleaseComparisonChart({
       }),
     [release, location]
   );
+
+  const selection = {
+    datetime: {
+      end,
+      period,
+      start,
+      utc: utc ? (utc as unknown as boolean) : undefined,
+    },
+    environments: decodeList(location.query.environment),
+    projects: [project.id],
+  } as PageFilters;
 
   useEffect(() => {
     const chartInUrl = decodeScalar(location.query.chart) as ReleaseComparisonChartType;
@@ -166,6 +187,9 @@ function ReleaseComparisonChart({
     ) {
       setIsOtherExpanded(true);
     }
+    setSelectedDisplay(
+      CHART_TYPE_TO_YAXIS_MAP[chartInUrl] ?? ReleaseComparisonChartType.CRASHED_SESSIONS
+    );
   }, [location.query.chart]);
 
   const fetchEventsTotals = useCallback(async () => {
@@ -979,27 +1003,30 @@ function ReleaseComparisonChart({
               })
             : getDynamicText({
                 value: (
-                  <ReleaseSessionsChart
-                    releaseSessions={releaseSessions}
-                    allSessions={allSessions}
+                  <ReleaseChartContainer
+                    groupBy={selectedTag}
                     release={release}
-                    project={project}
-                    chartType={activeChart}
-                    platform={platform}
-                    period={period ?? undefined}
-                    start={start}
-                    end={end}
-                    utc={utc === 'true'}
-                    value={chart.thisRelease}
-                    diff={titleChartDiff}
-                    loading={loading}
-                    reloading={reloading}
+                    yAxis={selectedDisplay}
+                    organization={organization}
+                    selection={selection}
                   />
                 ),
                 fixed: 'Sessions Chart',
               })}
         </ChartContainer>
       </ChartPanel>
+      <ChartControls>
+        <InlineContainer>
+          <OptionSelector
+            title={t('Display')}
+            selected={SessionDisplayTags.OS_NAME}
+            options={SESSION_DISPLAY_TYPES}
+            onChange={value => {
+              setSelectedTag(value as SessionDisplayTags);
+            }}
+          />
+        </InlineContainer>
+      </ChartControls>
       <ChartTable
         headers={getTableHeaders(withExpanders)}
         data-test-id="release-comparison-table"
@@ -1035,6 +1062,22 @@ const ChartPanel = styled(Panel)`
   border-bottom-left-radius: 0;
   border-bottom: none;
   border-bottom-right-radius: 0;
+`;
+
+const ChartControls = styled(Panel)`
+  padding: ${space(1)} ${space(1)} ${space(1)} ${space(3)};
+  align-items: right;
+  margin-bottom: 0;
+  border-radius: 0;
+`;
+
+export const InlineContainer = styled('div')`
+  align-items: center;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    grid-auto-flow: column;
+    grid-column-gap: ${space(1)};
+  }
 `;
 
 const Cell = styled('div')`

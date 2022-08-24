@@ -1,6 +1,7 @@
 import type {PlatformKey} from 'sentry/data/platformCategories';
+import {t} from 'sentry/locale';
 
-import type {TimeseriesValue} from './core';
+import type {SelectValue, TimeseriesValue} from './core';
 import type {Commit} from './integrations';
 import type {User} from './user';
 
@@ -171,6 +172,45 @@ export enum ReleaseComparisonChartType {
   FAILURE_RATE = 'failureRate',
   SESSION_DURATION = 'sessionDuration',
 }
+
+export enum SessionDisplayYAxis {
+  CRASH_FREE_SESSION_RATE = 'crash_free_rate(session)',
+  CRASH_FREE_USER_RATE = 'crash_free_rate(user)',
+  CRASHED_SESSION_RATE = 'crashedSessionRate',
+  CRASHED_USER_RATE = 'crashedUserRate',
+  CRASH_FREE_SESSIONS = 'crashFreeSessions',
+  CRASH_FREE_USERS = 'crashFreeUsers',
+  SESSION_COUNT = 'sum(session)',
+  USER_COUNT = 'count_unique(user)',
+  HEALTHY_SESSIONS = 'healthySessions',
+  ABNORMAL_SESSIONS = 'abnormalSessions',
+  ERRORED_SESSIONS = 'erroredSessions',
+  CRASHED_SESSIONS = 'crashedSessions',
+  HEALTHY_USERS = 'healthyUsers',
+  ABNORMAL_USERS = 'abnormalUsers',
+  ERRORED_USERS = 'erroredUsers',
+  CRASHED_USERS = 'crashedUsers',
+}
+
+export const CHART_TYPE_TO_YAXIS_MAP = {
+  [ReleaseComparisonChartType.CRASH_FREE_USERS]: SessionDisplayYAxis.CRASH_FREE_USER_RATE,
+  [ReleaseComparisonChartType.CRASH_FREE_SESSIONS]:
+    SessionDisplayYAxis.CRASH_FREE_SESSION_RATE,
+  [ReleaseComparisonChartType.SESSION_COUNT]: SessionDisplayYAxis.SESSION_COUNT,
+  [ReleaseComparisonChartType.USER_COUNT]: SessionDisplayYAxis.USER_COUNT,
+};
+
+export enum SessionDisplayTags {
+  ALL = 'all',
+  OS_NAME = 'os',
+  OS_VERSION = 'os.version',
+}
+
+export const SESSION_DISPLAY_TYPES: SelectValue<string>[] = [
+  {value: SessionDisplayTags.ALL, label: t('All')},
+  {value: SessionDisplayTags.OS_NAME, label: t('OS Name')},
+  {value: SessionDisplayTags.OS_VERSION, label: t('OS Version')},
+];
 
 export enum HealthStatsPeriodOption {
   AUTO = 'auto',
