@@ -250,6 +250,11 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
+    def get_perf_groups_user_counts(
+        self, project_ids, group_ids, environment_ids, start=None, end=None
+    ):
+        raise NotImplementedError
+
     def get_group_tag_value_count(self, project_id, group_id, environment_id, key):
         """
         >>> get_group_tag_value_count(1, 2, 3, 'key1')

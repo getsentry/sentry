@@ -1,4 +1,6 @@
 from datetime import timedelta
+from typing import Sequence
+from unittest.mock import Mock, patch
 
 import pytest
 from django.utils import timezone
@@ -350,6 +352,31 @@ class TagStorageTest(TestCase, SnubaTestCase):
             )
             == {}
         )
+
+    def test_get_groups_user_counts_no_environments(self):
+        self.store_event(
+            data={
+                "event_id": "3" * 32,
+                "message": "message 1",
+                "platform": "python",
+                "fingerprint": ["group-1"],
+                "timestamp": iso_format(self.now - timedelta(seconds=1)),
+                "tags": {
+                    "foo": "bar",
+                    "baz": "quux",
+                    "sentry:release": 100,
+                    "sentry:user": "id:user3",
+                },
+                "user": {"id": "user3"},
+                "exception": exception,
+            },
+            project_id=self.proj1.id,
+        )
+        assert self.ts.get_groups_user_counts(
+            project_ids=[self.proj1.id],
+            group_ids=[self.proj1group1.id, self.proj1group2.id],
+            environment_ids=None,
+        ) == {self.proj1group1.id: 3, self.proj1group2.id: 1}
 
     def test_get_group_ids_for_users(self):
         assert self.ts.get_group_ids_for_users(
@@ -745,6 +772,143 @@ class TagStorageTest(TestCase, SnubaTestCase):
             )
             == {}
         )
+
+
+class PerfTagStorageTest(TestCase, SnubaTestCase):
+    def setUp(self):
+        super().setUp()
+
+        from sentry.eventstream.kafka import KafkaEventStream
+
+        self.kafka_eventstream = KafkaEventStream()
+        self.kafka_eventstream.producer = Mock()
+
+        self.ts = SnubaTagStorage()
+
+    def _build_transaction_event(self, environment: Environment, project_id, group_ids, user_id):
+        from sentry.event_manager import EventManager
+        from sentry.utils.samples import load_data
+
+        manager = EventManager(load_data("transaction"))
+        manager.normalize()
+
+        event = manager.save(project_id)
+        event.environment = environment
+        for i, tag_tuple in enumerate(event.data["tags"]):
+            if tag_tuple[0] == "environment":
+                removed_environment_tags = event.data["tags"][:i] + event.data["tags"][i + 1 :]
+                event.data["tags"] = removed_environment_tags
+                break
+        if environment:
+            event.data.update({"environment": environment.name})
+            event.data["tags"].extend([("environment", environment.name)])
+
+        event.group_id = None
+        event.group_ids = group_ids
+        event.data["tags"].extend([("sentry:user", user_id)])
+
+        return event
+
+    def _produce_event(self, *insert_args, **insert_kwargs):
+        # copy of SnubaEventStreamTest.__produce_event()
+        from django.conf import settings
+
+        from sentry.eventstream.snuba import SnubaEventStream
+        from sentry.utils import json
+
+        # pass arguments on to Kafka EventManager
+        self.kafka_eventstream.insert(*insert_args, **insert_kwargs)
+
+        produce_args, produce_kwargs = list(self.kafka_eventstream.producer.produce.call_args)
+        assert not produce_args
+        assert produce_kwargs["topic"] == settings.KAFKA_EVENTS
+        assert produce_kwargs["key"] == str(self.project.id).encode("utf-8")
+
+        version, type_, payload1, payload2 = json.loads(produce_kwargs["value"])
+        assert version == 2
+        assert type_ == "insert"
+
+        # insert what would have been the Kafka payload directly
+        # into Snuba, expect an HTTP 200 and for the event to now exist
+        snuba_eventstream = SnubaEventStream()
+        snuba_eventstream._send(
+            self.project.id,
+            "insert",
+            (payload1, payload2),
+            is_transaction_event=insert_kwargs["event"].get_event_type() == "transaction",
+        )
+
+    def _insert_transaction(
+        self,
+        project_id: int,
+        user_id: str,
+        group_ids: Sequence[int],
+        environment: Environment = None,
+    ):
+        from sentry.utils import snuba
+
+        now = timezone.now()
+        user_id_val = f"id:{user_id}"
+        event = self._build_transaction_event(environment, project_id, group_ids, user_id_val)
+
+        insert_args = ()
+        insert_kwargs = {
+            "event": event,
+            "is_new_group_environment": True,
+            "is_new": True,
+            "is_regression": False,
+            "primary_hash": "acbd18db4cc2f85cedef654fccc4a4d8",
+            "skip_consume": False,
+            "received_timestamp": event.data["received"],
+        }
+
+        self._produce_event(*insert_args, **insert_kwargs)
+        result = snuba.raw_query(
+            dataset=snuba.Dataset.Transactions,
+            start=now - timedelta(days=1),
+            end=now + timedelta(days=1),
+            selected_columns=[
+                "event_id",
+                "project_id",
+                "environment",
+                "group_ids",
+                "tags[sentry:user]",
+            ],
+            groupby=None,
+            filter_keys={"project_id": [project_id], "event_id": [event.event_id]},
+        )
+        assert len(result["data"]) == 1
+        assert result["data"][0]["project_id"] == project_id
+        assert result["data"][0]["group_ids"] == group_ids
+        assert result["data"][0]["tags[sentry:user]"] == user_id_val
+        assert result["data"][0]["environment"] == (environment.name if environment else None)
+
+        return event
+
+    @patch("sentry.eventstream.insert")
+    def test_get_perf_groups_user_counts_group_ids(self, mock_eventstream_insert):
+        self._insert_transaction(self.project.id, "user1", [self.group.id], self.environment)
+        self._insert_transaction(self.project.id, "user1", [self.group.id], self.environment)
+        self._insert_transaction(self.project.id, "user2", [self.group.id], self.environment)
+        self._insert_transaction(self.project.id, "user3", [self.group.id])
+
+        second_group = self.create_group(project=self.project)
+        self._insert_transaction(self.project.id, "user1", [second_group.id], self.environment)
+        self._insert_transaction(self.project.id, "user1", [second_group.id], self.environment)
+        self._insert_transaction(self.project.id, "user2", [second_group.id], self.environment)
+        self._insert_transaction(self.project.id, "user3", [second_group.id])
+
+        # should have no effect on user_counts
+        self._insert_transaction(self.project.id, "user_nogroup", [], self.environment)
+
+        assert self.ts.get_perf_groups_user_counts(
+            [self.project.id],
+            group_ids=[self.group.id, second_group.id],
+            environment_ids=[self.environment.id],
+        ) == {self.group.id: 2, second_group.id: 2}
+        assert self.ts.get_perf_groups_user_counts(
+            [self.project.id], group_ids=[self.group.id, second_group.id], environment_ids=None
+        ) == {self.group.id: 3, second_group.id: 3}
 
 
 class BaseSemverTest:

@@ -694,6 +694,35 @@ class SnubaTagStorage(TagStorage):
 
         return defaultdict(int, {k: v for k, v in result.items() if v})
 
+    def get_perf_groups_user_counts(
+        self, project_ids, group_ids, environment_ids, start=None, end=None
+    ):
+        filters_keys = {"project_id": project_ids, "array_join_group_id": group_ids}
+        if environment_ids:
+            filters_keys["environment"] = environment_ids
+
+        result = snuba.query(
+            dataset=Dataset.Transactions,
+            start=start,
+            end=start,
+            filter_keys=filters_keys,
+            aggregations=[
+                ["arrayJoin", ["group_ids"], "array_join_group_id"],
+                ["uniq", "tags[sentry:user]", "user_counts"],
+            ],
+            groupby=["array_join_group_id"],
+            referrer="tagstore.get_perf_groups_user_counts",
+        )
+
+        return defaultdict(
+            int,
+            {
+                group_id: agg["user_counts"]
+                for group_id, agg in result.items()
+                if agg.get("user_counts")
+            },
+        )
+
     def get_tag_value_paginator(
         self,
         project_id,
