@@ -220,10 +220,6 @@ class VarAction(Action):
         except KeyError:
             raise InvalidEnhancerConfig(f"Unknown variable '{var}'")
 
-        self._encoded_value = (
-            self.value.encode("utf-8") if isinstance(self.value, str) else self.value
-        )
-
     def __str__(self) -> str:
         return f"{self.var}={self.value}"
 
@@ -244,4 +240,4 @@ class VarAction(Action):
         if self.var == "category":
             frame = frames[idx]
             set_path(frame, "data", "category", value=self.value)
-            match_frames[idx]["category"] = self._encoded_value
+            match_frames[idx]["category"] = self.value

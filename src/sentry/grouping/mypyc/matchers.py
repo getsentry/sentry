@@ -135,7 +135,6 @@ class FrameMatch(Match):
         except KeyError:
             raise InvalidEnhancerConfig("Unknown matcher '%s'" % key)
         self.pattern = pattern
-        self._encoded_pattern = pattern.encode("utf-8")
         self._compiled_pattern = translate(pattern, doublestar=doublestar)
         self.negated = negated
 
@@ -180,12 +179,12 @@ class FrameMatch(Match):
         return ("!" if self.negated else "") + MATCH_KEYS[self.key] + arg
 
 
-def path_like_match(pattern: "re.Pattern[str]", value: bytes) -> bool:
+def path_like_match(pattern: "re.Pattern[str]", value: str) -> bool:
     """Stand-alone function for use with ``cached``"""
     if glob_match(value, pattern, ignorecase=False, path_normalize=True):
         return True
-    if not value.startswith(b"/") and glob_match(
-        b"/" + value, pattern, ignorecase=False, path_normalize=True
+    if not value.startswith("/") and glob_match(
+        "/" + value, pattern, ignorecase=False, path_normalize=True
     ):
         return True
 
@@ -226,7 +225,7 @@ class PathMatch(PathLikeMatch):
 class FamilyMatch(FrameMatch):
     def __init__(self, key: str, pattern: str, negated: bool = False):
         super().__init__(key, pattern, negated)
-        self._flags = set(self._encoded_pattern.split(b","))
+        self._flags = set(self.pattern.split(","))
 
     def _positive_frame_match(
         self,
