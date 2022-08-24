@@ -23,7 +23,7 @@ import space from 'sentry/styles/space';
 import {Organization, Project, SelectValue} from 'sentry/types';
 import {
   EvaluationType,
-  FeatureFlagResultType,
+  FeatureFlagKind,
   FeatureFlags,
   FeatureFlagSegment,
 } from 'sentry/types/featureFlags';
@@ -76,8 +76,6 @@ export function SegmentModal({
   const conditionCategories = generateConditionCategoriesOptions(
     distributedTracesConditions
   );
-
-  const {resultType} = flags[flagKey];
 
   function getInitialState(): State {
     if (defined(segmentIndex)) {
@@ -332,7 +330,7 @@ export function SegmentModal({
               <SliderPercentage>{`${data.percentage}%`}</SliderPercentage>
             </StyledField>
           )}
-          {resultType === FeatureFlagResultType.BOOLEAN && (
+          {flags[flagKey].kind === FeatureFlagKind.BOOLEAN && (
             <StyledBooleanField
               label={t('Result Value')}
               name="result"
@@ -344,7 +342,7 @@ export function SegmentModal({
               onChange={value => setData({...data, result: Boolean(value)})}
             />
           )}
-          {resultType === FeatureFlagResultType.NUMBER && (
+          {flags[flagKey].kind === FeatureFlagKind.NUMBER && (
             <StyledNumberField
               label={t('Result Value')}
               name="result"
@@ -356,7 +354,7 @@ export function SegmentModal({
               onChange={value => setData({...data, result: Number(value)})}
             />
           )}
-          {resultType === FeatureFlagResultType.STRING && (
+          {flags[flagKey].kind === FeatureFlagKind.STRING && (
             <StyledTextField
               label={t('Result Value')}
               name="result"

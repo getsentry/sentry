@@ -243,7 +243,7 @@ export default function ProjectFeatureFlags({project}: Props) {
             <Card
               key={flagKey}
               flagKey={flagKey}
-              resultType={flags[flagKey].resultType}
+              kind={flags[flagKey].kind}
               enabled={flags[flagKey].enabled}
               description={flags[flagKey].description}
               segments={flags[flagKey].evaluation}

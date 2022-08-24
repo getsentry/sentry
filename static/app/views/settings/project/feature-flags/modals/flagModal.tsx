@@ -8,11 +8,13 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {TextareaField, TextField} from 'sentry/components/forms';
 import SelectField from 'sentry/components/forms/selectField';
+import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import ProjectStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {FeatureFlagResultType, FeatureFlags} from 'sentry/types/featureFlags';
+import {FeatureFlagKind, FeatureFlags} from 'sentry/types/featureFlags';
+import {defined} from 'sentry/utils';
 import useApi from 'sentry/utils/useApi';
 
 type Props = ModalRenderProps & {
@@ -38,8 +40,8 @@ export function FlagModal({
   const [description, setDescription] = useState(
     flagKey ? flags[flagKey].description : ''
   );
-  const [resultType, setResultType] = useState<FeatureFlagResultType>(
-    flagKey ? flags[flagKey].resultType : FeatureFlagResultType.BOOLEAN
+  const [kind, setKind] = useState<FeatureFlagKind>(
+    flagKey ? flags[flagKey].kind : FeatureFlagKind.BOOLEAN
   );
   const [error, setError] = useState<string | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
@@ -58,12 +60,12 @@ export function FlagModal({
       [key]: {
         description,
         enabled: false,
-        resultType,
+        kind,
         evaluation: [],
       },
     };
 
-    if (flagKey) {
+    if (defined(flagKey)) {
       delete newFlags[flagKey];
       newFeatureFlags = {
         ...newFlags,
@@ -96,6 +98,7 @@ export function FlagModal({
   }
 
   const submitDisabled = !key || !!error;
+  const canUpdateKind = defined(flagKey) ? flags[flagKey].evaluation.length === 0 : true;
 
   return (
     <Fragment>
@@ -154,19 +157,29 @@ export function FlagModal({
           hideControlState
           stacked
         />
-        <StyledSelectField
-          name="result-type"
-          label={t('Result Type')}
-          value={resultType}
-          choices={Object.values(FeatureFlagResultType).map(value => [
-            value,
-            startCase(value),
-          ])}
-          onChange={setResultType}
-          inline={false}
-          hideControlState
-          required
-        />
+        <StyledTooltip
+          title={
+            !canUpdateKind
+              ? t('You cannot change the kind of a flag with segments')
+              : undefined
+          }
+          disabled={canUpdateKind}
+        >
+          <StyledSelectField
+            name="result-type"
+            label={t('Result Type')}
+            value={kind}
+            choices={Object.values(FeatureFlagKind).map(value => [
+              value,
+              startCase(value),
+            ])}
+            onChange={setKind}
+            inline={false}
+            hideControlState
+            required
+            disabled={!canUpdateKind}
+          />
+        </StyledTooltip>
       </Body>
       <Footer>
         <FooterActions>
@@ -213,4 +226,8 @@ export const FooterActions = styled('div')`
   align-items: center;
   flex: 1;
   gap: ${space(1)};
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  width: 100%;
 `;

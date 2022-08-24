@@ -3,7 +3,7 @@ export enum EvaluationType {
   Match = 'match',
 }
 
-export enum FeatureFlagResultType {
+export enum FeatureFlagKind {
   BOOLEAN = 'boolean',
   STRING = 'string',
   NUMBER = 'number',
@@ -20,7 +20,7 @@ export type FeatureFlagSegment = {
 export type FeatureFlag = {
   enabled: boolean;
   evaluation: FeatureFlagSegment[];
-  resultType: FeatureFlagResultType;
+  kind: FeatureFlagKind;
   description?: string;
 };
 
