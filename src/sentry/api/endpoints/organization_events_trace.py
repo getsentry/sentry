@@ -517,11 +517,14 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
 
 class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
     def get(self, request: HttpRequest, organization: Organization, trace_id: str) -> HttpResponse:
-        with sentry_sdk.start_span(op="neo4j", description="session"):
-            with neo4j_driver.session() as session:
-                trace = session.read_transaction(self.get_trace, trace_id)
-                return Response(trace)
+        if request.GET.get("neo4j"):
+            sentry_sdk.set_tag("neo4j", "1")
+            with sentry_sdk.start_span(op="neo4j", description="session"):
+                with neo4j_driver.session() as session:
+                    trace = session.read_transaction(self.get_trace, trace_id)
+                    return Response(trace)
 
+        sentry_sdk.set_tag("neo4j", "0")
         return super().get(request, organization, trace_id)
 
     def get_trace(self, tx, trace_id: str):
@@ -532,7 +535,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 "AND pt.parent_span_id is NULL",
                 "AND pt.trace_id = $trace_id",
                 "AND leaf.trace_id = $trace_id",
-                "RETURN path",
+                "RETURN REDUCE(p = [], n IN nodes(path) | CASE WHEN n:Transaction THEN p + n ELSE p END)[-2..] AS edge",
             ]
         )
 
@@ -555,27 +558,22 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             }
 
             for r in result:
-                path = r["path"]
-                edge = []
-                for node in reversed(path.nodes):
-                    if "Transaction" in node.labels:
-                        edge.append(node.id)
-                        if len(edge) == 2:
-                            break
-                # we should have found 2 transactions starting from the end of the path
-                assert len(edge) == 2, path.nodes
-                edges.append((edge[1], edge[0]))
-                for node in [path.start_node, path.end_node]:
-                    if node.id not in nodes:
-                        nodes[node.id] = {name: node[key] for name, key in props.items()}
-                        nodes[node.id]["transaction.duration"] = (
-                            nodes[node.id]["timestamp"] - nodes[node.id]["start_timestamp"]
-                        )
-                        nodes[node.id]["errors"] = []
-                        nodes[node.id]["children"] = []
-                        nodes[node.id]["measurements"] = {}
-                        nodes[node.id]["tags"] = []
-                        nodes[node.id]["_meta"] = {}
+                edge = r["edge"]
+                assert len(edge) == 2, edge
+                edges.append((edge[0].id, edge[1].id))
+
+                with sentry_sdk.start_span(op="building.trace", description="finding nodes"):
+                    for node in edge:
+                        if node.id not in nodes:
+                            nodes[node.id] = {name: node[key] for name, key in props.items()}
+                            nodes[node.id]["transaction.duration"] = (
+                                nodes[node.id]["timestamp"] - nodes[node.id]["start_timestamp"]
+                            )
+                            nodes[node.id]["errors"] = []
+                            nodes[node.id]["children"] = []
+                            nodes[node.id]["measurements"] = {}
+                            nodes[node.id]["tags"] = []
+                            nodes[node.id]["_meta"] = {}
 
         with sentry_sdk.start_span(op="building.trace", description="connect nodes"):
             for start, end in edges:
