@@ -82,14 +82,14 @@ function UserView({params: {userId}, router, route}: Props) {
         method: 'GET',
       });
 
-      setBreadcrumbEvents(res.data);
+      // setBreadcrumbEvents(res.data);
 
       // TODO: alberto debug
-      // if (res.data && res.data.length > 0) {
-      //   setBreadcrumbEvents([res.data[0]]);
-      // } else {
-      //   setBreadcrumbEvents(res.data);
-      // }
+      if (res.data && res.data.length > 0) {
+        setBreadcrumbEvents([res.data[0]]);
+      } else {
+        setBreadcrumbEvents(res.data);
+      }
     }
     fetchEvents();
   }, [api, org.slug, location, eventView]);
