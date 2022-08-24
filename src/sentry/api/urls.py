@@ -4,6 +4,7 @@ from sentry.api.endpoints.integration_features import IntegrationFeaturesEndpoin
 from sentry.api.endpoints.organization_codeowners_associations import (
     OrganizationCodeOwnersAssociationsEndpoint,
 )
+from sentry.api.endpoints.organization_issues_hotspots import OrganizationIssuesHotspotsEndpoint
 from sentry.api.endpoints.organization_profiling_profiles import (
     OrganizationProfilingFiltersEndpoint,
     OrganizationProfilingProfilesEndpoint,
@@ -1264,6 +1265,10 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/issues-stats/$",
                     OrganizationGroupIndexStatsEndpoint.as_view(),
                     name="sentry-api-0-organization-group-index-stats",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/issues-hotspots/$",
+                    OrganizationIssuesHotspotsEndpoint.as_view(),
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?:issues|groups)/",
