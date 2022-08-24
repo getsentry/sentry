@@ -10,6 +10,8 @@ import space from 'sentry/styles/space';
 import {EntryType} from 'sentry/types';
 import {Crumb} from 'sentry/types/breadcrumbs';
 
+import Timeline from './timeline';
+
 type Props = Pick<
   React.ComponentProps<typeof Breadcrumb>,
   | 'event'
@@ -47,6 +49,8 @@ function Breadcrumbs({
   );
 
   return (
+    <Fragment>
+    <Timeline breadcrumbs={transformedCrumbs} />
     <StyledPanelTable
       scrollbarSize={scrollbarSize}
       headers={[
@@ -97,6 +101,7 @@ function Breadcrumbs({
         })}
       </Content>
     </StyledPanelTable>
+    </Fragment>
   );
 }
 

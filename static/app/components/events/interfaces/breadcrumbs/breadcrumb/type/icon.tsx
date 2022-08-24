@@ -16,35 +16,36 @@ import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 
 type Props = {
   type: BreadcrumbType;
+  size?: string;
 };
 
-function Icon({type}: Props) {
+function Icon({type, size = 'xs'}: Props) {
   switch (type) {
     case BreadcrumbType.USER:
     case BreadcrumbType.UI:
-      return <IconUser size="xs" />;
+      return <IconUser size={size} />;
     case BreadcrumbType.NAVIGATION:
-      return <IconLocation size="xs" />;
+      return <IconLocation size={size} />;
     case BreadcrumbType.DEBUG:
-      return <IconFix size="xs" />;
+      return <IconFix size={size} />;
     case BreadcrumbType.INFO:
-      return <IconInfo size="xs" />;
+      return <IconInfo size={size} />;
     case BreadcrumbType.ERROR:
-      return <IconFire size="xs" />;
+      return <IconFire size={size} />;
     case BreadcrumbType.HTTP:
-      return <IconSort size="xs" rotated />;
+      return <IconSort size={size} rotated />;
     case BreadcrumbType.WARNING:
-      return <IconWarning size="xs" />;
+      return <IconWarning size={size} />;
     case BreadcrumbType.QUERY:
-      return <IconStack size="xs" />;
+      return <IconStack size={size} />;
     case BreadcrumbType.SYSTEM:
-      return <IconMobile size="xs" />;
+      return <IconMobile size={size} />;
     case BreadcrumbType.SESSION:
-      return <IconRefresh size="xs" />;
+      return <IconRefresh size={size} />;
     case BreadcrumbType.TRANSACTION:
-      return <IconSpan size="xs" />;
+      return <IconSpan size={size} />;
     default:
-      return <IconTerminal size="xs" />;
+      return <IconTerminal size={size} />;
   }
 }
 
