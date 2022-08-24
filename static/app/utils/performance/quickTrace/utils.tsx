@@ -3,7 +3,7 @@ import moment from 'moment-timezone';
 
 import {getTraceDateTimeRange} from 'sentry/components/events/interfaces/spans/utils';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {OrganizationSummary} from 'sentry/types';
+import type {OrganizationSummary} from 'sentry/types';
 import {Event, EventTransaction} from 'sentry/types/event';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';

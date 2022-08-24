@@ -12,7 +12,7 @@ import EventDataSection from 'sentry/components/events/eventDataSection';
 import FileSize from 'sentry/components/fileSize';
 import {PanelTable} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import {IssueAttachment} from 'sentry/types';
+import type {IssueAttachment} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import AttachmentUrl from 'sentry/utils/attachmentUrl';
 import withApi from 'sentry/utils/withApi';

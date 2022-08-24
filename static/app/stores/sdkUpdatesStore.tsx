@@ -1,6 +1,6 @@
 import {createStore, StoreDefinition} from 'reflux';
 
-import {ProjectSdkUpdates} from 'sentry/types';
+import type {ProjectSdkUpdates} from 'sentry/types';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type InternalDefinition = {

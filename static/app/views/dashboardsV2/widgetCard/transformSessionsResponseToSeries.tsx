@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {MetricsApiResponse, SessionApiResponse} from 'sentry/types';
+import type {MetricsApiResponse, SessionApiResponse} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 

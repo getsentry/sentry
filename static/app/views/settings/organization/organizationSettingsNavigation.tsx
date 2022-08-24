@@ -1,7 +1,7 @@
 import {Component} from 'react';
 
 import HookStore from 'sentry/stores/hookStore';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {HookName, Hooks} from 'sentry/types/hooks';
 import withOrganization from 'sentry/utils/withOrganization';
 import SettingsNavigation from 'sentry/views/settings/components/settingsNavigation';

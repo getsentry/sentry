@@ -9,13 +9,13 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import IntegrationExternalMappingForm from 'sentry/components/integrationExternalMappingForm';
 import IntegrationExternalMappings from 'sentry/components/integrationExternalMappings';
 import {t} from 'sentry/locale';
-import {
+import type {
   ExternalActorMapping,
   ExternalActorMappingOrSuggestion,
   Integration,
   Organization,
   Team,
-} from 'sentry/types';
+} from 'sentry/types'
 import {sentryNameToOption} from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';
 

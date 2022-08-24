@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {Group} from 'sentry/types';
+import type {Group} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {objectIsEmpty} from 'sentry/utils';
 

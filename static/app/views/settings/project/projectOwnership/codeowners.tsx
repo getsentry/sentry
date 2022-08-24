@@ -6,7 +6,7 @@ import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import {IconDelete, IconSync} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {CodeOwner, CodeownersFile, Organization, Project} from 'sentry/types';
+import type {CodeOwner, CodeownersFile, Organization, Project} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import RulesPanel from 'sentry/views/settings/project/projectOwnership/rulesPanel';
 

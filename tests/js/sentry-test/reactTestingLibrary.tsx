@@ -6,7 +6,7 @@ import * as reactHooks from '@testing-library/react-hooks'; // eslint-disable-li
 import userEvent from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
 
 import GlobalModal from 'sentry/components/globalModal';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {lightTheme} from 'sentry/utils/theme';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 

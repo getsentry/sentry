@@ -11,12 +11,12 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {
+import type {
   Group,
   PlatformExternalIssue,
   SentryAppComponent,
   SentryAppInstallation,
-} from 'sentry/types';
+} from 'sentry/types'
 import {Event} from 'sentry/types/event';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 import withApi from 'sentry/utils/withApi';

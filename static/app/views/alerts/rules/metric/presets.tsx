@@ -1,7 +1,7 @@
 import {Client} from 'sentry/api';
 import {IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {uniqueId} from 'sentry/utils/guid';
 
 import {AlertType} from '../../wizard/options';

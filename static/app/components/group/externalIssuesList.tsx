@@ -13,7 +13,7 @@ import ExternalIssueStore from 'sentry/stores/externalIssueStore';
 import SentryAppComponentsStore from 'sentry/stores/sentryAppComponentsStore';
 import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
 import space from 'sentry/styles/space';
-import {
+import type {
   Group,
   GroupIntegration,
   Organization,
@@ -21,7 +21,7 @@ import {
   Project,
   SentryAppComponent,
   SentryAppInstallation,
-} from 'sentry/types';
+} from 'sentry/types'
 import {Event} from 'sentry/types/event';
 import withOrganization from 'sentry/utils/withOrganization';
 

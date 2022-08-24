@@ -19,7 +19,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Release, ReleaseProject} from 'sentry/types';
+import type {Organization, Release, ReleaseProject} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import type {IconSize} from 'sentry/utils/theme';
 

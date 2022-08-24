@@ -12,7 +12,7 @@ import {getOffsetOfElement} from 'sentry/components/performance/waterfall/utils'
 import {IconAdd, IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {
   AGGREGATIONS,

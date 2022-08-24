@@ -12,7 +12,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose, IconLock, IconSync} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {AvatarUser, OnboardingTask, OnboardingTaskKey, Organization} from 'sentry/types';
+import type {AvatarUser, OnboardingTask, OnboardingTaskKey, Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import testableTransition from 'sentry/utils/testableTransition';
 import {useRouteContext} from 'sentry/utils/useRouteContext';

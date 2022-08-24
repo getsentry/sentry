@@ -15,12 +15,12 @@ import ListItem from 'sentry/components/list/listItem';
 import NavTabs from 'sentry/components/navTabs';
 import {IconAdd, IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {
+import type {
   IntegrationProvider,
   IntegrationWithConfig,
   Organization,
   PluginWithProjectList,
-} from 'sentry/types';
+} from 'sentry/types'
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {singleLineRenderer} from 'sentry/utils/marked';
 import withApi from 'sentry/utils/withApi';

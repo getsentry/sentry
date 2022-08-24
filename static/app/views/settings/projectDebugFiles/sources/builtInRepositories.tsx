@@ -8,7 +8,7 @@ import SelectField from 'sentry/components/forms/selectField';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {BuiltinSymbolSource} from 'sentry/types/debugFiles';
 
 const SECTION_TITLE = t('Built-in Repositories');

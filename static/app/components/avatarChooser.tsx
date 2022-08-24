@@ -14,7 +14,7 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import Well from 'sentry/components/well';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {AvatarUser, Organization, SentryApp, Team} from 'sentry/types';
+import type {AvatarUser, Organization, SentryApp, Team} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
 export type Model = Pick<AvatarUser, 'avatar'>;

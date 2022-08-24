@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 
 import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
 import space from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 import localStorage from 'sentry/utils/localStorage';
 
 type Props = {

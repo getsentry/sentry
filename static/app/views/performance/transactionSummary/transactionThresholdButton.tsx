@@ -6,7 +6,7 @@ import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';

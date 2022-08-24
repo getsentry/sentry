@@ -7,7 +7,7 @@ import SelectControl from 'sentry/components/forms/selectControl';
 import Tooltip from 'sentry/components/tooltip';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, SelectValue, TagCollection} from 'sentry/types';
+import type {Organization, SelectValue, TagCollection} from 'sentry/types';
 import {getDatasetConfig} from 'sentry/views/dashboardsV2/datasetConfig/base';
 import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {

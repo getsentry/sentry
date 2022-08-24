@@ -9,7 +9,7 @@ import {parseStatsPeriod} from 'sentry/components/organizations/timeRangeSelecto
 import ScoreCard from 'sentry/components/scoreCard';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, PageFilters} from 'sentry/types';
+import type {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getPeriod} from 'sentry/utils/getPeriod';

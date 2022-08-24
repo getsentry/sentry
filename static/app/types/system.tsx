@@ -1,17 +1,10 @@
 import type {FocusTrap} from 'focus-trap';
 
 import type exportGlobals from 'sentry/bootstrap/exportGlobals';
+import { SentryInitRenderReactComponent } from 'sentry/enum';
 import {Theme} from 'sentry/utils/theme';
 
 import type {User} from './user';
-
-export enum SentryInitRenderReactComponent {
-  INDICATORS = 'Indicators',
-  SETUP_WIZARD = 'SetupWizard',
-  SYSTEM_ALERTS = 'SystemAlerts',
-  U2F_SIGN = 'U2fSign',
-  SU_ACCESS_FORM = 'SuperuserAccessForm',
-}
 
 export type OnSentryInitConfiguration =
   | {

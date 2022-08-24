@@ -9,17 +9,17 @@ import {sourceMaps} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import space from 'sentry/styles/space';
-import {
+import type {
   OnboardingSupplementComponentProps,
   OnboardingTask,
   OnboardingTaskDescriptor,
-  OnboardingTaskKey,
   Organization,
   Project,
 } from 'sentry/types';
+  import {OnboardingTaskKey} from 'sentry/enum';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import withApi from 'sentry/utils/withApi';
-import {OnboardingState} from 'sentry/views/onboarding/targetedOnboarding/types';
+import type {OnboardingState} from 'sentry/views/onboarding/targetedOnboarding/types';
 
 import OnboardingProjectsCard from './onboardingCard';
 

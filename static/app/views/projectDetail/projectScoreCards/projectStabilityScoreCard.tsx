@@ -1,7 +1,7 @@
 import round from 'lodash/round';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
-import {
+import type {
   getDiffInMinutes,
   shouldFetchPreviousPeriod,
 } from 'sentry/components/charts/utils';
@@ -10,12 +10,13 @@ import ScoreCard from 'sentry/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {
+import type {
   Organization,
   PageFilters,
   SessionApiResponse,
-  SessionFieldWithOperation,
-} from 'sentry/types';
+} from 'sentry/types'
+
+  import {SessionFieldWithOperation} from 'sentry/enum';
 import {defined, percent} from 'sentry/utils';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getPeriod} from 'sentry/utils/getPeriod';

@@ -12,7 +12,7 @@ import QueryCount from 'sentry/components/queryCount';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, SavedSearch} from 'sentry/types';
+import type {Organization, SavedSearch} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 import {getSortLabel} from './utils';

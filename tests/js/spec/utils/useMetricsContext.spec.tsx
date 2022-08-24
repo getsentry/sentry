@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {MetricsProvider} from 'sentry/utils/metrics/metricsProvider';
 import {useMetricsContext} from 'sentry/utils/useMetricsContext';
 

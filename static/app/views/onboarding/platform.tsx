@@ -10,7 +10,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import PlatformPicker from 'sentry/components/platformPicker';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
-import {Team} from 'sentry/types';
+import type {Team} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import testableTransition from 'sentry/utils/testableTransition';
 import withApi from 'sentry/utils/withApi';

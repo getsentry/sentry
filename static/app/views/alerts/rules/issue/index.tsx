@@ -36,10 +36,10 @@ import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {
+  import {OnboardingTaskKey} from 'sentry/enum';
+import type {
   Environment,
   IssueOwnership,
-  OnboardingTaskKey,
   Organization,
   Project,
   Team,

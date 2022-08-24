@@ -1,4 +1,4 @@
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {objectIsEmpty} from 'sentry/utils';
 import localStorage from 'sentry/utils/localStorage';
 import {

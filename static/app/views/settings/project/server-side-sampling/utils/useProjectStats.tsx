@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react';
 
 import {t} from 'sentry/locale';
-import {SeriesApi} from 'sentry/types';
+import type {SeriesApi} from 'sentry/types';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 

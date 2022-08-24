@@ -17,13 +17,13 @@ import {IconAdd, IconArrow, IconEllipsis, IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import space from 'sentry/styles/space';
-import {
+import type {
   ExternalActorMapping,
   ExternalActorMappingOrSuggestion,
   ExternalActorSuggestion,
   Integration,
   Organization,
-} from 'sentry/types';
+} from 'sentry/types'
 import {getIntegrationIcon, isExternalActorMapping} from 'sentry/utils/integrationUtil';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 

@@ -5,7 +5,7 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import InputField, {InputFieldProps} from 'sentry/components/forms/inputField';
 import SelectControl, {ControlProps} from 'sentry/components/forms/selectControl';
 import {t} from 'sentry/locale';
-import {Choices, SelectValue} from 'sentry/types';
+import type {Choices, SelectValue} from 'sentry/types';
 
 export interface SelectFieldProps<OptionType>
   extends InputFieldProps,

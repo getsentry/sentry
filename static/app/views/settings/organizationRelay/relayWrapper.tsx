@@ -10,7 +10,7 @@ import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {Organization, Relay, RelayActivity} from 'sentry/types';
+import type {Organization, Relay, RelayActivity} from 'sentry/types';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';

@@ -1,6 +1,6 @@
 import {createStore, StoreDefinition} from 'reflux';
 
-import {SentryAppComponent} from 'sentry/types';
+import type {SentryAppComponent} from 'sentry/types';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 export interface SentryAppComponentsStoreDefinition extends StoreDefinition {

@@ -18,7 +18,7 @@ import ListItem from 'sentry/components/list/listItem';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Environment, Organization, Project, SelectValue} from 'sentry/types';
+import type {Environment, Organization, Project, SelectValue} from 'sentry/types';
 import {getDisplayName} from 'sentry/utils/environment';
 import {MobileVital, WebVital} from 'sentry/utils/fields';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';

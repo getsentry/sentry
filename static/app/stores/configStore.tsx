@@ -1,7 +1,7 @@
 import moment from 'moment-timezone';
 import {createStore} from 'reflux';
 
-import {Config} from 'sentry/types';
+import type {Config} from 'sentry/types';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreDefinition} from './types';

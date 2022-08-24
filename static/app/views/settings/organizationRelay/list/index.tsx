@@ -1,6 +1,6 @@
 import orderBy from 'lodash/orderBy';
 
-import {Relay, RelayActivity} from 'sentry/types';
+import type {Relay, RelayActivity} from 'sentry/types';
 
 import ActivityList from './activityList';
 import CardHeader from './cardHeader';

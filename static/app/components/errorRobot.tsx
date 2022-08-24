@@ -8,7 +8,7 @@ import Button from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import withApi from 'sentry/utils/withApi';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';

@@ -5,7 +5,7 @@ import LinkWithConfirmation from 'sentry/components/links/linkWithConfirmation';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {User} from 'sentry/types';
+import type {User} from 'sentry/types';
 import {Theme} from 'sentry/utils/theme';
 
 import EditorTools from './editorTools';

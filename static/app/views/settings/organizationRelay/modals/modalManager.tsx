@@ -6,7 +6,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {Organization, Relay} from 'sentry/types';
+import type {Organization, Relay} from 'sentry/types';
 
 import Form from './form';
 import handleXhrErrorResponse from './handleXhrErrorResponse';

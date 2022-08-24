@@ -16,12 +16,12 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {
+import type {
   ReleaseProject,
   ReleaseWithHealth,
   SessionApiResponse,
-  SessionFieldWithOperation,
-} from 'sentry/types';
+} from 'sentry/types'
+  import {SessionFieldWithOperation} from 'sentry/enum';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getAdoptionSeries, getCount, getCountAtIndex} from 'sentry/utils/sessions';
 

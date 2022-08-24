@@ -4,7 +4,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import Tooltip from 'sentry/components/tooltip';
 import {IconFire} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {EntryData} from 'sentry/types';
+import type {EntryData} from 'sentry/types';
 import {Color} from 'sentry/utils/theme';
 
 import {Grid, GridCell} from './styles';

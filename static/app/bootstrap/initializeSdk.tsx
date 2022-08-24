@@ -5,7 +5,7 @@ import {Integrations} from '@sentry/tracing';
 import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
 
 import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
-import {Config} from 'sentry/types';
+import type {Config} from 'sentry/types';
 import {
   initializeMeasureAssetsTimeout,
   LongTaskObserver,
@@ -74,7 +74,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
      * For SPA mode, we need a way to overwrite the default DSN from backend
      * as well as `whitelistUrls`
      */
-    dsn: SPA_DSN || sentryConfig?.dsn,
+    dsn: 'https://6991720ac36e4ddd9f8dc3331187628f@o1176005.ingest.sentry.io/6326737',
     /**
      * Frontend can be built with a `SENTRY_RELEASE_VERSION` environment
      * variable for release string, useful if frontend is deployed separately

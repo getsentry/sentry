@@ -11,7 +11,7 @@ import ProgressRing, {
 } from 'sentry/components/progressRing';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {OnboardingTaskStatus, Organization, Project} from 'sentry/types';
+import type {OnboardingTaskStatus, Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import theme, {Theme} from 'sentry/utils/theme';
 import withProjects from 'sentry/utils/withProjects';

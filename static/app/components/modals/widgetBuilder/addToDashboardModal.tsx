@@ -16,7 +16,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import SelectControl from 'sentry/components/forms/selectControl';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {DateString, Organization, PageFilters, SelectValue} from 'sentry/types';
+import type {DateString, Organization, PageFilters, SelectValue} from 'sentry/types';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 import {

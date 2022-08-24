@@ -10,7 +10,7 @@ import FormModel from 'sentry/components/forms/model';
 import {PermissionChoice, SENTRY_APP_PERMISSIONS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Scope, SentryApp} from 'sentry/types';
+import type {Scope, SentryApp} from 'sentry/types';
 
 /**
  * Given an array of scopes, return the choices the user has picked for each option

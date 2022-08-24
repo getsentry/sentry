@@ -7,7 +7,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Tag} from 'sentry/types';
+import type {Tag} from 'sentry/types';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 
 import {TagValueLoader} from '../issueList/types';

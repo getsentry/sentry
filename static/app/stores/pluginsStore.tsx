@@ -1,6 +1,6 @@
 import {createStore, StoreDefinition} from 'reflux';
 
-import {Plugin} from 'sentry/types';
+import type {Plugin} from 'sentry/types';
 
 interface InternalDefinition {
   plugins: Map<string, Plugin> | null;

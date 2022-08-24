@@ -1,7 +1,7 @@
 import {Component} from 'react';
 
 import BaseAvatar from 'sentry/components/avatar/baseAvatar';
-import {Actor, AvatarUser} from 'sentry/types';
+import type {Actor, AvatarUser} from 'sentry/types';
 import {userDisplayName} from 'sentry/utils/formatters';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 

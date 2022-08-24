@@ -9,7 +9,7 @@ import Button from 'sentry/components/button';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {ApiApplication} from 'sentry/types';
+import type {ApiApplication} from 'sentry/types';
 import AsyncView from 'sentry/views/asyncView';
 import Row from 'sentry/views/settings/account/apiApplications/row';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';

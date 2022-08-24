@@ -10,7 +10,7 @@ import {CommonSidebarProps} from 'sentry/components/sidebar/types';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {OnboardingTask, OnboardingTaskKey, Project} from 'sentry/types';
+import type {OnboardingTask, OnboardingTaskKey, Project} from 'sentry/types';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';

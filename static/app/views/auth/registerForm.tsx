@@ -11,7 +11,7 @@ import TextField from 'sentry/components/deprecatedforms/textField';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {AuthConfig} from 'sentry/types';
+import type {AuthConfig} from 'sentry/types';
 import {formFooterClass} from 'sentry/views/auth/login';
 
 const SubscribeField = () => (

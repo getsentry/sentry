@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {Organization, TagCollection} from 'sentry/types';
+import type {Organization, TagCollection} from 'sentry/types';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 

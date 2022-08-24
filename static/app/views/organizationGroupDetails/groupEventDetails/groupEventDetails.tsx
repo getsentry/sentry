@@ -16,14 +16,14 @@ import MutedBox from 'sentry/components/mutedBox';
 import ReprocessedBox from 'sentry/components/reprocessedBox';
 import ResolutionBox from 'sentry/components/resolutionBox';
 import space from 'sentry/styles/space';
-import {
+import type {
   BaseGroupStatusReprocessing,
   Environment,
   Group,
   GroupActivityReprocess,
   Organization,
   Project,
-} from 'sentry/types';
+} from 'sentry/types'
 import {Event} from 'sentry/types/event';
 import fetchSentryAppInstallations from 'sentry/utils/fetchSentryAppInstallations';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';

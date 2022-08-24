@@ -18,7 +18,7 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import AppStoreConnectContext from 'sentry/components/projects/appStoreConnectContext';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {CustomRepo, CustomRepoType} from 'sentry/types/debugFiles';
 import {defined} from 'sentry/utils';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';

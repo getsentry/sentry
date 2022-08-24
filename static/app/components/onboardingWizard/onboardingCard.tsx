@@ -9,7 +9,7 @@ import {IconChevron, IconClose, IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import space from 'sentry/styles/space';
-import {OnboardingCustomComponentProps, Project} from 'sentry/types';
+import type {OnboardingCustomComponentProps, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 import SkipConfirm from './skipConfirm';

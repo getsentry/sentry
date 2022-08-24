@@ -15,7 +15,7 @@ import RepositoryRow from 'sentry/components/repositoryRow';
 import {IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Integration, Organization, Repository} from 'sentry/types';
+import type {Integration, Organization, Repository} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 

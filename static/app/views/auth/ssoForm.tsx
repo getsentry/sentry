@@ -5,7 +5,7 @@ import {Client} from 'sentry/api';
 import Form from 'sentry/components/deprecatedforms/form';
 import TextField from 'sentry/components/deprecatedforms/textField';
 import {t, tct} from 'sentry/locale';
-import {AuthConfig} from 'sentry/types';
+import type {AuthConfig} from 'sentry/types';
 
 type Props = {
   api: Client;

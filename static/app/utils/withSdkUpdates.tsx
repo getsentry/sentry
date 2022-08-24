@@ -3,7 +3,7 @@ import {Component} from 'react';
 import {loadSdkUpdates} from 'sentry/actionCreators/sdkUpdates';
 import {Client} from 'sentry/api';
 import SdkUpdatesStore from 'sentry/stores/sdkUpdatesStore';
-import {Organization, ProjectSdkUpdates} from 'sentry/types';
+import type {Organization, ProjectSdkUpdates} from 'sentry/types';
 
 import withApi from './withApi';
 import withOrganization from './withOrganization';

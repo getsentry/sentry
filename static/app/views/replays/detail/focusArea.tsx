@@ -71,11 +71,13 @@ function FocusArea({}: Props) {
         />
       );
     case 'modules':
-      return <UnusedModules replayRecord={replayRecord}
+      return (
+        <UnusedModules
+          replayRecord={replayRecord}
           imports={replay?.getImports()}
           accessed={replay?.getModuleCalls()}
-
-        />;
+        />
+      );
     case 'trace':
       const features = ['organizations:performance-view'];
 

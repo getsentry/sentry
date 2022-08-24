@@ -6,7 +6,7 @@ import uniqBy from 'lodash/uniqBy';
 import ProjectActions from 'sentry/actions/projectActions';
 import {Client} from 'sentry/api';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {AvatarProject, Project} from 'sentry/types';
+import type {AvatarProject, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import RequestError from 'sentry/utils/requestError/requestError';

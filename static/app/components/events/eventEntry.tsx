@@ -13,7 +13,7 @@ import StackTraceV2 from 'sentry/components/events/interfaces/stackTraceV2';
 import {Template} from 'sentry/components/events/interfaces/template';
 import Threads from 'sentry/components/events/interfaces/threads';
 import ThreadsV2 from 'sentry/components/events/interfaces/threadsV2';
-import {Group, Organization, Project, SharedViewOrganization} from 'sentry/types';
+import type {Group, Organization, Project, SharedViewOrganization} from 'sentry/types';
 import {Entry, EntryType, Event, EventError, EventTransaction} from 'sentry/types/event';
 
 import {EmbeddedSpanTree} from './interfaces/spans/embeddedSpanTree';

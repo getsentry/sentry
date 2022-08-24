@@ -5,7 +5,7 @@ import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import space from 'sentry/styles/space';
-import {Organization, SavedSearch} from 'sentry/types';
+import type {Organization, SavedSearch} from 'sentry/types';
 
 import IssueListSearchBar from './searchBar';
 import {TagValueLoader} from './types';

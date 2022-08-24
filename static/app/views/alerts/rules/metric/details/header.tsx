@@ -10,7 +10,7 @@ import {IconCopy, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 
 import {isIssueAlert} from '../../../utils';

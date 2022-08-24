@@ -6,7 +6,7 @@ import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
-import {Organization, PageFilters} from 'sentry/types';
+import type {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';

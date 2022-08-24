@@ -5,7 +5,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {t} from 'sentry/locale';
 import AlertStore from 'sentry/stores/alertStore';
 import TagStore from 'sentry/stores/tagStore';
-import {PageFilters, Tag} from 'sentry/types';
+import type {PageFilters, Tag} from 'sentry/types';
 
 const MAX_TAGS = 1000;
 

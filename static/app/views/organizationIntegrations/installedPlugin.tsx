@@ -16,7 +16,7 @@ import Switch from 'sentry/components/switchButton';
 import {IconDelete, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {
+import type {
   AvatarProject,
   Organization,
   PluginNoProject,

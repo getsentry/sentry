@@ -4,7 +4,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import PreviewFeature from 'sentry/components/previewFeature';
 import {t, tct} from 'sentry/locale';
-import {ProjectKey} from 'sentry/types';
+import type {ProjectKey} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';

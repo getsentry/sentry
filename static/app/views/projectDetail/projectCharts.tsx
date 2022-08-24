@@ -26,7 +26,7 @@ import Placeholder from 'sentry/components/placeholder';
 import CHART_PALETTE from 'sentry/constants/chartPalette';
 import NOT_AVAILABLE_MESSAGES from 'sentry/constants/notAvailableMessages';
 import {t} from 'sentry/locale';
-import {Organization, SelectValue} from 'sentry/types';
+import type {Organization, SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';

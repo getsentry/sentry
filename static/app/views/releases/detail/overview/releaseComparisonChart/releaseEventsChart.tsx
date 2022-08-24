@@ -11,12 +11,12 @@ import {HeaderTitleLegend, HeaderValue} from 'sentry/components/charts/styles';
 import {getInterval} from 'sentry/components/charts/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import {
+import type {
   Organization,
   ReleaseComparisonChartType,
   ReleaseProject,
   ReleaseWithHealth,
-} from 'sentry/types';
+} from 'sentry/types'
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';

@@ -11,7 +11,7 @@ import {getRelativeTimeFromEventDateCreated} from 'sentry/components/events/cont
 import NotAvailable from 'sentry/components/notAvailable';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {EventAttachment, Organization, Project} from 'sentry/types';
+import type {EventAttachment, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined, formatBytesBase2} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';

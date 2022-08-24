@@ -10,7 +10,7 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
-import {Organization, Project, ResolutionStatus} from 'sentry/types';
+import type {Organization, Project, ResolutionStatus} from 'sentry/types';
 import Projects from 'sentry/utils/projects';
 import useMedia from 'sentry/utils/useMedia';
 

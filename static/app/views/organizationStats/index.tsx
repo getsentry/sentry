@@ -27,7 +27,7 @@ import {
 import {t, tct} from 'sentry/locale';
 import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {DataCategory, DateString, Organization, Project} from 'sentry/types';
+import type {DataCategory, DateString, Organization, Project} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import HeaderTabs from 'sentry/views/organizationStats/header';
 

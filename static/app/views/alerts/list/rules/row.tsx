@@ -22,7 +22,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconArrow, IconChevron, IconEllipsis, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Actor, Project} from 'sentry/types';
+import type {Actor, Project} from 'sentry/types';
 import type {Color} from 'sentry/utils/theme';
 import {getThresholdUnits} from 'sentry/views/alerts/rules/metric/constants';
 import {

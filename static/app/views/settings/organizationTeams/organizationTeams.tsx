@@ -14,7 +14,7 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {AccessRequest, Organization} from 'sentry/types';
+import type {AccessRequest, Organization} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import useTeams from 'sentry/utils/useTeams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';

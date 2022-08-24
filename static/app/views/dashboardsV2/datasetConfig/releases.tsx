@@ -5,7 +5,7 @@ import {doMetricsRequest} from 'sentry/actionCreators/metrics';
 import {doSessionsRequest} from 'sentry/actionCreators/sessions';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {
+import type {
   MetricsApiResponse,
   Organization,
   PageFilters,
@@ -13,7 +13,7 @@ import {
   SessionApiResponse,
   SessionField,
   SessionsMeta,
-} from 'sentry/types';
+} from 'sentry/types'
 import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {statsPeriodToDays} from 'sentry/utils/dates';

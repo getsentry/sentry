@@ -21,7 +21,7 @@ import Switch from 'sentry/components/switchButton';
 import filterGroups, {customFilterFields} from 'sentry/data/forms/inboundFilters';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 
 const LEGACY_BROWSER_SUBFILTERS = {
   ie_pre_9: {

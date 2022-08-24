@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {ExceptionType, Group, PlatformType, Project} from 'sentry/types';
+import type {ExceptionType, Group, PlatformType, Project} from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
 import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
 

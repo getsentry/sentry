@@ -3,7 +3,7 @@ import SavedSearchesActions from 'sentry/actions/savedSearchesActions';
 import {Client} from 'sentry/api';
 import {MAX_AUTOCOMPLETE_RECENT_SEARCHES} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {RecentSearch, SavedSearch, SavedSearchType} from 'sentry/types';
+import type {RecentSearch, SavedSearch, SavedSearchType} from 'sentry/types';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 
 export function resetSavedSearches() {

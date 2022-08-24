@@ -1,7 +1,7 @@
 import {Fragment, useContext} from 'react';
 import {Location} from 'history';
 
-import {Group, Organization} from 'sentry/types';
+import type {Group, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 

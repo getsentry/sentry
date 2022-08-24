@@ -6,7 +6,7 @@ import MarkLine from 'sentry/components/charts/components/markLine';
 import {parseStatsPeriod} from 'sentry/components/organizations/timeRangeSelector/utils';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {
+import type {
   Commit,
   CommitFile,
   FilesByRepository,
@@ -14,7 +14,7 @@ import {
   ReleaseProject,
   ReleaseWithHealth,
   Repository,
-} from 'sentry/types';
+} from 'sentry/types'
 import {Series} from 'sentry/types/echarts';
 import {decodeList} from 'sentry/utils/queryString';
 import {Theme} from 'sentry/utils/theme';

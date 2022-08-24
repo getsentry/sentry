@@ -6,7 +6,7 @@ import ErrorPanel from 'sentry/components/charts/errorPanel';
 import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {DateString, EventError, EventTag, Group, Organization} from 'sentry/types';
+import type {DateString, EventError, EventTag, Group, Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import SpanCountHistogramQuery from 'sentry/utils/performance/histogram/spanCountHistogramQuery';
 import {HistogramData} from 'sentry/utils/performance/histogram/types';

@@ -16,7 +16,7 @@ import SidebarSection from 'sentry/components/sidebarSection';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Tag, TagCollection} from 'sentry/types';
+import type {Tag, TagCollection} from 'sentry/types';
 
 import IssueListTagFilter from './tagFilter';
 import {TagValueLoader} from './types';

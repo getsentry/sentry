@@ -4,7 +4,7 @@ import {Location} from 'history';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {HealthStatsPeriodOption, PageFilters} from 'sentry/types';
+import type {HealthStatsPeriodOption, PageFilters} from 'sentry/types';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 type Props = {

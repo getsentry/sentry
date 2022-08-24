@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react';
 import {Location} from 'history';
 
-import {NewQuery} from 'sentry/types';
+import type {NewQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';

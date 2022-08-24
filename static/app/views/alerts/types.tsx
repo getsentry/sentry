@@ -1,4 +1,4 @@
-import {User} from 'sentry/types';
+import type {User} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
 import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 

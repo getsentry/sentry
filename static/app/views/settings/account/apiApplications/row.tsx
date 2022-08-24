@@ -13,7 +13,7 @@ import {PanelItem} from 'sentry/components/panels';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {ApiApplication} from 'sentry/types';
+import type {ApiApplication} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
 const ROUTE_PREFIX = '/settings/account/api/';

@@ -7,7 +7,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import QuickTrace from 'sentry/components/quickTrace';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Event, EventTransaction, Organization} from 'sentry/types';
+import type {Event, EventTransaction, Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import GenericDiscoverQuery from 'sentry/utils/discover/genericDiscoverQuery';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';

@@ -8,11 +8,11 @@ import FormModel from 'sentry/components/forms/model';
 import {SelectAsyncControlProps} from 'sentry/components/forms/selectAsyncControl';
 import {Field} from 'sentry/components/forms/type';
 import {t, tct} from 'sentry/locale';
-import {
+import type {
   ExternalActorMapping,
   ExternalActorMappingOrSuggestion,
   Integration,
-} from 'sentry/types';
+} from 'sentry/types'
 import {
   getExternalActorEndpointDetails,
   isExternalActorMapping,

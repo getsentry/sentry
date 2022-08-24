@@ -2,7 +2,7 @@ import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {

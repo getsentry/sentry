@@ -2,7 +2,7 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import IdBadge from 'sentry/components/idBadge';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import withLatestContext from 'sentry/utils/withLatestContext';
 import BreadcrumbDropdown from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';

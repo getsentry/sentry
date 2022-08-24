@@ -5,7 +5,7 @@ import {ChoiceMapperProps} from 'sentry/components/forms/choiceMapperField';
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import FormModel from 'sentry/components/forms/model';
 import {SelectAsyncFieldProps} from 'sentry/components/forms/selectAsyncField';
-import {AvatarProject, Project} from 'sentry/types';
+import type {AvatarProject, Project} from 'sentry/types';
 
 export const FieldType = [
   'array',

@@ -26,7 +26,7 @@ import {
   Shortcut,
   ShortcutType,
 } from './types';
-import {Tag} from 'sentry/types';
+import type {Tag} from 'sentry/types';
 import {FieldKind, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 
 export function addSpace(query = '') {

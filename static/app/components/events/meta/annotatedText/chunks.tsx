@@ -1,7 +1,7 @@
 import {cloneElement} from 'react';
 import styled from '@emotion/styled';
 
-import {ChunkType} from 'sentry/types';
+import type {ChunkType} from 'sentry/types';
 
 import Chunk from './chunk';
 

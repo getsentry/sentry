@@ -2,7 +2,7 @@ import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconBitbucket, IconGithub, IconGitlab, IconVsts} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Repository} from 'sentry/types';
+import type {Repository} from 'sentry/types';
 import {getShortCommitHash} from 'sentry/utils';
 
 type CommitFormatterParameters = {

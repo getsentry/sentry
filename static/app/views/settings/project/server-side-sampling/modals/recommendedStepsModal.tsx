@@ -16,7 +16,7 @@ import {
 } from 'sentry/components/sidebar/broadcastSdkUpdates';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {
   RecommendedSdkUpgrade,
   SamplingRule,

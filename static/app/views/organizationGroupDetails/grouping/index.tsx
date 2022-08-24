@@ -4,7 +4,7 @@ import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
-import {Group, Organization, Project} from 'sentry/types';
+import type {Group, Organization, Project} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import Grouping from './grouping';

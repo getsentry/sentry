@@ -1,4 +1,4 @@
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {Hooks} from 'sentry/types/hooks';
 import {trackAnalyticsEventV2} from 'sentry/utils/analytics';
 

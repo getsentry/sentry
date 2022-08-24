@@ -1,7 +1,7 @@
 import {useEffect} from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types';
 import {analytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';

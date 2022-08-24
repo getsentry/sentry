@@ -2,7 +2,7 @@ import {Component} from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
-import {SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 
 import {FILTER_OPTIONS} from './constants';

@@ -8,7 +8,7 @@ import LoadingError from 'sentry/components/loadingError';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProject from 'sentry/utils/withProject';

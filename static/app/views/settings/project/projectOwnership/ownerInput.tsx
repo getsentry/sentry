@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {inputStyles} from 'sentry/styles/input';
-import {Organization, Project, Team} from 'sentry/types';
+import type {Organization, Project, Team} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 import RuleBuilder from './ruleBuilder';

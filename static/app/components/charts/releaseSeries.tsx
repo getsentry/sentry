@@ -11,7 +11,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client, ResponseMeta} from 'sentry/api';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
-import {DateString, Organization} from 'sentry/types';
+import type {DateString, Organization} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {escape} from 'sentry/utils';
 import {getFormattedDate, getUtcDateString} from 'sentry/utils/dates';

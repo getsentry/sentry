@@ -18,14 +18,14 @@ import LoadingError from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {
+import type {
   CurrentRelease,
   Environment,
   Group,
   Organization,
   Project,
   TagWithTopValues,
-} from 'sentry/types';
+} from 'sentry/types'
 import {Event} from 'sentry/types/event';
 import withApi from 'sentry/utils/withApi';
 

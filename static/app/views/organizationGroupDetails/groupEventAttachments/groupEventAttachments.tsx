@@ -10,7 +10,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import {IssueAttachment} from 'sentry/types';
+import type {IssueAttachment} from 'sentry/types';
 
 import GroupEventAttachmentsFilter from './groupEventAttachmentsFilter';
 import GroupEventAttachmentsTable from './groupEventAttachmentsTable';

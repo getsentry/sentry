@@ -20,7 +20,7 @@ import Version from 'sentry/components/version';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Artifact, Organization, Project} from 'sentry/types';
+import type {Artifact, Organization, Project} from 'sentry/types';
 import {formatVersion} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import routeTitleGen from 'sentry/utils/routeTitle';

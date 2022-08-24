@@ -14,12 +14,12 @@ import {IconClose, IconDocs, IconGeneric, IconGithub, IconProject} from 'sentry/
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import space from 'sentry/styles/space';
-import {
+import type {
   IntegrationFeature,
   IntegrationInstallationStatus,
   IntegrationType,
   Organization,
-} from 'sentry/types';
+} from 'sentry/types'
 import {
   IntegrationAnalyticsKey,
   IntegrationEventParameters,

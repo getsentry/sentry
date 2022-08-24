@@ -8,7 +8,7 @@ import {PanelItem} from 'sentry/components/panels';
 import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, SentryApp} from 'sentry/types';
+import type {Organization, SentryApp} from 'sentry/types';
 
 import SentryApplicationRowButtons from './sentryApplicationRowButtons';
 

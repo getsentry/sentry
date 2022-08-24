@@ -8,7 +8,7 @@ import IdBadge from 'sentry/components/idBadge';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
-import {Member, Organization, Project, User} from 'sentry/types';
+import type {Member, Organization, Project, User} from 'sentry/types';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import withApi from 'sentry/utils/withApi';
 

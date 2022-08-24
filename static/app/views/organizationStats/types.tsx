@@ -1,4 +1,4 @@
-import {SeriesApi} from 'sentry/types';
+import type {SeriesApi} from 'sentry/types';
 
 export enum Outcome {
   ACCEPTED = 'accepted',

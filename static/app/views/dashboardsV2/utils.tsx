@@ -23,7 +23,7 @@ import {
   TWENTY_FOUR_HOURS,
 } from 'sentry/components/charts/utils';
 import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
-import {Organization, PageFilters} from 'sentry/types';
+import type {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';

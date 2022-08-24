@@ -2,7 +2,7 @@ import {createContext, Fragment, Ref, useEffect, useRef} from 'react';
 import identity from 'lodash/identity';
 
 import {Client} from 'sentry/api';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';

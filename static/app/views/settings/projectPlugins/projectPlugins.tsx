@@ -12,7 +12,7 @@ import {
   PanelItem,
 } from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
-import {Plugin, Project} from 'sentry/types';
+import type {Plugin, Project} from 'sentry/types';
 import RouteError from 'sentry/views/routeError';
 
 import ProjectPluginRow from './projectPluginRow';

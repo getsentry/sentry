@@ -11,7 +11,7 @@ import BookmarkStar from 'sentry/components/projects/bookmarkStar';
 import {IconOpen, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {analytics} from 'sentry/utils/analytics';
 
 type Props = {

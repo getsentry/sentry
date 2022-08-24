@@ -8,7 +8,7 @@ import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKe
 import Tooltip from 'sentry/components/tooltip';
 import {IconStar} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import useTeams from 'sentry/utils/useTeams';

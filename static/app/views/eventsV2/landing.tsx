@@ -18,7 +18,7 @@ import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {Organization, SavedQuery, SelectValue} from 'sentry/types';
+import type {Organization, SavedQuery, SelectValue} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';

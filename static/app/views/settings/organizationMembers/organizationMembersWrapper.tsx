@@ -8,7 +8,7 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Member, Organization} from 'sentry/types';
+import type {Member, Organization} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';

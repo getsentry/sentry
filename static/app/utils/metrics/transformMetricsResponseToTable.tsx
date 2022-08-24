@@ -1,4 +1,4 @@
-import {MetricsApiResponse} from 'sentry/types';
+import type {MetricsApiResponse} from 'sentry/types';
 
 import {TableData} from '../discover/discoverQuery';
 import {getAggregateArg} from '../discover/fields';

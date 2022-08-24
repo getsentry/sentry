@@ -6,7 +6,7 @@ import {fetchTagValues} from 'sentry/actionCreators/tags';
 import Count from 'sentry/components/count';
 import SelectField from 'sentry/components/forms/selectField';
 import {t} from 'sentry/locale';
-import {Organization, Project, TagValue as IssueTagValue} from 'sentry/types';
+import type {Organization, Project, TagValue as IssueTagValue} from 'sentry/types';
 import {SamplingInnerName} from 'sentry/types/sampling';
 import useApi from 'sentry/utils/useApi';
 

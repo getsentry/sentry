@@ -13,7 +13,7 @@ import {t, tct} from 'sentry/locale';
 import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {percent} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/formatters';
 import useProjects from 'sentry/utils/useProjects';

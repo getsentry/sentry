@@ -3,7 +3,7 @@ import {InjectedRouter} from 'react-router';
 import {Location} from 'history';
 
 import {Client} from 'sentry/api';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {BuiltinSymbolSource, CustomRepo} from 'sentry/types/debugFiles';
 
 import BuiltInRepositories from './builtInRepositories';

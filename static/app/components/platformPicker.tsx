@@ -14,7 +14,7 @@ import {IconClose, IconProject, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {inputStyles} from 'sentry/styles/input';
 import space from 'sentry/styles/space';
-import {Organization, PlatformIntegration} from 'sentry/types';
+import type {Organization, PlatformIntegration} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 

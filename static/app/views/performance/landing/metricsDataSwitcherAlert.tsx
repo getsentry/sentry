@@ -10,7 +10,7 @@ import Link from 'sentry/components/links/link';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {t, tct} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {MetricDataSwitcherOutcome} from 'sentry/utils/performance/contexts/metricsCardinality';
 

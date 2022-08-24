@@ -7,7 +7,7 @@ import ErrorPanel from 'sentry/components/charts/errorPanel';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {MEPDataProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';

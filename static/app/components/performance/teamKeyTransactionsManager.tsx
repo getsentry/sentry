@@ -8,7 +8,7 @@ import {
 } from 'sentry/actionCreators/performance';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {Organization, Project, Team} from 'sentry/types';
+import type {Organization, Project, Team} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
 export type TeamSelection = {

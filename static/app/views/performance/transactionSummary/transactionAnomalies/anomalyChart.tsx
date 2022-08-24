@@ -6,7 +6,7 @@ import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart, LineChartProps} from 'sentry/components/charts/lineChart';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import {DateString} from 'sentry/types';
+import type {DateString} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';

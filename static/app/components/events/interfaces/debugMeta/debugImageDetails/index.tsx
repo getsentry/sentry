@@ -11,7 +11,7 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {DebugFile, DebugFileFeature} from 'sentry/types/debugFiles';
 import {CandidateDownloadStatus, Image, ImageStatus} from 'sentry/types/debugImage';
 import {Event} from 'sentry/types/event';

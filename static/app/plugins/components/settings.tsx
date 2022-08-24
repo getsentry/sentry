@@ -5,7 +5,7 @@ import PluginComponentBase from 'sentry/components/bases/pluginComponentBase';
 import {Form, FormState} from 'sentry/components/deprecatedforms';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import {Organization, Plugin, Project} from 'sentry/types';
+import type {Organization, Plugin, Project} from 'sentry/types';
 import {parseRepo} from 'sentry/utils';
 import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';

@@ -5,7 +5,7 @@ import DateTime from 'sentry/components/dateTime';
 import TimeSince from 'sentry/components/timeSince';
 import space from 'sentry/styles/space';
 import textStyles from 'sentry/styles/text';
-import {AvatarUser} from 'sentry/types';
+import type {AvatarUser} from 'sentry/types';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 
 import ActivityAvatar from './avatar';

@@ -6,7 +6,7 @@ import {Panel, PanelBody} from 'sentry/components/panels';
 import QueryCount from 'sentry/components/queryCount';
 import {t} from 'sentry/locale';
 import {Fingerprint} from 'sentry/stores/groupingStore';
-import {Group, Organization, Project} from 'sentry/types';
+import type {Group, Organization, Project} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import MergedItem from './mergedItem';

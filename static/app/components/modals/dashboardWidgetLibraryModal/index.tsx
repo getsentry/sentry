@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {assignTempId} from 'sentry/views/dashboardsV2/layoutUtils';
 import {DashboardDetails, MAX_WIDGETS, Widget} from 'sentry/views/dashboardsV2/types';

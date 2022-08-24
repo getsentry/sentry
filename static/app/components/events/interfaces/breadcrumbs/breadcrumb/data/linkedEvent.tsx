@@ -8,7 +8,7 @@ import Placeholder from 'sentry/components/placeholder';
 import ShortId from 'sentry/components/shortId';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {EventIdResponse, Group, Organization, Project} from 'sentry/types';
+import type {EventIdResponse, Group, Organization, Project} from 'sentry/types';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 import useSessionStorage from 'sentry/utils/useSessionStorage';

@@ -7,7 +7,7 @@ import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
-import {ResolutionStatusDetails} from 'sentry/types';
+import type {ResolutionStatusDetails} from 'sentry/types';
 
 const defaultProps = {
   label: t('Ignore this issue until \u2026'),

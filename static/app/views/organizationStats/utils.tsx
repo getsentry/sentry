@@ -1,5 +1,5 @@
 import {DateTimeObject, getSeriesApiInterval} from 'sentry/components/charts/utils';
-import {DataCategory} from 'sentry/types';
+import type {DataCategory} from 'sentry/types';
 import {formatBytesBase10} from 'sentry/utils';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 

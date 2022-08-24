@@ -7,7 +7,7 @@ import SelectControl from 'sentry/components/forms/selectControl';
 import Input from 'sentry/components/input';
 import SidebarSection from 'sentry/components/sidebarSection';
 import {t, tct} from 'sentry/locale';
-import {Tag, TagValue} from 'sentry/types';
+import type {Tag, TagValue} from 'sentry/types';
 
 import {TagValueLoader} from './types';
 

@@ -3,7 +3,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {removeFilterMaskedEntries} from 'sentry/components/events/interfaces/utils';
-import {AvatarUser} from 'sentry/types';
+import type {AvatarUser} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 

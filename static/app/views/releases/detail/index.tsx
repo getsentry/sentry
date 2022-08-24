@@ -17,7 +17,7 @@ import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {
+import type {
   Deploy,
   Organization,
   PageFilters,
@@ -25,8 +25,9 @@ import {
   ReleaseProject,
   ReleaseWithHealth,
   SessionApiResponse,
-  SessionFieldWithOperation,
-} from 'sentry/types';
+} from 'sentry/types'
+
+  import {SessionFieldWithOperation} from 'sentry/enum';
 import {formatVersion} from 'sentry/utils/formatters';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import {getCount} from 'sentry/utils/sessions';

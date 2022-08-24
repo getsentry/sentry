@@ -17,13 +17,13 @@ import {
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {
+import type {
   HealthStatsPeriodOption,
   Organization,
   PageFilters,
   SessionApiResponse,
-  SessionFieldWithOperation,
 } from 'sentry/types';
+  import {SessionFieldWithOperation} from 'sentry/enum';
 import {defined, percent} from 'sentry/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';

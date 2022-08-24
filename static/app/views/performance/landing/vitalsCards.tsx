@@ -16,7 +16,7 @@ import SparklinesLine from 'sentry/components/sparklines/line';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';

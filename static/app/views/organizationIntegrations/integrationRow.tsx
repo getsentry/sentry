@@ -8,12 +8,12 @@ import {PanelItem} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import space from 'sentry/styles/space';
-import {
+import type {
   IntegrationInstallationStatus,
   Organization,
   PluginWithProjectList,
   SentryApp,
-} from 'sentry/types';
+} from 'sentry/types'
 import {
   convertIntegrationTypeToSnakeCase,
   trackIntegrationAnalytics,

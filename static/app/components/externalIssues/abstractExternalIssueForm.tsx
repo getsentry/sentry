@@ -9,12 +9,12 @@ import Form from 'sentry/components/forms/form';
 import FormModel, {FieldValue} from 'sentry/components/forms/model';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {tct} from 'sentry/locale';
-import {
+import type {
   Choices,
   IntegrationIssueConfig,
   IssueConfigField,
   SelectValue,
-} from 'sentry/types';
+} from 'sentry/types'
 import {FormField} from 'sentry/views/alerts/rules/issue/ruleNode';
 
 export type ExternalIssueAction = 'create' | 'link';

@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import plugins from 'sentry/plugins';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
-import {Event, KeyValueListData} from 'sentry/types';
+import type {Event, KeyValueListData} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 const CONTEXT_TYPES = {

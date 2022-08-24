@@ -2,7 +2,7 @@ import trimStart from 'lodash/trimStart';
 
 import {Client, ResponseMeta} from 'sentry/api';
 import {SearchBarProps} from 'sentry/components/events/searchBar';
-import {Organization, PageFilters, SelectValue, TagCollection} from 'sentry/types';
+import type {Organization, PageFilters, SelectValue, TagCollection} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {TableData} from 'sentry/utils/discover/discoverQuery';

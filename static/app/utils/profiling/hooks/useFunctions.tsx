@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 import {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import {Organization, PageFilters, Project, RequestState} from 'sentry/types';
+import type {Organization, PageFilters, Project, RequestState} from 'sentry/types';
 import {SuspectFunction} from 'sentry/types/profiling/core';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';

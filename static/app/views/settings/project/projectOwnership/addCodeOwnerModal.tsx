@@ -14,14 +14,14 @@ import {Panel, PanelBody} from 'sentry/components/panels';
 import {IconCheckmark, IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {
+import type {
   CodeOwner,
   CodeownersFile,
   Integration,
   Organization,
   Project,
   RepositoryProjectPathConfig,
-} from 'sentry/types';
+} from 'sentry/types'
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 
 type Props = {

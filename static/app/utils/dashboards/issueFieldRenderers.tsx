@@ -12,7 +12,7 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import EventView, {EventData} from 'sentry/utils/discover/eventView';
 import {FieldKey} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/fields';
 

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import BadgeDisplayName from 'sentry/components/idBadge/badgeDisplayName';
 import BaseBadge from 'sentry/components/idBadge/baseBadge';
 import Link, {LinkProps} from 'sentry/components/links/link';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type BaseBadgeProps = React.ComponentProps<typeof BaseBadge>;

@@ -1,6 +1,6 @@
 import DetailedError from 'sentry/components/errors/detailedError';
 import {t} from 'sentry/locale';
-import {Environment} from 'sentry/types';
+import type {Environment} from 'sentry/types';
 
 type Props = {
   environments: Environment[];

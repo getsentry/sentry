@@ -15,13 +15,13 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {
+import type {
   Organization,
   Project,
   SessionApiResponse,
-  SessionFieldWithOperation,
-  SessionStatus,
-} from 'sentry/types';
+} from 'sentry/types'
+  import {SessionFieldWithOperation,
+  SessionStatus,} from 'sentry/enum';
 import {formatFloat} from 'sentry/utils/formatters';
 import {getCountSeries, getCrashFreeRate, getSeriesSum} from 'sentry/utils/sessions';
 import {Color} from 'sentry/utils/theme';

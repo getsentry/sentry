@@ -15,7 +15,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Release, ReleaseMeta} from 'sentry/types';
+import type {Organization, Release, ReleaseMeta} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {formatVersion} from 'sentry/utils/formatters';
 

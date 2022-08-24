@@ -8,7 +8,7 @@ import {Panel, PanelBody} from 'sentry/components/panels';
 import SimilarSpectrum from 'sentry/components/similarSpectrum';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Group, Organization, Project} from 'sentry/types';
+import type {Group, Organization, Project} from 'sentry/types';
 
 import Item from './item';
 import Toolbar from './toolbar';

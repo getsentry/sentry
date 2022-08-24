@@ -14,7 +14,7 @@ import PanelTable from 'sentry/components/panels/panelTable';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {Color} from 'sentry/utils/theme';
 import {MetricRule} from 'sentry/views/alerts/rules/metric/types';

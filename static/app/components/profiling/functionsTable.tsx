@@ -9,7 +9,7 @@ import GridEditable, {
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {ArrayLinks} from 'sentry/components/profiling/arrayLinks';
 import {t} from 'sentry/locale';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 import {SuspectFunction} from 'sentry/types/profiling/core';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {getShortEventId} from 'sentry/utils/events';

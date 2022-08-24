@@ -11,13 +11,13 @@ import {IconInfo} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {
+import type {
   Frame,
   Integration,
   Organization,
   Project,
   RepositoryProjectPathConfigWithIntegration,
-} from 'sentry/types';
+} from 'sentry/types'
 import {Event} from 'sentry/types/event';
 import {StacktraceLinkEvents} from 'sentry/utils/analytics/integrations/stacktraceLinkAnalyticsEvents';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';

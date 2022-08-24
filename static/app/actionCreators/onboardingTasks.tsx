@@ -1,7 +1,7 @@
 import OrganizationActions from 'sentry/actions/organizationActions';
 import {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
-import {OnboardingTask, Organization} from 'sentry/types';
+import type {OnboardingTask, Organization} from 'sentry/types';
 
 /**
  * Update an onboarding task.

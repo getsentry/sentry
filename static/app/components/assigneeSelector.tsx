@@ -23,7 +23,7 @@ import GroupStore from 'sentry/stores/groupStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
-import {Actor, SuggestedOwner, SuggestedOwnerReason, Team, User} from 'sentry/types';
+import type {Actor, SuggestedOwner, SuggestedOwnerReason, Team, User} from 'sentry/types';
 import {buildTeamId, buildUserId, valueIsEqual} from 'sentry/utils';
 
 type SuggestedAssignee = Actor & {

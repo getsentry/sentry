@@ -4,7 +4,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import Field from 'sentry/components/forms/field';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {TagCollection} from 'sentry/types';
+import type {TagCollection} from 'sentry/types';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import useOrganization from 'sentry/utils/useOrganization';

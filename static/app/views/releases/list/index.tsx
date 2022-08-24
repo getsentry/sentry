@@ -29,14 +29,14 @@ import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {PageContent, PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {
+import type {
   Organization,
   PageFilters,
   Project,
   Release,
   ReleaseStatus,
   Tag,
-} from 'sentry/types';
+} from 'sentry/types'
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import Projects from 'sentry/utils/projects';

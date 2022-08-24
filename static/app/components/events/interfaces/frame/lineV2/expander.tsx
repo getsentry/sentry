@@ -5,7 +5,7 @@ import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'sentry/components/stacktracePrev
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {PlatformType} from 'sentry/types';
+import type {PlatformType} from 'sentry/types';
 
 import {isDotnet} from '../utils';
 

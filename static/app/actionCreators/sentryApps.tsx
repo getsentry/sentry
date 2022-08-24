@@ -6,7 +6,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {SentryApp} from 'sentry/types';
+import type {SentryApp} from 'sentry/types';
 
 /**
  * Remove a Sentry Application

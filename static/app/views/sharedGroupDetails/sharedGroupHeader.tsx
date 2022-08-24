@@ -4,7 +4,7 @@ import EventMessage from 'sentry/components/events/eventMessage';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ShortId from 'sentry/components/shortId';
 import space from 'sentry/styles/space';
-import {Group} from 'sentry/types';
+import type {Group} from 'sentry/types';
 
 import UnhandledTag, {
   TagAndMessageWrapper,

@@ -6,7 +6,7 @@ import Field from 'sentry/components/forms/field';
 import SelectControl from 'sentry/components/forms/selectControl';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, PageFilters, SelectValue} from 'sentry/types';
+import type {Organization, PageFilters, SelectValue} from 'sentry/types';
 import {
   explodeField,
   generateFieldAsString,

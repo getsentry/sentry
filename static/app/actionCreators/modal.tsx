@@ -9,7 +9,7 @@ import type {ReprocessEventModalOptions} from 'sentry/components/modals/reproces
 import {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import ModalStore from 'sentry/stores/modalStore';
-import {
+import type {
   Group,
   IssueOwnership,
   Organization,

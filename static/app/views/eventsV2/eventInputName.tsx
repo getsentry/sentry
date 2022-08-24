@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import EditableText from 'sentry/components/editableText';
 import {Title} from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
-import {Organization, SavedQuery} from 'sentry/types';
+import type {Organization, SavedQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import useApi from 'sentry/utils/useApi';
 

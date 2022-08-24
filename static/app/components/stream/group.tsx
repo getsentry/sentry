@@ -25,7 +25,7 @@ import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import space from 'sentry/styles/space';
-import {
+import type {
   Group,
   GroupReprocessing,
   InboxDetails,
@@ -33,7 +33,7 @@ import {
   Organization,
   PageFilters,
   User,
-} from 'sentry/types';
+} from 'sentry/types'
 import {defined, percent, valueIsEqual} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {callIfFunction} from 'sentry/utils/callIfFunction';

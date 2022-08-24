@@ -11,7 +11,7 @@ import Tag from 'sentry/components/tag';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {AuditLog, User} from 'sentry/types';
+import type {AuditLog, User} from 'sentry/types';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 

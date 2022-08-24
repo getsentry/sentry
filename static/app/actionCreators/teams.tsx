@@ -2,7 +2,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import TeamActions from 'sentry/actions/teamActions';
 import {Client} from 'sentry/api';
 import {tct} from 'sentry/locale';
-import {Team} from 'sentry/types';
+import type {Team} from 'sentry/types';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {uniqueId} from 'sentry/utils/guid';
 

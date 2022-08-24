@@ -3,7 +3,7 @@ import {createStore} from 'reflux';
 
 import PageFiltersActions from 'sentry/actions/pageFiltersActions';
 import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/utils';
-import {PageFilters, PinnedPageFilter} from 'sentry/types';
+import type {PageFilters, PinnedPageFilter} from 'sentry/types';
 import {isEqualWithDates} from 'sentry/utils/isEqualWithDates';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 

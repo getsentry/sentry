@@ -3,7 +3,7 @@ import isNil from 'lodash/isNil';
 
 import {Client, RequestCallbacks, RequestOptions} from 'sentry/api';
 import GroupStore from 'sentry/stores/groupStore';
-import {Actor, Group, Member, Note, User} from 'sentry/types';
+import type {Actor, Group, Member, Note, User} from 'sentry/types';
 import {buildTeamId, buildUserId} from 'sentry/utils';
 import {uniqueId} from 'sentry/utils/guid';
 

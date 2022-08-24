@@ -1,7 +1,7 @@
 import {createStore, StoreDefinition} from 'reflux';
 
 import RepoActions from 'sentry/actions/repositoryActions';
-import {Repository} from 'sentry/types';
+import type {Repository} from 'sentry/types';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 interface RepositoryStoreDefinition extends StoreDefinition {

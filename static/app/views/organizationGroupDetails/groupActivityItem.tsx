@@ -9,7 +9,7 @@ import PullRequestLink from 'sentry/components/pullRequestLink';
 import Version from 'sentry/components/version';
 import {t, tct, tn} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
-import {
+import type {
   GroupActivity,
   GroupActivityAssigned,
   GroupActivitySetIgnored,
@@ -17,7 +17,7 @@ import {
   Organization,
   Project,
   User,
-} from 'sentry/types';
+} from 'sentry/types'
 
 type Props = {
   activity: GroupActivity;

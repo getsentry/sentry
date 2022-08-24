@@ -9,7 +9,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t, tn} from 'sentry/locale';
-import {CommitFile, Organization, Project, Repository} from 'sentry/types';
+import type {CommitFile, Organization, Project, Repository} from 'sentry/types';
 import {formatVersion} from 'sentry/utils/formatters';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';

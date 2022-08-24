@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react';
 
 import {Client} from 'sentry/api';
-import {DateString, OrganizationSummary} from 'sentry/types';
+import type {DateString, OrganizationSummary} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableData, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';

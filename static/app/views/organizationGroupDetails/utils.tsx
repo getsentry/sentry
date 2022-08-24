@@ -3,7 +3,7 @@ import orderBy from 'lodash/orderBy';
 import {bulkUpdate} from 'sentry/actionCreators/group';
 import {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
-import {Group, GroupActivity} from 'sentry/types';
+import type {Group, GroupActivity} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 
 /**

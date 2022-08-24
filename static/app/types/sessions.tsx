@@ -10,12 +10,6 @@ export type SessionsMeta = {
   type: ColumnType;
 };
 
-export enum SessionField {
-  SESSION = 'session',
-  SESSION_DURATION = 'session.duration',
-  USER = 'user',
-}
-
 export type SessionsOperation =
   | 'sum'
   | 'count_unique'

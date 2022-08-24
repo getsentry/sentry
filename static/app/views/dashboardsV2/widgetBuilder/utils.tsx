@@ -4,7 +4,7 @@ import trimStart from 'lodash/trimStart';
 
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import {t} from 'sentry/locale';
-import {OrganizationSummary, TagCollection} from 'sentry/types';
+import type {OrganizationSummary, TagCollection} from 'sentry/types';
 import {
   aggregateFunctionOutputType,
   aggregateOutputType,

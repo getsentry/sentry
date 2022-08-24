@@ -3,7 +3,7 @@ import classNames from 'classnames';
 import FormField from 'sentry/components/deprecatedforms/formField';
 import Tooltip from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
-import {Choices} from 'sentry/types';
+import type {Choices} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 type Value = string | number | boolean;
