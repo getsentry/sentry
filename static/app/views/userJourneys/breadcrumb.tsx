@@ -30,7 +30,7 @@ function Breadcrumb({eventView, userId, organization, location}: Props) {
 
   if (userId) {
     crumbs.push({
-      label: `User: ${userId}`,
+      label: 'User Journey Details',
     });
   }
 

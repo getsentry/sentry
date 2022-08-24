@@ -2,10 +2,12 @@ import {useEffect, useMemo, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import Clipboard from 'sentry/components/clipboard';
 import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageHeading from 'sentry/components/pageHeading';
+import {IconCopy} from 'sentry/icons';
 // import {PanelTable} from 'sentry/components/panels';
 // import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -148,7 +150,15 @@ function UserView({params: {userId}, router, route}: Props) {
             location={location}
             userId={userId}
           />
-          <PageHeading>{t(`User: ${userId}`)}</PageHeading>
+          <PageHeading>{t('User Journey Details')}</PageHeading>
+          <UserIdWrapper>
+            {userId}
+            <Clipboard value={userId}>
+              <ClipboardIconWrapper>
+                <IconCopy size="xs" />
+              </ClipboardIconWrapper>
+            </Clipboard>
+          </UserIdWrapper>
         </Layout.HeaderContent>
       </Layout.Header>
       <Layout.Body>
@@ -205,6 +215,20 @@ function UserView({params: {userId}, router, route}: Props) {
 
 const StyledPageContent = styled(PageContent)`
   padding: 0;
+`;
+
+const ClipboardIconWrapper = styled('span')`
+  &:hover {
+    cursor: pointer;
+  }
+  margin-left: 5px;
+  display: flex;
+  align-items: center;
+`;
+
+const UserIdWrapper = styled('span')`
+  color: ${p => p.theme.gray300};
+  display: flex;
 `;
 
 // TODO: keep?
