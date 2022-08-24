@@ -6,7 +6,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {TextareaField} from 'sentry/components/forms';
+import {TextareaField, TextField} from 'sentry/components/forms';
 import SelectField from 'sentry/components/forms/selectField';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
@@ -100,7 +100,7 @@ export function FlagModal({
   const submitDisabled = !key || !!error;
   const canUpdateKind = defined(flagKey) ? flags[flagKey].evaluation.length === 0 : true;
 
-  const nameChoices = Object.keys(flags).map(value => [value, value]);
+  const nameChoices = [] as string[][];
 
   if (!nameChoices.some(nameChoice => nameChoice[0] === key)) {
     nameChoices.push([key, key]);
@@ -116,6 +116,11 @@ export function FlagModal({
 
     if (value.includes(' ')) {
       setError(t('Name cannot contain spaces'));
+      return;
+    }
+
+    if (flags[value]) {
+      setError(t('This key is already in use'));
       return;
     }
 
@@ -141,8 +146,9 @@ export function FlagModal({
               }
             }}
             onChange={setKeyWithValidation}
+            error={error}
             inline={false}
-            hideControlState
+            hideControlState={!error}
             required
             creatable
           />
