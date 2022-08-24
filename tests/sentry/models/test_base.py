@@ -7,7 +7,7 @@ from sentry.testutils.helpers.django import override_settings
 
 
 class AvailableOnTest(TestCase):
-    class TestModel(Model):
+    class DummyModel(Model):
         __include_in_export__ = False
 
         class Meta:
@@ -15,18 +15,18 @@ class AvailableOnTest(TestCase):
             app_label = "fixtures"
 
     @ModelAvailableOn(ServerComponentMode.CONTROL)
-    class ControlModel(TestModel):
+    class ControlModel(DummyModel):
         pass
 
     @ModelAvailableOn(ServerComponentMode.CUSTOMER)
-    class CustomerModel(TestModel):
+    class CustomerModel(DummyModel):
         pass
 
     @ModelAvailableOn(ServerComponentMode.CONTROL, read_only=ServerComponentMode.CUSTOMER)
-    class ReadOnlyModel(TestModel):
+    class ReadOnlyModel(DummyModel):
         pass
 
-    class ModelOnMonolith(TestModel):
+    class ModelOnMonolith(DummyModel):
         pass
 
     def test_available_on_monolith_mode(self):

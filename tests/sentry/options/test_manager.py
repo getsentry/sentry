@@ -3,7 +3,7 @@ from unittest.mock import patch
 import pytest
 from django.conf import settings
 from django.core.cache.backends.locmem import LocMemCache
-from exam import around, fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.models import Option
 from sentry.options.manager import (
@@ -32,7 +32,7 @@ class OptionsManagerTest(TestCase):
     def manager(self):
         return OptionsManager(store=self.store)
 
-    @around
+    @pytest.fixture(autouse=True)
     def register(self):
         default_options = settings.SENTRY_DEFAULT_OPTIONS.copy()
         settings.SENTRY_DEFAULT_OPTIONS = {}
