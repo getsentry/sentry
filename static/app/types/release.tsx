@@ -176,20 +176,10 @@ export enum ReleaseComparisonChartType {
 export enum SessionDisplayYAxis {
   CRASH_FREE_SESSION_RATE = 'crash_free_rate(session)',
   CRASH_FREE_USER_RATE = 'crash_free_rate(user)',
-  CRASHED_SESSION_RATE = 'crashedSessionRate',
-  CRASHED_USER_RATE = 'crashedUserRate',
-  CRASH_FREE_SESSIONS = 'crashFreeSessions',
-  CRASH_FREE_USERS = 'crashFreeUsers',
+  CRASHED_SESSION_RATE = 'crash_rate(session)',
+  CRASHED_USER_RATE = 'crash_rate(user)',
   SESSION_COUNT = 'sum(session)',
   USER_COUNT = 'count_unique(user)',
-  HEALTHY_SESSIONS = 'healthySessions',
-  ABNORMAL_SESSIONS = 'abnormalSessions',
-  ERRORED_SESSIONS = 'erroredSessions',
-  CRASHED_SESSIONS = 'crashedSessions',
-  HEALTHY_USERS = 'healthyUsers',
-  ABNORMAL_USERS = 'abnormalUsers',
-  ERRORED_USERS = 'erroredUsers',
-  CRASHED_USERS = 'crashedUsers',
 }
 
 export const CHART_TYPE_TO_YAXIS_MAP = {
@@ -202,14 +192,14 @@ export const CHART_TYPE_TO_YAXIS_MAP = {
 
 export enum SessionDisplayTags {
   ALL = 'all',
-  OS_NAME = 'os',
+  OS_NAME = 'os.name',
   OS_VERSION = 'os.version',
 }
 
 export const SESSION_DISPLAY_TYPES: SelectValue<string>[] = [
   {value: SessionDisplayTags.ALL, label: t('All')},
-  {value: SessionDisplayTags.OS_NAME, label: t('OS Name')},
-  {value: SessionDisplayTags.OS_VERSION, label: t('OS Version')},
+  {value: SessionDisplayTags.OS_NAME, label: t('os.name')},
+  {value: SessionDisplayTags.OS_VERSION, label: t('os.version')},
 ];
 
 export enum HealthStatsPeriodOption {

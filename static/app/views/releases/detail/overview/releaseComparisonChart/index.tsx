@@ -20,7 +20,6 @@ import {IconArrow, IconChevron, IconList, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
-  CHART_TYPE_TO_YAXIS_MAP,
   Organization,
   PageFilters,
   ReleaseComparisonChartType,
@@ -29,7 +28,6 @@ import {
   SESSION_DISPLAY_TYPES,
   SessionApiResponse,
   SessionDisplayTags,
-  SessionDisplayYAxis,
   SessionFieldWithOperation,
   SessionStatus,
 } from 'sentry/types';
@@ -111,12 +109,6 @@ function ReleaseComparisonChart({
   hasHealthData,
 }: Props) {
   const [issuesTotals, setIssuesTotals] = useState<IssuesTotals>(null);
-  const [selectedDisplay, setSelectedDisplay] = useState<SessionDisplayYAxis>(
-    SessionDisplayYAxis.CRASH_FREE_SESSION_RATE
-  );
-  const [selectedTag, setSelectedTag] = useState<SessionDisplayTags>(
-    SessionDisplayTags.ALL
-  );
   const [eventsTotals, setEventsTotals] = useState<EventsTotals>(null);
   const [eventsLoading, setEventsLoading] = useState(false);
   const [expanded, setExpanded] = useState(new Set());
@@ -153,8 +145,9 @@ function ReleaseComparisonChart({
     projects: [project.id],
   } as PageFilters;
 
+  const chartInUrl = decodeScalar(location.query.chart) as ReleaseComparisonChartType;
+  const groupByInUrl = decodeScalar(location.query.groupBy) as SessionDisplayTags;
   useEffect(() => {
-    const chartInUrl = decodeScalar(location.query.chart) as ReleaseComparisonChartType;
     if (
       [
         ReleaseComparisonChartType.HEALTHY_SESSIONS,
@@ -187,10 +180,7 @@ function ReleaseComparisonChart({
     ) {
       setIsOtherExpanded(true);
     }
-    setSelectedDisplay(
-      CHART_TYPE_TO_YAXIS_MAP[chartInUrl] ?? ReleaseComparisonChartType.CRASHED_SESSIONS
-    );
-  }, [location.query.chart]);
+  }, [chartInUrl]);
 
   const fetchEventsTotals = useCallback(async () => {
     const url = `/organizations/${organization.slug}/events/`;
@@ -875,6 +865,16 @@ function ReleaseComparisonChart({
     });
   }
 
+  function handleGroupByChange(groupBy: string) {
+    browserHistory.push({
+      ...location,
+      query: {
+        ...location.query,
+        groupBy,
+      },
+    });
+  }
+
   function handleExpanderToggle(chartType: ReleaseComparisonChartType) {
     if (expanded.has(chartType)) {
       expanded.delete(chartType);
@@ -1004,9 +1004,11 @@ function ReleaseComparisonChart({
             : getDynamicText({
                 value: (
                   <ReleaseChartContainer
-                    groupBy={selectedTag}
+                    groupBy={groupByInUrl ?? SessionDisplayTags.ALL}
                     release={release}
-                    yAxis={selectedDisplay}
+                    selectedDisplay={
+                      chartInUrl ?? ReleaseComparisonChartType.CRASH_FREE_SESSIONS
+                    }
                     organization={organization}
                     selection={selection}
                   />
@@ -1019,10 +1021,10 @@ function ReleaseComparisonChart({
         <InlineContainer>
           <OptionSelector
             title={t('Display')}
-            selected={SessionDisplayTags.OS_NAME}
+            selected={groupByInUrl ?? SessionDisplayTags.ALL}
             options={SESSION_DISPLAY_TYPES}
             onChange={value => {
-              setSelectedTag(value as SessionDisplayTags);
+              handleGroupByChange(value);
             }}
           />
         </InlineContainer>

@@ -1,10 +1,10 @@
 import {Client} from 'sentry/api';
 import {
+  CHART_TYPE_TO_YAXIS_MAP,
   Organization,
   PageFilters,
   ReleaseWithHealth,
   SessionDisplayTags,
-  SessionDisplayYAxis,
 } from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
@@ -16,18 +16,19 @@ type Props = {
   groupBy: SessionDisplayTags;
   organization: Organization;
   release: ReleaseWithHealth;
+  selectedDisplay: string;
   selection: PageFilters;
-  yAxis: SessionDisplayYAxis;
 };
 
 function ReleaseChartContainer({
   api,
   groupBy,
-  yAxis,
+  selectedDisplay,
   organization,
   selection,
   release,
 }: Props) {
+  const yAxis = CHART_TYPE_TO_YAXIS_MAP[selectedDisplay];
   return (
     <SessionsQuery
       api={api}
@@ -37,10 +38,9 @@ function ReleaseChartContainer({
       selection={selection}
       yAxis={yAxis}
     >
-      {({loading, reloading, seriesResult}) => (
+      {({loading, seriesResult}) => (
         <ReleaseChart
           loading={loading}
-          reloading={reloading}
           series={seriesResult ?? []}
           yAxis={yAxis}
           selection={selection}

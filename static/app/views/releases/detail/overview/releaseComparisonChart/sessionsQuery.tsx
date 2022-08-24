@@ -15,7 +15,6 @@ import {transformSessionsResponseToSeries} from 'sentry/views/dashboardsV2/widge
 
 type ChildrenProps = {
   loading: boolean;
-  reloading: boolean;
   errorMessage?: string;
   seriesResult?: Series[];
 };
@@ -40,7 +39,6 @@ function SessionsQuery({
   release,
 }: Props) {
   const [loading, setLoading] = useState<boolean>(true);
-  const [reloading, setReloading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
   const [seriesResult, setSeriesResult] = useState<Series[] | undefined>(undefined);
 
@@ -54,18 +52,14 @@ function SessionsQuery({
     setErrorMessage(undefined);
     setLoading(true);
 
-    if (seriesResult) {
-      setReloading(true);
-    }
-
     const requestData = {
-      field: ['crash_free_rate(session)'],
+      field: [yAxis],
       orgSlug: organization.slug,
       end,
       environment: environments,
       groupBy: groupBy === SessionDisplayTags.ALL ? [] : [groupBy.valueOf()],
       limit: undefined,
-      orderBy: `-crash_free_rate(session)`, // Orderby not supported with session.status
+      orderBy: `-${yAxis}`,
       interval,
       project: projects,
       query: `release:${release.version}`,
@@ -79,14 +73,12 @@ function SessionsQuery({
         if (mounted) {
           const transformed = transformSessionsResponseToSeries(series[0], [], []);
           setSeriesResult(transformed);
-          setReloading(false);
           setLoading(false);
         }
       })
       .catch(e => {
         if (mounted) {
           setErrorMessage(e);
-          setReloading(false);
           setLoading(false);
         }
       });
@@ -95,22 +87,9 @@ function SessionsQuery({
       // Prevent setState leaking on unmounted component
       mounted = false;
     };
-  }, [
-    yAxis,
-    start,
-    end,
-    period,
-    environments,
-    projects,
-    api,
-    seriesResult,
-    organization.slug,
-    groupBy,
-    interval,
-    release.version,
-  ]);
+  }, [yAxis, organization.slug, environments, groupBy, projects, start, end, period, interval, release.version]);
 
-  return children({loading, reloading, errorMessage, seriesResult});
+  return children({loading, errorMessage, seriesResult});
 }
 
 export default SessionsQuery;
