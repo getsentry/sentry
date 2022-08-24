@@ -233,7 +233,7 @@ function IssueHotSpots({organizationSlug, projects}: Props) {
 
   function drillDown(targetNodeId) {
     displayRoot = stratify();
-    if (targetNodeId !== null) {
+    if (targetNodeId !== null && targetNodeId !== undefined) {
       displayRoot = displayRoot.descendants().find(function (node) {
         return node.data.id === targetNodeId;
       });
