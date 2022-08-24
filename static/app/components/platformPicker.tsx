@@ -16,7 +16,7 @@ import {inputStyles} from 'sentry/styles/input';
 import space from 'sentry/styles/space';
 import {Organization, PlatformIntegration} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import EmptyMessage from 'sentry/components/emptyMessage';
 
 const PLATFORM_CATEGORIES = [...categoryList, {id: 'all', name: t('All')}] as const;
 

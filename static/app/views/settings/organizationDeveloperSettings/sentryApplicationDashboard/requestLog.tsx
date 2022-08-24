@@ -17,7 +17,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {SentryApp, SentryAppSchemaIssueLink, SentryAppWebhookRequest} from 'sentry/types';
 import {shouldUse24Hours} from 'sentry/utils/dates';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import EmptyMessage from 'sentry/components/emptyMessage';
 
 const ALL_EVENTS = t('All Events');
 const MAX_PER_PAGE = 10;

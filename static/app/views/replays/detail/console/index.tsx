@@ -17,7 +17,7 @@ import type {
 import {getPrevBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
 import ConsoleMessage from 'sentry/views/replays/detail/console/consoleMessage';
 import {filterBreadcrumbs} from 'sentry/views/replays/detail/console/utils';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import EmptyMessage from 'sentry/components/emptyMessage';
 
 interface Props {
   breadcrumbs: Extract<Crumb, BreadcrumbTypeDefault>[];

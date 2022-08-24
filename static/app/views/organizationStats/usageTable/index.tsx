@@ -12,7 +12,7 @@ import {IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory, Project} from 'sentry/types';
 import theme from 'sentry/utils/theme';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import EmptyMessage from 'sentry/components/emptyMessage';
 
 import {formatUsageWithUnits} from '../utils';
 

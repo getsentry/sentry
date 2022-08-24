@@ -11,7 +11,7 @@ import {IconClose, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import ConfirmHeader from 'sentry/views/settings/account/accountSecurity/components/confirmHeader';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const U2fEnrolledDetails = props => {

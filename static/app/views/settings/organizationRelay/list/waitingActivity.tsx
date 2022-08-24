@@ -3,7 +3,7 @@ import CommandLine from 'sentry/components/commandLine';
 import {Panel} from 'sentry/components/panels';
 import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import EmptyMessage from 'sentry/components/emptyMessage';
 
 type Props = {
   disabled: boolean;

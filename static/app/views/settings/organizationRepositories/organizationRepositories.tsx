@@ -9,7 +9,7 @@ import {IconCommit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {Repository, RepositoryStatus} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 

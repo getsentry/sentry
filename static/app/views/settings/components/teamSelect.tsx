@@ -16,7 +16,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Team} from 'sentry/types';
 import useTeams from 'sentry/utils/useTeams';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import EmptyMessage from 'sentry/components/emptyMessage';
 
 type Props = {
   /**

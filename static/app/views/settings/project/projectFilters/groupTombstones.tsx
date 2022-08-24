@@ -13,7 +13,7 @@ import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {GroupTombstone} from 'sentry/types';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import EmptyMessage from 'sentry/components/emptyMessage';
 
 type RowProps = {
   data: GroupTombstone;

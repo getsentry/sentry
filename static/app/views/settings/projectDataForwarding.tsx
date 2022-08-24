@@ -14,7 +14,7 @@ import {t, tct} from 'sentry/locale';
 import {Organization, Plugin, Project, TimeseriesValue} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import withOrganization from 'sentry/utils/withOrganization';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';

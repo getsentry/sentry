@@ -27,7 +27,7 @@ import {
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useApi from 'sentry/utils/useApi';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {isUniformRule, percentageToRate, rateToPercentage} from '../../utils';

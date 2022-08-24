@@ -1,6 +1,6 @@
 import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import EmptyMessage from 'sentry/components/emptyMessage';
 
 const EmptyState = () => (
   <Panel>

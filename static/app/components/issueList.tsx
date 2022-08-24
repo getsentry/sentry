@@ -12,7 +12,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Group} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import EmptyMessage from 'sentry/components/emptyMessage';
 
 interface IssueListProps extends WithRouterProps {
   endpoint: string;

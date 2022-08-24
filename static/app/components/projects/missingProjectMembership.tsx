@@ -13,7 +13,7 @@ import TeamStore from 'sentry/stores/teamStore';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import EmptyMessage from 'sentry/components/emptyMessage';
 
 type Props = {
   api: Client;

@@ -12,7 +12,7 @@ import {t} from 'sentry/locale';
 import {ApiApplication} from 'sentry/types';
 import AsyncView from 'sentry/views/asyncView';
 import Row from 'sentry/views/settings/account/apiApplications/row';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 const ROUTE_PREFIX = '/settings/account/api/';

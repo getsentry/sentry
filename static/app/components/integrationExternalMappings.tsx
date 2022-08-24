@@ -25,7 +25,7 @@ import {
   Organization,
 } from 'sentry/types';
 import {getIntegrationIcon, isExternalActorMapping} from 'sentry/utils/integrationUtil';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import EmptyMessage from 'sentry/components/emptyMessage';
 
 type CodeOwnersAssociationMappings = {
   [projectSlug: string]: {

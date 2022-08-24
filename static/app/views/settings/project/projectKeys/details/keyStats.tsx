@@ -9,7 +9,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {Series} from 'sentry/types/echarts';
 import theme from 'sentry/utils/theme';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import EmptyMessage from 'sentry/components/emptyMessage';
 
 type Props = {
   api: Client;
