@@ -22,6 +22,8 @@ if (isRunningOnDevUI) {
   swagger.servers = [{url: 'https://sentry.io/'}];
 }
 
-const SwaggerUIDocs = () => <SwaggerUI spec={swagger} plugins={[SentryLayoutPlugin]} layout="SentryLayout" />;
+const SwaggerUIDocs = () => (
+  <SwaggerUI spec={swagger} plugins={[SentryLayoutPlugin]} layout="SentryLayout" />
+);
 
 export default SwaggerUIDocs;

@@ -8,12 +8,23 @@ type SentryLayoutProps = {
 const SentryLayout = ({getComponent}: SentryLayoutProps) => {
   const BaseLayout = getComponent('BaseLayout', true);
 
+  const menuItems = [
+    {
+      title: 'Authentication',
+      href: '/api/auth/',
+    },
+    {
+      title: 'Paginating Results',
+      href: '/api/pagination/',
+    },
+  ];
+
   return (
     <div className="swagger-ui-sentry">
       <div className="document-wrapper">
         <div className="sidebar">
           <SentrySwaggerHeader />
-          <SentrySwaggerMenu />
+          <SentrySwaggerMenu menuItems={menuItems} />
         </div>
 
         <main role="main">

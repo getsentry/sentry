@@ -1,4 +1,8 @@
-const SentrySwaggerMenu = () => (
+export interface Props {
+  menuItems: {href: string; title: string}[];
+}
+
+const SentrySwaggerMenu = ({menuItems}: Props) => (
   <div className="toc">
     <ul className="list-unstyled">
       <li className="mb-3">
@@ -6,16 +10,13 @@ const SentrySwaggerMenu = () => (
           <h6>API Reference</h6>
         </a>
         <ul className="list-unstyled">
-          <li>
-            <a className="sidebar-link" href="/api/auth/">
-              Authentication
-            </a>
-          </li>
-          <li>
-            <a className="sidebar-link" href="/api/pagination/">
-              Paginating Results
-            </a>
-          </li>
+          {menuItems.map(({title, href}) => (
+            <li key={`${title}${href}`}>
+              <a className="sidebar-link" href={href}>
+                {title}
+              </a>
+            </li>
+          ))}
         </ul>
       </li>
     </ul>
