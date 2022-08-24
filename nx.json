@@ -6,5 +6,10 @@
         "cacheableOperations": []
       }
     }
+  },
+  "targetDefaults": {
+    "start": {
+      "dependsOn": ["^build-lib"]
+    }
   }
 }
