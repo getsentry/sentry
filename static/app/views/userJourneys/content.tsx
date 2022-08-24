@@ -7,9 +7,9 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {EntryType} from 'sentry/types';
 import {Crumb} from 'sentry/types/breadcrumbs';
 
+import BreadcrumbItem from './breadcrumbItem';
 import Timeline from './timeline';
 
 type Props = Pick<
@@ -30,23 +30,10 @@ type Props = Pick<
   onSwitchTimeFormat: () => void;
 };
 
-function Breadcrumbs({
-  breadcrumbs,
-  displayRelativeTime,
-  onSwitchTimeFormat,
-  organization,
-  searchTerm,
-  event,
-  relativeTime,
-  emptyMessage,
-  route,
-  router,
-}: Props) {
+function Breadcrumbs(props: Props) {
   const scrollbarSize = 20;
+  const {breadcrumbs, displayRelativeTime, onSwitchTimeFormat, emptyMessage} = props;
 
-  const entryIndex = event.entries.findIndex(
-    entry => entry.type === EntryType.BREADCRUMBS
-  );
   const [activeCrumb, setActiveCrumb] = useState<Crumb>();
 
   return (
@@ -82,31 +69,15 @@ function Breadcrumbs({
         <Content>
           {breadcrumbs.map((breadcrumb, index) => {
             const isLastItem = breadcrumbs[breadcrumbs.length - 1].id === breadcrumb.id;
-            const isActive =
-              activeCrumb &&
-              activeCrumb.timestamp === breadcrumb.timestamp &&
-              activeCrumb.category === breadcrumb.category &&
-              activeCrumb.message === breadcrumb.message;
             return (
-              <Fragment key={breadcrumb.id}>
-                <Breadcrumb
-                  data-test-id={isLastItem ? 'last-crumb' : 'crumb'}
-                  style={{}}
-                  onLoad={() => {}}
-                  organization={organization}
-                  searchTerm={searchTerm}
-                  breadcrumb={breadcrumb}
-                  meta={event._meta?.entries?.[entryIndex]?.data?.values?.[index]}
-                  event={event}
-                  relativeTime={relativeTime}
-                  displayRelativeTime={displayRelativeTime}
-                  height={undefined}
-                  scrollbarSize={scrollbarSize}
-                  router={router}
-                  route={route}
-                  scrollIntoView={isActive}
-                />
-              </Fragment>
+              <BreadcrumbItem
+                key={breadcrumb.id}
+                activeCrumb={activeCrumb}
+                breadcrumb={breadcrumb}
+                isLastItem={isLastItem}
+                index={index}
+                {...props}
+              />
             );
           })}
         </Content>
