@@ -23,6 +23,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 // import useProjects from 'sentry/utils/useProjects';
 import Breadcrumb from './breadcrumb';
+import Content from './content';
 
 interface BreadcrumbEvent {
   id: string;
@@ -81,6 +82,13 @@ function UserView({params: {userId}, router, route}: Props) {
       });
 
       setBreadcrumbEvents(res.data);
+
+      // TODO: alberto debug
+      // if (res.data && res.data.length > 0) {
+      //   setBreadcrumbEvents([res.data[0]]);
+      // } else {
+      //   setBreadcrumbEvents(res.data);
+      // }
     }
     fetchEvents();
   }, [api, org.slug, location, eventView]);
@@ -148,7 +156,7 @@ function UserView({params: {userId}, router, route}: Props) {
         <Layout.Main fullWidth>
           {isLoading && <LoadingIndicator />}
           {!isLoading && crumbs.length > 0 && sampleEvent && (
-            <Breadcrumbs
+            <Content
               breadcrumbs={transformCrumbs(crumbs)}
               displayRelativeTime={false}
               onSwitchTimeFormat={() => {}}
