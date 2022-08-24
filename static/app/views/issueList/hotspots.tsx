@@ -170,7 +170,7 @@ function IssueHotSpots({organizationSlug, projects}: Props) {
       },
       emphasis: {
         style: {
-          fontFamily: 'Arial',
+          fontFamily: "'Rubik', 'Avenir Next', 'Helvetica Neue', sans-serif",
           fontSize: 12,
           shadowBlur: 20,
           shadowOffsetX: 3,
@@ -186,7 +186,7 @@ function IssueHotSpots({organizationSlug, projects}: Props) {
 
   let displayRoot = stratify();
 
-  const maxDepth = 2;
+  const maxDepth = 4;
 
   const option = {
     dataset: {
