@@ -220,18 +220,18 @@ function Sidebar({location, organization}: Props) {
     </Feature>
   );
 
-  // const replays = hasOrganization && (
-  //   <Feature features={['session-replay-ui']} organization={organization}>
-  //     <SidebarItem
-  //       {...sidebarItemProps}
-  //       icon={<IconPlay size="md" />}
-  //       label={t('Replays')}
-  //       to={`/organizations/${organization.slug}/replays/`}
-  //       id="replays"
-  //       isAlpha
-  //     />
-  //   </Feature>
-  // );
+  const replays = hasOrganization && (
+    <Feature features={['session-replay-ui']} organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconPlay size="md" />}
+        label={t('Replays')}
+        to={`/organizations/${organization.slug}/replays/`}
+        id="replays"
+        isAlpha
+      />
+    </Feature>
+  );
 
   const dashboards = hasOrganization && (
     <Feature
@@ -329,7 +329,7 @@ function Sidebar({location, organization}: Props) {
               </SidebarSection>
 
               <SidebarSection>
-                {/* {replays} */}
+                {replays}
                 {monitors}
               </SidebarSection>
 
