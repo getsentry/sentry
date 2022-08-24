@@ -9,7 +9,9 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import FeatureBadge from 'sentry/components/featureBadge';
+import CompactSelect from 'sentry/components/forms/compactSelect';
 import ExternalLink from 'sentry/components/links/externalLink';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -47,6 +49,7 @@ export default function ProjectFeatureFlags({project}: Props) {
 
   const [flags, setFlags] = useState(currentFlags ?? {});
   const [query, setQuery] = useState('');
+  const [status, setStatus] = useState(true);
 
   const showPromo = Object.keys(flags).length === 0;
 
@@ -204,9 +207,11 @@ export default function ProjectFeatureFlags({project}: Props) {
     }
   }
 
-  const filteredFlags = Object.keys(flags).filter(key =>
-    key.toLowerCase().includes(query.toLowerCase())
-  );
+  const filteredFlags = Object.keys(flags).filter(key => {
+    return (
+      key.toLowerCase().includes(query.toLowerCase()) && flags[key].enabled === status
+    );
+  });
 
   return (
     <SentryDocumentTitle title={t('Feature Flags')}>
@@ -248,40 +253,67 @@ export default function ProjectFeatureFlags({project}: Props) {
         {showPromo ? (
           <Promo hasAccess={hasAccess} onGetStarted={handleAddFlag} />
         ) : (
-          <Fragment>
-            <StyledSearchBar
-              size="sm"
-              onChange={setQuery}
-              query={query}
-              placeholder={t('Search by flag name')}
-            />
-            {filteredFlags.map(filteredFlag => (
-              <Card
-                key={filteredFlag}
-                flagKey={filteredFlag}
-                kind={flags[filteredFlag].kind}
-                enabled={flags[filteredFlag].enabled}
-                description={flags[filteredFlag].description}
-                segments={flags[filteredFlag].evaluation}
-                onDelete={() => handleDeleteFlag(filteredFlag)}
-                onEdit={() => handleEditFlag(filteredFlag)}
-                onActivateToggle={() => handleActivateToggle(filteredFlag)}
-                onAddSegment={() => handleAddSegment(filteredFlag)}
-                onDeleteSegment={id => handleDeleteSegment(filteredFlag, id)}
-                onEditSegment={id => handleEditSegment(filteredFlag, id)}
-                hasAccess={hasAccess}
-                onSortSegments={({reorderedItems}) =>
-                  handleSortSegments(filteredFlag, reorderedItems)
-                }
+          <Content>
+            <Filters>
+              <SearchBar
+                size="md"
+                onChange={setQuery}
+                query={query}
+                placeholder={t('Search by flag name')}
               />
-            ))}
-          </Fragment>
+              <CompactSelect
+                defaultValue={status}
+                options={[
+                  {value: true, label: t('Active')},
+                  {value: false, label: t('Inactive')},
+                ]}
+                value={status}
+                onChange={value => setStatus(value.value)}
+                triggerProps={{prefix: t('Status'), style: {width: '100%'}}}
+              />
+            </Filters>
+            {!filteredFlags.length ? (
+              <EmptyStateWarning>
+                <p>{t('Sorry, no feature flag match your filters')}</p>
+              </EmptyStateWarning>
+            ) : (
+              <div>
+                {filteredFlags.map(filteredFlag => (
+                  <Card
+                    key={filteredFlag}
+                    flagKey={filteredFlag}
+                    kind={flags[filteredFlag].kind}
+                    enabled={flags[filteredFlag].enabled}
+                    description={flags[filteredFlag].description}
+                    segments={flags[filteredFlag].evaluation}
+                    onDelete={() => handleDeleteFlag(filteredFlag)}
+                    onEdit={() => handleEditFlag(filteredFlag)}
+                    onActivateToggle={() => handleActivateToggle(filteredFlag)}
+                    onAddSegment={() => handleAddSegment(filteredFlag)}
+                    onDeleteSegment={id => handleDeleteSegment(filteredFlag, id)}
+                    onEditSegment={id => handleEditSegment(filteredFlag, id)}
+                    hasAccess={hasAccess}
+                    onSortSegments={({reorderedItems}) =>
+                      handleSortSegments(filteredFlag, reorderedItems)
+                    }
+                  />
+                ))}
+              </div>
+            )}
+          </Content>
         )}
       </Fragment>
     </SentryDocumentTitle>
   );
 }
 
-const StyledSearchBar = styled(SearchBar)`
-  margin-bottom: ${space(2)};
+const Content = styled('div')`
+  display: grid;
+  grid-gap: ${space(2)};
+`;
+
+const Filters = styled('div')`
+  display: grid;
+  grid-gap: ${space(1)};
+  grid-template-columns: 1fr max-content;
 `;
