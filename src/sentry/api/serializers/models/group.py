@@ -7,6 +7,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import (
     Any,
+    Callable,
     Iterable,
     List,
     Mapping,
@@ -692,51 +693,52 @@ class GroupSerializerBase(Serializer, ABC):
 
 @register(Group)
 class GroupSerializer(GroupSerializerBase):
-    def __init__(self, environment_func=None):
+    def __init__(self, environment_func: Callable[[], Environment] = None):
         GroupSerializerBase.__init__(self)
         self.environment_func = environment_func if environment_func is not None else lambda: None
 
-    def _seen_stats_error(self, item_list, user):
+    def _seen_stats_error(self, item_list, user) -> Mapping[Group, SeenStats]:
         try:
             environment = self.environment_func()
         except Environment.DoesNotExist:
-            user_counts = {}
-            first_seen = {}
-            last_seen = {}
-            times_seen = {}
-        else:
-            project_id = item_list[0].project_id
-            item_ids = [g.id for g in item_list]
-            user_counts = tagstore.get_groups_user_counts(
-                [project_id], item_ids, environment_ids=environment and [environment.id]
-            )
-            first_seen = {}
-            last_seen = {}
-            times_seen = {}
-            if environment is not None:
-                environment_tagvalues = tagstore.get_group_list_tag_value(
-                    [project_id], item_ids, [environment.id], "environment", environment.name
-                )
-                for item_id, value in environment_tagvalues.items():
-                    first_seen[item_id] = value.first_seen
-                    last_seen[item_id] = value.last_seen
-                    times_seen[item_id] = value.times_seen
-            else:
-                for item in item_list:
-                    first_seen[item.id] = item.first_seen
-                    last_seen[item.id] = item.last_seen
-                    times_seen[item.id] = item.times_seen
+            return {
+                item: {"times_seen": 0, "first_seen": None, "last_seen": None, "user_count": 0}
+                for item in item_list
+            }
 
-        attrs = {}
-        for item in item_list:
-            attrs[item] = {
+        project_id = item_list[0].project_id
+        item_ids = [g.id for g in item_list]
+        user_counts: Mapping[int, int] = tagstore.get_groups_user_counts(
+            [project_id], item_ids, environment_ids=environment and [environment.id]
+        )
+        first_seen: MutableMapping[int, datetime] = {}
+        last_seen: MutableMapping[int, datetime] = {}
+        times_seen: MutableMapping[int, int] = {}
+
+        if environment is not None:
+            environment_tagvalues = tagstore.get_group_list_tag_value(
+                [project_id], item_ids, [environment.id], "environment", environment.name
+            )
+            for item_id, value in environment_tagvalues.items():
+                first_seen[item_id] = value.first_seen
+                last_seen[item_id] = value.last_seen
+                times_seen[item_id] = value.times_seen
+        else:
+            # fallback to the model data since we can't query tagstore
+            for item in item_list:
+                first_seen[item.id] = item.first_seen
+                last_seen[item.id] = item.last_seen
+                times_seen[item.id] = item.times_seen
+
+        return {
+            item: {
                 "times_seen": times_seen.get(item.id, 0),
                 "first_seen": first_seen.get(item.id),  # TODO: missing?
                 "last_seen": last_seen.get(item.id),
                 "user_count": user_counts.get(item.id, 0),
             }
-
-        return attrs
+            for item in item_list
+        }
 
     def _seen_stats_performance(
         self, perf_issue_list: Sequence[Group], user
@@ -745,7 +747,10 @@ class GroupSerializer(GroupSerializerBase):
         if perf_issue_list:
             raise NotImplementedError
 
-        return {}
+        return {
+            item: {"times_seen": 0, "first_seen": None, "last_seen": None, "user_count": 0}
+            for item in perf_issue_list
+        }
 
 
 class SharedGroupSerializer(GroupSerializer):
