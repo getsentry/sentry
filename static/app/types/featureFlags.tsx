@@ -14,8 +14,14 @@ export type FeatureFlagSegment = {
   result: number | string | boolean;
   type: EvaluationType;
   percentage?: number;
-  tags?: Record<string, string>;
+  tags?: Record<string, string | string[]>;
 };
+
+export enum FeatureFlagSegmentTagKind {
+  ENVIRONMENT = 'environment',
+  RELEASE = 'release',
+  CUSTOM = 'custom',
+}
 
 export type FeatureFlag = {
   enabled: boolean;

@@ -7,51 +7,60 @@ import TextareaField from 'sentry/components/forms/textareaField';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {SamplingInnerName} from 'sentry/types/sampling';
+import {Project} from 'sentry/types';
+import {FeatureFlagSegmentTagKind} from 'sentry/types/featureFlags';
 
-import {getInnerNameLabel} from '../../../server-side-sampling/utils';
-
+import {TagKeyAutocomplete} from './tagKeyAutocomplete';
 import {TagValueAutocomplete, TagValueAutocompleteProps} from './tagValueAutocomplete';
-import {getMatchFieldPlaceholder, getTagKey} from './utils';
+import {getInnerNameLabel, getMatchFieldPlaceholder, getTagKey} from './utils';
 
-export type Condition = {
-  category: SamplingInnerName;
+export type Tag = {
+  category: FeatureFlagSegmentTagKind | string;
   match?: string;
+  tagKey?: string;
 };
 
 interface Props extends Pick<TagValueAutocompleteProps, 'orgSlug' | 'projectId'> {
-  conditions: Condition[];
-  onChange: <T extends keyof Condition>(
-    index: number,
-    field: T,
-    value: Condition[T]
-  ) => void;
+  onChange: <T extends keyof Tag>(index: number, field: T, value: Tag[T]) => void;
   onDelete: (index: number) => void;
+  projectSlug: Project['slug'];
+  tags: Tag[];
 }
 
-export function Tags({conditions, orgSlug, projectId, onDelete, onChange}: Props) {
+export function Tags({tags, orgSlug, projectId, projectSlug, onDelete, onChange}: Props) {
   return (
     <Fragment>
-      {conditions.map((condition, index) => {
-        const {category, match} = condition;
+      {tags.map((tag, index) => {
+        const {category, tagKey, match} = tag;
 
         const isAutoCompleteField =
-          category === SamplingInnerName.TRACE_ENVIRONMENT ||
-          category === SamplingInnerName.TRACE_RELEASE;
+          category === FeatureFlagSegmentTagKind.ENVIRONMENT ||
+          category === FeatureFlagSegmentTagKind.RELEASE;
+
+        const isCustomTag = category === FeatureFlagSegmentTagKind.CUSTOM;
 
         return (
-          <ConditionWrapper key={index}>
+          <TagWrapper key={index}>
             <LeftCell>
-              <span>
-                {getInnerNameLabel(category)}
-                <FieldRequiredBadge />
-              </span>
+              {isCustomTag ? (
+                <TagKeyAutocomplete
+                  orgSlug={orgSlug}
+                  projectSlug={projectSlug}
+                  onChange={value => onChange(index, 'tagKey', value)}
+                  value={tagKey}
+                />
+              ) : (
+                <span>
+                  {getInnerNameLabel(category as FeatureFlagSegmentTagKind)}
+                  <FieldRequiredBadge />
+                </span>
+              )}
             </LeftCell>
             <CenterCell>
               {isAutoCompleteField ? (
                 <TagValueAutocomplete
                   category={category}
-                  tagKey={getTagKey(condition)}
+                  tagKey={getTagKey(tag)}
                   orgSlug={orgSlug}
                   projectId={projectId}
                   value={match}
@@ -62,7 +71,9 @@ export function Tags({conditions, orgSlug, projectId, onDelete, onChange}: Props
                   name="match"
                   value={match}
                   onChange={value => onChange(index, 'match', value)}
-                  placeholder={getMatchFieldPlaceholder(category)}
+                  placeholder={getMatchFieldPlaceholder(
+                    category as FeatureFlagSegmentTagKind
+                  )}
                   inline={false}
                   rows={1}
                   autosize
@@ -80,14 +91,14 @@ export function Tags({conditions, orgSlug, projectId, onDelete, onChange}: Props
                 aria-label={t('Delete Tag')}
               />
             </RightCell>
-          </ConditionWrapper>
+          </TagWrapper>
         );
       })}
     </Fragment>
   );
 }
 
-const ConditionWrapper = styled('div')`
+const TagWrapper = styled('div')`
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: flex-start;

@@ -1,125 +1,65 @@
-import {t, tct} from 'sentry/locale';
-import {
-  SamplingConditionLogicalInner,
-  SamplingInnerName,
-  SamplingInnerOperator,
-  SamplingRule,
-} from 'sentry/types/sampling';
-import {defined} from 'sentry/utils';
+import round from 'lodash/round';
 
-import {getInnerNameLabel} from '../../../server-side-sampling/utils';
+import {t, tct} from 'sentry/locale';
+import {FeatureFlagSegmentTagKind} from 'sentry/types/featureFlags';
+import {defined} from 'sentry/utils';
 
 import {Tags} from './tags';
 import {TruncatedLabel} from './truncatedLabel';
 
-type Condition = React.ComponentProps<typeof Tags>['conditions'][0];
+type Tag = React.ComponentProps<typeof Tags>['tags'][0];
 
-export function getMatchFieldPlaceholder(category: SamplingInnerName) {
+export function getInnerNameLabel(name: FeatureFlagSegmentTagKind) {
+  switch (name) {
+    case FeatureFlagSegmentTagKind.ENVIRONMENT:
+      return t('Environment');
+    case FeatureFlagSegmentTagKind.RELEASE:
+      return t('Release');
+    case FeatureFlagSegmentTagKind.CUSTOM:
+      return t('Custom');
+    default:
+      return '';
+  }
+}
+
+export function getMatchFieldPlaceholder(category: FeatureFlagSegmentTagKind) {
   switch (category) {
-    case SamplingInnerName.TRACE_ENVIRONMENT:
+    case FeatureFlagSegmentTagKind.ENVIRONMENT:
       return t('ex. prod, dev');
-    case SamplingInnerName.TRACE_RELEASE:
+    case FeatureFlagSegmentTagKind.RELEASE:
       return t('ex. 1*, [I3].[0-9].*');
+    case FeatureFlagSegmentTagKind.CUSTOM:
+      return t('Enter tag values');
     default:
       return undefined;
   }
 }
 
-export function getNewCondition(condition: Condition): SamplingConditionLogicalInner {
-  const newValue = (condition.match ?? '')
-    .split('\n')
-    .filter(match => !!match.trim())
-    .map(match => match.trim());
-
-  if (condition.category === SamplingInnerName.TRACE_RELEASE) {
-    return {
-      op: SamplingInnerOperator.GLOB_MATCH,
-      name: condition.category,
-      value: newValue,
-    };
-  }
-
-  return {
-    op: SamplingInnerOperator.EQUAL,
-    name: condition.category,
-    value: newValue,
-    options: {
-      ignoreCase: true,
-    },
-  };
-}
-
-const unexpectedErrorMessage = t('An internal error occurred while saving sampling rule');
-
-type ResponseJSONDetailed = {
-  detail: string[];
-};
-
-type ResponseJSON = {
-  dynamicSampling?: {
-    rules: Array<Partial<SamplingRule>>;
-  };
-};
-
-export function getErrorMessage(
-  error: {
-    responseJSON?: ResponseJSON | ResponseJSONDetailed;
-  },
-  currentRuleIndex: number
-) {
-  const detailedErrorResponse = (error.responseJSON as undefined | ResponseJSONDetailed)
-    ?.detail;
-
-  if (detailedErrorResponse) {
-    // This is a temp solution until we enable error rules again, therefore it does not need translation
-    return detailedErrorResponse[0];
-  }
-
-  const errorResponse = error.responseJSON as undefined | ResponseJSON;
-
-  if (!errorResponse) {
-    return unexpectedErrorMessage;
-  }
-
-  const responseErrors = errorResponse.dynamicSampling?.rules[currentRuleIndex] ?? {};
-
-  const [type, _value] = Object.entries(responseErrors)[0];
-
-  if (type === 'sampleRate') {
-    return {
-      type: 'sampleRate',
-      message: t('Ensure this value is a floating number between 0 and 100'),
-    };
-  }
-
-  return unexpectedErrorMessage;
-}
-
-export function getTagKey(condition: Condition) {
-  switch (condition.category) {
-    case SamplingInnerName.TRACE_RELEASE:
+export function getTagKey(tag: Tag) {
+  switch (tag.category) {
+    case FeatureFlagSegmentTagKind.RELEASE:
       return 'release';
-    case SamplingInnerName.TRACE_ENVIRONMENT:
+    case FeatureFlagSegmentTagKind.ENVIRONMENT:
       return 'environment';
+    case FeatureFlagSegmentTagKind.CUSTOM:
+      return 'custom';
     default:
       return undefined;
   }
 }
 
-export const distributedTracesConditions = [
-  SamplingInnerName.TRACE_RELEASE,
-  SamplingInnerName.TRACE_ENVIRONMENT,
-];
-
-export function generateConditionCategoriesOptions(
-  conditionCategories: SamplingInnerName[]
-): [SamplingInnerName, string][] {
-  const sortedConditionCategories = conditionCategories
+export function generateTagCategoriesOptions(
+  tagCategoriesOptions: FeatureFlagSegmentTagKind[]
+): [FeatureFlagSegmentTagKind, string][] {
+  const sortedTagCategories = tagCategoriesOptions
+    .filter(
+      tagCategoriesOption => tagCategoriesOption !== FeatureFlagSegmentTagKind.CUSTOM
+    )
     // sort dropdown options alphabetically based on display labels
     .sort((a, b) => getInnerNameLabel(a).localeCompare(getInnerNameLabel(b)));
 
   // massage into format that select component understands
-  return sortedConditionCategories.map(innerName => [
+  return [...sortedTagCategories, FeatureFlagSegmentTagKind.CUSTOM].map(innerName => [
     innerName,
     getInnerNameLabel(innerName),
   ]);
@@ -145,4 +85,27 @@ export function validResultValue(value: string | number | boolean | undefined) {
   }
 
   return true;
+}
+
+export function rateToPercentage(rate: number | undefined, decimalPlaces: number = 2) {
+  if (!defined(rate)) {
+    return rate;
+  }
+
+  return round(rate * 100, decimalPlaces);
+}
+
+export function percentageToRate(rate: number | undefined, decimalPlaces: number = 4) {
+  if (!defined(rate)) {
+    return rate;
+  }
+
+  return round(rate / 100, decimalPlaces);
+}
+
+export function isCustomTag(value: string) {
+  return (
+    value !== FeatureFlagSegmentTagKind.RELEASE &&
+    value !== FeatureFlagSegmentTagKind.ENVIRONMENT
+  );
 }

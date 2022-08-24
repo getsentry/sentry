@@ -7,7 +7,7 @@ import Count from 'sentry/components/count';
 import SelectField from 'sentry/components/forms/selectField';
 import {t} from 'sentry/locale';
 import {Organization, Project, TagValue as IssueTagValue} from 'sentry/types';
-import {SamplingInnerName} from 'sentry/types/sampling';
+import {FeatureFlagSegmentTagKind} from 'sentry/types/featureFlags';
 import useApi from 'sentry/utils/useApi';
 
 import {TruncatedLabel} from './truncatedLabel';
@@ -19,7 +19,7 @@ type TagValue = Pick<
 >;
 
 export interface TagValueAutocompleteProps {
-  category: SamplingInnerName.TRACE_ENVIRONMENT | SamplingInnerName.TRACE_RELEASE;
+  category: FeatureFlagSegmentTagKind;
   onChange: (value: string) => void;
   orgSlug: Organization['slug'];
   projectId: Project['id'];
@@ -27,7 +27,7 @@ export interface TagValueAutocompleteProps {
   value?: string;
 }
 
-function TagValueAutocomplete({
+export function TagValueAutocomplete({
   orgSlug,
   projectId,
   category,
@@ -39,9 +39,9 @@ function TagValueAutocomplete({
 
   function getAriaLabel() {
     switch (category) {
-      case SamplingInnerName.TRACE_RELEASE:
+      case FeatureFlagSegmentTagKind.RELEASE:
         return t('Search or add a release');
-      case SamplingInnerName.TRACE_ENVIRONMENT:
+      case FeatureFlagSegmentTagKind.ENVIRONMENT:
         return t('Search or add an environment');
       default:
         return undefined;
@@ -155,5 +155,3 @@ const StyledSelectField = styled(SelectField)`
 const StyledCount = styled(Count)`
   color: ${p => p.theme.subText};
 `;
-
-export {TagValueAutocomplete};

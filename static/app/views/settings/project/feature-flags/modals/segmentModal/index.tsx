@@ -1,5 +1,5 @@
 import {Fragment, useState} from 'react';
-import {createFilter} from 'react-select';
+import {components, createFilter} from 'react-select';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
@@ -12,6 +12,7 @@ import CompactSelect from 'sentry/components/forms/compactSelect';
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import Slider from 'sentry/components/forms/controls/rangeSlider/slider';
 import Field from 'sentry/components/forms/field';
+import FieldDescription from 'sentry/components/forms/field/fieldDescription';
 import SelectField from 'sentry/components/forms/selectField';
 import Option from 'sentry/components/forms/selectOption';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
@@ -26,25 +27,23 @@ import {
   FeatureFlagKind,
   FeatureFlags,
   FeatureFlagSegment,
+  FeatureFlagSegmentTagKind,
 } from 'sentry/types/featureFlags';
-import {SamplingInnerName} from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
 import useApi from 'sentry/utils/useApi';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
-import {percentageToRate, rateToPercentage} from '../../../server-side-sampling/utils';
-
-import {Condition, Tags} from './tags';
+import {Tag, Tags} from './tags';
 import {
-  distributedTracesConditions,
-  generateConditionCategoriesOptions,
+  generateTagCategoriesOptions,
+  isCustomTag,
+  percentageToRate,
+  rateToPercentage,
   validResultValue,
 } from './utils';
 
-const conditionAlreadyAddedTooltip = t('This tag has already been added');
-
 type State = {
-  conditions: Condition[];
+  tags: Tag[];
   type: FeatureFlagSegment['type'];
   percentage?: FeatureFlagSegment['percentage'];
   result?: FeatureFlagSegment['result'];
@@ -73,9 +72,11 @@ export function SegmentModal({
   const [data, setData] = useState<State>(getInitialState());
   const [isSaving, setIsSaving] = useState(false);
 
-  const conditionCategories = generateConditionCategoriesOptions(
-    distributedTracesConditions
-  );
+  const tagCategories = generateTagCategoriesOptions([
+    FeatureFlagSegmentTagKind.RELEASE,
+    FeatureFlagSegmentTagKind.ENVIRONMENT,
+    FeatureFlagSegmentTagKind.CUSTOM,
+  ]);
 
   function getInitialState(): State {
     if (defined(segmentIndex)) {
@@ -83,15 +84,14 @@ export function SegmentModal({
 
       return {
         type: segment.type,
-        conditions: Object.entries(segment.tags ?? {}).map(([key, value]) => ({
-          category:
-            key === 'environment'
-              ? SamplingInnerName.TRACE_ENVIRONMENT
-              : key === 'release'
-              ? SamplingInnerName.TRACE_RELEASE
-              : (key as SamplingInnerName),
-          match: value,
-        })),
+        tags: Object.entries(segment.tags ?? {}).map(([key, value]) => {
+          const customTag = isCustomTag(key);
+          return {
+            category: customTag ? FeatureFlagSegmentTagKind.CUSTOM : key,
+            match: Array.isArray(value) ? value.join('\n') : value,
+            ...(customTag && {tagKey: key}),
+          };
+        }),
         result: segment.result,
         percentage: defined(segment.percentage)
           ? rateToPercentage(segment.percentage)
@@ -101,9 +101,9 @@ export function SegmentModal({
 
     return {
       type: EvaluationType.Rollout,
-      conditions: [],
+      tags: [],
       percentage: 0,
-      result: undefined,
+      result: flags[flagKey].kind === FeatureFlagKind.BOOLEAN ? true : undefined,
     };
   }
 
@@ -114,23 +114,27 @@ export function SegmentModal({
 
     setIsSaving(true);
 
-    const newTags = data.conditions.reduce((acc, condition) => {
-      if (acc[condition.category] || !condition.match) {
+    const newTags = data.tags.reduce((acc, tag) => {
+      if (acc[tag.category]) {
         return acc;
       }
 
-      if (condition.category === SamplingInnerName.TRACE_ENVIRONMENT) {
-        acc.environment = condition.match;
+      const tagMatch = (tag.match ?? '')
+        .split('\n')
+        .filter(match => !!match.trim())
+        .map(match => match.trim());
+
+      const value = tagMatch.length === 1 ? tagMatch[0] : tagMatch;
+
+      if (tag.category === FeatureFlagSegmentTagKind.CUSTOM && tag.tagKey) {
+        acc[tag.tagKey] = value;
         return acc;
       }
 
-      if (condition.category === SamplingInnerName.TRACE_RELEASE) {
-        acc.release = condition.match;
-        return acc;
-      }
+      acc[tag.category] = value;
 
       return acc;
-    }, {} as Record<string, string>);
+    }, {} as Record<string, string | string[]>);
 
     const newFeatureFlags = {
       ...flags,
@@ -182,41 +186,42 @@ export function SegmentModal({
     setIsSaving(false);
   }
 
-  function handleAddCondition(selectedOptions: SelectValue<SamplingInnerName>[]) {
-    const previousCategories = data.conditions.map(({category}) => category);
+  function handleAddTag(selectedOptions: SelectValue<FeatureFlagSegmentTagKind>[]) {
+    const previousCategories = data.tags.map(({category}) => category);
     const addedCategories = selectedOptions
-      .filter(({value}) => !previousCategories.includes(value))
+      .filter(({value}) => {
+        if (value === FeatureFlagSegmentTagKind.CUSTOM) {
+          return true;
+        }
+        return !previousCategories.includes(value);
+      })
       .map(({value}) => value);
 
     setData({
       ...data,
-      conditions: [
-        ...data.conditions,
+      tags: [
+        ...data.tags,
         ...addedCategories.map(addedCategory => ({category: addedCategory, match: ''})),
       ],
     });
   }
 
-  function handleDeleteCondition(index: number) {
-    const newConditions = [...data.conditions];
-    newConditions.splice(index, 1);
-    setData({...data, conditions: newConditions});
+  function handleDeleteTag(index: number) {
+    const newTags = [...data.tags];
+    newTags.splice(index, 1);
+    setData({...data, tags: newTags});
   }
 
-  function handleChangeCondition<T extends keyof Condition>(
-    index: number,
-    field: T,
-    value: Condition[T]
-  ) {
-    const newConditions = [...data.conditions];
-    newConditions[index][field] = value;
+  function handleChangeTag<T extends keyof Tag>(index: number, field: T, value: Tag[T]) {
+    const newTags = [...data.tags];
+    newTags[index][field] = value;
 
     // If custom tag key changes, reset the value
     if (field === 'category') {
-      newConditions[index].match = '';
+      newTags[index].match = '';
     }
 
-    setData({...data, conditions: newConditions});
+    setData({...data, tags: newTags});
   }
 
   const segmentTypeChoices = flags[flagKey].evaluation.reduce(
@@ -232,20 +237,23 @@ export function SegmentModal({
     ]
   );
 
-  const predefinedConditionsOptions = conditionCategories.map(([value, label]) => {
-    const optionDisabled = data.conditions.some(
-      condition => condition.category === value
-    );
+  const predefinedTagsOptions = tagCategories.map(([value, label]) => {
+    // Never disable the "Add Custom Tag" option, you can add more of those
+
+    const optionDisabled =
+      value === FeatureFlagSegmentTagKind.CUSTOM
+        ? false
+        : data.tags.some(condition => condition.category === value);
     return {
       value,
       label,
       disabled: optionDisabled,
-      tooltip: optionDisabled ? conditionAlreadyAddedTooltip : undefined,
+      tooltip: optionDisabled ? t('This tag has already been added') : undefined,
     };
   });
 
   const submitDisabled =
-    data.conditions.some(condition => !condition.match) || !validResultValue(data.result);
+    data.tags.some(condition => !condition.match) || !validResultValue(data.result);
 
   return (
     <Fragment>
@@ -280,19 +288,39 @@ export function SegmentModal({
                   </TriggerLabel>
                 }
                 placeholder={t('Filter tags')}
-                options={predefinedConditionsOptions}
-                value={data.conditions.map(({category}) => category)}
-                onChange={handleAddCondition}
+                options={predefinedTagsOptions}
+                value={data.tags
+                  // We need to filter our custom tag option so that it can be selected multiple times without being unselected every other time
+                  .filter(({category}) => category !== FeatureFlagSegmentTagKind.CUSTOM)
+                  .map(({category}) => category)}
+                onChange={handleAddTag}
                 isSearchable
                 multiple
-                filterOption={(candidate, input) => createFilter(null)(candidate, input)}
+                filterOption={(candidate, input) => {
+                  // Always offer the "Add Custom Tag" option in the autocomplete
+                  if (candidate.value === FeatureFlagSegmentTagKind.CUSTOM) {
+                    return true;
+                  }
+                  return createFilter(null)(candidate, input);
+                }}
                 components={{
-                  Option: containerProps => <Option {...containerProps} />,
+                  Option: containerProps => {
+                    if (containerProps.value === FeatureFlagSegmentTagKind.CUSTOM) {
+                      return (
+                        <components.Option className="select-option" {...containerProps}>
+                          <AddCustomTag isFocused={containerProps.isFocused}>
+                            <IconAdd isCircled /> {t('Add Custom Tag')}
+                          </AddCustomTag>
+                        </components.Option>
+                      );
+                    }
+                    return <Option {...containerProps} />;
+                  },
                 }}
               />
             </StyledPanelHeader>
             <PanelBody>
-              {!data.conditions.length ? (
+              {!data.tags.length ? (
                 <EmptyMessage
                   icon={<IconSearch size="xl" />}
                   title={t('No tags added')}
@@ -300,10 +328,11 @@ export function SegmentModal({
                 />
               ) : (
                 <Tags
-                  conditions={data.conditions}
-                  onDelete={handleDeleteCondition}
-                  onChange={handleChangeCondition}
+                  tags={data.tags}
+                  onDelete={handleDeleteTag}
+                  onChange={handleChangeTag}
                   orgSlug={organization.slug}
+                  projectSlug={project.slug}
                   projectId={project.id}
                 />
               )}
@@ -334,7 +363,6 @@ export function SegmentModal({
             <StyledBooleanField
               label={t('Result Value')}
               name="result"
-              inline={false}
               flexibleControlStateSize
               hideControlState
               required
@@ -384,6 +412,17 @@ export function SegmentModal({
     </Fragment>
   );
 }
+
+const AddCustomTag = styled('div')<{isFocused: boolean}>`
+  display: flex;
+  align-items: center;
+  padding: ${space(1)} ${space(1)} ${space(1)} ${space(0.75)};
+  margin: 0 ${space(0.5)};
+  gap: ${space(1)};
+  line-height: 1.4;
+  border-radius: ${p => p.theme.borderRadius};
+  ${p => p.isFocused && `background: ${p.theme.hover};`};
+`;
 
 const Fields = styled('div')`
   display: grid;
@@ -493,4 +532,7 @@ const StyledNumberField = styled(NumberField)`
 const StyledBooleanField = styled(BooleanField)`
   padding: 0;
   border-bottom: none;
+  ${FieldDescription} {
+    width: auto;
+  }
 `;
