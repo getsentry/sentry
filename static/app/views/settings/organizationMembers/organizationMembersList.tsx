@@ -8,6 +8,7 @@ import {resendMemberInvite} from 'sentry/actionCreators/members';
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
 import Button from 'sentry/components/button';
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
@@ -26,7 +27,6 @@ import {
   RenderSearch,
   SearchWrapper,
 } from 'sentry/views/settings/components/defaultSearchBar';
-import EmptyMessage from 'sentry/components/emptyMessage';
 
 import MembersFilter from './components/membersFilter';
 import InviteRequestRow from './inviteRequestRow';
