@@ -3,10 +3,12 @@ import React from 'react';
 // eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 
+import {getRecognitionActionMapping, recognitionCommands} from './commands';
 import {VoiceAssistantButton} from './floatingButton';
 import {grammar} from './grammars';
 import {VoiceAssistantTextbox} from './textBox';
-import {speechRecognitionResultListToJSON} from './utils';
+import {getAllRecognitionAlternatives, speechRecognitionResultListToJSON} from './utils';
+import {parseVoiceCommand} from './voiceAssistParser';
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const SpeechGrammarList = window.SpeechGrammarList || window.webkitSpeechGrammarList;
@@ -68,7 +70,7 @@ class VoiceAssistantPanel extends React.Component<
     window._voiceAssistantPanel = this;
   }
 
-  getParams() {
+  getPageParams() {
     const params = this.props.params;
     return {orgId: params.orgId, projectId: params.projectId, groupId: params.groupId};
   }
@@ -83,10 +85,8 @@ class VoiceAssistantPanel extends React.Component<
   startVoiceRecognition() {
     const recognition = this.state.recognition;
 
-    // const orgId = this.props.params.orgId;
-    // const projectId = this.props.params.projectId;
-    // const router = this.props.router;
-    // console.log(this.props);
+    const router = this.props.router;
+    const params = this.getPageParams();
 
     if (!recognition) {
       console.log('Speech recognition API is not initialized!');
@@ -138,13 +138,37 @@ class VoiceAssistantPanel extends React.Component<
       // The second [0] returns the SpeechRecognitionAlternative at position 0.
       // We then return the transcript property of the SpeechRecognitionAlternative object
       console.log('SpeechRecognition.onresult');
-      const speechResult = event.results[0][0].transcript.toLowerCase();
-      console.log(`Phrase recognized: "${speechResult}"`);
-      setStateSpeechResultWithDelay(speechResult, NotifyStyle.RecognizedResult);
 
       console.log(
         JSON.stringify(speechRecognitionResultListToJSON(event.results), null, 2)
       );
+
+      const recognitionAlternatives = getAllRecognitionAlternatives(event.results);
+
+      const [matchResult, matchedAlternative] = parseVoiceCommand(
+        recognitionAlternatives,
+        recognitionCommands
+      );
+
+      if (matchResult) {
+        const actionMapping = getRecognitionActionMapping(router, params);
+        const action = actionMapping[matchResult.id];
+        if (action) {
+          console.log(`Result: ${matchedAlternative}`);
+          action();
+        } else {
+          console.log('No matched action found!');
+          return;
+        }
+      } else {
+        // Take the alternative highest confidence
+        console.log('Cannot find a matched alternative');
+      }
+
+      // const speechResult = event.results[0][0].transcript.toLowerCase();
+      // console.log(`Phrase recognized: "${speechResult}"`);
+
+      // setStateSpeechResultWithDelay(speechResult, NotifyStyle.RecognizedResult);
     };
 
     recognition.onspeechend = function () {
@@ -227,7 +251,7 @@ class VoiceAssistantPanel extends React.Component<
       isListening: !prevState.isListening,
     }));
 
-    // const {orgId} = this.getParams();
+    // const {orgId} = this.getPageParams();
     // this.props.router.push({
     //   pathname: `/organizations/${orgId}/projects/`,
     //   query: {},

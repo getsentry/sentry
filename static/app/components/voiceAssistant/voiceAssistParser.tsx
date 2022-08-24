@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 interface Dictionary<T> {
   [index: string]: T;
 }
@@ -9,11 +10,6 @@ export interface MatchResult {
 
 export interface Command {
   match(input: SpeechRecognitionAlternative): MatchResult | null;
-}
-
-export interface SpeechRecognitionAlternative {
-  confidence: number;
-  transcript: string;
 }
 
 export class FuzzyCommand implements Command {
@@ -64,7 +60,7 @@ export class FuzzyCommand implements Command {
   }
 }
 
-export function parse(
+export function parseVoiceCommand(
   vals: SpeechRecognitionAlternative[],
   commands: Command[]
 ): [MatchResult | null, SpeechRecognitionAlternative | null] {
@@ -72,6 +68,7 @@ export function parse(
   let highestMatch: MatchResult | null = null;
   for (let altIdx = 0; altIdx < vals.length; ++altIdx) {
     const alternative = vals[altIdx];
+    console.log(alternative);
     if (highestAlternative === null) {
       highestAlternative = alternative;
     }
@@ -80,6 +77,7 @@ export function parse(
     }
     for (let commandIdx = 0; commandIdx < commands.length; ++commandIdx) {
       const match = commands[commandIdx].match(alternative);
+      console.log(`match processing: ${match}`);
       if (match !== null) {
         if (highestMatch === null) {
           highestMatch = match;
@@ -93,6 +91,7 @@ export function parse(
       }
     }
   }
+  console.log(`highestMatch: ${highestMatch}, highestAlternative: ${highestAlternative}`);
   return [highestMatch, highestAlternative];
 }
 
