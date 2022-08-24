@@ -1,7 +1,8 @@
 import pytest
 
 from sentry.grouping.component import GroupingComponent
-from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig, create_match_frame
+from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
+from sentry.grouping.mypyc.utils import MatchFrame
 
 
 def dump_obj(obj):
@@ -69,7 +70,7 @@ def _get_matching_frame_actions(rule, frames, platform, exception_data=None, cac
     if cache is None:
         cache = {}
 
-    match_frames = [create_match_frame(frame, platform) for frame in frames]
+    match_frames = [MatchFrame(frame, platform) for frame in frames]
 
     return rule.get_matching_frame_actions(match_frames, platform, exception_data, cache)
 

@@ -16,7 +16,7 @@ from sentry.grouping.mypyc.matchers import (  # TODO: Better directory structure
 )
 from sentry.grouping.mypyc.rule import Rule
 from sentry.grouping.mypyc.stacktrace import StacktraceState
-from sentry.grouping.mypyc.utils import apply_modifications_to_frame, create_match_frame
+from sentry.grouping.mypyc.utils import MatchFrame, apply_modifications_to_frame
 from sentry.utils.strings import unescape_string
 
 # Grammar is defined in EBNF syntax.
@@ -96,7 +96,7 @@ class Enhancements:
 
         cache = {}
 
-        match_frames = [create_match_frame(frame, platform) for frame in frames]
+        match_frames = [MatchFrame(frame, platform) for frame in frames]
 
         stacktrace_state = StacktraceState()
         # Apply direct frame actions and update the stack state alongside

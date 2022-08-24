@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, ClassVar, MutableMapping, Sequence, Tuple, Type
+from typing import TYPE_CHECKING, Any, ClassVar, MutableMapping, Sequence, Tuple, Type
 
 from sentry.grouping.mypyc.exceptions import InvalidEnhancerConfig
 from sentry.grouping.utils import get_rule_bool
@@ -101,7 +101,6 @@ class FrameMatch(Match):
 
     @classmethod
     def from_key(cls, key: str, pattern: str, negated: bool) -> "FrameMatch":
-
         instance_key = (key, pattern, negated)
         if instance_key in cls.instances:
             instance = cls.instances[instance_key]
@@ -112,7 +111,6 @@ class FrameMatch(Match):
 
     @classmethod
     def _from_key(cls, key: str, pattern: str, negated: bool) -> "FrameMatch":
-
         subclass: Type["FrameMatch"] = {
             "package": PackageMatch,
             "path": PathMatch,
@@ -192,11 +190,12 @@ def path_like_match(pattern: "re.Pattern[str]", value: str) -> bool:
 
 
 class PathLikeMatch(FrameMatch):
-
-    field: str
-
     def __init__(self, key: str, pattern: str, negated: bool = False):
         super().__init__(key, pattern.lower(), negated, doublestar=True)
+
+    @staticmethod
+    def get_value(frame: MatchFrame) -> Any:
+        raise NotImplementedError()
 
     def _positive_frame_match(
         self,
@@ -205,7 +204,7 @@ class PathLikeMatch(FrameMatch):
         exception_data: ExceptionData,
         cache: MatchingCache,
     ) -> bool:
-        value = match_frame[self.field]
+        value = self.get_value(match_frame)
         if value is None:
             return False
 
@@ -213,13 +212,15 @@ class PathLikeMatch(FrameMatch):
 
 
 class PackageMatch(PathLikeMatch):
-
-    field = "package"
+    @staticmethod
+    def get_value(frame: MatchFrame) -> Any:
+        return frame.package
 
 
 class PathMatch(PathLikeMatch):
-
-    field = "path"
+    @staticmethod
+    def get_value(frame: MatchFrame) -> Any:
+        return frame.path
 
 
 class FamilyMatch(FrameMatch):
@@ -237,7 +238,7 @@ class FamilyMatch(FrameMatch):
         if "all" in self._flags:
             return True
 
-        return match_frame["family"] in self._flags
+        return match_frame.family in self._flags
 
 
 class InAppMatch(FrameMatch):
@@ -253,7 +254,7 @@ class InAppMatch(FrameMatch):
         cache: MatchingCache,
     ) -> bool:
         ref_val = self._ref_val
-        return ref_val is not None and ref_val == match_frame["in_app"]
+        return ref_val is not None and ref_val == match_frame.in_app
 
 
 class FunctionMatch(FrameMatch):
@@ -264,13 +265,13 @@ class FunctionMatch(FrameMatch):
         exception_data: ExceptionData,
         cache: MatchingCache,
     ) -> bool:
-
-        return cached(cache, glob_match, match_frame["function"], self._compiled_pattern)
+        return cached(cache, glob_match, match_frame.function, self._compiled_pattern)
 
 
 class FrameFieldMatch(FrameMatch):
-
-    field: ClassVar[str]
+    @staticmethod
+    def get_value(frame: MatchFrame) -> Any:
+        raise NotImplementedError()
 
     def _positive_frame_match(
         self,
@@ -279,7 +280,7 @@ class FrameFieldMatch(FrameMatch):
         exception_data: ExceptionData,
         cache: MatchingCache,
     ) -> bool:
-        field = match_frame[self.field]
+        field = self.get_value(match_frame)
         if field is None:
             return False
 
@@ -287,13 +288,15 @@ class FrameFieldMatch(FrameMatch):
 
 
 class ModuleMatch(FrameFieldMatch):
-
-    field = "module"
+    @staticmethod
+    def get_value(frame: MatchFrame) -> Any:
+        return frame.module
 
 
 class CategoryMatch(FrameFieldMatch):
-
-    field = "category"
+    @staticmethod
+    def get_value(frame: MatchFrame) -> Any:
+        return frame.category
 
 
 class ExceptionFieldMatch(FrameMatch):

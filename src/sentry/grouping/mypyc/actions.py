@@ -149,7 +149,7 @@ class FlagAction(Action):
         if self.key == "app":
             for frame, match_frame in self._slice_to_range(list(zip(frames, match_frames)), idx):
                 set_in_app(frame, self.flag)
-                match_frame["in_app"] = frame["in_app"]
+                match_frame.in_app = frame["in_app"]
 
     def update_frame_components_contributions(
         self,
@@ -240,4 +240,4 @@ class VarAction(Action):
         if self.var == "category":
             frame = frames[idx]
             set_path(frame, "data", "category", value=self.value)
-            match_frames[idx]["category"] = self.value
+            match_frames[idx].category = self.value

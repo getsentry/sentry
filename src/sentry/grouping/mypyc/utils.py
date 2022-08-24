@@ -20,7 +20,6 @@ if TYPE_CHECKING:
 
 
 FrameData = Mapping[str, Any]
-MatchFrame = MutableMapping[str, Any]
 
 
 ExceptionData = Mapping[str, Any]
@@ -62,25 +61,22 @@ def _get_function_name(frame_data: FrameData, platform: Optional[str]) -> str:
     return function_name or "<unknown>"
 
 
-def create_match_frame(frame_data: FrameData, platform: Optional[str]) -> MatchFrame:
-    """Create flat dict of values relevant to matchers"""
-    match_frame = dict(
-        category=get_path(frame_data, "data", "category"),
-        family=get_behavior_family_for_platform(frame_data.get("platform") or platform),
-        function=_get_function_name(frame_data, platform),
-        in_app=frame_data.get("in_app"),
-        module=get_path(frame_data, "module"),
-        package=frame_data.get("package"),
-        path=frame_data.get("abs_path") or frame_data.get("filename"),
-    )
+class MatchFrame:
+    # Use plain old class because it works well with mypyc
+    def __init__(self, frame_data: FrameData, platform: Optional[str]) -> None:
+        self.category = get_path(frame_data, "data", "category")
+        self.family = get_behavior_family_for_platform(frame_data.get("platform") or platform)
+        self.function = _get_function_name(frame_data, platform)
+        self.in_app = frame_data.get("in_app")
+        self.module = get_path(frame_data, "module")
 
-    for key in list(match_frame.keys()):
-        value = match_frame[key]
-        if isinstance(value, str):
-            if key in ("package", "path"):
-                value = match_frame[key] = value.lower()
+        self.package = frame_data.get("package")
+        if self.package:
+            self.package = self.package.lower()
 
-    return match_frame
+        self.path = frame_data.get("abs_path") or frame_data.get("filename")
+        if self.path:
+            self.path = self.path.lower()
 
 
 # TODO: better typing
@@ -96,7 +92,7 @@ def apply_modifications_to_frame(
 
     cache: MatchingCache = {}
 
-    match_frames = [create_match_frame(frame, platform) for frame in frames]
+    match_frames = [MatchFrame(frame, platform) for frame in frames]
 
     for rule in modifier_rules:
         for idx, action in rule.get_matching_frame_actions(

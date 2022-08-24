@@ -1,5 +1,6 @@
 import re
 from hashlib import md5
+from typing import Optional
 
 from django.utils.encoding import force_bytes
 
@@ -26,7 +27,7 @@ def hash_from_values(values):
     return result.hexdigest()
 
 
-def get_rule_bool(value):
+def get_rule_bool(value: str) -> Optional[bool]:
     if value:
         value = value.lower()
         if value in ("1", "yes", "true"):
