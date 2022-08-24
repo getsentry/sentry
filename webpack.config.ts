@@ -295,6 +295,16 @@ const appConfig: Configuration = {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg|mp4)($|\?)/,
         type: 'asset',
       },
+      {
+        test: /\.mdx?$/,
+        use: [
+          {
+            loader: '@mdx-js/loader',
+            /** @type {import('@mdx-js/loader').Options} */
+            options: {},
+          },
+        ],
+      },
     ],
     noParse: [
       // don't parse known, pre-built javascript files (improves webpack perf)

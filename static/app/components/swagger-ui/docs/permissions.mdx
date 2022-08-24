@@ -1,0 +1,83 @@
+---
+title: Permissions & Scopes
+sidebar_order: 2
+---
+
+If you're building on top of Sentry's API (i.e using [Auth Tokens](/api/auth/)), you'll need certain scopes to access
+different API endpoints.
+
+To set the scopes for an [integration token](/product/integrations/integration-platform/#permissions), select the scopes from the dropdown. These can be edited later.
+
+To set the scopes for an auth token, check the necessary boxes when [creating an auth token](https://sentry.io/api/).
+
+![](auth-token.png)
+
+If you're looking for information on membership roles please visit the
+[membership](/product/accounts/membership/) documentation.
+
+### Organizations
+
+|              |             |
+| :----------: | :---------: |
+|   **GET**    | `org:read`  |
+| **PUT/POST** | `org:write` |
+|  **DELETE**  | `org:admin` |
+
+### Projects
+
+|              |                 |
+| :----------: | :-------------: |
+|   **GET**    | `project:read`  |
+| **PUT/POST** | `project:write` |
+|  **DELETE**  | `project:admin` |
+
+<Alert level="warning" title="Note">
+
+The `project:releases` scope will give you access to both **project**
+and **organization** release endpoints. The available endpoints are listed in the
+[Releases](/api/releases/) section of the API Documentation.
+
+</Alert>
+
+### Teams
+
+|              |              |
+| :----------: | :----------: |
+|   **GET**    | `team:read`  |
+| **PUT/POST** | `team:write` |
+|  **DELETE**  | `team:admin` |
+
+### Members
+
+|              |                |
+| :----------: | :------------: |
+|   **GET**    | `member:read`  |
+| **PUT/POST** | `member:write` |
+|  **DELETE**  | `member:admin` |
+
+### Issues & Events
+
+|            |               |
+| :--------: | :-----------: |
+|  **GET**   | `event:read`  |
+|  **PUT**   | `event:write` |
+| **DELETE** | `event:admin` |
+
+<Alert level="warning" title="Note">
+
+**PUT/DELETE** methods only apply to updating/deleting issues.
+Events in Sentry are immutable and can only be deleted by deleting the whole issue.
+
+</Alert>
+
+### Releases
+
+|                         |                    |
+| :---------------------: | :----------------: |
+| **GET/PUT/POST/DELETE** | `project:releases` |
+
+<Alert level="warning" title="Note">
+
+Be aware that if you're using `sentry-cli` to [manage your releases](/product/cli/releases/), you'll need a token which also has `org:read` scope.
+
+</Alert>

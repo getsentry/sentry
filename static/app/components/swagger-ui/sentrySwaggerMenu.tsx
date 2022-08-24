@@ -1,20 +1,27 @@
-export interface Props {
-  menuItems: {href: string; title: string}[];
+export interface MenuItem {
+  title: string;
+  href?: string;
 }
 
-const SentrySwaggerMenu = ({menuItems}: Props) => (
+export interface Props {
+  menuItems: MenuItem[];
+  onMenuItemClick: (itemName: MenuItem) => void;
+}
+
+const SentrySwaggerMenu = ({menuItems, onMenuItemClick}: Props) => (
   <div className="toc">
     <ul className="list-unstyled">
       <li className="mb-3">
-        <a className="sidebar-title active sidebar-link" href="/api/">
-          <h6>API Reference</h6>
-        </a>
         <ul className="list-unstyled">
-          {menuItems.map(({title, href}) => (
-            <li key={`${title}${href}`}>
-              <a className="sidebar-link" href={href}>
-                {title}
-              </a>
+          {menuItems.map(item => (
+            <li key={`${item.title}`}>
+              <div
+                style={{cursor: 'pointer'}}
+                className="sidebar-link"
+                onClick={() => onMenuItemClick(item)}
+              >
+                {item.title}
+              </div>
             </li>
           ))}
         </ul>

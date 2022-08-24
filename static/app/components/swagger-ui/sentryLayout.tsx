@@ -1,5 +1,8 @@
+import {useState} from 'react';
+
+import DocsSelector, {Docs} from './docs/docsSelector';
 import SentrySwaggerHeader from './sentrySwaggerHeader';
-import SentrySwaggerMenu from './sentrySwaggerMenu';
+import SentrySwaggerMenu, {MenuItem} from './sentrySwaggerMenu';
 
 type SentryLayoutProps = {
   getComponent: Function;
@@ -7,24 +10,46 @@ type SentryLayoutProps = {
 
 const SentryLayout = ({getComponent}: SentryLayoutProps) => {
   const BaseLayout = getComponent('BaseLayout', true);
+  const [selectedMenuItem, setSelectedMenuItem] = useState<Docs | string>(
+    'API REFERENCE'
+  );
 
-  const menuItems = [
+  const menuItems: MenuItem[] = [
     {
-      title: 'Authentication',
+      title: 'API REFERENCE',
+    },
+    {
+      title: Docs.Auth,
       href: '/api/auth/',
     },
     {
-      title: 'Paginating Results',
+      title: Docs.Pagination,
+      href: '/api/pagination/',
+    },
+    {
+      title: Docs.Permissions,
+      href: '/api/pagination/',
+    },
+    {
+      title: Docs.RateLimits,
+      href: '/api/pagination/',
+    },
+    {
+      title: Docs.Request,
       href: '/api/pagination/',
     },
   ];
+
+  const handleMenuClick = (item: MenuItem) => {
+    setSelectedMenuItem(item.title);
+  };
 
   return (
     <div className="swagger-ui-sentry">
       <div className="document-wrapper">
         <div className="sidebar">
           <SentrySwaggerHeader />
-          <SentrySwaggerMenu menuItems={menuItems} />
+          <SentrySwaggerMenu menuItems={menuItems} onMenuItemClick={handleMenuClick} />
         </div>
 
         <main role="main">
@@ -33,7 +58,10 @@ const SentryLayout = ({getComponent}: SentryLayoutProps) => {
               <div className="global-header" />
             </div>
             <div className="content">
-              <BaseLayout />
+              {selectedMenuItem !== 'API REFERENCE' && (
+                <DocsSelector docName={selectedMenuItem as Docs} />
+              )}
+              {selectedMenuItem === 'API REFERENCE' && <BaseLayout />}
             </div>
           </div>
         </main>
