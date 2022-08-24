@@ -33,6 +33,7 @@ from sentry.models import (
     GroupStatus,
     GroupSubscription,
     GroupTombstone,
+    IssueSet,
     Project,
     Release,
     User,
@@ -840,5 +841,14 @@ def update_groups(
                     sender=update_groups,
                 )
         result["inbox"] = inbox
+
+    if result.get("issueSetId"):
+        try:
+            issue_set = IssueSet.objects.get(
+                organization_id=organization_id, id=result.get("issueSetId")
+            )
+        except IssueSet.DoesNotExist as err:
+            return Response({"detail": str(err)}, status=400)
+        IssueSet.objects.add_issues(organization_id, issue_set.id, group_list)
 
     return Response(result)

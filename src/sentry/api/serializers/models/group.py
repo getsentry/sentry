@@ -51,6 +51,7 @@ from sentry.models import (
     SentryAppInstallationToken,
     User,
 )
+from sentry.models.issuesetitem import IssueSetItem
 from sentry.notifications.helpers import (
     collect_groups_by_project,
     get_groups_for_query,
@@ -405,10 +406,14 @@ class GroupSerializerBase(Serializer):
                 )
             )
             subscriptions = self._get_subscriptions(item_list, user)
+            issue_sets = set(
+                IssueSetItem.objects.filter(group__in=item_list).values_list("id", "group_id")
+            )
         else:
             bookmarks = set()
             seen_groups = {}
             subscriptions = defaultdict(lambda: (False, False, None))
+            issue_sets = set()
 
         assignees = {
             a.group_id: a.assigned_actor()
@@ -494,6 +499,7 @@ class GroupSerializerBase(Serializer):
                 "resolution_actor": resolution_actor,
                 "share_id": share_ids.get(item.id),
                 "authorized": authorized,
+                "issue_sets": [issue_set[0] for issue_set in issue_sets if issue_set[1] == item.id],
             }
 
             result[item]["is_unhandled"] = bool(snuba_stats.get(item.id, {}).get("unhandled"))
@@ -620,6 +626,7 @@ class GroupSerializerBase(Serializer):
             "subscriptionDetails": subscription_details,
             "hasSeen": attrs["has_seen"],
             "annotations": attrs["annotations"],
+            "issueSets": attrs["issue_sets"],
         }
 
         # This attribute is currently feature gated

@@ -11,7 +11,7 @@ import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
-import {IconChat} from 'sentry/icons';
+import {IconChat, IconPin} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Group} from 'sentry/types';
@@ -38,9 +38,11 @@ function EventOrGroupExtraDetails({data, showAssignee, params, showInboxTime}: P
     lifetime,
     isUnhandled,
     inbox,
+    issueSets,
   } = data as Group;
 
   const issuesPath = `/organizations/${params.orgId}/issues/`;
+  const setsCount = (issueSets ?? []).length;
 
   return (
     <GroupExtra>
@@ -100,6 +102,15 @@ function EventOrGroupExtraDetails({data, showAssignee, params, showInboxTime}: P
       {showAssignee && assignedTo && (
         <div>{tct('Assigned to [name]', {name: assignedTo.name})}</div>
       )}
+      {setsCount > 0 && (
+        <div>
+          <StyledIconPin size="xs" color="gray300" />
+          {tct('In [setCount] set[plural]', {
+            setCount: issueSets?.length,
+            plural: setsCount !== 1 ? 's' : '',
+          })}
+        </div>
+      )}
     </GroupExtra>
   );
 }
@@ -151,6 +162,10 @@ const AnnotationNoMargin = styled(EventAnnotation)`
 
 const LoggerAnnotation = styled(AnnotationNoMargin)`
   color: ${p => p.theme.textColor};
+`;
+
+const StyledIconPin = styled(IconPin)`
+  margin-right: ${space(0.5)};
 `;
 
 export default withRouter(EventOrGroupExtraDetails);

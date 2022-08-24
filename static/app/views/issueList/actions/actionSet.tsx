@@ -16,6 +16,7 @@ import useMedia from 'sentry/utils/useMedia';
 
 import ResolveActions from './resolveActions';
 import ReviewAction from './reviewAction';
+import SetActions from './setActions';
 import IssueListSortOptions from './sortOptions';
 import {ConfirmAction, getConfirm, getLabel} from './utils';
 
@@ -209,6 +210,7 @@ function ActionSet({
         confirmLabel={label('ignore')}
         disabled={!anySelected}
       />
+      <SetActions disabled={!anySelected} onUpdate={onUpdate} orgSlug={orgSlug} />
       {!nestMergeAndReview && (
         <ReviewAction disabled={!canMarkReviewed} onUpdate={onUpdate} />
       )}

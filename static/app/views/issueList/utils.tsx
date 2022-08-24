@@ -81,6 +81,18 @@ export function getTabs(organization: Organization) {
         tooltipHoverable: true,
       },
     ],
+    [
+      'HACKWEEK___SHOW_SETS',
+      {
+        name: t('Sets'),
+        analyticsName: 'sets',
+        count: false,
+        enabled: true,
+        tooltipTitle: t(
+          'Issue Sets are arbitraty groupings of issues, great for triaging multiple issues in quick succession.'
+        ),
+      },
+    ],
   ];
 
   return tabs.filter(([_query, tab]) => tab.enabled);

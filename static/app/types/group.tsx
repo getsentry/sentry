@@ -446,6 +446,7 @@ export type BaseGroup = {
   type: EventOrGroupType;
   userReportCount: number;
   inbox?: InboxDetails | null | false;
+  issueSets?: number[];
   owners?: SuggestedOwner[] | null;
 } & GroupRelease;
 
