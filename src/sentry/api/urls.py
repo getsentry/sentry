@@ -1521,7 +1521,7 @@ urlpatterns = [
                 url(
                     r"^(?P<organization_slug>[^\/]+)/hackweek-old/$",
                     OldTeamMemberIntersectionEndpoint.as_view(),
-                    name="sentry-hackweek",
+                    name="sentry-hackweek-old",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/users/$",
