@@ -1,4 +1,4 @@
-from typing import ClassVar, MutableMapping, Sequence, Tuple, Type
+from typing import TYPE_CHECKING, ClassVar, MutableMapping, Sequence, Tuple, Type
 
 from sentry.grouping.mypyc.exceptions import InvalidEnhancerConfig
 from sentry.grouping.utils import get_rule_bool
@@ -7,7 +7,8 @@ from sentry.utils.safe import get_path
 
 from .utils import ExceptionData, MatchFrame, MatchingCache, cached
 
-# from .enhancers import InvalidEnhancerConfig
+if TYPE_CHECKING:
+    import re
 
 MATCH_KEYS = {
     "path": "p",
@@ -179,7 +180,7 @@ class FrameMatch(Match):
         return ("!" if self.negated else "") + MATCH_KEYS[self.key] + arg
 
 
-def path_like_match(pattern: bytes, value: bytes) -> bool:
+def path_like_match(pattern: "re.Pattern[str]", value: bytes) -> bool:
     """Stand-alone function for use with ``cached``"""
     if glob_match_compiled(value, pattern, ignorecase=False, path_normalize=True):
         return True
