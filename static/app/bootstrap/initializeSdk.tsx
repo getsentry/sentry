@@ -3,6 +3,7 @@ import {ExtraErrorData} from '@sentry/integrations';
 import {
   addGlobalEventProcessor,
   Breadcrumb,
+  captureException,
   // BreadcrumbHint,
   Event as SentryEvent,
   EventHint,
@@ -60,6 +61,14 @@ function getSentryIntegrations(sentryConfig: Config['sentryConfig'], routes?: Fu
           }
         : {}),
       idleTimeout: 5000,
+      beforeNavigate(context) {
+        setTimeout(() => {
+          generateError(context.name);
+        }, 1000);
+        return {
+          ...context,
+        };
+      },
       _metricOptions: {
         _reportAllChanges: false,
       },
@@ -227,4 +236,12 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
 
   LongTaskObserver.startPerformanceObserver();
   initializeMeasureAssetsTimeout();
+}
+
+function generateError(name: string | undefined) {
+  // 10% sample to start
+  const sampled = Math.random() < 0.1;
+  if (sampled) {
+    captureException(new Error(`${name} threw Error`));
+  }
 }
