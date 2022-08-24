@@ -8,7 +8,7 @@ import space from 'sentry/styles/space';
 import type {Organization, SavedSearch} from 'sentry/types';
 
 import IssueListSearchBar from './searchBar';
-import type {TagValueLoader} from './types';
+import {TagValueLoader} from './types';
 
 type IssueListSearchBarProps = React.ComponentProps<typeof IssueListSearchBar>;
 

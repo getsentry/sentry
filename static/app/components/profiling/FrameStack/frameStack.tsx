@@ -1,5 +1,4 @@
-import type {MouseEventHandler} from 'react';
-import {memo, useCallback, useMemo, useState} from 'react';
+import {memo, MouseEventHandler, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -7,12 +6,12 @@ import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButt
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
+import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {filterFlamegraphTree} from 'sentry/utils/profiling/filterFlamegraphTree';
-import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import type {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphPreferences';
+import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphPreferences';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
-import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {useParams} from 'sentry/utils/useParams';
 

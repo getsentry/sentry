@@ -1,12 +1,12 @@
 import {Fragment, PureComponent} from 'react';
-import type {InjectedRouter} from 'react-router';
+import {InjectedRouter} from 'react-router';
 import {components} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import SearchBar from 'sentry/components/events/searchBar';
 import FormField from 'sentry/components/forms/formField';
@@ -29,12 +29,11 @@ import {
   DATA_SOURCE_LABELS,
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'sentry/views/alerts/utils';
-import type {AlertType} from 'sentry/views/alerts/wizard/options';
+import {AlertType} from 'sentry/views/alerts/wizard/options';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
 import {DEFAULT_AGGREGATE, DEFAULT_TRANSACTION_AGGREGATE} from './constants';
-import type {AlertRuleComparisonType} from './types';
-import {Dataset, Datasource, TimeWindow} from './types';
+import {AlertRuleComparisonType, Dataset, Datasource, TimeWindow} from './types';
 
 const TIME_WINDOW_MAP: Record<TimeWindow, string> = {
   [TimeWindow.ONE_MINUTE]: t('1 minute'),

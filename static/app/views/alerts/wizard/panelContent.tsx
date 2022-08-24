@@ -14,7 +14,7 @@ import diagramUsers from 'sentry-images/spot/alerts-wizard-users-experiencing-er
 
 import {t} from 'sentry/locale';
 
-import type {AlertType} from './options';
+import {AlertType} from './options';
 
 type PanelContent = {
   description: string;

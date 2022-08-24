@@ -1,33 +1,32 @@
 import {createContext, useEffect} from 'react';
 import {browserHistory} from 'react-router';
-import type {Query} from 'history';
+import {Query} from 'history';
 
-import type {DeepPartial} from 'sentry/types/utils';
+import {DeepPartial} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {makeCombinedReducers} from 'sentry/utils/useCombinedReducer';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
-import type {
+import {
   UndoableReducer,
   UndoableReducerAction,
+  useUndoableReducer,
 } from 'sentry/utils/useUndoableReducer';
-import {useUndoableReducer} from 'sentry/utils/useUndoableReducer';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 import {useFlamegraphStateValue} from '../useFlamegraphState';
 
-import type {
+import {
   FlamegraphAxisOptions,
   FlamegraphColorCodings,
+  flamegraphPreferencesReducer,
   FlamegraphSorting,
   FlamegraphViewOptions,
 } from './flamegraphPreferences';
-import {flamegraphPreferencesReducer} from './flamegraphPreferences';
-import type {FlamegraphProfiles} from './flamegraphProfiles';
-import {flamegraphProfilesReducer} from './flamegraphProfiles';
+import {FlamegraphProfiles, flamegraphProfilesReducer} from './flamegraphProfiles';
 import {flamegraphSearchReducer} from './flamegraphSearch';
 import {flamegraphZoomPositionReducer} from './flamegraphZoomPosition';
 

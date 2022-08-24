@@ -1,24 +1,23 @@
 import {Component} from 'react';
 // eslint-disable-next-line no-restricted-imports
-import type {WithRouterProps} from 'react-router';
-import {withRouter} from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import {withTheme} from '@emotion/react';
-import type {Query} from 'history';
+import {Query} from 'history';
 import isEqual from 'lodash/isEqual';
 import memoize from 'lodash/memoize';
 import partition from 'lodash/partition';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {Client, ResponseMeta} from 'sentry/api';
+import {Client, ResponseMeta} from 'sentry/api';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {DateString, Organization} from 'sentry/types';
-import type {Series} from 'sentry/types/echarts';
+import {Series} from 'sentry/types/echarts';
 import {escape} from 'sentry/utils';
 import {getFormattedDate, getUtcDateString} from 'sentry/utils/dates';
 import {formatVersion} from 'sentry/utils/formatters';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import type {Theme} from 'sentry/utils/theme';
+import {Theme} from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 

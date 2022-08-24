@@ -1,7 +1,6 @@
 import {t} from 'sentry/locale';
 
-import type {EventExtraData} from './types';
-import {EventExtraDataType} from './types';
+import {EventExtraData, EventExtraDataType} from './types';
 
 type Output = {
   subject: string;

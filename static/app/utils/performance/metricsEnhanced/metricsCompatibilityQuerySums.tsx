@@ -1,11 +1,10 @@
 import omit from 'lodash/omit';
 
-import type EventView from 'sentry/utils/discover/eventView';
-import type {
+import EventView from 'sentry/utils/discover/eventView';
+import GenericDiscoverQuery, {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
-import GenericDiscoverQuery from 'sentry/utils/discover/genericDiscoverQuery';
 import useApi from 'sentry/utils/useApi';
 
 export interface MetricsCompatibilitySumData {

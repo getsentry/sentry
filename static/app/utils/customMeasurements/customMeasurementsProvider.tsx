@@ -1,17 +1,19 @@
 import {useEffect, useState} from 'react';
-import type {Query} from 'history';
+import {Query} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {Organization, PageFilters} from 'sentry/types';
-import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 
-import type {CustomMeasurementsContextValue} from './customMeasurementsContext';
-import {CustomMeasurementsContext} from './customMeasurementsContext';
+import {
+  CustomMeasurementsContext,
+  CustomMeasurementsContextValue,
+} from './customMeasurementsContext';
 
 type MeasurementsMetaResponse = {
   [x: string]: {functions: string[]};

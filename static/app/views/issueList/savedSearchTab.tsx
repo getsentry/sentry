@@ -7,7 +7,7 @@ import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import DropdownButton from 'sentry/components/dropdownButton';
 import CompactSelect from 'sentry/components/forms/compactSelect';
-import type {ControlProps} from 'sentry/components/forms/selectControl';
+import {ControlProps} from 'sentry/components/forms/selectControl';
 import QueryCount from 'sentry/components/queryCount';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';

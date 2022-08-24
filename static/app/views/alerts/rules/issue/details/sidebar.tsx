@@ -10,7 +10,7 @@ import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Actor, Member, Team} from 'sentry/types';
-import type {IssueAlertRule} from 'sentry/types/alerts';
+import {IssueAlertRule} from 'sentry/types/alerts';
 
 import {TextAction, TextCondition} from './textRule';
 

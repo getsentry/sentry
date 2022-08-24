@@ -1,14 +1,14 @@
-import type {RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {LocationDescriptorObject} from 'history';
+import {LocationDescriptorObject} from 'history';
 import pick from 'lodash/pick';
 import uniq from 'lodash/uniq';
 import moment from 'moment';
 
 import SelectControl from 'sentry/components/forms/selectControl';
 import TeamSelector from 'sentry/components/forms/teamSelector';
-import type {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
+import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';

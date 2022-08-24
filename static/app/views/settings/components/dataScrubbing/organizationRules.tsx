@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
 import Rules from './rules';
-import type {Rule} from './types';
+import {Rule} from './types';
 
 type Props = {
   rules: Array<Rule>;

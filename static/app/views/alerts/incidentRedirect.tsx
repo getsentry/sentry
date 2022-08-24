@@ -1,6 +1,5 @@
 import {useCallback, useEffect, useState} from 'react';
-import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

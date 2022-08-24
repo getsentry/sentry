@@ -1,5 +1,4 @@
-import type {MouseEvent} from 'react';
-import {Fragment, useContext, useState} from 'react';
+import {Fragment, MouseEvent, useContext, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import scrollToElement from 'scroll-to-element';
@@ -28,12 +27,12 @@ import {t} from 'sentry/locale';
 import {DebugMetaActions} from 'sentry/stores/debugMetaStore';
 import space from 'sentry/styles/space';
 import type {Frame, PlatformType, SentryAppComponent} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import type {Color} from 'sentry/utils/theme';
+import {Color} from 'sentry/utils/theme';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
-import type DebugImage from './debugMeta/debugImage';
+import DebugImage from './debugMeta/debugImage';
 import {combineStatus} from './debugMeta/utils';
 import Context from './frame/context';
 import {SymbolicatorStatus} from './types';

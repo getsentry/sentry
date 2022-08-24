@@ -4,7 +4,7 @@ import {Panel} from 'sentry/components/panels';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ExceptionValue, Group, PlatformType} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+import {Event} from 'sentry/types/event';
 import {STACK_VIEW} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {isNativePlatform} from 'sentry/utils/platform';

@@ -1,8 +1,7 @@
-import type {Ref} from 'react';
-import {createContext, Fragment, useEffect, useRef} from 'react';
+import {createContext, Fragment, Ref, useEffect, useRef} from 'react';
 import identity from 'lodash/identity';
 
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useApi from 'sentry/utils/useApi';

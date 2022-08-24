@@ -1,5 +1,5 @@
 import {Component, Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 
 import {disablePlugin, enablePlugin, fetchPlugins} from 'sentry/actionCreators/plugins';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';

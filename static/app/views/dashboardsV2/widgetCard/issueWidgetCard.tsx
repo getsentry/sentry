@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {Location} from 'history';
 
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
@@ -8,12 +8,11 @@ import {IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import type {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
 
 import {getDatasetConfig} from '../datasetConfig/base';
-import type {Widget} from '../types';
-import {WidgetType} from '../types';
+import {Widget, WidgetType} from '../types';
 import {ISSUE_FIELDS} from '../widgetBuilder/issueWidget/fields';
 
 type Props = {

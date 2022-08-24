@@ -4,11 +4,11 @@ import {motion} from 'framer-motion';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {createProject} from 'sentry/actionCreators/projects';
 import ProjectActions from 'sentry/actions/projectActions';
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import PlatformPicker from 'sentry/components/platformPicker';
-import type {PlatformKey} from 'sentry/data/platformCategories';
+import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import type {Team} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -17,7 +17,7 @@ import withApi from 'sentry/utils/withApi';
 import withTeams from 'sentry/utils/withTeams';
 
 import StepHeading from './components/stepHeading';
-import type {StepProps} from './types';
+import {StepProps} from './types';
 
 type Props = StepProps & {
   api: Client;

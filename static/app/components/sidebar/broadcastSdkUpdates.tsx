@@ -11,7 +11,7 @@ import type {
   Project,
   ProjectSdkUpdates,
   SDKUpdatesSuggestion,
-} from 'sentry/types';
+} from 'sentry/types'
 import getSdkUpdateSuggestion from 'sentry/utils/getSdkUpdateSuggestion';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';

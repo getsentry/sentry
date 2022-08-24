@@ -1,14 +1,14 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {Location} from 'history';
 
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import type {Organization, PageFilters, Project} from 'sentry/types';
-import type EventView from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';

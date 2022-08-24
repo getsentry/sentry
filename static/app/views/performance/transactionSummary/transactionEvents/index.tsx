@@ -1,5 +1,5 @@
 import {browserHistory} from 'react-router';
-import type {Location} from 'history';
+import {Location} from 'history';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -8,9 +8,9 @@ import type {Organization, Project} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {
   isAggregateField,
+  QueryFieldValue,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
@@ -26,8 +26,7 @@ import {
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
 } from '../filter';
-import type {ChildProps} from '../pageLayout';
-import PageLayout from '../pageLayout';
+import PageLayout, {ChildProps} from '../pageLayout';
 import Tab from '../tabs';
 import {ZOOM_END, ZOOM_START} from '../transactionOverview/latencyChart/utils';
 

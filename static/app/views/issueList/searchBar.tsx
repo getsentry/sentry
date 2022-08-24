@@ -6,11 +6,10 @@ import {
   makeSaveSearchAction,
   makeSearchBuilderAction,
 } from 'sentry/components/smartSearchBar/actions';
-import type {SavedSearch, Tag} from 'sentry/types';
-import {SavedSearchType} from 'sentry/types';
+import type {SavedSearch, SavedSearchType, Tag} from 'sentry/types';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 
-import type {TagValueLoader} from './types';
+import {TagValueLoader} from './types';
 
 const getSupportedTags = (supportedTags: {[key: string]: Tag}) =>
   Object.fromEntries(

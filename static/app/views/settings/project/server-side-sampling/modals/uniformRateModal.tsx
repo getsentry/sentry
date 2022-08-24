@@ -21,7 +21,7 @@ import ModalStore from 'sentry/stores/modalStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import type {Project, SeriesApi} from 'sentry/types';
-import type {SamplingRule, UniformModalsSubmit} from 'sentry/types/sampling';
+import {SamplingRule, UniformModalsSubmit} from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {formatPercentage} from 'sentry/utils/formatters';
@@ -42,8 +42,7 @@ import {projectStatsToSeries} from '../utils/projectStatsToSeries';
 import useProjectStats from '../utils/useProjectStats';
 import {useRecommendedSdkUpgrades} from '../utils/useRecommendedSdkUpgrades';
 
-import type {RecommendedStepsModalProps} from './recommendedStepsModal';
-import {RecommendedStepsModal} from './recommendedStepsModal';
+import {RecommendedStepsModal, RecommendedStepsModalProps} from './recommendedStepsModal';
 import {SpecifyClientRateModal} from './specifyClientRateModal';
 import {UniformRateChart} from './uniformRateChart';
 

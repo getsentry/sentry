@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import {components} from 'react-select';
 import styled from '@emotion/styled';
 import {urlEncode} from '@sentry/utils';
@@ -14,7 +14,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 import type {Integration, IntegrationProvider, Organization} from 'sentry/types';
-import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
+import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {
   getIntegrationFeatureGate,
   trackIntegrationAnalytics,

@@ -1,14 +1,13 @@
 import {Component} from 'react';
-import type {PlainRoute} from 'react-router';
+import {PlainRoute} from 'react-router';
 
 import {openHelpSearchModal, openSudo} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import {toggleLocaleDebug} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {Fuse} from 'sentry/utils/fuzzySearch';
-import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
+import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 
-import type {ChildProps, ResultItem} from './types';
+import {ChildProps, ResultItem} from './types';
 
 type Action = {
   action: () => void;

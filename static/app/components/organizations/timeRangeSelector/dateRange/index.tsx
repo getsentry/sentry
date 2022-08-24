@@ -1,8 +1,7 @@
 import {Component} from 'react';
 import type {Range} from 'react-date-range';
 // eslint-disable-next-line no-restricted-imports
-import type {WithRouterProps} from 'react-router';
-import {withRouter} from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment';
@@ -22,7 +21,7 @@ import {
   setDateToTime,
 } from 'sentry/utils/dates';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
-import type {Theme} from 'sentry/utils/theme';
+import {Theme} from 'sentry/utils/theme';
 
 const getTimeStringFromDate = (date: Date) => moment(date).local().format('HH:mm');
 

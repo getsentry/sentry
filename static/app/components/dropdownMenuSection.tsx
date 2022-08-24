@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 import {useMenuSection} from '@react-aria/menu';
-import type {Node} from '@react-types/shared';
+import {Node} from '@react-types/shared';
 
-import type {MenuItemProps} from 'sentry/components/dropdownMenuItem';
+import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import space from 'sentry/styles/space';
 
 type Props = {

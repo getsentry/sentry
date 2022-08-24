@@ -3,10 +3,14 @@ import selectEvent from 'react-select-event';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AddToDashboardModal from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
-import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboardsV2/types';
-import {DashboardWidgetSource, DisplayType} from 'sentry/views/dashboardsV2/types';
+import {
+  DashboardDetails,
+  DashboardListItem,
+  DashboardWidgetSource,
+  DisplayType,
+} from 'sentry/views/dashboardsV2/types';
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 

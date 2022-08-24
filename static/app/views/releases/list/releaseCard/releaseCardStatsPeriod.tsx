@@ -1,11 +1,10 @@
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {Location} from 'history';
 
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {PageFilters} from 'sentry/types';
-import {HealthStatsPeriodOption} from 'sentry/types';
+import type {HealthStatsPeriodOption, PageFilters} from 'sentry/types';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 type Props = {

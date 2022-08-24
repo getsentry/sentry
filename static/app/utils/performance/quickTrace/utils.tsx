@@ -4,11 +4,11 @@ import moment from 'moment-timezone';
 import {getTraceDateTimeRange} from 'sentry/components/events/interfaces/spans/utils';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import type {OrganizationSummary} from 'sentry/types';
-import type {Event, EventTransaction} from 'sentry/types/event';
+import {Event, EventTransaction} from 'sentry/types/event';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
-import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
-import type {
+import {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
+import {
   QuickTrace,
   QuickTraceEvent,
   TraceFull,

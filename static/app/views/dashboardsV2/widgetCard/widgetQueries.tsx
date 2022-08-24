@@ -1,28 +1,27 @@
 import {useContext} from 'react';
 import omit from 'lodash/omit';
 
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import {isMultiSeriesStats} from 'sentry/components/charts/utils';
 import type {
   EventsStats,
   MultiSeriesEventsStats,
   Organization,
   PageFilters,
-} from 'sentry/types';
-import type {Series} from 'sentry/types/echarts';
-import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
+} from 'sentry/types'
+import {Series} from 'sentry/types/echarts';
+import {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 
 import {ErrorsAndTransactionsConfig} from '../datasetConfig/errorsAndTransactions';
-import type {DashboardFilters, Widget} from '../types';
+import {DashboardFilters, Widget} from '../types';
 
 import {DashboardsMEPContext} from './dashboardsMEPContext';
-import type {
+import GenericWidgetQueries, {
   GenericWidgetQueriesChildrenProps,
   OnDataFetchedProps,
 } from './genericWidgetQueries';
-import GenericWidgetQueries from './genericWidgetQueries';
 
 type SeriesResult = EventsStats | MultiSeriesEventsStats;
 type TableResult = TableData | EventsTableData;

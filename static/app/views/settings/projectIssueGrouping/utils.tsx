@@ -1,4 +1,4 @@
-import type Alert from 'sentry/components/alert';
+import Alert from 'sentry/components/alert';
 import {t} from 'sentry/locale';
 import type {EventGroupingConfig, Project} from 'sentry/types';
 

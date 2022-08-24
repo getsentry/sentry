@@ -15,9 +15,9 @@ import type {
   GroupStatusResolution,
   Organization,
   Release,
+  ResolutionStatus,
   ResolutionStatusDetails,
-} from 'sentry/types';
-import {ResolutionStatus} from 'sentry/types';
+} from 'sentry/types'
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {formatVersion} from 'sentry/utils/formatters';
 import withOrganization from 'sentry/utils/withOrganization';

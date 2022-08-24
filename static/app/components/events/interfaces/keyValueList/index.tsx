@@ -6,8 +6,7 @@ import type {KeyValueListData} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import theme from 'sentry/utils/theme';
 
-import type {ValueProps} from './value';
-import {Value} from './value';
+import {Value, ValueProps} from './value';
 
 interface Props extends Pick<ValueProps, 'raw' | 'isContextData'> {
   data?: KeyValueListData;

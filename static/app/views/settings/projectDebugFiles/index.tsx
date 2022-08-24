@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -11,7 +11,7 @@ import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
-import type {BuiltinSymbolSource, CustomRepo, DebugFile} from 'sentry/types/debugFiles';
+import {BuiltinSymbolSource, CustomRepo, DebugFile} from 'sentry/types/debugFiles';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';

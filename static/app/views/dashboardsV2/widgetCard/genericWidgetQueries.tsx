@@ -2,16 +2,21 @@ import {Component} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 
-import type {Client, ResponseMeta} from 'sentry/api';
+import {Client, ResponseMeta} from 'sentry/api';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {t} from 'sentry/locale';
 import type {Organization, PageFilters} from 'sentry/types';
-import type {Series} from 'sentry/types/echarts';
-import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {Series} from 'sentry/types/echarts';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 
-import type {DatasetConfig} from '../datasetConfig/base';
-import type {DashboardFilters, Widget, WidgetQuery} from '../types';
-import {DEFAULT_TABLE_LIMIT, DisplayType} from '../types';
+import {DatasetConfig} from '../datasetConfig/base';
+import {
+  DashboardFilters,
+  DEFAULT_TABLE_LIMIT,
+  DisplayType,
+  Widget,
+  WidgetQuery,
+} from '../types';
 
 function getReferrer(displayType: DisplayType) {
   let referrer: string = '';

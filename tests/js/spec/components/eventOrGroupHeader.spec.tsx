@@ -3,7 +3,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
-import {EventOrGroupType} from 'sentry/types';
+import type {EventOrGroupType} from 'sentry/types';
 
 const group = TestStubs.Group({
   level: 'error',

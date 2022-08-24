@@ -1,6 +1,6 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import TeamActions from 'sentry/actions/teamActions';
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import {tct} from 'sentry/locale';
 import type {Team} from 'sentry/types';
 import {callIfFunction} from 'sentry/utils/callIfFunction';

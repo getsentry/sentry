@@ -7,7 +7,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';

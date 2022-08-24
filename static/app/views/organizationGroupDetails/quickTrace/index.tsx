@@ -1,8 +1,8 @@
 import {Fragment, useContext} from 'react';
-import type {Location} from 'history';
+import {Location} from 'history';
 
 import type {Group, Organization} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+import {Event} from 'sentry/types/event';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 
 import DistributedTracingPrompt from './configureDistributedTracing';

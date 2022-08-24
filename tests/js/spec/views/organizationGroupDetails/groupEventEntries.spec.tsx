@@ -3,8 +3,7 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {Error} from 'sentry/components/events/errors';
 import EventEntries from 'sentry/components/events/eventEntries';
-import type {Event} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
+import {EntryType, Event} from 'sentry/types/event';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const {organization, project} = initializeOrg();

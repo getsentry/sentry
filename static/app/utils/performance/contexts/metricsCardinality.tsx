@@ -1,15 +1,16 @@
-import type {ReactNode} from 'react';
-import {Fragment} from 'react';
-import type {Location} from 'history';
+import {Fragment, ReactNode} from 'react';
+import {Location} from 'history';
 
 import type {Organization} from 'sentry/types';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import type {MetricsCompatibilityData} from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuery';
-import MetricsCompatibilityQuery from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuery';
-import type {MetricsCompatibilitySumData} from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuerySums';
-import MetricsCompatibilitySumsQuery from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuerySums';
+import MetricsCompatibilityQuery, {
+  MetricsCompatibilityData,
+} from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuery';
+import MetricsCompatibilitySumsQuery, {
+  MetricsCompatibilitySumData,
+} from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuerySums';
 
 import {createDefinedContext} from './utils';
 

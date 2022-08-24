@@ -1,16 +1,15 @@
 import {Fragment, useEffect, useRef, useState} from 'react';
 // eslint-disable-next-line no-restricted-imports
-import type {WithRouterProps} from 'react-router';
-import {withRouter} from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 
-import type {MenuActions} from 'sentry/components/deprecatedDropdownMenu';
+import {MenuActions} from 'sentry/components/deprecatedDropdownMenu';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
-import type {MenuFooterChildProps} from 'sentry/components/dropdownAutoComplete/menu';
-import type {Item} from 'sentry/components/dropdownAutoComplete/types';
+import {MenuFooterChildProps} from 'sentry/components/dropdownAutoComplete/menu';
+import {Item} from 'sentry/components/dropdownAutoComplete/types';
 import Highlight from 'sentry/components/highlight';
 import HeaderItem from 'sentry/components/organizations/headerItem';
 import MultipleSelectorSubmitRow from 'sentry/components/organizations/multipleSelectorSubmitRow';

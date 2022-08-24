@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {AutoSizer, List as ReactVirtualizedList} from 'react-virtualized';
 
 import Row from './row';
-import type {ItemsAfterFilter} from './types';
+import {ItemsAfterFilter} from './types';
 
 type RowProps = Pick<
   React.ComponentProps<typeof Row>,

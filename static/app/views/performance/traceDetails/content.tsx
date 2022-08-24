@@ -1,5 +1,5 @@
 import {Component, createRef, Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 
 import Alert from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -14,16 +14,12 @@ import {t, tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import type EventView from 'sentry/utils/discover/eventView';
-import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
+import EventView from 'sentry/utils/discover/eventView';
+import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {getDuration} from 'sentry/utils/formatters';
-import type {Fuse} from 'sentry/utils/fuzzySearch';
-import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
+import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import type {
-  TraceFullDetailed,
-  TraceMeta,
-} from 'sentry/utils/performance/quickTrace/types';
+import {TraceFullDetailed, TraceMeta} from 'sentry/utils/performance/quickTrace/types';
 import {filterTrace, reduceTrace} from 'sentry/utils/performance/quickTrace/utils';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import {MetaData} from 'sentry/views/performance/transactionDetails/styles';
@@ -31,7 +27,7 @@ import {MetaData} from 'sentry/views/performance/transactionDetails/styles';
 import {TraceDetailHeader, TraceSearchBar, TraceSearchContainer} from './styles';
 import TraceNotFound from './traceNotFound';
 import TraceView from './traceView';
-import type {TraceInfo} from './types';
+import {TraceInfo} from './types';
 import {getTraceInfo, isRootTransaction} from './utils';
 
 type IndexedFusedTransaction = {

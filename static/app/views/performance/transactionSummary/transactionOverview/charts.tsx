@@ -1,5 +1,5 @@
 import {browserHistory} from 'react-router';
-import type {Location} from 'history';
+import {Location} from 'history';
 
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {
@@ -14,7 +14,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Organization, SelectValue} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import type EventView from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {TransactionsListOption} from 'sentry/views/releases/detail/overview';

@@ -1,14 +1,13 @@
-import type {InjectedRouter} from 'react-router';
+import {InjectedRouter} from 'react-router';
 import {useTheme} from '@emotion/react';
 import max from 'lodash/max';
 import min from 'lodash/min';
 
-import type {AreaChartProps} from 'sentry/components/charts/areaChart';
-import {AreaChart} from 'sentry/components/charts/areaChart';
+import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import type {DateString} from 'sentry/types';
-import type {Series} from 'sentry/types/echarts';
+import {Series} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
   getDurationUnit,

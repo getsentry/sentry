@@ -3,14 +3,20 @@ import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import type {Client} from 'sentry/api';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {Organization, Project} from 'sentry/types';
 
 import submitRules from '../submitRules';
-import type {KeysOfUnion, ProjectId, Rule} from '../types';
-import {EventIdStatus, MethodType, RuleType} from '../types';
+import {
+  EventIdStatus,
+  KeysOfUnion,
+  MethodType,
+  ProjectId,
+  Rule,
+  RuleType,
+} from '../types';
 import {valueSuggestions} from '../utils';
 
 import Form from './form';

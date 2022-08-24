@@ -6,8 +6,7 @@ import {useReducedMotion} from 'framer-motion';
 import Tooltip from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
 
-import type {ParseResult, TokenResult} from './parser';
-import {Token} from './parser';
+import {ParseResult, Token, TokenResult} from './parser';
 import {isWithinToken} from './utils';
 
 type Props = {

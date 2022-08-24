@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 // eslint-disable-next-line no-restricted-imports
-import type {WithRouterProps} from 'react-router';
-import {withRouter} from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -16,7 +15,7 @@ import type {
   Integration,
   Member,
   Organization,
-} from 'sentry/types';
+} from 'sentry/types'
 import {sentryNameToOption} from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';
 

@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import {Observer} from 'mobx-react';
@@ -12,15 +11,13 @@ import {
   removeSentryAppToken,
 } from 'sentry/actionCreators/sentryAppTokens';
 import Avatar from 'sentry/components/avatar';
-import type {Model} from 'sentry/components/avatarChooser';
-import AvatarChooser from 'sentry/components/avatarChooser';
+import AvatarChooser, {Model} from 'sentry/components/avatarChooser';
 import Button from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import type {FieldValue} from 'sentry/components/forms/model';
-import FormModel from 'sentry/components/forms/model';
+import FormModel, {FieldValue} from 'sentry/components/forms/model';
 import TextCopyInput from 'sentry/components/forms/textCopyInput';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';

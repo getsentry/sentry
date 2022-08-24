@@ -1,4 +1,4 @@
-import type {Measurement} from 'sentry/utils/measurements/measurements';
+import {Measurement} from 'sentry/utils/measurements/measurements';
 
 export type CustomMeasurement = Measurement & {
   functions: string[];

@@ -3,7 +3,7 @@ import {t} from 'sentry/locale';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 import Rules from './rules';
-import type {Rule} from './types';
+import {Rule} from './types';
 
 type Props = {
   onDeleteRule: (rule: Rule['id']) => () => void;

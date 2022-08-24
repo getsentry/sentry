@@ -1,5 +1,4 @@
-import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import ApiForm from 'sentry/components/forms/apiForm';
@@ -17,7 +16,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
-import type {DeprecatedApiKey} from './types';
+import {DeprecatedApiKey} from './types';
 
 const API_CHOICES: Choices = API_ACCESS_SCOPES.map(s => [s, s]);
 

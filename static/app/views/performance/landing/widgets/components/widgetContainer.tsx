@@ -10,8 +10,8 @@ import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import type EventView from 'sentry/utils/discover/eventView';
-import type {Field} from 'sentry/utils/discover/fields';
+import EventView from 'sentry/utils/discover/eventView';
+import {Field} from 'sentry/utils/discover/fields';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
@@ -20,15 +20,18 @@ import withOrganization from 'sentry/utils/withOrganization';
 
 import {GenericPerformanceWidgetDataType} from '../types';
 import {_setChartSetting, filterAllowedChartsMetrics, getChartSetting} from '../utils';
-import type {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
-import {WIDGET_DEFINITIONS} from '../widgetDefinitions';
+import {
+  ChartDefinition,
+  PerformanceWidgetSetting,
+  WIDGET_DEFINITIONS,
+} from '../widgetDefinitions';
 import {HistogramWidget} from '../widgets/histogramWidget';
 import {LineChartListWidget} from '../widgets/lineChartListWidget';
 import {SingleFieldAreaWidget} from '../widgets/singleFieldAreaWidget';
 import {TrendsWidget} from '../widgets/trendsWidget';
 import {VitalWidget} from '../widgets/vitalWidget';
 
-import type {ChartRowProps} from './widgetChartRow';
+import {ChartRowProps} from './widgetChartRow';
 
 type Props = {
   allowedCharts: PerformanceWidgetSetting[];

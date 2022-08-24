@@ -4,22 +4,22 @@ import styled from '@emotion/styled';
 import Alert from 'sentry/components/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Flamegraph} from 'sentry/components/profiling/flamegraph';
-import type {ProfileDragDropImportProps} from 'sentry/components/profiling/profileDragDropImport';
+import {ProfileDragDropImportProps} from 'sentry/components/profiling/profileDragDropImport';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import type {DeepPartial} from 'sentry/types/utils';
+import {DeepPartial} from 'sentry/types/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import type {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/index';
 import {
   decodeFlamegraphStateFromQueryParams,
   DEFAULT_FLAMEGRAPH_STATE,
   FLAMEGRAPH_LOCALSTORAGE_PREFERENCES_KEY,
+  FlamegraphState,
   FlamegraphStateLocalStorageSync,
   FlamegraphStateProvider,
   FlamegraphStateQueryParamSync,
 } from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/index';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
-import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';

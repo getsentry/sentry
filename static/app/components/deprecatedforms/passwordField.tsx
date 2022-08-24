@@ -1,4 +1,4 @@
-import type {Context} from 'sentry/components/deprecatedforms/form';
+import {Context} from 'sentry/components/deprecatedforms/form';
 import InputField from 'sentry/components/deprecatedforms/inputField';
 import FormState from 'sentry/components/forms/state';
 

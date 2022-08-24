@@ -13,12 +13,7 @@ import {default as worldMap} from 'sentry/data/world.json';
 
 import {discoverCharts} from './discover';
 import {metricAlertCharts} from './metricAlert';
-import type {
-  ChartcuterieConfig,
-  ChartType,
-  RenderConfig,
-  RenderDescriptor,
-} from './types';
+import {ChartcuterieConfig, ChartType, RenderConfig, RenderDescriptor} from './types';
 
 /**
  * All registered style descriptors

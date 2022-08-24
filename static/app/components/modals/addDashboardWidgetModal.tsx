@@ -8,8 +8,8 @@ import set from 'lodash/set';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import type {Client} from 'sentry/api';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import IssueWidgetQueriesForm from 'sentry/components/dashboards/issueWidgetQueriesForm';
@@ -28,9 +28,9 @@ import type {
   Organization,
   PageFilters,
   SelectValue,
+  SessionField,
   TagCollection,
-} from 'sentry/types';
-import {SessionField} from 'sentry/types';
+} from 'sentry/types'
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
@@ -43,16 +43,14 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import withTags from 'sentry/utils/withTags';
 import {DISPLAY_TYPE_CHOICES} from 'sentry/views/dashboardsV2/data';
 import {assignTempId} from 'sentry/views/dashboardsV2/layoutUtils';
-import type {
+import {
   DashboardDetails,
   DashboardListItem,
-  Widget,
-  WidgetQuery,
-} from 'sentry/views/dashboardsV2/types';
-import {
   DashboardWidgetSource,
   DisplayType,
   MAX_WIDGETS,
+  Widget,
+  WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
 import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
@@ -67,7 +65,7 @@ import {
   normalizeQueries,
 } from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
-import type {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
+import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
 import {TAB, TabsButtonBar} from './dashboardWidgetLibraryModal/tabsButtonBar';

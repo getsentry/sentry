@@ -15,7 +15,7 @@ import space from 'sentry/styles/space';
 import {logException} from 'sentry/utils/logging';
 import useApi from 'sentry/utils/useApi';
 
-import type {Monitor} from './types';
+import {Monitor} from './types';
 
 type Props = {
   monitor: Monitor;

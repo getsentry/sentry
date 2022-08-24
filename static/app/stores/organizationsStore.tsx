@@ -1,5 +1,4 @@
-import type {StoreDefinition} from 'reflux';
-import {createStore} from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import OrganizationsActions from 'sentry/actions/organizationsActions';
 import type {Organization} from 'sentry/types';

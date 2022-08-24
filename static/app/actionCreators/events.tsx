@@ -1,7 +1,7 @@
-import type {LocationDescriptor} from 'history';
+import {LocationDescriptor} from 'history';
 import pick from 'lodash/pick';
 
-import type {Client, ResponseMeta} from 'sentry/api';
+import {Client, ResponseMeta} from 'sentry/api';
 import {canIncludePreviousPeriod} from 'sentry/components/charts/utils';
 import type {
   DateString,
@@ -9,10 +9,10 @@ import type {
   MultiSeriesEventsStats,
   OrganizationSummary,
 } from 'sentry/types';
-import type {LocationQuery} from 'sentry/utils/discover/eventView';
+import {LocationQuery} from 'sentry/utils/discover/eventView';
 import {getPeriod} from 'sentry/utils/getPeriod';
 import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
-import type {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
+import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 
 type Options = {
   organization: OrganizationSummary;

@@ -1,5 +1,4 @@
-import type {ErrorInfo} from 'react';
-import {Component, lazy, Suspense, useMemo} from 'react';
+import {Component, ErrorInfo, lazy, Suspense, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 

@@ -1,13 +1,11 @@
 import {Component} from 'react';
 // eslint-disable-next-line no-restricted-imports
-import type {WithRouterProps} from 'react-router';
-import {withRouter} from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
 
-import type {ResponseMeta} from 'sentry/api';
-import {Client} from 'sentry/api';
+import {Client, ResponseMeta} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {
   DocIntegration,
@@ -20,14 +18,13 @@ import type {
   SentryApp,
   ShortIdResponse,
   Team,
-} from 'sentry/types';
+} from 'sentry/types'
 import {defined} from 'sentry/utils';
-import type {Fuse} from 'sentry/utils/fuzzySearch';
-import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
+import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 import {singleLineRenderer as markedSingleLine} from 'sentry/utils/marked';
 import withLatestContext from 'sentry/utils/withLatestContext';
 
-import type {ChildProps, Result, ResultItem} from './types';
+import {ChildProps, Result, ResultItem} from './types';
 import {strGetFn} from './utils';
 
 // event ids must have string length of 32

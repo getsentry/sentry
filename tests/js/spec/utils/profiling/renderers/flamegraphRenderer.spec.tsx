@@ -6,7 +6,7 @@ import {
   makeFlamegraph,
 } from 'sentry-test/profiling/utils';
 
-import type {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphSearch';
+import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphSearch';
 import {
   LightFlamegraphTheme,
   LightFlamegraphTheme as theme,

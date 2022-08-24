@@ -1,5 +1,4 @@
-import type {DOMAttributes, ReactNode} from 'react';
-import {useCallback, useRef, useState} from 'react';
+import {DOMAttributes, ReactNode, useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {IconGrabbable} from 'sentry/icons';

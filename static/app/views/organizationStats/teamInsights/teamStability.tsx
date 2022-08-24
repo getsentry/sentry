@@ -8,18 +8,23 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import SessionsRequest from 'sentry/components/charts/sessionsRequest';
-import type {DateTimeObject} from 'sentry/components/charts/utils';
+import {DateTimeObject} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PanelTable from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
-import {SessionFieldWithOperation, SessionStatus} from 'sentry/enum';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Organization, Project, SessionApiResponse} from 'sentry/types';
+import type {
+  Organization,
+  Project,
+  SessionApiResponse,
+} from 'sentry/types'
+  import {SessionFieldWithOperation,
+  SessionStatus,} from 'sentry/enum';
 import {formatFloat} from 'sentry/utils/formatters';
 import {getCountSeries, getCrashFreeRate, getSeriesSum} from 'sentry/utils/sessions';
-import type {Color} from 'sentry/utils/theme';
+import {Color} from 'sentry/utils/theme';
 import {displayCrashFreePercent} from 'sentry/views/releases/utils';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';

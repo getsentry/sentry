@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import TextareaField from 'sentry/components/forms/textareaField';
@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import type RequestIntegrationButton from './RequestIntegrationButton';
+import RequestIntegrationButton from './RequestIntegrationButton';
 
 type Props = {
   onSuccess: () => void;

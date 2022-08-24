@@ -1,6 +1,5 @@
 import {useEffect, useState} from 'react';
-import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
@@ -12,8 +11,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 
 import {DASHBOARDS_TEMPLATES, EMPTY_DASHBOARD} from './data';
 import DashboardDetail from './detail';
-import type {Widget} from './types';
-import {DashboardState} from './types';
+import {DashboardState, Widget} from './types';
 import {cloneDashboard, constructWidgetFromQuery} from './utils';
 
 type Props = RouteComponentProps<{orgId: string; templateId?: string}, {}> & {

@@ -1,5 +1,5 @@
 import {Component, createRef, Fragment, Profiler} from 'react';
-import type {Location} from 'history';
+import {Location} from 'history';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

@@ -1,7 +1,7 @@
 import ContextData from 'sentry/components/contextData';
 import EventDataSection from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
+import {Event} from 'sentry/types/event';
 
 type Props = {
   event: Event;

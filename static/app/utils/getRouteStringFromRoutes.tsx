@@ -1,4 +1,4 @@
-import type {PlainRoute} from 'react-router';
+import {PlainRoute} from 'react-router';
 import findLastIndex from 'lodash/findLastIndex';
 
 type RouteWithPath = Omit<PlainRoute, 'path'> & Required<Pick<PlainRoute, 'path'>>;

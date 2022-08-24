@@ -14,14 +14,14 @@ import {MEPDataProvider} from 'sentry/utils/performance/contexts/metricsEnhanced
 import useApi from 'sentry/utils/useApi';
 import getPerformanceWidgetContainer from 'sentry/views/performance/landing/widgets/components/performanceWidgetContainer';
 
-import type {
+import {
   GenericPerformanceWidgetProps,
   WidgetDataConstraint,
   WidgetDataProps,
   WidgetDataResult,
   WidgetPropUnion,
 } from '../types';
-import type {PerformanceWidgetSetting} from '../widgetDefinitions';
+import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 import {DataStateSwitch} from './dataStateSwitch';
 import {QueryHandler} from './queryHandler';

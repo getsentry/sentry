@@ -1,15 +1,15 @@
 import {Component, Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {Location} from 'history';
 import moment from 'moment';
 
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import {getInterval} from 'sentry/components/charts/utils';
 import Duration from 'sentry/components/duration';
 import * as Layout from 'sentry/components/layouts/thirds';
-import type {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
+import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
@@ -17,19 +17,17 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
 import MetricHistory from 'sentry/views/alerts/rules/metric/details/metricHistory';
-import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
-import {Dataset, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset, MetricRule, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 
-import type {Incident} from '../../../types';
-import {AlertRuleStatus} from '../../../types';
+import {AlertRuleStatus, Incident} from '../../../types';
 import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
 
-import type {TimePeriodType} from './constants';
 import {
   API_INTERVAL_POINTS_LIMIT,
   SELECTOR_RELATIVE_PERIODS,
   TIME_WINDOWS,
+  TimePeriodType,
 } from './constants';
 import MetricChart from './metricChart';
 import RelatedIssues from './relatedIssues';

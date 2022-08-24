@@ -1,6 +1,6 @@
-import type {Location} from 'history';
+import {Location} from 'history';
 
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
+import {GridColumnOrder} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types';

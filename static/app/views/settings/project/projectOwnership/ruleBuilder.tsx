@@ -12,8 +12,9 @@ import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import space from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
-import type {Owner} from 'sentry/views/settings/project/projectOwnership/selectOwners';
-import SelectOwners from 'sentry/views/settings/project/projectOwnership/selectOwners';
+import SelectOwners, {
+  Owner,
+} from 'sentry/views/settings/project/projectOwnership/selectOwners';
 
 const initialState = {
   text: '',

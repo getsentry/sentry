@@ -21,14 +21,13 @@ import {
   stripDerivedMetricsPrefix,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
-import type {Widget, WidgetQuery} from 'sentry/views/dashboardsV2/types';
-import {WidgetType} from 'sentry/views/dashboardsV2/types';
+import {Widget, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {ReleaseSearchBar} from 'sentry/views/dashboardsV2/widgetBuilder/buildSteps/filterResultsStep/releaseSearchBar';
 import {
   DISABLED_SORT,
   TAG_SORT_DENY_LIST,
 } from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
-import type {generateFieldOptions} from 'sentry/views/eventsV2/utils';
+import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
 import WidgetQueryFields from './widgetQueryFields';
 

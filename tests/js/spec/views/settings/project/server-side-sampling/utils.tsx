@@ -1,20 +1,18 @@
-import type {InjectedRouter} from 'react-router';
+import {InjectedRouter} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import GlobalModal from 'sentry/components/globalModal';
 import type {Organization, Project} from 'sentry/types';
-import type {
-  RecommendedSdkUpgrade,
-  SamplingDistribution,
-  SamplingRule,
-  SamplingSdkVersion,
-} from 'sentry/types/sampling';
 import {
+  RecommendedSdkUpgrade,
   SamplingConditionOperator,
+  SamplingDistribution,
   SamplingInnerName,
   SamplingInnerOperator,
+  SamplingRule,
   SamplingRuleType,
+  SamplingSdkVersion,
 } from 'sentry/types/sampling';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {Outcome} from 'sentry/views/organizationStats/types';

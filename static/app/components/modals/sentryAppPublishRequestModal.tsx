@@ -3,12 +3,11 @@ import styled from '@emotion/styled';
 import intersection from 'lodash/intersection';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
-import type {PermissionChoice} from 'sentry/constants';
-import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
+import {PermissionChoice, SENTRY_APP_PERMISSIONS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Scope, SentryApp} from 'sentry/types';

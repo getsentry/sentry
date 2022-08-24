@@ -3,8 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
-import type {AreaChartProps} from 'sentry/components/charts/areaChart';
-import {AreaChart} from 'sentry/components/charts/areaChart';
+import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
 import Grid from 'sentry/components/charts/components/grid';
 import Tooltip from 'sentry/components/charts/components/tooltip';
 import XAxis from 'sentry/components/charts/components/xAxis';
@@ -13,7 +12,7 @@ import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {showPlayerTime} from 'sentry/components/replays/utils';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {formatBytesBase2} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
 import type {MemorySpanType} from 'sentry/views/replays/types';

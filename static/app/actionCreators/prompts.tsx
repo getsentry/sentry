@@ -1,4 +1,4 @@
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 
 type PromptsUpdateParams = {
   /**

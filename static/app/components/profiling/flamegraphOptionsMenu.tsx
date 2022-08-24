@@ -4,8 +4,8 @@ import Button from 'sentry/components/button';
 import CompositeSelect from 'sentry/components/forms/compositeSelect';
 import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
-import type {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphPreferences';
+import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
+import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphPreferences';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
 
 interface FlamegraphOptionsMenuProps {

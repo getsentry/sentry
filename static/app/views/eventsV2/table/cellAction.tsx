@@ -8,15 +8,15 @@ import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {
   isEquationAlias,
   isRelativeSpanOperationBreakdownField,
 } from 'sentry/utils/discover/fields';
 import {getDuration} from 'sentry/utils/formatters';
-import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
-import type {TableColumn} from './types';
+import {TableColumn} from './types';
 
 export enum Actions {
   ADD = 'add',

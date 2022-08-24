@@ -1,4 +1,4 @@
-import type {Event} from 'sentry/types/event';
+import {Event} from 'sentry/types/event';
 
 import ContextSummary from '../contextSummary';
 

@@ -2,7 +2,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {IconCheckmark, IconSubtract} from 'sentry/icons';
-import type {Theme} from 'sentry/utils/theme';
+import {Theme} from 'sentry/utils/theme';
 
 interface Props extends React.HTMLAttributes<HTMLDivElement> {
   isChecked?: boolean;

@@ -5,7 +5,7 @@ import TeamActions from 'sentry/actions/teamActions';
 import type {Project, Team} from 'sentry/types';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-import type {CommonStoreDefinition} from './types';
+import {CommonStoreDefinition} from './types';
 
 type State = {
   loading: boolean;

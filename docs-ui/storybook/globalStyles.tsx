@@ -1,7 +1,7 @@
 import {css, Global} from '@emotion/react';
 
 import space from 'sentry/styles/space';
-import type {Theme} from 'sentry/utils/theme';
+import {Theme} from 'sentry/utils/theme';
 
 const docsStyles = (theme: Theme) => css`
   html,

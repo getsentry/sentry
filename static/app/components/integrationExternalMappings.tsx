@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 // eslint-disable-next-line no-restricted-imports
-import type {WithRouterProps} from 'react-router';
-import {withRouter} from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
@@ -24,7 +23,7 @@ import type {
   ExternalActorSuggestion,
   Integration,
   Organization,
-} from 'sentry/types';
+} from 'sentry/types'
 import {getIntegrationIcon, isExternalActorMapping} from 'sentry/utils/integrationUtil';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 

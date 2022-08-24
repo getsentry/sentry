@@ -1,15 +1,15 @@
 import {Component, Fragment} from 'react';
-import type {Location} from 'history';
+import {Location} from 'history';
 
 import {Panel} from 'sentry/components/panels';
 import type {Organization} from 'sentry/types';
-import type EventView from 'sentry/utils/discover/eventView';
-import type {WebVital} from 'sentry/utils/fields';
+import EventView from 'sentry/utils/discover/eventView';
+import {WebVital} from 'sentry/utils/fields';
 import HistogramQuery from 'sentry/utils/performance/histogram/histogramQuery';
-import type {DataFilter, HistogramData} from 'sentry/utils/performance/histogram/types';
+import {DataFilter, HistogramData} from 'sentry/utils/performance/histogram/types';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
-import type {VitalGroup} from 'sentry/utils/performance/vitals/types';
-import type {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
+import {VitalGroup} from 'sentry/utils/performance/vitals/types';
+import {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 
 import {NUM_BUCKETS, VITAL_GROUPS} from './constants';

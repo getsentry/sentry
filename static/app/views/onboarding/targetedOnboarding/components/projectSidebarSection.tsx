@@ -1,10 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import type {Variants} from 'framer-motion';
-import {motion} from 'framer-motion';
+import {motion, Variants} from 'framer-motion';
 import {PlatformIcon} from 'platformicons';
 
-import type {PlatformKey} from 'sentry/data/platformCategories';
+import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';

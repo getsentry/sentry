@@ -10,10 +10,10 @@ import {
 import GroupingActions from 'sentry/actions/groupingActions';
 import {Client} from 'sentry/api';
 import type {Group, Organization, Project} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+import {Event} from 'sentry/types/event';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-import type {CommonStoreDefinition} from './types';
+import {CommonStoreDefinition} from './types';
 
 // Between 0-100
 const MIN_SCORE = 0.6;

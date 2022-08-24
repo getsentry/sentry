@@ -1,6 +1,5 @@
 import findIndex from 'lodash/findIndex';
-import type {StoreDefinition} from 'reflux';
-import {createStore} from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import SavedSearchesActions from 'sentry/actions/savedSearchesActions';
 import type {SavedSearch, SavedSearchType} from 'sentry/types';

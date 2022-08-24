@@ -3,13 +3,15 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openWidgetBuilderOverwriteModal} from 'sentry/actionCreators/modal';
-import type {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
+import {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
-import type {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
-import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboardsV2/widgetLibrary/data';
+import {
+  getTopNConvertedDefaultWidgets,
+  WidgetTemplate,
+} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 
 import {normalizeQueries} from '../utils';
 

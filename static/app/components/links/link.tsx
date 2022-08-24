@@ -1,10 +1,9 @@
 import {forwardRef, useEffect} from 'react';
 // eslint-disable-next-line no-restricted-imports
-import type {WithRouterProps} from 'react-router';
-import {Link as RouterLink, withRouter} from 'react-router';
+import {Link as RouterLink, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import type {Location, LocationDescriptor} from 'history';
+import {Location, LocationDescriptor} from 'history';
 
 import {linkStyles} from './styles';
 

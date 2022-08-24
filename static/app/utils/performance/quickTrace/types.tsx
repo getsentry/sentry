@@ -1,9 +1,9 @@
-import type {EventTag, Measurement} from 'sentry/types/event';
-import type {
+import {EventTag, Measurement} from 'sentry/types/event';
+import {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
-import type {Theme} from 'sentry/utils/theme';
+import {Theme} from 'sentry/utils/theme';
 
 /**
  * `EventLite` represents the type of a simplified event from

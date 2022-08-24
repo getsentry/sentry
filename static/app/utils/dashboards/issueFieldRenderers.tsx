@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {Location} from 'history';
 
 import AssigneeSelector from 'sentry/components/assigneeSelector';
 import Count from 'sentry/components/count';
@@ -13,8 +13,7 @@ import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
-import type {EventData} from 'sentry/utils/discover/eventView';
-import EventView from 'sentry/utils/discover/eventView';
+import EventView, {EventData} from 'sentry/utils/discover/eventView';
 import {FieldKey} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/fields';
 
 import {Container, FieldShortId, OverflowLink} from '../discover/styles';

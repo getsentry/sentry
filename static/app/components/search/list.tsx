@@ -1,12 +1,12 @@
 import {Fragment, memo, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import type AutoComplete from 'sentry/components/autoComplete';
+import AutoComplete from 'sentry/components/autoComplete';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-import type {Result} from './sources/types';
+import {Result} from './sources/types';
 import SearchResult from './searchResult';
 import SearchResultWrapper from './searchResultWrapper';
 

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import FeatureBadge from 'sentry/components/featureBadge';
-import type {Field} from 'sentry/components/forms/type';
+import {Field} from 'sentry/components/forms/type';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {getDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';

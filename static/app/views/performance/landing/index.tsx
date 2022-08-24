@@ -1,9 +1,7 @@
-import type {FC} from 'react';
-import {Fragment, useEffect, useRef} from 'react';
-import type {InjectedRouter} from 'react-router';
-import {browserHistory} from 'react-router';
+import {FC, Fragment, useEffect, useRef} from 'react';
+import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {Location} from 'history';
 
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -22,7 +20,7 @@ import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import type {Organization, PageFilters, Project} from 'sentry/types';
-import type EventView from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
 import {generateAggregateFields} from 'sentry/utils/discover/fields';
 import {GenericQueryBatcher} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';

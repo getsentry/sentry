@@ -6,8 +6,7 @@ import moment from 'moment';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {InlineContainer, SectionHeading} from 'sentry/components/charts/styles';
-import type {DateTimeObject} from 'sentry/components/charts/utils';
-import {getSeriesApiInterval} from 'sentry/components/charts/utils';
+import {DateTimeObject, getSeriesApiInterval} from 'sentry/components/charts/utils';
 import NotAvailable from 'sentry/components/notAvailable';
 import ScoreCard from 'sentry/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
@@ -21,10 +20,12 @@ import {
   FORMAT_DATETIME_HOURLY,
   getDateFromMoment,
 } from './usageChart/utils';
-import type {UsageSeries, UsageStat} from './types';
-import {Outcome} from './types';
-import type {ChartStats} from './usageChart';
-import UsageChart, {CHART_OPTIONS_DATA_TRANSFORM, ChartDataTransform} from './usageChart';
+import {Outcome, UsageSeries, UsageStat} from './types';
+import UsageChart, {
+  CHART_OPTIONS_DATA_TRANSFORM,
+  ChartDataTransform,
+  ChartStats,
+} from './usageChart';
 import UsageStatsPerMin from './usageStatsPerMin';
 import {formatUsageWithUnits, getFormatUsageOptions, isDisplayUtc} from './utils';
 

@@ -1,11 +1,10 @@
 import {Fragment, useEffect, useState} from 'react';
-import type {InjectedRouter} from 'react-router';
-import {browserHistory} from 'react-router';
+import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {Location} from 'history';
 import debounce from 'lodash/debounce';
 
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';

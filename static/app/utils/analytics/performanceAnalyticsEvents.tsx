@@ -1,4 +1,4 @@
-import type {PlatformKey} from 'sentry/data/platformCategories';
+import {PlatformKey} from 'sentry/data/platformCategories';
 
 type SampleTransactionParam = {
   platform?: PlatformKey;

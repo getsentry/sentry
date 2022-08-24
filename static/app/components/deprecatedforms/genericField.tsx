@@ -1,6 +1,6 @@
 import BooleanField from 'sentry/components/deprecatedforms/booleanField';
 import EmailField from 'sentry/components/deprecatedforms/emailField';
-import type FormField from 'sentry/components/deprecatedforms/formField';
+import FormField from 'sentry/components/deprecatedforms/formField';
 import NumberField from 'sentry/components/deprecatedforms/numberField';
 import PasswordField from 'sentry/components/deprecatedforms/passwordField';
 import SelectAsyncField from 'sentry/components/deprecatedforms/selectAsyncField';
@@ -8,7 +8,7 @@ import SelectCreatableField from 'sentry/components/deprecatedforms/selectCreata
 import SelectField from 'sentry/components/deprecatedforms/selectField';
 import TextareaField from 'sentry/components/deprecatedforms/textareaField';
 import TextField from 'sentry/components/deprecatedforms/textField';
-import type FormState from 'sentry/components/forms/state';
+import FormState from 'sentry/components/forms/state';
 import {defined} from 'sentry/utils';
 
 type FieldType =

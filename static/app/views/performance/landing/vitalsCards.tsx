@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import type {Location} from 'history';
+import {Location} from 'history';
 
 import Card from 'sentry/components/card';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
@@ -20,16 +20,18 @@ import type {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
-import type EventView from 'sentry/utils/discover/eventView';
-import type {Column} from 'sentry/utils/discover/fields';
-import {generateFieldAsString, getAggregateAlias} from 'sentry/utils/discover/fields';
+import EventView from 'sentry/utils/discover/eventView';
+import {
+  Column,
+  generateFieldAsString,
+  getAggregateAlias,
+} from 'sentry/utils/discover/fields';
 import {WebVital} from 'sentry/utils/fields';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
-import type {
+import VitalsCardsDiscoverQuery, {
   VitalData,
   VitalsData,
 } from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
-import VitalsCardsDiscoverQuery from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {decodeList} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';

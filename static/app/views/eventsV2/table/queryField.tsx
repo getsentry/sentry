@@ -1,13 +1,10 @@
 import {Component, createRef} from 'react';
-import type {SingleValueProps} from 'react-select';
-import {components} from 'react-select';
+import {components, SingleValueProps} from 'react-select';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import type {ControlProps} from 'sentry/components/forms/selectControl';
-import SelectControl from 'sentry/components/forms/selectControl';
-import type {InputProps} from 'sentry/components/input';
-import Input from 'sentry/components/input';
+import SelectControl, {ControlProps} from 'sentry/components/forms/selectControl';
+import Input, {InputProps} from 'sentry/components/input';
 import Tag from 'sentry/components/tag';
 import Tooltip from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
@@ -15,20 +12,20 @@ import {t} from 'sentry/locale';
 import {pulse} from 'sentry/styles/animations';
 import space from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types';
-import type {
+import {
   AggregateParameter,
   AggregationKeyWithAlias,
+  AGGREGATIONS,
   Column,
   ColumnType,
+  DEPRECATED_FIELDS,
   QueryFieldValue,
   ValidateColumnTypes,
 } from 'sentry/utils/discover/fields';
-import {AGGREGATIONS, DEPRECATED_FIELDS} from 'sentry/utils/discover/fields';
 import {SESSIONS_OPERATIONS} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
 
 import ArithmeticInput from './arithmeticInput';
-import type {FieldValue, FieldValueColumns} from './types';
-import {FieldValueKind} from './types';
+import {FieldValue, FieldValueColumns, FieldValueKind} from './types';
 
 export type FieldValueOption = SelectValue<FieldValue>;
 

@@ -4,9 +4,9 @@ import {
   MOBILE_VITAL_DETAILS,
   WEB_VITAL_DETAILS,
 } from 'sentry/utils/performance/vitals/constants';
-import type {Vital} from 'sentry/utils/performance/vitals/types';
+import {Vital} from 'sentry/utils/performance/vitals/types';
 
-import type {MobileVital, WebVital} from '../fields';
+import {MobileVital, WebVital} from '../fields';
 
 export type Measurement = {
   key: string;

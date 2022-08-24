@@ -11,7 +11,7 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import type {TableData} from 'sentry/utils/discover/discoverQuery';
+import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getPeriod} from 'sentry/utils/getPeriod';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 

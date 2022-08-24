@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import quickTraceExample from 'sentry-images/spot/performance-quick-trace.svg';
 
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import Button from 'sentry/components/button';
@@ -14,7 +14,7 @@ import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+import {Event} from 'sentry/types/event';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {getConfigureTracingDocsLink} from 'sentry/utils/docs';
 import {promptCanShow, promptIsDismissed} from 'sentry/utils/promptIsDismissed';

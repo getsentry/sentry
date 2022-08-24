@@ -1,7 +1,7 @@
 import type {YAXisComponentOption} from 'echarts';
 import merge from 'lodash/merge';
 
-import type {Theme} from 'sentry/utils/theme';
+import {Theme} from 'sentry/utils/theme';
 
 type Props = YAXisComponentOption & {theme: Theme};
 

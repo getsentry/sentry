@@ -18,10 +18,11 @@ import {
 } from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboardsV2/datasetConfig/base';
-import type {WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
-import {DisplayType} from 'sentry/views/dashboardsV2/types';
-import type {SortDirection} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
-import {sortDirections} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
+import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {
+  SortDirection,
+  sortDirections,
+} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import ArithmeticInput from 'sentry/views/eventsV2/table/arithmeticInput';
 import {QueryField} from 'sentry/views/eventsV2/table/queryField';
 

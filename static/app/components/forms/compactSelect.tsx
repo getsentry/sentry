@@ -4,23 +4,25 @@ import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
 import {FocusScope} from '@react-aria/focus';
 import {useMenuTrigger} from '@react-aria/menu';
-import type {AriaPositionProps, OverlayProps} from '@react-aria/overlays';
-import {useOverlay, useOverlayPosition} from '@react-aria/overlays';
+import {
+  AriaPositionProps,
+  OverlayProps,
+  useOverlay,
+  useOverlayPosition,
+} from '@react-aria/overlays';
 import {mergeProps, useResizeObserver} from '@react-aria/utils';
 import {useMenuTriggerState} from '@react-stately/menu';
 
 import Badge from 'sentry/components/badge';
 import Button from 'sentry/components/button';
-import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
-import DropdownButton from 'sentry/components/dropdownButton';
-import type {
+import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButton';
+import SelectControl, {
   ControlProps,
   GeneralSelectValue,
 } from 'sentry/components/forms/selectControl';
-import SelectControl from 'sentry/components/forms/selectControl';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import space from 'sentry/styles/space';
-import type {FormSize} from 'sentry/utils/theme';
+import {FormSize} from 'sentry/utils/theme';
 
 interface TriggerRenderingProps {
   props: Omit<DropdownButtonProps, 'children'>;

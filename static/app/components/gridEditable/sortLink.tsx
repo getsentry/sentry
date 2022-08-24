@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import type {LocationDescriptorObject} from 'history';
+import {LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
 
 import Link from 'sentry/components/links/link';

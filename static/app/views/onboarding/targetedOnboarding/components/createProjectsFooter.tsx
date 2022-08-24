@@ -12,7 +12,7 @@ import {
 import {createProject} from 'sentry/actionCreators/projects';
 import ProjectActions from 'sentry/actions/projectActions';
 import Button from 'sentry/components/button';
-import type {PlatformKey} from 'sentry/data/platformCategories';
+import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
@@ -21,7 +21,7 @@ import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useTeams from 'sentry/utils/useTeams';
 
-import type {OnboardingState} from '../types';
+import {OnboardingState} from '../types';
 import {usePersistedOnboardingState} from '../utils';
 
 import GenericFooter from './genericFooter';

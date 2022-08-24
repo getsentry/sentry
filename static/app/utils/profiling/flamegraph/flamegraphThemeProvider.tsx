@@ -10,8 +10,11 @@ import {
   makeColorMapBySystemVsApplication,
 } from '../colors/utils';
 
-import type {FlamegraphTheme} from './flamegraphTheme';
-import {DarkFlamegraphTheme, LightFlamegraphTheme} from './flamegraphTheme';
+import {
+  DarkFlamegraphTheme,
+  FlamegraphTheme,
+  LightFlamegraphTheme,
+} from './flamegraphTheme';
 import {useFlamegraphPreferencesValue} from './useFlamegraphPreferences';
 
 export const FlamegraphThemeContext = createContext<FlamegraphTheme | null>(null);

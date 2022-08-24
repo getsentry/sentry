@@ -9,8 +9,7 @@ import type {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useApi from 'sentry/utils/useApi';
 
-import type {Preset, PresetContext} from './presets';
-import {PRESET_AGGREGATES} from './presets';
+import {Preset, PRESET_AGGREGATES, PresetContext} from './presets';
 
 type Props = {
   organization: Organization;

@@ -2,8 +2,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {StackTracePreview} from 'sentry/components/stacktracePreview';
 import type {EventError} from 'sentry/types';
-import type {Event, ExceptionType, ExceptionValue, Frame} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
+import {EntryType, Event, ExceptionType, ExceptionValue, Frame} from 'sentry/types/event';
 import useApi from 'sentry/utils/useApi';
 
 const makeEvent = (event: Partial<Event> = {}): Event => {

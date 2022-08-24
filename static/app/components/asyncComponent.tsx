@@ -1,11 +1,10 @@
 import {Component} from 'react';
-import type {RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import * as PropTypes from 'prop-types';
 
-import type {ResponseMeta} from 'sentry/api';
-import {Client} from 'sentry/api';
+import {Client, ResponseMeta} from 'sentry/api';
 import AsyncComponentSearchInput from 'sentry/components/asyncComponentSearchInput';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

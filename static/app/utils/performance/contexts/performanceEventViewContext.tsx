@@ -1,5 +1,4 @@
-import type {ImmutableEventView} from 'sentry/utils/discover/eventView';
-import type EventView from 'sentry/utils/discover/eventView';
+import EventView, {ImmutableEventView} from 'sentry/utils/discover/eventView';
 
 import {createDefinedContext} from './utils';
 

@@ -3,7 +3,7 @@ import {Component} from 'react';
 import EventsTableRow from 'sentry/components/eventsTable/eventsTableRow';
 import {t} from 'sentry/locale';
 import type {Tag} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+import {Event} from 'sentry/types/event';
 
 type Props = {
   events: Event[];

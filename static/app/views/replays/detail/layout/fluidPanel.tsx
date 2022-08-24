@@ -1,4 +1,4 @@
-import type {LegacyRef, ReactChild} from 'react';
+import {LegacyRef, ReactChild} from 'react';
 import styled from '@emotion/styled';
 
 type Props = {

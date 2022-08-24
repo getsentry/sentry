@@ -8,7 +8,7 @@ import {t, tct} from 'sentry/locale';
 import type {InboxDetails} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import type {Theme} from 'sentry/utils/theme';
+import {Theme} from 'sentry/utils/theme';
 
 const GroupInboxReason = {
   NEW: 0,

@@ -1,7 +1,7 @@
 import {Observer} from 'mobx-react';
 
 import ControlState from 'sentry/components/forms/field/controlState';
-import type FormModel from 'sentry/components/forms/model';
+import FormModel from 'sentry/components/forms/model';
 import FormState from 'sentry/components/forms/state';
 
 type Props = {

@@ -5,8 +5,7 @@ import * as qs from 'query-string';
 import ConfigStore from 'sentry/stores/configStore';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 
-import type {ImageStyleProps} from './styles';
-import {imageStyle} from './styles';
+import {imageStyle, ImageStyleProps} from './styles';
 
 type Props = {
   remoteSize: number;

@@ -5,12 +5,14 @@ import Fuse from 'fuse.js';
 
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
-import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
+import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import type {FlamegraphSearch as FlamegraphSearchResults} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphSearch';
 import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/useFlamegraphSearch';
-import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {getFlamegraphFrameSearchId} from 'sentry/utils/profiling/flamegraphFrame';
+import {
+  FlamegraphFrame,
+  getFlamegraphFrameSearchId,
+} from 'sentry/utils/profiling/flamegraphFrame';
 import {memoizeByReference} from 'sentry/utils/profiling/profile/utils';
 import {isRegExpString, parseRegExp} from 'sentry/utils/profiling/validators/regExp';
 

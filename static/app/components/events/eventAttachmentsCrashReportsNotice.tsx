@@ -1,4 +1,4 @@
-import type {Location} from 'history';
+import {Location} from 'history';
 
 import {tct} from 'sentry/locale';
 import {crashReportTypes} from 'sentry/views/organizationGroupDetails/groupEventAttachments/groupEventAttachmentsFilter';

@@ -1,23 +1,26 @@
 import {Component} from 'react';
 // eslint-disable-next-line no-restricted-imports
-import type {WithRouterProps} from 'react-router';
-import {withRouter} from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import {withTheme} from '@emotion/react';
 import round from 'lodash/round';
 
-import type {AreaChartProps} from 'sentry/components/charts/areaChart';
-import {AreaChart} from 'sentry/components/charts/areaChart';
+import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import StackedAreaChart from 'sentry/components/charts/stackedAreaChart';
 import {HeaderTitleLegend, HeaderValue} from 'sentry/components/charts/styles';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import type {PlatformKey} from 'sentry/data/platformCategories';
-import {SessionFieldWithOperation, SessionStatus} from 'sentry/enum';
+import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import type {ReleaseProject, ReleaseWithHealth, SessionApiResponse} from 'sentry/types';
-import {ReleaseComparisonChartType} from 'sentry/types';
+import type {
+  ReleaseComparisonChartType,
+  ReleaseProject,
+  ReleaseWithHealth,
+  SessionApiResponse,
+} from 'sentry/types'
+  import {SessionFieldWithOperation,
+  SessionStatus,} from 'sentry/enum';
 import {defined} from 'sentry/utils';
 import {getDuration, getExactDuration} from 'sentry/utils/formatters';
 import {
@@ -28,7 +31,7 @@ import {
   initSessionsChart,
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
 } from 'sentry/utils/sessions';
-import type {Theme} from 'sentry/utils/theme';
+import {Theme} from 'sentry/utils/theme';
 import {displayCrashFreePercent, roundDuration} from 'sentry/views/releases/utils';
 
 import {

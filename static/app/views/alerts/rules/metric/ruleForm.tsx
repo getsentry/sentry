@@ -1,13 +1,12 @@
-import type {ReactNode} from 'react';
-import {Fragment} from 'react';
-import type {PlainRoute, RouteComponentProps} from 'react-router';
+import {Fragment, ReactNode} from 'react';
+import {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import type {Indicator} from 'sentry/actionCreators/indicator';
 import {
   addErrorMessage,
   addSuccessMessage,
   clearIndicators,
+  Indicator,
 } from 'sentry/actionCreators/indicator';
 import {fetchOrganizationTags} from 'sentry/actionCreators/tags';
 import Access from 'sentry/components/acl/access';
@@ -24,12 +23,7 @@ import ListItem from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import space from 'sentry/styles/space';
-import type {
-  EventsStats,
-  MultiSeriesEventsStats,
-  Organization,
-  Project,
-} from 'sentry/types';
+import type {EventsStats, MultiSeriesEventsStats, Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {logExperiment, metric} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -58,22 +52,19 @@ import {
   DEFAULT_CHANGE_TIME_WINDOW,
   DEFAULT_COUNT_TIME_WINDOW,
 } from './constants';
-import type {Preset, PresetContext} from './presets';
-import {PRESET_AGGREGATES} from './presets';
+import {Preset, PRESET_AGGREGATES, PresetContext} from './presets';
 import PresetSidebar from './presetSidebar';
 import RuleConditionsForm from './ruleConditionsForm';
-import type {
-  EventTypes,
-  MetricActionTemplate,
-  MetricRule,
-  Trigger,
-  UnsavedMetricRule,
-} from './types';
 import {
   AlertRuleComparisonType,
   AlertRuleThresholdType,
   AlertRuleTriggerType,
   Dataset,
+  EventTypes,
+  MetricActionTemplate,
+  MetricRule,
+  Trigger,
+  UnsavedMetricRule,
 } from './types';
 
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;

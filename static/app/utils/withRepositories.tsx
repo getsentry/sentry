@@ -2,7 +2,7 @@ import {Component} from 'react';
 
 import {getRepositories} from 'sentry/actionCreators/repositories';
 import RepositoryActions from 'sentry/actions/repositoryActions';
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import RepositoryStore from 'sentry/stores/repositoryStore';
 import type {Organization, Repository} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';

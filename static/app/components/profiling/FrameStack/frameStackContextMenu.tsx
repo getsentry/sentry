@@ -8,7 +8,7 @@ import {
   ProfilingContextMenuLayer,
 } from 'sentry/components/profiling/ProfilingContextMenu/profilingContextMenu';
 import {t} from 'sentry/locale';
-import type {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
+import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 
 interface FrameStackContextMenuProps {
   contextMenu: ReturnType<typeof useContextMenu>;

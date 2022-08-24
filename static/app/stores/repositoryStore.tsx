@@ -1,5 +1,4 @@
-import type {StoreDefinition} from 'reflux';
-import {createStore} from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import RepoActions from 'sentry/actions/repositoryActions';
 import type {Repository} from 'sentry/types';

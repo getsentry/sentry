@@ -1,5 +1,10 @@
-import type {AnchorHTMLAttributes} from 'react';
-import {cloneElement, createContext, Fragment, useState} from 'react';
+import {
+  AnchorHTMLAttributes,
+  cloneElement,
+  createContext,
+  Fragment,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -12,7 +17,7 @@ import {IconAnchor} from 'sentry/icons/iconAnchor';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {PlatformType, Project} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+import {Event} from 'sentry/types/event';
 import {STACK_TYPE} from 'sentry/types/stacktrace';
 import {isNativePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';

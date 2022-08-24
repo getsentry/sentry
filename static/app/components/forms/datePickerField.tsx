@@ -8,8 +8,7 @@ import space from 'sentry/styles/space';
 
 import {DatePicker} from '../calendar';
 
-import type {InputFieldProps, onEvent} from './inputField';
-import InputField from './inputField';
+import InputField, {InputFieldProps, onEvent} from './inputField';
 
 interface DatePickerFieldProps extends Omit<InputFieldProps, 'field'> {}
 

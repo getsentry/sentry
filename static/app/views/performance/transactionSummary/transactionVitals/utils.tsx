@@ -1,12 +1,12 @@
 import type {ECharts} from 'echarts';
-import type {Query} from 'history';
+import {Query} from 'history';
 
-import type {WebVital} from 'sentry/utils/fields';
-import type {HistogramData} from 'sentry/utils/performance/histogram/types';
+import {WebVital} from 'sentry/utils/fields';
+import {HistogramData} from 'sentry/utils/performance/histogram/types';
 import {getBucketWidth} from 'sentry/utils/performance/histogram/utils';
-import type {VitalsData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
+import {VitalsData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 
-import type {Point, Rectangle} from './types';
+import {Point, Rectangle} from './types';
 
 export function generateVitalsRoute({orgSlug}: {orgSlug: String}): string {
   return `/organizations/${orgSlug}/performance/summary/vitals/`;

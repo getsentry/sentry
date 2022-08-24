@@ -1,9 +1,9 @@
 import {lastOfArray} from 'sentry/utils';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
-import type {Frame} from 'sentry/utils/profiling/frame';
+import {Frame} from 'sentry/utils/profiling/frame';
 
 import {Profile} from './profile';
-import type {createFrameIndex} from './utils';
+import {createFrameIndex} from './utils';
 
 export class EventedProfile extends Profile {
   appendOrderStack: CallTreeNode[] = [this.appendOrderTree];

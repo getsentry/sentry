@@ -1,8 +1,7 @@
 import {Component} from 'react';
-import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {Location} from 'history';
 import * as qs from 'query-string';
 
 import GroupingActions from 'sentry/actions/groupingActions';

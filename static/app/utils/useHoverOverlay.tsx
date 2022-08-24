@@ -7,13 +7,12 @@ import {
   useRef,
   useState,
 } from 'react';
-import type {PopperProps} from 'react-popper';
-import {usePopper} from 'react-popper';
+import {PopperProps, usePopper} from 'react-popper';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import domId from 'sentry/utils/domId';
-import type {ColorOrAlias} from 'sentry/utils/theme';
+import {ColorOrAlias} from 'sentry/utils/theme';
 
 /**
  * How long to wait before opening the overlay

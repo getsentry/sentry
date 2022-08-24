@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {logout} from 'sentry/actionCreators/account';
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import DemoModeGate from 'sentry/components/acl/demoModeGate';
 import Avatar from 'sentry/components/avatar';
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
@@ -21,8 +21,8 @@ import type {Config, Organization, Project, User} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 
-import type SidebarMenuItemLink from '../sidebarMenuItemLink';
-import type {CommonSidebarProps} from '../types';
+import SidebarMenuItemLink from '../sidebarMenuItemLink';
+import {CommonSidebarProps} from '../types';
 
 import Divider from './divider.styled';
 import SwitchOrganization from './switchOrganization';

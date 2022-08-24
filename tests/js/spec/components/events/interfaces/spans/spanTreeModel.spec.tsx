@@ -1,13 +1,12 @@
 import {Client} from 'sentry/api';
 import SpanTreeModel from 'sentry/components/events/interfaces/spans/spanTreeModel';
-import type {EnhancedProcessedSpanType} from 'sentry/components/events/interfaces/spans/types';
+import {EnhancedProcessedSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {
   boundsGenerator,
   generateRootSpan,
   parseTrace,
 } from 'sentry/components/events/interfaces/spans/utils';
-import type {EventTransaction} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
+import {EntryType, EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 
 describe('SpanTreeModel', () => {

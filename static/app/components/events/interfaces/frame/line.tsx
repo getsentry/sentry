@@ -11,11 +11,11 @@ import {t} from 'sentry/locale';
 import {DebugMetaActions} from 'sentry/stores/debugMetaStore';
 import space from 'sentry/styles/space';
 import type {Frame, Organization, PlatformType, SentryAppComponent} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+import {Event} from 'sentry/types/event';
 import withOrganization from 'sentry/utils/withOrganization';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
-import type DebugImage from '../debugMeta/debugImage';
+import DebugImage from '../debugMeta/debugImage';
 import {combineStatus} from '../debugMeta/utils';
 import {SymbolicatorStatus} from '../types';
 

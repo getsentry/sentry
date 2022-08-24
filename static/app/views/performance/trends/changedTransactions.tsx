@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {Location} from 'history';
 
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import Count from 'sentry/components/count';
@@ -15,8 +15,7 @@ import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import MenuItem from 'sentry/components/menuItem';
-import type {CursorHandler} from 'sentry/components/pagination';
-import Pagination from 'sentry/components/pagination';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Radio from 'sentry/components/radio';
@@ -38,14 +37,14 @@ import {DisplayModes} from '../transactionSummary/transactionOverview/charts';
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 
 import Chart from './chart';
-import type {
+import {
   NormalizedTrendsTransaction,
+  TrendChangeType,
   TrendColumnField,
   TrendFunctionField,
   TrendsStats,
   TrendView,
 } from './types';
-import {TrendChangeType} from './types';
 import {
   getCurrentTrendFunction,
   getCurrentTrendParameter,

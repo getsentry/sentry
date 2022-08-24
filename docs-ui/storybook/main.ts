@@ -3,7 +3,7 @@
 
 import path from 'path';
 
-import type {StorybookConfig} from '@storybook/core-common';
+import {StorybookConfig} from '@storybook/core-common';
 
 import babelConfig from '../../babel.config';
 

@@ -1,16 +1,16 @@
 import {Component} from 'react';
-import type {InjectedRouter} from 'react-router';
+import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {Location} from 'history';
 
 import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import * as Layout from 'sentry/components/layouts/thirds';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization, SavedQuery} from 'sentry/types';
-import type EventView from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
 
 import DiscoverBreadcrumb from './breadcrumb';

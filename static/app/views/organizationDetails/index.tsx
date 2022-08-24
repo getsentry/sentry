@@ -1,5 +1,5 @@
 import {useEffect, useRef} from 'react';
-import type {RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 
 import {switchOrganization} from 'sentry/actionCreators/organizations';
 import OrganizationContextContainer from 'sentry/views/organizationContextContainer';

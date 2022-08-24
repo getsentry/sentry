@@ -1,5 +1,5 @@
-import type {CallTreeNode} from './callTreeNode';
-import type {Frame} from './frame';
+import {CallTreeNode} from './callTreeNode';
+import {Frame} from './frame';
 
 export interface FlamegraphFrame {
   children: FlamegraphFrame[];

@@ -1,10 +1,10 @@
 import {useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
 import {t} from 'sentry/locale';
-import type {RequestState} from 'sentry/types/core';
+import {RequestState} from 'sentry/types/core';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import useApi from 'sentry/utils/useApi';

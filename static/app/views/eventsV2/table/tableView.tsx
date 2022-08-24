@@ -2,7 +2,7 @@ import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import type {Location, LocationDescriptorObject} from 'history';
+import {Location, LocationDescriptorObject} from 'history';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import GridEditable, {
@@ -18,15 +18,14 @@ import {t} from 'sentry/locale';
 import type {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
-import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import type EventView from 'sentry/utils/discover/eventView';
-import {
+import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import EventView, {
   isFieldSortable,
   pickRelevantLocationQueryStrings,
 } from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {Column} from 'sentry/utils/discover/fields';
 import {
+  Column,
   fieldAlignment,
   getEquationAliasIndex,
   isEquationAlias,
@@ -48,7 +47,7 @@ import CellAction, {Actions, updateQuery} from './cellAction';
 import ColumnEditModal, {modalCss} from './columnEditModal';
 import TableActions from './tableActions';
 import TopResultsIndicator from './topResultsIndicator';
-import type {TableColumn} from './types';
+import {TableColumn} from './types';
 
 export type TableViewProps = {
   error: string | null;

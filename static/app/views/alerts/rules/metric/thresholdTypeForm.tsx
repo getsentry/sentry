@@ -9,8 +9,7 @@ import type {Organization} from 'sentry/types';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
-import type {Dataset} from './types';
-import {AlertRuleComparisonType} from './types';
+import {AlertRuleComparisonType, Dataset} from './types';
 
 type Props = {
   comparisonType: AlertRuleComparisonType;

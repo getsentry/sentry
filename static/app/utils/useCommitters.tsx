@@ -1,7 +1,7 @@
 import {useCallback, useEffect} from 'react';
 
 import {getCommitters} from 'sentry/actionCreators/committers';
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import CommitterStore, {getCommitterStoreKey} from 'sentry/stores/committerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Committer, Group, Organization, ReleaseCommitter} from 'sentry/types';

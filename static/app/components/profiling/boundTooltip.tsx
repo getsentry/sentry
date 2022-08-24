@@ -4,9 +4,9 @@ import {vec2} from 'gl-matrix';
 
 import space from 'sentry/styles/space';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
-import type {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import type {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
-import type {Rect} from 'sentry/utils/profiling/gl/utils';
+import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
+import {Rect} from 'sentry/utils/profiling/gl/utils';
 import theme from 'sentry/utils/theme';
 
 function computeBestTooltipPlacement(

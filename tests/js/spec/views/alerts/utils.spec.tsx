@@ -5,7 +5,7 @@ import {
   Datasource,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
-import type {Incident, IncidentStats} from 'sentry/views/alerts/types';
+import {Incident, IncidentStats} from 'sentry/views/alerts/types';
 import {
   alertAxisFormatter,
   alertTooltipValueFormatter,

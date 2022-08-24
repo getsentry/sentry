@@ -1,7 +1,7 @@
 import {Component, createRef, Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import type {Query} from 'history';
+import {Query} from 'history';
 
 import {
   closeGuide,
@@ -11,12 +11,11 @@ import {
   registerAnchor,
   unregisterAnchor,
 } from 'sentry/actionCreators/guides';
-import type {Guide} from 'sentry/components/assistant/types';
+import {Guide} from 'sentry/components/assistant/types';
 import Button from 'sentry/components/button';
 import {Body as HovercardBody, Hovercard} from 'sentry/components/hovercard';
 import {t, tct} from 'sentry/locale';
-import type {GuideStoreState} from 'sentry/stores/guideStore';
-import GuideStore from 'sentry/stores/guideStore';
+import GuideStore, {GuideStoreState} from 'sentry/stores/guideStore';
 import space from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
 

@@ -1,9 +1,9 @@
 import {browserHistory} from 'react-router';
-import type {Location} from 'history';
+import {Location} from 'history';
 import isEmpty from 'lodash/isEmpty';
 import isEqual from 'lodash/isEqual';
 
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import NotFound from 'sentry/components/errors/notFound';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -14,7 +14,7 @@ import type {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 
 import {assignTempId} from './layoutUtils';
-import type {DashboardDetails, DashboardListItem} from './types';
+import {DashboardDetails, DashboardListItem} from './types';
 import {hasSavedPageFilters} from './utils';
 
 type OrgDashboardsChildrenProps = {

@@ -8,7 +8,7 @@ import {DebugMetaActions} from 'sentry/stores/debugMetaStore';
 import space from 'sentry/styles/space';
 import type {Frame} from 'sentry/types';
 
-import type DebugImage from '../../debugMeta/debugImage';
+import DebugImage from '../../debugMeta/debugImage';
 import {combineStatus} from '../../debugMeta/utils';
 import {SymbolicatorStatus} from '../../types';
 import PackageLink from '../packageLink';

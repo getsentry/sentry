@@ -9,7 +9,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {EventGroupInfo, Organization} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+import {Event} from 'sentry/types/event';
 import withOrganization from 'sentry/utils/withOrganization';
 import {groupingFeedbackTypes} from 'sentry/views/organizationGroupDetails/grouping/grouping';
 

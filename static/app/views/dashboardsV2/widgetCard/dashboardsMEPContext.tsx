@@ -1,5 +1,4 @@
-import type {ReactNode} from 'react';
-import {useState} from 'react';
+import {ReactNode, useState} from 'react';
 
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 

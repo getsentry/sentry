@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {Location} from 'history';
 import partial from 'lodash/partial';
 
 import Count from 'sentry/components/count';
@@ -18,8 +18,7 @@ import {t} from 'sentry/locale';
 import type {AvatarProject, Organization, Project} from 'sentry/types';
 import {defined, isUrl} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
-import type EventView from 'sentry/utils/discover/eventView';
+import EventView, {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import {
   AGGREGATIONS,
   getAggregateAlias,

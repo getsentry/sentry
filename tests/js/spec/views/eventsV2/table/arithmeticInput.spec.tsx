@@ -1,7 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import type {Column} from 'sentry/utils/discover/fields';
-import {generateFieldAsString} from 'sentry/utils/discover/fields';
+import {Column, generateFieldAsString} from 'sentry/utils/discover/fields';
 import ArithmeticInput from 'sentry/views/eventsV2/table/arithmeticInput';
 
 describe('ArithmeticInput', function () {

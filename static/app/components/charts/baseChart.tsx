@@ -27,7 +27,7 @@ import ReactEchartsCore from 'echarts-for-react/lib/core';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
 import space from 'sentry/styles/space';
-import type {
+import {
   EChartChartReadyHandler,
   EChartClickHandler,
   EChartDataZoomHandler,
@@ -46,8 +46,7 @@ import type {Theme} from 'sentry/utils/theme';
 
 import Grid from './components/grid';
 import Legend from './components/legend';
-import type {TooltipSubLabel} from './components/tooltip';
-import Tooltip from './components/tooltip';
+import Tooltip, {TooltipSubLabel} from './components/tooltip';
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
 import LineSeries from './series/lineSeries';

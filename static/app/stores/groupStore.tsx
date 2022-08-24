@@ -1,7 +1,7 @@
 import isArray from 'lodash/isArray';
 import {createStore} from 'reflux';
 
-import type {Indicator} from 'sentry/actionCreators/indicator';
+import {Indicator} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import type {
@@ -11,10 +11,10 @@ import type {
   GroupCollapseRelease,
   GroupRelease,
   GroupStats,
-} from 'sentry/types';
+} from 'sentry/types'
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-import type {CommonStoreDefinition} from './types';
+import {CommonStoreDefinition} from './types';
 
 function showAlert(msg: string, type: Indicator['type']) {
   IndicatorStore.addMessage(msg, type, {duration: 4000});

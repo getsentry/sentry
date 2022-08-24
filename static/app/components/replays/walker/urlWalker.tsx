@@ -4,8 +4,12 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import ChevronDividedList from 'sentry/components/replays/walker/chevronDividedList';
 import splitCrumbs from 'sentry/components/replays/walker/splitCrumbs';
-import type {BreadcrumbTypeNavigation, Crumb} from 'sentry/types/breadcrumbs';
-import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
+import {
+  BreadcrumbLevelType,
+  BreadcrumbType,
+  BreadcrumbTypeNavigation,
+  Crumb,
+} from 'sentry/types/breadcrumbs';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type CrumbProps = {

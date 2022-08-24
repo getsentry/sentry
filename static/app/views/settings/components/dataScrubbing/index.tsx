@@ -17,7 +17,7 @@ import Content from './content';
 import convertRelayPiiConfig from './convertRelayPiiConfig';
 import OrganizationRules from './organizationRules';
 import submitRules from './submitRules';
-import type {ProjectId, Rule} from './types';
+import {ProjectId, Rule} from './types';
 
 const ADVANCED_DATASCRUBBING_LINK =
   'https://docs.sentry.io/product/data-management-settings/scrubbing/advanced-datascrubbing/';

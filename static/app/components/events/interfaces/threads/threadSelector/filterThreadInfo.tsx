@@ -6,7 +6,7 @@ import type {
   Frame,
   StacktraceType,
   Thread,
-} from 'sentry/types';
+} from 'sentry/types'
 
 import getRelevantFrame from './getRelevantFrame';
 import getThreadException from './getThreadException';

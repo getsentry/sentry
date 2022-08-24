@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {Location} from 'history';
 
 import BreakdownBars from 'sentry/components/charts/breakdownBars';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
@@ -14,7 +14,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
-import type EventView from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 

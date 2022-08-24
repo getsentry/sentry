@@ -9,7 +9,7 @@ import React, {
 
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {OnboardingState} from 'sentry/views/onboarding/targetedOnboarding/types';
+import {OnboardingState} from 'sentry/views/onboarding/targetedOnboarding/types';
 
 import OrganizationStore from './organizationStore';
 import {useLegacyStore} from './useLegacyStore';

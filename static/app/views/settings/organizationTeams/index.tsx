@@ -1,8 +1,8 @@
-import type {RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 
 import {loadStats} from 'sentry/actionCreators/projects';
 import TeamActions from 'sentry/actions/teamActions';
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import type {AccessRequest, Organization, Team} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';

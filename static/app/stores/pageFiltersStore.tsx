@@ -7,7 +7,7 @@ import type {PageFilters, PinnedPageFilter} from 'sentry/types';
 import {isEqualWithDates} from 'sentry/utils/isEqualWithDates';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-import type {CommonStoreDefinition} from './types';
+import {CommonStoreDefinition} from './types';
 
 interface CommonState {
   /**

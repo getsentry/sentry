@@ -1,10 +1,10 @@
-import type {Location} from 'history';
+import {Location} from 'history';
 
 import type {Organization} from 'sentry/types';
-import type EventView from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
 
 import _Footer from '../../charts/footer';
-import type {AxisOption} from '../../data';
+import {AxisOption} from '../../data';
 import DurationChart from '../chart/durationChart';
 import HistogramChart from '../chart/histogramChart';
 

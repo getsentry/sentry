@@ -1,4 +1,4 @@
-import type {RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
@@ -11,7 +11,7 @@ import {t} from 'sentry/locale';
 import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import type {Project} from 'sentry/types';
-import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 
 import {isIssueAlert} from '../../../utils';
 

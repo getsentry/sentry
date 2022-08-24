@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
@@ -21,7 +21,7 @@ import type {
   Organization,
   Project,
   RepositoryProjectPathConfig,
-} from 'sentry/types';
+} from 'sentry/types'
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 
 type Props = {

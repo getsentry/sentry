@@ -1,4 +1,4 @@
-import type {ResponseMeta} from 'sentry/api';
+import {ResponseMeta} from 'sentry/api';
 
 import {sanitizePath} from './sanitizePath';
 

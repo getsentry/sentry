@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {Location} from 'history';
 import omit from 'lodash/omit';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
@@ -17,16 +17,16 @@ import type {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
-import type EventView from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
 import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useProjects from 'sentry/utils/useProjects';
 
-import type {SetStateAction} from '../types';
+import {SetStateAction} from '../types';
 
 import OpsFilter from './opsFilter';
 import SuspectSpansTable from './suspectSpansTable';
-import type {SpanSort, SpansTotalValues} from './types';
+import {SpanSort, SpansTotalValues} from './types';
 import {
   getSuspectSpanSortFromEventView,
   getTotalsView,

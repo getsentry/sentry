@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
-import type {ResponseMeta} from 'sentry/api';
+import {ResponseMeta} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import {Body, Header, Hovercard} from 'sentry/components/hovercard';
@@ -17,8 +17,8 @@ import type {
   Organization,
   Project,
   RepositoryProjectPathConfigWithIntegration,
-} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+} from 'sentry/types'
+import {Event} from 'sentry/types/event';
 import {StacktraceLinkEvents} from 'sentry/utils/analytics/integrations/stacktraceLinkAnalyticsEvents';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import {

@@ -3,16 +3,14 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
-import type {LinkProps} from 'sentry/components/links/link';
-import Link from 'sentry/components/links/link';
+import Link, {LinkProps} from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
 import {IconClose, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import type {Color, Theme} from 'sentry/utils/theme';
-import theme from 'sentry/utils/theme';
+import theme, {Color, Theme} from 'sentry/utils/theme';
 
 const TAG_HEIGHT = '20px';
 

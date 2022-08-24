@@ -6,7 +6,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {User} from 'sentry/types';
-import type {Theme} from 'sentry/utils/theme';
+import {Theme} from 'sentry/utils/theme';
 
 import EditorTools from './editorTools';
 

@@ -1,4 +1,4 @@
-import type {Layout} from 'react-grid-layout';
+import {Layout} from 'react-grid-layout';
 
 import {
   calculateColumnDepths,

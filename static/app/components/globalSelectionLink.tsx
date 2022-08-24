@@ -1,11 +1,9 @@
 // eslint-disable-next-line no-restricted-imports
-import type {WithRouterProps} from 'react-router';
-import {withRouter} from 'react-router';
-import type {LocationDescriptor} from 'history';
+import {withRouter, WithRouterProps} from 'react-router';
+import {LocationDescriptor} from 'history';
 import * as qs from 'query-string';
 
-import type {LinkProps} from 'sentry/components/links/link';
-import Link from 'sentry/components/links/link';
+import Link, {LinkProps} from 'sentry/components/links/link';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 
 interface Props extends WithRouterProps {

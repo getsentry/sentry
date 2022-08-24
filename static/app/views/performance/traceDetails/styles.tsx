@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {Location} from 'history';
 
 import EventTagsPill from 'sentry/components/events/eventTags/eventTagsPill';
 import {SecondaryHeader} from 'sentry/components/events/interfaces/spans/header';
@@ -9,7 +9,7 @@ import SearchBar from 'sentry/components/searchBar';
 import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {appendTagCondition} from 'sentry/utils/queryString';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 

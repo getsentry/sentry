@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
-import type {Location} from 'history';
+import {RouteComponentProps} from 'react-router';
+import {Location} from 'history';
 
 import {CommitRow} from 'sentry/components/commitRow';
 import {Body, Main} from 'sentry/components/layouts/thirds';

@@ -3,14 +3,13 @@ import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
-import type {SearchBarProps} from 'sentry/components/events/searchBar';
+import {SearchBarProps} from 'sentry/components/events/searchBar';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH, NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import type {Organization, PageFilters, Tag, TagValue} from 'sentry/types';
-import {SavedSearchType} from 'sentry/types';
+import type {Organization, PageFilters, SavedSearchType, Tag, TagValue} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
-import type {WidgetQuery} from 'sentry/views/dashboardsV2/types';
+import {WidgetQuery} from 'sentry/views/dashboardsV2/types';
 import {
   MAX_MENU_HEIGHT,
   MAX_SEARCH_ITEMS,

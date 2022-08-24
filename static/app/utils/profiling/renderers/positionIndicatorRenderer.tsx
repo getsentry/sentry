@@ -1,6 +1,6 @@
-import type {mat3} from 'gl-matrix';
+import {mat3} from 'gl-matrix';
 
-import type {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
+import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
 import {getContext, Rect} from '../gl/utils';
 
 class PositionIndicatorRenderer {

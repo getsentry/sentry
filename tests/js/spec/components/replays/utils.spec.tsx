@@ -7,8 +7,7 @@ import {
   relativeTimeInMs,
   showPlayerTime,
 } from 'sentry/components/replays/utils';
-import type {Crumb} from 'sentry/types/breadcrumbs';
-import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
+import {BreadcrumbLevelType, BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
 import type {ReplaySpan} from 'sentry/views/replays/types';
 
 const SECOND = 1000;

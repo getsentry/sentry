@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
-import type {InputFieldProps} from './inputField';
-import InputField from './inputField';
+import InputField, {InputFieldProps} from './inputField';
 
 export interface HiddenFieldProps extends Omit<InputFieldProps, 'type'> {}
 

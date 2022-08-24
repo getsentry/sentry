@@ -1,7 +1,6 @@
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 
-import type {Applications, PiiConfig, Rule} from './types';
-import {MethodType, RuleType} from './types';
+import {Applications, MethodType, PiiConfig, Rule, RuleType} from './types';
 
 function getSubmitFormatRule(rule: Rule): PiiConfig {
   if (rule.type === RuleType.PATTERN && rule.method === MethodType.REPLACE) {

@@ -11,7 +11,7 @@ import type {Organization} from 'sentry/types';
 
 import SidebarDropdownMenu from './sidebarDropdownMenu.styled';
 import SidebarMenuItem from './sidebarMenuItem';
-import type {CommonSidebarProps} from './types';
+import {CommonSidebarProps} from './types';
 
 type Props = Pick<CommonSidebarProps, 'collapsed' | 'hidePanel' | 'orientation'> & {
   organization: Organization;

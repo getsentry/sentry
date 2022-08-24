@@ -1,4 +1,4 @@
-import type {ResponseMeta} from 'sentry/api';
+import {ResponseMeta} from 'sentry/api';
 
 import RequestError from './requestError';
 

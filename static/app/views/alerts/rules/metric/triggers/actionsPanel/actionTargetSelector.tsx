@@ -3,8 +3,12 @@ import TeamSelector from 'sentry/components/forms/teamSelector';
 import Input from 'sentry/components/input';
 import SelectMembers from 'sentry/components/selectMembers';
 import type {Organization, Project, SelectValue} from 'sentry/types';
-import type {Action, MetricActionTemplate} from 'sentry/views/alerts/rules/metric/types';
-import {ActionType, TargetType} from 'sentry/views/alerts/rules/metric/types';
+import {
+  Action,
+  ActionType,
+  MetricActionTemplate,
+  TargetType,
+} from 'sentry/views/alerts/rules/metric/types';
 
 const getPlaceholderForType = (type: ActionType) => {
   switch (type) {

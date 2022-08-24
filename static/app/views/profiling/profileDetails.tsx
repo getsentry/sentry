@@ -4,8 +4,10 @@ import styled from '@emotion/styled';
 import Fuse from 'fuse.js';
 import * as qs from 'query-string';
 
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  GridColumnOrder,
+} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
@@ -14,8 +16,8 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
-import type {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
-import type {Profile} from 'sentry/utils/profiling/profile/profile';
+import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
+import {Profile} from 'sentry/utils/profiling/profile/profile';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {renderTableHead} from 'sentry/utils/profiling/tableRenderer';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';

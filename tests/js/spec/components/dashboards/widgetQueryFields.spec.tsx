@@ -3,7 +3,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import WidgetQueryFields from 'sentry/components/dashboards/widgetQueryFields';
-import type {QueryFieldValue} from 'sentry/utils/discover/fields';
+import {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 

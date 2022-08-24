@@ -8,11 +8,11 @@
  * to color encode by the program/bind/check/emit phases.
  */
 import {Frame} from 'sentry/utils/profiling/frame';
-import type {Profile} from 'sentry/utils/profiling/profile/profile';
+import {Profile} from 'sentry/utils/profiling/profile/profile';
 import {wrapWithSpan} from 'sentry/utils/profiling/profile/utils';
 
 import {EventedProfile} from './eventedProfile';
-import type {ImportOptions, ProfileGroup} from './importProfile';
+import {ImportOptions, ProfileGroup} from './importProfile';
 
 export class ChromeTraceProfile extends EventedProfile {}
 

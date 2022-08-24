@@ -8,7 +8,7 @@ import {Chart as HistogramChart} from 'sentry/views/performance/landing/chart/hi
 
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {transformHistogramQuery} from '../transforms/transformHistogramQuery';
-import type {PerformanceWidgetProps, WidgetDataResult} from '../types';
+import {PerformanceWidgetProps, WidgetDataResult} from '../types';
 import {getMEPQueryParams} from '../utils';
 
 type AreaDataType = {

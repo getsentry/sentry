@@ -1,4 +1,4 @@
-import type {InjectedRouter} from 'react-router';
+import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 
 import Badge from 'sentry/components/badge';
@@ -16,8 +16,7 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import useProjects from 'sentry/utils/useProjects';
 
 import SavedSearchTab from './savedSearchTab';
-import type {QueryCounts} from './utils';
-import {getTabs, IssueSortOptions, Query, TAB_MAX_COUNT} from './utils';
+import {getTabs, IssueSortOptions, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
 
 type Props = {
   displayReprocessingTab: boolean;

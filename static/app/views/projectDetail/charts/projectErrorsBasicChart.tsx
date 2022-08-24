@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 import type {BarSeriesOption} from 'echarts';
-import type {Location} from 'history';
+import {Location} from 'history';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import BaseChart from 'sentry/components/charts/baseChart';

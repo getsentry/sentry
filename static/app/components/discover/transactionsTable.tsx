@@ -1,6 +1,6 @@
 import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
-import type {Location, LocationDescriptor, Query} from 'history';
+import {Location, LocationDescriptor, Query} from 'history';
 
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
@@ -10,18 +10,19 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
-import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import type {MetaType} from 'sentry/utils/discover/eventView';
-import type EventView from 'sentry/utils/discover/eventView';
+import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import EventView, {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {Alignments} from 'sentry/utils/discover/fields';
-import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
+import {
+  Alignments,
+  fieldAlignment,
+  getAggregateAlias,
+} from 'sentry/utils/discover/fields';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import type {Actions} from 'sentry/views/eventsV2/table/cellAction';
-import CellAction from 'sentry/views/eventsV2/table/cellAction';
-import type {TableColumn} from 'sentry/views/eventsV2/table/types';
+import CellAction, {Actions} from 'sentry/views/eventsV2/table/cellAction';
+import {TableColumn} from 'sentry/views/eventsV2/table/types';
 import {GridCell, GridCellNumber} from 'sentry/views/performance/styles';
-import type {TrendsDataEvents} from 'sentry/views/performance/trends/types';
+import {TrendsDataEvents} from 'sentry/views/performance/trends/types';
 
 type Props = {
   columnOrder: TableColumn<React.ReactText>[];

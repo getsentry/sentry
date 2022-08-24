@@ -1,4 +1,4 @@
-import type {Item} from 'sentry/components/dropdownAutoComplete/types';
+import {Item} from 'sentry/components/dropdownAutoComplete/types';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 

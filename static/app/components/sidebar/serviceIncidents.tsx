@@ -31,8 +31,7 @@ import SidebarItem from './sidebarItem';
 import SidebarPanel from './sidebarPanel';
 import SidebarPanelEmpty from './sidebarPanelEmpty';
 import SidebarPanelItem from './sidebarPanelItem';
-import type {CommonSidebarProps} from './types';
-import {SidebarPanelKey} from './types';
+import {CommonSidebarProps, SidebarPanelKey} from './types';
 
 type Props = CommonSidebarProps;
 

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {Location} from 'history';
 
 import FileChange from 'sentry/components/fileChange';
 import {Body, Main} from 'sentry/components/layouts/thirds';

@@ -1,6 +1,5 @@
 // eslint-disable-next-line no-restricted-imports
-import type {WithRouterProps} from 'react-router';
-import {browserHistory, withRouter} from 'react-router';
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -10,12 +9,11 @@ import Button from 'sentry/components/button';
 import MenuItem from 'sentry/components/menuItem';
 import {IconAdd, IconPin, IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {SavedSearch} from 'sentry/types';
-import {SavedSearchType} from 'sentry/types';
+import type {SavedSearch, SavedSearchType} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import CreateSavedSearchModal from 'sentry/views/issueList/createSavedSearchModal';
 
-import type SmartSearchBar from './index';
+import SmartSearchBar from './index';
 import {removeSpace} from './utils';
 
 type SmartSearchBarProps = React.ComponentProps<typeof SmartSearchBar>;

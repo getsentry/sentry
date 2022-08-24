@@ -1,36 +1,34 @@
 import {Component, Fragment} from 'react';
-import type {Location, LocationDescriptor} from 'history';
+import {Location, LocationDescriptor} from 'history';
 
 import DropdownLink from 'sentry/components/dropdownLink';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import type {
-  ErrorDestination,
-  TransactionDestination,
-} from 'sentry/components/quickTrace/utils';
 import {
+  ErrorDestination,
   generateSingleErrorTarget,
   generateSingleTransactionTarget,
   generateTraceTarget,
   isQuickTraceEvent,
+  TransactionDestination,
 } from 'sentry/components/quickTrace/utils';
 import Tooltip from 'sentry/components/tooltip';
 import {backend, frontend, mobile, serverless} from 'sentry/data/platformCategories';
 import {IconFire} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+import {Event} from 'sentry/types/event';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {getDocsPlatform} from 'sentry/utils/docs';
 import {getDuration} from 'sentry/utils/formatters';
 import localStorage from 'sentry/utils/localStorage';
-import type {
+import {
   QuickTrace as QuickTraceType,
   QuickTraceEvent,
   TraceError,
 } from 'sentry/utils/performance/quickTrace/types';
 import {parseQuickTrace} from 'sentry/utils/performance/quickTrace/utils';
 import Projects from 'sentry/utils/projects';
-import type {Theme} from 'sentry/utils/theme';
+import {Theme} from 'sentry/utils/theme';
 
 const FRONTEND_PLATFORMS: string[] = [...frontend, ...mobile];
 const BACKEND_PLATFORMS: string[] = [...backend, ...serverless];

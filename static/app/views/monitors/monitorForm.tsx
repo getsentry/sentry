@@ -15,7 +15,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 
 import MonitorModel from './monitorModel';
-import type {Monitor, MonitorConfig, MonitorTypes, ScheduleType} from './types';
+import {Monitor, MonitorConfig, MonitorTypes, ScheduleType} from './types';
 
 const SCHEDULE_TYPES: SelectValue<ScheduleType>[] = [
   {value: 'crontab', label: 'Crontab'},

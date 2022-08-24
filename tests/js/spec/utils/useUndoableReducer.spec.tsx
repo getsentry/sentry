@@ -3,8 +3,11 @@ import {useReducer} from 'react';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import {makeCombinedReducers} from 'sentry/utils/useCombinedReducer';
-import type {UndoableNode} from 'sentry/utils/useUndoableReducer';
-import {makeUndoableReducer, useUndoableReducer} from 'sentry/utils/useUndoableReducer';
+import {
+  makeUndoableReducer,
+  UndoableNode,
+  useUndoableReducer,
+} from 'sentry/utils/useUndoableReducer';
 
 describe('makeUndoableReducer', () => {
   it('does not overflow undo/redo', () => {

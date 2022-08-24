@@ -1,10 +1,9 @@
-import type {MouseEvent} from 'react';
+import {MouseEvent} from 'react';
 import queryString from 'query-string';
 
 import NavTabs from 'sentry/components/navTabs';
 import {t} from 'sentry/locale';
-import type {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import {useLocation} from 'sentry/utils/useLocation';
 
 const ReplayTabs: Record<TabKey, string> = {

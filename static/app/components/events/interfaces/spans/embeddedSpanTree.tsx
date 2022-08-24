@@ -15,7 +15,7 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import TraceView from './traceView';
-import type {FocusedSpanIDMap} from './types';
+import {FocusedSpanIDMap} from './types';
 import WaterfallModel from './waterfallModel';
 
 type Props = {

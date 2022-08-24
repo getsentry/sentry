@@ -2,11 +2,10 @@ import Button from 'sentry/components/button';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+import {Event} from 'sentry/types/event';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-import type {TraceKnownData} from './types';
-import {TraceKnownDataType} from './types';
+import {TraceKnownData, TraceKnownDataType} from './types';
 
 type Output = {
   subject: string;

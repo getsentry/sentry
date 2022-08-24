@@ -5,7 +5,7 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import type {Theme} from 'sentry/utils/theme';
+import {Theme} from 'sentry/utils/theme';
 
 type Props = {
   title: React.ReactNode;

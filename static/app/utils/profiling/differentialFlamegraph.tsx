@@ -1,7 +1,7 @@
-import type {ColorChannels, FlamegraphTheme} from './flamegraph/flamegraphTheme';
+import {ColorChannels, FlamegraphTheme} from './flamegraph/flamegraphTheme';
 import {relativeChange} from './units/units';
 import {Flamegraph} from './flamegraph';
-import type {FlamegraphFrame} from './flamegraphFrame';
+import {FlamegraphFrame} from './flamegraphFrame';
 
 function countFrameOccurences(frames: FlamegraphFrame[]): Map<string, number> {
   const counts = new Map<string, number>();

@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import DatePageFilter from 'sentry/components/datePageFilter';
@@ -18,9 +18,10 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import type EventView from 'sentry/utils/discover/eventView';
-import type {TableData} from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
-import SegmentExplorerQuery from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
+import EventView from 'sentry/utils/discover/eventView';
+import SegmentExplorerQuery, {
+  TableData,
+} from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 

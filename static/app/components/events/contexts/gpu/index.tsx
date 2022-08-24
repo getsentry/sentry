@@ -1,13 +1,12 @@
 import {Fragment} from 'react';
 
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
-import type {Event} from 'sentry/types/event';
+import {Event} from 'sentry/types/event';
 
 import {geKnownData, getUnknownData} from '../utils';
 
 import {getGPUKnownDataDetails} from './getGPUKnownDataDetails';
-import type {GPUData} from './types';
-import {GPUKnownDataType} from './types';
+import {GPUData, GPUKnownDataType} from './types';
 
 type Props = {
   data: GPUData;

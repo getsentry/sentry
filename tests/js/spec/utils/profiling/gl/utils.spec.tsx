@@ -1,4 +1,4 @@
-import type Fuse from 'fuse.js';
+import Fuse from 'fuse.js';
 import {mat3, vec2} from 'gl-matrix';
 
 import {

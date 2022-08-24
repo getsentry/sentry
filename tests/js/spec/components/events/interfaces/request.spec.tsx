@@ -1,8 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Request} from 'sentry/components/events/interfaces/request';
-import type {EntryRequest} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
+import {EntryRequest, EntryType} from 'sentry/types/event';
 
 describe('Request entry', function () {
   it('display redacted data', async function () {

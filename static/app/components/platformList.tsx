@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import Tooltip from 'sentry/components/tooltip';
-import type {PlatformKey} from 'sentry/data/platformCategories';
+import {PlatformKey} from 'sentry/data/platformCategories';
 import {tn} from 'sentry/locale';
 import getPlatformName from 'sentry/utils/getPlatformName';
-import type {Theme} from 'sentry/utils/theme';
+import {Theme} from 'sentry/utils/theme';
 
 type Props = {
   className?: string;

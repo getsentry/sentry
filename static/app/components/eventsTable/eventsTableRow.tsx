@@ -6,7 +6,7 @@ import {DeviceName} from 'sentry/components/deviceName';
 import FileSize from 'sentry/components/fileSize';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import type {AvatarUser, Organization, Tag} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+import {Event} from 'sentry/types/event';
 import AttachmentUrl from 'sentry/utils/attachmentUrl';
 import withOrganization from 'sentry/utils/withOrganization';
 

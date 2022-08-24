@@ -1,12 +1,12 @@
 import {Fragment, useMemo} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {Location} from 'history';
 import omit from 'lodash/omit';
 
 import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
-import type {LineChartSeries} from 'sentry/components/charts/lineChart';
+import {LineChartSeries} from 'sentry/components/charts/lineChart';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
@@ -17,24 +17,23 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import type EventView from 'sentry/utils/discover/eventView';
-import type {
+import EventView from 'sentry/utils/discover/eventView';
+import AnomaliesQuery, {
   AnomalyInfo,
   AnomalyPayload,
   ChildrenProps,
 } from 'sentry/utils/performance/anomalies/anomaliesQuery';
-import AnomaliesQuery from 'sentry/utils/performance/anomalies/anomaliesQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
 
 import {GenericPerformanceWidget} from '../../landing/widgets/components/performanceWidget';
 import {WidgetEmptyStateWarning} from '../../landing/widgets/components/selectableList';
-import type {QueryDefinition, WidgetDataResult} from '../../landing/widgets/types';
+import {QueryDefinition, WidgetDataResult} from '../../landing/widgets/types';
 import {
   PerformanceWidgetSetting,
   WIDGET_DEFINITIONS,
 } from '../../landing/widgets/widgetDefinitions';
-import type {SetStateAction} from '../types';
+import {SetStateAction} from '../types';
 
 import AnomaliesTable from './anomaliesTable';
 import {AnomalyChart} from './anomalyChart';

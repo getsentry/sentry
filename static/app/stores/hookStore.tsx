@@ -1,7 +1,6 @@
-import type {StoreDefinition} from 'reflux';
-import {createStore} from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
-import type {HookName, Hooks} from 'sentry/types/hooks';
+import {HookName, Hooks} from 'sentry/types/hooks';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 interface Internals {

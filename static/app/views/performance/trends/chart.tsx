@@ -1,18 +1,20 @@
 // eslint-disable-next-line no-restricted-imports
-import type {WithRouterProps} from 'react-router';
-import {browserHistory, withRouter} from 'react-router';
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import type {LegendComponentOption} from 'echarts';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import type {LineChartProps, LineChartSeries} from 'sentry/components/charts/lineChart';
-import {LineChart} from 'sentry/components/charts/lineChart';
+import {
+  LineChart,
+  LineChartProps,
+  LineChartSeries,
+} from 'sentry/components/charts/lineChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {EventsStatsData, OrganizationSummary, Project} from 'sentry/types';
-import type {Series} from 'sentry/types/echarts';
+import {Series} from 'sentry/types/echarts';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {
   axisLabelFormatter,
@@ -22,11 +24,11 @@ import {
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {decodeList} from 'sentry/utils/queryString';
-import type {Theme} from 'sentry/utils/theme';
+import {Theme} from 'sentry/utils/theme';
 
-import type {ViewProps} from '../types';
+import {ViewProps} from '../types';
 
-import type {
+import {
   NormalizedTrendsTransaction,
   TrendChangeType,
   TrendFunctionField,

@@ -1,16 +1,19 @@
 import {Component} from 'react';
 
-import type {ControlStateProps} from 'sentry/components/forms/field/controlState';
-import ControlState from 'sentry/components/forms/field/controlState';
-import type {FieldControlProps} from 'sentry/components/forms/field/fieldControl';
-import FieldControl from 'sentry/components/forms/field/fieldControl';
+import ControlState, {
+  ControlStateProps,
+} from 'sentry/components/forms/field/controlState';
+import FieldControl, {
+  FieldControlProps,
+} from 'sentry/components/forms/field/fieldControl';
 import FieldDescription from 'sentry/components/forms/field/fieldDescription';
 import FieldErrorReason from 'sentry/components/forms/field/fieldErrorReason';
 import FieldHelp from 'sentry/components/forms/field/fieldHelp';
 import FieldLabel from 'sentry/components/forms/field/fieldLabel';
 import FieldRequiredBadge from 'sentry/components/forms/field/fieldRequiredBadge';
-import type {FieldWrapperProps} from 'sentry/components/forms/field/fieldWrapper';
-import FieldWrapper from 'sentry/components/forms/field/fieldWrapper';
+import FieldWrapper, {
+  FieldWrapperProps,
+} from 'sentry/components/forms/field/fieldWrapper';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 
 import FieldQuestion from './fieldQuestion';

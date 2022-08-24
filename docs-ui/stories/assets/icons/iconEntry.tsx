@@ -5,7 +5,7 @@ import space from 'sentry/styles/space';
 
 import Details from './details';
 import IconSample from './sample';
-import type {ExtendedIconData} from './searchPanel';
+import {ExtendedIconData} from './searchPanel';
 
 type Props = {
   icon: ExtendedIconData;

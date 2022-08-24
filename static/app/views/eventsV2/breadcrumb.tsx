@@ -1,11 +1,10 @@
-import type {Location} from 'history';
+import {Location} from 'history';
 
-import type {Crumb} from 'sentry/components/breadcrumbs';
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
-import type EventView from 'sentry/utils/discover/eventView';
+import {Event} from 'sentry/types/event';
+import EventView from 'sentry/utils/discover/eventView';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 
 type Props = {

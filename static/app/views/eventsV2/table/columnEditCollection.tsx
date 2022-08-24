@@ -14,25 +14,23 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
-import type {Column} from 'sentry/utils/discover/fields';
 import {
   AGGREGATIONS,
+  Column,
   generateFieldAsString,
   hasDuplicate,
   isLegalEquationColumn,
 } from 'sentry/utils/discover/fields';
 import theme from 'sentry/utils/theme';
 import {getPointerPosition} from 'sentry/utils/touch';
-import type {UserSelectValues} from 'sentry/utils/userselect';
-import {setBodyUserSelect} from 'sentry/utils/userselect';
+import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
 import {WidgetType} from 'sentry/views/dashboardsV2/types';
 import {FieldKey} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/fields';
 import {SESSIONS_OPERATIONS} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
 
-import type {generateFieldOptions} from '../utils';
+import {generateFieldOptions} from '../utils';
 
-import type {FieldValueOption} from './queryField';
-import {QueryField} from './queryField';
+import {FieldValueOption, QueryField} from './queryField';
 import {FieldValueKind} from './types';
 
 type Sources = WidgetType;

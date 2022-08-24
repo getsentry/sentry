@@ -1,5 +1,4 @@
-import type {ButtonPropsWithoutAriaLabel} from 'sentry/components/button';
-import Button from 'sentry/components/button';
+import Button, {ButtonPropsWithoutAriaLabel} from 'sentry/components/button';
 import type {Organization, SandboxData} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useOrganization from 'sentry/utils/useOrganization';

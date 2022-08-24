@@ -1,8 +1,7 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import type {Crumb, CrumbDropdown} from 'sentry/components/breadcrumbs';
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import Breadcrumbs, {Crumb, CrumbDropdown} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';

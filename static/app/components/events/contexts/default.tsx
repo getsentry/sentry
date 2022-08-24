@@ -1,7 +1,7 @@
 import startCase from 'lodash/startCase';
 
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
-import type {Event} from 'sentry/types/event';
+import {Event} from 'sentry/types/event';
 
 type Props = {
   alias: string;

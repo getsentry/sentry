@@ -1,9 +1,9 @@
 import {Component, Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import Button from 'sentry/components/button';
 import ListLink from 'sentry/components/links/listLink';

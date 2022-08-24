@@ -2,7 +2,7 @@ import {Component, createRef} from 'react';
 import {withTheme} from '@emotion/react';
 import type {PieSeriesOption} from 'echarts';
 
-import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import type {Theme} from 'sentry/utils/theme';
 
 import Legend from './components/legend';

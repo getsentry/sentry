@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import FeatureBadge from 'sentry/components/featureBadge';
@@ -7,7 +7,7 @@ import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+import {Event} from 'sentry/types/event';
 import {
   DURATION_UNITS,
   FIELD_FORMATTERS,

@@ -1,12 +1,12 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {closeModal} from 'sentry/actionCreators/modal';
+import {closeModal, ModalRenderProps} from 'sentry/actionCreators/modal';
 import {tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {SchemaFormConfig} from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
-import SentryAppExternalForm from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
+import SentryAppExternalForm, {
+  SchemaFormConfig,
+} from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
 
 type Props = ModalRenderProps & {
   appName: string;

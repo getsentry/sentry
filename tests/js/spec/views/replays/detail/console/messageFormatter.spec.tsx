@@ -1,7 +1,11 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
-import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
+import {
+  BreadcrumbLevelType,
+  BreadcrumbType,
+  BreadcrumbTypeDefault,
+  Crumb,
+} from 'sentry/types/breadcrumbs';
 import {MessageFormatter} from 'sentry/views/replays/detail/console/consoleMessage';
 
 const breadcrumbs: Extract<Crumb, BreadcrumbTypeDefault>[] = [

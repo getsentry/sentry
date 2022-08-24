@@ -1,5 +1,5 @@
-import type {InjectedRouter} from 'react-router';
-import type {Location} from 'history';
+import {InjectedRouter} from 'react-router';
+import {Location} from 'history';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import ContextPickerModal from 'sentry/components/contextPickerModal';

@@ -1,22 +1,22 @@
-import type {ReactNode} from 'react';
-import type {Location} from 'history';
+import {ReactNode} from 'react';
+import {Location} from 'history';
 
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  GridColumnOrder,
+} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import type {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {ColumnType} from 'sentry/utils/discover/fields';
-import {fieldAlignment} from 'sentry/utils/discover/fields';
+import {ColumnType, fieldAlignment} from 'sentry/utils/discover/fields';
 import {Container as TableCellContainer} from 'sentry/utils/discover/styles';
-import type {SuspectSpans} from 'sentry/utils/performance/suspectSpans/types';
+import {SuspectSpans} from 'sentry/utils/performance/suspectSpans/types';
 
 import {spanDetailsRouteWithQuery} from './spanDetails/utils';
-import type {SpanSort, SpansTotalValues} from './types';
-import {SpanSortOthers, SpanSortPercentiles} from './types';
+import {SpanSort, SpanSortOthers, SpanSortPercentiles, SpansTotalValues} from './types';
 
 type Props = {
   isLoading: boolean;

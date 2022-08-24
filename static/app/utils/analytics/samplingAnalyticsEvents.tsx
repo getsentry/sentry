@@ -1,4 +1,4 @@
-import type {SamplingInnerName} from 'sentry/types/sampling';
+import {SamplingInnerName} from 'sentry/types/sampling';
 
 type Rule = {
   conditions: SamplingInnerName[] | string[];

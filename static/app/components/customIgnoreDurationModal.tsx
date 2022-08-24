@@ -2,7 +2,7 @@ import {Component, createRef, Fragment} from 'react';
 import moment from 'moment';
 import {sprintf} from 'sprintf-js';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';

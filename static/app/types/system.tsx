@@ -1,8 +1,8 @@
 import type {FocusTrap} from 'focus-trap';
 
 import type exportGlobals from 'sentry/bootstrap/exportGlobals';
-import type {SentryInitRenderReactComponent} from 'sentry/enum';
-import type {Theme} from 'sentry/utils/theme';
+import { SentryInitRenderReactComponent } from 'sentry/enum';
+import {Theme} from 'sentry/utils/theme';
 
 import type {User} from './user';
 

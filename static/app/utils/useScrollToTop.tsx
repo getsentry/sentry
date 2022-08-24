@@ -1,5 +1,5 @@
 import {useEffect, useRef} from 'react';
-import type {Location} from 'history';
+import {Location} from 'history';
 
 type Options = {
   location: Location;

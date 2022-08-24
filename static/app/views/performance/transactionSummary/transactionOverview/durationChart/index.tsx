@@ -1,9 +1,8 @@
 import {Fragment} from 'react';
 // eslint-disable-next-line no-restricted-imports
-import type {WithRouterProps} from 'react-router';
-import {browserHistory, withRouter} from 'react-router';
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
-import type {Location, Query} from 'history';
+import {Location, Query} from 'history';
 
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
@@ -15,7 +14,7 @@ import type {OrganizationSummary} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import useApi from 'sentry/utils/useApi';
 
-import type {ViewProps} from '../../../types';
+import {ViewProps} from '../../../types';
 import {
   SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD,
   SpanOperationBreakdownFilter,

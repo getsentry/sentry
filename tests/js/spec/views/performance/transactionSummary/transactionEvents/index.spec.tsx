@@ -1,7 +1,9 @@
 import {browserHistory} from 'react-router';
 
-import type {initializeDataSettings} from 'sentry-test/performance/initializePerformanceData';
-import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
+import {
+  initializeData as _initializeData,
+  initializeDataSettings,
+} from 'sentry-test/performance/initializePerformanceData';
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';

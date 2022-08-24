@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
-import type {WithRouterProps} from 'react-router';
+import {WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
-import type {Location} from 'history';
+import {Location} from 'history';
 
 import {BarChart} from 'sentry/components/charts/barChart';
 import BarChartZoom from 'sentry/components/charts/barChartZoom';
@@ -16,16 +16,16 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
-import type EventView from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import SpanHistogramQuery from 'sentry/utils/performance/histogram/spanHistogramQuery';
-import type {HistogramData} from 'sentry/utils/performance/histogram/types';
+import {HistogramData} from 'sentry/utils/performance/histogram/types';
 import {
   computeBuckets,
   formatHistogramData,
 } from 'sentry/utils/performance/histogram/utils';
-import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
+import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 
 import {ZoomKeys} from './utils';

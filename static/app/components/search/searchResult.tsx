@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 // eslint-disable-next-line no-restricted-imports
-import type {WithRouterProps} from 'react-router';
-import {withRouter} from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import DocIntegrationAvatar from 'sentry/components/avatar/docIntegrationAvatar';
@@ -12,7 +11,7 @@ import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import space from 'sentry/styles/space';
 import highlightFuseMatches from 'sentry/utils/highlightFuseMatches';
 
-import type {Result} from './sources/types';
+import {Result} from './sources/types';
 
 type Props = WithRouterProps<{orgId: string}> & {
   highlighted: boolean;

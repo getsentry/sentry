@@ -1,4 +1,4 @@
-import type {Key} from 'react';
+import {Key} from 'react';
 import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';

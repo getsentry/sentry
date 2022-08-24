@@ -2,14 +2,13 @@ import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
-import type {SearchBarProps} from 'sentry/components/events/searchBar';
+import {SearchBarProps} from 'sentry/components/events/searchBar';
 import {t} from 'sentry/locale';
-import type {Organization, PageFilters, TagCollection} from 'sentry/types';
-import {SavedSearchType} from 'sentry/types';
+import type {Organization, PageFilters, SavedSearchType, TagCollection} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import useApi from 'sentry/utils/useApi';
 import withIssueTags from 'sentry/utils/withIssueTags';
-import type {WidgetQuery} from 'sentry/views/dashboardsV2/types';
+import {WidgetQuery} from 'sentry/views/dashboardsV2/types';
 import {
   MAX_MENU_HEIGHT,
   MAX_SEARCH_ITEMS,

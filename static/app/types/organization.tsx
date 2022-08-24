@@ -278,3 +278,4 @@ export interface SessionApiResponse extends SeriesApi {
   query: string;
   start: string;
 }
+

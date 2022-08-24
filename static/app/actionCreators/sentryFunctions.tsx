@@ -1,4 +1,4 @@
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
 import type {Organization, SentryFunction} from 'sentry/types';
 

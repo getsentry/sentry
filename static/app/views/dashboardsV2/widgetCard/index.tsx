@@ -1,13 +1,12 @@
 import React, {Component} from 'react';
 import LazyLoad from 'react-lazyload';
 // eslint-disable-next-line no-restricted-imports
-import type {WithRouterProps} from 'react-router';
-import {withRouter} from 'react-router';
-import type {useSortable} from '@dnd-kit/sortable';
+import {withRouter, WithRouterProps} from 'react-router';
+import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {Location} from 'history';
 
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
@@ -23,16 +22,15 @@ import {IconCopy, IconDelete, IconEdit, IconGrabbable} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization, PageFilters} from 'sentry/types';
-import type {Series} from 'sentry/types/echarts';
-import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {Series} from 'sentry/types/echarts';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
-import type {DashboardFilters, Widget} from '../types';
-import {DisplayType, WidgetType} from '../types';
+import {DashboardFilters, DisplayType, Widget, WidgetType} from '../types';
 import {isCustomMeasurementWidget} from '../utils';
 import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
 

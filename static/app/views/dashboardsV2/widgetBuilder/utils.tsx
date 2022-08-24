@@ -15,16 +15,19 @@ import {
   SPAN_OP_BREAKDOWN_FIELDS,
   stripDerivedMetricsPrefix,
 } from 'sentry/utils/discover/fields';
-import type {MeasurementCollection} from 'sentry/utils/measurements/measurements';
-import type {Widget, WidgetQuery} from 'sentry/views/dashboardsV2/types';
-import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
-import type {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
+import {MeasurementCollection} from 'sentry/utils/measurements/measurements';
+import {
+  DisplayType,
+  Widget,
+  WidgetQuery,
+  WidgetType,
+} from 'sentry/views/dashboardsV2/types';
+import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-import type {FlatValidationError, ValidationError} from '../utils';
-import {getNumEquations} from '../utils';
+import {FlatValidationError, getNumEquations, ValidationError} from '../utils';
 
 // Used in the widget builder to limit the number of lines plotted in the chart
 export const DEFAULT_RESULTS_LIMIT = 5;

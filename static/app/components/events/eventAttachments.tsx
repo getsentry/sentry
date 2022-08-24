@@ -1,8 +1,8 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {Location} from 'history';
 
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import ImageViewer from 'sentry/components/events/attachmentViewers/imageViewer';
 import JsonViewer from 'sentry/components/events/attachmentViewers/jsonViewer';
 import LogFileViewer from 'sentry/components/events/attachmentViewers/logFileViewer';
@@ -13,7 +13,7 @@ import FileSize from 'sentry/components/fileSize';
 import {PanelTable} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+import {Event} from 'sentry/types/event';
 import AttachmentUrl from 'sentry/utils/attachmentUrl';
 import withApi from 'sentry/utils/withApi';
 

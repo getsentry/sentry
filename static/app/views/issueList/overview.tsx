@@ -1,10 +1,9 @@
 import {Component} from 'react';
-import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import * as Sentry from '@sentry/react';
-import type {Location} from 'history';
+import {Location} from 'history';
 import Cookies from 'js-cookie';
 import isEqual from 'lodash/isEqual';
 import mapValues from 'lodash/mapValues';
@@ -20,13 +19,12 @@ import {
   resetSavedSearches,
 } from 'sentry/actionCreators/savedSearches';
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
-import type {CursorHandler} from 'sentry/components/pagination';
-import Pagination from 'sentry/components/pagination';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import QueryCount from 'sentry/components/queryCount';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
@@ -67,13 +65,13 @@ import IssueListFilters from './filters';
 import IssueListHeader from './header';
 import NoGroupsHandler from './noGroupsHandler';
 import IssueListSidebar from './sidebar';
-import type {QueryCounts} from './utils';
 import {
   getTabs,
   getTabsWithCounts,
   isForReviewQuery,
   IssueSortOptions,
   Query,
+  QueryCounts,
   TAB_MAX_COUNT,
 } from './utils';
 

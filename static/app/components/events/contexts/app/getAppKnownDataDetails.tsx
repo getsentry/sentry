@@ -1,10 +1,9 @@
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
+import {Event} from 'sentry/types/event';
 
 import {getRelativeTimeFromEventDateCreated} from '../utils';
 
-import type {AppData} from './types';
-import {AppKnownDataType} from './types';
+import {AppData, AppKnownDataType} from './types';
 
 type Output = {
   subject: string;

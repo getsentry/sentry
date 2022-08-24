@@ -10,7 +10,7 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownBubble from 'sentry/components/dropdownBubble';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import type {MenuItemProps} from 'sentry/components/dropdownMenuItem';
+import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Highlight from 'sentry/components/highlight';
 import IdBadge from 'sentry/components/idBadge';
@@ -31,8 +31,7 @@ import {
   AlertRuleTriggerType,
 } from 'sentry/views/alerts/rules/metric/types';
 
-import type {CombinedMetricIssueAlerts} from '../../types';
-import {CombinedAlertType, IncidentStatus} from '../../types';
+import {CombinedAlertType, CombinedMetricIssueAlerts, IncidentStatus} from '../../types';
 import {isIssueAlert} from '../../utils';
 
 type Props = {

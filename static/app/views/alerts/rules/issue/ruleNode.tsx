@@ -13,17 +13,18 @@ import {IconDelete, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Choices, IssueOwnership, Organization, Project} from 'sentry/types';
-import type {
+import {
+  AssigneeTargetType,
   IssueAlertRuleAction,
   IssueAlertRuleActionTemplate,
   IssueAlertRuleCondition,
   IssueAlertRuleConditionTemplate,
+  MailActionTargetType,
 } from 'sentry/types/alerts';
-import {AssigneeTargetType, MailActionTargetType} from 'sentry/types/alerts';
 import MemberTeamFields from 'sentry/views/alerts/rules/issue/memberTeamFields';
 import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
 import TicketRuleModal from 'sentry/views/alerts/rules/issue/ticketRuleModal';
-import type {SchemaFormConfig} from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
+import {SchemaFormConfig} from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
 import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'sentry/views/projectInstall/issueAlertOptions';
 
 interface FieldProps {

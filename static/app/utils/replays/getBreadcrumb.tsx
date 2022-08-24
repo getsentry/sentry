@@ -1,4 +1,4 @@
-import type {Crumb} from 'sentry/types/breadcrumbs';
+import {Crumb} from 'sentry/types/breadcrumbs';
 
 export function getPrevBreadcrumb({
   crumbs,

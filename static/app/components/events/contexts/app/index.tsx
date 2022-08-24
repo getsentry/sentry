@@ -1,13 +1,12 @@
 import {Fragment} from 'react';
 
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
-import type {Event} from 'sentry/types/event';
+import {Event} from 'sentry/types/event';
 
 import {geKnownData, getUnknownData} from '../utils';
 
 import {getAppKnownDataDetails} from './getAppKnownDataDetails';
-import type {AppData} from './types';
-import {AppKnownDataType} from './types';
+import {AppData, AppKnownDataType} from './types';
 
 type Props = {
   data: AppData;

@@ -1,5 +1,5 @@
 import {SENTRY_CUSTOMERS} from './constants';
-import type {VitalsKey, VitalsResult} from './types';
+import {VitalsKey, VitalsResult} from './types';
 
 export function getRelativeDiff(value: number, benchmark: number) {
   // get the difference and divide it by our benchmark

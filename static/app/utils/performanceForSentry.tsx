@@ -1,9 +1,8 @@
-import type {ReactNode} from 'react';
-import {Fragment, Profiler, useEffect, useRef} from 'react';
+import {Fragment, Profiler, ReactNode, useEffect, useRef} from 'react';
 import {captureException, captureMessage} from '@sentry/react';
 import * as Sentry from '@sentry/react';
-import type {IdleTransaction} from '@sentry/tracing';
-import type {Transaction} from '@sentry/types';
+import {IdleTransaction} from '@sentry/tracing';
+import {Transaction} from '@sentry/types';
 import {browserPerformanceTimeOrigin, timestampWithMs} from '@sentry/utils';
 
 import getCurrentSentryReactTransaction from './getCurrentSentryReactTransaction';

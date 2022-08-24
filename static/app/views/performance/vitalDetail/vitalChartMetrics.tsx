@@ -1,6 +1,5 @@
 // eslint-disable-next-line no-restricted-imports
-import type {WithRouterProps} from 'react-router';
-import {browserHistory, withRouter} from 'react-router';
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import moment from 'moment';
 
@@ -16,12 +15,12 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DateString, MetricsApiResponse} from 'sentry/types';
-import type {Series} from 'sentry/types/echarts';
-import type {WebVital} from 'sentry/utils/fields';
+import {Series} from 'sentry/types/echarts';
+import {WebVital} from 'sentry/utils/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
 import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
-import type {ViewProps} from '../types';
+import {ViewProps} from '../types';
 
 import {getMaxOfSeries, getVitalChartDefinitions, getVitalChartTitle} from './utils';
 

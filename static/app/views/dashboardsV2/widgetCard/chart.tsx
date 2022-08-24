@@ -1,9 +1,9 @@
 import {Component} from 'react';
-import type {InjectedRouter} from 'react-router';
+import {InjectedRouter} from 'react-router';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {DataZoomComponentOption, LegendComponentOption} from 'echarts';
-import type {Location} from 'history';
+import {DataZoomComponentOption, LegendComponentOption} from 'echarts';
+import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
@@ -18,22 +18,21 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import {getSeriesSelection, processTableResults} from 'sentry/components/charts/utils';
 import {WorldMapChart} from 'sentry/components/charts/worldMapChart';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import type {PlaceholderProps} from 'sentry/components/placeholder';
-import Placeholder from 'sentry/components/placeholder';
+import Placeholder, {PlaceholderProps} from 'sentry/components/placeholder';
 import Tooltip from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import type {Organization, PageFilters} from 'sentry/types';
-import type {EChartDataZoomHandler, EChartEventHandler} from 'sentry/types/echarts';
+import {EChartDataZoomHandler, EChartEventHandler} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
   axisLabelFormatterUsingAggregateOutputType,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import {getFieldFormatter} from 'sentry/utils/discover/fieldRenderers';
-import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
   aggregateOutputType,
+  AggregationOutputType,
   getAggregateArg,
   getEquation,
   getMeasurementSlug,
@@ -43,14 +42,13 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import type {Theme} from 'sentry/utils/theme';
+import {Theme} from 'sentry/utils/theme';
 import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
 
 import {getDatasetConfig} from '../datasetConfig/base';
-import type {Widget} from '../types';
-import {DisplayType, WidgetType} from '../types';
+import {DisplayType, Widget, WidgetType} from '../types';
 
-import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
+import {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
 
 const OTHER = 'Other';
 export const SLIDER_HEIGHT = 60;

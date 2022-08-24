@@ -4,7 +4,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -14,11 +14,11 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import getDynamicText from 'sentry/utils/getDynamicText';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
-import type {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
+import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 import FirstEventFooter from './components/firstEventFooter';
 import FullIntroduction from './components/fullIntroduction';
-import type {StepProps} from './types';
+import {StepProps} from './types';
 
 type Props = StepProps & {
   api: Client;

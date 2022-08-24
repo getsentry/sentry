@@ -1,4 +1,4 @@
-import type {IntegrationView} from './index';
+import {IntegrationView} from './index';
 
 export enum PlatformEvents {
   DOCS = 'integrations.platform_docs_clicked',

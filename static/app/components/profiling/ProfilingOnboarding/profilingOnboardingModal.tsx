@@ -2,18 +2,17 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import type {ButtonPropsWithoutAriaLabel} from 'sentry/components/button';
-import Button from 'sentry/components/button';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import Button, {ButtonPropsWithoutAriaLabel} from 'sentry/components/button';
 import {SelectField} from 'sentry/components/forms';
-import type {SelectFieldProps} from 'sentry/components/forms/selectField';
+import {SelectFieldProps} from 'sentry/components/forms/selectField';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import Tag from 'sentry/components/tag';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Project} from 'sentry/types/project';
+import {Project} from 'sentry/types/project';
 import useProjects from 'sentry/utils/useProjects';
 
 // This is just a doubly linked list of steps

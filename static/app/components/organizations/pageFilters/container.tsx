@@ -1,13 +1,12 @@
 import {Fragment, useEffect, useRef} from 'react';
 // eslint-disable-next-line no-restricted-imports
-import type {WithRouterProps} from 'react-router';
-import {withRouter} from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import isEmpty from 'lodash/isEmpty';
 import isEqual from 'lodash/isEqual';
 
-import type {InitializeUrlStateParams} from 'sentry/actionCreators/pageFilters';
 import {
   initializeUrlState,
+  InitializeUrlStateParams,
   updateDateTime,
   updateEnvironments,
   updateProjects,

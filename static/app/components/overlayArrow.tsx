@@ -1,9 +1,9 @@
 import {forwardRef, useMemo} from 'react';
-import type {PopperProps} from 'react-popper';
+import {PopperProps} from 'react-popper';
 import styled from '@emotion/styled';
 
 import domId from 'sentry/utils/domId';
-import type {ColorOrAlias} from 'sentry/utils/theme';
+import {ColorOrAlias} from 'sentry/utils/theme';
 
 type Props = React.HTMLAttributes<HTMLDivElement> & {
   background?: ColorOrAlias;

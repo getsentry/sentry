@@ -1,14 +1,12 @@
 import {Component} from 'react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import type {Client} from 'sentry/api';
-import type {AreaChartProps} from 'sentry/components/charts/areaChart';
-import {AreaChart} from 'sentry/components/charts/areaChart';
-import type {BarChartProps} from 'sentry/components/charts/barChart';
-import {BarChart} from 'sentry/components/charts/barChart';
+import {Client} from 'sentry/api';
+import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
+import {BarChart, BarChartProps} from 'sentry/components/charts/barChart';
 import EventsGeoRequest from 'sentry/components/charts/eventsGeoRequest';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {LineChart} from 'sentry/components/charts/lineChart';
@@ -18,15 +16,14 @@ import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
 import type {Organization} from 'sentry/types';
-import type {Series} from 'sentry/types/echarts';
+import {Series} from 'sentry/types/echarts';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
-import type EventView from 'sentry/utils/discover/eventView';
-import type {PlotType} from 'sentry/utils/discover/fields';
-import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import EventView from 'sentry/utils/discover/eventView';
+import {aggregateOutputType, PlotType} from 'sentry/utils/discover/fields';
 import {DisplayModes, TOP_N} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
-import type {Theme} from 'sentry/utils/theme';
+import {Theme} from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 
 type Props = {

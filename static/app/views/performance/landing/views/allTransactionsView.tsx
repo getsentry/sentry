@@ -6,7 +6,7 @@ import {PROJECT_PERFORMANCE_TYPE} from '../../utils';
 import {DoubleChartRow, TripleChartRow} from '../widgets/components/widgetChartRow';
 import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
 
-import type {BasePerformanceViewProps} from './types';
+import {BasePerformanceViewProps} from './types';
 
 export function AllTransactionsView(props: BasePerformanceViewProps) {
   return (

@@ -1,4 +1,4 @@
-import type {Location} from 'history';
+import {Location} from 'history';
 import moment from 'moment';
 
 import Link from 'sentry/components/links/link';

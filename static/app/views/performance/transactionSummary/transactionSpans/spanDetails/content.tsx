@@ -1,7 +1,7 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import {setTag} from '@sentry/react';
-import type {Location} from 'history';
+import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import IdBadge from 'sentry/components/idBadge';
@@ -10,12 +10,14 @@ import space from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
-import type EventView from 'sentry/utils/discover/eventView';
-import type {ChildrenProps as SpanExamplesProps} from 'sentry/utils/performance/suspectSpans/spanExamplesQuery';
-import SpanExamplesQuery from 'sentry/utils/performance/suspectSpans/spanExamplesQuery';
-import type {ChildrenProps as SuspectSpansProps} from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
-import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
-import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
+import EventView from 'sentry/utils/discover/eventView';
+import SpanExamplesQuery, {
+  ChildrenProps as SpanExamplesProps,
+} from 'sentry/utils/performance/suspectSpans/spanExamplesQuery';
+import SuspectSpansQuery, {
+  ChildrenProps as SuspectSpansProps,
+} from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
+import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';

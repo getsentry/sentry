@@ -3,7 +3,7 @@ import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {FormSize, Theme} from 'sentry/utils/theme';
+import {FormSize, Theme} from 'sentry/utils/theme';
 
 export interface InputProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {

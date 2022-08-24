@@ -10,7 +10,7 @@ import ProjectCrumb from 'sentry/views/settings/components/settingsBreadcrumb/pr
 import TeamCrumb from 'sentry/views/settings/components/settingsBreadcrumb/teamCrumb';
 
 import {useBreadcrumbsPathmap} from './context';
-import type {RouteWithName} from './types';
+import {RouteWithName} from './types';
 
 const MENUS = {
   Organization: OrganizationCrumb,

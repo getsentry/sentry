@@ -8,11 +8,13 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
-import type {RecommendedSdkUpgrade} from 'sentry/types/sampling';
+import {RecommendedSdkUpgrade} from 'sentry/types/sampling';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
-import type {RecommendedStepsModalProps} from './modals/recommendedStepsModal';
-import {RecommendedStepsModal} from './modals/recommendedStepsModal';
+import {
+  RecommendedStepsModal,
+  RecommendedStepsModalProps,
+} from './modals/recommendedStepsModal';
 
 type Props = Pick<RecommendedStepsModalProps, 'projectId' | 'onReadDocs'> & {
   organization: Organization;

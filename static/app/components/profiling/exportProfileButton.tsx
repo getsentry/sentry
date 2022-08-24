@@ -7,8 +7,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-import type {ButtonPropsWithoutAriaLabel} from '../button';
-import Button from '../button';
+import Button, {ButtonPropsWithoutAriaLabel} from '../button';
 
 interface ExportProfileButtonProps
   extends Omit<ButtonPropsWithoutAriaLabel, 'onClick' | 'children'> {

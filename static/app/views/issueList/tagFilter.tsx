@@ -9,7 +9,7 @@ import SidebarSection from 'sentry/components/sidebarSection';
 import {t, tct} from 'sentry/locale';
 import type {Tag, TagValue} from 'sentry/types';
 
-import type {TagValueLoader} from './types';
+import {TagValueLoader} from './types';
 
 const defaultProps = {
   value: '',

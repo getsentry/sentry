@@ -1,9 +1,7 @@
 import omit from 'lodash/omit';
 
-import type {TextAreaProps} from 'sentry/components/forms/controls/textarea';
-import Textarea from 'sentry/components/forms/controls/textarea';
-import type {InputFieldProps} from 'sentry/components/forms/inputField';
-import InputField from 'sentry/components/forms/inputField';
+import Textarea, {TextAreaProps} from 'sentry/components/forms/controls/textarea';
+import InputField, {InputFieldProps} from 'sentry/components/forms/inputField';
 
 export interface TextareaFieldProps
   extends Omit<InputFieldProps, 'field'>,

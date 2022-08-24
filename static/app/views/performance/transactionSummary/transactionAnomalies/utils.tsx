@@ -1,9 +1,9 @@
-import type {Location, Query} from 'history';
+import {Location, Query} from 'history';
 
 import EventView from 'sentry/utils/discover/eventView';
-import type {AnomalyConfidence} from 'sentry/utils/performance/anomalies/anomaliesQuery';
+import {AnomalyConfidence} from 'sentry/utils/performance/anomalies/anomaliesQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
-import type {Theme} from 'sentry/utils/theme';
+import {Theme} from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 export function generateAnomaliesRoute({orgSlug}: {orgSlug: String}): string {

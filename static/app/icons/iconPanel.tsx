@@ -2,8 +2,7 @@ import {forwardRef} from 'react';
 
 import theme from 'sentry/utils/theme';
 
-import type {SVGIconProps} from './svgIcon';
-import {SvgIcon} from './svgIcon';
+import {SvgIcon, SVGIconProps} from './svgIcon';
 
 interface Props extends SVGIconProps {
   direction?: 'up' | 'right' | 'down' | 'left';

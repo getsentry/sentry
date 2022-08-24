@@ -1,18 +1,13 @@
 import {useEffect, useState} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import type {
-  MetricsMetaCollection,
-  MetricsTagCollection,
-  Organization,
-} from 'sentry/types';
+import type {MetricsMetaCollection, MetricsTagCollection, Organization} from 'sentry/types';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 
-import type {MetricsContextValue} from './metricsContext';
-import {MetricsContext} from './metricsContext';
+import {MetricsContext, MetricsContextValue} from './metricsContext';
 
 function fetchMetricMetas(
   api: Client,

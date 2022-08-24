@@ -1,4 +1,4 @@
-import type {RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import NoProjectMessage from 'sentry/components/noProjectMessage';

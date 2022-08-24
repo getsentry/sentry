@@ -1,10 +1,10 @@
 import {Component} from 'react';
 import {browserHistory} from 'react-router';
 import * as Sentry from '@sentry/react';
-import type {Location} from 'history';
+import {Location} from 'history';
 
 import {fetchTotalCount} from 'sentry/actionCreators/events';
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {
   ChartControls,
@@ -15,11 +15,9 @@ import {
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
-import type EventView from 'sentry/utils/discover/eventView';
-import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
+import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 
-import type {TooltipOption} from '../data';
-import {getAxisOptions} from '../data';
+import {getAxisOptions, TooltipOption} from '../data';
 
 type Props = {
   api: Client;

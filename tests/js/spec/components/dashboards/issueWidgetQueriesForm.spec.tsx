@@ -2,9 +2,9 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import IssueWidgetQueriesForm from 'sentry/components/dashboards/issueWidgetQueriesForm';
-import type {Organization} from 'sentry/types/organization';
+import {Organization} from 'sentry/types/organization';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
-import type {generateFieldOptions} from 'sentry/views/eventsV2/utils';
+import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
 function renderComponent(
   organization?: Organization,

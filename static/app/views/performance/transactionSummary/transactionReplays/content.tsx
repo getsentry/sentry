@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {Location} from 'history';
 import omit from 'lodash/omit';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
@@ -13,7 +13,7 @@ import Pagination from 'sentry/components/pagination';
 import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import type EventView from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
 import ReplayTable from 'sentry/views/replays/replayTable';
 import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
 

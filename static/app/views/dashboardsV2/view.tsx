@@ -1,6 +1,5 @@
 import {useEffect, useState} from 'react';
-import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import pick from 'lodash/pick';
 
 import {updateDashboardVisit} from 'sentry/actionCreators/dashboards';
@@ -17,8 +16,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 
 import DashboardDetail from './detail';
 import OrgDashboards from './orgDashboards';
-import type {Widget} from './types';
-import {DashboardState} from './types';
+import {DashboardState, Widget} from './types';
 import {constructWidgetFromQuery} from './utils';
 
 const ALLOWED_PARAMS = [

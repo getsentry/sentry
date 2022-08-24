@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {fetchAnyReleaseExistence} from 'sentry/actionCreators/projects';

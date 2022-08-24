@@ -13,13 +13,11 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {OnboardingTaskStatus, Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import type {Theme} from 'sentry/utils/theme';
-import theme from 'sentry/utils/theme';
+import theme, {Theme} from 'sentry/utils/theme';
 import withProjects from 'sentry/utils/withProjects';
 import {usePersistedOnboardingState} from 'sentry/views/onboarding/targetedOnboarding/utils';
 
-import type {CommonSidebarProps} from './types';
-import {SidebarPanelKey} from './types';
+import {CommonSidebarProps, SidebarPanelKey} from './types';
 
 type Props = CommonSidebarProps & {
   org: Organization;

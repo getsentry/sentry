@@ -1,6 +1,6 @@
-import type {Query} from 'history';
+import {Query} from 'history';
 
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import AlertStore from 'sentry/stores/alertStore';

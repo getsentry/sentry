@@ -1,7 +1,7 @@
 import {Fragment, useEffect} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {Location} from 'history';
 
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import Feature from 'sentry/components/acl/feature';
@@ -43,8 +43,7 @@ import OnboardingStatus from './onboardingStatus';
 import ServiceIncidents from './serviceIncidents';
 import SidebarDropdown from './sidebarDropdown';
 import SidebarItem from './sidebarItem';
-import type {SidebarOrientation} from './types';
-import {SidebarPanelKey} from './types';
+import {SidebarOrientation, SidebarPanelKey} from './types';
 
 const SidebarOverride = HookOrDefault({
   hookName: 'sidebar:item-override',

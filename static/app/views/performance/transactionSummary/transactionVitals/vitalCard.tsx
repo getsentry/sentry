@@ -1,13 +1,12 @@
 import {Component} from 'react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import throttle from 'lodash/throttle';
 
 import Button from 'sentry/components/button';
-import type {BarChartSeries} from 'sentry/components/charts/barChart';
-import {BarChart} from 'sentry/components/charts/barChart';
+import {BarChart, BarChartSeries} from 'sentry/components/charts/barChart';
 import BarChartZoom from 'sentry/components/charts/barChartZoom';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
@@ -16,19 +15,19 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
-import type EventView from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
-import type {WebVital} from 'sentry/utils/fields';
+import {WebVital} from 'sentry/utils/fields';
 import {formatAbbreviatedNumber, formatFloat, getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import type {DataFilter, HistogramData} from 'sentry/utils/performance/histogram/types';
+import {DataFilter, HistogramData} from 'sentry/utils/performance/histogram/types';
 import {
   computeBuckets,
   formatHistogramData,
 } from 'sentry/utils/performance/histogram/utils';
-import type {Vital} from 'sentry/utils/performance/vitals/types';
-import type {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
-import type {Theme} from 'sentry/utils/theme';
+import {Vital} from 'sentry/utils/performance/vitals/types';
+import {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
+import {Theme} from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 
@@ -42,7 +41,7 @@ import {
 
 import {NUM_BUCKETS, PERCENTILE} from './constants';
 import {Card, CardSectionHeading, CardSummary, Description, StatNumber} from './styles';
-import type {Rectangle} from './types';
+import {Rectangle} from './types';
 import {asPixelRect, findNearestBucketIndex, getRefRect, mapPoint} from './utils';
 
 type Props = {

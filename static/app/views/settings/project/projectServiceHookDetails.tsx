@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 
 import {
   addErrorMessage,

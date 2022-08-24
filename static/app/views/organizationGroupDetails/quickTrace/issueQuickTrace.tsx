@@ -1,9 +1,9 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {Location} from 'history';
 
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -16,10 +16,10 @@ import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+import {Event} from 'sentry/types/event';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import type {QuickTraceQueryChildrenProps} from 'sentry/utils/performance/quickTrace/types';
+import {QuickTraceQueryChildrenProps} from 'sentry/utils/performance/quickTrace/types';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import withApi from 'sentry/utils/withApi';
 

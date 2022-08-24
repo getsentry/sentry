@@ -1,11 +1,11 @@
 import {createStore} from 'reflux';
 
-import type {Indicator} from 'sentry/actionCreators/indicator';
+import {Indicator} from 'sentry/actionCreators/indicator';
 import IndicatorActions from 'sentry/actions/indicatorActions';
 import {t} from 'sentry/locale';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-import type {CommonStoreDefinition} from './types';
+import {CommonStoreDefinition} from './types';
 
 interface InternalDefinition {
   items: any[];

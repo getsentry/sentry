@@ -1,6 +1,6 @@
 import type Fuse from 'fuse.js';
 
-import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
 export type FlamegraphSearchResult = {
   frame: FlamegraphFrame;

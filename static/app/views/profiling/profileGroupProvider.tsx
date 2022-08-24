@@ -1,13 +1,12 @@
 import {createContext, useContext, useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import {ProfileHeader} from 'sentry/components/profiling/profileHeader';
 import {t} from 'sentry/locale';
 import type {Organization, Project} from 'sentry/types';
-import type {RequestState} from 'sentry/types/core';
-import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
-import {importProfile} from 'sentry/utils/profiling/profile/importProfile';
+import {RequestState} from 'sentry/types/core';
+import {importProfile, ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';

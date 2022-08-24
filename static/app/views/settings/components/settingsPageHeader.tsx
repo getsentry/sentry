@@ -1,4 +1,4 @@
-import type {HTMLProps, ReactNode} from 'react';
+import {HTMLProps, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {HeaderTitle} from 'sentry/styles/organization';

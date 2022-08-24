@@ -10,9 +10,12 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import type {ColorOrAlias} from 'sentry/utils/theme';
-import type {ISortConfig, NetworkSpan} from 'sentry/views/replays/detail/network/utils';
-import {sortNetwork} from 'sentry/views/replays/detail/network/utils';
+import {ColorOrAlias} from 'sentry/utils/theme';
+import {
+  ISortConfig,
+  NetworkSpan,
+  sortNetwork,
+} from 'sentry/views/replays/detail/network/utils';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {

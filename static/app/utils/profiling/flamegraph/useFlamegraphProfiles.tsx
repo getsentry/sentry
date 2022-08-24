@@ -1,7 +1,9 @@
 import {useContext} from 'react';
 
-import type {FlamegraphStateContextValue} from './flamegraphStateProvider/index';
-import {FlamegraphStateContext} from './flamegraphStateProvider/index';
+import {
+  FlamegraphStateContext,
+  FlamegraphStateContextValue,
+} from './flamegraphStateProvider/index';
 
 export function useFlamegraphProfiles(): [
   FlamegraphStateContextValue[0]['profiles'],

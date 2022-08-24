@@ -6,7 +6,7 @@ import {
   installSentryApp,
   uninstallSentryApp,
 } from 'sentry/actionCreators/sentryAppInstallations';
-import type AsyncComponent from 'sentry/components/asyncComponent';
+import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';

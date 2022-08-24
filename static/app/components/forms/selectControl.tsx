@@ -1,11 +1,12 @@
 import {forwardRef, useCallback, useMemo} from 'react';
-import type {
+import ReactSelect, {
+  components as selectComponents,
   GroupedOptionsType,
+  mergeStyles,
   OptionsType,
   Props as ReactSelectProps,
   StylesConfig,
 } from 'react-select';
-import ReactSelect, {components as selectComponents, mergeStyles} from 'react-select';
 import Async from 'react-select/async';
 import AsyncCreatable from 'react-select/async-creatable';
 import Creatable from 'react-select/creatable';
@@ -17,7 +18,7 @@ import {IconChevron, IconClose} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import type {Choices, SelectValue} from 'sentry/types';
 import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
-import type {FormSize} from 'sentry/utils/theme';
+import {FormSize} from 'sentry/utils/theme';
 
 import Option from './selectOption';
 

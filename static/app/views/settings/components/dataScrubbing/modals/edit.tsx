@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
 
-import type {ProjectId, Rule} from '../types';
+import {ProjectId, Rule} from '../types';
 
 import ModalManager from './modalManager';
 

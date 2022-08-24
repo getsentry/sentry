@@ -1,8 +1,7 @@
 import {createStore} from 'reflux';
 
-import type {FieldObject} from 'sentry/components/forms/type';
-import type {SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+import {FieldObject} from 'sentry/components/forms/type';
+import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
 
 /**
  * Processed form field metadata.

@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';

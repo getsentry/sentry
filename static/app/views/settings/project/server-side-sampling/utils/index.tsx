@@ -2,8 +2,7 @@ import round from 'lodash/round';
 
 import {t} from 'sentry/locale';
 import type {SeriesApi} from 'sentry/types';
-import type {SamplingRule} from 'sentry/types/sampling';
-import {SamplingInnerName, SamplingRuleType} from 'sentry/types/sampling';
+import {SamplingInnerName, SamplingRule, SamplingRuleType} from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
 
 import {projectStatsToSampleRates} from './projectStatsToSampleRates';

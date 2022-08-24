@@ -1,6 +1,6 @@
 import React, {useEffect} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {Location} from 'history';
 
 import {
   INDUSTRY_STANDARDS,
@@ -13,8 +13,8 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import type EventView from 'sentry/utils/discover/eventView';
-import type {WebVital} from 'sentry/utils/fields';
+import EventView from 'sentry/utils/discover/eventView';
+import {WebVital} from 'sentry/utils/fields';
 import VitalsCardDiscoverQuery from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {webVitalMeh, webVitalPoor} from 'sentry/views/performance/vitalDetail/utils';
 

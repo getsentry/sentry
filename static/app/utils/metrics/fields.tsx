@@ -1,6 +1,6 @@
 import type {MetricsOperation, MetricsType} from 'sentry/types';
 
-import type {ColumnType} from '../discover/fields';
+import {ColumnType} from '../discover/fields';
 
 export enum SessionMetric {
   SESSION = 'sentry.sessions.session',

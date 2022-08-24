@@ -7,11 +7,10 @@ import {
   toPercent,
 } from 'sentry/components/performance/waterfall/utils';
 import getDisplayName from 'sentry/utils/getDisplayName';
-import type {UserSelectValues} from 'sentry/utils/userselect';
-import {setBodyUserSelect} from 'sentry/utils/userselect';
+import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
 
-import type {DragManagerChildrenProps} from './dragManager';
-import type SpanBar from './spanBar';
+import {DragManagerChildrenProps} from './dragManager';
+import SpanBar from './spanBar';
 import {SpansInViewMap, spanTargetHash} from './utils';
 
 export type ScrollbarManagerChildrenProps = {

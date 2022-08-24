@@ -3,14 +3,14 @@ import {createPortal} from 'react-dom';
 import {Manager, Popper, Reference} from 'react-popper';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import type {Location, LocationDescriptorObject} from 'history';
+import {Location, LocationDescriptorObject} from 'history';
 
-import type {GetActorPropsFn} from 'sentry/components/deprecatedDropdownMenu';
+import {GetActorPropsFn} from 'sentry/components/deprecatedDropdownMenu';
 import MenuItem from 'sentry/components/menuItem';
 import Radio from 'sentry/components/radio';
 import {t} from 'sentry/locale';
-import type {TableData} from 'sentry/utils/discover/discoverQuery';
-import type EventView from 'sentry/utils/discover/eventView';
+import {TableData} from 'sentry/utils/discover/discoverQuery';
+import EventView from 'sentry/utils/discover/eventView';
 
 export type TitleProps = Partial<ReturnType<GetActorPropsFn>>;
 

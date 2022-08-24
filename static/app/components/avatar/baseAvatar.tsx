@@ -9,8 +9,7 @@ import Tooltip from 'sentry/components/tooltip';
 import type {Avatar} from 'sentry/types';
 
 import Gravatar from './gravatar';
-import type {ImageStyleProps} from './styles';
-import {imageStyle} from './styles';
+import {imageStyle, ImageStyleProps} from './styles';
 
 const DEFAULT_GRAVATAR_SIZE = 64;
 const ALLOWED_SIZES = [20, 32, 36, 48, 52, 64, 80, 96, 120];

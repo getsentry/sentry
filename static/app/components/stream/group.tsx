@@ -1,6 +1,5 @@
 import {Component, Fragment} from 'react';
-import type {Theme} from '@emotion/react';
-import {css} from '@emotion/react';
+import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import type {LocationDescriptor} from 'history';
@@ -34,14 +33,14 @@ import type {
   Organization,
   PageFilters,
   User,
-} from 'sentry/types';
+} from 'sentry/types'
 import {defined, percent, valueIsEqual} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import EventView from 'sentry/utils/discover/eventView';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
+import {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {
   DISCOVER_EXCLUSION_FIELDS,
   getTabs,

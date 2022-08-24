@@ -3,12 +3,13 @@ import {createPortal} from 'react-dom';
 import {DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 
-import type {SamplingRule} from 'sentry/types/sampling';
+import {SamplingRule} from 'sentry/types/sampling';
 
-import type {DraggableRuleListItemProps} from './draggableRuleListItem';
-import {DraggableRuleListItem} from './draggableRuleListItem';
-import type {SortableItemProps} from './draggableRuleListSortableItem';
-import {DraggableRuleListSortableItem} from './draggableRuleListSortableItem';
+import {DraggableRuleListItem, DraggableRuleListItemProps} from './draggableRuleListItem';
+import {
+  DraggableRuleListSortableItem,
+  SortableItemProps,
+} from './draggableRuleListSortableItem';
 import {isUniformRule} from './utils';
 
 export type DraggableRuleListUpdateItemsProps = {

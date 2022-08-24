@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 
 import Link from 'sentry/components/links/link';
 import NavTabs from 'sentry/components/navTabs';

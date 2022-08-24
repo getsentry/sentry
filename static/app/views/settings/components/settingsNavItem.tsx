@@ -1,5 +1,4 @@
-import type {ReactElement} from 'react';
-import {Fragment} from 'react';
+import {Fragment, ReactElement} from 'react';
 import {Link as RouterLink} from 'react-router';
 import styled from '@emotion/styled';
 

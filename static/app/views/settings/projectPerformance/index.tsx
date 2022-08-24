@@ -1,4 +1,4 @@
-import type {RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 
 import Feature from 'sentry/components/acl/feature';
 import type {Organization, Project} from 'sentry/types';

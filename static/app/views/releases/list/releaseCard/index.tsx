@@ -1,7 +1,7 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 import color from 'color';
-import type {Location} from 'history';
+import {Location} from 'history';
 import partition from 'lodash/partition';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -17,8 +17,8 @@ import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization, PageFilters, Release} from 'sentry/types';
 
-import type {ReleasesDisplayOption} from '../releasesDisplayOptions';
-import type {ReleasesRequestRenderProps} from '../releasesRequest';
+import {ReleasesDisplayOption} from '../releasesDisplayOptions';
+import {ReleasesRequestRenderProps} from '../releasesRequest';
 
 import ReleaseCardCommits from './releaseCardCommits';
 import ReleaseCardProjectRow from './releaseCardProjectRow';

@@ -2,18 +2,15 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import CompactSelect from 'sentry/components/forms/compactSelect';
-import type {
-  ControlProps,
-  GeneralSelectValue,
-} from 'sentry/components/forms/selectControl';
+import {ControlProps, GeneralSelectValue} from 'sentry/components/forms/selectControl';
 import {IconList} from 'sentry/icons';
 import {tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import type {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/index';
-import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
-import type {Profile} from 'sentry/utils/profiling/profile/profile';
+import {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/index';
+import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import {Profile} from 'sentry/utils/profiling/profile/profile';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
 
 interface ThreadSelectorProps {

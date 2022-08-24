@@ -5,14 +5,14 @@ import capitalize from 'lodash/capitalize';
 import {FieldFromConfig} from 'sentry/components/forms';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
-import type {SelectAsyncControlProps} from 'sentry/components/forms/selectAsyncControl';
-import type {Field} from 'sentry/components/forms/type';
+import {SelectAsyncControlProps} from 'sentry/components/forms/selectAsyncControl';
+import {Field} from 'sentry/components/forms/type';
 import {t, tct} from 'sentry/locale';
 import type {
   ExternalActorMapping,
   ExternalActorMappingOrSuggestion,
   Integration,
-} from 'sentry/types';
+} from 'sentry/types'
 import {
   getExternalActorEndpointDetails,
   isExternalActorMapping,

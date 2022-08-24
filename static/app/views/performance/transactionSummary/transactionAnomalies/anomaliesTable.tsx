@@ -1,19 +1,20 @@
-import type {ReactNode} from 'react';
+import {ReactNode} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {Location} from 'history';
 
 import Count from 'sentry/components/count';
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  GridColumnOrder,
+} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {ColumnType} from 'sentry/utils/discover/fields';
-import {fieldAlignment} from 'sentry/utils/discover/fields';
-import type {AnomalyInfo} from 'sentry/utils/performance/anomalies/anomaliesQuery';
+import {ColumnType, fieldAlignment} from 'sentry/utils/discover/fields';
+import {AnomalyInfo} from 'sentry/utils/performance/anomalies/anomaliesQuery';
 
 type Props = {
   isLoading: boolean;

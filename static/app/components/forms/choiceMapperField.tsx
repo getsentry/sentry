@@ -3,12 +3,10 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
-import type {Item} from 'sentry/components/dropdownAutoComplete/types';
+import {Item} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownButton from 'sentry/components/dropdownButton';
-import type {InputFieldProps} from 'sentry/components/forms/inputField';
-import InputField from 'sentry/components/forms/inputField';
-import type {ControlProps} from 'sentry/components/forms/selectControl';
-import SelectControl from 'sentry/components/forms/selectControl';
+import InputField, {InputFieldProps} from 'sentry/components/forms/inputField';
+import SelectControl, {ControlProps} from 'sentry/components/forms/selectControl';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';

@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import type {MEPAlertsQueryType} from 'sentry/views/alerts/wizard/options';
+import {MEPAlertsQueryType} from 'sentry/views/alerts/wizard/options';
 import type {SchemaFormConfig} from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
 
 import type {Incident} from '../../types';

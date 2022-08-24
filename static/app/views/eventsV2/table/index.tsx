@@ -1,17 +1,18 @@
 import {PureComponent} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {Location} from 'history';
 
-import type {EventQuery} from 'sentry/actionCreators/events';
-import type {Client} from 'sentry/api';
+import {EventQuery} from 'sentry/actionCreators/events';
+import {Client} from 'sentry/api';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 import {metric, trackAnalyticsEvent} from 'sentry/utils/analytics';
-import type {TableData} from 'sentry/utils/discover/discoverQuery';
-import type {LocationQuery} from 'sentry/utils/discover/eventView';
-import type EventView from 'sentry/utils/discover/eventView';
-import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
+import {TableData} from 'sentry/utils/discover/discoverQuery';
+import EventView, {
+  isAPIPayloadSimilar,
+  LocationQuery,
+} from 'sentry/utils/discover/eventView';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
 import Measurements from 'sentry/utils/measurements/measurements';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';

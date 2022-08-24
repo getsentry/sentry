@@ -1,5 +1,4 @@
-import type {MutableRefObject} from 'react';
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {MutableRefObject, useCallback, useEffect, useRef, useState} from 'react';
 import screenfull from 'screenfull';
 
 // See: https://developer.mozilla.org/en-US/docs/web/api/element/requestfullscreen#options_2

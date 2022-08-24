@@ -1,13 +1,13 @@
-import type {InjectedRouter} from 'react-router';
+import {InjectedRouter} from 'react-router';
 import * as Sentry from '@sentry/react';
-import type {Location} from 'history';
+import {Location} from 'history';
 import isInteger from 'lodash/isInteger';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
 import PageFiltersActions from 'sentry/actions/pageFiltersActions';
-import {
+import type {
   getDatetimeFromState,
   getStateFromQuery,
 } from 'sentry/components/organizations/pageFilters/parse';
@@ -15,7 +15,7 @@ import {
   getPageFilterStorage,
   setPageFiltersStorage,
 } from 'sentry/components/organizations/pageFilters/persistence';
-import type {PageFiltersStringified} from 'sentry/components/organizations/pageFilters/types';
+import {PageFiltersStringified} from 'sentry/components/organizations/pageFilters/types';
 import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/utils';
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -28,7 +28,7 @@ import type {
   PageFilters,
   PinnedPageFilter,
   Project,
-} from 'sentry/types';
+} from 'sentry/types'
 import {defined, valueIsEqual} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 

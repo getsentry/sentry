@@ -25,11 +25,12 @@ import {t, tct} from 'sentry/locale';
 import ProjectStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import type {Project} from 'sentry/types';
-import type {SamplingRule, UniformModalsSubmit} from 'sentry/types/sampling';
 import {
   SamplingConditionOperator,
+  SamplingRule,
   SamplingRuleOperator,
   SamplingRuleType,
+  UniformModalsSubmit,
 } from 'sentry/types/sampling';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
@@ -45,8 +46,7 @@ import {responsiveModal} from './modals/styles';
 import {UniformRateModal} from './modals/uniformRateModal';
 import useProjectStats from './utils/useProjectStats';
 import {useRecommendedSdkUpgrades} from './utils/useRecommendedSdkUpgrades';
-import type {DraggableRuleListUpdateItemsProps} from './draggableRuleList';
-import {DraggableRuleList} from './draggableRuleList';
+import {DraggableRuleList, DraggableRuleListUpdateItemsProps} from './draggableRuleList';
 import {
   ActiveColumn,
   Column,

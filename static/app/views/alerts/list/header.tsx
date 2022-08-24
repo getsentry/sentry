@@ -1,4 +1,4 @@
-import type {InjectedRouter} from 'react-router';
+import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';

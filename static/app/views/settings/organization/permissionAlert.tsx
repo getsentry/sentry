@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {ReactNode} from 'react';
 
 import Access from 'sentry/components/acl/access';
 import Alert from 'sentry/components/alert';

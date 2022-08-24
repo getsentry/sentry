@@ -1,6 +1,6 @@
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 
-import type {MetricRule, SavedMetricRule} from './types';
+import {MetricRule, SavedMetricRule} from './types';
 
 function isSavedRule(rule: MetricRule): rule is SavedMetricRule {
   return !!rule.id;

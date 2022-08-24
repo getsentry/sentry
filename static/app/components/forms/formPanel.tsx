@@ -7,7 +7,7 @@ import {IconChevron} from 'sentry/icons';
 import type {Scope} from 'sentry/types';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
-import type {FieldObject, JsonFormObject} from './type';
+import {FieldObject, JsonFormObject} from './type';
 
 type DefaultProps = {
   additionalFieldProps: {[key: string]: any};

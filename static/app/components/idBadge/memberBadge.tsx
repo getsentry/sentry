@@ -2,8 +2,7 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
-import type {LinkProps} from 'sentry/components/links/link';
-import Link from 'sentry/components/links/link';
+import Link, {LinkProps} from 'sentry/components/links/link';
 import space from 'sentry/styles/space';
 import type {AvatarUser, Member} from 'sentry/types';
 

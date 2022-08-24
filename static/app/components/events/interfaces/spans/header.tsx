@@ -17,7 +17,7 @@ import {
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
-import type {EventTransaction} from 'sentry/types/event';
+import {EventTransaction} from 'sentry/types/event';
 import theme from 'sentry/utils/theme';
 
 import {
@@ -28,14 +28,22 @@ import {
 } from './constants';
 import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
-import type {DragManagerChildrenProps} from './dragManager';
-import type {ActiveOperationFilter} from './filter';
+import {DragManagerChildrenProps} from './dragManager';
+import {ActiveOperationFilter} from './filter';
 import MeasurementsPanel from './measurementsPanel';
 import * as ScrollbarManager from './scrollbarManager';
-import type {EnhancedProcessedSpanType, ParsedTraceType, RawSpanType} from './types';
-import {TickAlignment} from './types';
-import type {SpanBoundsType, SpanGeneratedBoundsType} from './utils';
-import {boundsGenerator, getSpanOperation} from './utils';
+import {
+  EnhancedProcessedSpanType,
+  ParsedTraceType,
+  RawSpanType,
+  TickAlignment,
+} from './types';
+import {
+  boundsGenerator,
+  getSpanOperation,
+  SpanBoundsType,
+  SpanGeneratedBoundsType,
+} from './utils';
 
 type PropType = {
   dragProps: DragManagerChildrenProps;

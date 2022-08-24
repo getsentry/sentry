@@ -1,4 +1,4 @@
-import type {IntegrationView} from './index';
+import {IntegrationView} from './index';
 
 export enum CodeownersEvents {
   SETUP_CTA = 'integrations.code_owners_cta_setup_clicked',

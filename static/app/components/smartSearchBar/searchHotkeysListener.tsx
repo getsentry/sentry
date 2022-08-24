@@ -1,6 +1,6 @@
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 
-import type {Shortcut} from './types';
+import {Shortcut} from './types';
 
 const SearchHotkeysListener = ({
   visibleShortcuts,

@@ -2,9 +2,9 @@ import {createStore} from 'reflux';
 
 import {defined} from 'sentry/utils';
 import localStorage from 'sentry/utils/localStorage';
-import type {Theme} from 'sentry/utils/theme';
+import {Theme} from 'sentry/utils/theme';
 
-import type {CommonStoreDefinition} from './types';
+import {CommonStoreDefinition} from './types';
 
 type Alert = {
   message: React.ReactNode;

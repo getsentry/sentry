@@ -1,5 +1,5 @@
 import {cloneElement, Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';

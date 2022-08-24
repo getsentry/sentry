@@ -1,5 +1,4 @@
-import type {ReactElement} from 'react';
-import {useMemo} from 'react';
+import {ReactElement, useMemo} from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';

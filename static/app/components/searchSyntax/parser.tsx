@@ -1,5 +1,5 @@
 import moment from 'moment';
-import type {LocationRange} from 'pegjs';
+import {LocationRange} from 'pegjs';
 
 import {t} from 'sentry/locale';
 import {

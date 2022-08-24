@@ -1,7 +1,9 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import type {UserEventContextData} from 'sentry/components/events/contexts/user';
-import {UserEventContext} from 'sentry/components/events/contexts/user';
+import {
+  UserEventContext,
+  UserEventContextData,
+} from 'sentry/components/events/contexts/user';
 
 // the values of this mock are correct and the types need to be updated
 export const userMockData = {

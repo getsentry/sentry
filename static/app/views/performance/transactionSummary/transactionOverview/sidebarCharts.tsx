@@ -1,17 +1,15 @@
 // eslint-disable-next-line no-restricted-imports
-import type {InjectedRouter, WithRouterProps} from 'react-router';
-import {browserHistory, withRouter} from 'react-router';
+import {browserHistory, InjectedRouter, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import color from 'color';
-import type {Location} from 'history';
+import {Location} from 'history';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import MarkPoint from 'sentry/components/charts/components/markPoint';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
-import type {LineChartProps} from 'sentry/components/charts/lineChart';
-import {LineChart} from 'sentry/components/charts/lineChart';
+import {LineChart, LineChartProps} from 'sentry/components/charts/lineChart';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
@@ -24,9 +22,9 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
-import type EventView from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
+import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {
   formatAbbreviatedNumber,
   formatFloat,

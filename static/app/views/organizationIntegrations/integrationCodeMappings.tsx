@@ -9,8 +9,7 @@ import Access from 'sentry/components/acl/access';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
-import type {CursorHandler} from 'sentry/components/pagination';
-import Pagination from 'sentry/components/pagination';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import RepositoryProjectPathConfigForm from 'sentry/components/repositoryProjectPathConfigForm';
 import RepositoryProjectPathConfigRow, {
@@ -29,7 +28,7 @@ import type {
   Project,
   Repository,
   RepositoryProjectPathConfig,
-} from 'sentry/types';
+} from 'sentry/types'
 import {
   getIntegrationIcon,
   trackIntegrationAnalytics,

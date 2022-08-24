@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import type {RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 
 import SavedSearchesStore from 'sentry/stores/savedSearchesStore';
 import type {SavedSearch} from 'sentry/types';

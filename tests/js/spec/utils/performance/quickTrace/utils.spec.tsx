@@ -1,5 +1,5 @@
-import type {Event} from 'sentry/types/event';
-import type {TraceFull} from 'sentry/utils/performance/quickTrace/types';
+import {Event} from 'sentry/types/event';
+import {TraceFull} from 'sentry/utils/performance/quickTrace/types';
 import {
   flattenRelevantPaths,
   parseQuickTrace,

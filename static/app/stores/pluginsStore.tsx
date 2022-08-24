@@ -1,5 +1,4 @@
-import type {StoreDefinition} from 'reflux';
-import {createStore} from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import type {Plugin} from 'sentry/types';
 

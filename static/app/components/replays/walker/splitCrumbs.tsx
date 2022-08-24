@@ -8,7 +8,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import Tooltip from 'sentry/components/tooltip';
 import {tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {BreadcrumbTypeNavigation, Crumb} from 'sentry/types/breadcrumbs';
+import {BreadcrumbTypeNavigation, Crumb} from 'sentry/types/breadcrumbs';
 import BreadcrumbItem from 'sentry/views/replays/detail/breadcrumbs/breadcrumbItem';
 
 type MaybeOnClickHandler = null | ((crumb: Crumb) => void);

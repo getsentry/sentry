@@ -1,12 +1,12 @@
 import {Component, Fragment} from 'react';
-import type {PlainRoute, RouteComponentProps} from 'react-router';
+import {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {openSudo} from 'sentry/actionCreators/modal';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import ProjectActions from 'sentry/actions/projectActions';
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingTriangle from 'sentry/components/loadingTriangle';
@@ -24,7 +24,7 @@ import type {Organization} from 'sentry/types';
 import {metric} from 'sentry/utils/analytics';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import RequestError from 'sentry/utils/requestError/requestError';
 import withApi from 'sentry/utils/withApi';
 import withOrganizations from 'sentry/utils/withOrganizations';
 

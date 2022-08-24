@@ -1,7 +1,7 @@
-import type {LocationDescriptor, Query} from 'history';
+import {LocationDescriptor, Query} from 'history';
 
 import {spanTargetHash} from 'sentry/components/events/interfaces/spans/utils';
-import type {Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 export function getTransactionDetailsUrl(

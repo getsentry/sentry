@@ -1,12 +1,11 @@
 import type {Project} from 'sentry/types';
-import type {
+import GenericDiscoverQuery, {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
-import GenericDiscoverQuery from 'sentry/utils/discover/genericDiscoverQuery';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
-import type {
+import {
   TrendChangeType,
   TrendFunctionField,
   TrendsData,

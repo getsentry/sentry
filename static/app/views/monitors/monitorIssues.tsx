@@ -1,7 +1,7 @@
 import IssueList from 'sentry/components/issueList';
 import {t} from 'sentry/locale';
 
-import type {Monitor} from './types';
+import {Monitor} from './types';
 
 type Props = {
   monitor: Monitor;

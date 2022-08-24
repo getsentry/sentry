@@ -5,7 +5,7 @@ import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import QueryCount from 'sentry/components/queryCount';
 import {t} from 'sentry/locale';
-import type {Fingerprint} from 'sentry/stores/groupingStore';
+import {Fingerprint} from 'sentry/stores/groupingStore';
 import type {Group, Organization, Project} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 

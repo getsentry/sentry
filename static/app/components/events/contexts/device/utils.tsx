@@ -1,7 +1,6 @@
 import {defined, formatBytesBase2} from 'sentry/utils';
 
-import type {DeviceData} from './types';
-import {DeviceKnownDataType} from './types';
+import {DeviceData, DeviceKnownDataType} from './types';
 
 export function formatMemory(
   memory_size: number,

@@ -5,9 +5,9 @@ import tourGroup from 'sentry-images/spot/discover-tour-group.svg';
 
 import Banner from 'sentry/components/banner';
 import Button from 'sentry/components/button';
-import type {TourStep} from 'sentry/components/modals/featureTourModal';
 import FeatureTourModal, {
   TourImage,
+  TourStep,
   TourText,
 } from 'sentry/components/modals/featureTourModal';
 import {t} from 'sentry/locale';

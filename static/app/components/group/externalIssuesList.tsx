@@ -21,8 +21,8 @@ import type {
   Project,
   SentryAppComponent,
   SentryAppInstallation,
-} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+} from 'sentry/types'
+import {Event} from 'sentry/types/event';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import SidebarSection from './sidebarSection';

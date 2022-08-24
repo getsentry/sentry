@@ -15,8 +15,7 @@ import HotkeysLabel from '../hotkeysLabel';
 import Tag from '../tag';
 
 import SearchBarFlyout from './searchBarFlyout';
-import type {SearchGroup, SearchItem, Shortcut} from './types';
-import {ItemType} from './types';
+import {ItemType, SearchGroup, SearchItem, Shortcut} from './types';
 
 const getDropdownItemKey = (item: SearchItem) =>
   `${item.value || item.desc || item.title}-${

@@ -1,5 +1,4 @@
-import type {ComponentProps} from 'react';
-import {Fragment} from 'react';
+import {ComponentProps, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';

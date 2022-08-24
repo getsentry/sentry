@@ -1,8 +1,7 @@
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 
-import type {OperatingSystemKnownData} from './types';
-import {OperatingSystemKnownDataType} from './types';
+import {OperatingSystemKnownData, OperatingSystemKnownDataType} from './types';
 
 type Output = {
   subject: string;

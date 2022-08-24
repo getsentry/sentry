@@ -1,4 +1,4 @@
-import type {JsonFormObject} from 'sentry/components/forms/type';
+import {JsonFormObject} from 'sentry/components/forms/type';
 import {t} from 'sentry/locale';
 import slugify from 'sentry/utils/slugify';
 

@@ -8,7 +8,7 @@ import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import type {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
+import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 const DEFAULT_PROPS = {
   showDsn: true,

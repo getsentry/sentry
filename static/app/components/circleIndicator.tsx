@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import type {Theme} from 'sentry/utils/theme';
+import {Theme} from 'sentry/utils/theme';
 
 const defaultProps = {
   enabled: true,

@@ -1,9 +1,11 @@
 import {browserHistory} from 'react-router';
-import type {Location} from 'history';
+import {Location} from 'history';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import type {initializeDataSettings} from 'sentry-test/performance/initializePerformanceData';
-import {initializeData} from 'sentry-test/performance/initializePerformanceData';
+import {
+  initializeData,
+  initializeDataSettings,
+} from 'sentry-test/performance/initializePerformanceData';
 import {
   act,
   fireEvent,

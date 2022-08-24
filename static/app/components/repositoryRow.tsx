@@ -6,7 +6,7 @@ import {
   deleteRepository,
 } from 'sentry/actionCreators/integrations';
 import {openModal} from 'sentry/actionCreators/modal';
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
@@ -17,8 +17,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Organization, Repository} from 'sentry/types';
-import {RepositoryStatus} from 'sentry/types';
+import type {Organization, Repository, RepositoryStatus} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {

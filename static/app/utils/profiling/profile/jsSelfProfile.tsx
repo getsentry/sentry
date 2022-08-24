@@ -5,7 +5,7 @@ import {Frame} from 'sentry/utils/profiling/frame';
 import {stackMarkerToHumanReadable} from './../formatters/stackMarkerToHumanReadable';
 import {resolveJSSelfProfilingStack} from './../jsSelfProfiling';
 import {Profile} from './profile';
-import type {createFrameIndex} from './utils';
+import {createFrameIndex} from './utils';
 
 export class JSSelfProfile extends Profile {
   static FromProfile(

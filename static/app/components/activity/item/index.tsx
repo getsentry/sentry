@@ -9,8 +9,7 @@ import type {AvatarUser} from 'sentry/types';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 
 import ActivityAvatar from './avatar';
-import type {ActivityBubbleProps} from './bubble';
-import ActivityBubble from './bubble';
+import ActivityBubble, {ActivityBubbleProps} from './bubble';
 
 export type ActivityAuthorType = 'user' | 'system';
 

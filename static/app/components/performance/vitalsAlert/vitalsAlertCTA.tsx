@@ -21,7 +21,7 @@ import {
   MIN_VITAL_COUNT_FOR_DISPLAY,
   SENTRY_CUSTOMERS,
 } from './constants';
-import type {VitalsKey, VitalsResult} from './types';
+import {VitalsKey, VitalsResult} from './types';
 import {getCountParameterName, getRelativeDiff, getWorstVital} from './utils';
 
 interface Props {

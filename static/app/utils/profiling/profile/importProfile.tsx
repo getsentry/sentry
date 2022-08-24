@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react';
-import type {Transaction} from '@sentry/types';
+import {Transaction} from '@sentry/types';
 
 import {
   isChromeTraceFormat,
@@ -14,7 +14,7 @@ import {
 import {parseTypescriptChromeTraceArrayFormat} from './chromeTraceProfile';
 import {EventedProfile} from './eventedProfile';
 import {JSSelfProfile} from './jsSelfProfile';
-import type {Profile} from './profile';
+import {Profile} from './profile';
 import {SampledProfile} from './sampledProfile';
 import {createFrameIndex, wrapWithSpan} from './utils';
 

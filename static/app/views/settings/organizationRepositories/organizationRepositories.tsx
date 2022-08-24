@@ -1,4 +1,4 @@
-import type {RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 
 import AlertLink from 'sentry/components/alertLink';
 import Button from 'sentry/components/button';

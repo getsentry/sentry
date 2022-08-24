@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import SettingsNavItem from 'sentry/views/settings/components/settingsNavItem';
-import type {NavigationGroupProps} from 'sentry/views/settings/types';
+import {NavigationGroupProps} from 'sentry/views/settings/types';
 
 const SettingsNavigationGroup = (props: NavigationGroupProps) => {
   const {organization, project, name, items} = props;

@@ -1,7 +1,6 @@
-import type {LocationRange} from 'pegjs';
+import {LocationRange} from 'pegjs';
 
-import type {TokenResult} from './parser';
-import {allOperators, Token} from './parser';
+import {allOperators, Token, TokenResult} from './parser';
 
 /**
  * Used internally within treeResultLocator to stop recursion once we've

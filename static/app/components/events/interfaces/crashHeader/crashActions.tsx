@@ -4,8 +4,13 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {ExceptionType, ExceptionValue, Thread} from 'sentry/types';
-import {STACK_TYPE, STACK_VIEW} from 'sentry/types';
+import type {
+  ExceptionType,
+  ExceptionValue,
+  STACK_TYPE,
+  STACK_VIEW,
+  Thread,
+} from 'sentry/types'
 
 type NotifyOptions = {
   stackType?: STACK_TYPE;

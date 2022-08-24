@@ -1,5 +1,5 @@
 import {createContext, useCallback, useContext, useEffect, useState} from 'react';
-import type {PlainRoute} from 'react-router';
+import {PlainRoute} from 'react-router';
 
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useRoutes} from 'sentry/utils/useRoutes';

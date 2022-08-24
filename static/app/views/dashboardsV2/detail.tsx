@@ -1,6 +1,5 @@
 import {cloneElement, Component, isValidElement} from 'react';
-import type {PlainRoute, RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
+import {browserHistory, PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
@@ -16,7 +15,7 @@ import {
   openAddDashboardWidgetModal,
   openWidgetViewerModal,
 } from 'sentry/actionCreators/modal';
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
@@ -55,8 +54,10 @@ import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metrics
 import {generatePerformanceEventView} from '../performance/data';
 import {MetricsDataSwitcher} from '../performance/landing/metricsDataSwitcher';
 
-import type {WidgetViewerContextProps} from './widgetViewer/widgetViewerContext';
-import {WidgetViewerContext} from './widgetViewer/widgetViewerContext';
+import {
+  WidgetViewerContext,
+  WidgetViewerContextProps,
+} from './widgetViewer/widgetViewerContext';
 import Controls from './controls';
 import Dashboard from './dashboard';
 import {DEFAULT_STATS_PERIOD} from './data';
@@ -67,17 +68,15 @@ import {
   getDashboardLayout,
 } from './layoutUtils';
 import DashboardTitle from './title';
-import type {
+import {
   DashboardDetails,
+  DashboardFilterKeys,
   DashboardFilters,
   DashboardListItem,
-  Widget,
-} from './types';
-import {
-  DashboardFilterKeys,
   DashboardState,
   DashboardWidgetSource,
   MAX_WIDGETS,
+  Widget,
   WidgetType,
 } from './types';
 

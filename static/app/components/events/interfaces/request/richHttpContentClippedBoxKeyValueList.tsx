@@ -2,7 +2,7 @@ import ClippedBox from 'sentry/components/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import type {Meta} from 'sentry/types';
-import type {EntryRequest} from 'sentry/types/event';
+import {EntryRequest} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
 import getTransformedData from './getTransformedData';

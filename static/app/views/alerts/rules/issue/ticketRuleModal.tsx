@@ -2,15 +2,16 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ExternalIssueFormErrors} from 'sentry/components/externalIssues/abstractExternalIssueForm';
-import AbstractExternalIssueForm from 'sentry/components/externalIssues/abstractExternalIssueForm';
-import type Form from 'sentry/components/forms/form';
+import AbstractExternalIssueForm, {
+  ExternalIssueFormErrors,
+} from 'sentry/components/externalIssues/abstractExternalIssueForm';
+import Form from 'sentry/components/forms/form';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Choices, IssueConfigField, Organization} from 'sentry/types';
-import type {IssueAlertRuleAction} from 'sentry/types/alerts';
-import type AsyncView from 'sentry/views/asyncView';
+import {IssueAlertRuleAction} from 'sentry/types/alerts';
+import AsyncView from 'sentry/views/asyncView';
 
 const IGNORED_FIELDS = ['Sprint'];
 

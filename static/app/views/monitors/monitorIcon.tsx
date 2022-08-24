@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import type {Status} from './types';
+import {Status} from './types';
 
 export default styled('div')<{size: number; status: Status}>`
   display: inline-block;

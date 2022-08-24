@@ -8,9 +8,9 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
-import type {EVENT_CHOICES} from 'sentry/views/settings/organizationDeveloperSettings/constants';
 import {
   DESCRIPTIONS,
+  EVENT_CHOICES,
   PERMISSIONS_MAP,
 } from 'sentry/views/settings/organizationDeveloperSettings/constants';
 

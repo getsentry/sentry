@@ -4,8 +4,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import {t} from 'sentry/locale';
 import type {DataCategory, Organization} from 'sentry/types';
 
-import type {UsageSeries} from './types';
-import {Outcome} from './types';
+import {Outcome, UsageSeries} from './types';
 import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
 
 type Props = {

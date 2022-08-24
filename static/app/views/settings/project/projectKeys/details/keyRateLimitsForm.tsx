@@ -1,4 +1,4 @@
-import type {RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
@@ -13,7 +13,7 @@ import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {getExactDuration} from 'sentry/utils/formatters';
-import type {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
+import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 const PREDEFINED_RATE_LIMIT_VALUES = [
   0, 60, 300, 900, 3600, 7200, 14400, 21600, 43200, 86400,

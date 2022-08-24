@@ -8,7 +8,7 @@ import Link from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';
-import type {Theme} from 'sentry/utils/theme';
+import {Theme} from 'sentry/utils/theme';
 
 /**
  * The button can actually also be an anchor or React router Link (which seems

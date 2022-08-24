@@ -1,4 +1,4 @@
-import type {JsonFormObject} from 'sentry/components/forms/type';
+import {JsonFormObject} from 'sentry/components/forms/type';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
 

@@ -1,4 +1,4 @@
-import type BaseBadge from 'sentry/components/idBadge/baseBadge';
+import BaseBadge from 'sentry/components/idBadge/baseBadge';
 import MemberBadge from 'sentry/components/idBadge/memberBadge';
 import OrganizationBadge from 'sentry/components/idBadge/organizationBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';

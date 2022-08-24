@@ -1,12 +1,15 @@
 import {useMemo, useState} from 'react';
-import type {PopperProps} from 'react-popper';
-import {usePopper} from 'react-popper';
+import {PopperProps, usePopper} from 'react-popper';
 import {useButton} from '@react-aria/button';
-import type {OverlayProps, OverlayTriggerProps} from '@react-aria/overlays';
-import {useOverlay as useAriaOverlay, useOverlayTrigger} from '@react-aria/overlays';
+import {
+  OverlayProps,
+  OverlayTriggerProps,
+  useOverlay as useAriaOverlay,
+  useOverlayTrigger,
+} from '@react-aria/overlays';
 import {mergeProps} from '@react-aria/utils';
 import {useOverlayTriggerState} from '@react-stately/overlays';
-import type {OverlayTriggerProps as OverlayTriggerStateProps} from '@react-types/overlays';
+import {OverlayTriggerProps as OverlayTriggerStateProps} from '@react-types/overlays';
 
 interface UseOverlayProps
   extends Partial<OverlayProps>,

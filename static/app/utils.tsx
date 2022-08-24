@@ -1,10 +1,10 @@
-import type {Query} from 'history';
+import {Query} from 'history';
 import isArray from 'lodash/isArray';
 import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
 
 import type {Project} from 'sentry/types';
-import type {EventTag} from 'sentry/types/event';
+import {EventTag} from 'sentry/types/event';
 import {appendTagCondition} from 'sentry/utils/queryString';
 
 function arrayIsEqual(arr?: any[], other?: any[], deep?: boolean): boolean {

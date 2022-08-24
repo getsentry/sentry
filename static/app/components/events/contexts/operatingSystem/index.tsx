@@ -6,8 +6,11 @@ import type {Event} from 'sentry/types';
 import {geKnownData, getUnknownData} from '../utils';
 
 import {getOperatingSystemKnownDataDetails} from './getOperatingSystemKnownDataDetails';
-import type {OperatingSystemKnownData} from './types';
-import {OperatingSystemIgnoredDataType, OperatingSystemKnownDataType} from './types';
+import {
+  OperatingSystemIgnoredDataType,
+  OperatingSystemKnownData,
+  OperatingSystemKnownDataType,
+} from './types';
 
 type Props = {
   data: OperatingSystemKnownData;

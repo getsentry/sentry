@@ -1,14 +1,14 @@
 import {Fragment} from 'react';
 
 import {t} from 'sentry/locale';
-import type {
+import {
   FlamegraphAxisOptions,
   FlamegraphColorCodings,
   FlamegraphSorting,
   FlamegraphViewOptions,
 } from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphPreferences';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
-import type {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
+import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 
 import {
   ProfilingContextMenu,

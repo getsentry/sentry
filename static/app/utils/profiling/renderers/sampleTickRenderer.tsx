@@ -1,9 +1,8 @@
-import type {mat3} from 'gl-matrix';
+import {mat3} from 'gl-matrix';
 
-import type {Flamegraph} from '../flamegraph';
-import type {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
-import type {Rect} from '../gl/utils';
-import {getContext} from '../gl/utils';
+import {Flamegraph} from '../flamegraph';
+import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
+import {getContext, Rect} from '../gl/utils';
 
 function computeAbsoluteSampleTimestamps(startedAt: number, weights: readonly number[]) {
   const timeline = [startedAt + weights[0]];

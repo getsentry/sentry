@@ -2,7 +2,7 @@ import {Component} from 'react';
 import type {LineSeriesOption} from 'echarts';
 import moment from 'moment';
 
-import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import {Series, SeriesDataUnit} from 'sentry/types/echarts';
 
 import AreaSeries from './series/areaSeries';
 import BaseChart from './baseChart';

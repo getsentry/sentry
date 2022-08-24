@@ -4,8 +4,8 @@ import {PlatformIcon} from 'platformicons';
 
 import {t} from 'sentry/locale';
 import type {Frame, Organization, PlatformType} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
-import type {StacktraceType} from 'sentry/types/stacktrace';
+import {Event} from 'sentry/types/event';
+import {StacktraceType} from 'sentry/types/stacktrace';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import Line from '../../frame/line';

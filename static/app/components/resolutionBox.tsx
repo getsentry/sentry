@@ -12,9 +12,9 @@ import space from 'sentry/styles/space';
 import type {
   GroupActivity,
   GroupActivitySetByResolvedInRelease,
+  GroupActivityType,
   ResolutionStatusDetails,
-} from 'sentry/types';
-import {GroupActivityType} from 'sentry/types';
+} from 'sentry/types'
 
 type Props = {
   projectId: string;

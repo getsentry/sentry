@@ -12,11 +12,10 @@ import {
   generateFieldAsString,
   getColumnsAndAggregates,
 } from 'sentry/utils/discover/fields';
-import type {WidgetQuery} from 'sentry/views/dashboardsV2/types';
-import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {IssuesSearchBar} from 'sentry/views/dashboardsV2/widgetBuilder/buildSteps/filterResultsStep/issuesSearchBar';
 import {generateIssueWidgetOrderOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
-import type {generateFieldOptions} from 'sentry/views/eventsV2/utils';
+import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import WidgetQueryFields from './widgetQueryFields';

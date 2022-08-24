@@ -5,7 +5,7 @@ import HTMLCode from 'sentry/components/htmlCode';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import PlayerRelativeTime from 'sentry/components/replays/playerRelativeTime';
 import Truncate from 'sentry/components/truncate';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
+import {SVGIconProps} from 'sentry/icons/svgIcon';
 import space from 'sentry/styles/space';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useExtractedCrumbHtml from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';

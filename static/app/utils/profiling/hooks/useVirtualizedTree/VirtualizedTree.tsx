@@ -1,4 +1,4 @@
-import type {TreeLike} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
+import {TreeLike} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 
 import {VirtualizedTreeNode} from './VirtualizedTreeNode';
 

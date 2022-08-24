@@ -3,7 +3,7 @@ import flatten from 'lodash/flatten';
 
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 
-import type {Result} from './types';
+import {Result} from './types';
 
 type ChildProps = {
   hasAnyResults: boolean;

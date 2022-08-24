@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
-import type {ButtonPropsWithAriaLabel} from 'sentry/components/button';
-import Button from 'sentry/components/button';
+import Button, {ButtonPropsWithAriaLabel} from 'sentry/components/button';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';

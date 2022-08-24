@@ -6,8 +6,10 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import {WidgetType} from 'sentry/views/dashboardsV2/types';
-import type {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
-import {DEFAULT_WIDGETS} from 'sentry/views/dashboardsV2/widgetLibrary/data';
+import {
+  DEFAULT_WIDGETS,
+  WidgetTemplate,
+} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 import WidgetLibraryCard from 'sentry/views/dashboardsV2/widgetLibrary/widgetCard';
 
 type Props = {

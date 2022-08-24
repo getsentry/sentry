@@ -4,7 +4,7 @@ import LinkTo from '@storybook/addon-links/react';
 
 import {IconArrow} from 'sentry/icons';
 import space from 'sentry/styles/space';
-import type {Theme} from 'sentry/utils/theme';
+import {Theme} from 'sentry/utils/theme';
 
 type Link = {
   /**

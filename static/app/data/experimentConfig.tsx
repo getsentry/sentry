@@ -1,5 +1,4 @@
-import type {Experiments} from 'sentry/types/experiments';
-import {ExperimentType} from 'sentry/types/experiments';
+import {Experiments, ExperimentType} from 'sentry/types/experiments';
 
 /**
  * This is the value an experiment will have when the unit of assignment

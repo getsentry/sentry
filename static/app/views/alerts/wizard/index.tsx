@@ -1,5 +1,5 @@
 import {Component, Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -24,11 +24,12 @@ import {AlertRuleType} from 'sentry/views/alerts/types';
 
 import {PRESET_AGGREGATES} from '../rules/metric/presets';
 
-import type {AlertType, WizardRuleTemplate} from './options';
 import {
+  AlertType,
   AlertWizardAlertNames,
   AlertWizardRuleTemplates,
   getAlertWizardCategories,
+  WizardRuleTemplate,
 } from './options';
 import {AlertWizardPanelContent} from './panelContent';
 import RadioPanelGroup from './radioPanelGroup';

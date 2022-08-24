@@ -1,7 +1,7 @@
 import {addErrorMessage, clearIndicators} from 'sentry/actionCreators/indicator';
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import type {NoteType} from 'sentry/types/alerts';
+import {NoteType} from 'sentry/types/alerts';
 
 /**
  * Fetches a list of activities for an incident

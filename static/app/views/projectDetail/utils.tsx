@@ -1,4 +1,4 @@
-import type {Location} from 'history';
+import {Location} from 'history';
 
 export function didProjectOrEnvironmentChange(location1: Location, location2: Location) {
   return (

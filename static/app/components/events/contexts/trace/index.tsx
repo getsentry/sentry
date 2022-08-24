@@ -1,13 +1,12 @@
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
-import type {Event} from 'sentry/types/event';
+import {Event} from 'sentry/types/event';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {geKnownData, getUnknownData} from '../utils';
 
 import {getTraceKnownDataDetails} from './getTraceKnownDataDetails';
-import type {TraceKnownData} from './types';
-import {TraceKnownDataType} from './types';
+import {TraceKnownData, TraceKnownDataType} from './types';
 
 export const traceKnownDataValues = [
   TraceKnownDataType.STATUS,

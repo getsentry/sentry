@@ -1,4 +1,4 @@
-import type {ReactElement} from 'react';
+import {ReactElement} from 'react';
 import styled from '@emotion/styled';
 
 import {IconChevron} from 'sentry/icons';

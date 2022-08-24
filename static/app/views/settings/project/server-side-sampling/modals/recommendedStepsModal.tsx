@@ -3,7 +3,7 @@ import 'prism-sentry/index.css';
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import List from 'sentry/components/list';
@@ -17,7 +17,7 @@ import {
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
-import type {
+import {
   RecommendedSdkUpgrade,
   SamplingRule,
   UniformModalsSubmit,

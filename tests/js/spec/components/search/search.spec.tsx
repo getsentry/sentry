@@ -3,13 +3,8 @@ import Fuse from 'fuse.js';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import type {SearchProps} from 'sentry/components/search';
-import {Search} from 'sentry/components/search';
-import type {
-  ChildProps,
-  Result,
-  ResultItem,
-} from 'sentry/components/search/sources/types';
+import {Search, SearchProps} from 'sentry/components/search';
+import {ChildProps, Result, ResultItem} from 'sentry/components/search/sources/types';
 
 function makeSearchResultsMock(items?: ResultItem[], threshold?: number) {
   return function SearchResultsMock({

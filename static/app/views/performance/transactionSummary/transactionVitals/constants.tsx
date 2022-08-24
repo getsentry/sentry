@@ -1,6 +1,6 @@
 import {WebVital} from 'sentry/utils/fields';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
-import type {VitalGroup} from 'sentry/utils/performance/vitals/types';
+import {VitalGroup} from 'sentry/utils/performance/vitals/types';
 import theme from 'sentry/utils/theme';
 
 export const NUM_BUCKETS = 100;

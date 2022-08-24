@@ -7,7 +7,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {AvatarUser, Event, Meta} from 'sentry/types';
-import type {EventUser} from 'sentry/types/event';
+import {EventUser} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';

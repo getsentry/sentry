@@ -1,5 +1,5 @@
 import {useEffect, useState} from 'react';
-import type {Location} from 'history';
+import {Location} from 'history';
 
 import type {NewQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';

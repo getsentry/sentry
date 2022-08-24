@@ -16,9 +16,9 @@ import {
 } from 'sentry/actionCreators/indicator';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import type {TourStep} from 'sentry/components/modals/featureTourModal';
 import FeatureTourModal, {
   TourImage,
+  TourStep,
   TourText,
 } from 'sentry/components/modals/featureTourModal';
 import OnboardingPanel from 'sentry/components/onboardingPanel';

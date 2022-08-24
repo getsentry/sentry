@@ -1,8 +1,7 @@
 import {Fragment} from 'react';
 // eslint-disable-next-line no-restricted-imports
-import type {WithRouterProps} from 'react-router';
-import {withRouter} from 'react-router';
-import type {Location, Query} from 'history';
+import {withRouter, WithRouterProps} from 'react-router';
+import {Location, Query} from 'history';
 
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
@@ -11,14 +10,14 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import type {Organization, OrganizationSummary} from 'sentry/types';
-import type {Series} from 'sentry/types/echarts';
+import {Series} from 'sentry/types/echarts';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import useApi from 'sentry/utils/useApi';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 import {getMEPQueryParams} from 'sentry/views/performance/landing/widgets/utils';
 import {DurationChart} from 'sentry/views/performance/landing/widgets/widgets/singleFieldAreaWidget';
-import type {ViewProps} from 'sentry/views/performance/types';
+import {ViewProps} from 'sentry/views/performance/types';
 
 type Props = WithRouterProps &
   ViewProps & {

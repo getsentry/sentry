@@ -1,8 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
-import type {InjectedRouter} from 'react-router';
-import {browserHistory} from 'react-router';
+import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {Location} from 'history';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
@@ -18,15 +17,14 @@ import {ProfileTransactionsTable} from 'sentry/components/profiling/profileTrans
 import {ProfilingOnboardingModal} from 'sentry/components/profiling/ProfilingOnboarding/profilingOnboardingModal';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
-import SmartSearchBar from 'sentry/components/smartSearchBar';
+import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import type {Project} from 'sentry/types';
-import type {PageFilters} from 'sentry/types/core';
+import {PageFilters} from 'sentry/types/core';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
 import {useProfileTransactions} from 'sentry/utils/profiling/hooks/useProfileTransactions';

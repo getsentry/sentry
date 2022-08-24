@@ -5,8 +5,7 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import type {APIRequestMethod} from 'sentry/api';
-import {Client} from 'sentry/api';
+import {APIRequestMethod, Client} from 'sentry/api';
 import Form from 'sentry/components/deprecatedforms/form';
 import FormField from 'sentry/components/deprecatedforms/formField';
 import FormState from 'sentry/components/forms/state';

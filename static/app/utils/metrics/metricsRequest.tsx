@@ -3,17 +3,16 @@ import isEqual from 'lodash/isEqual';
 import omitBy from 'lodash/omitBy';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {DoMetricsRequestOptions} from 'sentry/actionCreators/metrics';
-import {doMetricsRequest} from 'sentry/actionCreators/metrics';
-import type {Client, ResponseMeta} from 'sentry/api';
+import {doMetricsRequest, DoMetricsRequestOptions} from 'sentry/actionCreators/metrics';
+import {Client, ResponseMeta} from 'sentry/api';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {MetricsApiResponse} from 'sentry/types';
-import type {Series} from 'sentry/types/echarts';
+import {Series} from 'sentry/types/echarts';
 import {getPeriod} from 'sentry/utils/getPeriod';
 
-import type {TableData} from '../discover/discoverQuery';
+import {TableData} from '../discover/discoverQuery';
 
 import {transformMetricsResponseToSeries} from './transformMetricsResponseToSeries';
 import {transformMetricsResponseToTable} from './transformMetricsResponseToTable';

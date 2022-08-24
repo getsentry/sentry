@@ -2,14 +2,13 @@ import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
 import {Component} from 'react';
-import type {Layouts} from 'react-grid-layout';
-import {Responsive, WidthProvider} from 'react-grid-layout';
+import {Layouts, Responsive, WidthProvider} from 'react-grid-layout';
 import {forceCheck} from 'react-lazyload';
-import type {InjectedRouter} from 'react-router';
+import {InjectedRouter} from 'react-router';
 import {closestCenter, DndContext} from '@dnd-kit/core';
 import {arrayMove, rectSortingStrategy, SortableContext} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
@@ -19,7 +18,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
 import {IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -31,7 +30,6 @@ import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
-import type {Position} from './layoutUtils';
 import {
   assignDefaultLayout,
   assignTempId,
@@ -46,10 +44,10 @@ import {
   getMobileLayout,
   getNextAvailablePosition,
   pickDefinedStoreKeys,
+  Position,
 } from './layoutUtils';
 import SortableWidget from './sortableWidget';
-import type {DashboardDetails, Widget} from './types';
-import {DashboardWidgetSource, WidgetType} from './types';
+import {DashboardDetails, DashboardWidgetSource, Widget, WidgetType} from './types';
 import {getDashboardFiltersFromURL} from './utils';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';

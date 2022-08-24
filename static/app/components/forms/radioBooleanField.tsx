@@ -1,8 +1,7 @@
 import omit from 'lodash/omit';
 
 import RadioBoolean from './controls/radioBoolean';
-import type {InputFieldProps} from './inputField';
-import InputField from './inputField';
+import InputField, {InputFieldProps} from './inputField';
 
 export default function RadioBooleanField(props: Omit<InputFieldProps, 'field'>) {
   return (

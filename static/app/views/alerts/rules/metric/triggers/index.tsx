@@ -7,7 +7,7 @@ import {replaceAtArrayIndex} from 'sentry/utils/replaceAtArrayIndex';
 import ActionsPanel from 'sentry/views/alerts/rules/metric/triggers/actionsPanel';
 import TriggerForm from 'sentry/views/alerts/rules/metric/triggers/form';
 
-import type {
+import {
   Action,
   AlertRuleComparisonType,
   AlertRuleThresholdType,

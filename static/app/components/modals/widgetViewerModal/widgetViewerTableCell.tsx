@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import type {Location, LocationDescriptorObject} from 'history';
+import {Location, LocationDescriptorObject} from 'history';
 import trimStart from 'lodash/trimStart';
 
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
+import {GridColumnOrder} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
@@ -15,28 +15,26 @@ import {
   getIssueFieldRenderer,
   getSortField,
 } from 'sentry/utils/dashboards/issueFieldRenderers';
-import type {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type EventView from 'sentry/utils/discover/eventView';
-import {isFieldSortable} from 'sentry/utils/discover/eventView';
+import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import EventView, {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {Sort} from 'sentry/utils/discover/fields';
 import {
   fieldAlignment,
   getAggregateAlias,
   getEquationAliasIndex,
   isAggregateField,
   isEquationAlias,
+  Sort,
 } from 'sentry/utils/discover/fields';
 import {
   eventDetailsRouteWithEventView,
   generateEventSlug,
 } from 'sentry/utils/discover/urls';
-import type {Widget} from 'sentry/views/dashboardsV2/types';
-import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
 import {ISSUE_FIELDS} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/fields';
 import TopResultsIndicator from 'sentry/views/eventsV2/table/topResultsIndicator';
-import type {TableColumn} from 'sentry/views/eventsV2/table/types';
+import {TableColumn} from 'sentry/views/eventsV2/table/types';
 
 import {WidgetViewerQueryField} from './utils';
 // Dashboards only supports top 5 for now

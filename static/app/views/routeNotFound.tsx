@@ -1,5 +1,5 @@
 import {useEffect} from 'react';
-import type {RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 
 import NotFound from 'sentry/components/errors/notFound';

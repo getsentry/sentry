@@ -3,7 +3,7 @@ import pick from 'lodash/pick';
 
 import {FieldFromConfig} from 'sentry/components/forms';
 import Form from 'sentry/components/forms/form';
-import type {Field} from 'sentry/components/forms/type';
+import {Field} from 'sentry/components/forms/type';
 import {t} from 'sentry/locale';
 import type {
   Integration,
@@ -11,7 +11,7 @@ import type {
   Project,
   Repository,
   RepositoryProjectPathConfig,
-} from 'sentry/types';
+} from 'sentry/types'
 import {
   sentryNameToOption,
   trackIntegrationAnalytics,

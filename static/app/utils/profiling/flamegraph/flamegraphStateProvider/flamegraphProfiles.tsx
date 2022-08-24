@@ -1,4 +1,4 @@
-import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
 type SetFocusFrame = {
   payload: {

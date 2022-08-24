@@ -1,10 +1,11 @@
 import * as Sentry from '@sentry/react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type AsyncComponent from 'sentry/components/asyncComponent';
-import type {ExternalIssueAction} from 'sentry/components/externalIssues/abstractExternalIssueForm';
-import AbstractExternalIssueForm from 'sentry/components/externalIssues/abstractExternalIssueForm';
-import type Form from 'sentry/components/forms/form';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import AbstractExternalIssueForm, {
+  ExternalIssueAction,
+} from 'sentry/components/externalIssues/abstractExternalIssueForm';
+import Form from 'sentry/components/forms/form';
 import NavTabs from 'sentry/components/navTabs';
 import {t, tct} from 'sentry/locale';
 import type {Group, Integration, IntegrationExternalIssue} from 'sentry/types';

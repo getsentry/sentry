@@ -1,9 +1,9 @@
 import {Component} from 'react';
-import type {RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isString from 'lodash/isString';
 
-import type {Client, ResponseMeta} from 'sentry/api';
+import {Client, ResponseMeta} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

@@ -3,11 +3,10 @@ import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
 import space from 'sentry/styles/space';
-import type {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
-import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
-import {CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
-import type {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
-import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
+import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
+import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
+import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/useFlamegraphProfiles';
 import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/useFlamegraphSearch';
 import {
@@ -15,19 +14,19 @@ import {
   useFlamegraphState,
 } from 'sentry/utils/profiling/flamegraph/useFlamegraphState';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
-import type {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import type {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
+import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
 import {formatColorForFrame, Rect} from 'sentry/utils/profiling/gl/utils';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useInternalFlamegraphDebugMode} from 'sentry/utils/profiling/hooks/useInternalFlamegraphDebugMode';
-import type {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 import {GridRenderer} from 'sentry/utils/profiling/renderers/gridRenderer';
 import {SampleTickRenderer} from 'sentry/utils/profiling/renderers/sampleTickRenderer';
 import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import usePrevious from 'sentry/utils/usePrevious';
 
-import type {FlamegraphFrame} from '../../utils/profiling/flamegraphFrame';
+import {FlamegraphFrame} from '../../utils/profiling/flamegraphFrame';
 
 import {BoundTooltip} from './boundTooltip';
 import {FlamegraphOptionsContextMenu} from './flamegraphOptionsContextMenu';

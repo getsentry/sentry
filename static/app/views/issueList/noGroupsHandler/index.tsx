@@ -1,6 +1,6 @@
 import {Component, lazy, Suspense} from 'react';
 
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';

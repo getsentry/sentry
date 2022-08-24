@@ -7,7 +7,7 @@ import {PanelItem} from 'sentry/components/panels';
 import SelectMembers from 'sentry/components/selectMembers';
 import space from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
-import type {IssueAlertRuleAction, IssueAlertRuleCondition} from 'sentry/types/alerts';
+import {IssueAlertRuleAction, IssueAlertRuleCondition} from 'sentry/types/alerts';
 
 interface OptionRecord {
   label: string;

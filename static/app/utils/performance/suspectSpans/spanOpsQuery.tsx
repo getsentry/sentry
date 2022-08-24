@@ -1,13 +1,12 @@
 import omit from 'lodash/omit';
 
-import type {
+import GenericDiscoverQuery, {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
-import GenericDiscoverQuery from 'sentry/utils/discover/genericDiscoverQuery';
 import withApi from 'sentry/utils/withApi';
 
-import type {SpanOps} from './types';
+import {SpanOps} from './types';
 
 type SpanOpsProps = {};
 

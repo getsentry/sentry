@@ -1,4 +1,4 @@
-import type {Project} from './project';
+import {Project} from './project';
 
 export enum SamplingRuleType {
   /**

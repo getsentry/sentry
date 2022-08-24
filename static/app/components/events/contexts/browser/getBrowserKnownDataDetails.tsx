@@ -1,7 +1,6 @@
 import {t} from 'sentry/locale';
 
-import type {BrowserKnownData} from './types';
-import {BrowserKnownDataType} from './types';
+import {BrowserKnownData, BrowserKnownDataType} from './types';
 
 type Output = {
   subject: string;

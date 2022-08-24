@@ -1,15 +1,15 @@
 import {Fragment} from 'react';
 // eslint-disable-next-line no-restricted-imports
-import type {WithRouterProps} from 'react-router';
-import {withRouter} from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import Datetime from 'sentry/components/dateTime';
 import PageFilterDropdownButton from 'sentry/components/organizations/pageFilters/pageFilterDropdownButton';
 import PageFilterPinIndicator from 'sentry/components/organizations/pageFilters/pageFilterPinIndicator';
-import type {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
-import TimeRangeSelector from 'sentry/components/organizations/timeRangeSelector';
+import TimeRangeSelector, {
+  ChangeData,
+} from 'sentry/components/organizations/timeRangeSelector';
 import {IconCalendar} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {

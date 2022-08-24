@@ -1,8 +1,8 @@
 import {mat3, vec2} from 'gl-matrix';
 
-import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import type {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {
   computeClampedConfigView,
   Rect,

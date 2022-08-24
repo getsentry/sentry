@@ -1,9 +1,9 @@
 import {Component, Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import AlertLink from 'sentry/components/alertLink';
 import AutoSelectText from 'sentry/components/autoSelectText';

@@ -9,10 +9,9 @@ import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization, SelectValue, TagCollection} from 'sentry/types';
 import {getDatasetConfig} from 'sentry/views/dashboardsV2/datasetConfig/base';
-import type {WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
-import {DisplayType} from 'sentry/views/dashboardsV2/types';
-import type {DataSet} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
+import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {
+  DataSet,
   getResultsLimit,
   SortDirection,
 } from 'sentry/views/dashboardsV2/widgetBuilder/utils';

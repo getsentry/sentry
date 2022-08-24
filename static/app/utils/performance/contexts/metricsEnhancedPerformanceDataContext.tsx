@@ -1,10 +1,9 @@
-import type {ReactNode} from 'react';
-import {useCallback, useState} from 'react';
+import {ReactNode, useCallback, useState} from 'react';
 
 import Tag from 'sentry/components/tag';
 import useOrganization from 'sentry/utils/useOrganization';
 import {WIDGET_MAP_DENY_LIST} from 'sentry/views/performance/landing/widgets/utils';
-import type {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
+import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 
 import {AutoSampleState, useMEPSettingContext} from './metricsEnhancedSetting';
 import {createDefinedContext} from './utils';

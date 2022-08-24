@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {AutoCompleteRoot} from 'sentry/components/dropdownAutoComplete/menu';
 import {TimeRangeRoot} from 'sentry/components/organizations/timeRangeSelector/index';
-import type {Theme} from 'sentry/utils/theme';
+import {Theme} from 'sentry/utils/theme';
 
 type Props = {
   isSpacer?: boolean;

@@ -1,10 +1,9 @@
-import type {SerializedStyles} from '@emotion/react';
+import {SerializedStyles} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import testableTransition from 'sentry/utils/testableTransition';
-import type {Theme} from 'sentry/utils/theme';
-import theme from 'sentry/utils/theme';
+import theme, {Theme} from 'sentry/utils/theme';
 
 type TextProps = {
   percent: number;

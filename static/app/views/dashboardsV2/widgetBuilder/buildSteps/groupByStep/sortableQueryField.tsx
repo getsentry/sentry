@@ -2,8 +2,7 @@ import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import {useTheme} from '@emotion/react';
 
-import type {QueryFieldProps} from './queryField';
-import {QueryField} from './queryField';
+import {QueryField, QueryFieldProps} from './queryField';
 
 interface SortableItemProps extends QueryFieldProps {
   dragId: string;

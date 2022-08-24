@@ -2,13 +2,15 @@ import {useMemo} from 'react';
 
 import Count from 'sentry/components/count';
 import DateTime from 'sentry/components/dateTime';
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  GridColumnOrder,
+} from 'sentry/components/gridEditable';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {t} from 'sentry/locale';
-import type {ProfileTransaction} from 'sentry/types/profiling/core';
+import {ProfileTransaction} from 'sentry/types/profiling/core';
 import {defined} from 'sentry/utils';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {generateProfileSummaryRouteWithQuery} from 'sentry/utils/profiling/routes';

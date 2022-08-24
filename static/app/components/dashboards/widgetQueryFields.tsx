@@ -7,16 +7,14 @@ import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
-import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {
   aggregateFunctionOutputType,
   isLegalYAxisType,
+  QueryFieldValue,
 } from 'sentry/utils/discover/fields';
-import type {Widget} from 'sentry/views/dashboardsV2/types';
-import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import ColumnEditCollection from 'sentry/views/eventsV2/table/columnEditCollection';
-import type {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
-import {QueryField} from 'sentry/views/eventsV2/table/queryField';
+import {FieldValueOption, QueryField} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 

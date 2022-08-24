@@ -1,9 +1,9 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import type {Project} from 'sentry/types';
+import {Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
-import type {
+import {
   ExampleSpan,
   ExampleTransaction,
   SuspectSpan,

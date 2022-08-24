@@ -1,12 +1,9 @@
 import {Component, useEffect} from 'react';
-import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import type {MotionProps} from 'framer-motion';
-import {AnimatePresence, motion, useAnimation} from 'framer-motion';
+import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
 
-import type {ButtonProps} from 'sentry/components/button';
-import Button from 'sentry/components/button';
+import Button, {ButtonProps} from 'sentry/components/button';
 import Hook from 'sentry/components/hook';
 import LogoSentry from 'sentry/components/logoSentry';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -21,7 +18,7 @@ import withProjects from 'sentry/utils/withProjects';
 import PageCorners from './components/pageCorners';
 import OnboardingPlatform from './platform';
 import SdkConfiguration from './sdkConfiguration';
-import type {StepData, StepDescriptor} from './types';
+import {StepData, StepDescriptor} from './types';
 import OnboardingWelcome from './welcome';
 
 const ONBOARDING_STEPS: StepDescriptor[] = [

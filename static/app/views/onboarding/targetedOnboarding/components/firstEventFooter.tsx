@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import type {Variants} from 'framer-motion';
-import {motion} from 'framer-motion';
+import {motion, Variants} from 'framer-motion';
 
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';

@@ -3,7 +3,7 @@ import trimStart from 'lodash/trimStart';
 
 import {doMetricsRequest} from 'sentry/actionCreators/metrics';
 import {doSessionsRequest} from 'sentry/actionCreators/sessions';
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {
   MetricsApiResponse,
@@ -11,21 +11,19 @@ import type {
   PageFilters,
   SelectValue,
   SessionApiResponse,
+  SessionField,
   SessionsMeta,
-} from 'sentry/types';
-import {SessionField} from 'sentry/types';
-import type {Series} from 'sentry/types/echarts';
+} from 'sentry/types'
+import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {statsPeriodToDays} from 'sentry/utils/dates';
-import type {TableData} from 'sentry/utils/discover/discoverQuery';
+import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {QueryFieldValue} from 'sentry/utils/discover/fields';
-import type {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
-import type {FieldValue} from 'sentry/views/eventsV2/table/types';
-import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
+import {QueryFieldValue} from 'sentry/utils/discover/fields';
+import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
+import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
-import type {Widget, WidgetQuery} from '../types';
-import {DisplayType} from '../types';
+import {DisplayType, Widget, WidgetQuery} from '../types';
 import {getWidgetInterval} from '../utils';
 import {ReleaseSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/releaseSearchBar';
 import {
@@ -50,8 +48,7 @@ import {
   mapDerivedMetricsToFields,
 } from '../widgetCard/transformSessionsResponseToTable';
 
-import type {DatasetConfig} from './base';
-import {handleOrderByReset} from './base';
+import {DatasetConfig, handleOrderByReset} from './base';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',

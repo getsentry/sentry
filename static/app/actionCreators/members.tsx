@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react';
 
 import MemberActions from 'sentry/actions/memberActions';
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import MemberListStore from 'sentry/stores/memberListStore';
 import type {Member} from 'sentry/types';
 

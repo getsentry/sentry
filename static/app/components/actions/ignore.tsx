@@ -13,10 +13,10 @@ import {IconChevron, IconMute} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {
   GroupStatusResolution,
+  ResolutionStatus,
   ResolutionStatusDetails,
   SelectValue,
-} from 'sentry/types';
-import {ResolutionStatus} from 'sentry/types';
+} from 'sentry/types'
 
 const IGNORE_DURATIONS = [30, 120, 360, 60 * 24, 60 * 24 * 7];
 const IGNORE_COUNTS = [1, 10, 100, 1000, 10000, 100000];

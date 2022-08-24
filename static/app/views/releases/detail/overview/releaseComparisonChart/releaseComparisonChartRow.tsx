@@ -13,7 +13,7 @@ import {defined} from 'sentry/utils';
 
 import {releaseComparisonChartLabels} from '../../utils';
 
-import type {ReleaseComparisonRow} from '.';
+import {ReleaseComparisonRow} from '.';
 
 type Props = Omit<ReleaseComparisonRow, 'diffDirection' | 'diffColor'> & {
   activeChart: ReleaseComparisonChartType;

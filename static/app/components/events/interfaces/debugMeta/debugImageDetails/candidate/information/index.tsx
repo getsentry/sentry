@@ -10,13 +10,14 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {
+import {
+  CandidateDownloadStatus,
   ImageCandidate,
   ImageCandidateInternalOk,
   ImageCandidateOk,
   ImageCandidateUnApplied,
+  SymbolType,
 } from 'sentry/types/debugImage';
-import {CandidateDownloadStatus, SymbolType} from 'sentry/types/debugImage';
 
 import ProcessingItem from '../../../processing/item';
 import ProcessingList from '../../../processing/list';

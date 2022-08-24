@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import type {MultiValueProps, StylesConfig} from 'react-select';
+import {MultiValueProps, StylesConfig} from 'react-select';
 import {withTheme} from '@emotion/react';
 
 import Button from 'sentry/components/button';
@@ -9,10 +9,10 @@ import RoleSelectControl from 'sentry/components/roleSelectControl';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import type {OrgRole, SelectValue} from 'sentry/types';
-import type {Theme} from 'sentry/utils/theme';
+import {Theme} from 'sentry/utils/theme';
 
 import renderEmailValue from './renderEmailValue';
-import type {InviteStatus} from './types';
+import {InviteStatus} from './types';
 
 type SelectOption = SelectValue<string>;
 

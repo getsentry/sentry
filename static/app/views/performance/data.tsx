@@ -1,4 +1,4 @@
-import type {Location} from 'history';
+import {Location} from 'history';
 
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';

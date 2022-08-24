@@ -1,12 +1,18 @@
-import type {MutableRefObject} from 'react';
-import {useCallback, useEffect, useMemo, useReducer, useRef, useState} from 'react';
-import type {Theme} from '@emotion/react';
-import {useTheme} from '@emotion/react';
+import {
+  MutableRefObject,
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
+import {Theme, useTheme} from '@emotion/react';
 
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 
 import {VirtualizedTree} from './VirtualizedTree';
-import type {VirtualizedTreeNode} from './VirtualizedTreeNode';
+import {VirtualizedTreeNode} from './VirtualizedTreeNode';
 
 type AnimationTimeoutId = {
   id: number;

@@ -1,5 +1,4 @@
-import type {StoreDefinition} from 'reflux';
-import {createStore} from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import GroupStore from 'sentry/stores/groupStore';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';

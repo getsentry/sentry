@@ -3,8 +3,7 @@ import 'docs-ui/index.js';
 
 import {ThemeProvider} from '@emotion/react';
 import {DocsContainer, Meta} from '@storybook/addon-docs';
-import type {DecoratorFn, Parameters} from '@storybook/react';
-import {addDecorator, addParameters} from '@storybook/react';
+import {addDecorator, addParameters, DecoratorFn, Parameters} from '@storybook/react';
 import {themes} from '@storybook/theming';
 import Code from 'docs-ui/components/code';
 import ColorChip from 'docs-ui/components/colorChip';
@@ -15,8 +14,7 @@ import TableOfContents from 'docs-ui/components/tableOfContents';
 import {useDarkMode} from 'storybook-dark-mode';
 
 import GlobalStyles from 'sentry/styles/global';
-import type {Theme} from 'sentry/utils/theme';
-import {darkTheme, lightTheme} from 'sentry/utils/theme';
+import {darkTheme, lightTheme, Theme} from 'sentry/utils/theme';
 
 import {DocsGlobalStyles, StoryGlobalStyles} from './globalStyles';
 

@@ -7,7 +7,7 @@ import flattenListOfObjects from 'sentry/utils/replays/flattenListOfObjects';
 import useReplayErrors from 'sentry/utils/replays/hooks/useReplayErrors';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import ReplayReader from 'sentry/utils/replays/replayReader';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import type {
   Codecov,
@@ -99,7 +99,7 @@ export function mapRRWebAttachments(unsortedReplayAttachments): ReplayAttachment
       replayAttachments.breadcrumbs.push(attachment.data.payload);
     } else if (attachment?.data?.tag === 'hotcodecov') {
       replayAttachments.codecov.push({
-        timestamp: attachment.timestamp,
+      timestamp: attachment.timestamp,
         ...attachment.data.payload,
       });
     } else {

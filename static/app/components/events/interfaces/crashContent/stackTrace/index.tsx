@@ -1,8 +1,7 @@
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {PlatformType} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
-import type {StacktraceType} from 'sentry/types/stacktrace';
-import {STACK_VIEW} from 'sentry/types/stacktrace';
+import {Event} from 'sentry/types/event';
+import {STACK_VIEW, StacktraceType} from 'sentry/types/stacktrace';
 import {isNativePlatform} from 'sentry/utils/platform';
 
 import Content from './content';

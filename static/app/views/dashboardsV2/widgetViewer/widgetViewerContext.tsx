@@ -1,7 +1,7 @@
 import {createContext} from 'react';
 
-import type {Series} from 'sentry/types/echarts';
-import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {Series} from 'sentry/types/echarts';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 
 export type WidgetViewerContextProps = {
   setData: (data: {

@@ -1,5 +1,4 @@
-import type {InputFieldProps} from './inputField';
-import InputField from './inputField';
+import InputField, {InputFieldProps} from './inputField';
 
 export type DateTimeFieldProps = Omit<InputFieldProps, 'type'>;
 

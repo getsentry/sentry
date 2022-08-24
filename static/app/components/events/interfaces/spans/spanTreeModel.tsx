@@ -1,11 +1,11 @@
 import {action, computed, makeObservable, observable} from 'mobx';
 
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import type {EventTransaction} from 'sentry/types/event';
+import {EventTransaction} from 'sentry/types/event';
 
-import type {ActiveOperationFilter} from './filter';
-import type {
+import {ActiveOperationFilter} from './filter';
+import {
   DescendantGroup,
   EnhancedProcessedSpanType,
   EnhancedSpan,
@@ -19,7 +19,6 @@ import type {
   TraceBound,
   TreeDepthType,
 } from './types';
-import type {SpanBoundsType, SpanGeneratedBoundsType} from './utils';
 import {
   generateRootSpan,
   getSiblingGroupKey,
@@ -29,6 +28,8 @@ import {
   isOrphanSpan,
   isSpanIdFocused,
   parseTrace,
+  SpanBoundsType,
+  SpanGeneratedBoundsType,
 } from './utils';
 
 export const MIN_SIBLING_GROUP_SIZE = 5;

@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Form from 'sentry/components/forms/form';
@@ -12,8 +12,10 @@ import {t} from 'sentry/locale';
 import type {Organization, Project, UserEmail} from 'sentry/types';
 import withOrganizations from 'sentry/utils/withOrganizations';
 import AsyncView from 'sentry/views/asyncView';
-import type {FineTuneField} from 'sentry/views/settings/account/notifications/fields';
-import {ACCOUNT_NOTIFICATION_FIELDS} from 'sentry/views/settings/account/notifications/fields';
+import {
+  ACCOUNT_NOTIFICATION_FIELDS,
+  FineTuneField,
+} from 'sentry/views/settings/account/notifications/fields';
 import NotificationSettingsByType from 'sentry/views/settings/account/notifications/notificationSettingsByType';
 import {
   groupByOrganization,

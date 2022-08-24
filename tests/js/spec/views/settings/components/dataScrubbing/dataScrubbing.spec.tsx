@@ -3,7 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import DataScrubbing from 'sentry/views/settings/components/dataScrubbing';
-import type {ProjectId} from 'sentry/views/settings/components/dataScrubbing/types';
+import {ProjectId} from 'sentry/views/settings/components/dataScrubbing/types';
 
 jest.mock('sentry/actionCreators/modal');
 

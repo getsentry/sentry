@@ -5,12 +5,11 @@ import Field from 'sentry/components/forms/field';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types';
-import type {QueryFieldValue} from 'sentry/utils/discover/fields';
+import {QueryFieldValue} from 'sentry/utils/discover/fields';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboardsV2/datasetConfig/base';
-import type {Widget} from 'sentry/views/dashboardsV2/types';
-import {DisplayType} from 'sentry/views/dashboardsV2/types';
+import {DisplayType, Widget} from 'sentry/views/dashboardsV2/types';
 import {QueryField} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 

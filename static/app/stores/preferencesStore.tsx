@@ -2,7 +2,7 @@ import {createStore} from 'reflux';
 
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-import type {CommonStoreDefinition} from './types';
+import {CommonStoreDefinition} from './types';
 
 type Preferences = {
   /**

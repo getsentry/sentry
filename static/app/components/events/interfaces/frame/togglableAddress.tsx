@@ -5,7 +5,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconFilter} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Theme} from 'sentry/utils/theme';
+import {Theme} from 'sentry/utils/theme';
 
 import {formatAddress, parseAddress} from '../utils';
 

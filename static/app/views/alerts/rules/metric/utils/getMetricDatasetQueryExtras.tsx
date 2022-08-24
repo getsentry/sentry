@@ -1,10 +1,10 @@
-import type {Location} from 'history';
+import {Location} from 'history';
 
 import type {Organization} from 'sentry/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {getMEPAlertsDataset} from 'sentry/views/alerts/wizard/options';
 
-import type {MetricRule} from '../types';
+import {MetricRule} from '../types';
 
 export function getMetricDatasetQueryExtras({
   organization,
