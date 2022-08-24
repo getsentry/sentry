@@ -193,13 +193,13 @@ export const CHART_TYPE_TO_YAXIS_MAP = {
 export enum SessionDisplayTags {
   ALL = 'all',
   OS_NAME = 'os.name',
-  OS_VERSION = 'os.version',
+  OS = 'os',
 }
 
 export const SESSION_DISPLAY_TYPES: SelectValue<string>[] = [
   {value: SessionDisplayTags.ALL, label: t('All')},
   {value: SessionDisplayTags.OS_NAME, label: t('os.name')},
-  {value: SessionDisplayTags.OS_VERSION, label: t('os.version')},
+  {value: SessionDisplayTags.OS, label: t('os')},
 ];
 
 export enum HealthStatsPeriodOption {

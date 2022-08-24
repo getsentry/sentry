@@ -137,9 +137,9 @@ class GroupKey:
             release=dct.get("release", None),
             environment=dct.get("environment", None),
             os=dct.get("os", None),
-            osname=dct.get("osname", None),
-            devicemanufacturer=dct.get("devicemanufacturer", None),
-            devicefamily=dct.get("devicefamily", None),
+            osname=dct.get("os.name", None),
+            devicemanufacturer=dct.get("device.manufacturer", None),
+            devicefamily=dct.get("device.family", None),
         )
 
     def to_output_dict(self) -> GroupKeyDict:

@@ -87,7 +87,17 @@ function SessionsQuery({
       // Prevent setState leaking on unmounted component
       mounted = false;
     };
-  }, [yAxis, organization.slug, environments, groupBy, projects, start, end, period, interval, release.version]);
+  }, [
+    yAxis,
+    organization.slug,
+    environments,
+    groupBy,
+    start,
+    end,
+    period,
+    interval,
+    release.version,
+  ]);
 
   return children({loading, errorMessage, seriesResult});
 }
