@@ -83,7 +83,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @property
     def platform(self) -> str | None:
-        column = self.__get_column_name(Columns.PLATFORM)
+        column = self._get_column_name(Columns.PLATFORM)
         if column in self._snuba_data:
             return cast(str, self._snuba_data[column])
         return cast(str, self.data.get("platform", None))
@@ -98,7 +98,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @property
     def datetime(self) -> datetime:
-        column = self.__get_column_name(Columns.TIMESTAMP)
+        column = self._get_column_name(Columns.TIMESTAMP)
         if column in self._snuba_data:
             return parse_date(self._snuba_data[column]).replace(tzinfo=pytz.utc)
 
@@ -109,7 +109,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @property
     def timestamp(self) -> str:
-        column = self.__get_column_name(Columns.TIMESTAMP)
+        column = self._get_column_name(Columns.TIMESTAMP)
         if column in self._snuba_data:
             return cast(str, self._snuba_data[column])
         return self.datetime.isoformat()
@@ -120,8 +120,8 @@ class BaseEvent(metaclass=abc.ABCMeta):
         Tags property uses tags from snuba if loaded otherwise falls back to
         nodestore.
         """
-        tags_key_column = self.__get_column_name(Columns.TAGS_KEY)
-        tags_value_column = self.__get_column_name(Columns.TAGS_VALUE)
+        tags_key_column = self._get_column_name(Columns.TAGS_KEY)
+        tags_value_column = self._get_column_name(Columns.TAGS_VALUE)
 
         if tags_key_column in self._snuba_data and tags_value_column in self._snuba_data:
             keys = self._snuba_data[tags_key_column]
@@ -179,10 +179,10 @@ class BaseEvent(metaclass=abc.ABCMeta):
         """
         from sentry.interfaces.user import User
 
-        user_id_column = self.__get_column_name(Columns.USER_ID)
-        user_email_column = self.__get_column_name(Columns.USER_EMAIL)
-        user_username_column = self.__get_column_name(Columns.USER_USERNAME)
-        user_ip_address_column = self.__get_column_name(Columns.USER_IP_ADDRESS)
+        user_id_column = self._get_column_name(Columns.USER_ID)
+        user_email_column = self._get_column_name(Columns.USER_EMAIL)
+        user_username_column = self._get_column_name(Columns.USER_USERNAME)
+        user_ip_address_column = self._get_column_name(Columns.USER_IP_ADDRESS)
 
         if all(
             key in self._snuba_data
@@ -210,14 +210,14 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
         See ``sentry.eventtypes``.
         """
-        column = self.__get_column_name(Columns.TYPE)
+        column = self._get_column_name(Columns.TYPE)
         if column in self._snuba_data:
             return cast(str, self._snuba_data[column])
         return cast(str, self.data.get("type", "default"))
 
     @property
     def ip_address(self) -> str | None:
-        column = self.__get_column_name(Columns.USER_IP_ADDRESS)
+        column = self._get_column_name(Columns.USER_IP_ADDRESS)
         if column in self._snuba_data:
             return cast(str, self._snuba_data[column])
 
@@ -233,7 +233,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @property
     def title(self) -> str:
-        column = self.__get_column_name(Columns.TITLE)
+        column = self._get_column_name(Columns.TITLE)
         if column in self._snuba_data:
             return cast(str, self._snuba_data[column])
 
@@ -242,14 +242,14 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @property
     def culprit(self) -> str | None:
-        column = self.__get_column_name(Columns.CULPRIT)
+        column = self._get_column_name(Columns.CULPRIT)
         if column in self._snuba_data:
             return cast(str, self._snuba_data[column])
         return cast(Optional[str], self.data.get("culprit"))
 
     @property
     def location(self) -> str | None:
-        column = self.__get_column_name(Columns.LOCATION)
+        column = self._get_column_name(Columns.LOCATION)
         if column in self._snuba_data:
             return cast(str, self._snuba_data[column])
         et = eventtypes.get(self.get_event_type())()
@@ -563,7 +563,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
         return cast(str, trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH))
 
-    def __get_column_name(self, column: Column) -> str:
+    def _get_column_name(self, column: Column) -> str:
         # Events are currently populated from the Events dataset
         return cast(str, column.value.event_name)
 
@@ -573,13 +573,11 @@ class Event(BaseEvent):
         self,
         project_id: int,
         event_id: str,
-        group_id: int | None = None,
         data: Mapping[str, Any] | None = None,
         snuba_data: Mapping[str, Any] | None = None,
         group_ids: Sequence[int] | None = None,
     ):
         super().__init__(project_id, event_id, snuba_data=snuba_data)
-        self.group_id = group_id
         self.group_ids = group_ids
         self.data = data
 
@@ -609,7 +607,7 @@ class Event(BaseEvent):
         if self._group_id:
             return self._group_id
 
-        column = self.__get_column_name(Columns.GROUP_ID)
+        column = self._get_column_name(Columns.GROUP_ID)
 
         return self._snuba_data.get(column)
 
@@ -647,8 +645,8 @@ class Event(BaseEvent):
 
         snuba_group_id = self.group_id
         # TODO: Replace `snuba_group_id` with this once we deprecate `group_id`.
-        # snuba_group_id = self._snuba_data.get(self.__get_column_name(Columns.GROUP_ID))
-        snuba_group_ids = self._snuba_data.get(self.__get_column_name(Columns.GROUP_IDS))
+        # snuba_group_id = self._snuba_data.get(self._get_column_name(Columns.GROUP_ID))
+        snuba_group_ids = self._snuba_data.get(self._get_column_name(Columns.GROUP_IDS))
         group_ids = []
         if snuba_group_id:
             group_ids.append(snuba_group_id)
