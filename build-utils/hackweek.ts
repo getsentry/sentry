@@ -152,7 +152,7 @@ class SentryRuntimeModule extends RuntimeModule {
   }
 }
 
-class HackweekPlugin {
+export class SentryHackweekWebpackPlugin {
   outPath: string;
 
   constructor({outPath}) {
@@ -200,5 +200,3 @@ class HackweekPlugin {
     });
   }
 }
-
-export default HackweekPlugin;

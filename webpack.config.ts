@@ -13,7 +13,7 @@ import {BundleAnalyzerPlugin} from 'webpack-bundle-analyzer';
 import {Configuration as DevServerConfig} from 'webpack-dev-server';
 import FixStyleOnlyEntriesPlugin from 'webpack-remove-empty-scripts';
 
-import HackweekPlugin from './build-utils/hackweek';
+import {SentryHackweekWebpackPlugin} from './build-utils/hackweek';
 import IntegrationDocsFetchPlugin from './build-utils/integration-docs-fetch-plugin';
 import LastBuiltPlugin from './build-utils/last-built-plugin';
 import SentryInstrumentation from './build-utils/sentry-instrumentation';
@@ -303,7 +303,7 @@ const appConfig: Configuration = {
     ],
   },
   plugins: [
-    new HackweekPlugin({
+    new SentryHackweekWebpackPlugin({
       outPath: path.resolve('./mock_chunk_data.json'),
     }),
     // Do not bundle moment's locale files as we will lazy load them using
