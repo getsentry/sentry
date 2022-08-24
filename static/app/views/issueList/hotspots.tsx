@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React from 'react';
 import * as d3 from 'd3-hierarchy';
 import {CustomChart} from 'echarts/charts';
 import {
@@ -12,8 +12,9 @@ import * as echarts from 'echarts/core';
 import {SVGRenderer} from 'echarts/renderers';
 import ReactEChartsCore from 'echarts-for-react/lib/core';
 
+import AsyncComponent from 'sentry/components/asyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
-import type {Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 
 // Register the required components
 echarts.use([
@@ -27,51 +28,11 @@ echarts.use([
 ]);
 
 type Props = {
-  organizationSlug: string;
-  projects: Project[];
+  diagramData: any;
 };
 
-function IssueHotSpots({organizationSlug, projects}: Props) {
+function IssueHotSpots({diagramData}: Props) {
   const DELIMITER = '/';
-
-  const [isLoading, setIsLoading] = useState(true);
-
-  const [diagramData, setDiagramData] = useState();
-
-  const projectId = projects[0].id;
-
-  useEffect(
-    () => {
-      const hotspotsEndpoint = `/api/0/organizations/${organizationSlug}/issues-hotspots/?project=${projectId}&statsPeriod=90d`;
-      fetch(hotspotsEndpoint, {
-        credentials: 'include',
-        headers: {
-          Accept: 'application/json; charset=utf-8',
-          'Accept-Language': 'en-US,en;q=0.5',
-          'content-type': 'application/json',
-          'Sec-Fetch-Dest': 'empty',
-          'Sec-Fetch-Mode': 'cors',
-          'Sec-Fetch-Site': 'same-origin',
-        },
-        method: 'GET',
-        mode: 'cors',
-      })
-        .then(result => result.json())
-        .then(result => {
-          setDiagramData(result);
-          setIsLoading(false);
-        });
-
-      return () => {
-        // cleanup code
-      };
-    },
-    [organizationSlug, projectId] // dependencies werte die ich in useEffect hook brauch (wenn sich das uendert dann wird effect hook ausgefuehr)
-  );
-
-  if (isLoading) {
-    return null;
-  }
 
   function stratify() {
     const stratify_output = d3
@@ -272,5 +233,30 @@ function IssueHotSpots({organizationSlug, projects}: Props) {
     </Layout.HotSpots>
   );
 }
+type WrapperProps = {
+  organization: Organization;
+  projects: Project[];
+} & AsyncComponent['props'];
 
-export default IssueHotSpots;
+type WrapperState = {
+  diagramData: any;
+} & AsyncComponent['state'];
+
+class HotspotWrapper extends AsyncComponent<WrapperProps, WrapperState> {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+    const {organization, projects} = this.props;
+    // TODO: handle multiple projects
+    const projectId = projects[0].id;
+    return [
+      [
+        'data',
+        `/organizations/${organization.slug}/issues-hotspots/?project=${projectId}&statsPeriod=90d`, // TODO: fix params
+      ],
+    ];
+  }
+  renderBody(): React.ReactNode {
+    return <IssueHotSpots {...this.props} diagramData={this.state.data} />;
+  }
+}
+
+export default HotspotWrapper;
