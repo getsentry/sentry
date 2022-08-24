@@ -72,7 +72,7 @@ const Clippy = ({event}: any) => {
       let resolution = _content
         ?.slice(_content.indexOf('Resolution') + 12)
         .trimStart()
-        .split('-')
+        .split('- ')
         .map(s => s.trim())
         .filter(Boolean);
 
@@ -173,6 +173,8 @@ const Wrapper = styled('div')`
   font-weight: 600;
   font-size: 14px;
   position: relative;
+  white-space: pre-wrap;
+  word-break: break-word;
 
   :before {
     content: '';
