@@ -244,13 +244,11 @@ type WrapperState = {
 
 class HotspotWrapper extends AsyncComponent<WrapperProps, WrapperState> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization, projects} = this.props;
-    // TODO: handle multiple projects
-    const projectId = projects[0].id;
+    const {organization} = this.props;
     return [
       [
         'data',
-        `/organizations/${organization.slug}/issues-hotspots/?project=${projectId}&statsPeriod=90d`, // TODO: fix params
+        `/organizations/${organization.slug}/issues-hotspots/${window.location.search}`,
       ],
     ];
   }
