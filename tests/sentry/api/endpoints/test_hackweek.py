@@ -17,6 +17,6 @@ class TeamMemberIntersectTest(APITestCase):
         ]
 
         resp = self.get_success_response(
-            self.organization.slug, **{"team": [team1.slug, team2.slug]}
+            self.organization.slug, **{"teams": [team1.slug, team2.slug], "per_page": 10}
         )
         print(resp.data)

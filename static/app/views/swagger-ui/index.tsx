@@ -17,7 +17,7 @@ const isRunningOnDevUI = EXPERIMENTAL_SPA && isLocalHost;
 if (isRunningOnDevUI) {
   swagger.servers = [{url: 'https://localhost:7999/'}];
 } else if (isLocalHost) {
-  swagger.servers = [{url: 'https://localhost:8000/'}];
+  swagger.servers = [{url: 'http://localhost:8000/'}];
 } else {
   swagger.servers = [{url: `https://${hostname}/`}];
 }

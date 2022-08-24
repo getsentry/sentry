@@ -209,7 +209,7 @@
     "/api/0/organizations/{organization_slug}/hackweek/": {
       "get": {
         "operationId": "Find the intersection of users in teams",
-        "description": "Find the intersection of users in teams\n\nThe caller can find which users are in multiple teams. Returns a list of slugs",
+        "description": "The caller can find which users are in multiple teams. Returns a list of slugs",
         "parameters": [
           {
             "in": "path",
@@ -222,20 +222,23 @@
           },
           {
             "in": "query",
-            "name": "team",
+            "name": "teams",
             "schema": {
               "type": "array",
               "items": {
                 "type": "string"
               }
             },
-            "description": "Teams within the organization to find matching members in."
+            "description": "Teams within the organization to find matching members in. At least 2 required",
+            "required": true
           },
           {
             "in": "query",
             "name": "per_page",
             "schema": {
-              "type": "integer"
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1
             },
             "description": "Number of results to return per page. Cannot be higher than 100."
           },
@@ -277,14 +280,93 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "team": {
+                    "teams": {
                       "type": "array",
                       "items": {
                         "type": "string"
                       },
-                      "description": "Teams within the organization to find matching members in."
+                      "description": "Teams within the organization to find matching members in. At least 2 required"
                     }
+                  },
+                  "required": [
+                    "teams"
+                  ]
+                },
+                "examples": {
+                  "SuccessfulResponse": {
+                    "value": [
+                      "john_doe",
+                      "jane_doe",
+                      "octocat",
+                      "santry"
+                    ],
+                    "summary": "Successful response"
                   }
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/0/organizations/{organization_slug}/hackweek-old/": {
+      "get": {
+        "operationId": "Find the intersection of users in teams (Old)",
+        "description": "The caller can find which users are in multiple teams. Returns a list of slugs",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organization_slug",
+            "schema": {
+              "type": "string"
+            },
+            "description": "The slug of the organization the resource belongs to.",
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "teams",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "Teams within the organization to find matching members in. At least 2 required",
+            "required": true
+          }
+        ],
+        "tags": [
+          "Hackweek"
+        ],
+        "security": [
+          {
+            "auth_token": [
+              "org:admin",
+              "org:read",
+              "org:write"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "teams": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Teams within the organization to find matching members in. At least 2 required"
+                    }
+                  },
+                  "required": [
+                    "teams"
+                  ]
                 },
                 "examples": {
                   "SuccessfulResponse": {
@@ -22977,14 +23059,17 @@
       "TeamList": {
         "type": "object",
         "properties": {
-          "team": {
+          "teams": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "Teams within the organization to find matching members in."
+            "description": "Teams within the organization to find matching members in. At least 2 required"
           }
-        }
+        },
+        "required": [
+          "teams"
+        ]
       },
       "TeamSCIM": {
         "type": "object",
