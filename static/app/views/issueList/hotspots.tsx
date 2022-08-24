@@ -28,317 +28,214 @@ echarts.use([
 type Props = {};
 
 function IssueHotSpots({}: Props) {
+  const DELIMITER = '/';
   const seriesData = [
     {
-      id: 'option',
+      id: '<root>',
       depth: 0,
       index: 0,
     },
     {
-      id: 'option.dataZoom',
-      value: 6229,
+      id: '<root>/billiard',
       depth: 1,
       index: 1,
     },
     {
-      id: 'option.legend',
-      value: 9273,
-      depth: 1,
+      id: '<root>/billiard/pool.py',
+      errorCount: 3,
+      depth: 2,
       index: 2,
     },
     {
-      id: 'option.legend.align',
-      value: 942,
-      depth: 2,
+      id: '<root>/getsentry',
+      depth: 1,
       index: 3,
     },
     {
-      id: 'option.legend.right',
-      value: 634,
+      id: '<root>/getsentry/utils',
       depth: 2,
       index: 4,
     },
     {
-      id: 'option.legend.z',
-      value: 567,
-      depth: 2,
+      id: '<root>/getsentry/utils/flagr.py',
+      errorCount: 10,
+      depth: 3,
       index: 5,
     },
     {
-      id: 'option.legend.orient',
-      value: 1356,
-      depth: 2,
+      id: '<root>/sentry',
+      depth: 1,
       index: 6,
     },
     {
-      id: 'option.legend.show',
-      value: 1181,
+      id: '<root>/sentry/api',
       depth: 2,
       index: 7,
     },
     {
-      id: 'option.legend.zlevel',
-      value: 634,
-      depth: 2,
+      id: '<root>/sentry/api/client.py',
+      errorCount: 13,
+      depth: 3,
       index: 8,
     },
     {
-      id: 'option.legend.left',
-      value: 1137,
-      depth: 2,
-      index: 9,
-    },
-    {
-      id: 'option.legend.itemHeight',
-      value: 455,
-      depth: 2,
+      id: '<root>/sentry/api/endpoints',
+      depth: 3,
       index: 10,
     },
     {
-      id: 'option.legend.bottom',
-      value: 788,
-      depth: 2,
+      id: '<root>/sentry/api/endpoints/release_deploys.py',
+      errorCount: 123,
+      depth: 4,
       index: 11,
     },
     {
-      id: 'option.legend.itemGap',
-      value: 761,
-      depth: 2,
+      id: '<root>/sentry/api/fields',
+      depth: 3,
       index: 12,
     },
     {
-      id: 'option.legend.formatter',
-      value: 935,
-      depth: 2,
+      id: '<root>/sentry/api/fields/avatar.py',
+      errorCount: 123,
+      depth: 3,
       index: 13,
     },
     {
-      id: 'option.legend.selectedMode',
-      value: 937,
-      depth: 2,
+      id: '<root>/sentry/db',
+      depth: 1,
       index: 14,
     },
     {
-      id: 'option.legend.selected',
-      value: 1038,
+      id: '<root>/sentry/db/models',
       depth: 2,
       index: 15,
     },
     {
-      id: 'option.legend.shadowBlur',
-      value: 199,
-      depth: 2,
+      id: '<root>/sentry/db/models/fields',
+      depth: 3,
       index: 16,
     },
     {
-      id: 'option.legend.shadowColor',
-      value: 189,
+      id: '<root>/sentry/db/models/fields/bounded.py',
+      errorCount: 123,
+      depth: 4,
+      index: 17,
+    },
+    {
+      id: '<root>/sentry/identity',
       depth: 2,
       index: 17,
     },
     {
-      id: 'option.legend.shadowOffsetX',
-      value: 180,
+      id: '<root>/sentry/identity/oauth2.py',
+      errorCount: 123,
       depth: 2,
       index: 18,
     },
     {
-      id: 'option.legend.shadowOffsetY',
-      value: 142,
+      id: '<root>/sentry/interfaces',
       depth: 2,
       index: 19,
     },
     {
-      id: 'option.legend.backgroundColor',
-      value: 471,
+      id: '<root>/sentry/interfaces/contexts.py',
+      errorCount: 123,
       depth: 2,
       index: 20,
     },
     {
-      id: 'option.legend.data',
-      value: 1430,
+      id: '<root>/sentry/models',
       depth: 2,
       index: 21,
     },
     {
-      id: 'option.legend.data.icon',
-      value: 882,
-      depth: 3,
+      id: '<root>/sentry/models/organizationmember.py',
+      errorCount: 123,
+      depth: 2,
       index: 22,
     },
     {
-      id: 'option.legend.data.name',
-      value: 660,
-      depth: 3,
+      id: '<root>/sentry/models/releasefile.py',
+      errorCount: 123,
+      depth: 2,
       index: 23,
     },
     {
-      id: 'option.legend.data.textStyle',
-      value: 798,
-      depth: 3,
+      id: '<root>/sentry/net',
+      depth: 2,
       index: 24,
     },
     {
-      id: 'option.legend.top',
-      value: 831,
+      id: '<root>/sentry/net/socket.py',
+      errorCount: 123,
       depth: 2,
       index: 25,
     },
     {
-      id: 'option.legend.padding',
-      value: 706,
+      id: '<root>/sentry/receivers',
       depth: 2,
       index: 26,
     },
     {
-      id: 'option.legend.itemWidth',
-      value: 603,
+      id: '<root>/sentry/receivers/releases.py',
+      errorCount: 123,
       depth: 2,
       index: 27,
     },
     {
-      id: 'option.legend.textStyle',
-      value: 849,
+      id: '<root>/sentry/release_health',
       depth: 2,
       index: 28,
     },
     {
-      id: 'option.legend.textStyle.fontSize',
-      value: 150,
-      depth: 3,
+      id: '<root>/sentry/release_health/tasks.py',
+      errorCount: 123,
+      depth: 2,
       index: 29,
     },
     {
-      id: 'option.legend.textStyle.color',
-      value: 237,
-      depth: 3,
+      id: '<root>/sentry/shared_integrations',
+      depth: 2,
       index: 30,
     },
     {
-      id: 'option.legend.textStyle.fontStyle',
-      value: 113,
+      id: '<root>/sentry/shared_integrations/client',
       depth: 3,
       index: 31,
     },
     {
-      id: 'option.legend.textStyle.fontWeight',
-      value: 101,
+      id: '<root>/sentry/shared_integrations/client/base.py',
+      errorCount: 123,
       depth: 3,
       index: 32,
     },
     {
-      id: 'option.legend.textStyle.fontFamily',
-      value: 91,
-      depth: 3,
+      id: '<root>/sentry/utils',
+      depth: 2,
       index: 33,
     },
     {
-      id: 'option.legend.borderColor',
-      value: 318,
+      id: '<root>/sentry/utils/json.py',
+      errorCount: 123,
       depth: 2,
       index: 34,
     },
     {
-      id: 'option.legend.borderWidth',
-      value: 233,
-      depth: 2,
+      id: '<root>/sentry/utils/locking',
+      depth: 3,
       index: 35,
     },
     {
-      id: 'option.legend.height',
-      value: 64,
-      depth: 2,
+      id: '<root>/sentry/utils/locking/lock.py',
+      errorCount: 123,
+      depth: 3,
       index: 36,
     },
     {
-      id: 'option.legend.width',
-      value: 83,
+      id: '<root>/sentry/utils/monitors.py',
+      errorCount: 123,
       depth: 2,
-      index: 37,
-    },
-    {
-      id: 'option.dataZoom-inside',
-      value: 1250,
-      depth: 1,
       index: 38,
-    },
-    {
-      id: 'option.dataZoom-inside.yAxisIndex',
-      value: 221,
-      depth: 2,
-      index: 39,
-    },
-    {
-      id: 'option.dataZoom-inside.startValue',
-      value: 264,
-      depth: 2,
-      index: 40,
-    },
-    {
-      id: 'option.dataZoom-inside.endValue',
-      value: 136,
-      depth: 2,
-      index: 41,
-    },
-    {
-      id: 'option.dataZoom-inside.xAxisIndex',
-      value: 388,
-      depth: 2,
-      index: 42,
-    },
-    {
-      id: 'option.dataZoom-inside.angleAxisIndex',
-      value: 161,
-      depth: 2,
-      index: 43,
-    },
-    {
-      id: 'option.dataZoom-inside.filterMode',
-      value: 288,
-      depth: 2,
-      index: 44,
-    },
-    {
-      id: 'option.dataZoom-inside.type',
-      value: 639,
-      depth: 2,
-      index: 45,
-    },
-    {
-      id: 'option.dataZoom-inside.start',
-      value: 449,
-      depth: 2,
-      index: 46,
-    },
-    {
-      id: 'option.dataZoom-inside.orient',
-      value: 210,
-      depth: 2,
-      index: 47,
-    },
-    {
-      id: 'option.dataZoom-inside.radiusAxisIndex',
-      value: 141,
-      depth: 2,
-      index: 48,
-    },
-    {
-      id: 'option.dataZoom-inside.throttle',
-      value: 171,
-      depth: 2,
-      index: 49,
-    },
-    {
-      id: 'option.dataZoom-inside.end',
-      value: 191,
-      depth: 2,
-      index: 50,
-    },
-    {
-      id: 'option.dataZoom-inside.zoomLock',
-      value: 168,
-      depth: 2,
-      index: 51,
     },
   ];
 
@@ -355,14 +252,15 @@ function IssueHotSpots({}: Props) {
     const stratify_output = d3
       .stratify()
       .parentId(function (d) {
-        return d.id.substring(0, d.id.lastIndexOf('.'));
+        return d.id.substring(0, d.id.lastIndexOf(DELIMITER));
       })(seriesData)
       .sum(function (d) {
-        return d.value || 0;
+        return d.errorCount || 0;
       })
       .sort(function (a, b) {
-        return b.value - a.value;
+        return b.errorCount - a.errorCount;
       });
+
     return stratify_output;
   }
 
@@ -405,7 +303,7 @@ function IssueHotSpots({}: Props) {
     );
     const nodeName = isLeaf
       ? nodePath
-          .slice(nodePath.lastIndexOf('.') + 1)
+          .slice(nodePath.lastIndexOf(DELIMITER) + 1)
           .split(/(?=[A-Z][^A-Z])/g)
           .join('\n')
       : '';
@@ -490,7 +388,7 @@ function IssueHotSpots({}: Props) {
         progressive: 0,
         coordinateSystem: 'none',
         encode: {
-          tooltip: 'value',
+          tooltip: 'errorCount',
           itemName: 'id',
         },
       },
