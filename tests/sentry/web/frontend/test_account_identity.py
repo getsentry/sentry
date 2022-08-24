@@ -1,6 +1,6 @@
+import pytest
 from django.urls import reverse
 from django.utils.encoding import force_bytes
-from exam import before
 
 from sentry import identity
 from sentry.identity.providers.dummy import DummyProvider
@@ -9,7 +9,7 @@ from sentry.testutils.cases import TestCase
 
 
 class AccountIdentityTest(TestCase):
-    @before
+    @pytest.fixture(autouse=True)
     def setup_dummy_identity_provider(self):
         identity.register(DummyProvider)
         self.addCleanup(identity.unregister, DummyProvider)

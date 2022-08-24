@@ -56,7 +56,6 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
-from exam import Exam, before, fixture
 from pkg_resources import iter_entry_points
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -142,7 +141,7 @@ DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, li
 SessionOrTransactionMRI = Union[SessionMRI, TransactionMRI]
 
 
-class BaseTestCase(Fixtures, UnittestCompatMixin, Exam):
+class BaseTestCase(Fixtures, UnittestCompatMixin):
     settings = override_settings
 
     def assertRequiresAuthentication(self, path, method="GET"):
@@ -150,8 +149,8 @@ class BaseTestCase(Fixtures, UnittestCompatMixin, Exam):
         assert resp.status_code == 302
         assert resp["Location"].startswith("http://testserver" + reverse("sentry-login"))
 
-    @before
-    def setup_dummy_auth_provider(self):
+    @pytest.fixture(autouse=True)
+    def setup_dummy_auth_provider(self, unittest_compat):
         auth.register("dummy", DummyProvider)
         self.addCleanup(auth.unregister, "dummy", DummyProvider)
 
@@ -523,7 +522,7 @@ class APITestCase(TestCase):
 
 
 class TwoFactorAPITestCase(APITestCase):
-    @fixture
+    @cached_property
     def path_2fa(self):
         return reverse("sentry-account-settings-security")
 
@@ -748,7 +747,7 @@ class PluginTestCase(TestCase):
 
 
 class CliTestCase(TestCase):
-    runner = fixture(CliRunner)
+    runner = cached_property(CliRunner)
 
     @property
     def command(self):
@@ -1358,7 +1357,7 @@ class ReleaseCommitPatchTest(APITestCase):
         self.create_member(teams=[team], user=user, organization=self.org)
         self.login_as(user=user)
 
-    @fixture
+    @cached_property
     def url(self):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
@@ -1665,7 +1664,7 @@ class ActivityTestCase(TestCase):
 
 
 class SlackActivityNotificationTest(ActivityTestCase):
-    @fixture
+    @cached_property
     def adapter(self):
         return mail_adapter
 

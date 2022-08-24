@@ -9,11 +9,11 @@ from sentry.models import Integration
 from sentry.testutils import TestCase
 from sentry.utils import json
 
-from . import FireTest
+from . import FireTestBase
 
 
 @freeze_time()
-class SlackActionHandlerTest(FireTest, TestCase):
+class SlackActionHandlerTest(FireTestBase, TestCase):
     @responses.activate
     def run_test(self, incident, method, chart_url=None):
         from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
@@ -76,7 +76,7 @@ class SlackActionHandlerTest(FireTest, TestCase):
 
 
 @freeze_time()
-class SlackWorkspaceActionHandlerTest(FireTest, TestCase):
+class SlackWorkspaceActionHandlerTest(FireTestBase, TestCase):
     @responses.activate
     def run_test(self, incident, method):
         from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder

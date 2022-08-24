@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.conf.urls import url
-from django.test import RequestFactory, override_settings
+from django.test import RequestFactory
 from django.urls import reverse
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint
 from sentry.middleware.customer_domain import CustomerDomainMiddleware
 from sentry.testutils import APITestCase, TestCase
+from sentry.testutils.helpers.django import override_settings
 from sentry.web.frontend.auth_logout import AuthLogoutView
 
 

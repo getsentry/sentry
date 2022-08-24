@@ -8,11 +8,11 @@ from sentry.models import Integration, PagerDutyService
 from sentry.testutils import TestCase
 from sentry.utils import json
 
-from . import FireTest
+from . import FireTestBase
 
 
 @freeze_time()
-class PagerDutyActionHandlerTest(FireTest, TestCase):
+class PagerDutyActionHandlerTest(FireTestBase, TestCase):
     def setUp(self):
         self.integration_key = "pfc73e8cb4s44d519f3d63d45b5q77g9"
         service = [

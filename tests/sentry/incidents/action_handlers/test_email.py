@@ -28,11 +28,11 @@ from sentry.testutils import TestCase
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 
-from . import FireTest
+from . import FireTestBase
 
 
 @freeze_time()
-class EmailActionHandlerTest(FireTest, TestCase):
+class EmailActionHandlerTest(FireTestBase, TestCase):
     @responses.activate
     def run_test(self, incident, method):
         action = self.create_alert_rule_trigger_action(
