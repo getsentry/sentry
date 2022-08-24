@@ -350,7 +350,6 @@ INSTALLED_APPS = (
     "sentry.plugins.sentry_useragents.apps.Config",
     "sentry.plugins.sentry_webhooks.apps.Config",
     "sentry.utils.suspect_resolutions.apps.Config",
-    "sentry.utils.suspect_resolutions_releases.apps.Config",
     "social_auth",
     "sudo",
     "sentry.eventstream",
@@ -599,7 +598,6 @@ CELERY_IMPORTS = (
     "sentry.release_health.duplex",
     "sentry.release_health.tasks",
     "sentry.utils.suspect_resolutions.get_suspect_resolutions",
-    "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -672,7 +670,6 @@ CELERY_QUEUES = [
     Queue("profiles.process", routing_key="profiles.process"),
     Queue("release_health.duplex", routing_key="release_health.duplex"),
     Queue("get_suspect_resolutions", routing_key="get_suspect_resolutions"),
-    Queue("get_suspect_resolutions_releases", routing_key="get_suspect_resolutions_releases"),
 ]
 
 for queue in CELERY_QUEUES:
