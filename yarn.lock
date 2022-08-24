@@ -2323,10 +2323,8 @@
   resolved "https://registry.yarnpkg.com/@sentry/release-parser/-/release-parser-1.3.1.tgz#0ab8be23fd494d80dd0e4ec8ae5f3d13f805b13d"
   integrity sha512-/dGpCq+j3sJhqQ14RNEEL45Ot/rgq3jAlZDD/8ufeqq+W8p4gUhSrbGWCRL82NEIWY9SYwxYXGXjRcVPSHiA1Q==
 
-"@sentry/replay@0.5.4":
-  version "0.5.4"
-  resolved "https://registry.yarnpkg.com/@sentry/replay/-/replay-0.5.4.tgz#c7e52ac1df719eb6307ef431b3f3c4a6d543cbc4"
-  integrity sha512-ofyQiX3aRkIL77q72gDv+zLSHcmY0NCjuVDicsjvnaNEMkJ4oy7E6ZoX6QDRwEY1EoDagGMzRJqpmL+kMqVvrQ==
+"@sentry/replay@file:../sentry-replay":
+  version "0.5.5"
   dependencies:
     "@sentry/core" "^7.7.0"
     "@sentry/types" "^7.7.0"
@@ -14988,6 +14986,11 @@ wrap-ansi@^7.0.0:
     ansi-styles "^4.0.0"
     string-width "^4.1.0"
     strip-ansi "^6.0.0"
+
+wrapper-webpack-plugin@^2.2.2:
+  version "2.2.2"
+  resolved "https://registry.yarnpkg.com/wrapper-webpack-plugin/-/wrapper-webpack-plugin-2.2.2.tgz#a950b7fbc39ca103e468a7c06c225cb1e337ad3b"
+  integrity sha512-twLGZw0b2AEnz3LmsM/uCFRzGxE+XUlUPlJkCuHY3sI+uGO4dTJsgYee3ufWJaynAZYkpgQSKMSr49n9Yxalzg==
 
 wrappy@1:
   version "1.0.2"
