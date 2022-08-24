@@ -16,14 +16,14 @@ function getCurrentUrl(
     crumb => crumb.type === BreadcrumbType.NAVIGATION
   ) as BreadcrumbTypeNavigation[];
 
-  const origin = replayRecord.urls[0] ?? '';
+  const initialUrl = replayRecord.urls[0] ?? '';
 
   const mostRecentNavigation = last(
     navigationCrumbs.filter(({timestamp}) => +new Date(timestamp || 0) <= currentTimeMs)
   )?.data?.to;
 
   if (!mostRecentNavigation) {
-    return origin;
+    return initialUrl;
   }
 
   try {
@@ -32,7 +32,7 @@ function getCurrentUrl(
     return String(url);
   } catch {
     // Otherwise we need to add the origin manually and hope the suffix makes sense.
-    return origin + mostRecentNavigation;
+    return new URL(initialUrl).origin + mostRecentNavigation;
   }
 }
 
