@@ -1,5 +1,7 @@
 /* eslint-disable no-console */
 import React from 'react';
+// eslint-disable-next-line no-restricted-imports
+import {withRouter, WithRouterProps} from 'react-router';
 
 import {VoiceAssistantButton} from './floatingButton';
 import {grammar} from './grammars';
@@ -43,7 +45,12 @@ interface VoiceAssistantState {
   speechResult: string;
 }
 
-export class VoiceAssistantPanel extends React.Component<{}, VoiceAssistantState> {
+type VoiceAssistantProps = WithRouterProps & {};
+
+class VoiceAssistantPanel extends React.Component<
+  VoiceAssistantProps,
+  VoiceAssistantState
+> {
   constructor(props) {
     super(props);
 
@@ -61,8 +68,25 @@ export class VoiceAssistantPanel extends React.Component<{}, VoiceAssistantState
     window._voiceAssistantPanel = this;
   }
 
+  getParams() {
+    const params = this.props.params;
+    return {orgId: params.orgId, projectId: params.projectId, groupId: params.groupId};
+  }
+
+  clearSpeechResultBox() {
+    this.setState(_ => ({
+      speechResult: '',
+      notifyStyle: NotifyStyle.Empty,
+    }));
+  }
+
   startVoiceRecognition() {
     const recognition = this.state.recognition;
+
+    // const orgId = this.props.params.orgId;
+    // const projectId = this.props.params.projectId;
+    // const router = this.props.router;
+    // console.log(this.props);
 
     if (!recognition) {
       console.log('Speech recognition API is not initialized!');
@@ -192,6 +216,7 @@ export class VoiceAssistantPanel extends React.Component<{}, VoiceAssistantState
   handleToggle() {
     if (!this.state.isListening) {
       console.log('>>> Starting speech recognition...');
+      this.clearSpeechResultBox();
       this.startVoiceRecognition();
     } else {
       console.log('>>> Terminating speech recognition...');
@@ -201,6 +226,12 @@ export class VoiceAssistantPanel extends React.Component<{}, VoiceAssistantState
     this.setState(prevState => ({
       isListening: !prevState.isListening,
     }));
+
+    // const {orgId} = this.getParams();
+    // this.props.router.push({
+    //   pathname: `/organizations/${orgId}/projects/`,
+    //   query: {},
+    // });
   }
 
   render() {
@@ -218,3 +249,5 @@ export class VoiceAssistantPanel extends React.Component<{}, VoiceAssistantState
     );
   }
 }
+
+export default withRouter(VoiceAssistantPanel);

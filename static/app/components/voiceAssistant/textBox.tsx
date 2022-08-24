@@ -19,15 +19,15 @@ const StyledWrapper = styled('div')<VoiceAssistantTextboxProps>`
   padding-right: 3em;
   opacity: ${props => (props.resultText ? '1.0' : '0.0')};
   font-size: 18px;
-  border-radius: 4px;
+  border-radius: 12px;
   border: 1px solid;
 
   ${props =>
     props.notifyStyle === NotifyStyle.Error
       ? `border-color: rgba(245, 84, 89, 0.5);
-         background: rgba(245, 84, 89, 0.3);`
+         background: #fccccd;`
       : `border-color: rgba(60, 116, 221, 0.5);
-         background: rgba(60, 116, 221, 0.3);`}
+         background: #c5d6f5;`}
 `;
 
 export class VoiceAssistantTextbox extends React.Component<
