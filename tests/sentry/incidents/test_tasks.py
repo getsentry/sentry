@@ -6,7 +6,6 @@ import pytz
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.functional import cached_property as fixture
-from exam import patcher
 from freezegun import freeze_time
 
 from sentry.incidents.logic import (
@@ -49,7 +48,12 @@ class BaseIncidentActivityTest:
 
 
 class TestSendSubscriberNotifications(BaseIncidentActivityTest, TestCase):
-    send_async = patcher("sentry.utils.email.MessageBuilder.send_async")
+    def setUp(self):
+        self.send_async_patcher = patch("sentry.utils.email.MessageBuilder.send_async")
+        self.send_async = self.send_async_patcher.start()
+
+    def tearDown(self):
+        self.send_async_patcher.stop()
 
     def test_simple(self):
         activity = create_incident_activity(
@@ -150,7 +154,12 @@ class TestBuildActivityContext(BaseIncidentActivityTest, TestCase):
 
 
 class HandleTriggerActionTest(TestCase):
-    metrics = patcher("sentry.incidents.tasks.metrics")
+    def setUp(self):
+        self.metrics_patcher = patch("sentry.incidents.tasks.metrics")
+        self.metrics = self.metrics_patcher.start()
+
+    def tearDown(self):
+        self.metrics_patcher.stop()
 
     @fixture
     def alert_rule(self):
