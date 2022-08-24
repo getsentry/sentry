@@ -16,6 +16,8 @@ import {STOP_SEQ, TRAINING_PROMPT} from './trainingPrompt';
 const Clippy = ({event}: any) => {
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isFinalStep, toggleIsFinalStep] = useState(false);
+  const [resolutionSteps, setResolutionSteps] = useState<String[]>([]);
 
   const exceptions =
     event?.entries?.find(x => x.type === 'exception')?.data?.values || [];
@@ -44,25 +46,41 @@ const Clippy = ({event}: any) => {
     try {
       setLoading(true);
       setContent('');
-      const {data} = await openai.createCompletion({
+      const response = await openai.createCompletion({
         model: 'text-davinci-002',
         prompt: `${TRAINING_PROMPT}\n${stacktrace}${STOP_SEQ}`,
         temperature: 0,
-        max_tokens: 500,
+        max_tokens: 400,
         top_p: 1,
         frequency_penalty: 0,
         presence_penalty: 0,
         stop: [`\"\"\"`, 'END'],
       });
+      const {data} = response;
       const _content = data.choices ? data?.choices[0]?.text : '';
 
-      // Summary:
-      // Resultion:
-      if (_content) {
-        setContent(_content);
+      const summary = _content?.slice(
+        _content.indexOf('Summary: ') + 9,
+        _content.indexOf('Resolution')
+      );
+
+      if (summary) {
+        setContent(summary);
       }
+
+      let resolution = _content
+        ?.slice(_content.indexOf('Resolution') + 12)
+        .trimStart()
+        .split('-')
+        .map(s => s.trim())
+        .filter(Boolean);
+
+      if (!resolution?.length) {
+        resolution = ["Clippy can't fix your problems!"];
+      }
+      setResolutionSteps(resolution);
     } catch (e) {
-      setContent("Clippy couldn't find anything 💩");
+      setContent('Prompt is too long.');
     } finally {
       setLoading(false);
     }
@@ -70,9 +88,7 @@ const Clippy = ({event}: any) => {
 
   return (
     <ClippyWrapper>
-      {loading && (
-        <img onClick={handleClick} height={200} alt="clippy assistant" src={image} />
-      )}
+      {loading && <img height={200} alt="clippy assistant" src={image} />}
       {!loading && (
         <img
           onClick={handleClick}
@@ -83,10 +99,17 @@ const Clippy = ({event}: any) => {
       )}
       {content && !loading && (
         <Wrapper>
-          <p>{content}</p>
+          {!isFinalStep && <p>{content}</p>}
+          {isFinalStep && (
+            <ListWrapper>
+              {resolutionSteps.map((step, index) => (
+                <ListItem key={index}>{step}</ListItem>
+              ))}
+            </ListWrapper>
+          )}
           <ButtonWrapper>
-            <Button>Yes</Button>
-            <Button>YES!</Button>
+            <Button onClick={() => toggleIsFinalStep(true)}>Yes</Button>
+            <Button onClick={() => toggleIsFinalStep(true)}>YES!</Button>
           </ButtonWrapper>
         </Wrapper>
       )}
@@ -115,6 +138,8 @@ const Wrapper = styled('div')`
   border: 1px solid black;
   border-radius: 4px;
   padding: 5px 8px;
+  font-weight: 600;
+  font-size: 14px;
 `;
 
 const Button = styled('button')`
@@ -130,4 +155,24 @@ const Button = styled('button')`
 const ButtonWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
+`;
+
+const ListWrapper = styled('ul')`
+  list-style: none;
+`;
+
+const ListItem = styled('li')`
+  :before {
+    border-style: solid;
+    border-width: 4px 4px 0 0;
+    content: '';
+    display: inline-block;
+    height: 8px;
+    left: -12px;
+    position: relative;
+    top: 6px;
+    transform: rotate(45deg);
+    vertical-align: top;
+    width: 8px;
+  }
 `;
