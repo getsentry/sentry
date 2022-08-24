@@ -60,13 +60,8 @@ function BreadcrumbItem(props: Props) {
 
   useEffect(() => {
     if (isActive && breadcrumbRef.current) {
-      const rect = breadcrumbRef.current.getBoundingClientRect();
-      window.scrollTo({
-        // TODO this is probably all wrong but it looks cool
-        top: rect.top,
-        left: 0,
-        behavior: 'smooth',
-      });
+      const element = breadcrumbRef.current;
+      element?.scrollIntoView?.({block: 'end', behavior: 'smooth'});
     }
   }, [isActive]);
 
