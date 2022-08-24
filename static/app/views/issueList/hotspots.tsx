@@ -184,7 +184,7 @@ function IssueHotSpots({organizationSlug, projects}: Props) {
     return output;
   }
 
-  const displayRoot = stratify();
+  let displayRoot = stratify();
 
   const maxDepth = 2;
 
@@ -221,9 +221,54 @@ function IssueHotSpots({organizationSlug, projects}: Props) {
     ],
   };
 
+  let echartRef;
+
+  const onEvents = {
+    click: function (params) {
+      drillDown(params.data.id);
+    },
+  };
+
+  const resetEventInstalled = false;
+
+  function drillDown(targetNodeId) {
+    displayRoot = stratify();
+    if (targetNodeId !== null) {
+      displayRoot = displayRoot.descendants().find(function (node) {
+        return node.data.id === targetNodeId;
+      });
+    }
+    // A trick to prevent d3-hierarchy from visiting parents in this algorithm.
+    displayRoot.parent = null;
+
+    const echartInstance = echartRef.getEchartsInstance();
+    echartInstance.setOption({
+      dataset: {
+        source: diagramData,
+      },
+    });
+
+    // On the first click the reset click handler is installed.
+    // (When clicking outside the view is resetted.)
+    if (!resetEventInstalled) {
+      echartInstance.getZr().on('click', function (event) {
+        if (!event.target) {
+          drillDown();
+        }
+      });
+    }
+  }
+
   return (
     <Layout.HotSpots noActionWrap>
-      <ReactEChartsCore echarts={echarts} option={option} />
+      <ReactEChartsCore
+        ref={e => {
+          echartRef = e;
+        }}
+        echarts={echarts}
+        option={option}
+        onEvents={onEvents}
+      />
     </Layout.HotSpots>
   );
 }
