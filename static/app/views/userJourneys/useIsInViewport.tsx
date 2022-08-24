@@ -2,6 +2,7 @@ import 'intersection-observer'; // this is a polyfill
 
 import {useEffect, useMemo, useState} from 'react';
 
+// Source: https://bobbyhadz.com/blog/react-check-if-element-in-viewport
 function useIsInViewport(ref) {
   const [isIntersecting, setIsIntersecting] = useState(false);
 
