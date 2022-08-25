@@ -1535,8 +1535,8 @@ def discard_event(job, attachments):
     Refunds consumed quotas for an event and its attachments.
 
     For the event and each dropped attachment, an outcome
-
     FILTERED(discarded-hash) is emitted.
+
     :param job:         The job context container.
     :param attachments: The full list of attachments to filter.
     """
@@ -1934,9 +1934,7 @@ def save_transaction_events(jobs, projects):
     _calculate_span_grouping(jobs, projects)
     _materialize_metadata_many(jobs)
     _get_or_create_environment_many(jobs, projects)
-    _get_or_create_group_environment_many(jobs, projects)
     _get_or_create_release_associated_models(jobs, projects)
-    _get_or_create_group_release_many(jobs, projects)
     _tsdb_record_all_metrics(jobs)
     _materialize_event_metrics(jobs)
     _nodestore_save_many(jobs)
