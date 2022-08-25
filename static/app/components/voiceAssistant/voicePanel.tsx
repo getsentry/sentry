@@ -6,6 +6,7 @@ import {withRouter, WithRouterProps} from 'react-router';
 import {getRecognitionActionMapping, recognitionCommands} from './commands';
 import {VoiceAssistantButton} from './floatingButton';
 import {grammar} from './grammars';
+import {speakPhrase} from './speechSynthesis';
 import {VoiceAssistantTextbox} from './textBox';
 import {getAllRecognitionAlternatives, speechRecognitionResultListToJSON} from './utils';
 import {parseVoiceCommand} from './voiceAssistParser';
@@ -251,11 +252,7 @@ class VoiceAssistantPanel extends React.Component<
       isListening: !prevState.isListening,
     }));
 
-    // const {orgId} = this.getPageParams();
-    // this.props.router.push({
-    //   pathname: `/organizations/${orgId}/projects/`,
-    //   query: {},
-    // });
+    speakPhrase('Hello, your Apdex score is 1.34!');
   }
 
   render() {

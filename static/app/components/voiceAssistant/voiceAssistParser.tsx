@@ -15,13 +15,11 @@ export interface Command {
 
 export class HierarchicalCommand implements Command {
   private id: string;
-  private minLength: number;
   private args: Dictionary<boolean>[];
 
-  public constructor(id: string, minLength: number, ...args: string[][]) {
+  public constructor(id: string, ...args: string[][]) {
     this.id = id;
     this.args = [];
-    this.minLength = minLength;
     for (let idx = 0; idx < args.length; ++idx) {
       const v = args[idx];
       const d: Dictionary<boolean> = {};
@@ -45,7 +43,7 @@ export class HierarchicalCommand implements Command {
         args.push(token);
       }
     }
-    if (args.length >= this.minLength) {
+    if (args.length === this.args.length) {
       return {id: this.id, confidence: input.confidence, attributes: args};
     }
     return null;

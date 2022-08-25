@@ -29,7 +29,6 @@ describe.each([
   test('should match', () => {
     const cmd = new HierarchicalCommand(
       'navigate_issues',
-      2,
       ['navigate', 'go'],
       ['issue', 'issues'],
       ['details', 'detail'],
@@ -40,10 +39,10 @@ describe.each([
     expect(match?.attributes).toEqual(args);
   });
 });
+
 describe.each([
   new HierarchicalCommand(
     'navigate_issues',
-    4,
     ['navigate', 'go'],
     ['issue', 'issues'],
     ['details', 'detail'],
@@ -51,19 +50,15 @@ describe.each([
   ),
   new HierarchicalCommand(
     'navigate_issues',
-    2,
     ['navigate', 'go'],
     ['issue'],
-    ['details', 'detail'],
-    ['page', 'pages']
+    ['details', 'detail']
   ),
   new HierarchicalCommand(
     'navigate_issues',
-    3,
     ['navigate', 'go'],
     ['issue', 'issues'],
-    ['detail'],
-    ['page', 'pages']
+    ['detail']
   ),
 ])('match hierarchical command for %s', (cmd: HierarchicalCommand) => {
   test('should not match', () => {
