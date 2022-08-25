@@ -142,7 +142,7 @@ const ItemRow = styled('div')`
 
 const ScrollContainer = styled('div')`
   position: sticky;
-  top: 10px;
+  top: -10px;
   background: #fff;
   width: 100%;
   overflow-x: scroll;

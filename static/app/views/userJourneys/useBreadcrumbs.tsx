@@ -106,6 +106,10 @@ function useBreadcrumbs(props: Props) {
                 return false;
               }
               seenCrumbs.add(jsonCrumb);
+              // Filter out breadcrumb event breadcrumbs
+              if (raw.message === 'Breadcrumb Event') {
+                return false;
+              }
               return true;
             });
           return [...acc, ...rawCrumbVals];
