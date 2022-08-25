@@ -147,7 +147,6 @@ export function parseVoiceCommand(
     }
     for (let commandIdx = 0; commandIdx < commands.length; ++commandIdx) {
       const match = commands[commandIdx].match(alternative);
-      console.log(`match processing: ${match}`);
       if (match !== null) {
         if (highestMatch === null) {
           highestMatch = match;
@@ -161,7 +160,6 @@ export function parseVoiceCommand(
       }
     }
   }
-  console.log(`highestMatch: ${highestMatch}, highestAlternative: ${highestAlternative}`);
   return [highestMatch, highestAlternative];
 }
 

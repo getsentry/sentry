@@ -2,13 +2,17 @@
 import React from 'react';
 // eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
+import styled from '@emotion/styled';
 
 import {getRecognitionActionMapping, recognitionCommands} from './commands';
 import {VoiceAssistantButton} from './floatingButton';
 import {grammar} from './grammars';
-import {speakPhrase} from './speechSynthesis';
 import {VoiceAssistantTextbox} from './textBox';
-import {getAllRecognitionAlternatives, speechRecognitionResultListToJSON} from './utils';
+import {
+  getAllRecognitionAlternatives,
+  speechRecognitionAlternativeToJSON,
+  speechRecognitionResultListToJSON,
+} from './utils';
 import {parseVoiceCommand} from './voiceAssistParser';
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -151,25 +155,36 @@ class VoiceAssistantPanel extends React.Component<
         recognitionCommands
       );
 
-      if (matchResult) {
+      if (matchResult && matchedAlternative) {
+        setStateSpeechResultWithDelay(
+          matchedAlternative.transcript,
+          NotifyStyle.RecognizedResult
+        );
+
         const actionMapping = getRecognitionActionMapping(router, params);
         const action = actionMapping[matchResult.id];
         if (action) {
-          console.log(`Result: ${matchedAlternative}`);
+          console.log(
+            `Result: ${JSON.stringify(
+              speechRecognitionAlternativeToJSON(matchedAlternative)
+            )}`
+          );
           action();
         } else {
           console.log('No matched action found!');
           return;
         }
       } else {
-        // Take the alternative highest confidence
+        // TODO: Take the alternative with highest confidence
+        const bestAlternative = recognitionAlternatives[0];
+
+        setStateSpeechResultWithDelay(
+          `Command not recognized: "${bestAlternative.transcript}"`,
+          NotifyStyle.UnrecognizedResult
+        );
+
         console.log('Cannot find a matched alternative');
       }
-
-      // const speechResult = event.results[0][0].transcript.toLowerCase();
-      // console.log(`Phrase recognized: "${speechResult}"`);
-
-      // setStateSpeechResultWithDelay(speechResult, NotifyStyle.RecognizedResult);
     };
 
     recognition.onspeechend = function () {
@@ -251,13 +266,11 @@ class VoiceAssistantPanel extends React.Component<
     this.setState(prevState => ({
       isListening: !prevState.isListening,
     }));
-
-    speakPhrase('Hello, your Apdex score is 1.34!');
   }
 
   render() {
     return (
-      <div>
+      <MainPanel>
         <VoiceAssistantTextbox
           resultText={this.state.speechResult}
           notifyStyle={this.state.notifyStyle}
@@ -266,9 +279,13 @@ class VoiceAssistantPanel extends React.Component<
           handleToggle={this.handleToggle}
           isListening={this.state.isListening}
         />
-      </div>
+      </MainPanel>
     );
   }
 }
+
+const MainPanel = styled('div')`
+  z-index: 1000;
+`;
 
 export default withRouter(VoiceAssistantPanel);
