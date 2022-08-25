@@ -19,8 +19,6 @@ interface BreadcrumbEvent {
   project: string;
   timestamp: string;
   title: string | undefined;
-  'transaction.op': string | undefined;
-  'transaction.status': string | undefined;
   'user.display': string | undefined;
 }
 
