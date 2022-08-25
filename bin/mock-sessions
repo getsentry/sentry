@@ -8,11 +8,13 @@ import random
 from uuid import uuid4
 
 import click
+import requests
 from confluent_kafka import Producer
 from django.conf import settings
 from django.utils import timezone
+from requests.auth import HTTPBasicAuth
 
-from sentry.models import Organization, Project, Release
+from sentry.models import Organization, Project, ProjectKey, Release
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.utils import json
 
@@ -156,6 +158,11 @@ def main(project, org, env, days, release=None):
         project = Project.objects.get(slug=project, organization=organization)
     except Project.DoesNotExist:
         raise RuntimeError("! Project does not exist")
+
+    project_key = ProjectKey.objects.filter(project=project)[0]
+    if not project_key:
+        raise RuntimeError(f"! Could not find a DSN for {project.slug}")
+
     if release is None:
         release = (
             Release.objects.filter(projects=project, organization=organization)
@@ -167,7 +174,7 @@ def main(project, org, env, days, release=None):
             projects=project, organization=organization, version="session-data"
         ).version
 
-    producer = create_producer()
+    # producer = create_producer()
 
     click.echo(f"> Generating sessions for {days} day(s)")
     start = timezone.now()
@@ -177,12 +184,28 @@ def main(project, org, env, days, release=None):
     while current >= end:
         current = current - datetime.timedelta(seconds=15)
         session = generate_session(current, env, release)
-        count += 1
-        for metric in convert_session_to_metrics(organization, project, session):
-            producer.produce(topic, json.dumps(metric))
-            if count % 100 == 0:
-                producer.flush()
-    producer.flush()
+        envelope = ["{}", '{"type":"session"}', json.dumps(session)]
+        payload = "\n".join(envelope)
+        # host = "http://dev.getsentry.net:8000"
+
+        # TODO change this
+        host = "http://localhost:123412341234"
+
+        url = f"{host}/api/{project.id}/envelope/?sentry_key={project_key.public_key}&sentry_version=7&sentry_client=sentry.curl/1.1.1"
+        headers = {
+            "content-type": "application/json",
+        }
+        auth = HTTPBasicAuth(project_key.public_key, "")
+        click.echo(f"> sending request to {url}")
+        response = requests.post(url, payload, headers=headers, auth=auth)
+        if response.status_code != 200:
+            click.echo(f"Response failed {response}")
+    #     count += 1
+    #     for metric in convert_session_to_metrics(organization, project, session):
+    #         producer.produce(topic, json.dumps(metric))
+    #         if count % 100 == 0:
+    #             producer.flush()
+    # producer.flush()
     click.echo(f"> Complete! generated {count} session records")
 
 
