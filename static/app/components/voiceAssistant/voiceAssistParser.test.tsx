@@ -21,6 +21,13 @@ describe.each(['navigate to options', 'go to options', 'please go to options'])(
   }
 );
 
+test('FuzzyCommand rule', () => {
+  const cmd = new FuzzyCommand('navigate', ['navigate', 'go'], ['options', 'settings']);
+  expect(cmd.jsgfRule()).toEqual(
+    '<navigate_verbs> = navigate | go;\n<navigate_attributes> = options | settings;\npublic <navigate> = <navigate_verbs> <navigate_attributes>$\n'
+  );
+});
+
 describe.each([
   {transcript: 'navigate to issues', args: ['navigate', 'issues']},
   {transcript: 'go to issue details', args: ['go', 'issue', 'details']},
@@ -65,4 +72,18 @@ describe.each([
     const match = cmd.match({transcript: 'navigate to issues details', confidence: 0.9});
     expect(match).toBeNull();
   });
+});
+
+test('Hierarchical command rule', () => {
+  const cmd = new HierarchicalCommand(
+    'navigate',
+    ['navigate', 'go'],
+    ['options', 'option'],
+    ['detail', 'details']
+  );
+
+  const expected =
+    '<navigate_0> = navigate | go;\n<navigate_1> = options | option;\n<navigate_2> = detail | details;\npublic <navigate> = <navigate_0> <navigate_1> <navigate_2>;\n';
+
+  expect(cmd.jsgfRule()).toEqual(expected);
 });

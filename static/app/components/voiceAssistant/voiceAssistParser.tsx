@@ -10,6 +10,8 @@ export interface MatchResult {
 }
 
 export interface Command {
+  jsgfRule(): string;
+
   match(input: SpeechRecognitionAlternative): MatchResult | null;
 }
 
@@ -28,6 +30,28 @@ export class HierarchicalCommand implements Command {
       }
       this.args.push(d);
     }
+  }
+
+  jsgfRule(): string {
+    const elmRules: string[] = [];
+    const ruleNames: string[] = [];
+
+    for (let idx = 0; idx < this.args.length; ++idx) {
+      const d = this.args[idx];
+      const keys = Object.keys(d);
+      let ruleBody = '';
+      if (keys.length > 0) {
+        ruleBody = keys.join(' | ');
+      }
+      if (ruleBody.length > 0) {
+        const ruleId = `<${this.id}_${idx}>`;
+        const rule = `${ruleId} = ${ruleBody};`;
+        ruleNames.push(ruleId);
+        elmRules.push(rule);
+      }
+    }
+    const localRules = elmRules.join('\n');
+    return `${localRules}\npublic <${this.id}> = ${ruleNames.join(' ')};\n`;
   }
 
   match(input: SpeechRecognitionAlternative): MatchResult | null {
@@ -55,6 +79,14 @@ export class FuzzyCommand implements Command {
   private readonly verbFirst;
   private readonly verbs: Dictionary<boolean>;
   private readonly attributes: Dictionary<boolean>;
+
+  jsgfRule(): string {
+    const verbs = Object.keys(this.verbs).join(' | ');
+    const verbs_rule = `<${this.id}_verbs> = ${verbs};\n`;
+    const attributes = Object.keys(this.attributes).join(' | ');
+    const attributes_rule = `<${this.id}_attributes> = ${attributes};\n`;
+    return `${verbs_rule}${attributes_rule}public <${this.id}> = <${this.id}_verbs> <${this.id}_attributes>$\n`;
+  }
 
   public constructor(
     id: string,
