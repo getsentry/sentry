@@ -703,7 +703,7 @@ def _do_save_event(
                 with metrics.timer("tasks.store.do_save_event.write_processing_cache"):
                     processing.event_processing_store.store(data)
                 if event_type == "transaction":
-                    detect_performance_issue(data)
+                    detected_problems = detect_performance_issue(data)
         except HashDiscarded:
             # Delete the event payload from cache since it won't show up in post-processing.
             if cache_key:

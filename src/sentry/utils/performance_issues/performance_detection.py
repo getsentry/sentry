@@ -17,6 +17,8 @@ Span = Dict[str, Any]
 TransactionSpans = List[Span]
 PerformanceIssues = Dict[str, Any]
 
+PERFORMANCE_GROUP_COUNT_LIMIT = 10
+
 
 class DetectorType(Enum):
     SLOW_SPAN = "slow_span"
@@ -40,14 +42,15 @@ def detect_performance_issue(data: Event):
             ), sentry_sdk.start_span(
                 op="py.detect_performance_issue", description="none"
             ) as sdk_span:
-                _detect_performance_issue(data, sdk_span)
+                return _detect_performance_issue(data, sdk_span)
     except Exception as e:
         sentry_sdk.capture_exception(e)
+        return []
 
 
 # Gets some of the thresholds to perform performance detection. Can be made configurable later.
 # Thresholds are in milliseconds.
-# Allowed span ops are allowed span prefixes. (eg. 'http' would work for a span with 'http.client' as it's op)
+# Allowed span ops are allowed span prefixes. (eg. 'http' would work for a span with 'http.client' as its op)
 def get_default_detection_settings():
     return {
         DetectorType.DUPLICATE_SPANS: [
@@ -125,6 +128,36 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
             detector.visit_span(span)
 
     report_metrics_for_detectors(event_id, detectors, sdk_span)
+
+    all_detected_issues = [i for _, d in detectors.items() for i in d.stored_issues]
+
+    # this assumes that perf problems were already ranked
+    formatted_perf_problems = [fingerprint_group(problem, data) for problem in all_detected_issues]
+    return formatted_perf_problems
+
+
+def fingerprint_group(problem: PerformanceSpanIssue, data: Event):
+    # fingerpint transaction name + span op + span group id + problem class
+    transaction_name = data.get("transaction")
+    first_span_id = problem.get("spans_involved", [])[0]
+
+    # map detectors to the group type enum
+
+    # get span op and span hash
+
+    # return
+    # spans_involved
+    # group fingerprint
+    # groupType enum
+    return []
+
+
+def fingerprint_group(transaction_name, span_op, hash, problem_class):
+    signature = (str(transaction_name) + str(span_op) + str(hash) + str(problem_class)).encode(
+        "utf-8"
+    )
+    full_fingerprint = hashlib.sha1(signature).hexdigest()
+    return full_fingerprint
 
 
 # Creates a stable fingerprint given the same span details using sha1.
