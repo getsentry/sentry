@@ -52,6 +52,7 @@ export {IconLaptop} from './iconLaptop';
 export {IconLearnBulb} from './iconLearnBulb';
 export {IconLearnCap} from './iconLearnCap';
 export {IconLearnDiploma} from './iconLearnDiploma';
+export {IconGraduation} from './iconGraduation';
 export {IconLearnRuler} from './iconLearnRuler';
 export {IconLightning} from './iconLightning';
 export {IconLink} from './iconLink';
