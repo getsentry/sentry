@@ -1,8 +1,28 @@
+import styled from '@emotion/styled';
+
 import ScoreBar from 'sentry/components/scoreBar';
 import Tooltip from 'sentry/components/tooltip';
 import CHART_PALETTE from 'sentry/constants/chartPalette';
+import {IconSound} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+
+import boop from './boop.wav';
+
+// Maps User Misery scores to a unique scream audio file
+const SCORE_TO_SCREAM_MAP: Record<number, string> = {
+  0: boop,
+  1: boop,
+  2: boop,
+  3: boop,
+  4: boop,
+  5: boop,
+  6: boop,
+  7: boop,
+  8: boop,
+  9: boop,
+  10: boop,
+};
 
 type Props = {
   barHeight: number;
@@ -23,6 +43,11 @@ function UserMisery(props: Props) {
 
   const palette = new Array(bars).fill([CHART_PALETTE[0][0]]);
   const score = Math.round(adjustedMisery * palette.length);
+
+  const handleSoundButtonClick = () => {
+    const audio = new Audio(SCORE_TO_SCREAM_MAP[score]);
+    audio.play();
+  };
 
   let title: React.ReactNode;
   if (defined(miserableUsers) && defined(totalUsers) && defined(miseryLimit)) {
@@ -59,8 +84,15 @@ function UserMisery(props: Props) {
   return (
     <Tooltip title={title} containerDisplayMode="block">
       <ScoreBar size={barHeight} score={score} palette={palette} radius={0} />
+      <IconButton onClick={handleSoundButtonClick}>
+        <IconSound color="gray500" size="sm" />
+      </IconButton>
     </Tooltip>
   );
 }
+
+const IconButton = styled('div')`
+  cursor: pointer;
+`;
 
 export default UserMisery;
