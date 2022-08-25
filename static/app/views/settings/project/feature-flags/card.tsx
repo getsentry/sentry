@@ -54,7 +54,6 @@ export function Card({
           <Key>{preDefinedFeatureFlags[flagKey]?.humanReadableName ?? flagKey}</Key>
           {description && <Description>{description}</Description>}
         </div>
-        {enabled ? <Tag type="success">{t('Active')}</Tag> : <Tag>{t('Inactive')}</Tag>}
         <Actions>
           <ActiveToggle
             inline={false}
@@ -142,8 +141,9 @@ const Wrapper = styled(Panel)<{hasSegment: boolean}>`
 
 const Header = styled('div')`
   display: grid;
-  grid-template-columns: max-content max-content 1fr;
+  grid-template-columns: max-content 1fr;
   padding: ${space(1.5)} ${space(2)};
+  align-items: flex-start;
   gap: ${space(1)};
   > * {
     line-height: 28px;
