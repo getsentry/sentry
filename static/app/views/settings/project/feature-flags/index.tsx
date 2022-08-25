@@ -18,7 +18,6 @@ import {t, tct} from 'sentry/locale';
 import ProjectStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
-import {AddFlagDropDownType} from 'sentry/types/featureFlags';
 import {defined} from 'sentry/utils';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
@@ -28,7 +27,8 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
 
-import {FlagModal} from './modals/flagModal';
+import {CustomFlagModal} from './modals/flagModal/customFlagModal';
+import {preDefinedFeatureFlags} from './modals/flagModal/utils';
 import {SegmentModal} from './modals/segmentModal';
 import {AddFlagButton} from './addFlagButton';
 import {Card} from './card';
@@ -59,31 +59,52 @@ export default function ProjectFeatureFlags({project}: Props) {
     }
   }, [currentFlags, previousFlags]);
 
-  function handleAddFlag(type: AddFlagDropDownType) {
-    openModal(modalProps => (
-      <FlagModal
-        {...modalProps}
-        organization={organization}
-        project={project}
-        flags={flags}
-        type={type}
-      />
-    ));
+  async function handleAddFlag(key: string | undefined) {
+    if (key && preDefinedFeatureFlags[key]) {
+      try {
+        const newFeatureFlags = {
+          ...flags,
+          [key]: {
+            ...preDefinedFeatureFlags[key],
+          },
+        };
+        const response = await api.requestPromise(
+          `/projects/${organization.slug}/${project.slug}/`,
+          {
+            method: 'PUT',
+            data: {featureFlags: newFeatureFlags},
+          }
+        );
+        ProjectStore.onUpdateSuccess(response);
+        addSuccessMessage(
+          key
+            ? t('Successfully edited feature flag')
+            : t('Successfully added feature flag')
+        );
+      } catch (err) {
+        addErrorMessage(err);
+      }
+    } else {
+      openModal(modalProps => (
+        <CustomFlagModal
+          {...modalProps}
+          organization={organization}
+          project={project}
+          flags={flags}
+          flagKey={key}
+        />
+      ));
+    }
   }
 
   function handleEditFlag(flagKey: string) {
     openModal(modalProps => (
-      <FlagModal
+      <CustomFlagModal
         {...modalProps}
         organization={organization}
         project={project}
         flags={flags}
         flagKey={flagKey}
-        type={
-          flags[flagKey].custom
-            ? AddFlagDropDownType.CUSTOM
-            : AddFlagDropDownType.PREDEFINED
-        }
       />
     ));
   }
@@ -263,7 +284,13 @@ export default function ProjectFeatureFlags({project}: Props) {
             </Fragment>
           }
           action={
-            !showPromo && <AddFlagButton disabled={disabled} onAddFlag={handleAddFlag} />
+            !showPromo && (
+              <AddFlagButton
+                disabled={disabled}
+                onAddFlag={handleAddFlag}
+                flags={flags}
+              />
+            )
           }
         />
         <TextBlock>
@@ -278,7 +305,7 @@ export default function ProjectFeatureFlags({project}: Props) {
         <PermissionAlert access={['project:write']} />
 
         {showPromo ? (
-          <Promo hasAccess={hasAccess} onGetStarted={handleAddFlag} />
+          <Promo hasAccess={hasAccess} onGetStarted={handleAddFlag} flags={flags} />
         ) : (
           <Content>
             <Filters>

@@ -128,6 +128,11 @@ export function CustomFlagModal({
       return;
     }
 
+    if (value.substring(0, 2) === '@@') {
+      setError(t('Reserved key'));
+      return;
+    }
+
     setError(undefined);
   }
 

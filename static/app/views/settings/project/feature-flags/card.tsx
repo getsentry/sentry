@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import Button from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
+import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import NewBooleanField from 'sentry/components/forms/booleanField';
 import {Panel} from 'sentry/components/panels';
 import Tag from 'sentry/components/tag';
@@ -14,6 +15,7 @@ import {FeatureFlag, FeatureFlagSegment} from 'sentry/types/featureFlags';
 
 import {DraggableRuleListUpdateItemsProps} from '../server-side-sampling/draggableRuleList';
 
+import {preDefinedFeatureFlags} from './modals/flagModal/utils';
 import {Segments} from './segments';
 
 type Props = Omit<FeatureFlag, 'evaluation' | 'custom'> & {
@@ -49,7 +51,7 @@ export function Card({
     <Wrapper hasSegment={!!segments.length}>
       <Header>
         <div>
-          <Key>{flagKey}</Key>
+          <Key>{preDefinedFeatureFlags[flagKey]?.humanReadableName ?? flagKey}</Key>
           {description && <Description>{description}</Description>}
         </div>
         {enabled ? <Tag type="success">{t('Active')}</Tag> : <Tag>{t('Inactive')}</Tag>}
@@ -66,25 +68,33 @@ export function Card({
             {t('Add Segment')}
           </Button>
           <DropdownMenuControl
-            items={[
-              {
-                key: 'feature-flag-edit',
-                label: t('Edit'),
-                onAction: onEdit,
-              },
-              {
-                key: 'feature-flag-delete',
-                label: t('Delete'),
-                priority: 'danger',
-                onAction: () => {
-                  openConfirmModal({
-                    message: t('Are you sure you want to delete this feature flag?'),
+            items={
+              [
+                ...(!preDefinedFeatureFlags[flagKey]
+                  ? [
+                      {
+                        key: 'feature-flag-edit',
+                        label: t('Edit'),
+                        onAction: onEdit,
+                      },
+                    ]
+                  : []),
+                ...[
+                  {
+                    key: 'feature-flag-delete',
+                    label: t('Delete'),
                     priority: 'danger',
-                    onConfirm: onDelete,
-                  });
-                },
-              },
-            ]}
+                    onAction: () => {
+                      openConfirmModal({
+                        message: t('Are you sure you want to delete this feature flag?'),
+                        priority: 'danger',
+                        onConfirm: onDelete,
+                      });
+                    },
+                  },
+                ],
+              ] as MenuItemProps[]
+            }
             trigger={({props: triggerProps, ref: triggerRef}) => (
               <Button
                 ref={triggerRef}

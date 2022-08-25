@@ -5,37 +5,46 @@ import DropdownButton from 'sentry/components/dropdownButton';
 import MenuItem from 'sentry/components/menuItem';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
-import {AddFlagDropDownType} from 'sentry/types/featureFlags';
+import {FeatureFlags} from 'sentry/types/featureFlags';
+
+import {preDefinedFeatureFlags} from './modals/flagModal/utils';
 
 const addFlagDropDownItems = [
   {
-    value: AddFlagDropDownType.PREDEFINED,
-    label: t('Predefined flag'),
-    searchKey: t('predefined flag'),
-  },
-  {
-    value: AddFlagDropDownType.CUSTOM,
-    label: t('Custom flag'),
+    value: undefined,
+    label: t('Custom Flag'),
     searchKey: t('custom flag'),
   },
+  ...Object.entries(preDefinedFeatureFlags).map(([key, value]) => {
+    return {
+      value: key,
+      label: value.humanReadableName,
+      searchKey: value.humanReadableName,
+    };
+  }),
 ];
 
 type Props = {
   disabled: boolean;
-  onAddFlag: (type: AddFlagDropDownType) => void;
+  flags: FeatureFlags;
+  onAddFlag: (key: string) => void;
   size?: 'sm' | 'md';
 };
 
-export function AddFlagButton({disabled, onAddFlag, size = 'sm'}: Props) {
+export function AddFlagButton({disabled, onAddFlag, flags, size = 'sm'}: Props) {
   return (
     <DropdownAutoComplete
       alignMenu="right"
       disabled={disabled}
       onSelect={item => onAddFlag(item.value)}
-      items={addFlagDropDownItems.map(addFlagDropDownItem => ({
-        ...addFlagDropDownItem,
-        label: <DropDownLabel>{addFlagDropDownItem.label}</DropDownLabel>,
-      }))}
+      items={addFlagDropDownItems
+        .filter(item => {
+          return !item.value || !flags[item.value];
+        })
+        .map(addFlagDropDownItem => ({
+          ...addFlagDropDownItem,
+          label: <DropDownLabel>{addFlagDropDownItem.label}</DropDownLabel>,
+        }))}
     >
       {({isOpen}) => (
         <DropdownButton

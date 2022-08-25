@@ -5,17 +5,18 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {Panel} from 'sentry/components/panels';
 import {IconFlag} from 'sentry/icons/iconFlag';
 import {t} from 'sentry/locale';
-import {AddFlagDropDownType} from 'sentry/types/featureFlags';
+import {FeatureFlags} from 'sentry/types/featureFlags';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 import {AddFlagButton} from './addFlagButton';
 
 type Props = {
+  flags: FeatureFlags;
   hasAccess: boolean;
-  onGetStarted: (type: AddFlagDropDownType) => void;
+  onGetStarted: (key: string | undefined) => void;
 };
 
-export function Promo({onGetStarted, hasAccess}: Props) {
+export function Promo({onGetStarted, hasAccess, flags}: Props) {
   return (
     <Panel>
       <EmptyMessage
@@ -27,7 +28,12 @@ export function Promo({onGetStarted, hasAccess}: Props) {
         )}
         action={
           <ButtonList gap={1}>
-            <AddFlagButton disabled={!hasAccess} onAddFlag={onGetStarted} size="md" />
+            <AddFlagButton
+              disabled={!hasAccess}
+              onAddFlag={onGetStarted}
+              flags={flags}
+              size="md"
+            />
             <Button href="" external>
               {t('Read Docs')}
             </Button>

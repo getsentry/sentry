@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
-import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
 import NewBooleanField from 'sentry/components/forms/booleanField';
 import NotAvailable from 'sentry/components/notAvailable';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
