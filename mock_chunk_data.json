@@ -8589,15 +8589,15 @@
 			},
 			{
 				"id": "./app/views/replays/detail/unusedModules/index.tsx",
-				"size": 10185
+				"size": 34339
+			},
+			{
+				"id": "./app/views/replays/detail/unusedModules/metaTable.tsx",
+				"size": 7021
 			},
 			{
 				"id": "./app/views/replays/detail/unusedModules/moduleTable.tsx",
-				"size": 31676
-			},
-			{
-				"id": "./app/views/replays/detail/unusedModules/urlSummary.tsx",
-				"size": 6663
+				"size": 38060
 			},
 			{
 				"id": "./app/views/replays/detail/unusedModules/utils.tsx",
@@ -26267,7 +26267,7 @@
 			},
 			{
 				"id": "../mock_chunk_data.json",
-				"size": 474819
+				"size": 474818
 			}
 		]
 	},

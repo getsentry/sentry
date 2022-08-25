@@ -7,13 +7,11 @@ import space from 'sentry/styles/space';
 import {formatBytesBase2} from 'sentry/utils';
 import {MODULES_WITH_SIZE} from 'sentry/views/replays/detail/unusedModules/utils';
 
-function UrlSummary({
+function MetaTable({
   usedModules,
   unusedModules,
-  url,
 }: {
   unusedModules: string[];
-  url: string;
   usedModules: string[];
 }) {
   const totalModules = unusedModules.length + usedModules.length;
@@ -22,22 +20,26 @@ function UrlSummary({
   const extraWeight = unusedModules
     .map(moduleName => MODULES_WITH_SIZE[moduleName])
     .reduce((sum, n) => sum + n, 0);
+  const usedWeight = usedModules
+    .map(moduleName => MODULES_WITH_SIZE[moduleName])
+    .reduce((sum, n) => sum + n, 0);
 
   const query = '';
   const generateUrl = () => '';
 
   const leftValues = [
-    ['Modules Imported', String(totalModules)],
+    ['Accessed Modules', String(usedModules.length)],
     ['Unused Modules', String(unusedModules.length)],
+    ['Percent Accessed', `${percentInUse}%`],
   ];
   const rightValues = [
-    ['Percent Accessed', `${percentInUse}%`],
+    ['Accessed Weight', formatBytesBase2(usedWeight)],
     ['Unused Weight', formatBytesBase2(extraWeight)],
+    ['\u00A0', '\u00A0'],
   ];
 
   return (
     <Fragment>
-      <div>{url}</div>
       <SideSplit>
         <KeyValueTable>
           {leftValues.map(([key, value]) => (
@@ -76,4 +78,4 @@ const SideSplit = styled('div')`
   }
 `;
 
-export default UrlSummary;
+export default MetaTable;

@@ -1,73 +1,142 @@
-import {Fragment} from 'react';
+import {Fragment, ReactNode, useState} from 'react';
 import styled from '@emotion/styled';
 
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import FileSize from 'sentry/components/fileSize';
 import {PanelTable, PanelTableHeader} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
+import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import {MODULES_WITH_SIZE} from 'sentry/views/replays/detail/unusedModules/utils';
 
+enum TableMode {
+  All,
+  None,
+  Unused,
+  Used,
+}
+enum ModuleState {
+  Used,
+  Unused,
+}
+
+function getModules(
+  mode: TableMode,
+  {usedModules, unusedModules}: {unusedModules: string[]; usedModules: string[]}
+) {
+  const used = usedModules.map(name => ({
+    name,
+    state: ModuleState.Used,
+    size: MODULES_WITH_SIZE[name],
+  }));
+  const unused = unusedModules.map(name => ({
+    name,
+    state: ModuleState.Unused,
+    size: MODULES_WITH_SIZE[name],
+  }));
+  switch (mode) {
+    case TableMode.All:
+      return [...used, ...unused];
+    case TableMode.Used:
+      return used;
+    case TableMode.Unused:
+      return unused;
+    case TableMode.None:
+    default:
+      return [];
+  }
+}
+
 function ModuleTable({
   emptyMessage,
-  modules,
-  title,
+  usedModules,
+  unusedModules,
 }: {
   emptyMessage: React.ReactNode;
-  modules: string[];
-  title: React.ReactNode;
+  unusedModules: string[];
+  usedModules: string[];
 }) {
+  const [mode, setMode] = useState<TableMode>(TableMode.None);
+
   const columns = [
+    <SortItem key="state">{t('In Use')}</SortItem>,
     <SortItem key="chunk">{t('Module')}</SortItem>,
     <SortItem key="size">{t('Size')}</SortItem>,
   ];
 
+  const modules = getModules(mode, {unusedModules, usedModules});
+
+  const table = (
+    <StyledPanelTable
+      columns={columns.length}
+      isEmpty={!modules.length}
+      emptyMessage={emptyMessage}
+      headers={columns}
+      disablePadding
+      stickyHeaders
+    >
+      {modules.map(module => {
+        return (
+          <Fragment key={module.name}>
+            <Item center>
+              {module.state === ModuleState.Used ? (
+                <IconCheckmark color="green300" size="xs" isCircled />
+              ) : (
+                <IconClose color="red400" size="xs" isCircled />
+              )}
+            </Item>
+            <Item>
+              <Tooltip
+                title={module.name}
+                isHoverable
+                overlayStyle={{
+                  maxWidth: '500px !important',
+                }}
+                showOnlyOnOverflow
+              >
+                <Text>{module.name}</Text>
+              </Tooltip>
+            </Item>
+            <Item numeric>
+              <FileSize base={2} bytes={Math.round(module.size)} />
+            </Item>
+          </Fragment>
+        );
+      })}
+    </StyledPanelTable>
+  );
+
+  const buttons: [TableMode, ReactNode][] = [
+    [TableMode.None, t('Hide')],
+    [TableMode.All, t('All Imports')],
+    [TableMode.Unused, t('Unused Imports')],
+    [TableMode.Used, t('Accessed Imports')],
+  ];
+
   return (
-    <details>
-      <Summary>{title}</Summary>
-      <StyledPanelTable
-        columns={columns.length}
-        isEmpty={!modules.length}
-        emptyMessage={emptyMessage}
-        headers={columns}
-        disablePadding
-        stickyHeaders
-      >
-        {modules.map(module => {
-          const size = MODULES_WITH_SIZE[module];
-          return (
-            <Fragment key={module}>
-              <Item>
-                <Tooltip
-                  title={module}
-                  isHoverable
-                  overlayStyle={{
-                    maxWidth: '500px !important',
-                  }}
-                  showOnlyOnOverflow
-                >
-                  <Text>{module}</Text>
-                </Tooltip>
-              </Item>
-              <Item numeric>
-                <FileSize base={2} bytes={Math.round(size)} />
-              </Item>
-            </Fragment>
-          );
-        })}
-      </StyledPanelTable>
-    </details>
+    <div>
+      <ButtonBar merged>
+        {buttons.map(([key, label]) => (
+          <Button
+            key={key}
+            size="xs"
+            onClick={() => setMode(key)}
+            priority={mode === key ? 'primary' : 'default'}
+          >
+            {label}
+          </Button>
+        ))}
+      </ButtonBar>
+      {mode !== TableMode.None ? table : null}
+    </div>
   );
 }
 
-const Summary = styled('summary')`
-  cursor: pointer;
-`;
-
 const StyledPanelTable = styled(PanelTable)<{columns: number}>`
-  grid-template-columns: 1fr max-content;
-  grid-template-rows: 24px repeat(auto-fit, 28px);
+  grid-template-columns: max-content minmax(200px, 1fr) max-content;
   font-size: ${p => p.theme.fontSizeSmall};
   margin-bottom: 0;
   height: 100%;
