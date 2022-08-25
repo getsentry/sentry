@@ -1,6 +1,7 @@
 import React, {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import Hook from 'sentry/components/hook';
 import SidebarItem from 'sentry/components/sidebar/sidebarItem';
@@ -15,15 +16,38 @@ import {CommonSidebarProps} from './types';
 
 const RANDOM_TITLES = [
   'Learn',
-  'Educate Yo-self',
-  'Need a Hand?',
-  'Show Me',
-  'Training',
-  'Knowledge',
-  'Enlighten Me',
+  // 'Educate Yo-self',
+  // 'Need a Hand?',
+  // 'Show Me',
+  // 'Training',
+  // 'Knowledge',
+  // 'Enlighten Me',
 ];
 const getRandomTitle = () => {
   return RANDOM_TITLES[Math.floor(Math.random() * RANDOM_TITLES.length)];
+};
+
+const openYouTubeModal = (videoId: string) => {
+  const embedUrl = `https://www.youtube-nocookie.com/embed/${videoId}`;
+  openModal(
+    () => (
+      <React.Fragment>
+        <iframe
+          width="800"
+          height="450"
+          src={embedUrl}
+          title="YouTube video player"
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      </React.Fragment>
+    ),
+    {
+      allowClickClose: false,
+      modalCss: {name: 'youtube-embed-style', styles: 'padding: 0, margin: 0'},
+    }
+  );
 };
 
 const getLearningItem = location => {
@@ -32,10 +56,16 @@ const getLearningItem = location => {
     if (pathname.includes('/alerts/new/issue')) {
       return (
         <React.Fragment>
-          <SidebarMenuItem href="https://www.youtube.com/watch?v=a3E96gap2hM">
+          <SidebarMenuItem
+            data-test-id="learn-issue-alerts"
+            onClick={() => openYouTubeModal('a3E96gap2hM')}
+          >
             {t('Issue Alerts')}
           </SidebarMenuItem>
-          <SidebarMenuItem href="https://www.youtube.com/watch?v=8zn1G2xtFrc">
+          <SidebarMenuItem
+            data-test-id="learn-regression-alerts"
+            onClick={() => openYouTubeModal('8zn1G2xtFrc')}
+          >
             {t('Regression Alerts')}
           </SidebarMenuItem>
         </React.Fragment>
@@ -44,14 +74,20 @@ const getLearningItem = location => {
 
     if (pathname.includes('/alerts/new/metric')) {
       return (
-        <SidebarMenuItem href="https://www.youtube.com/watch?v=HVa_cvkckdc">
+        <SidebarMenuItem
+          data-test-id="learn-metric-alerts"
+          onClick={() => openYouTubeModal('HVa_cvkckdc')}
+        >
           {t('Metric Alerts')}
         </SidebarMenuItem>
       );
     }
 
     return (
-      <SidebarMenuItem href="https://docs.sentry.io/product/alerts/">
+      <SidebarMenuItem
+        data-test-id="learn-alerts"
+        href="https://docs.sentry.io/product/alerts/"
+      >
         {t('Alerts')}
       </SidebarMenuItem>
     );
@@ -60,7 +96,10 @@ const getLearningItem = location => {
   if (pathname.includes('/settings/')) {
     if (/settings.*ownership/.test(pathname)) {
       return (
-        <SidebarMenuItem href="https://www.youtube.com/watch?v=GVKqIpfD9mE">
+        <SidebarMenuItem
+          data-test-id="learn-issue-owners"
+          onClick={() => openYouTubeModal('GVKqIpfD9mE')}
+        >
           {t('Issue Owners')}
         </SidebarMenuItem>
       );
@@ -74,7 +113,10 @@ const getLearningItem = location => {
     }
     if (/settings.*issue-grouping/.test(pathname)) {
       return (
-        <SidebarMenuItem href="https://www.youtube.com/watch?v=Ra6Z_d-aKw8">
+        <SidebarMenuItem
+          data-test-id="learn-issue-grouping"
+          onClick={() => openYouTubeModal('Ra6Z_d-aKw8')}
+        >
           {t('Issue Grouping')}
         </SidebarMenuItem>
       );
@@ -104,13 +146,22 @@ const getLearningItem = location => {
     }
     return (
       <React.Fragment>
-        <SidebarMenuItem href="https://www.youtube.com/watch?v=2njbTMh5huk">
+        <SidebarMenuItem
+          data-test-id="learn-issue-review"
+          onClick={() => openYouTubeModal('2njbTMh5huk')}
+        >
           {t('Issues Review')}
         </SidebarMenuItem>
-        <SidebarMenuItem href="https://www.youtube.com/watch?v=vxLgprHiqC0">
+        <SidebarMenuItem
+          data-test-id="learn-issues-grouping"
+          onClick={() => openYouTubeModal('vxLgprHiqC0')}
+        >
           {t('Issues Grouping')}
         </SidebarMenuItem>
-        <SidebarMenuItem href="https://www.youtube.com/watch?v=GVKqIpfD9mE">
+        <SidebarMenuItem
+          data-test-id="learn-ownership-rules"
+          onClick={() => openYouTubeModal('GVKqIpfD9mE')}
+        >
           {t('Ownership Rules')}
         </SidebarMenuItem>
       </React.Fragment>
@@ -119,7 +170,10 @@ const getLearningItem = location => {
 
   if (pathname.includes('/performance/')) {
     return (
-      <SidebarMenuItem href="https://www.youtube.com/watch?v=Ap5lQg7UL-s">
+      <SidebarMenuItem
+        data-test-id="learn-performance"
+        onClick={() => openYouTubeModal('Ap5lQg7UL-s')}
+      >
         {t('Performance')}
       </SidebarMenuItem>
     );
@@ -127,7 +181,10 @@ const getLearningItem = location => {
 
   if (pathname.includes('/releases/')) {
     return (
-      <SidebarMenuItem href="https://www.youtube.com/watch?v=fOd5vbf0U0w">
+      <SidebarMenuItem
+        data-test-id="learn-releases"
+        onClick={() => openYouTubeModal('fOd5vbf0U0w')}
+      >
         {t('Releases')}
       </SidebarMenuItem>
     );
@@ -135,14 +192,20 @@ const getLearningItem = location => {
 
   if (pathname.includes('/profiling/')) {
     return (
-      <SidebarMenuItem href="https://www.youtube.com/watch?v=A-I3e5XMCsQ">
+      <SidebarMenuItem
+        data-test-id="learn-profiling"
+        onClick={() => openYouTubeModal('A-I3e5XMCsQ')}
+      >
         {t('Profiling')}
       </SidebarMenuItem>
     );
   }
   if (pathname.includes('/dashboards/')) {
     return (
-      <SidebarMenuItem href="https://www.youtube.com/watch?v=j1nIV2K2XmI">
+      <SidebarMenuItem
+        data-test-id="learn-dashboards"
+        onClick={() => openYouTubeModal('j1nIV2K2XmI')}
+      >
         {t('Build Dashboards')}
       </SidebarMenuItem>
     );
@@ -151,10 +214,16 @@ const getLearningItem = location => {
   if (pathname.includes('/projects/')) {
     return (
       <React.Fragment>
-        <SidebarMenuItem href="https://www.youtube.com/watch?v=Ra6Z_d-aKw8">
+        <SidebarMenuItem
+          data-test-id="learn-projects-figerpring-rules"
+          onClick={() => openYouTubeModal('Ra6Z_d-aKw8')}
+        >
           {t('Fingerprint Rules')}
         </SidebarMenuItem>
-        <SidebarMenuItem href="https://www.youtube.com/watch?v=GVKqIpfD9mE">
+        <SidebarMenuItem
+          data-test-id="learn-projects-ownership-rules"
+          onClick={() => openYouTubeModal('GVKqIpfD9mE')}
+        >
           {t('Ownership Rules')}
         </SidebarMenuItem>
       </React.Fragment>
@@ -164,10 +233,16 @@ const getLearningItem = location => {
   if (pathname.includes('/discover/')) {
     return (
       <React.Fragment>
-        <SidebarMenuItem href="https://www.youtube.com/watch?v=Bw8DIaHScZ4">
+        <SidebarMenuItem
+          data-test-id="learn-discover-queries"
+          onClick={() => openYouTubeModal('Bw8DIaHScZ4')}
+        >
           {t('Discover Queries')}
         </SidebarMenuItem>
-        <SidebarMenuItem href="https://www.youtube.com/watch?v=Ra6Z_d-aKw8">
+        <SidebarMenuItem
+          data-test-id="learn-discover-fingerprint-rules"
+          onClick={() => openYouTubeModal('Ra6Z_d-aKw8')}
+        >
           {t('Fingerprint Rules')}
         </SidebarMenuItem>
       </React.Fragment>
