@@ -68,6 +68,7 @@ function CrumbItem({group, onClick}: ItemProps) {
           key={`${String(crumb.type)}-${String(i)}`}
           color={crumb.color}
           offset={icons.length}
+          id={`timeline-${String(crumb.type)}-${String(crumb.id)}`}
         >
           <CrumbIcon type={crumb.type} size="md" />
         </IconWrapper>
@@ -146,6 +147,8 @@ const ScrollContainer = styled('div')`
   overflow-x: scroll;
   margin-bottom: ${space(3)};
   z-index: 11;
+  padding-left: 20px;
+  padding-right: 20px;
 `;
 
 const ItemContainer = styled('div')`
