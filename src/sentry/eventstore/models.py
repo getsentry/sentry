@@ -676,7 +676,7 @@ class Event(BaseEvent):
         if not self.group_ids:
             return
 
-        if not hasattr(self, "_group_cache"):
+        if not hasattr(self, "_groups_cache"):
             self._groups_cache = list(Group.objects.filter(id=self.group_ids))
         return self._groups_cache
 
