@@ -244,7 +244,7 @@ const ActionsColumn = styled(Column)`
 `;
 
 const ResultColumn = styled(Column)`
-  text-align: center;
+  text-align: right;
   justify-content: flex-end;
 `;
 

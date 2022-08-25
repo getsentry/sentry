@@ -20,6 +20,7 @@ export type FeatureFlagSegment = {
 export enum FeatureFlagSegmentTagKind {
   ENVIRONMENT = 'environment',
   RELEASE = 'release',
+  TRANSACTION = 'transaction',
   CUSTOM = 'custom',
 }
 

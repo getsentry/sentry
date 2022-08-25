@@ -15,6 +15,8 @@ export function getInnerNameLabel(name: FeatureFlagSegmentTagKind) {
       return t('Environment');
     case FeatureFlagSegmentTagKind.RELEASE:
       return t('Release');
+    case FeatureFlagSegmentTagKind.TRANSACTION:
+      return t('Transaction');
     case FeatureFlagSegmentTagKind.CUSTOM:
       return t('Custom');
     default:
@@ -28,6 +30,8 @@ export function getMatchFieldPlaceholder(category: FeatureFlagSegmentTagKind) {
       return t('ex. prod, dev');
     case FeatureFlagSegmentTagKind.RELEASE:
       return t('ex. 1*, [I3].[0-9].*');
+    case FeatureFlagSegmentTagKind.TRANSACTION:
+      return t('ex. /api/0/issues/');
     case FeatureFlagSegmentTagKind.CUSTOM:
       return t('Enter tag values');
     default:
@@ -41,6 +45,8 @@ export function getTagKey(tag: Tag) {
       return 'release';
     case FeatureFlagSegmentTagKind.ENVIRONMENT:
       return 'environment';
+    case FeatureFlagSegmentTagKind.TRANSACTION:
+      return 'transaction';
     case FeatureFlagSegmentTagKind.CUSTOM:
       return 'custom';
     default:
@@ -106,6 +112,7 @@ export function percentageToRate(rate: number | undefined, decimalPlaces: number
 export function isCustomTag(value: string) {
   return (
     value !== FeatureFlagSegmentTagKind.RELEASE &&
-    value !== FeatureFlagSegmentTagKind.ENVIRONMENT
+    value !== FeatureFlagSegmentTagKind.ENVIRONMENT &&
+    value !== FeatureFlagSegmentTagKind.TRANSACTION
   );
 }

@@ -75,6 +75,7 @@ export function SegmentModal({
   const tagCategories = generateTagCategoriesOptions([
     FeatureFlagSegmentTagKind.RELEASE,
     FeatureFlagSegmentTagKind.ENVIRONMENT,
+    FeatureFlagSegmentTagKind.TRANSACTION,
     FeatureFlagSegmentTagKind.CUSTOM,
   ]);
 
