@@ -714,9 +714,6 @@ class GroupEvent(BaseEvent):
 
     @classmethod
     def from_event(cls, event: Event, group: Group):
-        if group.id not in event.group_ids:
-            raise ValueError("Group invalid, it is not associated with this Event")
-
         return cls(
             project_id=event.project_id,
             event_id=event.event_id,
