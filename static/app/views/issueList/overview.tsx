@@ -1257,64 +1257,59 @@ class IssueListOverview extends Component<Props, State> {
           selectedProjectIds={selection.projects}
         />
         <Layout.Body {...layoutProps}>
-          {query === 'HACKWEEK___SHOW_SETS' ? (
-            <div>Insert Sets UI Here</div>
-          ) : (
-            <Layout.Main {...layoutProps}>
-              <IssueListFilters
+          <Layout.Main {...layoutProps}>
+            <IssueListFilters
+              organization={organization}
+              query={query}
+              savedSearch={savedSearch}
+              sort={this.getSort()}
+              onSearch={this.onSearch}
+              onSidebarToggle={this.onSidebarToggle}
+              isSearchDisabled={isSidebarVisible}
+              tagValueLoader={this.tagValueLoader}
+              tags={tags}
+            />
+            <Panel>
+              <IssueListActions
                 organization={organization}
+                selection={selection}
                 query={query}
-                savedSearch={savedSearch}
+                queryCount={modifiedQueryCount}
+                displayCount={displayCount}
+                onSelectStatsPeriod={this.onSelectStatsPeriod}
+                onMarkReviewed={this.onMarkReviewed}
+                onActionTaken={this.onActionTaken}
+                onDelete={this.onDelete}
+                statsPeriod={this.getGroupStatsPeriod()}
+                groupIds={groupIds}
+                allResultsVisible={this.allResultsVisible()}
+                displayReprocessingActions={displayReprocessingActions}
                 sort={this.getSort()}
-                onSearch={this.onSearch}
-                onSidebarToggle={this.onSidebarToggle}
-                isSearchDisabled={isSidebarVisible}
-                tagValueLoader={this.tagValueLoader}
-                tags={tags}
+                onSortChange={this.onSortChange}
               />
-
-              <Panel>
-                <IssueListActions
+              <PanelBody>
+                <ProcessingIssueList
                   organization={organization}
-                  selection={selection}
-                  query={query}
-                  queryCount={modifiedQueryCount}
-                  displayCount={displayCount}
-                  onSelectStatsPeriod={this.onSelectStatsPeriod}
-                  onMarkReviewed={this.onMarkReviewed}
-                  onActionTaken={this.onActionTaken}
-                  onDelete={this.onDelete}
-                  statsPeriod={this.getGroupStatsPeriod()}
-                  groupIds={groupIds}
-                  allResultsVisible={this.allResultsVisible()}
-                  displayReprocessingActions={displayReprocessingActions}
-                  sort={this.getSort()}
-                  onSortChange={this.onSortChange}
+                  projectIds={projectIds}
+                  showProject
                 />
-                <PanelBody>
-                  <ProcessingIssueList
-                    organization={organization}
-                    projectIds={projectIds}
-                    showProject
-                  />
-                  <VisuallyCompleteWithData
-                    hasData={this.state.groupIds.length > 0}
-                    id="IssueList-Body"
-                  >
-                    {this.renderStreamBody()}
-                  </VisuallyCompleteWithData>
-                </PanelBody>
-              </Panel>
-              <StyledPagination
-                caption={tct('Showing [displayCount] issues', {
-                  displayCount,
-                })}
-                pageLinks={pageLinks}
-                onCursor={this.onCursorChange}
-                paginationAnalyticsEvent={this.paginationAnalyticsEvent}
-              />
-            </Layout.Main>
-          )}
+                <VisuallyCompleteWithData
+                  hasData={this.state.groupIds.length > 0}
+                  id="IssueList-Body"
+                >
+                  {this.renderStreamBody()}
+                </VisuallyCompleteWithData>
+              </PanelBody>
+            </Panel>
+            <StyledPagination
+              caption={tct('Showing [displayCount] issues', {
+                displayCount,
+              })}
+              pageLinks={pageLinks}
+              onCursor={this.onCursorChange}
+              paginationAnalyticsEvent={this.paginationAnalyticsEvent}
+            />
+          </Layout.Main>
           {/* Avoid rendering sidebar until first accessed */}
           {isSidebarVisible && (
             <Layout.Side>

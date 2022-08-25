@@ -16,6 +16,7 @@ import {
   IconLab,
   IconLightning,
   IconList,
+  IconPin,
   IconPlay,
   IconProject,
   IconReleases,
@@ -252,6 +253,15 @@ function Sidebar({location, organization}: Props) {
     </Feature>
   );
 
+  const issueSets = hasOrganization && (
+    <SidebarItem
+      {...sidebarItemProps}
+      icon={<IconPin size="md" />}
+      label={t('Issue Sets')}
+      to={`/organizations/${organization.slug}/issue-sets/`}
+      id="issue-sets"
+    />
+  );
   const workspaces = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
@@ -339,7 +349,10 @@ function Sidebar({location, organization}: Props) {
                 {profiling}
               </SidebarSection>
 
-              <SidebarSection>{workspaces}</SidebarSection>
+              <SidebarSection>
+                {issueSets}
+                {workspaces}
+              </SidebarSection>
 
               <SidebarSection>
                 {replays}

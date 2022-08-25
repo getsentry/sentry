@@ -28,6 +28,8 @@ import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprec
 import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
+import IssueSetOverview from './views/issueSet/overview';
+
 type CustomProps = {
   name?: string;
 };
@@ -1247,6 +1249,8 @@ function buildRoutes() {
       <Redirect from="/organizations/:orgId/" to="/organizations/:orgId/issues/" />
       <IndexRoute component={errorHandler(IssueListOverview)} />
       <Route path="searches/:searchId/" component={errorHandler(IssueListOverview)} />
+      <Route path="sets/" component={errorHandler(IssueSetOverview)} />
+      <Route path="sets/:issueSetId/" component={errorHandler(IssueSetOverview)} />
     </Route>
   );
 
