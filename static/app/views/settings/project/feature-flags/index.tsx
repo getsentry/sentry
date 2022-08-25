@@ -9,10 +9,13 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
+import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
+import DropdownButton from 'sentry/components/dropdownButton';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import FeatureBadge from 'sentry/components/featureBadge';
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import ExternalLink from 'sentry/components/links/externalLink';
+import MenuItem from 'sentry/components/menuItem';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons/iconAdd';
@@ -20,6 +23,7 @@ import {t, tct} from 'sentry/locale';
 import ProjectStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
+import {AddFlagDropDownType} from 'sentry/types/featureFlags';
 import {defined} from 'sentry/utils';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
@@ -33,6 +37,19 @@ import {FlagModal} from './modals/flagModal';
 import {SegmentModal} from './modals/segmentModal';
 import {Card} from './card';
 import {Promo} from './promo';
+
+export const addFlagDropDownItems = [
+  {
+    value: AddFlagDropDownType.PRE_DEFINED,
+    label: t('Pre-defined flag'),
+    searchKey: t('pre-defined flag'),
+  },
+  {
+    value: AddFlagDropDownType.CUSTOM,
+    label: t('Custom flag'),
+    searchKey: t('custom flag'),
+  },
+];
 
 type Props = ModalRenderProps & {
   project: Project;
@@ -59,13 +76,14 @@ export default function ProjectFeatureFlags({project}: Props) {
     }
   }, [currentFlags, previousFlags]);
 
-  function handleAddFlag() {
+  function handleAddFlag(type?: AddFlagDropDownType) {
     openModal(modalProps => (
       <FlagModal
         {...modalProps}
         organization={organization}
         project={project}
         flags={flags}
+        type={type}
       />
     ));
   }
@@ -207,6 +225,33 @@ export default function ProjectFeatureFlags({project}: Props) {
     }
   }
 
+  async function handleToggleBooleanSegment(index: number, flagKey: string) {
+    const newFeatureFlags = {...flags};
+    newFeatureFlags[flagKey].evaluation[index].result =
+      !newFeatureFlags[flagKey].evaluation[index].result;
+
+    addLoadingMessage();
+
+    setFlags(newFeatureFlags);
+
+    try {
+      const result = await api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/`,
+        {
+          method: 'PUT',
+          data: {featureFlags: newFeatureFlags},
+        }
+      );
+      ProjectStore.onUpdateSuccess(result);
+      addSuccessMessage(t('Successfully toggled segment'));
+    } catch (error) {
+      setFlags(previousFlags ?? []);
+      const message = t('Unable to toggle segment');
+      handleXhrErrorResponse(message)(error);
+      addErrorMessage(message);
+    }
+  }
+
   const filteredFlags = Object.keys(flags).filter(key => {
     return (
       key.toLowerCase().includes(query.toLowerCase()) &&
@@ -225,18 +270,31 @@ export default function ProjectFeatureFlags({project}: Props) {
           }
           action={
             !showPromo && (
-              <Button
-                title={
-                  disabled ? t('You do not have permission to add flags') : undefined
-                }
-                priority="primary"
-                size="sm"
-                icon={<IconAdd size="xs" isCircled />}
-                onClick={handleAddFlag}
+              <DropdownAutoComplete
+                alignMenu="right"
                 disabled={disabled}
+                onSelect={item => handleAddFlag(item.value)}
+                items={addFlagDropDownItems.map(addFlagDropDownItem => ({
+                  ...addFlagDropDownItem,
+                  label: <DropDownLabel>{addFlagDropDownItem.label}</DropDownLabel>,
+                }))}
               >
-                {t('Add Flag')}
-              </Button>
+                {({isOpen}) => (
+                  <DropdownButton
+                    priority="primary"
+                    isOpen={isOpen}
+                    disabled={disabled}
+                    title={
+                      disabled ? t('You do not have permission to add flags') : undefined
+                    }
+                    size="sm"
+                    aria-label={t('Add Flag')}
+                    icon={<IconAdd size="xs" isCircled />}
+                  >
+                    {t('Add Flag')}
+                  </DropdownButton>
+                )}
+              </DropdownAutoComplete>
             )
           }
         />
@@ -292,11 +350,14 @@ export default function ProjectFeatureFlags({project}: Props) {
                     onEdit={() => handleEditFlag(filteredFlag)}
                     onActivateToggle={() => handleActivateToggle(filteredFlag)}
                     onAddSegment={() => handleAddSegment(filteredFlag)}
-                    onDeleteSegment={id => handleDeleteSegment(filteredFlag, id)}
-                    onEditSegment={id => handleEditSegment(filteredFlag, id)}
+                    onDeleteSegment={index => handleDeleteSegment(filteredFlag, index)}
+                    onEditSegment={index => handleEditSegment(filteredFlag, index)}
                     hasAccess={hasAccess}
                     onSortSegments={({reorderedItems}) =>
                       handleSortSegments(filteredFlag, reorderedItems)
+                    }
+                    onToggleBooleanSegment={index =>
+                      handleToggleBooleanSegment(index, filteredFlag)
                     }
                   />
                 ))}
@@ -318,4 +379,14 @@ const Filters = styled('div')`
   display: grid;
   gap: ${space(1)};
   grid-template-columns: 1fr max-content;
+`;
+
+const DropDownLabel = styled(MenuItem)`
+  color: ${p => p.theme.textColor};
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: 400;
+  text-transform: none;
+  span {
+    padding: 0;
+  }
 `;

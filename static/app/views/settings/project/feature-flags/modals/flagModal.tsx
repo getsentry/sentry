@@ -13,7 +13,11 @@ import {t} from 'sentry/locale';
 import ProjectStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {FeatureFlagKind, FeatureFlags} from 'sentry/types/featureFlags';
+import {
+  AddFlagDropDownType,
+  FeatureFlagKind,
+  FeatureFlags,
+} from 'sentry/types/featureFlags';
 import {defined} from 'sentry/utils';
 import useApi from 'sentry/utils/useApi';
 
@@ -21,6 +25,7 @@ type Props = ModalRenderProps & {
   flags: FeatureFlags;
   organization: Organization;
   project: Project;
+  type: AddFlagDropDownType;
   flagKey?: string;
 };
 
@@ -33,6 +38,7 @@ export function FlagModal({
   flagKey,
   organization,
   project,
+  type,
 }: Props) {
   const api = useApi();
 
@@ -133,7 +139,15 @@ export function FlagModal({
   return (
     <Fragment>
       <Header closeButton>
-        <h4>{flagKey ? t('Edit Flag') : t('Add Flag')}</h4>
+        <h4>
+          {flagKey
+            ? type === AddFlagDropDownType.CUSTOM
+              ? t('Edit Custom Flag')
+              : t('Edit Pre-defined Flag')
+            : type === AddFlagDropDownType.CUSTOM
+            ? t('Add Custom Flag')
+            : t('Add Pre-defined Flag')}
+        </h4>
       </Header>
       <Body>
         <Fields>

@@ -31,4 +31,9 @@ export type FeatureFlag = {
   group?: string;
 };
 
+export enum AddFlagDropDownType {
+  PRE_DEFINED = 'pre_defined',
+  CUSTOM = 'custom',
+}
+
 export type FeatureFlags = Record<string, FeatureFlag>;

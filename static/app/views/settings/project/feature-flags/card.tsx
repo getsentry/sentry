@@ -26,6 +26,7 @@ type Props = Omit<FeatureFlag, 'evaluation'> & {
   onEdit: () => void;
   onEditSegment: (index: number) => void;
   onSortSegments: (props: DraggableRuleListUpdateItemsProps) => void;
+  onToggleBooleanSegment: (index: number) => void;
   segments: FeatureFlagSegment[];
 };
 
@@ -42,6 +43,7 @@ export function Card({
   hasAccess,
   segments,
   onSortSegments,
+  onToggleBooleanSegment,
 }: Props) {
   return (
     <Wrapper hasSegment={!!segments.length}>
@@ -111,6 +113,7 @@ export function Card({
           hasAccess={hasAccess}
           onSort={onSortSegments}
           showGrab={segments.length > 1}
+          onToggleBooleanSegment={onToggleBooleanSegment}
         />
       )}
     </Wrapper>
@@ -158,7 +161,7 @@ const ActiveToggle = styled(NewBooleanField)`
 const Actions = styled('div')`
   display: grid;
   grid-template-columns: max-content max-content max-content;
-  gap: ${space(1.5)};
+  gap: ${space(2)};
   justify-content: flex-end;
   align-items: center;
 `;

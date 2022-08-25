@@ -9,7 +9,7 @@ import NotAvailable from 'sentry/components/notAvailable';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
-import {IconEllipsis, IconGrabbable} from 'sentry/icons';
+import {IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {FeatureFlagSegment} from 'sentry/types/featureFlags';
@@ -26,6 +26,7 @@ type Props = {
   onDeleteSegment: (index: number) => void;
   onEditSegment: (index: number) => void;
   onSort: (props: DraggableRuleListUpdateItemsProps) => void;
+  onToggleBooleanSegment: (index: number) => void;
   segments: FeatureFlagSegment[];
   showGrab?: boolean;
 };
@@ -33,6 +34,7 @@ type Props = {
 export function Segments({
   onDeleteSegment,
   onEditSegment,
+  onToggleBooleanSegment,
   hasAccess,
   onSort,
   segments,
@@ -90,7 +92,7 @@ export function Segments({
             const segment = items[index];
 
             return (
-              <SegmentsLayout isContent>
+              <SegmentsLayout isContent onClick={() => onEditSegment(index)}>
                 <GrabColumn disabled={!hasAccess}>
                   {showGrab && (
                     <IconGrabbableWrapper
@@ -122,11 +124,13 @@ export function Segments({
                     <ActiveToggle
                       inline={false}
                       hideControlState
-                      help="Edit the segment to change this"
-                      showHelpInTooltip
-                      disabled
                       name="active"
                       value={segment.result}
+                      onClick={e => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        onToggleBooleanSegment(index);
+                      }}
                     />
                   ) : (
                     String(segment.result)
@@ -138,43 +142,19 @@ export function Segments({
                     : `100%`}
                 </RolloutColumn>
                 <ActionsColumn>
-                  <DropdownMenuControl
-                    items={[
-                      {
-                        key: 'feature-flag-edit',
-                        label: t('Edit'),
-                        onAction: () => onEditSegment(index),
-                      },
-                      {
-                        key: 'feature-flag-delete',
-                        label: t('Delete'),
+                  <Button
+                    aria-label={t('Delete Segment')}
+                    size="xs"
+                    onClick={e => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      openConfirmModal({
+                        message: t('Are you sure you want to delete this segment?'),
                         priority: 'danger',
-                        onAction: () => {
-                          openConfirmModal({
-                            message: t('Are you sure you want to delete this segment?'),
-                            priority: 'danger',
-                            onConfirm: () => onDeleteSegment(index),
-                          });
-                        },
-                      },
-                    ]}
-                    trigger={({props: triggerProps, ref: triggerRef}) => (
-                      <Button
-                        ref={triggerRef}
-                        {...triggerProps}
-                        aria-label={t('Actions')}
-                        size="xs"
-                        onClick={e => {
-                          e.stopPropagation();
-                          e.preventDefault();
-
-                          triggerProps.onClick?.(e);
-                        }}
-                        icon={<IconEllipsis direction="down" size="sm" />}
-                      />
-                    )}
-                    placement="bottom right"
-                    offset={4}
+                        onConfirm: () => onDeleteSegment(index),
+                      });
+                    }}
+                    icon={<IconDelete size="sm" />}
                   />
                 </ActionsColumn>
               </SegmentsLayout>
@@ -193,18 +173,28 @@ const SegmentsPanelHeader = styled(PanelHeader)`
 const SegmentsLayout = styled('div')<{isContent?: boolean}>`
   width: 100%;
   display: grid;
-  grid-template-columns: 90px 1fr 74px;
+  grid-template-columns: 90px 1fr 66px;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 48px 90px 1fr 0.5fr 90px 74px;
+    grid-template-columns: 48px 90px 1fr 0.5fr 96px 66px;
   }
 
   ${p =>
     p.isContent &&
     css`
       > * {
-        line-height: 34px;
+        line-height: 28px;
         border-bottom: 1px solid ${p.theme.border};
+        ${p.isContent &&
+        css`
+          cursor: pointer;
+        `};
+      }
+
+      :hover {
+        > * {
+          background-color: ${p.theme.backgroundSecondary};
+        }
       }
     `}
 `;
@@ -212,7 +202,6 @@ const SegmentsLayout = styled('div')<{isContent?: boolean}>`
 const Column = styled('div')`
   display: flex;
   padding: ${space(1)} ${space(2)};
-  cursor: default;
   white-space: pre-wrap;
   word-break: break-all;
 `;
@@ -255,7 +244,7 @@ const ActionsColumn = styled(Column)`
 `;
 
 const ResultColumn = styled(Column)`
-  text-align: right;
+  text-align: center;
   justify-content: flex-end;
 `;
 
@@ -272,7 +261,7 @@ const IconGrabbableWrapper = styled('div')`
   outline: none;
   display: flex;
   align-items: center;
-  height: 34px;
+  height: 28px;
 `;
 
 const Tags = styled(Pills)`
@@ -286,7 +275,7 @@ const Tag = styled(Pill)`
 
 const ActiveToggle = styled(NewBooleanField)`
   padding: 0;
-  height: 24px;
+  height: 28px;
   justify-content: center;
   border-bottom: none;
 `;
