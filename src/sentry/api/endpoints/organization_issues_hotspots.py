@@ -1,11 +1,13 @@
+import os.path
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.bases import OrganizationEventsEndpointBase
+from sentry.api.endpoints.organization_events import OrganizationEventsEndpoint
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
-class OrganizationIssuesHotspotsEndpoint(OrganizationEventsEndpointBase):
+class OrganizationIssuesHotspotsEndpoint(OrganizationEventsEndpoint):
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
@@ -16,7 +18,7 @@ class OrganizationIssuesHotspotsEndpoint(OrganizationEventsEndpointBase):
     }
 
     def get(self, request: Request, organization) -> Response:
-
+        """
         response = [
             {
                 "id": "<root>",
@@ -226,5 +228,42 @@ class OrganizationIssuesHotspotsEndpoint(OrganizationEventsEndpointBase):
                 "index": 38,
             },
         ]
+        """
 
-        return Response(response)
+        response = super().get(request, organization)
+
+        output = []
+        index = 1
+        for trace_dict in response.data.get("data", {}):
+            trace_file_list = trace_dict.get("stack.filename", [])
+            if trace_file_list:
+                # considering only the first file in the stack trace
+                parts = os.path.normpath(trace_file_list[0]).split(os.sep)
+                current_path = ""
+                depth = 1
+                for part in parts[:-1]:
+                    current_dict = {}
+                    current_path = os.path.join(current_path, part)
+                    current_dict["id"], current_dict["index"], current_dict["depth"] = (
+                        current_path,
+                        index,
+                        depth,
+                    )
+                    index += 1
+                    depth += 1
+                    output.append(current_dict)
+
+                # for the last/full path
+                current_dict = {}
+                current_path = os.path.join(current_path, parts[-1])
+                current_dict["id"], current_dict["index"], current_dict["depth"] = (
+                    current_path,
+                    index,
+                    depth,
+                )
+                current_dict["errorCount"] = trace_dict.get("count()", None)
+                current_dict["uniqueErrorCount"] = trace_dict.get("count_unique(issue)", None)
+                index += 1
+                output.append(current_dict)
+
+        return Response(output)
