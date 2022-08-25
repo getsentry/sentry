@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, ClassVar, MutableMapping, Sequence, Tuple, Type
+from typing import TYPE_CHECKING, Any, ClassVar, Mapping, MutableMapping, Sequence, Tuple, Type
 
 from sentry.grouping.mypyc.exceptions import InvalidEnhancerConfig
 from sentry.grouping.utils import get_rule_bool
@@ -69,6 +69,10 @@ class Match:
     def _to_config_structure(self, version: int) -> str:
         raise NotImplementedError()
 
+    def as_dict(self) -> Mapping[str, Any]:
+        """Add introspection for classes compiled with mypyc (no __dict__)."""
+        raise NotImplementedError()
+
     @staticmethod
     def _from_config_structure(obj: str, version: int) -> "Match":
         val = obj
@@ -135,6 +139,14 @@ class FrameMatch(Match):
         self.pattern = pattern
         self._compiled_pattern = translate(pattern, doublestar=doublestar)
         self.negated = negated
+
+    def as_dict(self) -> Mapping[str, Any]:
+        """Add introspection for classes compiled with mypyc (no __dict__)."""
+        return {
+            "key": self.key,
+            "pattern": self.pattern,
+            "negated": self.negated,
+        }
 
     @property
     def description(self) -> str:
@@ -334,6 +346,10 @@ class CallerMatch(Match):
     def __init__(self, caller: Match):
         self.caller = caller
 
+    def as_dict(self) -> Mapping[str, Any]:
+        """Add introspection for classes compiled with mypyc (no __dict__)."""
+        return {"caller": self.caller}
+
     @property
     def description(self) -> str:
         return f"[ {self.caller.description} ] |"
@@ -355,15 +371,19 @@ class CallerMatch(Match):
 
 
 class CalleeMatch(Match):
-    def __init__(self, caller: Match):
-        self.caller = caller
+    def __init__(self, callee: Match):
+        self.callee = callee
+
+    def as_dict(self) -> Mapping[str, Any]:
+        """Add introspection for classes compiled with mypyc (no __dict__)."""
+        return {"callee": self.callee}
 
     @property
     def description(self) -> str:
-        return f"| [ {self.caller.description} ]"
+        return f"| [ {self.callee.description} ]"
 
     def _to_config_structure(self, version: int) -> str:
-        return f"|[{self.caller._to_config_structure(version)}]"
+        return f"|[{self.callee._to_config_structure(version)}]"
 
     def matches_frame(
         self,
@@ -373,6 +393,6 @@ class CalleeMatch(Match):
         exception_data: ExceptionData,
         cache: MatchingCache,
     ) -> bool:
-        return idx < len(frames) - 1 and self.caller.matches_frame(
+        return idx < len(frames) - 1 and self.callee.matches_frame(
             frames, idx + 1, platform, exception_data, cache
         )

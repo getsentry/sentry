@@ -6,10 +6,14 @@ from sentry.grouping.mypyc.utils import MatchFrame
 
 
 def dump_obj(obj):
-    if not isinstance(getattr(obj, "__dict__", None), dict):
-        return obj
+    if hasattr(obj, "as_dict"):
+        dct = obj.as_dict()
+    else:
+        if not isinstance(getattr(obj, "__dict__", None), dict):
+            return obj
+        dct = obj.__dict__
     rv = {}
-    for (key, value) in obj.__dict__.items():
+    for (key, value) in dct.items():
         if key.startswith("_"):
             continue
         elif isinstance(value, list):

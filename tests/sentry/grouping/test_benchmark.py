@@ -40,6 +40,7 @@ def run_configuration(grouping_input, config):
     event.get_hashes()
 
 
+@pytest.mark.skip("Payload not checked in")
 @pytest.mark.skipif(not benchmark_available(), reason="requires pytest-benchmark")
 @pytest.mark.parametrize(
     "config_name", sorted(CONFIGURATIONS.keys()), ids=lambda x: x.replace("-", "_")

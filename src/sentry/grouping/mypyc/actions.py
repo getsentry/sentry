@@ -54,6 +54,10 @@ class Action:
         self._is_modifier = False
         self._is_updater = False
 
+    def as_dict(self) -> Mapping[str, Any]:
+        """Add introspection for classes compiled with mypyc (no __dict__)."""
+        raise NotImplementedError()
+
     def apply_modifications_to_frame(
         self,
         frames: Sequence[FrameData],
@@ -97,13 +101,21 @@ class Action:
 
 
 class FlagAction(Action):
-    def __init__(self, key: str, flag: int, range: FlagRange):
+    def __init__(self, key: str, flag: bool, range: FlagRange):
         super().__init__()
         self.key = key
         self._is_updater = key in {"group", "app", "prefix", "sentinel"}
         self._is_modifier = key == "app"
         self.flag = flag
         self.range = range
+
+    def as_dict(self) -> Mapping[str, Any]:
+        """Add introspection for classes compiled with mypyc (no __dict__)."""
+        return {
+            "key": self.key,
+            "flag": self.flag,
+            "range": self.range,
+        }
 
     def __str__(self) -> str:
         return "{}{}{}".format(
@@ -219,6 +231,10 @@ class VarAction(Action):
             raise InvalidEnhancerConfig(f"Invalid value '{value}' for '{var}'")
         except KeyError:
             raise InvalidEnhancerConfig(f"Unknown variable '{var}'")
+
+    def as_dict(self) -> Mapping[str, Any]:
+        """Add introspection for classes compiled with mypyc (no __dict__)."""
+        return {"var": self.var, "value": self.value}
 
     def __str__(self) -> str:
         return f"{self.var}={self.value}"

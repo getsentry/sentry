@@ -1,4 +1,4 @@
-from typing import List, Sequence, Tuple, Union, cast
+from typing import Any, List, Mapping, Sequence, Tuple, Union, cast
 
 from sentry.grouping.mypyc.matchers import ExceptionFieldMatch, Match
 from sentry.grouping.mypyc.utils import ExceptionData, MatchFrame, MatchingCache
@@ -40,6 +40,13 @@ class Rule:
     def is_updater(self) -> bool:
         """Does this rule update grouping components?"""
         return self._is_updater
+
+    def as_dict(self) -> Mapping[str, Any]:
+        """Add introspection for classes compiled with mypyc (no __dict__)."""
+        return {
+            "matchers": [matcher.as_dict() for matcher in self.matchers],
+            "actions": [action.as_dict() for action in self.actions],
+        }
 
     def get_matching_frame_actions(
         self,
