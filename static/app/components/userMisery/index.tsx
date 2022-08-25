@@ -8,22 +8,25 @@ import {tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
+import ahh from './ahh(1).wav';
 // @ts-ignore
 import boop from './boop.wav';
+import intenseMisery from './intense-misery.wav';
+import misery from './misery.wav';
 
 // Maps User Misery scores to a unique scream audio file
 const SCORE_TO_SCREAM_MAP: Record<number, string> = {
-  0: boop,
-  1: boop,
-  2: boop,
-  3: boop,
-  4: boop,
-  5: boop,
-  6: boop,
-  7: boop,
-  8: boop,
-  9: boop,
-  10: boop,
+  0: ahh,
+  1: ahh,
+  2: ahh,
+  3: ahh,
+  4: misery,
+  5: misery,
+  6: misery,
+  7: intenseMisery,
+  8: intenseMisery,
+  9: intenseMisery,
+  10: intenseMisery,
 };
 
 type Props = {
@@ -47,7 +50,8 @@ function UserMisery(props: Props) {
   const score = Math.round(adjustedMisery * palette.length);
 
   const handleSoundButtonClick = () => {
-    const audio = new Audio(SCORE_TO_SCREAM_MAP[score]);
+    const adjustedScore = bars > 10 ? Math.round(score / 4) : score;
+    const audio = new Audio(SCORE_TO_SCREAM_MAP[adjustedScore]);
     audio.play();
   };
 
