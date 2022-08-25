@@ -93,11 +93,23 @@ function useBreadcrumbs(props: Props) {
       console.log(events);
       if (events) {
         setSampleEvent(events[0]);
+        const seenCrumbs = new Set<string>();
         const breadcrumbs: RawCrumb[] = events.reduce((acc, event) => {
           const breadcrumbEntries = event.entries.filter(
             entry => entry.type === EntryType.BREADCRUMBS
           ) as EntryBreadcrumbs[];
-          const rawCrumbVals = breadcrumbEntries.flatMap(entry => entry.data.values);
+          const rawCrumbVals = breadcrumbEntries
+            .flatMap(entry => entry.data.values)
+            .filter(raw => {
+              // When merging breadcrumbs of events that share the same session id, there will be duplicated breadcrumbs.
+              // Let's ensure each breadcrumb only shows up at most once.
+              const jsonCrumb = JSON.stringify(raw);
+              if (seenCrumbs.has(jsonCrumb)) {
+                return false;
+              }
+              seenCrumbs.add(jsonCrumb);
+              return true;
+            });
           return [...acc, ...rawCrumbVals];
         }, [] as RawCrumb[]);
         setCrumbs(breadcrumbs);
