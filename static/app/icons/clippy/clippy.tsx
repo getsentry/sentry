@@ -6,8 +6,8 @@ import evilClippy from 'sentry-images/evil-clippy.png';
 import staticImage from 'sentry-images/static-clippy.gif';
 
 import {
+  getJavaScriptFrame,
   getPreamble,
-  getPythonFrame,
 } from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 
 import {openai} from '../../main';
@@ -28,18 +28,19 @@ const Clippy = ({event}: any) => {
 
   function getRawStacktrace() {
     const traces = exceptions.map(exc => rawStacktraceContent(exc.stacktrace, exc));
-    return traces[0];
+    const firstTrace = traces[0];
+    return firstTrace;
   }
 
   function rawStacktraceContent(data, exception) {
     const frames: string[] = [];
 
     (data?.frames ?? []).forEach(frame => {
-      frames.push(getPythonFrame(frame));
+      frames.push(getJavaScriptFrame(frame));
     });
 
     if (exception) {
-      frames.unshift(getPreamble(exception, 'python'));
+      frames.unshift(getPreamble(exception, 'javascript'));
     }
 
     return frames.join('\n');
@@ -57,7 +58,7 @@ const Clippy = ({event}: any) => {
         model: 'text-davinci-002',
         prompt: `${TRAINING_PROMPT}\n${stacktrace}${STOP_SEQ}`,
         temperature: 0,
-        max_tokens: 400,
+        max_tokens: 250,
         top_p: 1,
         frequency_penalty: 0,
         presence_penalty: 0,

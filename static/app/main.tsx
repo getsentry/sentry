@@ -7,7 +7,8 @@ import {routes} from 'sentry/routes';
 import ConfigStore from 'sentry/stores/configStore';
 import {RouteContext} from 'sentry/views/routeContext';
 
-import {API_KEY, ORG_ID} from './icons/clippy/keys';
+// create a new file @ './icons/clippy/keys.ts' and add your API and ORG keys
+import {API_KEY, ORG_ID} from './icons/clippy/keys.example';
 import {PersistedStoreProvider} from './stores/persistedStore';
 
 const configuration = new Configuration({organization: ORG_ID, apiKey: API_KEY});
