@@ -219,7 +219,7 @@ class VarAction(Action):
 
     _FRAME_VARIABLES: ClassVar = {"category"}
 
-    def __init__(self, var: str, value: str):
+    def __init__(self, var: str, value: Any):
         super().__init__()
         self.var = var
         self._is_modifier = self.var == "category"

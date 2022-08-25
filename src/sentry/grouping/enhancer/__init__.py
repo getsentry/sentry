@@ -163,19 +163,6 @@ class Enhancements:
 
         return component, inverted_hierarchy
 
-    # def as_dict(self, with_rules=False):
-    #     rv = {
-    #         "id": self.id,
-    #         "bases": self.bases,
-    #         "latest": projectoptions.lookup_well_known_key(
-    #             "sentry:grouping_enhancements_base"
-    #         ).get_default(epoch=projectoptions.LATEST_EPOCH)
-    #         == self.id,
-    #     }
-    #     if with_rules:
-    #         rv["rules"] = [x.as_dict() for x in self.rules]
-    #     return rv
-
     def _to_config_structure(self):
         return [
             self.version,
