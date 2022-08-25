@@ -4,7 +4,14 @@ import styled from '@emotion/styled';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FileSize from 'sentry/components/fileSize';
-import {PanelTable, PanelTableHeader} from 'sentry/components/panels';
+import {Hovercard} from 'sentry/components/hovercard';
+import {
+  PanelHeader,
+  PanelItem,
+  PanelTable,
+  PanelTableHeader,
+} from 'sentry/components/panels';
+import TextOverflow from 'sentry/components/textOverflow';
 import Tooltip from 'sentry/components/tooltip';
 import {IconArrow, IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -15,6 +22,7 @@ import type {ColorOrAlias} from 'sentry/utils/theme';
 import {ISortConfig, sortNetwork} from 'sentry/views/replays/detail/network/utils';
 import {
   MODULES_WITH_CUMULATIVE_SIZE,
+  MODULES_WITH_PARENTS,
   MODULES_WITH_SIZE,
 } from 'sentry/views/replays/detail/unusedModules/utils';
 
@@ -33,6 +41,7 @@ type Record = {
   cumulative: number;
   incChildren: number;
   name: string;
+  parents: string[];
   size: number;
   state: ModuleState;
 };
@@ -52,6 +61,7 @@ function getModules(
           cumulative: (MODULES_WITH_CUMULATIVE_SIZE[name] || [0, 0])[1],
           incChildren: (MODULES_WITH_CUMULATIVE_SIZE[name] || [0, 0, 0])[2],
           name,
+          parents: MODULES_WITH_PARENTS[name] || [],
           size: MODULES_WITH_SIZE[name] || 0,
           state: ModuleState.Used,
         } as Record)
@@ -65,6 +75,7 @@ function getModules(
           cumulative: (MODULES_WITH_CUMULATIVE_SIZE[name] || [0, 0])[1],
           incChildren: (MODULES_WITH_CUMULATIVE_SIZE[name] || [0, 0, 0])[2],
           name,
+          parents: MODULES_WITH_PARENTS[name] || [],
           size: MODULES_WITH_SIZE[name] || 0,
           state: ModuleState.Unused,
         } as Record)
@@ -190,7 +201,9 @@ function ModuleTable({
                   }}
                   showOnlyOnOverflow
                 >
-                  <Text>{module.name}</Text>
+                  <Text>
+                    <ModuleParents module={module} />
+                  </Text>
                 </Tooltip>
               </Item>
               <Item numeric>
@@ -234,6 +247,45 @@ function ModuleTable({
     </div>
   );
 }
+
+const NoPaddingHovercard = styled(
+  ({children, bodyClassName, ...props}: React.ComponentProps<typeof Hovercard>) => (
+    <Hovercard bodyClassName={bodyClassName || '' + ' half-padding'} {...props}>
+      {children}
+    </Hovercard>
+  )
+)`
+  .half-padding {
+    padding: 0;
+  }
+`;
+
+function ModuleParents({module}: {module: Record}) {
+  const summaryItems = module.parents.map(parent => (
+    <PanelItem key={parent}>
+      <TextOverflow ellipsisDirection="left">{parent}</TextOverflow>
+    </PanelItem>
+  ));
+
+  return (
+    <NoPaddingHovercard
+      body={
+        <ScrollableCardBody>
+          <PanelHeader>Parent Modules</PanelHeader>
+          {summaryItems}
+        </ScrollableCardBody>
+      }
+      position="right"
+    >
+      <TextOverflow>{module.name}</TextOverflow>
+    </NoPaddingHovercard>
+  );
+}
+
+const ScrollableCardBody = styled('div')`
+  overflow: auto;
+  max-height: 90vh;
+`;
 
 const StyledPanelTable = styled(PanelTable)<{columns: number}>`
   grid-template-columns: max-content minmax(200px, 1fr) repeat(3, max-content);

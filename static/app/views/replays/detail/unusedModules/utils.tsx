@@ -22,9 +22,22 @@ function getModulesbyName(chunks: WebpackChunk[]): Record<string, WebpackModule>
   );
 }
 
-// function normalizeModuleName(name: string) {
-//   return name.replace('/^\\./', '').replace(/\.tsx$/, '');
-// }
+function getModuleWithParents(chunks: WebpackChunk[]): Record<string, string[]> {
+  const modulesWithParents = {};
+
+  chunks.forEach(chunk => {
+    chunk.modules.forEach(module => {
+      module.children.forEach(child => {
+        if (!(child in modulesWithParents)) {
+          modulesWithParents[child] = [];
+        }
+        modulesWithParents[child].push(module.id);
+      });
+    });
+  });
+
+  return modulesWithParents;
+}
 
 function getModulesWithCumulativeSize(
   chunks: WebpackChunk[]
@@ -79,6 +92,8 @@ function getModulesWithCumulativeSize(
 
   return cumulative;
 }
+
+export const MODULES_WITH_PARENTS = getModuleWithParents(webpackStats as WebpackChunk[]);
 
 export const MODULES_WITH_SIZE = getModulesWithSize(webpackStats as WebpackChunk[]);
 
