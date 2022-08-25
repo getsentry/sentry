@@ -28,6 +28,7 @@ export type FeatureFlag = {
   evaluation: FeatureFlagSegment[];
   kind: FeatureFlagKind;
   description?: string;
+  group?: string;
 };
 
 export type FeatureFlags = Record<string, FeatureFlag>;

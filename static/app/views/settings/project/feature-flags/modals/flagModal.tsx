@@ -43,6 +43,7 @@ export function FlagModal({
   const [kind, setKind] = useState<FeatureFlagKind>(
     flagKey ? flags[flagKey].kind : FeatureFlagKind.BOOLEAN
   );
+  const [group, setGroup] = useState(flagKey ? flags[flagKey].group : '');
   const [error, setError] = useState<string | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -61,15 +62,17 @@ export function FlagModal({
         description,
         enabled: false,
         kind,
+        group,
         evaluation: [],
       },
     };
 
+    // if the flag key changed, delete the old entry.
     if (defined(flagKey)) {
       delete newFlags[flagKey];
       newFeatureFlags = {
         ...newFlags,
-        [key]: {...flags[flagKey], description},
+        [key]: {...flags[flagKey], kind, description, group},
       };
     }
 
@@ -194,6 +197,20 @@ export function FlagModal({
             hideControlState
             stacked
           />
+          <StyledTextField
+            label={t('Group')}
+            placeholder={key}
+            inline={false}
+            value={group}
+            onChange={value => setGroup(value || null)}
+            onKeyDown={(_value: string, e: KeyboardEvent) => {
+              if (e.key === 'Enter') {
+                handleSubmit();
+              }
+            }}
+            help="If two flags share the same group, they will be linked together for an applied rollout. You can leave this empty and the flag name is used."
+            hideControlState
+          />
         </Fields>
       </Body>
       <Footer>
@@ -229,6 +246,12 @@ const DescriptionField = styled(TextareaField)`
 `;
 
 const StyledSelectField = styled(SelectField)`
+  padding: 0;
+  border-bottom: none;
+  width: 100%;
+`;
+
+const StyledTextField = styled(TextField)`
   padding: 0;
   border-bottom: none;
   width: 100%;
