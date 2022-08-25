@@ -95,7 +95,7 @@ export function SegmentModal({
         result: segment.result,
         percentage: defined(segment.percentage)
           ? rateToPercentage(segment.percentage)
-          : undefined,
+          : 0,
       };
     }
 
@@ -148,7 +148,7 @@ export function SegmentModal({
       type: data.type,
       tags: newTags,
       result: data.result,
-      id: flags[flagKey].evaluation.length,
+      id: flags[flagKey].evaluation.length + 1,
     };
 
     if (data.type === EvaluationType.Rollout) {
@@ -373,6 +373,7 @@ export function SegmentModal({
           {flags[flagKey].kind === FeatureFlagKind.NUMBER && (
             <StyledNumberField
               label={t('Result Value')}
+              placeholder={t('Enter a number')}
               name="result"
               inline={false}
               flexibleControlStateSize
@@ -380,11 +381,13 @@ export function SegmentModal({
               required
               value={data.result}
               onChange={value => setData({...data, result: Number(value)})}
+              min={0}
             />
           )}
           {flags[flagKey].kind === FeatureFlagKind.STRING && (
             <StyledTextField
               label={t('Result Value')}
+              placeholder={t('Enter a string')}
               name="result"
               inline={false}
               flexibleControlStateSize

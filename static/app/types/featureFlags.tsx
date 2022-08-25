@@ -24,6 +24,7 @@ export enum FeatureFlagSegmentTagKind {
 }
 
 export type FeatureFlag = {
+  custom: boolean;
   enabled: boolean;
   evaluation: FeatureFlagSegment[];
   kind: FeatureFlagKind;
@@ -32,7 +33,7 @@ export type FeatureFlag = {
 };
 
 export enum AddFlagDropDownType {
-  PRE_DEFINED = 'pre_defined',
+  PREDEFINED = 'predefined',
   CUSTOM = 'custom',
 }
 

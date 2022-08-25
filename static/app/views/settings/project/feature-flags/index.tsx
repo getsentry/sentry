@@ -8,17 +8,12 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
-import Button from 'sentry/components/button';
-import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
-import DropdownButton from 'sentry/components/dropdownButton';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import FeatureBadge from 'sentry/components/featureBadge';
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import ExternalLink from 'sentry/components/links/externalLink';
-import MenuItem from 'sentry/components/menuItem';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconAdd} from 'sentry/icons/iconAdd';
 import {t, tct} from 'sentry/locale';
 import ProjectStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
@@ -35,21 +30,9 @@ import PermissionAlert from 'sentry/views/settings/organization/permissionAlert'
 
 import {FlagModal} from './modals/flagModal';
 import {SegmentModal} from './modals/segmentModal';
+import {AddFlagButton} from './addFlagButton';
 import {Card} from './card';
 import {Promo} from './promo';
-
-export const addFlagDropDownItems = [
-  {
-    value: AddFlagDropDownType.PRE_DEFINED,
-    label: t('Pre-defined flag'),
-    searchKey: t('pre-defined flag'),
-  },
-  {
-    value: AddFlagDropDownType.CUSTOM,
-    label: t('Custom flag'),
-    searchKey: t('custom flag'),
-  },
-];
 
 type Props = ModalRenderProps & {
   project: Project;
@@ -76,7 +59,7 @@ export default function ProjectFeatureFlags({project}: Props) {
     }
   }, [currentFlags, previousFlags]);
 
-  function handleAddFlag(type?: AddFlagDropDownType) {
+  function handleAddFlag(type: AddFlagDropDownType) {
     openModal(modalProps => (
       <FlagModal
         {...modalProps}
@@ -96,6 +79,11 @@ export default function ProjectFeatureFlags({project}: Props) {
         project={project}
         flags={flags}
         flagKey={flagKey}
+        type={
+          flags[flagKey].custom
+            ? AddFlagDropDownType.CUSTOM
+            : AddFlagDropDownType.PREDEFINED
+        }
       />
     ));
   }
@@ -275,33 +263,7 @@ export default function ProjectFeatureFlags({project}: Props) {
             </Fragment>
           }
           action={
-            !showPromo && (
-              <DropdownAutoComplete
-                alignMenu="right"
-                disabled={disabled}
-                onSelect={item => handleAddFlag(item.value)}
-                items={addFlagDropDownItems.map(addFlagDropDownItem => ({
-                  ...addFlagDropDownItem,
-                  label: <DropDownLabel>{addFlagDropDownItem.label}</DropDownLabel>,
-                }))}
-              >
-                {({isOpen}) => (
-                  <DropdownButton
-                    priority="primary"
-                    isOpen={isOpen}
-                    disabled={disabled}
-                    title={
-                      disabled ? t('You do not have permission to add flags') : undefined
-                    }
-                    size="sm"
-                    aria-label={t('Add Flag')}
-                    icon={<IconAdd size="xs" isCircled />}
-                  >
-                    {t('Add Flag')}
-                  </DropdownButton>
-                )}
-              </DropdownAutoComplete>
-            )
+            !showPromo && <AddFlagButton disabled={disabled} onAddFlag={handleAddFlag} />
           }
         />
         <TextBlock>
@@ -385,14 +347,4 @@ const Filters = styled('div')`
   display: grid;
   gap: ${space(1)};
   grid-template-columns: 1fr max-content;
-`;
-
-const DropDownLabel = styled(MenuItem)`
-  color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: 400;
-  text-transform: none;
-  span {
-    padding: 0;
-  }
 `;

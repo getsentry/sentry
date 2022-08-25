@@ -5,11 +5,14 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {Panel} from 'sentry/components/panels';
 import {IconFlag} from 'sentry/icons/iconFlag';
 import {t} from 'sentry/locale';
+import {AddFlagDropDownType} from 'sentry/types/featureFlags';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+
+import {AddFlagButton} from './addFlagButton';
 
 type Props = {
   hasAccess: boolean;
-  onGetStarted: () => void;
+  onGetStarted: (type: AddFlagDropDownType) => void;
 };
 
 export function Promo({onGetStarted, hasAccess}: Props) {
@@ -24,18 +27,7 @@ export function Promo({onGetStarted, hasAccess}: Props) {
         )}
         action={
           <ButtonList gap={1}>
-            <Button
-              priority="primary"
-              onClick={onGetStarted}
-              disabled={!hasAccess}
-              title={
-                hasAccess
-                  ? undefined
-                  : t('You do not have permission to add feature flags')
-              }
-            >
-              {t('Add Feature Flag')}
-            </Button>
+            <AddFlagButton disabled={!hasAccess} onAddFlag={onGetStarted} size="md" />
             <Button href="" external>
               {t('Read Docs')}
             </Button>

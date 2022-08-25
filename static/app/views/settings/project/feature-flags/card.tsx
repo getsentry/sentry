@@ -16,7 +16,7 @@ import {DraggableRuleListUpdateItemsProps} from '../server-side-sampling/draggab
 
 import {Segments} from './segments';
 
-type Props = Omit<FeatureFlag, 'evaluation'> & {
+type Props = Omit<FeatureFlag, 'evaluation' | 'custom'> & {
   flagKey: string;
   hasAccess: boolean;
   onActivateToggle: () => void;

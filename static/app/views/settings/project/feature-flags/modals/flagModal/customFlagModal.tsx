@@ -13,11 +13,7 @@ import {t} from 'sentry/locale';
 import ProjectStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {
-  AddFlagDropDownType,
-  FeatureFlagKind,
-  FeatureFlags,
-} from 'sentry/types/featureFlags';
+import {FeatureFlagKind, FeatureFlags} from 'sentry/types/featureFlags';
 import {defined} from 'sentry/utils';
 import useApi from 'sentry/utils/useApi';
 
@@ -25,11 +21,10 @@ type Props = ModalRenderProps & {
   flags: FeatureFlags;
   organization: Organization;
   project: Project;
-  type: AddFlagDropDownType;
   flagKey?: string;
 };
 
-export function FlagModal({
+export function CustomFlagModal({
   Header,
   Body,
   Footer,
@@ -38,7 +33,6 @@ export function FlagModal({
   flagKey,
   organization,
   project,
-  type,
 }: Props) {
   const api = useApi();
 
@@ -67,6 +61,7 @@ export function FlagModal({
       [key]: {
         description,
         enabled: false,
+        custom: true,
         kind,
         group,
         evaluation: [],
@@ -139,24 +134,15 @@ export function FlagModal({
   return (
     <Fragment>
       <Header closeButton>
-        <h4>
-          {flagKey
-            ? type === AddFlagDropDownType.CUSTOM
-              ? t('Edit Custom Flag')
-              : t('Edit Pre-defined Flag')
-            : type === AddFlagDropDownType.CUSTOM
-            ? t('Add Custom Flag')
-            : t('Add Pre-defined Flag')}
-        </h4>
+        <h4>{flagKey ? t('Edit Custom Flag') : t('Add Custom Flag')}</h4>
       </Header>
       <Body>
         <Fields>
-          <StyledSelectField
+          <StyledTextField
             name="name"
             label={t('Name')}
             placeholder={t('Enter a name')}
             value={key}
-            choices={nameChoices}
             onKeyDown={(val: string, e: KeyboardEvent) => {
               if (e.key === 'Tab') {
                 setKeyWithValidation(val);
@@ -271,7 +257,7 @@ const StyledTextField = styled(TextField)`
   width: 100%;
 `;
 
-export const FooterActions = styled('div')`
+const FooterActions = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
