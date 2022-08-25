@@ -12,7 +12,6 @@ import requests
 from confluent_kafka import Producer
 from django.conf import settings
 from django.utils import timezone
-from requests.auth import HTTPBasicAuth
 
 from sentry.models import Organization, Project, ProjectKey, Release
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
@@ -189,15 +188,14 @@ def main(project, org, env, days, release=None):
         # host = "http://dev.getsentry.net:8000"
 
         # TODO change this
-        host = "http://localhost:123412341234"
+        host = "http://dev.getsentry.net:8000"
 
         url = f"{host}/api/{project.id}/envelope/?sentry_key={project_key.public_key}&sentry_version=7&sentry_client=sentry.curl/1.1.1"
         headers = {
             "content-type": "application/json",
         }
-        auth = HTTPBasicAuth(project_key.public_key, "")
         click.echo(f"> sending request to {url}")
-        response = requests.post(url, payload, headers=headers, auth=auth)
+        response = requests.post(url, payload, headers=headers)
         if response.status_code != 200:
             click.echo(f"Response failed {response}")
     #     count += 1
