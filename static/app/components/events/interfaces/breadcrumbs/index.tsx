@@ -7,6 +7,7 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventDataSection from 'sentry/components/events/eventDataSection';
+import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {BreadcrumbLevelType, Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
@@ -307,7 +308,7 @@ function BreadcrumbsContainer({data, event, organization, route, router}: Props)
       emptyMessage: t('There are no breadcrumbs to be displayed'),
     };
   }
-
+  const didTag = event.tags.find(tag => tag.key === 'did');
   return (
     <EventDataSection
       type={EntryType.BREADCRUMBS}
@@ -317,14 +318,23 @@ function BreadcrumbsContainer({data, event, organization, route, router}: Props)
         </GuideAnchor>
       }
       actions={
-        <StyledSearchBarAction
-          placeholder={t('Search breadcrumbs')}
-          onChange={handleSearch}
-          query={searchTerm}
-          filterOptions={filterOptions}
-          filterSelections={state.filterSelections}
-          onFilterChange={handleFilter}
-        />
+        <ActionContainer>
+          {didTag && (
+            <StyledLink
+              to={`/organizations/${organization.slug}/user-journeys/${didTag.value}/`}
+            >
+              Open in User Journeys
+            </StyledLink>
+          )}
+          <StyledSearchBarAction
+            placeholder={t('Search breadcrumbs')}
+            onChange={handleSearch}
+            query={searchTerm}
+            filterOptions={filterOptions}
+            filterSelections={state.filterSelections}
+            onFilterChange={handleFilter}
+          />
+        </ActionContainer>
       }
       wrapTitle={false}
       isCentered
@@ -346,6 +356,15 @@ function BreadcrumbsContainer({data, event, organization, route, router}: Props)
     </EventDataSection>
   );
 }
+
+const ActionContainer = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const StyledLink = styled(Link)`
+  margin-right: 20px;
+`;
 
 export default BreadcrumbsContainer;
 
