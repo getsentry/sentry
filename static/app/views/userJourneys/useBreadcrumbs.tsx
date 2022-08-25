@@ -75,9 +75,9 @@ function useBreadcrumbs(props: Props) {
     if (breadcrumbEvents.length === 0) {
       return;
     }
-    async function fetchEvent() {
+    async function fetchEvents(sourceEvents: Array<BreadcrumbEvent>) {
       const res = await Promise.all(
-        breadcrumbEvents
+        sourceEvents
           .filter(e => e.title === 'Breadcrumb Event')
           .map(async e => {
             return await api.requestPromise(
@@ -116,7 +116,10 @@ function useBreadcrumbs(props: Props) {
       }
       setLoading(false);
     }
-    fetchEvent();
+    const firstFew = breadcrumbEvents.slice(0, 10);
+    const rest = breadcrumbEvents.slice(10);
+    fetchEvents(firstFew);
+    fetchEvents(rest);
   }, [api, breadcrumbEvents, org.slug]);
 
   // const timestampTitle = (
