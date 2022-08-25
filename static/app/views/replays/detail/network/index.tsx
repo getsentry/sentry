@@ -1,10 +1,13 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 
 import FileSize from 'sentry/components/fileSize';
+import CompactSelect from 'sentry/components/forms/compactSelect';
 import {PanelTable, PanelTableHeader} from 'sentry/components/panels';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs, showPlayerTime} from 'sentry/components/replays/utils';
+import SearchBar from 'sentry/components/searchBar';
 import Tooltip from 'sentry/components/tooltip';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -12,11 +15,18 @@ import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {ColorOrAlias} from 'sentry/utils/theme';
 import {
+  Filters,
+  getFilteredNetworkSpans,
+  getResourceTypes,
+  getStatusTypes,
   ISortConfig,
   NetworkSpan,
   sortNetwork,
+  UNKNOWN_STATUS,
 } from 'sentry/views/replays/detail/network/utils';
 import type {ReplayRecord} from 'sentry/views/replays/types';
+
+import FluidHeight from '../layout/fluidHeight';
 
 type Props = {
   networkSpans: NetworkSpan[];
@@ -31,6 +41,15 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     asc: true,
     getValue: row => row[sortConfig.by],
   });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState<Filters>({});
+
+  const filteredNetworkSpans = useMemo(
+    () => getFilteredNetworkSpans(networkSpans, searchTerm, filters),
+    [filters, networkSpans, searchTerm]
+  );
+
+  const handleSearch = debounce(query => setSearchTerm(query), 150);
 
   const handleMouseEnter = useCallback(
     (timestamp: number) => {
@@ -79,8 +98,8 @@ function NetworkList({replayRecord, networkSpans}: Props) {
   }
 
   const networkData = useMemo(
-    () => sortNetwork(networkSpans, sortConfig),
-    [networkSpans, sortConfig]
+    () => sortNetwork(filteredNetworkSpans, sortConfig),
+    [filteredNetworkSpans, sortConfig]
   );
 
   const sortArrow = (sortedBy: string) => {
@@ -92,6 +111,28 @@ function NetworkList({replayRecord, networkSpans}: Props) {
       />
     ) : null;
   };
+
+  const handleFilters = useCallback(
+    (
+      selectedValues: (string | number)[],
+      key: string,
+      filter: (network: NetworkSpan) => boolean
+    ) => {
+      const filtersCopy = {...filters};
+
+      if (selectedValues.length === 0) {
+        delete filtersCopy[key];
+        setFilters(filtersCopy);
+        return;
+      }
+
+      setFilters({
+        ...filters,
+        [key]: filter,
+      });
+    },
+    [filters]
+  );
 
   const columns = [
     <SortItem key="status">
@@ -185,18 +226,85 @@ function NetworkList({replayRecord, networkSpans}: Props) {
   };
 
   return (
-    <StyledPanelTable
-      columns={columns.length}
-      isEmpty={networkData.length === 0}
-      emptyMessage={t('No related network requests found.')}
-      headers={columns}
-      disablePadding
-      stickyHeaders
-    >
-      {networkData.map(renderTableRow) || null}
-    </StyledPanelTable>
+    <NetworkContainer>
+      <NetworkFilters>
+        <CompactSelect
+          triggerProps={{
+            prefix: t('Resource Type'),
+          }}
+          multiple
+          options={getResourceTypes(networkSpans).map(networkSpanResourceType => ({
+            value: networkSpanResourceType,
+            label: networkSpanResourceType,
+          }))}
+          size="sm"
+          onChange={selections => {
+            const selectedValues = selections.map(selection => selection.value);
+
+            handleFilters(selectedValues, 'resourceType', (networkSpan: NetworkSpan) => {
+              return selectedValues.includes(networkSpan.op.replace('resource.', ''));
+            });
+          }}
+        />
+        <CompactSelect
+          triggerProps={{
+            prefix: t('Status'),
+          }}
+          multiple
+          options={getStatusTypes(networkSpans).map(networkSpanStatusType => ({
+            value: networkSpanStatusType,
+            label: networkSpanStatusType,
+          }))}
+          size="sm"
+          onChange={selections => {
+            const selectedValues = selections.map(selection => selection.value);
+
+            handleFilters(selectedValues, 'statusCode', (networkSpan: NetworkSpan) => {
+              if (
+                selectedValues.includes(UNKNOWN_STATUS) &&
+                !defined(networkSpan.data.statusCode)
+              ) {
+                return true;
+              }
+
+              return selectedValues.includes(networkSpan.data.statusCode);
+            });
+          }}
+        />
+        <SearchBar
+          size="sm"
+          onChange={handleSearch}
+          placeholder={t('Search Network...')}
+        />
+      </NetworkFilters>
+      <StyledPanelTable
+        columns={columns.length}
+        isEmpty={networkData.length === 0}
+        emptyMessage={t('No related network requests found.')}
+        headers={columns}
+        disablePadding
+        stickyHeaders
+      >
+        {networkData.map(renderTableRow) || null}
+      </StyledPanelTable>
+    </NetworkContainer>
   );
 }
+
+const NetworkContainer = styled(FluidHeight)`
+  height: 100%;
+`;
+
+const NetworkFilters = styled('div')`
+  display: grid;
+  gap: ${space(1)};
+  grid-template-columns: max-content max-content 1fr;
+  margin-bottom: ${space(1)};
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    margin-top: ${space(1)};
+  }
+`;
 
 const Item = styled('div')<{center?: boolean; color?: ColorOrAlias; numeric?: boolean}>`
   display: flex;
