@@ -727,7 +727,7 @@ class GroupEvent(BaseEvent):
             event_id=event.event_id,
             group=group,
             data=deepcopy(event.data),
-            snuba_data=deepcopy(event.snuba_data),
+            snuba_data=deepcopy(event._snuba_data),
         )
 
 
