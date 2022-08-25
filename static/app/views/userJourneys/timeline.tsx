@@ -11,6 +11,7 @@ const NOTABLE_CATEGORIES = [
   'sentry.event',
   'sentry.transaction',
   'selection',
+  'app.lifecycle',
 ];
 
 interface CrumbGroup {
