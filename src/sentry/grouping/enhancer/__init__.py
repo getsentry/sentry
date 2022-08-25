@@ -7,17 +7,18 @@ from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar, NodeVisitor
 
 from sentry.grouping.component import GroupingComponent
-from sentry.grouping.mypyc.actions import FlagAction, VarAction
-from sentry.grouping.mypyc.exceptions import InvalidEnhancerConfig
-from sentry.grouping.mypyc.matchers import (  # TODO: Better directory structure; ExceptionFieldMatch,; Match,
+from sentry.utils.strings import unescape_string
+
+from .mypyc.actions import FlagAction, VarAction
+from .mypyc.exceptions import InvalidEnhancerConfig
+from .mypyc.matchers import (  # TODO: Better directory structure; ExceptionFieldMatch,; Match,
     CalleeMatch,
     CallerMatch,
     FrameMatch,
 )
-from sentry.grouping.mypyc.rule import Rule
-from sentry.grouping.mypyc.stacktrace import StacktraceState
-from sentry.grouping.mypyc.utils import MatchFrame, apply_modifications_to_frame
-from sentry.utils.strings import unescape_string
+from .mypyc.rule import Rule
+from .mypyc.stacktrace import StacktraceState
+from .mypyc.utils import MatchFrame, apply_modifications_to_frame
 
 # Grammar is defined in EBNF syntax.
 enhancements_grammar = Grammar(

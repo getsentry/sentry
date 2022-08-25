@@ -2,7 +2,7 @@ import pytest
 
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
-from sentry.grouping.mypyc.utils import MatchFrame
+from sentry.grouping.enhancer.mypyc.utils import MatchFrame
 
 
 def dump_obj(obj):

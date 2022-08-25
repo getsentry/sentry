@@ -1,9 +1,8 @@
 from typing import Any, List, Mapping, Sequence, Tuple, Union, cast
 
-from sentry.grouping.mypyc.matchers import ExceptionFieldMatch, Match
-from sentry.grouping.mypyc.utils import ExceptionData, MatchFrame, MatchingCache
-
 from .actions import Action, ActionConfigStructure
+from .matchers import ExceptionFieldMatch, Match
+from .utils import ExceptionData, MatchFrame, MatchingCache
 
 RuleConfigStructure = List[Union[List[str], List[ActionConfigStructure]]]
 

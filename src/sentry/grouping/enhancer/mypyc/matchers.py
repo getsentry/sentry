@@ -1,9 +1,9 @@
 from typing import TYPE_CHECKING, Any, ClassVar, Mapping, MutableMapping, Sequence, Tuple, Type
 
-from sentry.grouping.mypyc.exceptions import InvalidEnhancerConfig
 from sentry.grouping.utils import get_rule_bool
 from sentry.utils.safe import get_path
 
+from .exceptions import InvalidEnhancerConfig
 from .glob import glob_match, translate
 from .utils import ExceptionData, MatchFrame, MatchingCache, cached
 

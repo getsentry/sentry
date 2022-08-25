@@ -12,12 +12,12 @@ from typing import (
     Union,
 )
 
-from sentry.grouping.mypyc.stacktrace import StacktraceState
 from sentry.grouping.utils import get_rule_bool
 from sentry.stacktraces.functions import set_in_app
 from sentry.utils.safe import get_path, set_path
 
 from .exceptions import InvalidEnhancerConfig
+from .stacktrace import StacktraceState
 from .utils import FrameData, MatchFrame
 
 if TYPE_CHECKING:

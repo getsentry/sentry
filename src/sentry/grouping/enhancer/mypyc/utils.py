@@ -16,7 +16,7 @@ from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
-    from sentry.grouping.mypyc.rule import Rule
+    from .rule import Rule
 
 
 FrameData = Mapping[str, Any]
