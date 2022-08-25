@@ -4,7 +4,7 @@ import React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {getRecognitionActionMapping, recognitionCommands} from './commands';
+import {getVoiceActionById, recognitionCommands} from './commands';
 import {VoiceAssistantButton} from './floatingButton';
 import {grammar} from './grammars';
 import {VoiceAssistantTextbox} from './textBox';
@@ -165,8 +165,11 @@ class VoiceAssistantPanel extends React.Component<
           NotifyStyle.RecognizedResult
         );
 
-        const actionMapping = getRecognitionActionMapping(router, params);
-        const action = actionMapping[matchResult.id];
+        const action = getVoiceActionById(matchResult.id, {
+          matchedAlternative,
+          router,
+          params,
+        });
         if (action) {
           console.log(
             `Result: ${JSON.stringify(

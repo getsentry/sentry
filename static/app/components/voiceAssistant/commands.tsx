@@ -1,12 +1,28 @@
+/* eslint-disable no-console */
 import {InjectedRouter} from 'react-router';
 
 import {speakPhrase} from './speechSynthesis';
 import {FuzzyCommand, HierarchicalCommand} from './voiceAssistParser';
 
+interface VoiceActionContext {
+  matchedAlternative: SpeechRecognitionAlternative;
+  params: {[id: string]: string};
+  router: InjectedRouter;
+}
+
+export function getVoiceActionById(
+  actionId: string,
+  context: VoiceActionContext
+): () => void {
+  const actionMapping = getRecognitionActionMapping(context);
+  return actionMapping[actionId];
+}
+
 export const recognitionCommands = [
   new FuzzyCommand('navigate_settings', ['navigate', 'go'], ['settings', 'setting']),
   new FuzzyCommand('navigate_projects', ['navigate', 'go'], ['projects']),
   new FuzzyCommand('navigate_performance', ['navigate', 'go'], ['performance']),
+  new FuzzyCommand('navigate_issues', ['navigate', 'go'], ['issues']),
   new FuzzyCommand(
     'navigate_project_keys',
     ['navigate', 'go', 'show', 'give'],
@@ -29,14 +45,20 @@ export const recognitionCommands = [
     ['first'],
     ['project', 'projects']
   ),
+  new HierarchicalCommand(
+    'select_issue_from_list',
+    ['open'],
+    ['first', 'second', 'third', 'fourth', 'forth', 'fifth', 'sixth', 'last'],
+    ['issue', 'issues']
+  ),
 ];
 
 // Mappings
 
-export function getRecognitionActionMapping(
-  router: InjectedRouter,
-  params: any
-): {[id: string]: () => void} {
+function getRecognitionActionMapping(context: VoiceActionContext): {
+  [id: string]: () => void;
+} {
+  const {matchedAlternative, router, params} = context;
   return {
     navigate_settings: () => {
       router.push({
@@ -51,6 +73,11 @@ export function getRecognitionActionMapping(
     navigate_performance: () => {
       router.push({
         pathname: `/organizations/${params.orgId}/performance/`,
+      });
+    },
+    navigate_issues: () => {
+      router.push({
+        pathname: `/organizations/${params.orgId}/issues/`,
       });
     },
     navigate_project_keys: () => {
@@ -118,56 +145,66 @@ export function getRecognitionActionMapping(
 
       speakPhrase(`Your user misery score is ${userMiseryScore}`);
     },
+
+    select_issue_from_list: () => {
+      const recognizedText = matchedAlternative.transcript.toLowerCase();
+      const words = recognizedText.split(' ');
+      const issueNumber = findOrdinalFromWords(words);
+      if (issueNumber) {
+        const allIssues = document.querySelectorAll('div[data-test-id="group"]');
+        const selectedIssue = allIssues[issueNumber - 1];
+        const issueLink = selectedIssue.querySelector('a');
+        if (issueLink) {
+          issueLink.click();
+        } else {
+          console.log(`Cannot find the issue link`);
+        }
+      } else {
+        console.log(`Invalid issue number! Recognized text: "${recognizedText}"`);
+      }
+    },
   };
 }
 
-function elementContainsText(selector, text) {
+// Helpers
+
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function elementContainsText(selector: string, text: string) {
   const elements = document.querySelectorAll(selector);
   return Array.prototype.filter.call(elements, function (element) {
     return RegExp(text).test(element.textContent);
   });
 }
 
-const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+function findOrdinalFromWords(words: string[]): number | undefined {
+  const wordMap = {
+    first: 1,
+    second: 2,
+    third: 3,
+    fourth: 4,
+    forth: 4,
+    fifth: 5,
+    sixth: 6,
+    seventh: 7,
+    eighth: 8,
+    nineth: 9,
+    tenth: 10,
+  };
+
+  for (const word of words) {
+    const num = wordMap[word];
+    if (num) {
+      return num;
+    }
+  }
+
+  return undefined;
+}
 
 /*
-
-/// Navigation
-
-// Settings page
-
-router.push({
-  pathname: `/settings/${orgId}/`,
-  query: {},
-});
-
-// Project page
-
-router.push({
-  pathname: `/organizations/${orgId}/projects/`,
-  query: {},
-});
-
-// Discover
-
-router.push({
-  pathname: `/organizations/${orgId}/discover/queries/`,
-  query: {},
-});
-
-// DSN page
-
-router.push({
-  pathname: `/settings/${orgId}/projects/${projectId}/keys/`,
-  query: {},
-});
-
-// Performance page
-
-router.push({
-  pathname: `/organizations/${orgId}/performance/`,
-  query: {},
-});
 
 /// Actions
 
@@ -184,8 +221,5 @@ btn.click();
 // Performance page: what is my apdex score? What is my user mysery
 // Step 1: Switch to the proper graph
 // Step 2: Speak
-
-
-
 
 */
