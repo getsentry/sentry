@@ -31,12 +31,18 @@ function Timeline({breadcrumbs, onActivateCrumb}: Props) {
   return (
     <ScrollContainer>
       <ItemRow>
-        {notable.map(group => {
+        {notable.map((group, index) => {
           const handleClick = (event: React.MouseEvent) => {
             event.preventDefault();
             onActivateCrumb(group.crumbs[0]);
           };
-          return <CrumbItem key={group.timestamp} group={group} onClick={handleClick} />;
+          return (
+            <CrumbItem
+              key={`${group.timestamp}-${index}`}
+              group={group}
+              onClick={handleClick}
+            />
+          );
         })}
       </ItemRow>
     </ScrollContainer>

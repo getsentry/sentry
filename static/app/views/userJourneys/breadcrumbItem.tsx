@@ -53,7 +53,7 @@ function BreadcrumbItem(props: Props) {
   const isInViewport = useIsInViewport(breadcrumbRef);
 
   if (isInViewport) {
-    console.log(`${index} is in view`);
+    // console.log(`${index} is in view`);
   }
 
   const isActive = activeCrumb && activeCrumb.id === breadcrumb.id;
