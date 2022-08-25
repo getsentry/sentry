@@ -35,13 +35,9 @@ function IssueHotSpots({organizationSlug, projects}: Props) {
   const DELIMITER = '/';
 
   const [isLoading, setIsLoading] = useState(true);
-  const [diagramData, setDiagramData] = useState();
+  const [diagramData, setDiagramData] = useState<unknown[]>();
 
   const projectId = projects[0].id;
-
-  let maxDepth = 1;
-  let maxErrorCount = 1;
-  let maxUniqueErrorCount = 1;
 
   useEffect(() => {
     const hotspotsEndpoint = `/api/0/organizations/${organizationSlug}/issues-hotspots/?project=${projectId}&statsPeriod=90d&noPagination=true&field=stack.filename&field=stack.filename&field=count()&field=count_unique(issue)`;
@@ -60,29 +56,38 @@ function IssueHotSpots({organizationSlug, projects}: Props) {
     })
       .then(result => result.json())
       .then(result => {
-        for (const i in result) {
-          const item = result[i];
-          if ('depth' in item) {
-            // eslint-disable-next-line react-hooks/exhaustive-deps
-            maxDepth = Math.max(maxDepth, +item.depth);
-          }
-          if ('errorCount' in item) {
-            // eslint-disable-next-line react-hooks/exhaustive-deps
-            maxErrorCount = Math.max(maxErrorCount, +item.errorCount);
-          }
-
-          if ('uniqueErrorCount' in item) {
-            // eslint-disable-next-line react-hooks/exhaustive-deps
-            maxUniqueErrorCount = Math.max(maxUniqueErrorCount, +item.uniqueErrorCount);
-          }
-        }
         setDiagramData(result);
         setIsLoading(false);
       });
   }, [organizationSlug, projectId]);
 
-  if (isLoading || diagramData.length === 0) {
+  if (isLoading) {
     return null;
+  }
+
+  if (diagramData && diagramData.length === 0) {
+    return null;
+  }
+
+  let maxDepth = 1;
+  let maxErrorCount = 1;
+  let maxUniqueErrorCount = 1;
+
+  for (const i in diagramData) {
+    const item = diagramData[i];
+    if ('depth' in item) {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      maxDepth = Math.max(maxDepth, +item.depth);
+    }
+    if ('errorCount' in item) {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      maxErrorCount = Math.max(maxErrorCount, +item.errorCount);
+    }
+
+    if ('uniqueErrorCount' in item) {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      maxUniqueErrorCount = Math.max(maxUniqueErrorCount, +item.uniqueErrorCount);
+    }
   }
 
   function stratify() {
@@ -149,6 +154,12 @@ function IssueHotSpots({organizationSlug, projects}: Props) {
 
     const itemData = params.context.nodes[api.value(0)].data;
     const colors = [
+      '#f3edf4',
+      '#e8dce9',
+      '#dccbde',
+      '#d1bad4',
+      '#c6a9c9',
+      '#ba98be',
       '#af87b4',
       '#a376a9',
       '#98659e',
@@ -159,6 +170,8 @@ function IssueHotSpots({organizationSlug, projects}: Props) {
     ];
     const colorIndex =
       Math.floor((colors.length / maxUniqueErrorCount) * itemData.uniqueErrorCount) - 1;
+
+    const circleColor = isLeaf ? colors[colorIndex] : api.visual('color');
 
     const output = {
       type: 'circle',
@@ -190,7 +203,7 @@ function IssueHotSpots({organizationSlug, projects}: Props) {
         position: 'inside',
       },
       style: {
-        fill: isLeaf ? colors[colorIndex] : api.visual('color'),
+        fill: circleColor,
       },
       emphasis: {
         style: {
@@ -222,7 +235,7 @@ function IssueHotSpots({organizationSlug, projects}: Props) {
         max: maxDepth,
         dimension: 'depth',
         inRange: {
-          color: ['#ffe0cf', '#fff7f3'], // Light Flame shades
+          color: ['#ffd8c3', '#fff7f3'], // Light Flame shades
         },
       },
     ],
