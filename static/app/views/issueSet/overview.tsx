@@ -1,14 +1,14 @@
 import {RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import PageHeading from 'sentry/components/pageHeading';
-import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import IssueSetPanelItem from './components/IssueSetPanelItem';
+import IssueSetListItem from './components/IssueSetListItem';
 
 type Props = {
   organization: Organization;
@@ -26,20 +26,22 @@ class IssueSetOverview extends AsyncComponent<Props, State> {
     const {organization} = this.props;
     const {issueSets} = this.state;
     return (
-      <PageContent>
+      <StyledPageContent>
         <PageHeading withMargins>{t('Issue Sets')}</PageHeading>
-        <Panel>
-          {issueSets.map(issueSet => (
-            <IssueSetPanelItem
-              key={issueSet.id}
-              issueSet={issueSet}
-              organization={organization}
-            />
-          ))}
-        </Panel>
-      </PageContent>
+        {issueSets.map(issueSet => (
+          <IssueSetListItem
+            key={issueSet.id}
+            issueSet={issueSet}
+            organization={organization}
+          />
+        ))}
+      </StyledPageContent>
     );
   }
 }
+
+const StyledPageContent = styled(PageContent)`
+  background: ${p => p.theme.background};
+`;
 
 export default withOrganization(IssueSetOverview);

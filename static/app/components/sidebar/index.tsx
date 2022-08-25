@@ -258,7 +258,7 @@ function Sidebar({location, organization}: Props) {
       {...sidebarItemProps}
       icon={<IconPin size="md" />}
       label={t('Issue Sets')}
-      to={`/organizations/${organization.slug}/issue-sets/`}
+      to={`/organizations/${organization.slug}/issues/sets/`}
       id="issue-sets"
     />
   );

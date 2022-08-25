@@ -16,7 +16,7 @@ class IssueSetSerializer(Serializer):
             issue_set_map[issue_set.id] = issue_set
             attrs[issue_set] = {"items": []}
 
-        issue_set_items_qs = IssueSetItem.objects.filter(id__in=issue_set_ids)
+        issue_set_items_qs = IssueSetItem.objects.filter(issue_set_id__in=issue_set_ids)
         issue_set_items = serialize(
             list(issue_set_items_qs), user, serializer=IssueSetItemSerializer()
         )
