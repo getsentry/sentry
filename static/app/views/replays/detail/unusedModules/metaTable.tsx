@@ -18,10 +18,10 @@ function MetaTable({
   const percentInUse = Math.round((usedModules.length / totalModules) * 10000) / 100;
 
   const extraWeight = unusedModules
-    .map(moduleName => MODULES_WITH_SIZE[moduleName])
+    .map(moduleName => MODULES_WITH_SIZE[moduleName] || 0)
     .reduce((sum, n) => sum + n, 0);
   const usedWeight = usedModules
-    .map(moduleName => MODULES_WITH_SIZE[moduleName])
+    .map(moduleName => MODULES_WITH_SIZE[moduleName] || 0)
     .reduce((sum, n) => sum + n, 0);
 
   const query = '';
