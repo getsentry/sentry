@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import moment from 'moment';
 
 import CrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
+import Tooltip from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
 import {Crumb} from 'sentry/types/breadcrumbs';
 
@@ -81,7 +82,9 @@ function CrumbItem({group, onClick}: ItemProps) {
           color={crumb.color}
           offset={icons.length}
         >
-          <CrumbIcon type={crumb.type} size="md" />
+          <Tooltip title={String(crumb.type)}>
+            <CrumbIcon type={crumb.type} size="md" />
+          </Tooltip>
         </IconWrapper>
       );
       i++;
