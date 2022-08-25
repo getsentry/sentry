@@ -5,8 +5,10 @@ import Tooltip from 'sentry/components/tooltip';
 import CHART_PALETTE from 'sentry/constants/chartPalette';
 import {IconSound} from 'sentry/icons';
 import {tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
+// @ts-ignore
 import boop from './boop.wav';
 
 // Maps User Misery scores to a unique scream audio file
@@ -83,16 +85,25 @@ function UserMisery(props: Props) {
   }
   return (
     <Tooltip title={title} containerDisplayMode="block">
-      <ScoreBar size={barHeight} score={score} palette={palette} radius={0} />
-      <IconButton onClick={handleSoundButtonClick}>
-        <IconSound color="gray500" size="sm" />
-      </IconButton>
+      <MiseryWrapper>
+        <ScoreBar size={barHeight} score={score} palette={palette} radius={0} />
+        <IconButton onClick={handleSoundButtonClick}>
+          <IconSound color="gray500" size="sm" />
+        </IconButton>
+      </MiseryWrapper>
     </Tooltip>
   );
 }
 
+const MiseryWrapper = styled('div')`
+  display: flex;
+`;
+
 const IconButton = styled('div')`
+  display: flex;
+  align-items: center;
   cursor: pointer;
+  margin-left: ${space(1)};
 `;
 
 export default UserMisery;

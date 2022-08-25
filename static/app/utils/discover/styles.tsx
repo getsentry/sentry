@@ -38,7 +38,7 @@ export const FieldShortId = styled(ShortId)`
 `;
 
 export const BarContainer = styled('div')`
-  max-width: 80px;
+  max-width: 100px;
   margin-left: auto;
 `;
 
