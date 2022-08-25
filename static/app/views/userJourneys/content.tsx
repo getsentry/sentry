@@ -1,5 +1,6 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import moment from 'moment';
 
 import {Breadcrumb} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb';
 import {PanelTable} from 'sentry/components/panels';
@@ -32,7 +33,26 @@ type Props = Pick<
 
 function Breadcrumbs(props: Props) {
   const scrollbarSize = 20;
-  const {breadcrumbs, displayRelativeTime, onSwitchTimeFormat, emptyMessage} = props;
+  const {
+    breadcrumbs: oldBreadcrumbs,
+    displayRelativeTime,
+    onSwitchTimeFormat,
+    emptyMessage,
+  } = props;
+
+  const breadcrumbs = [...oldBreadcrumbs];
+  breadcrumbs.sort((a, b) => {
+    const aTimestamp = moment(a.timestamp).unix();
+    const bTimestamp = moment(b.timestamp).unix();
+    if (aTimestamp < bTimestamp) {
+      return -1;
+    }
+    if (aTimestamp > bTimestamp) {
+      return 1;
+    }
+    return 0;
+  });
+  // breadcrumbs.reverse();
 
   const [activeCrumb, setActiveCrumb] = useState<Crumb>();
 

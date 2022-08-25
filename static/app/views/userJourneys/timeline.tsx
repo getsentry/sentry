@@ -10,6 +10,7 @@ const NOTABLE_CATEGORIES = [
   'navigation',
   'sentry.event',
   'sentry.transaction',
+  'selection',
 ];
 
 interface CrumbGroup {
@@ -39,6 +40,7 @@ function Timeline({breadcrumbs, onActivateCrumb}: Props) {
     }
     return 0;
   });
+  notable.reverse();
   return (
     <ScrollContainer>
       <ItemRow>

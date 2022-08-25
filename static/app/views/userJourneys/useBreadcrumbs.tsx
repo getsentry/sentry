@@ -90,7 +90,7 @@ function useBreadcrumbs(props: Props) {
       // eslint-disable-next-line no-console
       console.log(events);
       if (events) {
-        setSampleEvent(events[0]);
+        setSampleEvent(events[events.length - 1]);
         const seenCrumbs = new Set<string>();
         const breadcrumbs: RawCrumb[] = events.reduce((acc, event) => {
           const breadcrumbEntries = event.entries.filter(
@@ -121,7 +121,7 @@ function useBreadcrumbs(props: Props) {
       setLoading(false);
     }
     const firstFew = breadcrumbEvents.slice(0, 10);
-    const rest = breadcrumbEvents.slice(10);
+    const rest = breadcrumbEvents;
     fetchEvents(firstFew);
     fetchEvents(rest);
   }, [api, breadcrumbEvents, org.slug]);
