@@ -76,7 +76,7 @@ function useBreadcrumbs(props: Props) {
       return;
     }
     async function fetchEvents(sourceEvents: Array<BreadcrumbEvent>) {
-      const res = await Promise.all(
+      const res = await Promise.allSettled(
         sourceEvents
           .filter(e => e.title === 'Breadcrumb Event')
           .map(async e => {
@@ -85,8 +85,14 @@ function useBreadcrumbs(props: Props) {
             );
           })
       );
+      const events = res.reduce((acc, val) => {
+        if (val.status === 'fulfilled') {
+          return [...acc, val.value];
+        }
+        return acc;
+      }, [] as Event[]);
 
-      const events = res as Event[];
+      // const events = res as Event[];
       // eslint-disable-next-line no-console
       console.log(events);
       if (events) {
