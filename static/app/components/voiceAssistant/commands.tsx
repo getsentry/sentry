@@ -19,6 +19,7 @@ export function getVoiceActionById(
 }
 
 export const recognitionCommands = [
+  new FuzzyCommand('navigate_history_back', ['navigate', 'go'], ['back']),
   new FuzzyCommand('navigate_settings', ['navigate', 'go'], ['settings', 'setting']),
   new FuzzyCommand('navigate_projects', ['navigate', 'go'], ['projects']),
   new FuzzyCommand('navigate_performance', ['navigate', 'go'], ['performance']),
@@ -60,6 +61,9 @@ function getRecognitionActionMapping(context: VoiceActionContext): {
 } {
   const {matchedAlternative, router, params} = context;
   return {
+    navigate_history_back: () => {
+      router.goBack();
+    },
     navigate_settings: () => {
       router.push({
         pathname: `/settings/${params.orgId}/`,
