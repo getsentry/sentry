@@ -26406,7 +26406,7 @@
 			},
 			{
 				"id": "./app/views/replays/detail/unusedModules/metaTable.tsx",
-				"size": 7043,
+				"size": 7145,
 				"children": [
 					"../node_modules/react-refresh/runtime.js",
 					"../node_modules/@emotion/styled/base/dist/emotion-styled-base.browser.esm.js",
@@ -26416,6 +26416,7 @@
 					"./app/components/tagsTableRow.tsx",
 					"./app/styles/space.tsx",
 					"./app/utils.tsx",
+					"./app/utils/formatters.tsx",
 					"./app/views/replays/detail/unusedModules/utils.tsx",
 					"../node_modules/@emotion/react/jsx-runtime/dist/emotion-react-jsx-runtime.browser.esm.js",
 					"../node_modules/@pmmmwh/react-refresh-webpack-plugin/lib/runtime/RefreshUtils.js",
@@ -26424,7 +26425,7 @@
 			},
 			{
 				"id": "./app/views/replays/detail/unusedModules/moduleTable.tsx",
-				"size": 122819,
+				"size": 123871,
 				"children": [
 					"../node_modules/react-refresh/runtime.js",
 					"../node_modules/@emotion/styled/base/dist/emotion-styled-base.browser.esm.js",
@@ -26440,6 +26441,7 @@
 					"./app/locale.tsx",
 					"./app/styles/input.tsx",
 					"./app/styles/space.tsx",
+					"./app/utils/formatters.tsx",
 					"./app/views/replays/detail/network/utils.tsx",
 					"./app/views/replays/detail/unusedModules/utils.tsx",
 					"../node_modules/@emotion/react/jsx-runtime/dist/emotion-react-jsx-runtime.browser.esm.js",
@@ -72305,7 +72307,7 @@
 			},
 			{
 				"id": "../mock_chunk_data.json",
-				"size": 2722689,
+				"size": 2722747,
 				"children": []
 			}
 		]

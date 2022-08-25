@@ -5,6 +5,7 @@ import {KeyValueTable} from 'sentry/components/keyValueTable';
 import TagsTableRow from 'sentry/components/tagsTableRow';
 import space from 'sentry/styles/space';
 import {formatBytesBase2} from 'sentry/utils';
+import {formatPercentage} from 'sentry/utils/formatters';
 import {MODULES_WITH_SIZE} from 'sentry/views/replays/detail/unusedModules/utils';
 
 function MetaTable({
@@ -15,7 +16,7 @@ function MetaTable({
   usedModules: string[];
 }) {
   const totalModules = unusedModules.length + usedModules.length;
-  const percentInUse = Math.round((usedModules.length / totalModules) * 10000) / 100;
+  const percentInUse = formatPercentage(usedModules.length / totalModules);
 
   const extraWeight = unusedModules
     .map(moduleName => MODULES_WITH_SIZE[moduleName] || 0)
@@ -30,7 +31,7 @@ function MetaTable({
   const leftValues = [
     ['Accessed Modules', String(usedModules.length)],
     ['Unused Modules', String(unusedModules.length)],
-    ['Percent Accessed', `${percentInUse}%`],
+    ['Percent Accessed', percentInUse],
   ];
   const rightValues = [
     ['Accessed Weight', formatBytesBase2(usedWeight)],

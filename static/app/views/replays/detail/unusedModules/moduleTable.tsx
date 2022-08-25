@@ -10,6 +10,7 @@ import {IconArrow, IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {inputStyles} from 'sentry/styles/input';
 import space from 'sentry/styles/space';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import {ISortConfig, sortNetwork} from 'sentry/views/replays/detail/network/utils';
 import {
@@ -198,7 +199,7 @@ function ModuleTable({
               <Item numeric>
                 <FileSize base={2} bytes={Math.round(module.cumulative)} />
               </Item>
-              <Item numeric>{module.incChildren}</Item>
+              <Item numeric>{formatAbbreviatedNumber(module.incChildren)}</Item>
             </Fragment>
           );
         })}
