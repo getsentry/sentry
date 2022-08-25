@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ex
+set -e
 
 # first check if we're passing flags, if so
 # prepend with sentry
