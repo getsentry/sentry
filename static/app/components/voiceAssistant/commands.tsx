@@ -52,6 +52,16 @@ export const recognitionCommands = [
     ['first', 'second', 'third', 'fourth', 'forth', 'fifth', 'sixth', 'last'],
     ['issue', 'issues']
   ),
+  new HierarchicalCommand(
+    'action_resolve_issue',
+    ['resolve', 'resolved'],
+    ['issue', 'issues']
+  ),
+  new HierarchicalCommand(
+    'action_unresolve_issue',
+    ['unresolve', 'unresolved'],
+    ['issue', 'issues']
+  ),
 ];
 
 // Mappings
@@ -167,6 +177,20 @@ function getRecognitionActionMapping(context: VoiceActionContext): {
         console.log(`Invalid issue number! Recognized text: "${recognizedText}"`);
       }
     },
+
+    action_resolve_issue: () => {
+      const resolveButton = document.querySelector(
+        'button[aria-label="Resolve"]'
+      ) as HTMLButtonElement;
+      resolveButton.click();
+    },
+
+    action_unresolve_issue: () => {
+      const unResolveButton = document.querySelector(
+        'button[aria-label="Unresolve"]'
+      ) as HTMLButtonElement;
+      unResolveButton.click();
+    },
   };
 }
 
@@ -207,23 +231,3 @@ function findOrdinalFromWords(words: string[]): number | undefined {
 
   return undefined;
 }
-
-/*
-
-/// Actions
-
-// Resolve the issue
-
-btn = document.querySelector('button[aria-label="Resolve"]');
-btn.click();
-
-// Unresolve the issue
-
-btn = document.querySelector('button[aria-label="Unresolve"]');
-btn.click();
-
-// Performance page: what is my apdex score? What is my user mysery
-// Step 1: Switch to the proper graph
-// Step 2: Speak
-
-*/
