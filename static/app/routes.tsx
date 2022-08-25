@@ -19,6 +19,8 @@ import App from 'sentry/views/app';
 import AuthLayout from 'sentry/views/auth/layout';
 import IssueListContainer from 'sentry/views/issueList/container';
 import IssueListOverview from 'sentry/views/issueList/overview';
+import IssueSetCarouselView from 'sentry/views/issueSet/carouselView';
+import IssueSetOverview from 'sentry/views/issueSet/overview';
 import OrganizationContextContainer from 'sentry/views/organizationContextContainer';
 import OrganizationDetails from 'sentry/views/organizationDetails';
 import {Tab} from 'sentry/views/organizationGroupDetails/types';
@@ -27,8 +29,6 @@ import ProjectEventRedirect from 'sentry/views/projectEventRedirect';
 import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprecatedProjectRoute';
 import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
-
-import IssueSetOverview from './views/issueSet/overview';
 
 type CustomProps = {
   name?: string;
@@ -1250,7 +1250,7 @@ function buildRoutes() {
       <IndexRoute component={errorHandler(IssueListOverview)} />
       <Route path="searches/:searchId/" component={errorHandler(IssueListOverview)} />
       <Route path="sets/" component={errorHandler(IssueSetOverview)} />
-      <Route path="sets/:issueSetId/" component={errorHandler(IssueSetOverview)} />
+      <Route path="sets/:issueSetId/" component={errorHandler(IssueSetCarouselView)} />
     </Route>
   );
 

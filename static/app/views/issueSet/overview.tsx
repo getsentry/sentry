@@ -12,7 +12,7 @@ import IssueSetListItem from './components/IssueSetListItem';
 
 type Props = {
   organization: Organization;
-} & RouteComponentProps<{searchId?: string}, {}>;
+} & RouteComponentProps<{}, {}>;
 
 type State = any;
 
