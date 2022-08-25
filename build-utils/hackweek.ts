@@ -1,6 +1,7 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
 
+import crypto from 'crypto';
 import fs from 'fs';
 
 import {RuntimeModule, Template} from 'webpack';
@@ -192,12 +193,31 @@ class HackweekPlugin {
         });
       });
 
-      if (process.env.NO_HACKWEEK_MOCK_DATA !== 'true') {
-        fs.writeFileSync(this.outPath, JSON.stringify(emitted, null, '\t'));
-      }
+      writeFileSyncIfContentChanged(
+        this.outPath,
+        JSON.stringify(emitted, null, '\t') + '\n'
+      );
 
       callback();
     });
+  }
+}
+
+function writeFileSyncIfContentChanged(path: string, content: string) {
+  if (!fs.existsSync(path)) {
+    fs.writeFileSync(path, content);
+    return;
+  }
+
+  const newHash = crypto.createHash('sha256');
+  newHash.update(content);
+
+  const fileBuffer = fs.readFileSync(path);
+  const existingHash = crypto.createHash('sha256');
+  existingHash.update(fileBuffer);
+
+  if (existingHash.digest('hex') !== newHash.digest('hex')) {
+    fs.writeFileSync(path, content);
   }
 }
 

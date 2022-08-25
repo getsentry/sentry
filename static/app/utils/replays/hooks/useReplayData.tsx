@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/react';
 import {inflate} from 'pako';
 
 import type {ResponseMeta} from 'sentry/api';
+import {ReplayCodecovAttachment} from 'sentry/utils/replays/codecovRepo';
 import flattenListOfObjects from 'sentry/utils/replays/flattenListOfObjects';
 import useReplayErrors from 'sentry/utils/replays/hooks/useReplayErrors';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
@@ -10,7 +11,6 @@ import ReplayReader from 'sentry/utils/replays/replayReader';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import type {
-  Codecov,
   RecordingEvent,
   ReplayCrumb,
   ReplayError,
@@ -22,7 +22,7 @@ import type {
 type State = {
   breadcrumbs: undefined | ReplayCrumb[];
 
-  codecov: undefined | Codecov[];
+  codecov: undefined | ReplayCodecovAttachment[];
 
   /**
    * List of errors that occurred during replay
@@ -74,7 +74,7 @@ type Options = {
 // See https://github.com/microsoft/TypeScript/issues/15300
 type ReplayAttachment = {
   breadcrumbs: ReplayCrumb[];
-  codecov: Codecov[];
+  codecov: ReplayCodecovAttachment[];
   recording: RecordingEvent[];
   replaySpans: ReplaySpan[];
 };

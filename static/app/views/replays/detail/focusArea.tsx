@@ -64,18 +64,14 @@ function FocusArea({}: Props) {
     case 'network':
       return <NetworkList replayRecord={replayRecord} networkSpans={getNetworkSpans()} />;
     case 'filesize':
+      return <FilesizeTable invocations={replay.getChunkInvocationsByTxn()} />;
+    case 'modules':
       return (
-        <FilesizeTable
-          // replayRecord={replayRecord}
-          invocations={replay.getChunkInvocationsByTxn()}
+        <UnusedModules
+          codecovRepo={replay.getCodecovRepo()}
+          replayRecord={replayRecord}
         />
       );
-    case 'modules':
-      return <UnusedModules replayRecord={replayRecord}
-          imports={replay?.getImports()}
-          accessed={replay?.getModuleCalls()}
-
-        />;
     case 'trace':
       const features = ['organizations:performance-view'];
 

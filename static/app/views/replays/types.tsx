@@ -136,17 +136,23 @@ export type MemorySpanType = ReplaySpan<{
   };
 }>;
 
-export interface Codecov {
-  modules: Array<{
-    endTimestamp: number;
-    fn: undefined | string;
-    module: string;
-    startTimestamp: number;
-    transaction: undefined | string;
-  }>;
-  type: 'modulecalls' | 'imports';
-  url: string;
-}
+export type WebpackModule = {
+  id: string;
+  size: number;
+};
+export type WebpackChunk = {
+  id: string;
+  modules: WebpackModule[];
+};
+
+/**
+ * @deprecated
+ */
+export type ChunkInvocation = {
+  filename: string;
+  size: number;
+  transaction: string;
+};
 
 export type ReplayCrumb = RawCrumb & {
   /**

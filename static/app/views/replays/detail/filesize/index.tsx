@@ -7,8 +7,9 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {ColorOrAlias} from 'sentry/utils/theme';
 import {ChunkInvocation} from 'sentry/views/replays/detail/filesize/utils';
+import type {WebpackChunk} from 'sentry/views/replays/types';
 
-import mockChunkData from '../../../../../../mock_chunk_data.json';
+import webpackStats from '../../../../../../mock_chunk_data.json';
 
 type Props = {
   invocations: ChunkInvocation[];
@@ -35,7 +36,7 @@ function NetworkList({invocations}: Props) {
 
   return (
     <Fragment>
-      <ChunkList chunks={mockChunkData as WebpackChunk[]} invocations={invocations} />
+      <ChunkList invocations={invocations} />
       <StyledPanelTable
         columns={columns.length}
         isEmpty={Object.keys(invocations).length === 0}
@@ -50,20 +51,10 @@ function NetworkList({invocations}: Props) {
   );
 }
 
-type WebpackModule = {
-  id: string;
-  size: number;
-};
-type WebpackChunk = {
-  id: string;
-  modules: WebpackModule[];
-};
-
 type ChunkListProps = {
-  chunks: WebpackChunk[];
   invocations: ChunkInvocation[];
 };
-function ChunkList({chunks, invocations}: ChunkListProps) {
+function ChunkList({invocations}: ChunkListProps) {
   const invokedFilenames = invocations.map(invocation => invocation.filename);
 
   const hasInvokedFile = (modules: string[]) => {
@@ -72,7 +63,7 @@ function ChunkList({chunks, invocations}: ChunkListProps) {
 
   return (
     <ul>
-      {chunks.map(chunk => {
+      {(webpackStats as WebpackChunk[]).map(chunk => {
         const moduleIds = chunk.modules.map(module => module.id);
         const open = hasInvokedFile(moduleIds);
 

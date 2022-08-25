@@ -1,4 +1,5 @@
 import type {Crumb} from 'sentry/types/breadcrumbs';
+import {CodecovRepo, ReplayCodecovAttachment} from 'sentry/utils/replays/codecovRepo';
 import {
   breadcrumbFactory,
   replayTimestamps,
@@ -7,18 +8,20 @@ import {
 } from 'sentry/utils/replays/replayDataUtils';
 import type {ChunkInvocation} from 'sentry/views/replays/detail/filesize/utils';
 import type {
-  Codecov,
   MemorySpanType,
   RecordingEvent,
   ReplayCrumb,
   ReplayError,
   ReplayRecord,
   ReplaySpan,
+  WebpackChunk,
 } from 'sentry/views/replays/types';
+
+import mockChunkData from '../../../../mock_chunk_data.json';
 
 interface ReplayReaderParams {
   breadcrumbs: ReplayCrumb[] | undefined;
-  codecov: Codecov[] | undefined;
+  codecov: ReplayCodecovAttachment[] | undefined;
 
   errors: ReplayError[] | undefined;
 
@@ -87,16 +90,14 @@ export default class ReplayReader {
     this.rrwebEvents = rrwebEventListFactory(replayRecord, rrwebEvents);
 
     this.replayRecord = replayRecord;
-    this.imports = codecov.filter(({type}) => type === 'imports');
-    this.moduleCalls = codecov.filter(({type}) => type === 'modulecalls');
+    this.codecovRepo = new CodecovRepo(codecov);
   }
 
   private replayRecord: ReplayRecord;
   private rrwebEvents: RecordingEvent[];
   private breadcrumbs: Crumb[];
   private spans: ReplaySpan[];
-  private moduleCalls: Codecov[];
-  private imports: Codecov[];
+  private codecovRepo: CodecovRepo;
 
   /**
    * @returns Duration of Replay (milliseonds)
@@ -121,12 +122,8 @@ export default class ReplayReader {
     return this.spans;
   };
 
-  getImports = () => {
-    return this.imports;
-  };
-
-  getModuleCalls = () => {
-    return this.moduleCalls;
+  getCodecovRepo = () => {
+    return this.codecovRepo;
   };
 
   isMemorySpan = (span: ReplaySpan): span is MemorySpanType => {
@@ -138,7 +135,7 @@ export default class ReplayReader {
   };
 
   getWebpackStatsFile() {
-    return {};
+    return mockChunkData as WebpackChunk[];
   }
 
   getChunkInvocationsByTxn(): ChunkInvocation[] {
