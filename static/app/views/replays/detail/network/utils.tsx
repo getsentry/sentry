@@ -6,16 +6,16 @@ export type NetworkSpan = {
   description?: string;
 };
 
-export interface ISortConfig {
+export interface ISortConfig<T extends object> {
   asc: boolean;
-  by: keyof NetworkSpan | string;
-  getValue: (row: NetworkSpan) => any;
+  by: keyof T | string;
+  getValue: (row: T) => any;
 }
 
-export function sortNetwork(
-  network: NetworkSpan[],
-  sortConfig: ISortConfig
-): NetworkSpan[] {
+export function sortNetwork<T extends object>(
+  network: T[],
+  sortConfig: ISortConfig<T>
+): T[] {
   return [...network].sort((a, b) => {
     let valueA = sortConfig.getValue(a);
     let valueB = sortConfig.getValue(b);

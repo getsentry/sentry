@@ -1,4 +1,4 @@
-import {Fragment, ReactNode, useState} from 'react';
+import {Fragment, ReactNode, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -6,10 +6,11 @@ import ButtonBar from 'sentry/components/buttonBar';
 import FileSize from 'sentry/components/fileSize';
 import {PanelTable, PanelTableHeader} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
-import {IconCheckmark, IconClose} from 'sentry/icons';
+import {IconArrow, IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {ColorOrAlias} from 'sentry/utils/theme';
+import {ISortConfig, sortNetwork} from 'sentry/views/replays/detail/network/utils';
 import {MODULES_WITH_SIZE} from 'sentry/views/replays/detail/unusedModules/utils';
 
 enum TableMode {
@@ -23,27 +24,41 @@ enum ModuleState {
   Unused,
 }
 
+type Record = {
+  name: string;
+  size: number;
+  state: ModuleState;
+};
+
 function getModules(
   mode: TableMode,
+  sortConfig: ISortConfig<Record>,
   {usedModules, unusedModules}: {unusedModules: string[]; usedModules: string[]}
 ) {
-  const used = usedModules.map(name => ({
-    name,
-    state: ModuleState.Used,
-    size: MODULES_WITH_SIZE[name],
-  }));
-  const unused = unusedModules.map(name => ({
-    name,
-    state: ModuleState.Unused,
-    size: MODULES_WITH_SIZE[name],
-  }));
+  const used = usedModules.map(
+    name =>
+      ({
+        name,
+        size: MODULES_WITH_SIZE[name],
+        state: ModuleState.Used,
+      } as Record)
+  );
+  const unused = unusedModules.map(
+    name =>
+      ({
+        name,
+        size: MODULES_WITH_SIZE[name],
+        state: ModuleState.Unused,
+      } as Record)
+  );
+
   switch (mode) {
     case TableMode.All:
-      return [...used, ...unused];
+      return sortNetwork([...used, ...unused], sortConfig);
     case TableMode.Used:
-      return used;
+      return sortNetwork(used, sortConfig);
     case TableMode.Unused:
-      return unused;
+      return sortNetwork(unused, sortConfig);
     case TableMode.None:
     default:
       return [];
@@ -60,14 +75,56 @@ function ModuleTable({
   usedModules: string[];
 }) {
   const [mode, setMode] = useState<TableMode>(TableMode.None);
+  const [sortConfig, setSortConfig] = useState<ISortConfig<Record>>({
+    by: 'size',
+    asc: false,
+    getValue: row => row[sortConfig.by],
+  });
+
+  const handleSort = useCallback((fieldName: string) => {
+    const getValueFunction = row => row[fieldName];
+
+    setSortConfig(prevSort => {
+      if (prevSort.by === fieldName) {
+        return {by: fieldName, asc: !prevSort.asc, getValue: getValueFunction};
+      }
+
+      return {by: fieldName, asc: true, getValue: getValueFunction};
+    });
+  }, []);
+
+  const sortArrow = (sortedBy: string) => {
+    return sortConfig.by === sortedBy ? (
+      <IconArrow
+        color="gray300"
+        size="xs"
+        direction={sortConfig.by === sortedBy && !sortConfig.asc ? 'up' : 'down'}
+      />
+    ) : null;
+  };
 
   const columns = [
-    <SortItem key="state">{t('In Use')}</SortItem>,
-    <SortItem key="chunk">{t('Module')}</SortItem>,
-    <SortItem key="size">{t('Size')}</SortItem>,
+    <SortItem key="state">
+      <UnstyledHeaderButton onClick={() => handleSort('state')}>
+        {t('In Use')} {sortArrow('state')}
+      </UnstyledHeaderButton>
+    </SortItem>,
+    <SortItem key="name">
+      <UnstyledHeaderButton onClick={() => handleSort('name')}>
+        {t('Module')} {sortArrow('name')}
+      </UnstyledHeaderButton>
+    </SortItem>,
+    <SortItem key="size">
+      <UnstyledHeaderButton onClick={() => handleSort('size')}>
+        {t('Size')} {sortArrow('size')}
+      </UnstyledHeaderButton>
+    </SortItem>,
   ];
 
-  const modules = getModules(mode, {unusedModules, usedModules});
+  const modules = useMemo(
+    () => getModules(mode, sortConfig, {unusedModules, usedModules}),
+    [mode, sortConfig, unusedModules, usedModules]
+  );
 
   const table = (
     <StyledPanelTable
@@ -177,6 +234,21 @@ const SortItem = styled('span')`
   svg {
     margin-left: ${space(0.25)};
   }
+`;
+
+const UnstyledButton = styled('button')`
+  border: 0;
+  background: none;
+  padding: 0;
+  text-transform: inherit;
+  width: 100%;
+  text-align: unset;
+`;
+
+const UnstyledHeaderButton = styled(UnstyledButton)`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;
 
 const Item = styled('div')<{center?: boolean; color?: ColorOrAlias; numeric?: boolean}>`
