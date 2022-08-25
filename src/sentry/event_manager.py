@@ -1533,7 +1533,9 @@ def _process_existing_aggregate(group, event, data, release):
 def discard_event(job, attachments):
     """
     Refunds consumed quotas for an event and its attachments.
+
     For the event and each dropped attachment, an outcome
+
     FILTERED(discarded-hash) is emitted.
     :param job:         The job context container.
     :param attachments: The full list of attachments to filter.
@@ -1596,8 +1598,10 @@ def discard_event(job, attachments):
 def get_attachments(cache_key, job):
     """
     Retrieves the list of attachments for this event.
+
     This method skips attachments that have been marked for rate limiting by
     earlier ingestion pipeline.
+
     :param cache_key: The cache key at which the event payload is stored in the
                       cache. This is used to retrieve attachments.
     :param job:       The job context container.
@@ -1619,10 +1623,13 @@ def get_attachments(cache_key, job):
 def filter_attachments_for_group(attachments, job):
     """
     Removes crash reports exceeding the group-limit.
+
     If the project or organization is configured to limit the amount of crash
     reports per group, the number of stored crashes is limited. This requires
     `event.group` to be set.
+
     Emits one outcome per removed attachment.
+
     :param attachments: The full list of attachments to filter.
     :param job:         The job context container.
     """
@@ -1709,8 +1716,10 @@ def save_attachment(
 ):
     """
     Persists a cached event attachments into the file store.
+
     Emits one outcome, either ACCEPTED on success or INVALID(missing_chunks) if
     retrieving the attachment data fails.
+
     :param cache_key:  The cache key at which the attachment is stored for
                        debugging purposes.
     :param attachment: The ``CachedAttachment`` instance to store.
@@ -1779,8 +1788,10 @@ def save_attachment(
 def save_attachments(cache_key, attachments, job):
     """
     Persists cached event attachments into the file store.
+
     Emits one outcome per attachment, either ACCEPTED on success or
     INVALID(missing_chunks) if retrieving the attachment fails.
+
     :param attachments: A filtered list of attachments to save.
     :param job:         The job context container.
     """
