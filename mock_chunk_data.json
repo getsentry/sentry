@@ -26406,17 +26406,20 @@
 			},
 			{
 				"id": "./app/views/replays/detail/unusedModules/moduleTable.tsx",
-				"size": 123871,
+				"size": 171838,
 				"children": [
 					"../node_modules/react-refresh/runtime.js",
 					"../node_modules/@emotion/styled/base/dist/emotion-styled-base.browser.esm.js",
 					"../node_modules/core-js/modules/es.array.includes.js",
 					"../node_modules/core-js/modules/web.dom-collections.iterator.js",
 					"../node_modules/react/index.js",
+					"../node_modules/lodash/uniq.js",
 					"./app/components/button.tsx",
 					"./app/components/buttonBar.tsx",
 					"./app/components/fileSize.tsx",
+					"./app/components/hovercard.tsx",
 					"./app/components/panels/index.tsx",
+					"./app/components/textOverflow.tsx",
 					"./app/components/tooltip.tsx",
 					"./app/icons/index.tsx",
 					"./app/locale.tsx",
@@ -26432,7 +26435,7 @@
 			},
 			{
 				"id": "./app/views/replays/detail/unusedModules/utils.tsx",
-				"size": 3120,
+				"size": 3462,
 				"children": [
 					"../node_modules/react-refresh/runtime.js",
 					"../node_modules/core-js/modules/web.dom-collections.iterator.js",
@@ -72287,7 +72290,7 @@
 			},
 			{
 				"id": "../mock_chunk_data.json",
-				"size": 2721958,
+				"size": 2722060,
 				"children": []
 			}
 		]

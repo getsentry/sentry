@@ -1,5 +1,6 @@
 import {Fragment, ReactNode, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import uniq from 'lodash/uniq';
 
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -52,7 +53,7 @@ function getModules(
   filter: string,
   {usedModules, unusedModules}: {unusedModules: string[]; usedModules: string[]}
 ) {
-  const used = usedModules
+  const used = uniq(usedModules)
     .filter(name => name.includes(filter))
     .filter(name => name !== '../mock_chunk_data.json')
     .map(
@@ -66,7 +67,7 @@ function getModules(
           state: ModuleState.Used,
         } as Record)
     );
-  const unused = unusedModules
+  const unused = uniq(unusedModules)
     .filter(name => name.includes(filter))
     .filter(name => name !== '../mock_chunk_data.json')
     .map(
@@ -392,7 +393,7 @@ const Item = styled('div')<{center?: boolean; color?: ColorOrAlias; numeric?: bo
   ${p => p.numeric && 'font-variant-numeric: tabular-nums;'}
 `;
 
-const Text = styled('p')`
+const Text = styled('span')`
   padding: 0;
   margin: 0;
   text-overflow: ellipsis;
