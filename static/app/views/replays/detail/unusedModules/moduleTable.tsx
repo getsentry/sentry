@@ -259,6 +259,7 @@ const SortItem = styled('span')`
 `;
 
 const StyledButtonBar = styled(ButtonBar)<{isTableVisible: boolean}>`
+  margin: ${space(1)} 0;
   ${p =>
     p.isTableVisible
       ? `
