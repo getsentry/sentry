@@ -67,7 +67,7 @@ def generate_session(
     return {
         "sid": str(uuid4()),
         "init": True,
-        "started": int(time.timestamp()),
+        "started": time.isoformat(),
         "duration": random.randrange(10, 90),
         "error": random.randrange(1, 5) if random.random() > 0.95 else 0,
         "status": status,
@@ -194,7 +194,8 @@ def main(project, org, env, days, release=None):
         headers = {
             "content-type": "application/json",
         }
-        click.echo(f"> sending request to {url}")
+        click.echo(session)
+        # click.echo(f"> sending request to {url}")
         response = requests.post(url, payload, headers=headers)
         if response.status_code != 200:
             click.echo(f"Response failed {response}")
