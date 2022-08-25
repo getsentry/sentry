@@ -283,6 +283,8 @@ export enum SessionFieldWithOperation {
   SESSIONS = 'sum(session)',
   USERS = 'count_unique(user)',
   DURATION = 'p50(session.duration)',
+  CRASH_FREE_SESSION_RATE = 'crash_free_rate(session)',
+  CRASH_FREE_USER_RATE = 'crash_free_rate(user)',
 }
 
 export enum SessionStatus {

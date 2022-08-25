@@ -22,6 +22,7 @@ type ChildrenProps = {
 type Props = {
   api: Client;
   children: (props: ChildrenProps) => JSX.Element;
+  conditions: string;
   groupBy: SessionDisplayTags;
   organization: Organization;
   release: ReleaseWithHealth;
@@ -37,6 +38,7 @@ function SessionsQuery({
   organization,
   selection,
   release,
+  conditions,
 }: Props) {
   const [loading, setLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
@@ -62,7 +64,7 @@ function SessionsQuery({
       orderBy: `-${yAxis}`,
       interval,
       project: projects,
-      query: `release:${release.version}`,
+      query: `release:${release.version} ${conditions}`,
       start,
       statsPeriod: period,
       includeAllArgs: true,
@@ -97,6 +99,7 @@ function SessionsQuery({
     period,
     interval,
     release.version,
+    conditions,
   ]);
 
   return children({loading, errorMessage, seriesResult});

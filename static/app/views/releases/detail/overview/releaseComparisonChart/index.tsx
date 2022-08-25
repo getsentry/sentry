@@ -70,6 +70,8 @@ export type ReleaseComparisonRow = {
 type Props = {
   allSessions: SessionApiResponse | null;
   api: Client;
+  conditions: string;
+  crashRates: SessionApiResponse | null;
   errored: boolean;
   hasHealthData: boolean;
   loading: boolean;
@@ -99,6 +101,7 @@ type IssuesTotals = {
 function ReleaseComparisonChart({
   release,
   project,
+  conditions,
   releaseSessions,
   allSessions,
   location,
@@ -107,6 +110,7 @@ function ReleaseComparisonChart({
   api,
   organization,
   hasHealthData,
+  crashRates,
 }: Props) {
   const [issuesTotals, setIssuesTotals] = useState<IssuesTotals>(null);
   const [eventsTotals, setEventsTotals] = useState<EventsTotals>(null);
@@ -856,11 +860,29 @@ function ReleaseComparisonChart({
   }
 
   function handleChartChange(chartType: ReleaseComparisonChartType) {
+    const groupBy = [
+      ReleaseComparisonChartType.ERROR_COUNT,
+      ReleaseComparisonChartType.TRANSACTION_COUNT,
+      ReleaseComparisonChartType.FAILURE_RATE,
+    ].includes(chartType)
+      ? SessionDisplayTags.ALL
+      : location.query.groupBy;
+
+    const query = [
+      ReleaseComparisonChartType.ERROR_COUNT,
+      ReleaseComparisonChartType.TRANSACTION_COUNT,
+      ReleaseComparisonChartType.FAILURE_RATE,
+    ].includes(chartType)
+      ? ''
+      : location.query.query ?? '';
+
     browserHistory.push({
       ...location,
       query: {
         ...location.query,
         chart: chartType,
+        groupBy,
+        query,
       },
     });
   }
@@ -1005,12 +1027,17 @@ function ReleaseComparisonChart({
                 value: (
                   <ReleaseChartContainer
                     groupBy={groupByInUrl ?? SessionDisplayTags.ALL}
+                    releaseSessions={releaseSessions}
+                    loading={loading}
+                    errored={errored}
                     release={release}
                     selectedDisplay={
                       chartInUrl ?? ReleaseComparisonChartType.CRASH_FREE_SESSIONS
                     }
+                    crashRates={crashRates}
                     organization={organization}
                     selection={selection}
+                    conditions={conditions}
                   />
                 ),
                 fixed: 'Sessions Chart',

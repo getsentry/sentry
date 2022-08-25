@@ -180,6 +180,7 @@ export enum SessionDisplayYAxis {
   CRASHED_USER_RATE = 'crash_rate(user)',
   SESSION_COUNT = 'sum(session)',
   USER_COUNT = 'count_unique(user)',
+  SESSION_DURATION = 'p50(session.duration)',
 }
 
 export const CHART_TYPE_TO_YAXIS_MAP = {
@@ -188,18 +189,23 @@ export const CHART_TYPE_TO_YAXIS_MAP = {
     SessionDisplayYAxis.CRASH_FREE_SESSION_RATE,
   [ReleaseComparisonChartType.SESSION_COUNT]: SessionDisplayYAxis.SESSION_COUNT,
   [ReleaseComparisonChartType.USER_COUNT]: SessionDisplayYAxis.USER_COUNT,
+  [ReleaseComparisonChartType.SESSION_DURATION]: SessionDisplayYAxis.SESSION_DURATION,
 };
 
 export enum SessionDisplayTags {
   ALL = 'all',
   OS_NAME = 'os.name',
   OS = 'os',
+  DEVICE_FAMILY = 'device.family',
+  DEVICE_MANUFACTURER = 'device.manufacturer',
 }
 
 export const SESSION_DISPLAY_TYPES: SelectValue<string>[] = [
   {value: SessionDisplayTags.ALL, label: t('All')},
   {value: SessionDisplayTags.OS_NAME, label: t('os.name')},
   {value: SessionDisplayTags.OS, label: t('os')},
+  {value: SessionDisplayTags.DEVICE_FAMILY, label: t('device.family')},
+  {value: SessionDisplayTags.DEVICE_MANUFACTURER, label: t('device.manufacturer')},
 ];
 
 export enum HealthStatsPeriodOption {
