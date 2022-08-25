@@ -26424,7 +26424,7 @@
 			},
 			{
 				"id": "./app/views/replays/detail/unusedModules/moduleTable.tsx",
-				"size": 121361,
+				"size": 122819,
 				"children": [
 					"../node_modules/react-refresh/runtime.js",
 					"../node_modules/@emotion/styled/base/dist/emotion-styled-base.browser.esm.js",
@@ -26449,7 +26449,7 @@
 			},
 			{
 				"id": "./app/views/replays/detail/unusedModules/utils.tsx",
-				"size": 3043,
+				"size": 3120,
 				"children": [
 					"../node_modules/react-refresh/runtime.js",
 					"../node_modules/core-js/modules/web.dom-collections.iterator.js",

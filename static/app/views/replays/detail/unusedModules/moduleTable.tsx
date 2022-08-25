@@ -44,11 +44,12 @@ function getModules(
 ) {
   const used = usedModules
     .filter(name => name.includes(filter))
+    .filter(name => name !== '../mock_chunk_data.json')
     .map(
       name =>
         ({
-          cumulative: (MODULES_WITH_CUMULATIVE_SIZE[name] || [0])[0],
-          incChildren: (MODULES_WITH_CUMULATIVE_SIZE[name] || [0, 0])[1],
+          cumulative: (MODULES_WITH_CUMULATIVE_SIZE[name] || [0, 0])[1],
+          incChildren: (MODULES_WITH_CUMULATIVE_SIZE[name] || [0, 0, 0])[2],
           name,
           size: MODULES_WITH_SIZE[name] || 0,
           state: ModuleState.Used,
@@ -56,11 +57,12 @@ function getModules(
     );
   const unused = unusedModules
     .filter(name => name.includes(filter))
+    .filter(name => name !== '../mock_chunk_data.json')
     .map(
       name =>
         ({
-          cumulative: (MODULES_WITH_CUMULATIVE_SIZE[name] || [0])[0],
-          incChildren: (MODULES_WITH_CUMULATIVE_SIZE[name] || [0, 0])[1],
+          cumulative: (MODULES_WITH_CUMULATIVE_SIZE[name] || [0, 0])[1],
+          incChildren: (MODULES_WITH_CUMULATIVE_SIZE[name] || [0, 0, 0])[2],
           name,
           size: MODULES_WITH_SIZE[name] || 0,
           state: ModuleState.Unused,

@@ -28,9 +28,9 @@ function getModulesbyName(chunks: WebpackChunk[]): Record<string, WebpackModule>
 
 function getModulesWithCumulativeSize(
   chunks: WebpackChunk[]
-): Record<string, [number, number]> {
+): Record<string, [number, number, number]> {
   const modulesByName = getModulesbyName(chunks);
-  const cumulative: Record<string, [number, number]> = {};
+  const cumulative: Record<string, [number, number, number]> = {};
 
   const getSizeForModule = (module: WebpackModule, visitedList: string[]) => {
     const id = module.id;
@@ -39,28 +39,29 @@ function getModulesWithCumulativeSize(
     }
 
     if (module.children.length === 0) {
-      cumulative[id] = [module.size, 0];
+      cumulative[id] = [module.size, module.size, 0];
       return cumulative[id];
     }
 
     cumulative[id] = module.children.reduce(
-      ([totalSize, totalDeps], childName) => {
+      ([moduleSize, totalSize, totalDeps], childName) => {
+        if (visitedList.includes(childName)) {
+          // cyclic call, we're looking at the same child again.
+          return [moduleSize, totalSize, totalDeps];
+        }
+
         const childModule = modulesByName[childName] || {
           children: [],
           id: childName,
           size: 0,
         };
 
-        if (visitedList.includes(childName)) {
-          // cyclic call, we're looking at the same child again.
-          return [totalSize, totalDeps];
-        }
         visitedList.push(childName);
         cumulative[childName] = getSizeForModule(childModule, visitedList);
-        const [childSize, childDeps] = cumulative[childName];
-        return [totalSize + childSize, totalDeps + childDeps];
+        const [childSize, _childAggSize, childDeps] = cumulative[childName];
+        return [moduleSize, totalSize + childSize, totalDeps + childDeps];
       },
-      [module.size, module.children.length]
+      [module.size, module.size, module.children.length]
     );
 
     return cumulative[id];
