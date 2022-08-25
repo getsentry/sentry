@@ -166,7 +166,8 @@ const IconWrapper = styled('div')<{color: string; offset: number}>`
   top: ${p => p.offset * -8 + 40}px;
   left: ${p => p.offset * 4}px;
   z-index: ${p => 5 - p.offset};
-  opacity: ${p => 1.0 - p.offset * 0.15};
+  opacity: 1;
+  filter: saturate(${p => 1.0 - p.offset * 0.15}) brightness(${p => 1.0 + p.offset * 0.2});
 
   display: flex;
   align-items: center;
