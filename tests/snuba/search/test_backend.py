@@ -1954,7 +1954,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 self.fail(f"Query {query} errored. Error info: {e}")
 
         for key in SENTRY_SNUBA_MAP:
-            if key in ["project.id", "issue.id"]:
+            if key in ["project.id", "issue.id", "performance.issue_ids"]:
                 continue
             test_query("has:%s" % key)
             test_query("!has:%s" % key)
