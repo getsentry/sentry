@@ -696,6 +696,14 @@ class GroupEvent(BaseEvent):
         self.data = data
 
     @property
+    def group_id(self) -> int:
+        # TODO: Including this as a shim for now. I think it makes sense to remove this helper,
+        # since people may as well use `group.id` instead of `group_id`, but it breaks a lot of
+        # compatibility with `Event`. Including this here for now so that we don't have to rewrite
+        # the whole codebase at once.
+        return self.group.id
+
+    @property
     def data(self) -> NodeData:
         return self._data
 
