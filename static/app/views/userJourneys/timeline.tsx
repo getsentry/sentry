@@ -28,6 +28,17 @@ function Timeline({breadcrumbs, onActivateCrumb}: Props) {
   // const minTime = moment(breadcrumbs[breadcrumbs.length -1].timestamp);
   // const spread = maxTime - minTime;
   const notable = extractHighlights(breadcrumbs);
+  notable.sort((a, b) => {
+    const aTimestamp = moment(a.timestamp).unix();
+    const bTimestamp = moment(b.timestamp).unix();
+    if (aTimestamp < bTimestamp) {
+      return 1;
+    }
+    if (aTimestamp > bTimestamp) {
+      return -1;
+    }
+    return 0;
+  });
   return (
     <ScrollContainer>
       <ItemRow>
