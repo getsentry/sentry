@@ -11,12 +11,9 @@ export const preDefinedFeatureFlags = {
     evaluation: [
       {
         id: 1,
-        type: EvaluationType.Rollout,
-        tags: {
-          environment: 'production',
-        },
-        percentage: 1.0,
-        result: 0.5,
+        type: EvaluationType.Match,
+        tags: {},
+        result: 1.0,
       },
     ],
   },
@@ -30,11 +27,8 @@ export const preDefinedFeatureFlags = {
     evaluation: [
       {
         id: 1,
-        type: EvaluationType.Rollout,
-        tags: {
-          environment: 'production',
-        },
-        percentage: 1.0,
+        type: EvaluationType.Match,
+        tags: {},
         result: 0.1,
       },
     ],
@@ -49,12 +43,9 @@ export const preDefinedFeatureFlags = {
     evaluation: [
       {
         id: 1,
-        type: EvaluationType.Rollout,
-        tags: {
-          environment: 'production',
-        },
-        percentage: 1.0,
-        result: 0.1,
+        type: EvaluationType.Match,
+        tags: {},
+        result: 0.05,
       },
     ],
   },

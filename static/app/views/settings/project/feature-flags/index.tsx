@@ -268,9 +268,6 @@ export default function ProjectFeatureFlags({project}: Props) {
     );
   });
   filteredFlags.sort((a, b) => {
-    if (flags[a].enabled !== flags[b].enabled) {
-      return flags[a].enabled ? -1 : 1;
-    }
     return a.localeCompare(b, 'en', {sensitivity: 'base'});
   });
 

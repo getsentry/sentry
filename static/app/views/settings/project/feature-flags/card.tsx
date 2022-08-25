@@ -7,7 +7,6 @@ import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import NewBooleanField from 'sentry/components/forms/booleanField';
 import {Panel} from 'sentry/components/panels';
-import Tag from 'sentry/components/tag';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
