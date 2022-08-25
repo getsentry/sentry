@@ -3,7 +3,9 @@
 
 import crypto from 'crypto';
 import fs from 'fs';
+import path from 'path';
 
+import uniq from 'lodash/uniq';
 import {RuntimeModule, Template} from 'webpack';
 
 class SentryRuntimeModule extends RuntimeModule {
@@ -171,27 +173,49 @@ class HackweekPlugin {
     });
 
     compiler.hooks.emit.tapAsync('RuntimePlugin', (compilation, callback) => {
-      const emitted: unknown[] = [];
+      const emitted = compilation.chunks
+        .map(chunk => {
+          try {
+            const modules = compilation.chunkGraph
+              .getChunkModules(chunk)
+              .map(module => {
+                const id = normalizeModuleId(module.id || '');
+                if (id.includes('/node_modules/')) {
+                  return null;
+                }
 
-      compilation.chunks.forEach(chunk => {
-        const modules: unknown[] = [];
-        try {
-          compilation.chunkGraph.getChunkModules(chunk).forEach(module => {
-            modules.push({
-              id: module.id,
-              size: module.size(),
-            });
-          });
-        } catch (err) {
-          // The `runtime` chunk throws because it has no modules
-          // Error: Module.id: There was no ChunkGraph assigned to the Module for backward-compat (Use the new API)
-        }
+                const requests = uniq<string>(
+                  module.dependencies.map(dep => dep.request).filter(Boolean)
+                );
 
-        emitted.push({
-          id: chunk.id,
-          modules,
-        });
-      });
+                return {
+                  id,
+                  size: module.size(),
+                  children: requests
+                    .map(name => normalizeDepName(name, id))
+                    .filter(Boolean),
+                };
+              })
+              .filter(Boolean);
+
+            // compilation.chunkGraph
+            //   .getChunkModules(chunk)
+            //   .map(module =>
+            //     module.dependencies.map(dep => compilation.moduleGraph.getModule(dep))
+            //   );
+
+            return {
+              id: chunk.id,
+              modules,
+            };
+          } catch (err) {
+            console.log(err);
+            // The `runtime` chunk throws because it has no modules
+            // Error: Module.id: There was no ChunkGraph assigned to the Module for backward-compat (Use the new API)
+          }
+          return null;
+        })
+        .filter(Boolean);
 
       writeFileSyncIfContentChanged(
         this.outPath,
@@ -203,21 +227,47 @@ class HackweekPlugin {
   }
 }
 
-function writeFileSyncIfContentChanged(path: string, content: string) {
-  if (!fs.existsSync(path)) {
-    fs.writeFileSync(path, content);
+function normalizeModuleId(name: string) {
+  const parsed = path.parse(name);
+  return path.join(parsed.dir, parsed.name);
+}
+
+const root = path.resolve(__dirname, '../');
+
+function normalizeDepName(name: null | string, relativeTo: string) {
+  if (
+    !name ||
+    name.includes('/node_modules/') ||
+    name.startsWith('../internals') ||
+    name.startsWith('@')
+  ) {
+    return null;
+  }
+
+  if (name.startsWith('sentry/')) {
+    return name.replace(/^sentry/, 'app');
+  }
+  if (name.startsWith('../') || name.startsWith('./')) {
+    return path.resolve(path.relative(root, relativeTo), name).replace(root + '/', '');
+  }
+  return name;
+}
+
+function writeFileSyncIfContentChanged(filePath: string, content: string) {
+  if (!fs.existsSync(filePath)) {
+    fs.writeFileSync(filePath, content);
     return;
   }
 
   const newHash = crypto.createHash('sha256');
   newHash.update(content);
 
-  const fileBuffer = fs.readFileSync(path);
+  const fileBuffer = fs.readFileSync(filePath);
   const existingHash = crypto.createHash('sha256');
   existingHash.update(fileBuffer);
 
   if (existingHash.digest('hex') !== newHash.digest('hex')) {
-    fs.writeFileSync(path, content);
+    fs.writeFileSync(filePath, content);
   }
 }
 

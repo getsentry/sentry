@@ -7,6 +7,7 @@ import {
   spansFactory,
 } from 'sentry/utils/replays/replayDataUtils';
 import type {ChunkInvocation} from 'sentry/views/replays/detail/filesize/utils';
+import type {WebpackChunk} from 'sentry/views/replays/detail/unusedModules/utils';
 import type {
   MemorySpanType,
   RecordingEvent,
@@ -14,7 +15,6 @@ import type {
   ReplayError,
   ReplayRecord,
   ReplaySpan,
-  WebpackChunk,
 } from 'sentry/views/replays/types';
 
 import mockChunkData from '../../../../mock_chunk_data.json';

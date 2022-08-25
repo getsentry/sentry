@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {ColorOrAlias} from 'sentry/utils/theme';
 import {ChunkInvocation} from 'sentry/views/replays/detail/filesize/utils';
-import type {WebpackChunk} from 'sentry/views/replays/types';
+import type {WebpackChunk} from 'sentry/views/replays/detail/unusedModules/utils';
 
 import webpackStats from '../../../../../../mock_chunk_data.json';
 
