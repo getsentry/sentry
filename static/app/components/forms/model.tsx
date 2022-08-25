@@ -1,4 +1,3 @@
-import find from 'lodash/find';
 import isEqual from 'lodash/isEqual';
 import {action, computed, makeObservable, observable, ObservableMap} from 'mobx';
 
@@ -560,6 +559,11 @@ class FormModel {
           const nonFieldErrors =
             resp.responseJSON.non_field_errors || resp.responseJSON.nonFieldErrors;
 
+          // find the first entry with an error
+          const firstError = Object.entries(resp.responseJSON).find(
+            ([_, v]) => Array.isArray(v) && v.length
+          )?.[1] as string | boolean | undefined;
+
           // Show resp msg from API endpoint if possible
           if (Array.isArray(resp.responseJSON[id]) && resp.responseJSON[id].length) {
             // Just take first resp for now
@@ -568,20 +572,8 @@ class FormModel {
             addErrorMessage(nonFieldErrors[0], {duration: 10000});
             // Reset saving state
             this.setError(id, '');
-            // find the first entry with an error
-          } else if (
-            find(
-              Object.entries(resp.responseJSON),
-              ([_, v]) => Array.isArray(v) && v.length
-            )
-          ) {
-            this.setError(
-              id,
-              find(
-                Object.entries(resp.responseJSON),
-                ([_, v]) => Array.isArray(v) && v.length
-              )?.[1]
-            );
+          } else if (firstError) {
+            this.setError(id, firstError);
           } else {
             this.setError(id, 'Failed to save');
           }
