@@ -81,7 +81,7 @@ function IssueHotSpots({organizationSlug, projects}: Props) {
       });
   }, [organizationSlug, projectId]);
 
-  if (isLoading) {
+  if (isLoading || diagramData.length === 0) {
     return null;
   }
 
