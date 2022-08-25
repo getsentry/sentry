@@ -15,8 +15,8 @@ import SidebarMenuItem from './sidebarMenuItem';
 import {CommonSidebarProps} from './types';
 
 const RANDOM_TITLES = [
-  'Learn',
-  // 'Educate Yo-self',
+  // 'Learn',
+  'Educate Yo-self',
   // 'Need a Hand?',
   // 'Show Me',
   // 'Training',

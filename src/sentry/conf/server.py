@@ -1010,7 +1010,7 @@ SENTRY_FEATURES = {
     # Enable rule page.
     "organizations:rule-page": False,
     # Enable incidents feature
-    "organizations:incidents": False,
+    "organizations:incidents": True,
     # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
     # sentry at the moment.
     "organizations:issue-search-use-cdc-primary": False,
