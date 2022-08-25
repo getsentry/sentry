@@ -25,7 +25,7 @@ export const recognitionCommands = [
   ),
 ];
 
-// Mapping
+// Mappings
 
 export function getRecognitionActionMapping(
   router: InjectedRouter,
@@ -63,11 +63,11 @@ export function getRecognitionActionMapping(
       const apdexMenuPar = elementContainsText('div p', '^Apdex$')[0];
       const apdexOptionDiv = apdexMenuPar.parentElement.parentElement.parentElement
         .parentElement as HTMLDivElement;
-      apdexOptionDiv.style.backgroundColor = 'lightgray';
+      apdexOptionDiv.style.backgroundColor = '#F5F3F7';
 
       await sleep(1000);
       apdexOptionDiv.click();
-      await sleep(500);
+      await sleep(1000);
 
       const perfPanel = document.querySelector(
         'div[data-test-id="performance-widget-container"]'
@@ -89,11 +89,11 @@ export function getRecognitionActionMapping(
       const apdexMenuPar = elementContainsText('div p', '^User Misery$')[0];
       const apdexOptionDiv = apdexMenuPar.parentElement.parentElement.parentElement
         .parentElement as HTMLDivElement;
-      apdexOptionDiv.style.backgroundColor = 'lightgray';
+      apdexOptionDiv.style.backgroundColor = '#F5F3F7';
 
       await sleep(1000);
       apdexOptionDiv.click();
-      await sleep(500);
+      await sleep(1000);
 
       const perfPanel = document.querySelector(
         'div[data-test-id="performance-widget-container"]'

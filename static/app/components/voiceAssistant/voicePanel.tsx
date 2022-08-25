@@ -116,14 +116,14 @@ class VoiceAssistantPanel extends React.Component<
 
     const setStateSpeechResult = (result: string, style: NotifyStyle) => {
       this.setState(_ => ({
-        speechResult: result,
+        speechResult: result.toLowerCase(),
         notifyStyle: style,
       }));
     };
 
     const setStateSpeechResultWithDelay = (result: string, style: NotifyStyle) => {
       setStateSpeechResult(result, style);
-      const CLOSE_TIMEOUT_MS = 500000;
+      const CLOSE_TIMEOUT_MS = 5000;
       setTimeout(() => {
         setStateSpeechResult('', NotifyStyle.Empty);
       }, CLOSE_TIMEOUT_MS);

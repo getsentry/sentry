@@ -9,6 +9,22 @@ interface VoiceAssistantTextboxProps {
   resultText?: string;
 }
 
+function getColorStyle(notifyStyle: NotifyStyle | undefined): string {
+  switch (notifyStyle) {
+    case NotifyStyle.Error:
+      return `border-color: rgba(245, 84, 89, 0.5);
+              background: #fccccd;`;
+    case NotifyStyle.RecognizedResult:
+      return `border-color: rgba(60, 116, 221, 0.5);
+              background: #c5d6f5;`;
+    case NotifyStyle.UnrecognizedResult:
+      return `border-color: rgba(245, 176, 0, 0.5);
+              background: #fef9ed;`;
+    default:
+      return '';
+  }
+}
+
 const StyledWrapper = styled('div')<VoiceAssistantTextboxProps>`
   position: fixed;
   bottom: 2.5em;
@@ -22,12 +38,7 @@ const StyledWrapper = styled('div')<VoiceAssistantTextboxProps>`
   border-radius: 12px;
   border: 1px solid;
 
-  ${props =>
-    props.notifyStyle === NotifyStyle.Error
-      ? `border-color: rgba(245, 84, 89, 0.5);
-         background: #fccccd;`
-      : `border-color: rgba(60, 116, 221, 0.5);
-         background: #c5d6f5;`}
+  ${props => getColorStyle(props.notifyStyle)}
 `;
 
 export class VoiceAssistantTextbox extends React.Component<
