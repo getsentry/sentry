@@ -125,6 +125,7 @@ test-js-ci: node-version-check
 
 test-python-ci:
 	@echo "--> Running CI Python tests"
+	cd src/ && mypyc --config-file ../mypy.ini sentry/grouping/enhancer/mypyc
 	pytest tests/integration tests/sentry \
 		--ignore tests/sentry/eventstream/kafka \
 		--ignore tests/sentry/snuba \

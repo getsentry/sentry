@@ -126,7 +126,7 @@ class FlagAction(Action):
 
     def _to_config_structure(self, version: int) -> int:
         return ACTIONS.index(self.key) | (
-            ACTION_FLAGS[self.flag, self.range] << ACTION_BITSIZE[version]  # type: ignore
+            ACTION_FLAGS[self.flag, self.range] << ACTION_BITSIZE[version]
         )
 
     def _slice_to_range(self, seq: Sequence[Any], idx: int) -> Sequence[Any]:
@@ -136,7 +136,7 @@ class FlagAction(Action):
             return seq[:idx]
         elif self.range == "up":
             return seq[idx + 1 :]
-        return []  # type: ignore
+        assert False, "invalid range"
 
     def _in_app_changed(self, frame: FrameData, component: Component) -> bool:
         orig_in_app = get_path(frame, "data", "orig_in_app")
