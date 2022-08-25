@@ -274,7 +274,7 @@ const FilterInput = styled('input')`
 
   border-radius: 0;
 
-  padding: ${space(0.25)};
+  padding: ${space(0.75)};
   height: ${p => p.theme.form.xs.height}px;
   min-height: ${p => p.theme.form.xs.minHeight}px;
   font-size: ${p => p.theme.form.xs.fontSize};
