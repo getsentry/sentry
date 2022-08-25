@@ -72,7 +72,11 @@ function CrumbItem({group, onClick}: ItemProps) {
     const crumb = group.crumbs[i];
     if (crumb) {
       icons.push(
-        <IconWrapper color={crumb.color} offset={icons.length}>
+        <IconWrapper
+          key={`${String(crumb.type)}-${String(i)}`}
+          color={crumb.color}
+          offset={icons.length}
+        >
           <CrumbIcon type={crumb.type} size="md" />
         </IconWrapper>
       );
