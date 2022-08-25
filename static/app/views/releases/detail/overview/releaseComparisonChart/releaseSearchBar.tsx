@@ -2,13 +2,11 @@ import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 
-import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {SearchBarProps} from 'sentry/components/events/searchBar';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH, NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {Organization, PageFilters, SavedSearchType, Tag, TagValue} from 'sentry/types';
-import useApi from 'sentry/utils/useApi';
+import {Organization, PageFilters, SavedSearchType, Tag} from 'sentry/types';
 import {
   MAX_MENU_HEIGHT,
   MAX_SEARCH_ITEMS,

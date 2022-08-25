@@ -474,11 +474,7 @@ class ReleaseOverview extends AsyncView<Props> {
                 response: allReleases,
               }) => (
                 <SessionsRequest {...crashRatesProps} query={`${condition}`}>
-                  {({
-                    loading: crashRatesLoading,
-                    errored: crashRatesErrored,
-                    response: crashRates,
-                  }) => (
+                  {({errored: crashRatesErrored, response: crashRates}) => (
                     <SessionsRequest
                       {...sessionsRequestProps}
                       query={`release:"${version}" ${condition}`}
