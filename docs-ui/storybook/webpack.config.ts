@@ -26,7 +26,8 @@ type Opts = {
 };
 
 const configBuilder = ({config}: Opts = {config: emptyConfig}) => {
-  const [firstRule, ...rules] = (config.module?.rules ?? []) as webpack.RuleSetRule[];
+  const [firstRule, secondRule, ...rules] = (config.module?.rules ??
+    []) as webpack.RuleSetRule[];
 
   const filteredRules = rules.filter(rule => {
     const isFileLoader = !!rule?.loader?.includes('file-loader');
@@ -51,9 +52,14 @@ const configBuilder = ({config}: Opts = {config: emptyConfig}) => {
       ...config.module,
       rules: [
         {
-          ...firstRule,
-          test: /\.(mjs|[tj]sx?)$/,
+          test: /\.(t|j)sx?$/,
           include: [staticPath, docsUiPath],
+          loader: 'swc-loader',
+        },
+        {
+          test: /\.js$/,
+          include: [staticPath, docsUiPath],
+          loader: 'swc-loader',
         },
         {
           test: /\.less$/,

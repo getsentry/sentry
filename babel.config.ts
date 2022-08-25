@@ -8,7 +8,6 @@ const config: TransformOptions = {
       '@babel/preset-react',
       {
         runtime: 'automatic',
-        importSource: '@emotion/react',
       },
     ],
     [
