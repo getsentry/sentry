@@ -25871,7 +25871,7 @@
 			},
 			{
 				"id": "./app/utils/replays/hooks/useActiveReplayTab.tsx",
-				"size": 2090,
+				"size": 2055,
 				"children": [
 					"../node_modules/react-refresh/runtime.js",
 					"../node_modules/react/index.js",
@@ -26053,26 +26053,8 @@
 				]
 			},
 			{
-				"id": "./app/views/replays/detail/filesize/index.tsx",
-				"size": 31794,
-				"children": [
-					"../node_modules/react-refresh/runtime.js",
-					"../node_modules/@emotion/styled/base/dist/emotion-styled-base.browser.esm.js",
-					"../node_modules/core-js/modules/es.array.includes.js",
-					"../node_modules/react/index.js",
-					"./app/components/fileSize.tsx",
-					"./app/components/panels/index.tsx",
-					"./app/locale.tsx",
-					"./app/styles/space.tsx",
-					"../mock_chunk_data.json",
-					"../node_modules/@emotion/react/jsx-runtime/dist/emotion-react-jsx-runtime.browser.esm.js",
-					"../node_modules/@pmmmwh/react-refresh-webpack-plugin/lib/runtime/RefreshUtils.js",
-					"../node_modules/@pmmmwh/react-refresh-webpack-plugin/overlay/index.js"
-				]
-			},
-			{
 				"id": "./app/views/replays/detail/focusArea.tsx",
-				"size": 5545,
+				"size": 5357,
 				"children": [
 					"../node_modules/react-refresh/runtime.js",
 					"../node_modules/core-js/modules/es.array.includes.js",
@@ -26087,7 +26069,6 @@
 					"./app/utils/useOrganization.tsx",
 					"./app/views/replays/detail/console/index.tsx",
 					"./app/views/replays/detail/domMutations/index.tsx",
-					"./app/views/replays/detail/filesize/index.tsx",
 					"./app/views/replays/detail/issueList.tsx",
 					"./app/views/replays/detail/memoryChart.tsx",
 					"./app/views/replays/detail/network/index.tsx",
@@ -26100,7 +26081,7 @@
 			},
 			{
 				"id": "./app/views/replays/detail/focusTabs.tsx",
-				"size": 2680,
+				"size": 2650,
 				"children": [
 					"../node_modules/react-refresh/runtime.js",
 					"../node_modules/core-js/modules/web.dom-collections.iterator.js",
@@ -72282,12 +72263,11 @@
 			},
 			{
 				"id": "./app/utils/replays/replayReader.tsx",
-				"size": 5401,
+				"size": 3670,
 				"children": [
 					"../node_modules/react-refresh/runtime.js",
 					"../node_modules/@babel/runtime/helpers/esm/defineProperty.js",
 					"../node_modules/core-js/modules/es.array.includes.js",
-					"../node_modules/core-js/modules/web.dom-collections.iterator.js",
 					"./app/utils/replays/codecovRepo.tsx",
 					"./app/utils/replays/replayDataUtils.tsx",
 					"../mock_chunk_data.json",
@@ -72307,7 +72287,7 @@
 			},
 			{
 				"id": "../mock_chunk_data.json",
-				"size": 2722747,
+				"size": 2721958,
 				"children": []
 			}
 		]
