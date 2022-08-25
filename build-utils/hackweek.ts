@@ -3,9 +3,7 @@
 
 import crypto from 'crypto';
 import fs from 'fs';
-import path from 'path';
 
-import uniq from 'lodash/uniq';
 import {RuntimeModule, Template} from 'webpack';
 
 class SentryRuntimeModule extends RuntimeModule {
@@ -198,7 +196,6 @@ class HackweekPlugin {
               modules,
             };
           } catch (err) {
-            console.log(err);
             // The `runtime` chunk throws because it has no modules
             // Error: Module.id: There was no ChunkGraph assigned to the Module for backward-compat (Use the new API)
           }
