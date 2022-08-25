@@ -2,7 +2,7 @@ import pytest
 
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
-from sentry.grouping.enhancer.mypyc.utils import MatchFrame
+from sentry.grouping.enhancer.mypyc.utils import MatchFrame, cached
 
 
 def dump_obj(obj):
@@ -417,3 +417,20 @@ def test_sentinel_and_prefix(action, type):
     actions[0][1].update_frame_components_contributions([component], frames, 0)
     expected = action == "+"
     assert getattr(component, f"is_{type}_frame") is expected
+
+
+def test_cached_wrapper():
+    """Order of kwargs should not matter"""
+
+    def foo(**kwargs):
+        foo.calls.append(kwargs)
+
+    foo.calls = []
+
+    cache = {}
+    cached(cache, foo, kw1=1, kw2=2)
+    assert foo.calls == [{"kw1": 1, "kw2": 2}]
+
+    # Call with different kwargs order - call_count is still one:
+    cached(cache, foo, kw2=2, kw1=1)
+    assert foo.calls == [{"kw1": 1, "kw2": 2}]
