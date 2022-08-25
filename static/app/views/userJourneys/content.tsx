@@ -52,7 +52,6 @@ function Breadcrumbs(props: Props) {
     }
     return 0;
   });
-  // breadcrumbs.reverse();
 
   const [activeCrumb, setActiveCrumb] = useState<Crumb>();
 
@@ -60,6 +59,7 @@ function Breadcrumbs(props: Props) {
     <Fragment>
       <Timeline
         breadcrumbs={breadcrumbs}
+        activeCrumb={activeCrumb}
         onActivateCrumb={(crumb: Crumb) => setActiveCrumb(crumb)}
       />
       <StyledPanelTable

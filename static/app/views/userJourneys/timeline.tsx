@@ -16,6 +16,7 @@ const NOTABLE_CATEGORIES = [
 ];
 
 interface CrumbGroup {
+  active: boolean;
   crumbs: Crumb[];
   timestamp: string;
 }
@@ -23,26 +24,13 @@ interface CrumbGroup {
 type Props = {
   breadcrumbs: Array<Crumb>;
   onActivateCrumb: (crumb: Crumb) => void;
+  activeCrumb?: Crumb;
 };
 
-function Timeline({breadcrumbs, onActivateCrumb}: Props) {
-  // Assume crumbs are ordered by time.
-  // const maxTime = moment(breadcrumbs[0].timestamp);
-  // const minTime = moment(breadcrumbs[breadcrumbs.length -1].timestamp);
-  // const spread = maxTime - minTime;
-  const notable = extractHighlights(breadcrumbs);
-  notable.sort((a, b) => {
-    const aTimestamp = moment(a.timestamp).unix();
-    const bTimestamp = moment(b.timestamp).unix();
-    if (aTimestamp < bTimestamp) {
-      return 1;
-    }
-    if (aTimestamp > bTimestamp) {
-      return -1;
-    }
-    return 0;
-  });
+function Timeline({breadcrumbs, onActivateCrumb, activeCrumb}: Props) {
+  const notable = extractHighlights(breadcrumbs, activeCrumb);
   notable.reverse();
+
   return (
     <ScrollContainer>
       <ItemRow>
@@ -94,12 +82,15 @@ function CrumbItem({group, onClick}: ItemProps) {
     <ItemContainer onClick={onClick}>
       <AxisLine />
       <IconStack>{icons}</IconStack>
-      <ItemTime>{moment(group.timestamp).format('HH:mm:ss')}</ItemTime>
+      <ItemTime active={group.active}>
+        {moment(group.timestamp).format('HH:mm:ss')}
+      </ItemTime>
     </ItemContainer>
   );
 }
 
-function extractHighlights(crumbs: Props['breadcrumbs']): CrumbGroup[] {
+function extractHighlights(crumbs: Props['breadcrumbs'], active?: Crumb): CrumbGroup[] {
+  const keyFormat = 'YYYY-MM-DDTHH:mm:ss';
   const relevant = crumbs.filter(crumb => {
     if (!crumb.category) {
       return false;
@@ -109,7 +100,7 @@ function extractHighlights(crumbs: Props['breadcrumbs']): CrumbGroup[] {
 
   const mapping: Record<string, Crumb[]> = {};
   relevant.forEach((crumb: Crumb) => {
-    const timestamp = moment(crumb.timestamp).format('YYYY-MM-DDTHH:mm:ss');
+    const timestamp = moment(crumb.timestamp).format(keyFormat);
     if (!timestamp) {
       return;
     }
@@ -120,8 +111,10 @@ function extractHighlights(crumbs: Props['breadcrumbs']): CrumbGroup[] {
   });
 
   const grouped: CrumbGroup[] = [];
+  const activeTime = active ? moment(active.timestamp).format(keyFormat) : null;
+
   Object.entries(mapping).forEach(([key, value]) => {
-    grouped.push({timestamp: key, crumbs: value});
+    grouped.push({timestamp: key, crumbs: value, active: activeTime === key});
   });
 
   return grouped;
@@ -183,9 +176,9 @@ const IconWrapper = styled('div')<{color: string; offset: number}>`
   box-shadow: ${p => p.theme.dropShadowLightest};
 `;
 
-const ItemTime = styled('span')`
-  color: ${p => p.theme.subText};
+const ItemTime = styled('span')<{active: boolean}>`
   font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => (p.active ? p.theme.focus : p.theme.subText)};
 `;
 
 const IconStack = styled('div')`

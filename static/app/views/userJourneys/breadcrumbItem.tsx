@@ -62,7 +62,7 @@ function BreadcrumbItem(props: Props) {
   useEffect(() => {
     if (isActive && breadcrumbRef.current) {
       const element = breadcrumbRef.current;
-      element?.scrollIntoView?.({block: 'end', behavior: 'smooth'});
+      element?.scrollIntoView?.({block: 'center', behavior: 'smooth'});
     }
   }, [isActive]);
 
@@ -89,7 +89,7 @@ function BreadcrumbItem(props: Props) {
 }
 
 const BreadcrumbWrapper = styled('div')<{isActive: boolean | undefined}>`
-  background: ${p => (p.isActive ? '#FDFF47' : 'inherit')};
+  background: ${p => (p.isActive ? p.theme.focus : 'inherit')};
 `;
 
 export default BreadcrumbItem;
