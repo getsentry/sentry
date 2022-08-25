@@ -87,6 +87,11 @@ build-chartcuterie-config:
 	@echo "--> Building chartcuterie config module"
 	yarn build-chartcuterie-config
 
+build-mypyc:
+	@echo "--> Compiling modules with mypyc"
+	cd src/ && mypyc --config-file ../mypy.ini sentry/grouping/enhancer/mypyc
+
+
 fetch-release-registry:
 	@echo "--> Fetching release registry"
 	@echo "from sentry.utils.distutils import sync_registry; sync_registry()" | sentry exec
@@ -125,7 +130,6 @@ test-js-ci: node-version-check
 
 test-python-ci:
 	@echo "--> Running CI Python tests"
-	cd src/ && mypyc --config-file ../mypy.ini sentry/grouping/enhancer/mypyc
 	pytest tests/integration tests/sentry \
 		--ignore tests/sentry/eventstream/kafka \
 		--ignore tests/sentry/snuba \
