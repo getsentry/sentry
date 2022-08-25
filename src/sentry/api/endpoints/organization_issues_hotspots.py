@@ -231,14 +231,20 @@ class OrganizationIssuesHotspotsEndpoint(OrganizationEventsEndpoint):
         """
 
         response = super().get(request, organization)
+        response_data = response.data.get("data", {})
 
         output = []
+        paths_already_in_output = {}
         index = 1
-        for trace_dict in response.data.get("data", {}):
+        for trace_dict in response_data:
             trace_file_list = trace_dict.get("stack.filename", [])
             if trace_file_list:
-                # considering only the first file in the stack trace
-                parts = os.path.normpath(trace_file_list[0]).split(os.sep)
+                file_name = trace_file_list[-1]
+                if not file_name:
+                    continue
+
+                parts = ["<project_root>"] + os.path.normpath(file_name).split(os.sep)
+
                 current_path = ""
                 depth = 1
                 for part in parts[:-1]:
@@ -251,7 +257,10 @@ class OrganizationIssuesHotspotsEndpoint(OrganizationEventsEndpoint):
                     )
                     index += 1
                     depth += 1
-                    output.append(current_dict)
+
+                    if current_path not in paths_already_in_output:
+                        output.append(current_dict)
+                        paths_already_in_output[current_path] = True
 
                 # for the last/full path
                 current_dict = {}

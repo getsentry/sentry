@@ -42,7 +42,7 @@ function IssueHotSpots({organizationSlug, projects}: Props) {
 
   useEffect(
     () => {
-      const hotspotsEndpoint = `/api/0/organizations/${organizationSlug}/issues-hotspots/?project=${projectId}&statsPeriod=90d`;
+      const hotspotsEndpoint = `/api/0/organizations/${organizationSlug}/issues-hotspots/?project=${projectId}&statsPeriod=90d&noPagination=true&field=stack.filename&field=stack.filename&field=count()&field=count_unique(issue)`;
       fetch(hotspotsEndpoint, {
         credentials: 'include',
         headers: {
