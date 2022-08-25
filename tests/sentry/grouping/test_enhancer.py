@@ -422,15 +422,19 @@ def test_sentinel_and_prefix(action, type):
 def test_cached_wrapper():
     """Order of kwargs should not matter"""
 
-    def foo(**kwargs):
-        foo.calls.append(kwargs)
+    def foo(*args, **kwargs):
+        foo.calls.append((args, kwargs))
 
     foo.calls = []
 
     cache = {}
-    cached(cache, foo, kw1=1, kw2=2)
-    assert foo.calls == [{"kw1": 1, "kw2": 2}]
+    cached(cache, foo, "a", kw1=1, kw2=2)
+    assert foo.calls == [(("a",), {"kw1": 1, "kw2": 2})]
 
     # Call with different kwargs order - call_count is still one:
-    cached(cache, foo, kw2=2, kw1=1)
-    assert foo.calls == [{"kw1": 1, "kw2": 2}]
+    cached(cache, foo, "a", kw2=2, kw1=1)
+    assert foo.calls == [(("a",), {"kw1": 1, "kw2": 2})]
+
+    # args make a difference:
+    cached(cache, foo, "b", kw2=2, kw1=1)
+    assert foo.calls == [(("a",), {"kw1": 1, "kw2": 2}), (("b",), {"kw1": 1, "kw2": 2})]
