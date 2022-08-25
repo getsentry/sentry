@@ -40,12 +40,11 @@ def run_configuration(grouping_input, config):
     event.get_hashes()
 
 
-@pytest.mark.skip("Payload not checked in")
 @pytest.mark.skipif(not benchmark_available(), reason="requires pytest-benchmark")
 @pytest.mark.parametrize(
     "config_name", sorted(CONFIGURATIONS.keys()), ids=lambda x: x.replace("-", "_")
 )
 def test_benchmark_hackweek(config_name, benchmark):
     config = CONFIGS[config_name]
-    grouping_input = GroupingInput("hackweek_event01.json")
+    grouping_input = GroupingInput("large-native-event.json")
     benchmark(run_configuration, grouping_input, config)
