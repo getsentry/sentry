@@ -35,39 +35,51 @@ function IssueHotSpots({organizationSlug, projects}: Props) {
   const DELIMITER = '/';
 
   const [isLoading, setIsLoading] = useState(true);
-
   const [diagramData, setDiagramData] = useState();
 
   const projectId = projects[0].id;
 
-  useEffect(
-    () => {
-      const hotspotsEndpoint = `/api/0/organizations/${organizationSlug}/issues-hotspots/?project=${projectId}&statsPeriod=90d&noPagination=true&field=stack.filename&field=stack.filename&field=count()&field=count_unique(issue)`;
-      fetch(hotspotsEndpoint, {
-        credentials: 'include',
-        headers: {
-          Accept: 'application/json; charset=utf-8',
-          'Accept-Language': 'en-US,en;q=0.5',
-          'content-type': 'application/json',
-          'Sec-Fetch-Dest': 'empty',
-          'Sec-Fetch-Mode': 'cors',
-          'Sec-Fetch-Site': 'same-origin',
-        },
-        method: 'GET',
-        mode: 'cors',
-      })
-        .then(result => result.json())
-        .then(result => {
-          setDiagramData(result);
-          setIsLoading(false);
-        });
+  let maxDepth = 1;
+  let maxErrorCount = 1;
+  let maxUniqueErrorCount = 1;
 
-      return () => {
-        // cleanup code
-      };
-    },
-    [organizationSlug, projectId] // dependencies werte die ich in useEffect hook brauch (wenn sich das uendert dann wird effect hook ausgefuehr)
-  );
+  useEffect(() => {
+    const hotspotsEndpoint = `/api/0/organizations/${organizationSlug}/issues-hotspots/?project=${projectId}&statsPeriod=90d&noPagination=true&field=stack.filename&field=stack.filename&field=count()&field=count_unique(issue)`;
+    fetch(hotspotsEndpoint, {
+      credentials: 'include',
+      headers: {
+        Accept: 'application/json; charset=utf-8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'content-type': 'application/json',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+      },
+      method: 'GET',
+      mode: 'cors',
+    })
+      .then(result => result.json())
+      .then(result => {
+        for (const i in result) {
+          const item = result[i];
+          if ('depth' in item) {
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+            maxDepth = Math.max(maxDepth, +item.depth);
+          }
+          if ('errorCount' in item) {
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+            maxErrorCount = Math.max(maxErrorCount, +item.errorCount);
+          }
+
+          if ('uniqueErrorCount' in item) {
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+            maxUniqueErrorCount = Math.max(maxUniqueErrorCount, +item.uniqueErrorCount);
+          }
+        }
+        setDiagramData(result);
+        setIsLoading(false);
+      });
+  }, [organizationSlug, projectId]);
 
   if (isLoading) {
     return null;
@@ -135,6 +147,19 @@ function IssueHotSpots({organizationSlug, projects}: Props) {
 
     const z2 = api.value('depth') * 2;
 
+    const itemData = params.context.nodes[api.value(0)].data;
+    const colors = [
+      '#af87b4',
+      '#a376a9',
+      '#98659e',
+      '#8d5494',
+      '#7e4b85',
+      '#704376',
+      '#623a67',
+    ];
+    const colorIndex =
+      Math.floor((colors.length / maxUniqueErrorCount) * itemData.uniqueErrorCount) - 1;
+
     const output = {
       type: 'circle',
       focus,
@@ -148,7 +173,6 @@ function IssueHotSpots({organizationSlug, projects}: Props) {
       textContent: {
         type: 'text',
         style: {
-          // transition: isLeaf ? 'fontSize' : null,
           text: nodeName,
           fontFamily: "'Rubik', 'Avenir Next', 'Helvetica Neue', sans-serif",
           width: node.r * 1.3,
@@ -166,7 +190,7 @@ function IssueHotSpots({organizationSlug, projects}: Props) {
         position: 'inside',
       },
       style: {
-        fill: api.visual('color'),
+        fill: isLeaf ? colors[colorIndex] : api.visual('color'),
       },
       emphasis: {
         style: {
@@ -186,8 +210,6 @@ function IssueHotSpots({organizationSlug, projects}: Props) {
 
   let displayRoot = stratify();
 
-  const maxDepth = 4;
-
   const option = {
     dataset: {
       source: diagramData,
@@ -200,9 +222,7 @@ function IssueHotSpots({organizationSlug, projects}: Props) {
         max: maxDepth,
         dimension: 'depth',
         inRange: {
-          // color: ['#ad6caa', '#f6f0f6'], // Sentry Light Purple
-          color: ['#ffb287', '#fff7f3'], // Sentry Light Flame
-          // color: ['#afafb0', '#f7f7f7'], // Gray
+          color: ['#ffe0cf', '#fff7f3'], // Light Flame shades
         },
       },
     ],
@@ -216,6 +236,26 @@ function IssueHotSpots({organizationSlug, projects}: Props) {
         encode: {
           tooltip: 'errorCount',
           itemName: 'id',
+        },
+        tooltip: {
+          formatter: params => {
+            const path = params.data.id.replace('<project_root>', '');
+            if (!path) {
+              return;
+            }
+            let output = `<b>Path:</b> <pre class="plain">${path}</pre>`;
+
+            if (params.data.errorCount) {
+              output += `<b>Total Errors:</b> ${params.data.errorCount}<br/>`;
+            }
+
+            if (params.data.uniqueErrorCount) {
+              output += `<b>Distinct Errors:</b> ${params.data.uniqueErrorCount}`;
+            }
+
+            // eslint-disable-next-line consistent-return
+            return output;
+          },
         },
       },
     ],
