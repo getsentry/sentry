@@ -7,4 +7,4 @@
 !/dist/requirements-frozen.txt
 !/dist/*.whl
 # When building without a dist cache
-!requirements-frozen.txt
+!/requirements-frozen.txt
