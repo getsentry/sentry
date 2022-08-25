@@ -6,10 +6,50 @@ interface Dictionary<T> {
 export interface MatchResult {
   confidence: number;
   id: string;
+  attributes?: string[];
 }
 
 export interface Command {
   match(input: SpeechRecognitionAlternative): MatchResult | null;
+}
+
+export class HierarchicalCommand implements Command {
+  private id: string;
+  private minLength: number;
+  private args: Dictionary<boolean>[];
+
+  public constructor(id: string, minLength: number, ...args: string[][]) {
+    this.id = id;
+    this.args = [];
+    this.minLength = minLength;
+    for (let idx = 0; idx < args.length; ++idx) {
+      const v = args[idx];
+      const d: Dictionary<boolean> = {};
+      for (let vIdx = 0; vIdx < v.length; ++vIdx) {
+        d[v[vIdx]] = true;
+      }
+      this.args.push(d);
+    }
+  }
+
+  match(input: SpeechRecognitionAlternative): MatchResult | null {
+    const tokens = normalizeInput(input.transcript);
+    const args: string[] = [];
+    for (let idx = 0; idx < tokens.length; ++idx) {
+      const matchIdx = args.length;
+      if (matchIdx >= this.args.length) {
+        return {id: this.id, confidence: input.confidence, attributes: args};
+      }
+      const token = tokens[idx];
+      if (token in this.args[matchIdx]) {
+        args.push(token);
+      }
+    }
+    if (args.length >= this.minLength) {
+      return {id: this.id, confidence: input.confidence, attributes: args};
+    }
+    return null;
+  }
 }
 
 export class FuzzyCommand implements Command {
