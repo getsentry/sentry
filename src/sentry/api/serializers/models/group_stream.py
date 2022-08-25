@@ -4,7 +4,7 @@ import functools
 from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, Mapping, MutableMapping, Optional, Sequence
+from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence
 
 from django.utils import timezone
 
@@ -369,22 +369,55 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         )
 
     def _seen_stats_error(self, error_issue_list: Sequence[Group], user) -> Mapping[Any, SeenStats]:
+        return self._seen_stats_impl(error_issue_list, self._execute_error_seen_stats_query)
+
+    def _seen_stats_performance(
+        self, perf_issue_list: Sequence[Group], user
+    ) -> Mapping[Group, SeenStats]:
+        return self._seen_stats_impl(perf_issue_list, self._execute_perf_seen_stats_query)
+
+    def _seen_stats_impl(
+        self,
+        error_issue_list: Sequence[Group],
+        seen_stats_func: Callable[[Any, Any, Any, Any, Any], Mapping[str, Any]],
+    ) -> Mapping[Any, SeenStats]:
         partial_execute_seen_stats_query = functools.partial(
-            self._execute_seen_stats_query,
+            seen_stats_func,
             item_list=error_issue_list,
             environment_ids=self.environment_ids,
             start=self.start,
             end=self.end,
         )
-        time_range_result = partial_execute_seen_stats_query()
+        time_range_result = self._parse_seen_stats_results(
+            partial_execute_seen_stats_query(),
+            error_issue_list,
+            self.start,
+            self.end,
+            self.conditions,
+            self.environment_ids,
+        )
         filtered_result = (
-            partial_execute_seen_stats_query(conditions=self.conditions)
+            self._parse_seen_stats_results(
+                partial_execute_seen_stats_query(conditions=self.conditions),
+                error_issue_list,
+                self.start,
+                self.end,
+                self.conditions,
+                self.environment_ids,
+            )
             if self.conditions and not self._collapse("filtered")
             else None
         )
         if not self._collapse("lifetime"):
             lifetime_result = (
-                partial_execute_seen_stats_query(start=None, end=None)
+                self._parse_seen_stats_results(
+                    partial_execute_seen_stats_query(start=None, end=None),
+                    error_issue_list,
+                    None,
+                    None,
+                    None,
+                    self.environment_ids,
+                )
                 if self.start or self.end
                 else time_range_result
             )
@@ -399,15 +432,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 }
             )
         return time_range_result
-
-    def _seen_stats_performance(
-        self, perf_issue_list: Sequence[Group], user
-    ) -> Mapping[Group, SeenStats]:
-        # TODO(gilbert): implement this to return real data
-        if perf_issue_list:
-            raise NotImplementedError
-
-        return {}
 
     def _build_session_cache_key(self, project_id):
         start_key = end_key = env_key = ""

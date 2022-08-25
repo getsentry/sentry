@@ -873,25 +873,42 @@ class GroupSerializerSnuba(GroupSerializerBase):
         )
 
     def _seen_stats_error(self, error_issue_list: Sequence[Group], user) -> Mapping[Any, SeenStats]:
-        return self._execute_seen_stats_query(
-            item_list=error_issue_list,
-            start=self.start,
-            end=self.end,
-            conditions=self.conditions,
-            environment_ids=self.environment_ids,
+        return self._parse_seen_stats_results(
+            self._execute_error_seen_stats_query(
+                item_list=error_issue_list,
+                start=self.start,
+                end=self.end,
+                conditions=self.conditions,
+                environment_ids=self.environment_ids,
+            ),
+            error_issue_list,
+            self.start,
+            self.end,
+            self.conditions,
+            self.environment_ids,
         )
 
     def _seen_stats_performance(
         self, perf_issue_list: Sequence[Group], user
     ) -> Mapping[Group, SeenStats]:
-        # TODO(gilbert): implement this to return real data
-        if perf_issue_list:
-            raise NotImplementedError
+        return self._parse_seen_stats_results(
+            self._execute_perf_seen_stats_query(
+                item_list=perf_issue_list,
+                start=self.start,
+                end=self.end,
+                conditions=self.conditions,
+                environment_ids=self.environment_ids,
+            ),
+            perf_issue_list,
+            self.start,
+            self.end,
+            self.conditions,
+            self.environment_ids,
+        )
 
-        return {}
-
-    def _execute_seen_stats_query(
-        self, item_list, start=None, end=None, conditions=None, environment_ids=None
+    @staticmethod
+    def _execute_error_seen_stats_query(
+        item_list, start=None, end=None, conditions=None, environment_ids=None
     ):
         project_ids = list({item.project_id for item in item_list})
         group_ids = [item.id for item in item_list]
@@ -902,9 +919,9 @@ class GroupSerializerSnuba(GroupSerializerBase):
             ["uniq", "tags[sentry:user]", "count"],
         ]
         filters = {"project_id": project_ids, "group_id": group_ids}
-        if self.environment_ids:
-            filters["environment"] = self.environment_ids
-        result = aliased_query(
+        if environment_ids:
+            filters["environment"] = environment_ids
+        return aliased_query(
             dataset=Dataset.Events,
             start=start,
             end=end,
@@ -912,8 +929,40 @@ class GroupSerializerSnuba(GroupSerializerBase):
             conditions=conditions,
             filter_keys=filters,
             aggregations=aggregations,
-            referrer="serializers.GroupSerializerSnuba._execute_seen_stats_query",
+            referrer="serializers.GroupSerializerSnuba._execute_error_seen_stats_query",
         )
+
+    @staticmethod
+    def _execute_perf_seen_stats_query(
+        item_list, start=None, end=None, conditions=None, environment_ids=None
+    ):
+        project_ids = list({item.project_id for item in item_list})
+        group_ids = [item.id for item in item_list]
+        aggregations = [
+            ["arrayJoin", ["group_ids"], "group_id"],
+            ["count()", "", "times_seen"],
+            ["min", "timestamp", "first_seen"],
+            ["max", "timestamp", "last_seen"],
+            ["uniq", "tags[sentry:user]", "count"],
+        ]
+        filters = {"project_id": project_ids, "group_id": group_ids}
+        if environment_ids:
+            filters["environment"] = environment_ids
+        return aliased_query(
+            dataset=Dataset.Transactions,
+            start=start,
+            end=end,
+            groupby=["group_id"],
+            conditions=conditions,
+            filter_keys=filters,
+            aggregations=aggregations,
+            referrer="serializers.GroupSerializerSnuba._execute_perf_seen_stats_query",
+        )
+
+    @staticmethod
+    def _parse_seen_stats_results(
+        result, item_list, start=None, end=None, conditions=None, environment_ids=None
+    ):
         seen_data = {
             issue["group_id"]: fix_tag_value_data(
                 dict(filter(lambda key: key[0] != "group_id", issue.items()))
@@ -940,13 +989,12 @@ class GroupSerializerSnuba(GroupSerializerBase):
                 first_seen = {item.id: item.first_seen for item in item_list}
             times_seen = {item.id: item.times_seen for item in item_list}
 
-        attrs = {}
-        for item in item_list:
-            attrs[item] = {
+        return {
+            item: {
                 "times_seen": times_seen.get(item.id, 0),
                 "first_seen": first_seen.get(item.id),
                 "last_seen": last_seen.get(item.id),
                 "user_count": user_counts.get(item.id, 0),
             }
-
-        return attrs
+            for item in item_list
+        }
