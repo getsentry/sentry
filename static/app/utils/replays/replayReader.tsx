@@ -6,7 +6,7 @@ import {
   rrwebEventListFactory,
   spansFactory,
 } from 'sentry/utils/replays/replayDataUtils';
-import type {ChunkInvocation} from 'sentry/views/replays/detail/filesize/utils';
+import type {WebpackChunk} from 'sentry/views/replays/detail/unusedModules/utils';
 import type {
   MemorySpanType,
   RecordingEvent,
@@ -14,7 +14,6 @@ import type {
   ReplayError,
   ReplayRecord,
   ReplaySpan,
-  WebpackChunk,
 } from 'sentry/views/replays/types';
 
 import mockChunkData from '../../../../mock_chunk_data.json';
@@ -136,44 +135,5 @@ export default class ReplayReader {
 
   getWebpackStatsFile() {
     return mockChunkData as WebpackChunk[];
-  }
-
-  getChunkInvocationsByTxn(): ChunkInvocation[] {
-    const data = {
-      '/organizations/:orgId/replays/': {},
-      '/organizations/:orgId/replays/:replayId/': {
-        './app/views/app/index.tsx': 2,
-        './app/views/app/systemAlerts.tsx': 2,
-        './app/views/onboarding/targetedOnboarding/utils.tsx': 2,
-        './app/views/organizationContextContainer.tsx': 2,
-        './app/views/organizationDetails/index.tsx': 2,
-        './app/views/projects/redirectDeprecatedProjectRoute.tsx': 3,
-        './app/views/replays/detail/breadcrumbs/index.tsx': 4,
-        './app/views/replays/detail/console/index.tsx': 5,
-        './app/views/replays/detail/console/utils.tsx': 5,
-        './app/views/replays/detail/filesize/index.tsx': 3,
-        './app/views/replays/detail/focusArea.tsx': 16,
-        './app/views/replays/detail/focusTabs.tsx': 16,
-        './app/views/replays/detail/layout/chooseLayout.tsx': 16,
-        './app/views/replays/detail/layout/fluidPanel.tsx': 18,
-        './app/views/replays/detail/layout/index.tsx': 16,
-        './app/views/replays/detail/layout/splitPanel.tsx': 16,
-        './app/views/replays/detail/layout/utils.tsx': 32,
-        './app/views/replays/detail/network/utils.tsx': 3,
-        './app/views/replays/detail/page.tsx': 16,
-        './app/views/replays/detail/replayMetaData.tsx': 16,
-        './app/views/replays/details.tsx': 10,
-      },
-    };
-
-    return Object.entries(data).flatMap(([transaction, files]) => {
-      return Object.entries(files).flatMap(([filename, size]) => {
-        return {
-          filename,
-          size,
-          transaction,
-        };
-      });
-    });
   }
 }

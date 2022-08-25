@@ -9,7 +9,6 @@ export enum TabKey {
   trace = 'trace',
   issues = 'issues',
   memory = 'memory',
-  filesize = 'filesize',
   modules = 'modules',
 }
 

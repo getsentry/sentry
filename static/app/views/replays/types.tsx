@@ -136,15 +136,6 @@ export type MemorySpanType = ReplaySpan<{
   };
 }>;
 
-export type WebpackModule = {
-  id: string;
-  size: number;
-};
-export type WebpackChunk = {
-  id: string;
-  modules: WebpackModule[];
-};
-
 /**
  * @deprecated
  */

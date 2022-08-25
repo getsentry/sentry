@@ -26,7 +26,7 @@ type Props = {
 function NetworkList({replayRecord, networkSpans}: Props) {
   const startTimestampMs = replayRecord.startedAt.getTime();
   const {setCurrentHoverTime, setCurrentTime} = useReplayContext();
-  const [sortConfig, setSortConfig] = useState<ISortConfig>({
+  const [sortConfig, setSortConfig] = useState<ISortConfig<NetworkSpan>>({
     by: 'startTimestamp',
     asc: true,
     getValue: row => row[sortConfig.by],

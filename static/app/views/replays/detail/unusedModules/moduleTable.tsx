@@ -1,18 +1,31 @@
 import {Fragment, ReactNode, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import uniq from 'lodash/uniq';
 
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FileSize from 'sentry/components/fileSize';
-import {PanelTable, PanelTableHeader} from 'sentry/components/panels';
+import {Hovercard} from 'sentry/components/hovercard';
+import {
+  PanelHeader,
+  PanelItem,
+  PanelTable,
+  PanelTableHeader,
+} from 'sentry/components/panels';
+import TextOverflow from 'sentry/components/textOverflow';
 import Tooltip from 'sentry/components/tooltip';
 import {IconArrow, IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {inputStyles} from 'sentry/styles/input';
 import space from 'sentry/styles/space';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import {ISortConfig, sortNetwork} from 'sentry/views/replays/detail/network/utils';
-import {MODULES_WITH_SIZE} from 'sentry/views/replays/detail/unusedModules/utils';
+import {
+  MODULES_WITH_CUMULATIVE_SIZE,
+  MODULES_WITH_PARENTS,
+  MODULES_WITH_SIZE,
+} from 'sentry/views/replays/detail/unusedModules/utils';
 
 enum TableMode {
   All,
@@ -26,7 +39,10 @@ enum ModuleState {
 }
 
 type Record = {
+  cumulative: number;
+  incChildren: number;
   name: string;
+  parents: string[];
   size: number;
   state: ModuleState;
 };
@@ -37,23 +53,31 @@ function getModules(
   filter: string,
   {usedModules, unusedModules}: {unusedModules: string[]; usedModules: string[]}
 ) {
-  const used = usedModules
+  const used = uniq(usedModules)
     .filter(name => name.includes(filter))
+    .filter(name => name !== '../mock_chunk_data.json')
     .map(
       name =>
         ({
+          cumulative: (MODULES_WITH_CUMULATIVE_SIZE[name] || [0, 0])[1],
+          incChildren: (MODULES_WITH_CUMULATIVE_SIZE[name] || [0, 0, 0])[2],
           name,
-          size: MODULES_WITH_SIZE[name],
+          parents: MODULES_WITH_PARENTS[name] || [],
+          size: MODULES_WITH_SIZE[name] || 0,
           state: ModuleState.Used,
         } as Record)
     );
-  const unused = unusedModules
+  const unused = uniq(unusedModules)
     .filter(name => name.includes(filter))
+    .filter(name => name !== '../mock_chunk_data.json')
     .map(
       name =>
         ({
+          cumulative: (MODULES_WITH_CUMULATIVE_SIZE[name] || [0, 0])[1],
+          incChildren: (MODULES_WITH_CUMULATIVE_SIZE[name] || [0, 0, 0])[2],
           name,
-          size: MODULES_WITH_SIZE[name],
+          parents: MODULES_WITH_PARENTS[name] || [],
+          size: MODULES_WITH_SIZE[name] || 0,
           state: ModuleState.Unused,
         } as Record)
     );
@@ -82,7 +106,7 @@ function ModuleTable({
 }) {
   const [mode, setMode] = useState<TableMode>(TableMode.None);
   const [sortConfig, setSortConfig] = useState<ISortConfig<Record>>({
-    by: 'size',
+    by: 'cumulative',
     asc: false,
     getValue: row => row[sortConfig.by],
   });
@@ -123,7 +147,17 @@ function ModuleTable({
     </SortItem>,
     <SortItem key="size">
       <UnstyledHeaderButton onClick={() => handleSort('size')}>
-        {t('Size')} {sortArrow('size')}
+        {t('Ex. Size')} {sortArrow('size')}
+      </UnstyledHeaderButton>
+    </SortItem>,
+    <SortItem key="cumulative">
+      <UnstyledHeaderButton onClick={() => handleSort('cumulative')}>
+        {t('Inc. Size')} {sortArrow('cumulative')}
+      </UnstyledHeaderButton>
+    </SortItem>,
+    <SortItem key="children">
+      <UnstyledHeaderButton onClick={() => handleSort('incChildren')}>
+        {t('Inc. Deps')} {sortArrow('incChildren')}
       </UnstyledHeaderButton>
     </SortItem>,
   ];
@@ -168,12 +202,18 @@ function ModuleTable({
                   }}
                   showOnlyOnOverflow
                 >
-                  <Text>{module.name}</Text>
+                  <Text>
+                    <ModuleParents module={module} />
+                  </Text>
                 </Tooltip>
               </Item>
               <Item numeric>
                 <FileSize base={2} bytes={Math.round(module.size)} />
               </Item>
+              <Item numeric>
+                <FileSize base={2} bytes={Math.round(module.cumulative)} />
+              </Item>
+              <Item numeric>{formatAbbreviatedNumber(module.incChildren)}</Item>
             </Fragment>
           );
         })}
@@ -209,8 +249,47 @@ function ModuleTable({
   );
 }
 
+const NoPaddingHovercard = styled(
+  ({children, bodyClassName, ...props}: React.ComponentProps<typeof Hovercard>) => (
+    <Hovercard bodyClassName={bodyClassName || '' + ' half-padding'} {...props}>
+      {children}
+    </Hovercard>
+  )
+)`
+  .half-padding {
+    padding: 0;
+  }
+`;
+
+function ModuleParents({module}: {module: Record}) {
+  const summaryItems = module.parents.map(parent => (
+    <PanelItem key={parent}>
+      <TextOverflow ellipsisDirection="left">{parent}</TextOverflow>
+    </PanelItem>
+  ));
+
+  return (
+    <NoPaddingHovercard
+      body={
+        <ScrollableCardBody>
+          <PanelHeader>Parent Modules</PanelHeader>
+          {summaryItems}
+        </ScrollableCardBody>
+      }
+      position="right"
+    >
+      <TextOverflow>{module.name}</TextOverflow>
+    </NoPaddingHovercard>
+  );
+}
+
+const ScrollableCardBody = styled('div')`
+  overflow: auto;
+  max-height: 90vh;
+`;
+
 const StyledPanelTable = styled(PanelTable)<{columns: number}>`
-  grid-template-columns: max-content minmax(200px, 1fr) max-content;
+  grid-template-columns: max-content minmax(200px, 1fr) repeat(3, max-content);
   font-size: ${p => p.theme.fontSizeSmall};
   margin-bottom: 0;
   height: 100%;
@@ -315,7 +394,7 @@ const Item = styled('div')<{center?: boolean; color?: ColorOrAlias; numeric?: bo
   ${p => p.numeric && 'font-variant-numeric: tabular-nums;'}
 `;
 
-const Text = styled('p')`
+const Text = styled('span')`
   padding: 0;
   margin: 0;
   text-overflow: ellipsis;
