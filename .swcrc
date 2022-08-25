@@ -37,7 +37,7 @@
   "module": {
     "type": "es6"
   },
-  "minify": false,
+  "minify": true,
   "env": {
     "mode": "usage",
     "coreJs": "3.23",

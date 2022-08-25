@@ -450,7 +450,7 @@ const appConfig: Configuration = {
 
     // This only runs in production mode
     // Grabbed this example from https://github.com/webpack-contrib/css-minimizer-webpack-plugin
-    minimizer: ['...', new CssMinimizerPlugin()],
+    minimizer: [new CssMinimizerPlugin()],
   },
   devtool: IS_PRODUCTION ? 'source-map' : 'eval-cheap-module-source-map',
 };
