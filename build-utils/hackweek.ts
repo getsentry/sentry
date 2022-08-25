@@ -179,30 +179,19 @@ class HackweekPlugin {
             const modules = compilation.chunkGraph
               .getChunkModules(chunk)
               .map(module => {
-                const id = normalizeModuleId(module.id || '');
-                if (id.includes('/node_modules/')) {
-                  return null;
-                }
-
-                const requests = uniq<string>(
-                  module.dependencies.map(dep => dep.request).filter(Boolean)
-                );
-
                 return {
-                  id,
+                  id: module.id,
                   size: module.size(),
-                  children: requests
-                    .map(name => normalizeDepName(name, id))
-                    .filter(Boolean),
+                  children: Array.from(
+                    new Set(
+                      module.dependencies
+                        .map(dep => compilation.moduleGraph.getModule(dep)?.id)
+                        .filter(Boolean)
+                    )
+                  ),
                 };
               })
               .filter(Boolean);
-
-            // compilation.chunkGraph
-            //   .getChunkModules(chunk)
-            //   .map(module =>
-            //     module.dependencies.map(dep => compilation.moduleGraph.getModule(dep))
-            //   );
 
             return {
               id: chunk.id,
@@ -225,32 +214,6 @@ class HackweekPlugin {
       callback();
     });
   }
-}
-
-function normalizeModuleId(name: string) {
-  const parsed = path.parse(name);
-  return path.join(parsed.dir, parsed.name);
-}
-
-const root = path.resolve(__dirname, '../');
-
-function normalizeDepName(name: null | string, relativeTo: string) {
-  if (
-    !name ||
-    name.includes('/node_modules/') ||
-    name.startsWith('../internals') ||
-    name.startsWith('@')
-  ) {
-    return null;
-  }
-
-  if (name.startsWith('sentry/')) {
-    return name.replace(/^sentry/, 'app');
-  }
-  if (name.startsWith('../') || name.startsWith('./')) {
-    return path.resolve(path.relative(root, relativeTo), name).replace(root + '/', '');
-  }
-  return name;
 }
 
 function writeFileSyncIfContentChanged(filePath: string, content: string) {

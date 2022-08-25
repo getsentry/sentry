@@ -22,9 +22,9 @@ function getModulesbyName(chunks: WebpackChunk[]): Record<string, WebpackModule>
   );
 }
 
-function normalizeModuleName(name: string) {
-  return name.replace('/^\\./', '').replace(/\.tsx$/, '');
-}
+// function normalizeModuleName(name: string) {
+//   return name.replace('/^\\./', '').replace(/\.tsx$/, '');
+// }
 
 function getModulesWithCumulativeSize(
   chunks: WebpackChunk[]
@@ -33,8 +33,7 @@ function getModulesWithCumulativeSize(
   const cumulative: Record<string, [number, number]> = {};
 
   const getSizeForModule = (module: WebpackModule, visitedList: string[]) => {
-    const id = normalizeModuleName(module.id);
-    console.log('C', {id});
+    const id = module.id;
     if (cumulative[id]) {
       return cumulative[id];
     }
@@ -51,14 +50,13 @@ function getModulesWithCumulativeSize(
           id: childName,
           size: 0,
         };
+
         if (visitedList.includes(childName)) {
           // cyclic call, we're looking at the same child again.
           return [totalSize, totalDeps];
         }
-        cumulative[childName] = getSizeForModule(
-          childModule,
-          visitedList.concat(childName)
-        );
+        visitedList.push(childName);
+        cumulative[childName] = getSizeForModule(childModule, visitedList);
         const [childSize, childDeps] = cumulative[childName];
         return [totalSize + childSize, totalDeps + childDeps];
       },
@@ -70,8 +68,7 @@ function getModulesWithCumulativeSize(
 
   chunks.forEach(chunk => {
     chunk.modules.forEach(module => {
-      const id = normalizeModuleName(module.id);
-      console.log('R', {id});
+      const id = module.id;
       if (cumulative[id]) {
         return;
       }

@@ -91,7 +91,7 @@ function ModuleTable({
 }) {
   const [mode, setMode] = useState<TableMode>(TableMode.None);
   const [sortConfig, setSortConfig] = useState<ISortConfig<Record>>({
-    by: 'size',
+    by: 'cumulative',
     asc: false,
     getValue: row => row[sortConfig.by],
   });
