@@ -8,6 +8,7 @@ import {PanelTable, PanelTableHeader} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
 import {IconArrow, IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {inputStyles} from 'sentry/styles/input';
 import space from 'sentry/styles/space';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import {ISortConfig, sortNetwork} from 'sentry/views/replays/detail/network/utils';
@@ -33,24 +34,29 @@ type Record = {
 function getModules(
   mode: TableMode,
   sortConfig: ISortConfig<Record>,
+  filter: string,
   {usedModules, unusedModules}: {unusedModules: string[]; usedModules: string[]}
 ) {
-  const used = usedModules.map(
-    name =>
-      ({
-        name,
-        size: MODULES_WITH_SIZE[name],
-        state: ModuleState.Used,
-      } as Record)
-  );
-  const unused = unusedModules.map(
-    name =>
-      ({
-        name,
-        size: MODULES_WITH_SIZE[name],
-        state: ModuleState.Unused,
-      } as Record)
-  );
+  const used = usedModules
+    .filter(name => name.includes(filter))
+    .map(
+      name =>
+        ({
+          name,
+          size: MODULES_WITH_SIZE[name],
+          state: ModuleState.Used,
+        } as Record)
+    );
+  const unused = unusedModules
+    .filter(name => name.includes(filter))
+    .map(
+      name =>
+        ({
+          name,
+          size: MODULES_WITH_SIZE[name],
+          state: ModuleState.Unused,
+        } as Record)
+    );
 
   switch (mode) {
     case TableMode.All:
@@ -80,6 +86,7 @@ function ModuleTable({
     asc: false,
     getValue: row => row[sortConfig.by],
   });
+  const [filter, setFilter] = useState('');
 
   const handleSort = useCallback((fieldName: string) => {
     const getValueFunction = row => row[fieldName];
@@ -106,7 +113,7 @@ function ModuleTable({
   const columns = [
     <SortItem key="state">
       <UnstyledHeaderButton onClick={() => handleSort('state')}>
-        {t('In Use')} {sortArrow('state')}
+        {t('Used')} {sortArrow('state')}
       </UnstyledHeaderButton>
     </SortItem>,
     <SortItem key="name">
@@ -122,48 +129,56 @@ function ModuleTable({
   ];
 
   const modules = useMemo(
-    () => getModules(mode, sortConfig, {unusedModules, usedModules}),
-    [mode, sortConfig, unusedModules, usedModules]
+    () => getModules(mode, sortConfig, filter, {unusedModules, usedModules}),
+    [mode, sortConfig, filter, unusedModules, usedModules]
   );
 
   const table = (
-    <StyledPanelTable
-      columns={columns.length}
-      isEmpty={!modules.length}
-      emptyMessage={emptyMessage}
-      headers={columns}
-      disablePadding
-      stickyHeaders
-    >
-      {modules.map(module => {
-        return (
-          <Fragment key={module.name}>
-            <Item center>
-              {module.state === ModuleState.Used ? (
-                <IconCheckmark color="green300" size="xs" isCircled />
-              ) : (
-                <IconClose color="red400" size="xs" isCircled />
-              )}
-            </Item>
-            <Item>
-              <Tooltip
-                title={module.name}
-                isHoverable
-                overlayStyle={{
-                  maxWidth: '500px !important',
-                }}
-                showOnlyOnOverflow
-              >
-                <Text>{module.name}</Text>
-              </Tooltip>
-            </Item>
-            <Item numeric>
-              <FileSize base={2} bytes={Math.round(module.size)} />
-            </Item>
-          </Fragment>
-        );
-      })}
-    </StyledPanelTable>
+    <Fragment>
+      {/* @ts-expect-error WTF is it complaining about theme for? */}
+      <FilterInput
+        value={filter}
+        onChange={e => setFilter(e.target.value)}
+        placeholder={t('Filter by module name...')}
+      />
+      <StyledPanelTable
+        columns={columns.length}
+        isEmpty={!modules.length}
+        emptyMessage={emptyMessage}
+        headers={columns}
+        disablePadding
+        stickyHeaders
+      >
+        {modules.map(module => {
+          return (
+            <Fragment key={module.name}>
+              <Item center>
+                {module.state === ModuleState.Used ? (
+                  <IconCheckmark color="green300" size="xs" isCircled />
+                ) : (
+                  <IconClose color="red400" size="xs" isCircled />
+                )}
+              </Item>
+              <Item>
+                <Tooltip
+                  title={module.name}
+                  isHoverable
+                  overlayStyle={{
+                    maxWidth: '500px !important',
+                  }}
+                  showOnlyOnOverflow
+                >
+                  <Text>{module.name}</Text>
+                </Tooltip>
+              </Item>
+              <Item numeric>
+                <FileSize base={2} bytes={Math.round(module.size)} />
+              </Item>
+            </Fragment>
+          );
+        })}
+      </StyledPanelTable>
+    </Fragment>
   );
 
   const buttons: [TableMode, ReactNode][] = [
@@ -173,9 +188,11 @@ function ModuleTable({
     [TableMode.Used, t('Accessed Imports')],
   ];
 
+  const isTableVisible = mode !== TableMode.None;
+
   return (
     <div>
-      <ButtonBar merged>
+      <StyledButtonBar isTableVisible={isTableVisible} merged>
         {buttons.map(([key, label]) => (
           <Button
             key={key}
@@ -186,8 +203,8 @@ function ModuleTable({
             {label}
           </Button>
         ))}
-      </ButtonBar>
-      {mode !== TableMode.None ? table : null}
+      </StyledButtonBar>
+      {isTableVisible ? table : null}
     </div>
   );
 }
@@ -198,6 +215,11 @@ const StyledPanelTable = styled(PanelTable)<{columns: number}>`
   margin-bottom: 0;
   height: 100%;
   overflow: auto;
+
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-bottom: none;
+  border-top: none;
 
   > * {
     border-right: 1px solid ${p => p.theme.innerBorder};
@@ -233,6 +255,35 @@ const SortItem = styled('span')`
 
   svg {
     margin-left: ${space(0.25)};
+  }
+`;
+
+const StyledButtonBar = styled(ButtonBar)<{isTableVisible: boolean}>`
+  ${p =>
+    p.isTableVisible
+      ? `
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+        `
+      : null}
+`;
+
+const FilterInput = styled('input')`
+  ${inputStyles};
+  background-color: ${p => p.theme.white};
+
+  border-radius: 0;
+
+  padding: ${space(0.25)};
+  height: ${p => p.theme.form.xs.height}px;
+  min-height: ${p => p.theme.form.xs.minHeight}px;
+  font-size: ${p => p.theme.form.xs.fontSize};
+  line-height: ${p => p.theme.form.xs.lineHeight};
+
+  &:hover,
+  &:focus {
+    background-color: ${p => p.theme.backgroundSecondary};
+    border-right-width: 0;
   }
 `;
 

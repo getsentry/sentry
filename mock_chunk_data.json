@@ -8597,7 +8597,7 @@
 			},
 			{
 				"id": "./app/views/replays/detail/unusedModules/moduleTable.tsx",
-				"size": 71510
+				"size": 109579
 			},
 			{
 				"id": "./app/views/replays/detail/unusedModules/utils.tsx",
@@ -26267,7 +26267,7 @@
 			},
 			{
 				"id": "../mock_chunk_data.json",
-				"size": 474818
+				"size": 474819
 			}
 		]
 	},
