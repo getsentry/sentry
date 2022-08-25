@@ -321,11 +321,13 @@ class EventManager:
         releases and environments to postgres and write the event into
         eventstream. From there it will be picked up by Snuba and
         post-processing.
+
         We re-insert events with duplicate IDs into Snuba, which is responsible
         for deduplicating events. Since deduplication in Snuba is on the primary
         key (based on event ID, project ID and day), events with same IDs are only
         deduplicated if their timestamps fall on the same day. The latest event
         always wins and overwrites the value of events received earlier in that day.
+
         Since we increment counters and frequencies here before events get inserted
         to eventstream these numbers may be larger than the total number of
         events if we receive duplicate event IDs that fall on the same day
