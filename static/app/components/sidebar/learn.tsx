@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import Hook from 'sentry/components/hook';
 import SidebarItem from 'sentry/components/sidebar/sidebarItem';
-import {IconSentry} from 'sentry/icons';
+import {IconLab} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -15,12 +15,12 @@ import {CommonSidebarProps} from './types';
 
 const RANDOM_TITLES = [
   'Learn',
-  'Tutor Time',
-  'Cheat Sheet',
   'Educate Yo-self',
   'Need a Hand?',
-  'Quick and Painless',
   'Show Me',
+  'Training',
+  'Knowledge',
+  'Enlighten Me',
 ];
 const getRandomTitle = () => {
   return RANDOM_TITLES[Math.floor(Math.random() * RANDOM_TITLES.length)];
@@ -29,27 +29,115 @@ const getRandomTitle = () => {
 const getLearningItem = location => {
   const pathname: string = location.pathname;
   if (pathname.includes('/alerts/')) {
-    return (
-      <React.Fragment>
+    if (pathname.includes('/alerts/new/issue')) {
+      return (
+        <React.Fragment>
+          <SidebarMenuItem href="https://www.youtube.com/watch?v=a3E96gap2hM">
+            {t('Issue Alerts')}
+          </SidebarMenuItem>
+          <SidebarMenuItem href="https://www.youtube.com/watch?v=8zn1G2xtFrc">
+            {t('Regression Alerts')}
+          </SidebarMenuItem>
+        </React.Fragment>
+      );
+    }
+
+    if (pathname.includes('/alerts/new/metric')) {
+      return (
         <SidebarMenuItem href="https://www.youtube.com/watch?v=HVa_cvkckdc">
           {t('Metric Alerts')}
         </SidebarMenuItem>
-        <SidebarMenuItem href="https://www.youtube.com/watch?v=8zn1G2xtFrc">
-          {t('Regression Alerts')}
-        </SidebarMenuItem>
-      </React.Fragment>
+      );
+    }
+
+    return (
+      <SidebarMenuItem href="https://docs.sentry.io/product/alerts/">
+        {t('Alerts')}
+      </SidebarMenuItem>
     );
   }
+
+  if (pathname.includes('/settings/')) {
+    if (/settings.*ownership/.test(pathname)) {
+      return (
+        <SidebarMenuItem href="https://www.youtube.com/watch?v=GVKqIpfD9mE">
+          {t('Issue Owners')}
+        </SidebarMenuItem>
+      );
+    }
+    if (/settings.*filters/.test(pathname)) {
+      return (
+        <SidebarMenuItem href="https://docs.sentry.io/product/data-management-settings/filtering/">
+          {t('Inbound Filters')}
+        </SidebarMenuItem>
+      );
+    }
+    if (/settings.*issue-grouping/.test(pathname)) {
+      return (
+        <SidebarMenuItem href="https://www.youtube.com/watch?v=Ra6Z_d-aKw8">
+          {t('Issue Grouping')}
+        </SidebarMenuItem>
+      );
+    }
+    if (/settings.*security-and-privacy/.test(pathname)) {
+      return (
+        <SidebarMenuItem href="https://docs.sentry.io/product/data-management-settings/scrubbing/">
+          {t('Security & Privacy')}
+        </SidebarMenuItem>
+      );
+    }
+
+    return (
+      <SidebarMenuItem href="https://help.sentry.io/account/#account-settings">
+        {t('Settings')}
+      </SidebarMenuItem>
+    );
+  }
+
   if (pathname.includes('/issues/')) {
+    if (/issues\/\d+/.test(pathname)) {
+      return (
+        <SidebarMenuItem href="https://docs.sentry.io/product/issues/issue-details/">
+          {t('Issue Details')}
+        </SidebarMenuItem>
+      );
+    }
     return (
       <React.Fragment>
+        <SidebarMenuItem href="https://www.youtube.com/watch?v=2njbTMh5huk">
+          {t('Issues Review')}
+        </SidebarMenuItem>
         <SidebarMenuItem href="https://www.youtube.com/watch?v=vxLgprHiqC0">
-          {t('Issue Grouping')}
+          {t('Issues Grouping')}
         </SidebarMenuItem>
         <SidebarMenuItem href="https://www.youtube.com/watch?v=GVKqIpfD9mE">
           {t('Ownership Rules')}
         </SidebarMenuItem>
       </React.Fragment>
+    );
+  }
+
+  if (pathname.includes('/performance/')) {
+    return (
+      <SidebarMenuItem href="https://www.youtube.com/watch?v=Ap5lQg7UL-s">
+        {t('Performance')}
+      </SidebarMenuItem>
+    );
+  }
+
+  if (pathname.includes('/releases/')) {
+    return (
+      <SidebarMenuItem href="https://www.youtube.com/watch?v=fOd5vbf0U0w">
+        {t('Releases')}
+      </SidebarMenuItem>
+    );
+  }
+
+  if (pathname.includes('/profiling/')) {
+    return (
+      <SidebarMenuItem href="https://www.youtube.com/watch?v=A-I3e5XMCsQ">
+        {t('Profiling')}
+      </SidebarMenuItem>
     );
   }
   if (pathname.includes('/dashboards/')) {
@@ -59,6 +147,7 @@ const getLearningItem = location => {
       </SidebarMenuItem>
     );
   }
+
   if (pathname.includes('/projects/')) {
     return (
       <React.Fragment>
@@ -71,15 +160,24 @@ const getLearningItem = location => {
       </React.Fragment>
     );
   }
+
   if (pathname.includes('/discover/')) {
     return (
-      <SidebarMenuItem href="https://www.youtube.com/watch?v=Ra6Z_d-aKw8">
-        {t('Fingerprint Rules')}
-      </SidebarMenuItem>
+      <React.Fragment>
+        <SidebarMenuItem href="https://www.youtube.com/watch?v=Bw8DIaHScZ4">
+          {t('Discover Queries')}
+        </SidebarMenuItem>
+        <SidebarMenuItem href="https://www.youtube.com/watch?v=Ra6Z_d-aKw8">
+          {t('Fingerprint Rules')}
+        </SidebarMenuItem>
+      </React.Fragment>
     );
   }
+
   return (
-    <SidebarMenuItem href="https://docs.sentry.io/">{t('Documentation')}</SidebarMenuItem>
+    <SidebarMenuItem href="https://sentry.io/resources/">
+      {t('Resources')}
+    </SidebarMenuItem>
   );
 };
 
@@ -109,8 +207,7 @@ const SidebarLearn = ({
                 orientation={orientation}
                 collapsed={collapsed}
                 hasPanel={false}
-                icon={<IconSentry size="md" />}
-                // icon={<FontAwesomeIcon icon="graduation-cap" />}
+                icon={<IconLab size="md" />}
                 label={t(randomTitle)}
                 id="learn"
               />
