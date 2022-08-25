@@ -26,7 +26,7 @@ type Opts = {
 };
 
 const configBuilder = ({config}: Opts = {config: emptyConfig}) => {
-  const [firstRule, secondRule, ...rules] = (config.module?.rules ??
+  const [_firstRule, _secondRule, ...rules] = (config.module?.rules ??
     []) as webpack.RuleSetRule[];
 
   const filteredRules = rules.filter(rule => {
@@ -109,6 +109,11 @@ const configBuilder = ({config}: Opts = {config: emptyConfig}) => {
         // [0]: https://gist.github.com/shilman/8856ea1786dcd247139b47b270912324#gistcomment-3681971
         assert: false,
       },
+    },
+    optimization: {
+      ...config.optimization,
+      // Disable terser, use swc
+      minimizer: [],
     },
   };
 
