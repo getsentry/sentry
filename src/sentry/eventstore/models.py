@@ -573,11 +573,13 @@ class Event(BaseEvent):
         self,
         project_id: int,
         event_id: str,
+        group_id: int | None = None,
         data: Mapping[str, Any] | None = None,
         snuba_data: Mapping[str, Any] | None = None,
         group_ids: Sequence[int] | None = None,
     ):
         super().__init__(project_id, event_id, snuba_data=snuba_data)
+        self.group_id = group_id
         self.group_ids = group_ids
         self.data = data
 
