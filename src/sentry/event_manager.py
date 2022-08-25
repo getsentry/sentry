@@ -321,13 +321,11 @@ class EventManager:
         releases and environments to postgres and write the event into
         eventstream. From there it will be picked up by Snuba and
         post-processing.
-
         We re-insert events with duplicate IDs into Snuba, which is responsible
         for deduplicating events. Since deduplication in Snuba is on the primary
         key (based on event ID, project ID and day), events with same IDs are only
         deduplicated if their timestamps fall on the same day. The latest event
         always wins and overwrites the value of events received earlier in that day.
-
         Since we increment counters and frequencies here before events get inserted
         to eventstream these numbers may be larger than the total number of
         events if we receive duplicate event IDs that fall on the same day
@@ -442,19 +440,9 @@ class EventManager:
 
         _materialize_metadata_many(jobs)
 
-        kwargs = {
-            "platform": job["platform"],
-            "message": job["event"].search_message,
-            "culprit": job["culprit"],
-            "logger": job["logger_name"],
-            "level": LOG_LEVELS_MAP.get(job["level"]),
-            "last_seen": job["event"].datetime,
-            "first_seen": job["event"].datetime,
-            "active_at": job["event"].datetime,
-        }
+        kwargs = _create_kwargs(job)
 
-        if job["release"]:
-            kwargs["first_release"] = job["release"]
+        kwargs["culprit"] = job["culprit"]
 
         # Load attachments first, but persist them at the very last after
         # posting to eventstream to make sure all counters and eventstream are
@@ -485,26 +473,9 @@ class EventManager:
         job["event"].data.bind_ref(job["event"])
 
         _get_or_create_environment_many(jobs, projects)
-
-        if job["group"]:
-            group_environment, job["is_new_group_environment"] = GroupEnvironment.get_or_create(
-                group_id=job["group"].id,
-                environment_id=job["environment"].id,
-                defaults={"first_release": job["release"] or None},
-            )
-        else:
-            job["is_new_group_environment"] = False
-
+        _get_or_create_group_environment_many(jobs, projects)
         _get_or_create_release_associated_models(jobs, projects)
-
-        if job["release"] and job["group"]:
-            job["grouprelease"] = GroupRelease.get_or_create(
-                group=job["group"],
-                release=job["release"],
-                environment=job["environment"],
-                datetime=job["event"].datetime,
-            )
-
+        _get_or_create_group_release_many(jobs, projects)
         _tsdb_record_all_metrics(jobs)
 
         if job["group"]:
@@ -866,12 +837,42 @@ def _materialize_metadata_many(jobs):
         job["culprit"] = data["culprit"]
 
 
+def _create_kwargs(job):
+    kwargs = {
+        "platform": job["platform"],
+        "message": job["event"].search_message,
+        "logger": job["logger_name"],
+        "level": LOG_LEVELS_MAP.get(job["level"]),
+        "last_seen": job["event"].datetime,
+        "first_seen": job["event"].datetime,
+        "active_at": job["event"].datetime,
+    }
+
+    if job["release"]:
+        kwargs["first_release"] = job["release"]
+
+    return kwargs
+
+
 @metrics.wraps("save_event.get_or_create_environment_many")
 def _get_or_create_environment_many(jobs, projects):
     for job in jobs:
         job["environment"] = Environment.get_or_create(
             project=projects[job["project_id"]], name=job["environment"]
         )
+
+
+@metrics.wraps("save_event.get_or_create_group_environment_many")
+def _get_or_create_group_environment_many(jobs, projects):
+    for job in jobs:
+        if job["group"]:
+            group_environment, job["is_new_group_environment"] = GroupEnvironment.get_or_create(
+                group_id=job["group"].id,
+                environment_id=job["environment"].id,
+                defaults={"first_release": job["release"] or None},
+            )
+        else:
+            job["is_new_group_environment"] = False
 
 
 @metrics.wraps("save_event.get_or_create_release_associated_models")
@@ -895,6 +896,18 @@ def _get_or_create_release_associated_models(jobs, projects):
         ReleaseProjectEnvironment.get_or_create(
             project=project, release=release, environment=environment, datetime=date
         )
+
+
+@metrics.wraps("save_event.get_or_create_group_release_many")
+def _get_or_create_group_release_many(jobs, projects):
+    for job in jobs:
+        if job["release"] and job["group"]:
+            job["grouprelease"] = GroupRelease.get_or_create(
+                group=job["group"],
+                release=job["release"],
+                environment=job["environment"],
+                datetime=job["event"].datetime,
+            )
 
 
 @metrics.wraps("save_event.tsdb_record_all_metrics")
@@ -1103,7 +1116,6 @@ def materialize_metadata(data, event_type, event_metadata):
     """Returns the materialized metadata to be merged with group or
     event data.  This currently produces the keys `type`, `culprit`,
     `metadata`, `title` and `location`.
-
     """
 
     # XXX(markus): Ideally this wouldn't take data or event_type, and instead
@@ -1210,31 +1222,7 @@ def _save_aggregate(event, hashes, release, metadata, received_timestamp, **kwar
 
             if existing_grouphash is None:
 
-                try:
-                    short_id = project.next_short_id()
-                except OperationalError:
-                    metrics.incr(
-                        "next_short_id.timeout",
-                        tags={"platform": event.platform or "unknown"},
-                    )
-                    sentry_sdk.capture_message("short_id.timeout")
-                    raise HashDiscarded("Timeout when getting next_short_id")
-
-                # it's possible the release was deleted between
-                # when we queried for the release and now, so
-                # make sure it still exists
-                first_release = kwargs.pop("first_release", None)
-
-                group = Group.objects.create(
-                    project=project,
-                    short_id=short_id,
-                    first_release_id=Release.objects.filter(id=first_release.id)
-                    .values_list("id", flat=True)
-                    .first()
-                    if first_release
-                    else None,
-                    **kwargs,
-                )
+                group = _create_group(project, event, **kwargs)
 
                 if root_hierarchical_grouphash is not None:
                     new_hashes = [root_hierarchical_grouphash]
@@ -1386,6 +1374,34 @@ def _find_existing_grouphash(
     return None, root_hierarchical_hash
 
 
+def _create_group(project, event, **kwargs):
+    try:
+        short_id = project.next_short_id()
+    except OperationalError:
+        metrics.incr(
+            "next_short_id.timeout",
+            tags={"platform": event.platform or "unknown"},
+        )
+        sentry_sdk.capture_message("short_id.timeout")
+        raise HashDiscarded("Timeout when getting next_short_id")
+
+    # it's possible the release was deleted between
+    # when we queried for the release and now, so
+    # make sure it still exists
+    first_release = kwargs.pop("first_release", None)
+
+    return Group.objects.create(
+        project=project,
+        short_id=short_id,
+        first_release_id=Release.objects.filter(id=first_release.id)
+        .values_list("id", flat=True)
+        .first()
+        if first_release
+        else None,
+        **kwargs,
+    )
+
+
 def _handle_regression(group, event, release):
     if not group.is_resolved():
         return
@@ -1515,10 +1531,8 @@ def _process_existing_aggregate(group, event, data, release):
 def discard_event(job, attachments):
     """
     Refunds consumed quotas for an event and its attachments.
-
     For the event and each dropped attachment, an outcome
     FILTERED(discarded-hash) is emitted.
-
     :param job:         The job context container.
     :param attachments: The full list of attachments to filter.
     """
@@ -1580,10 +1594,8 @@ def discard_event(job, attachments):
 def get_attachments(cache_key, job):
     """
     Retrieves the list of attachments for this event.
-
     This method skips attachments that have been marked for rate limiting by
     earlier ingestion pipeline.
-
     :param cache_key: The cache key at which the event payload is stored in the
                       cache. This is used to retrieve attachments.
     :param job:       The job context container.
@@ -1605,13 +1617,10 @@ def get_attachments(cache_key, job):
 def filter_attachments_for_group(attachments, job):
     """
     Removes crash reports exceeding the group-limit.
-
     If the project or organization is configured to limit the amount of crash
     reports per group, the number of stored crashes is limited. This requires
     `event.group` to be set.
-
     Emits one outcome per removed attachment.
-
     :param attachments: The full list of attachments to filter.
     :param job:         The job context container.
     """
@@ -1698,10 +1707,8 @@ def save_attachment(
 ):
     """
     Persists a cached event attachments into the file store.
-
     Emits one outcome, either ACCEPTED on success or INVALID(missing_chunks) if
     retrieving the attachment data fails.
-
     :param cache_key:  The cache key at which the attachment is stored for
                        debugging purposes.
     :param attachment: The ``CachedAttachment`` instance to store.
@@ -1770,10 +1777,8 @@ def save_attachment(
 def save_attachments(cache_key, attachments, job):
     """
     Persists cached event attachments into the file store.
-
     Emits one outcome per attachment, either ACCEPTED on success or
     INVALID(missing_chunks) if retrieving the attachment fails.
-
     :param attachments: A filtered list of attachments to save.
     :param job:         The job context container.
     """
@@ -1916,7 +1921,9 @@ def save_transaction_events(jobs, projects):
     _calculate_span_grouping(jobs, projects)
     _materialize_metadata_many(jobs)
     _get_or_create_environment_many(jobs, projects)
+    _get_or_create_group_environment_many(jobs, projects)
     _get_or_create_release_associated_models(jobs, projects)
+    _get_or_create_group_release_many(jobs, projects)
     _tsdb_record_all_metrics(jobs)
     _materialize_event_metrics(jobs)
     _nodestore_save_many(jobs)
