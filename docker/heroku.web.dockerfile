@@ -8,5 +8,5 @@ RUN adduser sentry_user
 USER sentry_user
 # Heroku use $PORT, thus, it will overwrite this
 ENV PORT="8000"
-# run gunicorn
+
 CMD sentry run web --bind 0.0.0.0:$PORT
