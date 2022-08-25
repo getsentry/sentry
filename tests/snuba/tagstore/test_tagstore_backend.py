@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Sequence
 from unittest.mock import Mock, patch
 
@@ -19,7 +19,7 @@ from sentry.tagstore.exceptions import (
     TagValueNotFound,
 )
 from sentry.tagstore.snuba.backend import SnubaTagStorage
-from sentry.tagstore.types import TagValue
+from sentry.tagstore.types import GroupTagValue, TagValue
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format
 
@@ -785,7 +785,9 @@ class PerfTagStorageTest(TestCase, SnubaTestCase):
 
         self.ts = SnubaTagStorage()
 
-    def _build_transaction_event(self, environment: Environment, project_id, group_ids, user_id):
+    def _build_transaction_event(
+        self, environment: Environment, project_id, group_ids, user_id, timestamp
+    ):
         from sentry.event_manager import EventManager
         from sentry.utils.samples import load_data
 
@@ -807,9 +809,12 @@ class PerfTagStorageTest(TestCase, SnubaTestCase):
         event.group_ids = group_ids
         event.data["tags"].extend([("sentry:user", user_id)])
 
+        if timestamp:
+            event.data["timestamp"] = timestamp.timestamp()
+
         return event
 
-    def _produce_event(self, *insert_args, **insert_kwargs):
+    def _produce_event(self, timestamp: datetime = None, *insert_args, **insert_kwargs):
         # copy of SnubaEventStreamTest.__produce_event()
         from django.conf import settings
 
@@ -827,7 +832,6 @@ class PerfTagStorageTest(TestCase, SnubaTestCase):
         version, type_, payload1, payload2 = json.loads(produce_kwargs["value"])
         assert version == 2
         assert type_ == "insert"
-
         # insert what would have been the Kafka payload directly
         # into Snuba, expect an HTTP 200 and for the event to now exist
         snuba_eventstream = SnubaEventStream()
@@ -844,12 +848,17 @@ class PerfTagStorageTest(TestCase, SnubaTestCase):
         user_id: str,
         group_ids: Sequence[int],
         environment: Environment = None,
+        timestamp: datetime = None,
     ):
         from sentry.utils import snuba
 
-        now = timezone.now()
+        # truncate microseconds since there's some loss in precision
+        insert_time = (timestamp if timestamp else timezone.now()).replace(microsecond=0)
+
         user_id_val = f"id:{user_id}"
-        event = self._build_transaction_event(environment, project_id, group_ids, user_id_val)
+        event = self._build_transaction_event(
+            environment, project_id, group_ids, user_id_val, insert_time
+        )
 
         insert_args = ()
         insert_kwargs = {
@@ -859,56 +868,143 @@ class PerfTagStorageTest(TestCase, SnubaTestCase):
             "is_regression": False,
             "primary_hash": "acbd18db4cc2f85cedef654fccc4a4d8",
             "skip_consume": False,
-            "received_timestamp": event.data["received"],
+            "received_timestamp": insert_time.timestamp(),
         }
 
         self._produce_event(*insert_args, **insert_kwargs)
         result = snuba.raw_query(
             dataset=snuba.Dataset.Transactions,
-            start=now - timedelta(days=1),
-            end=now + timedelta(days=1),
+            start=insert_time - timedelta(days=1),
+            end=insert_time + timedelta(days=1),
             selected_columns=[
                 "event_id",
                 "project_id",
                 "environment",
                 "group_ids",
                 "tags[sentry:user]",
+                "timestamp",
             ],
             groupby=None,
             filter_keys={"project_id": [project_id], "event_id": [event.event_id]},
+            referrer="_insert_transaction.verify_transaction",
         )
         assert len(result["data"]) == 1
         assert result["data"][0]["project_id"] == project_id
         assert result["data"][0]["group_ids"] == group_ids
         assert result["data"][0]["tags[sentry:user]"] == user_id_val
         assert result["data"][0]["environment"] == (environment.name if environment else None)
+        assert result["data"][0]["timestamp"] == insert_time.isoformat()
 
         return event
 
     @patch("sentry.eventstream.insert")
-    def test_get_perf_groups_user_counts_group_ids(self, mock_eventstream_insert):
-        self._insert_transaction(self.project.id, "user1", [self.group.id], self.environment)
-        self._insert_transaction(self.project.id, "user1", [self.group.id], self.environment)
-        self._insert_transaction(self.project.id, "user2", [self.group.id], self.environment)
-        self._insert_transaction(self.project.id, "user3", [self.group.id])
+    def test_get_perf_groups_user_counts_simple(self, mock_eventstream_insert):
+        first_group = self.create_group(
+            project=self.project, first_seen=timezone.now() - timedelta(days=5)
+        )
+        self._insert_transaction(
+            self.project.id,
+            "user1",
+            [first_group.id],
+            self.environment,
+            timestamp=first_group.first_seen + timedelta(minutes=1),
+        )
+        self._insert_transaction(
+            self.project.id,
+            "user1",
+            [first_group.id],
+            self.environment,
+            timestamp=first_group.first_seen + timedelta(minutes=2),
+        )
+        self._insert_transaction(
+            self.project.id,
+            "user2",
+            [first_group.id],
+            self.environment,
+            timestamp=first_group.first_seen + timedelta(minutes=3),
+        )
+        self._insert_transaction(
+            self.project.id,
+            "user3",
+            [first_group.id],
+            timestamp=first_group.first_seen + timedelta(minutes=4),
+        )
 
-        second_group = self.create_group(project=self.project)
-        self._insert_transaction(self.project.id, "user1", [second_group.id], self.environment)
-        self._insert_transaction(self.project.id, "user1", [second_group.id], self.environment)
-        self._insert_transaction(self.project.id, "user2", [second_group.id], self.environment)
-        self._insert_transaction(self.project.id, "user3", [second_group.id])
+        second_group = self.create_group(
+            project=self.project, first_seen=timezone.now() - timedelta(hours=5)
+        )
+        self._insert_transaction(
+            self.project.id,
+            "user1",
+            [second_group.id],
+            self.environment,
+            timestamp=second_group.first_seen + timedelta(minutes=1),
+        )
+        self._insert_transaction(
+            self.project.id,
+            "user1",
+            [second_group.id],
+            self.environment,
+            timestamp=second_group.first_seen + timedelta(minutes=2),
+        )
+        self._insert_transaction(
+            self.project.id,
+            "user2",
+            [second_group.id],
+            self.environment,
+            timestamp=second_group.first_seen + timedelta(minutes=3),
+        )
+        self._insert_transaction(
+            self.project.id,
+            "user3",
+            [second_group.id],
+            timestamp=second_group.first_seen + timedelta(minutes=4),
+        )
 
         # should have no effect on user_counts
         self._insert_transaction(self.project.id, "user_nogroup", [], self.environment)
 
         assert self.ts.get_perf_groups_user_counts(
             [self.project.id],
-            group_ids=[self.group.id, second_group.id],
+            group_ids=[first_group.id, second_group.id],
             environment_ids=[self.environment.id],
-        ) == {self.group.id: 2, second_group.id: 2}
+        ) == {first_group.id: 2, second_group.id: 2}
         assert self.ts.get_perf_groups_user_counts(
-            [self.project.id], group_ids=[self.group.id, second_group.id], environment_ids=None
-        ) == {self.group.id: 3, second_group.id: 3}
+            [self.project.id], group_ids=[first_group.id, second_group.id], environment_ids=None
+        ) == {first_group.id: 3, second_group.id: 3}
+
+    @patch("sentry.eventstream.insert")
+    def test_get_perf_group_list_tag_value_by_environment(self, mock_eventstream_insert):
+        new_group = self.create_group(
+            project=self.project, first_seen=timezone.now() - timedelta(hours=1)
+        )
+        first_event_ts = new_group.first_seen + timedelta(minutes=1)
+        self._insert_transaction(
+            self.project.id, "user1", [new_group.id], self.environment, timestamp=first_event_ts
+        )
+        last_event_ts = new_group.first_seen + timedelta(hours=1)
+        self._insert_transaction(
+            self.project.id, "user1", [new_group.id], self.environment, timestamp=last_event_ts
+        )
+
+        group_seen_stats = self.ts.get_perf_group_list_tag_value(
+            [new_group.project_id],
+            [new_group.id],
+            [self.environment.id],
+            "environment",
+            self.environment.name,
+        )
+
+        assert group_seen_stats == {
+            new_group.id: GroupTagValue(
+                key="environment",
+                value=self.environment.name,
+                group_id=new_group.id,
+                times_seen=2,
+                first_seen=first_event_ts.replace(microsecond=0),
+                last_seen=last_event_ts.replace(microsecond=0),
+            )
+        }
 
 
 class BaseSemverTest:

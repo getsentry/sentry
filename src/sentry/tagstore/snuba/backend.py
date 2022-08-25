@@ -453,6 +453,32 @@ class SnubaTagStorage(TagStorage):
             for issue, data in result.items()
         }
 
+    def get_perf_group_list_tag_value(
+        self, project_ids, group_id_list, environment_ids, key, value
+    ):
+        filters = {"project_id": project_ids, "group_id": group_id_list}
+        if environment_ids:
+            filters["environment"] = environment_ids
+
+        result = snuba.query(
+            dataset=Dataset.Transactions,
+            groupby=["group_id"],
+            conditions=[[f"tags[{key}]", "=", value]],
+            filter_keys=filters,
+            aggregations=[
+                ["arrayJoin", ["group_ids"], "group_id"],
+                ["count()", "", "times_seen"],
+                ["min", SEEN_COLUMN, "first_seen"],
+                ["max", SEEN_COLUMN, "last_seen"],
+            ],
+            referrer="tagstore.get_perf_group_list_tag_value",
+        )
+
+        return {
+            issue: GroupTagValue(key=key, value=value, **fix_tag_value_data(data))
+            for issue, data in result.items()
+        }
+
     def get_group_seen_values_for_environments(
         self, project_ids, group_id_list, environment_ids, start=None, end=None
     ):

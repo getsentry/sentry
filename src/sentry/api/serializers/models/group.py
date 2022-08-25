@@ -743,12 +743,45 @@ class GroupSerializer(GroupSerializerBase):
     def _seen_stats_performance(
         self, perf_issue_list: Sequence[Group], user
     ) -> Mapping[Group, SeenStats]:
-        # TODO(gilbert): implement this to return real data
-        if perf_issue_list:
-            raise NotImplementedError
+        try:
+            environment = self.environment_func()
+        except Environment.DoesNotExist:
+            return {
+                item: {"times_seen": 0, "first_seen": None, "last_seen": None, "user_count": 0}
+                for item in perf_issue_list
+            }
+
+        project_id = perf_issue_list[0].project_id
+        item_ids = [g.id for g in perf_issue_list]
+        user_counts: Mapping[int, int] = tagstore.get_perf_groups_user_counts(
+            [project_id], item_ids, environment_ids=environment and [environment.id]
+        )
+        first_seen: MutableMapping[int, datetime] = {}
+        last_seen: MutableMapping[int, datetime] = {}
+        times_seen: MutableMapping[int, int] = {}
+
+        if environment is not None:
+            environment_tagvalues = tagstore.get_group_list_tag_value(
+                [project_id], item_ids, [environment.id], "environment", environment.name
+            )
+            for item_id, value in environment_tagvalues.items():
+                first_seen[item_id] = value.first_seen
+                last_seen[item_id] = value.last_seen
+                times_seen[item_id] = value.times_seen
+        else:
+            # fallback to the model data since we can't query tagstore
+            for item in perf_issue_list:
+                first_seen[item.id] = item.first_seen
+                last_seen[item.id] = item.last_seen
+                times_seen[item.id] = item.times_seen
 
         return {
-            item: {"times_seen": 0, "first_seen": None, "last_seen": None, "user_count": 0}
+            item: {
+                "times_seen": times_seen.get(item.id, 0),
+                "first_seen": first_seen.get(item.id),
+                "last_seen": last_seen.get(item.id),
+                "user_count": user_counts.get(item.id, 0),
+            }
             for item in perf_issue_list
         }
 
