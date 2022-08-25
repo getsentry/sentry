@@ -100,6 +100,7 @@ const VoiceButton = styled('button')<VoiceButtonProps>`
     background-color: ${props => (props.active ? '#584AC0' : '#eee')};
     z-index: -1;
     transition: background-color 0.3s ease-in-out;
+    box-shadow: 3px 3px 15px rgb(0 0 0 / 33%);
   }
 
   ${props =>

@@ -121,11 +121,15 @@ class VoiceAssistantPanel extends React.Component<
       }));
     };
 
-    const setStateSpeechResultWithDelay = (result: string, style: NotifyStyle) => {
+    const clearSpeechResultBox = () => {
+      this.clearSpeechResultBox();
+    };
+
+    const setStateSpeechResultWithTimeout = (result: string, style: NotifyStyle) => {
       setStateSpeechResult(result, style);
       const CLOSE_TIMEOUT_MS = 5000;
       setTimeout(() => {
-        setStateSpeechResult('', NotifyStyle.Empty);
+        clearSpeechResultBox();
       }, CLOSE_TIMEOUT_MS);
     };
 
@@ -156,7 +160,7 @@ class VoiceAssistantPanel extends React.Component<
       );
 
       if (matchResult && matchedAlternative) {
-        setStateSpeechResultWithDelay(
+        setStateSpeechResultWithTimeout(
           matchedAlternative.transcript,
           NotifyStyle.RecognizedResult
         );
@@ -178,8 +182,8 @@ class VoiceAssistantPanel extends React.Component<
         // TODO: Take the alternative with highest confidence
         const bestAlternative = recognitionAlternatives[0];
 
-        setStateSpeechResultWithDelay(
-          `Command not recognized: "${bestAlternative.transcript}"`,
+        setStateSpeechResultWithTimeout(
+          `Ooof, not sure what you mean: "${bestAlternative.transcript}"`,
           NotifyStyle.UnrecognizedResult
         );
 
@@ -196,7 +200,7 @@ class VoiceAssistantPanel extends React.Component<
     recognition.onerror = function (event) {
       console.log('SpeechRecognition.onerror');
       console.log('Error occurred in recognition: ' + event.error);
-      setStateSpeechResultWithDelay(
+      setStateSpeechResultWithTimeout(
         `Error occured in recognition: ${event.error}`,
         NotifyStyle.Error
       );
@@ -218,7 +222,7 @@ class VoiceAssistantPanel extends React.Component<
       console.log('SpeechRecognition.onend');
       if (!getSpeechResult()) {
         console.log('Speech recognition: no result received!');
-        setStateSpeechResultWithDelay('No result received!', NotifyStyle.Error);
+        setStateSpeechResultWithTimeout('No result received!', NotifyStyle.Error);
       }
     };
 

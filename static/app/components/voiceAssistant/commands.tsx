@@ -23,6 +23,12 @@ export const recognitionCommands = [
     ['user', 'users'],
     ['misery']
   ),
+  new HierarchicalCommand(
+    'go_first_project',
+    ['go', 'navigate', 'open'],
+    ['first'],
+    ['project', 'projects']
+  ),
 ];
 
 // Mappings
@@ -50,6 +56,15 @@ export function getRecognitionActionMapping(
     navigate_project_keys: () => {
       router.push({
         pathname: `/settings/${params.orgId}/projects/${params.projectId}/keys/`,
+      });
+    },
+    go_first_project: () => {
+      const projectSpan = document.querySelector(
+        'span[data-test-id="badge-display-name"]'
+      ) as HTMLSpanElement;
+      const projectName = projectSpan.children[0].textContent as string;
+      router.push({
+        pathname: `/organizations/${params.orgId}/projects/${projectName}/`,
       });
     },
     show_apdex_score: async () => {
