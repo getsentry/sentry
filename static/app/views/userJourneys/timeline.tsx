@@ -137,6 +137,7 @@ const ItemRow = styled('div')`
   display: flex;
   flex-direction: row;
   gap: ${space(3)};
+  justify-content: center;
   height: 110px;
 `;
 

@@ -1,4 +1,5 @@
 import {useEffect, useRef} from 'react';
+import styled from '@emotion/styled';
 
 import {Breadcrumb} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb';
 import {PanelTable} from 'sentry/components/panels';
@@ -66,7 +67,7 @@ function BreadcrumbItem(props: Props) {
   }, [isActive]);
 
   return (
-    <div key={breadcrumb.id} ref={breadcrumbRef}>
+    <BreadcrumbWrapper isActive={isActive} key={breadcrumb.id} ref={breadcrumbRef}>
       <Breadcrumb
         data-test-id={isLastItem ? 'last-crumb' : 'crumb'}
         style={{}}
@@ -83,8 +84,12 @@ function BreadcrumbItem(props: Props) {
         router={router}
         route={route}
       />
-    </div>
+    </BreadcrumbWrapper>
   );
 }
+
+const BreadcrumbWrapper = styled('div')<{isActive: boolean | undefined}>`
+  background: ${p => (p.isActive ? '#FDFF47' : 'inherit')};
+`;
 
 export default BreadcrumbItem;
