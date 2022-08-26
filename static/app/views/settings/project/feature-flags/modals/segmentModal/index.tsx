@@ -258,7 +258,7 @@ export function SegmentModal({
       try {
         value = JSON.parse(payload);
         if (!isPlainObject(value)) {
-          error = 'needs to be an object';
+          error = t('Needs to be an object');
         }
       } catch (err) {
         error = err.toString();

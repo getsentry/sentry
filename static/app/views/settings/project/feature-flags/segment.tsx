@@ -232,6 +232,7 @@ export const Column = styled('div')`
   padding: ${space(1)} ${space(2)};
   white-space: pre-wrap;
   word-break: break-all;
+  align-items: flex-start;
 `;
 
 export const ActionsColumn = styled(Column)`
@@ -290,16 +291,11 @@ const Type = styled('div')`
 
 const Grabber = styled('div')<{disabled?: boolean}>`
   width: 16px;
-  [role='button'] {
-    cursor: grab;
-  }
+  cursor: grabbing;
 
   ${p =>
     p.disabled &&
     css`
-      [role='button'] {
-        cursor: not-allowed;
-      }
       cursor: not-allowed;
       color: ${p.theme.disabled};
     `}
