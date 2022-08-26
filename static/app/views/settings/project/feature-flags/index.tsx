@@ -61,11 +61,11 @@ export default function ProjectFeatureFlags({project}: Props) {
   async function handleAddFlag(key: string | undefined) {
     if (key && preDefinedFeatureFlags[key]) {
       try {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const {description, ...defaults} = preDefinedFeatureFlags[key];
         const newFeatureFlags = {
           ...flags,
-          [key]: {
-            ...preDefinedFeatureFlags[key],
-          },
+          [key]: defaults,
         };
         const response = await api.requestPromise(
           `/projects/${organization.slug}/${project.slug}/`,
@@ -267,6 +267,11 @@ export default function ProjectFeatureFlags({project}: Props) {
     );
   });
   filteredFlags.sort((a, b) => {
+    const aPre = !!preDefinedFeatureFlags[a];
+    const bPre = !!preDefinedFeatureFlags[b];
+    if (aPre !== bPre) {
+      return (aPre && -1) || 1;
+    }
     return a.localeCompare(b, 'en', {sensitivity: 'base'});
   });
 
@@ -335,7 +340,10 @@ export default function ProjectFeatureFlags({project}: Props) {
                     flagKey={filteredFlag}
                     kind={flags[filteredFlag].kind}
                     enabled={flags[filteredFlag].enabled}
-                    description={flags[filteredFlag].description}
+                    description={
+                      preDefinedFeatureFlags[filteredFlag]?.description ||
+                      flags[filteredFlag].description
+                    }
                     segments={flags[filteredFlag].evaluation}
                     onDelete={() => handleDeleteFlag(filteredFlag)}
                     onEdit={() => handleEditFlag(filteredFlag)}

@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -7,6 +8,8 @@ import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import NewBooleanField from 'sentry/components/forms/booleanField';
 import {Panel} from 'sentry/components/panels';
+import Tag from 'sentry/components/tagDeprecated';
+import Tooltip from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -74,7 +77,10 @@ export function Card({
     <Wrapper hasSegment={!!segments.length}>
       <Header>
         <div>
-          <Key>{preDefinedFeatureFlags[flagKey]?.humanReadableName ?? flagKey}</Key>
+          <Key>
+            {preDefinedFeatureFlags[flagKey]?.humanReadableName ?? flagKey}
+            {preDefinedFeatureFlags[flagKey] && <PreDefinedMarker type="beta" />}
+          </Key>
           {description && <Description>{description}</Description>}
         </div>
         <Actions>
@@ -173,3 +179,18 @@ const Actions = styled('div')`
   justify-content: flex-end;
   align-items: center;
 `;
+
+const BuiltinTag = styled(Tag)`
+  margin-top: -3px;
+  margin-left: ${space(1)};
+`;
+
+const PreDefinedMarker = () => {
+  return (
+    <Tooltip title="This is an built-in SDK feature flag" position="right">
+      <Fragment>
+        <BuiltinTag priority="info">{'built-in'}</BuiltinTag>
+      </Fragment>
+    </Tooltip>
+  );
+};
