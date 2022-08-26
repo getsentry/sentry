@@ -19,6 +19,7 @@ import pytz
 import urllib3
 
 from sentry import quotas
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.eventstream.base import EventStream
 from sentry.utils import json, snuba
 from sentry.utils.safe import get_path
@@ -118,6 +119,12 @@ class SnubaProtocolEventStream(EventStream):
         skip_consume: bool = False,
         **kwargs: Any,
     ) -> None:
+        if isinstance(event, GroupEvent):
+            logger.error(
+                "`GroupEvent` passed to `EventStream.insert`. Only `Event` is allowed here.",
+                exc_info=True,
+            )
+            return
         project = event.project
         set_current_event_project(project.id)
         retention_days = quotas.get_event_retention(organization=project.organization)
