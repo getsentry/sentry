@@ -14,6 +14,7 @@ export type FeatureFlagSegment = {
   id: number;
   result: number | string | boolean;
   type: EvaluationType;
+  payload?: string;
   percentage?: number;
   tags?: Record<string, string | string[]>;
 };

@@ -116,3 +116,16 @@ export function isValidSampleRate(sampleRate: number | undefined) {
 
   return !isNaN(sampleRate) && sampleRate <= 1 && sampleRate >= 0;
 }
+
+export function isJson(payload?: string) {
+  if (!defined(payload)) {
+    return false;
+  }
+
+  try {
+    JSON.parse(payload);
+  } catch {
+    return false;
+  }
+  return true;
+}

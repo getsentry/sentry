@@ -7,7 +7,12 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {BooleanField, NumberField, TextField} from 'sentry/components/forms';
+import {
+  BooleanField,
+  NumberField,
+  TextareaField,
+  TextField,
+} from 'sentry/components/forms';
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import Slider from 'sentry/components/forms/controls/rangeSlider/slider';
@@ -38,16 +43,15 @@ import {isCustomTag} from '../../utils';
 import {Tag, Tags} from './tags';
 import {
   generateTagCategoriesOptions,
+  isJson,
   isValidSampleRate,
   percentageToRate,
   rateToPercentage,
   validResultValue,
 } from './utils';
 
-type State = {
+type State = Pick<FeatureFlagSegment, 'percentage' | 'type' | 'payload'> & {
   tags: Tag[];
-  type: FeatureFlagSegment['type'];
-  percentage?: FeatureFlagSegment['percentage'];
   result?: FeatureFlagSegment['result'];
 };
 
@@ -73,6 +77,7 @@ export function SegmentModal({
   const api = useApi();
   const [data, setData] = useState<State>(getInitialState());
   const [isSaving, setIsSaving] = useState(false);
+  const [errors, setErrors] = useState<{payload?: string}>({});
 
   const tagCategories = generateTagCategoriesOptions([
     FeatureFlagSegmentTagKind.RELEASE,
@@ -99,6 +104,7 @@ export function SegmentModal({
         percentage: defined(segment.percentage)
           ? rateToPercentage(segment.percentage)
           : 0,
+        payload: segment.payload,
       };
     }
 
@@ -156,6 +162,10 @@ export function SegmentModal({
 
     if (data.type === EvaluationType.Rollout) {
       newSegment.percentage = percentageToRate(data.percentage);
+    }
+
+    if (!!data.payload) {
+      newSegment.payload = data.payload;
     }
 
     if (defined(segmentIndex)) {
@@ -227,6 +237,16 @@ export function SegmentModal({
     setData({...data, tags: newTags});
   }
 
+  function handlePayloadChange(payload: FeatureFlagSegment['payload']) {
+    if (!isJson(payload)) {
+      setData({...data, payload: undefined});
+      setErrors({...errors, payload: t('Invalid JSON')});
+      return;
+    }
+    setData({...data, payload});
+    setErrors({...errors, payload: undefined});
+  }
+
   const segmentTypeChoices = flags[flagKey].evaluation.reduce(
     (acc, evaluation) => {
       if (!acc.some(value => value[0] === evaluation.type)) {
@@ -269,7 +289,8 @@ export function SegmentModal({
   const submitDisabled =
     data.tags.some(condition => !condition.match) ||
     !validResultValue(data.result) ||
-    !validSamplerate;
+    !validSamplerate ||
+    !!errors.payload;
 
   return (
     <Fragment>
@@ -354,6 +375,24 @@ export function SegmentModal({
               )}
             </PanelBody>
           </StyledPanel>
+          <StyledTextareaField
+            label={t('Json Payload')}
+            placeholder={`{\n   key: value\n}`}
+            name="payload"
+            onChange={handlePayloadChange}
+            onKeyDown={(_value: string, e: KeyboardEvent) => {
+              if (e.key === 'Enter') {
+                handleSubmit();
+              }
+            }}
+            value={data.payload}
+            inline={false}
+            rows={3}
+            autosize
+            error={errors.payload}
+            hideControlState={!errors.payload}
+            stacked
+          />
           {data.type === EvaluationType.Rollout && (
             <StyledField
               label={`${t('Rollout')} \u0025`}
@@ -449,6 +488,10 @@ export function SegmentModal({
     </Fragment>
   );
 }
+
+const StyledTextareaField = styled(TextareaField)`
+  padding: 0;
+`;
 
 const AddCustomTag = styled('div')<{isFocused: boolean}>`
   display: flex;
