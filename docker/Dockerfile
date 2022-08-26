@@ -1,40 +1,14 @@
 FROM python:3.8.13-slim-bullseye
 
-LABEL maintainer="oss@sentry.io"
-LABEL org.opencontainers.image.title="Sentry"
-LABEL org.opencontainers.image.description="Sentry runtime image"
-LABEL org.opencontainers.image.url="https://sentry.io/"
-LABEL org.opencontainers.image.documentation="https://develop.sentry.dev/self-hosted/"
-LABEL org.opencontainers.image.vendor="Functional Software, Inc."
-LABEL org.opencontainers.image.authors="oss@sentry.io"
-
 # add our user and group first to make sure their IDs get assigned consistently
 RUN groupadd -r sentry && useradd -r -m -g sentry sentry
 
-ENV GOSU_VERSION=1.12 \
-  GOSU_SHA256=0f25a21cf64e58078057adc78f38705163c1d564a959ff30a891c31917011a54 \
-  TINI_VERSION=0.19.0 \
-  TINI_SHA256=93dcc18adc78c65a028a84799ecf8ad40c936fdfc5f2a57b1acda5a8117fa82c
-
-
-RUN set -x \
-  && buildDeps=" \
-  wget \
-  " \
-  && apt-get update && apt-get install -y --no-install-recommends $buildDeps \
-  && rm -rf /var/lib/apt/lists/* \
-  # grab gosu for easy step-down from root
-  && wget -O /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-amd64" \
-  && echo "$GOSU_SHA256 /usr/local/bin/gosu" | sha256sum --check --status \
-  && chmod +x /usr/local/bin/gosu \
-  # grab tini for signal processing and zombie killing
-  && wget -O /usr/local/bin/tini "https://github.com/krallin/tini/releases/download/v$TINI_VERSION/tini-amd64" \
-  && echo "$TINI_SHA256 /usr/local/bin/tini" | sha256sum --check --status \
-  && chmod +x /usr/local/bin/tini \
-  && apt-get purge -y --auto-remove $buildDeps
-
 # Sane defaults for pip
 ENV \
+  GOSU_VERSION=1.12 \
+  GOSU_SHA256=0f25a21cf64e58078057adc78f38705163c1d564a959ff30a891c31917011a54 \
+  TINI_VERSION=0.19.0 \
+  TINI_SHA256=93dcc18adc78c65a028a84799ecf8ad40c936fdfc5f2a57b1acda5a8117fa82c \
   PIP_NO_CACHE_DIR=1 \
   PIP_DISABLE_PIP_VERSION_CHECK=1 \
   # Sentry config params
@@ -47,14 +21,32 @@ ENV \
   # grpcio>1.30.0 requires this, see requirements.txt for more detail.
   GRPC_POLL_STRATEGY=epoll1
 
-# Install dependencies first to leverage Docker layer caching.
-COPY /dist/requirements-frozen.txt /tmp/requirements-frozen.txt
+COPY ./requirements-frozen.txt /tmp/requirements-frozen.txt
+
 RUN set -x \
   && buildDeps="" \
+  buildDeps=" \
+  wget \
+  " \
+  && apt-get update && apt-get install -y --no-install-recommends $buildDeps \
+  && rm -rf /var/lib/apt/lists/* \
+  # grab gosu for easy step-down from root
+  && wget -O /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-amd64" \
+  && echo "$GOSU_SHA256 /usr/local/bin/gosu" | sha256sum --check --status \
+  && chmod +x /usr/local/bin/gosu \
+  # grab tini for signal processing and zombie killing
+  && wget -O /usr/local/bin/tini "https://github.com/krallin/tini/releases/download/v$TINI_VERSION/tini-amd64" \
+  && echo "$TINI_SHA256 /usr/local/bin/tini" | sha256sum --check --status \
+  && chmod +x /usr/local/bin/tini \
+  && apt-get purge -y --auto-remove $buildDeps \
   # uwsgi
   && buildDeps="$buildDeps \
   gcc \
   wget \
+  " \
+  # psycopg2-binary
+  && buildDeps="$buildDeps \
+  libpq-dev \
   " \
   # maxminddb
   && buildDeps="$buildDeps \
@@ -67,7 +59,11 @@ RUN set -x \
   " \
   && apt-get update \
   && apt-get install -y --no-install-recommends $buildDeps \
+  # Using our build packages
+  && pip install --index-url https://pypi.devinfra.sentry.io/simple confluent-kafka==1.9.2 psycopg2-binary==2.8.6 \
   && pip install -r /tmp/requirements-frozen.txt \
+  # HACK: Since we can't install from /dist
+  && pip install sentry \
   && mkdir /tmp/uwsgi-dogstatsd \
   && wget -O - https://github.com/eventbrite/uwsgi-dogstatsd/archive/filters-and-tags.tar.gz | \
   tar -xzf - -C /tmp/uwsgi-dogstatsd --strip-components=1 \
@@ -101,23 +97,12 @@ RUN set -x \
   # Fully verify that the C extension is correctly installed, it unfortunately
   # requires a full check into maxminddb.extension.Reader
   && python -c 'import maxminddb.extension; maxminddb.extension.Reader' \
-  && mkdir -p $SENTRY_CONF
+  && mkdir -p $SENTRY_CONF \
+  && sentry help | sed '1,/Commands:/d' | awk '{print $1}' >  /sentry-commands.txt
 
-COPY /dist/*.whl /tmp/dist/
-RUN pip install /tmp/dist/*.whl --no-deps && pip check && rm -rf /tmp/dist
-RUN sentry help | sed '1,/Commands:/d' | awk '{print $1}' >  /sentry-commands.txt
+COPY ./docker/sentry.conf.py ./docker/config.yml ./docker/docker-entrypoint.sh $SENTRY_CONF/
 
-COPY ./docker/sentry.conf.py ./docker/config.yml $SENTRY_CONF/
-COPY ./docker/docker-entrypoint.sh /
-
-EXPOSE 9000
-VOLUME /data
-
-ENTRYPOINT exec /docker-entrypoint.sh "$0" "$@"
-CMD ["run", "web"]
-
-ARG SOURCE_COMMIT
-ENV SENTRY_BUILD=${SOURCE_COMMIT:-unknown}
-LABEL org.opencontainers.image.revision=$SOURCE_COMMIT
-LABEL org.opencontainers.image.source="https://github.com/getsentry/sentry/tree/${SOURCE_COMMIT:-master}/"
-LABEL org.opencontainers.image.licenses="https://github.com/getsentry/sentry/blob/${SOURCE_COMMIT:-master}/LICENSE"
+ENTRYPOINT exec $SENTRY_CONF/docker-entrypoint.sh "$0" "$@"
+# Heroku use $PORT, thus, it will overwrite this
+ENV PORT="8000"
+CMD sentry run web --bind :$PORT
