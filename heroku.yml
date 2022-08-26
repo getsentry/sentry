@@ -1,7 +1,0 @@
-build:
-  docker:
-    web: Dockerfile
-release:
-  image: web
-  command:
-    - sentry upgrade
