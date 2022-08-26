@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
+import {TextField} from 'sentry/components/forms';
 import FieldRequiredBadge from 'sentry/components/forms/field/fieldRequiredBadge';
-import TextareaField from 'sentry/components/forms/textareaField';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -67,7 +67,7 @@ export function Tags({tags, orgSlug, projectId, projectSlug, onDelete, onChange}
                   onChange={value => onChange(index, 'match', value)}
                 />
               ) : (
-                <StyledTextareaField
+                <StyledTextField
                   name="match"
                   value={match}
                   onChange={value => onChange(index, 'match', value)}
@@ -141,7 +141,7 @@ const RightCell = styled(Cell)`
   padding-left: ${space(1)};
 `;
 
-const StyledTextareaField = styled(TextareaField)`
+const StyledTextField = styled(TextField)`
   padding-bottom: 0;
   width: 100%;
 `;
