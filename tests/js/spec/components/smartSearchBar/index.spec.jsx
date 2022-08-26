@@ -76,8 +76,6 @@ describe('SmartSearchBar', function () {
       onGetTagValues: jest.fn().mockResolvedValue([]),
       onSearch: jest.fn(),
     };
-
-    // jest.resetAllMocks();
   });
 
   afterEach(function () {
@@ -316,15 +314,9 @@ describe('SmartSearchBar', function () {
   });
 
   it('handles an empty query', function () {
-    const props = {
-      query: '',
-      defaultQuery: 'is:unresolved',
-      organization,
-      location,
-      supportedTags,
-    };
-    const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
-    expect(wrapper.state('query')).toEqual('');
+    render(<SmartSearchBar {...defaultProps} query="" />);
+
+    expect(screen.getByRole('textbox')).toHaveValue('');
   });
 
   describe('updateAutoCompleteItems()', function () {
