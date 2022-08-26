@@ -22,6 +22,7 @@ import {
 } from './segment';
 
 type Props = {
+  canGrab: boolean;
   flagKind: FeatureFlagKind;
   hasAccess: boolean;
   onDeleteSegment: (index: number) => void;
@@ -29,7 +30,6 @@ type Props = {
   onSort: (props: DraggableRuleListUpdateItemsProps) => void;
   onToggleBooleanSegment: (index: number) => void;
   segments: FeatureFlagSegment[];
-  showGrab?: boolean;
 };
 
 export function Segments({
@@ -39,7 +39,7 @@ export function Segments({
   hasAccess,
   onSort,
   segments,
-  showGrab,
+  canGrab,
   flagKind,
 }: Props) {
   const items = segments.map(segment => ({
@@ -101,7 +101,7 @@ export function Segments({
                 onEdit={() => onEditSegment(index)}
                 onToggle={() => onToggleBooleanSegment(index)}
                 hasAccess={hasAccess}
-                showGrab={showGrab}
+                canGrab={canGrab}
                 flagKind={flagKind}
               />
             );

@@ -22,6 +22,7 @@ import {rateToPercentage} from '../server-side-sampling/utils';
 import {getCustomTagLabel, isCustomTag} from './utils';
 
 type Props = {
+  canGrab: boolean;
   dragging: boolean;
   flagKind: FeatureFlagKind;
   hasAccess: boolean;
@@ -31,7 +32,6 @@ type Props = {
   onToggle: () => void;
   segment: FeatureFlagSegment;
   grabAttributes?: UseDraggableArguments['attributes'];
-  showGrab?: boolean;
 };
 
 export function Segment({
@@ -40,7 +40,7 @@ export function Segment({
   onEdit,
   hasAccess,
   segment,
-  showGrab,
+  canGrab,
   flagKind,
   listeners,
   grabAttributes,
@@ -51,23 +51,30 @@ export function Segment({
   return (
     <SegmentsLayout isContent onClick={onEdit}>
       <ActionsColumn>
-        <Grabber disabled={!hasAccess || !showGrab}>
+        <Grabber
+          disabled={!hasAccess || !canGrab}
+          onClick={e => {
+            if (!hasAccess || !canGrab) {
+              e.preventDefault();
+              e.stopPropagation();
+            }
+          }}
+        >
           <Tooltip
             containerDisplayMode="inline-flex"
             title={
-              !showGrab
+              !canGrab
                 ? t('Add more segments to be able to sort')
                 : !hasAccess
                 ? t("You don't have access to sort segments")
                 : undefined
             }
-            disabled={showGrab}
+            disabled={canGrab}
           >
             <IconGrabbableWrapper
-              {...listeners}
-              {...grabAttributes}
+              {...(canGrab && {...listeners, ...grabAttributes})}
               aria-label={dragging ? t('Drop Segment') : t('Drag Segment')}
-              aria-disabled={!hasAccess || !showGrab}
+              aria-disabled={!hasAccess || !canGrab}
             >
               <IconGrabbable />
             </IconGrabbableWrapper>
@@ -251,6 +258,7 @@ const Grabber = styled('div')<{disabled?: boolean}>`
       [role='button'] {
         cursor: not-allowed;
       }
+      cursor: not-allowed;
       color: ${p.theme.disabled};
     `}
 
