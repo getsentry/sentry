@@ -391,18 +391,14 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         time_range_result = self._parse_seen_stats_results(
             partial_execute_seen_stats_query(),
             error_issue_list,
-            self.start,
-            self.end,
-            self.conditions,
+            self.start or self.end or self.conditions,
             self.environment_ids,
         )
         filtered_result = (
             self._parse_seen_stats_results(
                 partial_execute_seen_stats_query(conditions=self.conditions),
                 error_issue_list,
-                self.start,
-                self.end,
-                self.conditions,
+                self.start or self.end or self.conditions,
                 self.environment_ids,
             )
             if self.conditions and not self._collapse("filtered")
@@ -413,9 +409,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 self._parse_seen_stats_results(
                     partial_execute_seen_stats_query(start=None, end=None),
                     error_issue_list,
-                    None,
-                    None,
-                    None,
+                    False,
                     self.environment_ids,
                 )
                 if self.start or self.end

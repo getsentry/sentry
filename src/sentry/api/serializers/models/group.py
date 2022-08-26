@@ -882,9 +882,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
                 environment_ids=self.environment_ids,
             ),
             error_issue_list,
-            self.start,
-            self.end,
-            self.conditions,
+            self.start or self.end or self.conditions,
             self.environment_ids,
         )
 
@@ -900,9 +898,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
                 environment_ids=self.environment_ids,
             ),
             perf_issue_list,
-            self.start,
-            self.end,
-            self.conditions,
+            self.start or self.end or self.conditions,
             self.environment_ids,
         )
 
@@ -961,7 +957,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
 
     @staticmethod
     def _parse_seen_stats_results(
-        result, item_list, start=None, end=None, conditions=None, environment_ids=None
+        result, item_list, use_result_first_seen_times_seen, environment_ids=None
     ):
         seen_data = {
             issue["group_id"]: fix_tag_value_data(
@@ -971,7 +967,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         }
         user_counts = {item_id: value["count"] for item_id, value in seen_data.items()}
         last_seen = {item_id: value["last_seen"] for item_id, value in seen_data.items()}
-        if start or end or conditions:
+        if use_result_first_seen_times_seen:
             first_seen = {item_id: value["first_seen"] for item_id, value in seen_data.items()}
             times_seen = {item_id: value["times_seen"] for item_id, value in seen_data.items()}
         else:
