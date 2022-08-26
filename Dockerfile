@@ -57,17 +57,10 @@ RUN set -x \
   libxmlsec1-dev \
   pkg-config \
   " \
-  # confluent-kafka
-  && buildDeps="$buildDeps \
-  gcc git libssl-dev g++ make \
-  " \
   && apt-get update \
   && apt-get install -y --no-install-recommends $buildDeps \
-  # confluent-kafka
-  && cd /tmp && git clone https://github.com/edenhill/librdkafka.git \
-  && cd librdkafka && git checkout tags/v1.9.0 \
-  && ./configure && make && make install \
-  && cd ../ && rm -rf librdkafka \
+  # Using our build packages
+  && pip install --index-url https://pypi.devinfra.sentry.io/simple confluent-kafka==1.9.2 psycopg2-binary==2.8.6 \
   && pip install -r /tmp/requirements-frozen.txt \
   # HACK: Since we can't install from /dist
   && pip install sentry \
