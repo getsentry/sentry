@@ -1,4 +1,3 @@
-import isObject from 'lodash/isObject';
 import round from 'lodash/round';
 
 import {t, tct} from 'sentry/locale';
@@ -108,17 +107,4 @@ export function percentageToRate(rate: number | undefined, decimalPlaces: number
   }
 
   return round(rate / 100, decimalPlaces);
-}
-
-export function isJsonObject(payload?: string) {
-  if (!defined(payload)) {
-    return false;
-  }
-
-  try {
-    const value = JSON.parse(payload);
-    return isObject(value);
-  } catch {
-    return false;
-  }
 }

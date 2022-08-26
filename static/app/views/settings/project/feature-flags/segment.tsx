@@ -167,7 +167,7 @@ export function Segment({
             e.stopPropagation();
           }}
         >
-          <StyledContextData data={JSON.parse(segment.payload)} />
+          <StyledContextData data={segment.payload} />
         </Payload>
       )}
     </SegmentsLayout>

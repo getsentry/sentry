@@ -1,6 +1,7 @@
 import {Fragment, useState} from 'react';
 import {components, createFilter} from 'react-select';
 import styled from '@emotion/styled';
+import isPlainObject from 'lodash/isPlainObject';
 import startCase from 'lodash/startCase';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -43,7 +44,6 @@ import {isCustomTag, preDefinedFeatureFlags} from '../../utils';
 import {Tag, Tags} from './tags';
 import {
   generateTagCategoriesOptions,
-  isJsonObject,
   percentageToRate,
   rateToPercentage,
   validResultValue,
@@ -75,6 +75,9 @@ export function SegmentModal({
 }: Props) {
   const api = useApi();
   const [data, setData] = useState<State>(getInitialState());
+  const [stringPayload, setStringPayload] = useState(() =>
+    data.payload ? JSON.stringify(data.payload, null, 2) : ''
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<{payload?: string}>({});
 
@@ -174,7 +177,7 @@ export function SegmentModal({
       newSegment.percentage = percentageToRate(data.percentage);
     }
 
-    if (!!data.payload) {
+    if (data.payload) {
       newSegment.payload = data.payload;
     }
 
@@ -247,14 +250,28 @@ export function SegmentModal({
     setData({...data, tags: newTags});
   }
 
-  function handlePayloadChange(payload: FeatureFlagSegment['payload']) {
-    if (!isJsonObject(payload)) {
-      setData({...data, payload: undefined});
-      setErrors({...errors, payload: t('Invalid JSON object')});
-      return;
+  function handlePayloadChange(payload?: string) {
+    let value;
+    let error;
+
+    if (payload && payload.trim().length > 0) {
+      try {
+        value = JSON.parse(payload);
+        if (!isPlainObject(value)) {
+          error = 'needs to be an object';
+        }
+      } catch (err) {
+        error = err.toString();
+      }
     }
-    setData({...data, payload});
-    setErrors({...errors, payload: undefined});
+
+    if (error) {
+      setData({...data, payload: undefined});
+      setErrors({...errors, payload: t('Invalid JSON: ' + error)});
+    } else {
+      setData({...data, payload: value});
+      setErrors({...errors, payload: undefined});
+    }
   }
 
   const segmentTypeChoices = flags[flagKey].evaluation.reduce(
@@ -378,15 +395,18 @@ export function SegmentModal({
           {!preDefinedFeatureFlags[flagKey]?.payloadDisabled && (
             <StyledTextareaField
               label={t('JSON Payload')}
-              placeholder={`{\n   key: value\n}`}
+              placeholder={`{\n "key": "value"\n}`}
               name="payload"
-              onChange={handlePayloadChange}
+              onChange={value => {
+                handlePayloadChange(value);
+                setStringPayload(value);
+              }}
               onKeyDown={(_value: string, e: KeyboardEvent) => {
                 if (e.key === 'Enter') {
                   handleSubmit();
                 }
               }}
-              value={data.payload}
+              value={stringPayload}
               inline={false}
               rows={3}
               autosize
