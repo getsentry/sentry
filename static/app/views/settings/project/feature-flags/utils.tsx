@@ -26,6 +26,7 @@ export const preDefinedFeatureFlags = {
     custom: false,
     kind: FeatureFlagKind.RATE,
     group: '',
+    payloadDisabled: true,
     evaluation: [
       {
         id: 1,
@@ -42,6 +43,7 @@ export const preDefinedFeatureFlags = {
     custom: false,
     kind: FeatureFlagKind.RATE,
     group: '',
+    payloadDisabled: true,
     evaluation: [
       {
         id: 1,
@@ -58,6 +60,7 @@ export const preDefinedFeatureFlags = {
     custom: false,
     kind: FeatureFlagKind.RATE,
     group: '',
+    payloadDisabled: true,
     evaluation: [
       {
         id: 1,
